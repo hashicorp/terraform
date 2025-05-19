@@ -1,15 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // evaluateCountExpression is our standard mechanism for interpreting an
@@ -20,9 +22,15 @@ import (
 // evaluateCountExpression differs from evaluateCountExpressionValue by
 // returning an error if the count value is not known, and converting the
 // cty.Value to an integer.
-func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags.Diagnostics) {
+//
+// If allowUnknown is false then this function will return error diagnostics
+// whenever the expression returns an unknown value. Setting allowUnknown to
+// true instead permits unknown values, indicating them by returning the
+// placeholder value -1. Callers can assume that a return value of -1 without
+// any error diagnostics represents a valid unknown value.
+func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, allowUnknown bool) (int, tfdiags.Diagnostics) {
 	countVal, diags := evaluateCountExpressionValue(expr, ctx)
-	if !countVal.IsKnown() {
+	if !allowUnknown && !countVal.IsKnown() {
 		// Currently this is a rather bad outcome from a UX standpoint, since we have
 		// no real mechanism to deal with this situation and all we can do is produce
 		// an error message.
@@ -41,6 +49,18 @@ func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags
 			// hidden away inside evaluateCountExpressionValue.
 			Extra: diagnosticCausedByUnknown(true),
 		})
+	}
+
+	// Ephemeral values are not allowed in count expressions.
+	if countVal.HasMark(marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid count argument",
+			Detail:   `The given "count" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values here.`,
+			Subject:  expr.Range().Ptr(),
+			Extra:    DiagnosticCausedByEphemeral(true),
+		})
+		return -1, diags
 	}
 
 	if countVal.IsNull() || !countVal.IsKnown() {
@@ -67,8 +87,26 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		return nullCount, diags
 	}
 
-	// Unmark the count value, sensitive values are allowed in count but not for_each,
-	// as using it here will not disclose the sensitive value
+	if countVal.HasMark(marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid count argument",
+			Detail:   `The given "count" is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify the number of resource instances.`,
+			Subject:  expr.Range().Ptr(),
+
+			// TODO: Also populate Expression and EvalContext in here, but
+			// we can't easily do that right now because the hcl.EvalContext
+			// (which is not the same as the ctx we have in scope here) is
+			// hidden away inside ctx.EvaluateExpr.
+			Extra: DiagnosticCausedByEphemeral(true),
+		})
+	}
+
+	// Sensitive values are allowed in count but not for_each. This is a
+	// somewhat-dubious decision because the number of instances planned
+	// will disclose exactly what the value was, but in practice it's rare
+	// for a number alone to be sensitive and so this is pragmatic, along with
+	// being required for backward-compatibility.
 	countVal, _ = countVal.Unmark()
 
 	switch {

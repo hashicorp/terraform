@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package views
 
@@ -115,12 +115,16 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	}
 
 	// Side load some data that we can't extract from the JSON plan.
-	var opts []jsonformat.PlanRendererOpt
-	if !plan.CanApply() {
-		opts = append(opts, jsonformat.CanNotApply)
-	}
+	var opts []plans.Quality
 	if plan.Errored {
-		opts = append(opts, jsonformat.Errored)
+		opts = append(opts, plans.Errored)
+	} else if !plan.Applyable {
+		// FIXME: There might be other reasons for "non-applyable" in future,
+		// so maybe we should check plan.Changes.IsEmpty here and use a more
+		// generic fallback message if the plan doesn't seem to be empty.
+		// There are currently no other cases though, so we'll keep it
+		// simple for now.
+		opts = append(opts, plans.NoChanges)
 	}
 
 	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
@@ -142,19 +146,26 @@ func (v *OperationHuman) PlanNextStep(planPath string, genConfigPath string) {
 	v.view.outputHorizRule()
 
 	if genConfigPath != "" {
-		v.view.streams.Printf(
-			"\n"+strings.TrimSpace(format.WordWrap(planHeaderGenConfig, v.view.outputColumns()))+"\n", genConfigPath,
-		)
+		v.view.streams.Println(
+			format.WordWrap(
+				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderGenConfig, genConfigPath)),
+				v.view.outputColumns(),
+			))
 	}
 
 	if planPath == "" {
-		v.view.streams.Print(
-			"\n" + strings.TrimSpace(format.WordWrap(planHeaderNoOutput, v.view.outputColumns())) + "\n",
+		v.view.streams.Println(
+			format.WordWrap(
+				"\n"+strings.TrimSpace(planHeaderNoOutput),
+				v.view.outputColumns(),
+			),
 		)
 	} else {
-		v.view.streams.Printf(
-			"\n"+strings.TrimSpace(format.WordWrap(planHeaderYesOutput, v.view.outputColumns()))+"\n",
-			planPath, planPath,
+		v.view.streams.Println(
+			format.WordWrap(
+				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderYesOutput, planPath, planPath)),
+				v.view.outputColumns(),
+			),
 		)
 	}
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -8,8 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -52,7 +54,7 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 		return view.Results(diags)
 	}
 
-	validateDiags := c.validate(dir)
+	validateDiags := c.validate(dir, args.TestDirectory, args.NoTests)
 	diags = diags.Append(validateDiags)
 
 	// Validating with dev overrides in effect means that the result might
@@ -64,30 +66,84 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	return view.Results(diags)
 }
 
-func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
+func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	var cfg *configs.Config
 
-	cfg, cfgDiags := c.loadConfig(dir)
-	diags = diags.Append(cfgDiags)
-
+	if noTests {
+		cfg, diags = c.loadConfig(dir)
+	} else {
+		cfg, diags = c.loadConfigWithTests(dir, testDir)
+	}
 	if diags.HasErrors() {
 		return diags
 	}
 
-	opts, err := c.contextOpts()
-	if err != nil {
-		diags = diags.Append(err)
+	validate := func(cfg *configs.Config) tfdiags.Diagnostics {
+		var diags tfdiags.Diagnostics
+
+		opts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return diags
+		}
+
+		tfCtx, ctxDiags := terraform.NewContext(opts)
+		diags = diags.Append(ctxDiags)
+		if ctxDiags.HasErrors() {
+			return diags
+		}
+
+		return diags.Append(tfCtx.Validate(cfg, nil))
+	}
+
+	diags = diags.Append(validate(cfg))
+
+	if noTests {
 		return diags
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(opts)
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		return diags
+	validatedModules := make(map[string]bool)
+
+	// We'll also do a quick validation of the Terraform test files. These live
+	// outside the Terraform graph so we have to do this separately.
+	for _, file := range cfg.Module.Tests {
+
+		// The file validation only returns warnings so we'll just add them
+		// without checking anything about them.
+		diags = diags.Append(file.Validate(cfg))
+
+		for _, run := range file.Runs {
+
+			if run.Module != nil {
+				// Then we can also validate the referenced modules, but we are
+				// only going to do this is if they are local modules.
+				//
+				// Basically, local testing modules are something the user can
+				// reasonably go and fix. If it's a module being downloaded from
+				// the registry, the expectation is that the author of the
+				// module should have ran `terraform validate` themselves.
+				if _, ok := run.Module.Source.(addrs.ModuleSourceLocal); ok {
+
+					if validated := validatedModules[run.Module.Source.String()]; !validated {
+
+						// Since we can reference the same module twice, let's
+						// not validate the same thing multiple times.
+
+						validatedModules[run.Module.Source.String()] = true
+						diags = diags.Append(validate(run.ConfigUnderTest))
+					}
+
+				}
+
+				diags = diags.Append(run.Validate(run.ConfigUnderTest))
+			} else {
+				diags = diags.Append(run.Validate(cfg))
+			}
+
+		}
 	}
 
-	validateDiags := tfCtx.Validate(cfg)
-	diags = diags.Append(validateDiags)
 	return diags
 }
 
@@ -123,11 +179,15 @@ Usage: terraform [global options] validate [options]
 
 Options:
 
-  -json        Produce output in a machine-readable JSON format, suitable for
-               use in text editor integrations and other automated systems.
-               Always disables color.
+  -json                 Produce output in a machine-readable JSON format, 
+                        suitable for use in text editor integrations and other 
+                        automated systems. Always disables color.
 
-  -no-color    If specified, output won't contain any color.
+  -no-color             If specified, output won't contain any color.
+
+  -no-tests             If specified, Terraform will not validate test files.
+
+  -test-directory=path	Set the Terraform test directory, defaults to "tests".
 `
 	return strings.TrimSpace(helpText)
 }

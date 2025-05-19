@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -9,11 +9,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes, state *states.State) *Graph {
+func cbdTestGraph(t *testing.T, mod string, changes *plans.ChangesSrc, state *states.State) *Graph {
 	module := testModule(t, mod)
 
 	applyBuilder := &ApplyGraphBuilder{
@@ -61,6 +62,13 @@ func cbdTestSteps(steps []GraphTransformer) []GraphTransformer {
 func filterInstances(g *Graph) *Graph {
 	for _, v := range g.Vertices() {
 		if _, ok := v.(GraphNodeResourceInstance); !ok {
+			// connect around the node to remove it without breaking deps
+			for _, down := range g.DownEdges(v) {
+				for _, up := range g.UpEdges(v) {
+					g.Connect(dag.BasicEdge(up, down))
+				}
+			}
+
 			g.Remove(v)
 		}
 
@@ -69,7 +77,7 @@ func filterInstances(g *Graph) *Graph {
 }
 
 func TestCBDEdgeTransformer(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -124,7 +132,7 @@ test_object.B
 }
 
 func TestCBDEdgeTransformerMulti(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -200,7 +208,7 @@ test_object.C
 }
 
 func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -271,7 +279,7 @@ test_object.B\[1\]
 }
 
 func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A[0]"),

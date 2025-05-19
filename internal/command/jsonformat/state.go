@@ -1,10 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonformat
 
 import (
-	"sort"
+	"maps"
+	"slices"
 
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -17,11 +18,11 @@ import (
 
 type State struct {
 	StateFormatVersion string                      `json:"state_format_version"`
-	RootModule         jsonstate.Module            `json:"root"`
-	RootModuleOutputs  map[string]jsonstate.Output `json:"root_module_outputs"`
+	RootModule         jsonstate.Module            `json:"root_module,omitempty"`
+	RootModuleOutputs  map[string]jsonstate.Output `json:"outputs,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
-	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
+	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
 }
 
 func (state State) Empty() bool {
@@ -85,17 +86,10 @@ func (state State) renderHumanStateModule(renderer Renderer, module jsonstate.Mo
 }
 
 func (state State) renderHumanStateOutputs(renderer Renderer, opts computed.RenderHumanOpts) {
-
 	if len(state.RootModuleOutputs) > 0 {
 		renderer.Streams.Printf("\n\nOutputs:\n\n")
 
-		var keys []string
-		for key := range state.RootModuleOutputs {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-
-		for _, key := range keys {
+		for _, key := range slices.Sorted(maps.Keys(state.RootModuleOutputs)) {
 			output := state.RootModuleOutputs[key]
 			change := structured.FromJsonOutput(output)
 			ctype, err := ctyjson.UnmarshalType(output.Type)

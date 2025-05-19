@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
 
@@ -18,7 +18,9 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonconfig"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -44,9 +46,16 @@ const (
 	ResourceInstanceReadBecauseConfigUnknown      = "read_because_config_unknown"
 	ResourceInstanceReadBecauseDependencyPending  = "read_because_dependency_pending"
 	ResourceInstanceReadBecauseCheckNested        = "read_because_check_nested"
+
+	DeferredReasonUnknown               = "unknown"
+	DeferredReasonInstanceCountUnknown  = "instance_count_unknown"
+	DeferredReasonResourceConfigUnknown = "resource_config_unknown"
+	DeferredReasonProviderConfigUnknown = "provider_config_unknown"
+	DeferredReasonDeferredPrereq        = "deferred_prereq"
+	DeferredReasonAbsentPrereq          = "absent_prereq"
 )
 
-// Plan is the top-level representation of the json format of a plan. It includes
+// plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
 type plan struct {
 	FormatVersion    string      `json:"format_version,omitempty"`
@@ -55,14 +64,18 @@ type plan struct {
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
 	// that is undefined at this time, but consistent.
-	ResourceDrift      []ResourceChange  `json:"resource_drift,omitempty"`
-	ResourceChanges    []ResourceChange  `json:"resource_changes,omitempty"`
-	OutputChanges      map[string]Change `json:"output_changes,omitempty"`
-	PriorState         json.RawMessage   `json:"prior_state,omitempty"`
-	Config             json.RawMessage   `json:"configuration,omitempty"`
-	RelevantAttributes []ResourceAttr    `json:"relevant_attributes,omitempty"`
-	Checks             json.RawMessage   `json:"checks,omitempty"`
-	Timestamp          string            `json:"timestamp,omitempty"`
+	ResourceDrift      []ResourceChange         `json:"resource_drift,omitempty"`
+	ResourceChanges    []ResourceChange         `json:"resource_changes,omitempty"`
+	DeferredChanges    []DeferredResourceChange `json:"deferred_changes,omitempty"`
+	OutputChanges      map[string]Change        `json:"output_changes,omitempty"`
+	PriorState         json.RawMessage          `json:"prior_state,omitempty"`
+	Config             json.RawMessage          `json:"configuration,omitempty"`
+	RelevantAttributes []ResourceAttr           `json:"relevant_attributes,omitempty"`
+	Checks             json.RawMessage          `json:"checks,omitempty"`
+	Timestamp          string                   `json:"timestamp,omitempty"`
+	Applyable          bool                     `json:"applyable"`
+	Complete           bool                     `json:"complete"`
+	Errored            bool                     `json:"errored"`
 }
 
 func newPlan() *plan {
@@ -86,20 +99,23 @@ type Change struct {
 	//    ["create"]
 	//    ["read"]
 	//    ["update"]
-	//    ["delete", "create"]
-	//    ["create", "delete"]
+	//    ["delete", "create"] (replace)
+	//    ["create", "delete"] (replace)
 	//    ["delete"]
-	// The two "replace" actions are represented in this way to allow callers to
-	// e.g. just scan the list for "delete" to recognize all three situations
-	// where the object will be deleted, allowing for any new deletion
-	// combinations that might be added in future.
+	//    ["forget"]
+	//    ["create", "forget"] (replace)
+	// The three "replace" actions are represented in this way to allow callers
+	// to, e.g., just scan the list for "delete" to recognize all three
+	// situations where the object will be deleted, allowing for any new
+	// deletion combinations that might be added in future.
 	Actions []string `json:"actions,omitempty"`
 
 	// Before and After are representations of the object value both before and
-	// after the action. For ["create"] and ["delete"] actions, either "before"
-	// or "after" is unset (respectively). For ["no-op"], the before and after
-	// values are identical. The "after" value will be incomplete if there are
-	// values within it that won't be known until after apply.
+	// after the action. For ["create"] and ["delete"]/["forget"] actions,
+	// either "before" or "after" is unset (respectively). For ["no-op"], the
+	// before and after values are identical. The "after" value will be
+	// incomplete if there are values within it that won't be known until after
+	// apply.
 	Before json.RawMessage `json:"before,omitempty"`
 	After  json.RawMessage `json:"after,omitempty"`
 
@@ -137,9 +153,14 @@ type Change struct {
 	// during planning as a string.
 	//
 	// If this is populated, then Importing should also be populated but this
-	// might change in the future. However, nNot all Importing changes will
+	// might change in the future. However, not all Importing changes will
 	// contain generated config.
 	GeneratedConfig string `json:"generated_config,omitempty"`
+
+	// BeforeIdentity and AfterIdentity are representations of the resource
+	// identity value both before and after the action.
+	BeforeIdentity json.RawMessage `json:"before_identity,omitempty"`
+	AfterIdentity  json.RawMessage `json:"after_identity,omitempty"`
 }
 
 // Importing is a nested object for the resource import metadata.
@@ -147,6 +168,15 @@ type Importing struct {
 	// The original ID of this resource used to target it as part of planned
 	// import operation.
 	ID string `json:"id,omitempty"`
+
+	// Unknown indicates the ID was unknown at the time of planning. This
+	// would have led to the overall change being deferred, as such this should
+	// only be true when processing changes from the deferred changes list.
+	Unknown bool `json:"unknown,omitempty"`
+
+	// The identity can be used instead of the ID to target the resource as part
+	// of the planned import operation.
+	Identity json.RawMessage `json:"identity,omitempty"`
 }
 
 type output struct {
@@ -221,6 +251,9 @@ func Marshal(
 	output := newPlan()
 	output.TerraformVersion = version.String()
 	output.Timestamp = p.Timestamp.Format(time.RFC3339)
+	output.Applyable = p.Applyable
+	output.Complete = p.Complete
+	output.Errored = p.Errored
 
 	err := output.marshalPlanVariables(p.VariableValues, config.Module.Variables)
 	if err != nil {
@@ -267,6 +300,13 @@ func Marshal(
 		}
 	}
 
+	if p.DeferredResources != nil {
+		output.DeferredChanges, err = MarshalDeferredResourceChanges(p.DeferredResources, schemas)
+		if err != nil {
+			return nil, fmt.Errorf("error in marshaling deferred resource changes: %s", err)
+		}
+	}
+
 	// output.OutputChanges
 	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
@@ -291,8 +331,7 @@ func Marshal(
 		return nil, fmt.Errorf("error marshaling config: %s", err)
 	}
 
-	ret, err := json.Marshal(output)
-	return ret, err
+	return json.Marshal(output)
 }
 
 func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
@@ -368,14 +407,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 	})
 
 	for _, rc := range sortedResources {
-		var r ResourceChange
-		addr := rc.Addr
-		r.Address = addr.String()
-		if !addr.Equal(rc.PrevRunAddr) {
-			r.PreviousAddress = rc.PrevRunAddr.String()
-		}
-
-		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
+		dataSource := rc.Addr.Resource.Resource.Mode == addrs.DataResourceMode
 		// We create "delete" actions for data resources so we can clean up
 		// their entries in state, but this is an implementation detail that
 		// users shouldn't see.
@@ -383,159 +415,268 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			continue
 		}
 
-		schema, _ := schemas.ResourceTypeConfig(
-			rc.ProviderAddr.Provider,
-			addr.Resource.Resource.Mode,
-			addr.Resource.Resource.Type,
-		)
-		if schema == nil {
-			return nil, fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
-		}
-
-		changeV, err := rc.Decode(schema.ImpliedType())
+		r, err := marshalResourceChange(rc, schemas)
 		if err != nil {
 			return nil, err
 		}
-		// We drop the marks from the change, as decoding is only an
-		// intermediate step to re-encode the values as json
-		changeV.Before, _ = changeV.Before.UnmarkDeep()
-		changeV.After, _ = changeV.After.UnmarkDeep()
+		ret = append(ret, r)
+	}
 
-		var before, after []byte
-		var beforeSensitive, afterSensitive []byte
-		var afterUnknown cty.Value
+	return ret, nil
+}
 
-		if changeV.Before != cty.NilVal {
-			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
-			if err != nil {
-				return nil, err
-			}
-			marks := rc.BeforeValMarks
-			if schema.ContainsSensitive() {
-				marks = append(marks, schema.ValueMarks(changeV.Before, nil)...)
-			}
-			bs := jsonstate.SensitiveAsBool(changeV.Before.MarkWithPaths(marks))
-			beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
-			if err != nil {
-				return nil, err
-			}
+func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) (ResourceChange, error) {
+	var r ResourceChange
+	addr := rc.Addr
+	r.Address = addr.String()
+	if !addr.Equal(rc.PrevRunAddr) {
+		r.PreviousAddress = rc.PrevRunAddr.String()
+	}
+
+	schema := schemas.ResourceTypeConfig(
+		rc.ProviderAddr.Provider,
+		addr.Resource.Resource.Mode,
+		addr.Resource.Resource.Type,
+	)
+	if schema.Body == nil {
+		return r, fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
+	}
+
+	changeV, err := rc.Decode(schema)
+	if err != nil {
+		return r, err
+	}
+	// We drop the marks from the change, as decoding is only an
+	// intermediate step to re-encode the values as json
+	changeV.Before, _ = changeV.Before.UnmarkDeep()
+	changeV.After, _ = changeV.After.UnmarkDeep()
+
+	var before, after []byte
+	var beforeSensitive, afterSensitive []byte
+	var afterUnknown cty.Value
+
+	if changeV.Before != cty.NilVal {
+		before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
+		if err != nil {
+			return r, err
 		}
-		if changeV.After != cty.NilVal {
-			if changeV.After.IsWhollyKnown() {
-				after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
-				if err != nil {
-					return nil, err
-				}
-				afterUnknown = cty.EmptyObjectVal
+		sensitivePaths := rc.BeforeSensitivePaths
+		sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(changeV.Before, nil)...)
+		bs := jsonstate.SensitiveAsBool(marks.MarkPaths(changeV.Before, marks.Sensitive, sensitivePaths))
+		beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
+		if err != nil {
+			return r, err
+		}
+	}
+	if changeV.After != cty.NilVal {
+		if changeV.After.IsWhollyKnown() {
+			after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
+			if err != nil {
+				return r, err
+			}
+			afterUnknown = cty.EmptyObjectVal
+		} else {
+			filteredAfter := omitUnknowns(changeV.After)
+			if filteredAfter.IsNull() {
+				after = nil
 			} else {
-				filteredAfter := omitUnknowns(changeV.After)
-				if filteredAfter.IsNull() {
-					after = nil
-				} else {
-					after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
-					if err != nil {
-						return nil, err
-					}
+				after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
+				if err != nil {
+					return r, err
 				}
-				afterUnknown = unknownAsBool(changeV.After)
 			}
-			marks := rc.AfterValMarks
-			if schema.ContainsSensitive() {
-				marks = append(marks, schema.ValueMarks(changeV.After, nil)...)
-			}
-			as := jsonstate.SensitiveAsBool(changeV.After.MarkWithPaths(marks))
-			afterSensitive, err = ctyjson.Marshal(as, as.Type())
-			if err != nil {
-				return nil, err
-			}
+			afterUnknown = unknownAsBool(changeV.After)
 		}
-
-		a, err := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
+		sensitivePaths := rc.AfterSensitivePaths
+		sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(changeV.After, nil)...)
+		as := jsonstate.SensitiveAsBool(marks.MarkPaths(changeV.After, marks.Sensitive, sensitivePaths))
+		afterSensitive, err = ctyjson.Marshal(as, as.Type())
 		if err != nil {
-			return nil, err
+			return r, err
 		}
-		replacePaths, err := encodePaths(rc.RequiredReplace)
+	}
+
+	a, err := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
+	if err != nil {
+		return r, err
+	}
+	replacePaths, err := encodePaths(rc.RequiredReplace)
+	if err != nil {
+		return r, err
+	}
+
+	var importing *Importing
+	if rc.Importing != nil {
+		if rc.Importing.Unknown {
+			importing = &Importing{Unknown: true}
+		} else {
+			if rc.Importing.ID != "" {
+				importing = &Importing{ID: rc.Importing.ID}
+			} else {
+				identity, err := rc.Importing.Identity.Decode(schema.Identity.ImpliedType())
+				if err != nil {
+					return r, err
+				}
+				rawIdentity, err := ctyjson.Marshal(identity, identity.Type())
+				if err != nil {
+					return r, err
+				}
+
+				importing = &Importing{
+					Identity: json.RawMessage(rawIdentity),
+				}
+			}
+		}
+	}
+
+	var beforeIdentity, afterIdentity []byte
+	if schema.Identity != nil && rc.BeforeIdentity != nil {
+		identity, err := rc.BeforeIdentity.Decode(schema.Identity.ImpliedType())
 		if err != nil {
-			return nil, err
+			return r, err
 		}
-
-		var importing *Importing
-		if rc.Importing != nil {
-			importing = &Importing{ID: rc.Importing.ID}
+		beforeIdentity, err = ctyjson.Marshal(identity, identity.Type())
+		if err != nil {
+			return r, err
 		}
-
-		r.Change = Change{
-			Actions:         actionString(rc.Action.String()),
-			Before:          json.RawMessage(before),
-			After:           json.RawMessage(after),
-			AfterUnknown:    a,
-			BeforeSensitive: json.RawMessage(beforeSensitive),
-			AfterSensitive:  json.RawMessage(afterSensitive),
-			ReplacePaths:    replacePaths,
-			Importing:       importing,
-			GeneratedConfig: rc.GeneratedConfig,
+	}
+	if schema.Identity != nil && rc.AfterIdentity != nil {
+		identity, err := rc.AfterIdentity.Decode(schema.Identity.ImpliedType())
+		if err != nil {
+			return r, err
 		}
-
-		if rc.DeposedKey != states.NotDeposed {
-			r.Deposed = rc.DeposedKey.String()
+		afterIdentity, err = ctyjson.Marshal(identity, identity.Type())
+		if err != nil {
+			return r, err
 		}
+	}
 
-		key := addr.Resource.Key
-		if key != nil {
+	r.Change = Change{
+		Actions:         actionString(rc.Action.String()),
+		Before:          json.RawMessage(before),
+		After:           json.RawMessage(after),
+		AfterUnknown:    a,
+		BeforeSensitive: json.RawMessage(beforeSensitive),
+		AfterSensitive:  json.RawMessage(afterSensitive),
+		ReplacePaths:    replacePaths,
+		Importing:       importing,
+		GeneratedConfig: rc.GeneratedConfig,
+		BeforeIdentity:  json.RawMessage(beforeIdentity),
+		AfterIdentity:   json.RawMessage(afterIdentity),
+	}
+
+	if rc.DeposedKey != states.NotDeposed {
+		r.Deposed = rc.DeposedKey.String()
+	}
+
+	key := addr.Resource.Key
+	if key != nil {
+		if key == addrs.WildcardKey {
+			// The wildcard key should only be set for a deferred instance.
+			r.IndexUnknown = true
+		} else {
 			value := key.Value()
 			if r.Index, err = ctyjson.Marshal(value, value.Type()); err != nil {
-				return nil, err
+				return r, err
 			}
 		}
+	}
 
-		switch addr.Resource.Resource.Mode {
-		case addrs.ManagedResourceMode:
-			r.Mode = jsonstate.ManagedResourceMode
-		case addrs.DataResourceMode:
-			r.Mode = jsonstate.DataResourceMode
-		default:
-			return nil, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, addr.Resource.Resource.Mode.String())
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		r.Mode = jsonstate.ManagedResourceMode
+	case addrs.DataResourceMode:
+		r.Mode = jsonstate.DataResourceMode
+	default:
+		return r, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, addr.Resource.Resource.Mode.String())
+	}
+	r.ModuleAddress = addr.Module.String()
+	r.Name = addr.Resource.Resource.Name
+	r.Type = addr.Resource.Resource.Type
+	r.ProviderName = rc.ProviderAddr.Provider.String()
+
+	switch rc.ActionReason {
+	case plans.ResourceInstanceChangeNoReason:
+		r.ActionReason = "" // will be omitted in output
+	case plans.ResourceInstanceReplaceBecauseCannotUpdate:
+		r.ActionReason = ResourceInstanceReplaceBecauseCannotUpdate
+	case plans.ResourceInstanceReplaceBecauseTainted:
+		r.ActionReason = ResourceInstanceReplaceBecauseTainted
+	case plans.ResourceInstanceReplaceByRequest:
+		r.ActionReason = ResourceInstanceReplaceByRequest
+	case plans.ResourceInstanceReplaceByTriggers:
+		r.ActionReason = ResourceInstanceReplaceByTriggers
+	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+		r.ActionReason = ResourceInstanceDeleteBecauseNoResourceConfig
+	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+		r.ActionReason = ResourceInstanceDeleteBecauseWrongRepetition
+	case plans.ResourceInstanceDeleteBecauseCountIndex:
+		r.ActionReason = ResourceInstanceDeleteBecauseCountIndex
+	case plans.ResourceInstanceDeleteBecauseEachKey:
+		r.ActionReason = ResourceInstanceDeleteBecauseEachKey
+	case plans.ResourceInstanceDeleteBecauseNoModule:
+		r.ActionReason = ResourceInstanceDeleteBecauseNoModule
+	case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
+		r.ActionReason = ResourceInstanceDeleteBecauseNoMoveTarget
+	case plans.ResourceInstanceReadBecauseConfigUnknown:
+		r.ActionReason = ResourceInstanceReadBecauseConfigUnknown
+	case plans.ResourceInstanceReadBecauseDependencyPending:
+		r.ActionReason = ResourceInstanceReadBecauseDependencyPending
+	case plans.ResourceInstanceReadBecauseCheckNested:
+		r.ActionReason = ResourceInstanceReadBecauseCheckNested
+	default:
+		return r, fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
+	}
+
+	return r, nil
+}
+
+// MarshalDeferredResourceChanges converts the provided internal representation
+// of DeferredResourceInstanceChangeSrc objects into the public structured JSON
+// changes.
+// This is public to make testing easier.
+func MarshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]DeferredResourceChange, error) {
+	var ret []DeferredResourceChange
+
+	var sortedResources []*plans.DeferredResourceInstanceChangeSrc
+	sortedResources = append(sortedResources, resources...)
+	sort.Slice(sortedResources, func(i, j int) bool {
+		if !sortedResources[i].ChangeSrc.Addr.Equal(sortedResources[j].ChangeSrc.Addr) {
+			return sortedResources[i].ChangeSrc.Addr.Less(sortedResources[j].ChangeSrc.Addr)
 		}
-		r.ModuleAddress = addr.Module.String()
-		r.Name = addr.Resource.Resource.Name
-		r.Type = addr.Resource.Resource.Type
-		r.ProviderName = rc.ProviderAddr.Provider.String()
+		return sortedResources[i].ChangeSrc.DeposedKey < sortedResources[j].ChangeSrc.DeposedKey
+	})
 
-		switch rc.ActionReason {
-		case plans.ResourceInstanceChangeNoReason:
-			r.ActionReason = "" // will be omitted in output
-		case plans.ResourceInstanceReplaceBecauseCannotUpdate:
-			r.ActionReason = ResourceInstanceReplaceBecauseCannotUpdate
-		case plans.ResourceInstanceReplaceBecauseTainted:
-			r.ActionReason = ResourceInstanceReplaceBecauseTainted
-		case plans.ResourceInstanceReplaceByRequest:
-			r.ActionReason = ResourceInstanceReplaceByRequest
-		case plans.ResourceInstanceReplaceByTriggers:
-			r.ActionReason = ResourceInstanceReplaceByTriggers
-		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
-			r.ActionReason = ResourceInstanceDeleteBecauseNoResourceConfig
-		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
-			r.ActionReason = ResourceInstanceDeleteBecauseWrongRepetition
-		case plans.ResourceInstanceDeleteBecauseCountIndex:
-			r.ActionReason = ResourceInstanceDeleteBecauseCountIndex
-		case plans.ResourceInstanceDeleteBecauseEachKey:
-			r.ActionReason = ResourceInstanceDeleteBecauseEachKey
-		case plans.ResourceInstanceDeleteBecauseNoModule:
-			r.ActionReason = ResourceInstanceDeleteBecauseNoModule
-		case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
-			r.ActionReason = ResourceInstanceDeleteBecauseNoMoveTarget
-		case plans.ResourceInstanceReadBecauseConfigUnknown:
-			r.ActionReason = ResourceInstanceReadBecauseConfigUnknown
-		case plans.ResourceInstanceReadBecauseDependencyPending:
-			r.ActionReason = ResourceInstanceReadBecauseDependencyPending
-		case plans.ResourceInstanceReadBecauseCheckNested:
-			r.ActionReason = ResourceInstanceReadBecauseCheckNested
-		default:
-			return nil, fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
+	for _, rc := range sortedResources {
+		change, err := marshalResourceChange(rc.ChangeSrc, schemas)
+		if err != nil {
+			return nil, err
 		}
 
-		ret = append(ret, r)
+		deferredChange := DeferredResourceChange{
+			ResourceChange: change,
+		}
 
+		switch rc.DeferredReason {
+		case providers.DeferredReasonInstanceCountUnknown:
+			deferredChange.Reason = DeferredReasonInstanceCountUnknown
+		case providers.DeferredReasonResourceConfigUnknown:
+			deferredChange.Reason = DeferredReasonResourceConfigUnknown
+		case providers.DeferredReasonProviderConfigUnknown:
+			deferredChange.Reason = DeferredReasonProviderConfigUnknown
+		case providers.DeferredReasonAbsentPrereq:
+			deferredChange.Reason = DeferredReasonAbsentPrereq
+		case providers.DeferredReasonDeferredPrereq:
+			deferredChange.Reason = DeferredReasonDeferredPrereq
+		default:
+			// If we find a reason we don't know about, we'll just mark it as
+			// unknown. This is a bit of a safety net to ensure that we don't
+			// break if new reasons are introduced in future versions of the
+			// provider protocol.
+			deferredChange.Reason = DeferredReasonUnknown
+		}
+
+		ret = append(ret, deferredChange)
 	}
 
 	return ret, nil
@@ -547,7 +688,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 // This function is referenced directly from the structured renderer tests, to
 // ensure parity between the renderers. It probably shouldn't be used anywhere
 // else.
-func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
+func MarshalOutputChanges(changes *plans.ChangesSrc) (map[string]Change, error) {
 	if changes == nil {
 		// Nothing to do!
 		return nil, nil
@@ -637,7 +778,7 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	return outputChanges, nil
 }
 
-func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
+func (p *plan) marshalPlannedValues(changes *plans.ChangesSrc, schemas *terraform.Schemas) error {
 	// marshal the planned changes into a module
 	plan, err := marshalPlannedValues(changes, schemas)
 	if err != nil {
@@ -665,6 +806,15 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 
 		p.RelevantAttributes = append(p.RelevantAttributes, ResourceAttr{addr, path})
 	}
+
+	// we want our outputs to be deterministic, so we'll sort the attributes
+	// here. The order of the attributes is not important, as long as it is
+	// stable.
+
+	sort.SliceStable(p.RelevantAttributes, func(i, j int) bool {
+		return strings.Compare(fmt.Sprintf("%#v", plan.RelevantAttributes[i]), fmt.Sprintf("%#v", plan.RelevantAttributes[j])) < 0
+	})
+
 	return nil
 }
 
@@ -815,6 +965,10 @@ func actionString(action string) []string {
 		return []string{"read"}
 	case action == "DeleteThenCreate":
 		return []string{"delete", "create"}
+	case action == "Forget":
+		return []string{"forget"}
+	case action == "CreateThenForget":
+		return []string{"create", "forget"}
 	default:
 		return []string{action}
 	}
@@ -830,6 +984,10 @@ func UnmarshalActions(actions []string) plans.Action {
 		if actions[0] == "delete" && actions[1] == "create" {
 			return plans.DeleteThenCreate
 		}
+
+		if actions[0] == "create" && actions[1] == "forget" {
+			return plans.CreateThenForget
+		}
 	}
 
 	if len(actions) == 1 {
@@ -842,6 +1000,8 @@ func UnmarshalActions(actions []string) plans.Action {
 			return plans.Update
 		case "read":
 			return plans.Read
+		case "forget":
+			return plans.Forget
 		case "no-op":
 			return plans.NoOp
 		}
@@ -861,7 +1021,7 @@ func UnmarshalActions(actions []string) plans.Action {
 // indexes.
 //
 // JavaScript (or similar dynamic language) consumers of these values can
-// iterate over the the steps starting from the root object to reach the
+// iterate over the steps starting from the root object to reach the
 // value that each path is describing.
 func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
 	if pathSet.Empty() {

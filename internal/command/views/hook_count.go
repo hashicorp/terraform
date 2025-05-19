@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package views
 
@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -46,7 +45,7 @@ func (h *countHook) Reset() {
 	h.Imported = 0
 }
 
-func (h *countHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *countHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -54,17 +53,17 @@ func (h *countHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generati
 		h.pending = make(map[string]plans.Action)
 	}
 
-	h.pending[addr.String()] = action
+	h.pending[id.Addr.String()] = action
 
 	return terraform.HookActionContinue, nil
 }
 
-func (h *countHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (terraform.HookAction, error) {
+func (h *countHook) PostApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	if h.pending != nil {
-		pendingKey := addr.String()
+		pendingKey := id.Addr.String()
 		if action, ok := h.pending[pendingKey]; ok {
 			delete(h.pending, pendingKey)
 
@@ -87,12 +86,12 @@ func (h *countHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generat
 	return terraform.HookActionContinue, nil
 }
 
-func (h *countHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	// We don't count anything for data resources
-	if addr.Resource.Resource.Mode == addrs.DataResourceMode {
+	if id.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		return terraform.HookActionContinue, nil
 	}
 
@@ -110,7 +109,7 @@ func (h *countHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generati
 	return terraform.HookActionContinue, nil
 }
 
-func (h *countHook) PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (terraform.HookAction, error) {
+func (h *countHook) PostApplyImport(id terraform.HookResourceIdentity, importing plans.ImportingSrc) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

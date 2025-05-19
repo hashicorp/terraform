@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -14,10 +14,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -25,6 +25,15 @@ import (
 
 const (
 	stdinArg = "-"
+)
+
+var (
+	fmtSupportedExts = []string{
+		".tf",
+		".tfvars",
+		".tftest.hcl",
+		".tfmock.hcl",
+	}
 )
 
 // FmtCommand is a Command implementation that rewrites Terraform config
@@ -127,21 +136,31 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			dirDiags := c.processDir(path, stdout)
 			diags = diags.Append(dirDiags)
 		} else {
-			switch filepath.Ext(path) {
-			case ".tf", ".tfvars":
-				f, err := os.Open(path)
-				if err != nil {
-					// Open does not produce error messages that are end-user-appropriate,
-					// so we'll need to simplify here.
-					diags = diags.Append(fmt.Errorf("Failed to read file %s", path))
-					continue
-				}
+			fmtd := false
+			for _, ext := range fmtSupportedExts {
+				if strings.HasSuffix(path, ext) {
+					f, err := os.Open(path)
+					if err != nil {
+						// Open does not produce error messages that are end-user-appropriate,
+						// so we'll need to simplify here.
+						diags = diags.Append(fmt.Errorf("Failed to read file %s", path))
+						continue
+					}
 
-				fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
-				diags = diags.Append(fileDiags)
-				f.Close()
-			default:
-				diags = diags.Append(fmt.Errorf("Only .tf and .tfvars files can be processed with terraform fmt"))
+					fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
+					diags = diags.Append(fileDiags)
+					f.Close()
+
+					// Take note that we processed the file.
+					fmtd = true
+
+					// Don't check the remaining extensions.
+					break
+				}
+			}
+
+			if !fmtd {
+				diags = diags.Append(fmt.Errorf("Only .tf, .tfvars, and .tftest.hcl files can be processed with terraform fmt"))
 				continue
 			}
 		}
@@ -244,20 +263,23 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 			continue
 		}
 
-		ext := filepath.Ext(name)
-		switch ext {
-		case ".tf", ".tfvars":
-			f, err := os.Open(subPath)
-			if err != nil {
-				// Open does not produce error messages that are end-user-appropriate,
-				// so we'll need to simplify here.
-				diags = diags.Append(fmt.Errorf("Failed to read file %s", subPath))
-				continue
-			}
+		for _, ext := range fmtSupportedExts {
+			if strings.HasSuffix(name, ext) {
+				f, err := os.Open(subPath)
+				if err != nil {
+					// Open does not produce error messages that are end-user-appropriate,
+					// so we'll need to simplify here.
+					diags = diags.Append(fmt.Errorf("Failed to read file %s", subPath))
+					continue
+				}
 
-			fileDiags := c.processFile(c.normalizePath(subPath), f, stdout, false)
-			diags = diags.Append(fileDiags)
-			f.Close()
+				fileDiags := c.processFile(c.normalizePath(subPath), f, stdout, false)
+				diags = diags.Append(fileDiags)
+				f.Close()
+
+				// Don't need to check the remaining extensions.
+				break
+			}
 		}
 	}
 
@@ -528,9 +550,10 @@ func (c *FmtCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] fmt [options] [target...]
 
-  Rewrites all Terraform configuration files to a canonical format. Both
-  configuration files (.tf) and variables files (.tfvars) are updated.
-  JSON files (.tf.json or .tfvars.json) are not modified.
+  Rewrites all Terraform configuration files to a canonical format. All
+  configuration files (.tf), variables files (.tfvars), and testing files 
+  (.tftest.hcl) are updated. JSON files (.tf.json, .tfvars.json, or 
+  .tftest.json) are not modified.
 
   By default, fmt scans the current directory for configuration files. If you
   provide a directory for the target argument, then fmt will scan that

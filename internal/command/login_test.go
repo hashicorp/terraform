@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -74,7 +74,7 @@ func TestLogin(t *testing.T) {
 				},
 			})
 			svcs.ForceHostServices(svchost.Hostname("app.terraform.io"), map[string]interface{}{
-				// This represents Terraform Cloud, which does not yet support the
+				// This represents HCP Terraform, which does not yet support the
 				// login API, but does support its own bespoke tokens API.
 				"tfe.v2":   ts.URL + "/api/v2",
 				"tfe.v2.1": ts.URL + "/api/v2",
@@ -124,7 +124,7 @@ func TestLogin(t *testing.T) {
 		if got, want := creds.Token(), "good-token"; got != want {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
-		if got, want := ui.OutputWriter.String(), "Welcome to Terraform Cloud!"; !strings.Contains(got, want) {
+		if got, want := ui.OutputWriter.String(), "Welcome to HCP Terraform!"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))

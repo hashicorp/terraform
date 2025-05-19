@@ -1,9 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"go.opentelemetry.io/otel/codes"
 )
 
 func init() {
@@ -21,13 +23,17 @@ var checkpointResult chan *checkpoint.CheckResponse
 
 // runCheckpoint runs a HashiCorp Checkpoint request. You can read about
 // Checkpoint here: https://github.com/hashicorp/go-checkpoint.
-func runCheckpoint(c *cliconfig.Config) {
+func runCheckpoint(ctx context.Context, c *cliconfig.Config) {
 	// If the user doesn't want checkpoint at all, then return.
 	if c.DisableCheckpoint {
 		log.Printf("[INFO] Checkpoint disabled. Not running.")
 		checkpointResult <- nil
 		return
 	}
+
+	ctx, span := tracer.Start(ctx, "HashiCorp Checkpoint")
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	defer span.End()
 
 	configDir, err := cliconfig.ConfigDir()
 	if err != nil {
@@ -55,7 +61,10 @@ func runCheckpoint(c *cliconfig.Config) {
 	})
 	if err != nil {
 		log.Printf("[ERR] Checkpoint error: %s", err)
+		span.SetStatus(codes.Error, err.Error())
 		resp = nil
+	} else {
+		span.SetStatus(codes.Ok, "checkpoint request succeeded")
 	}
 
 	checkpointResult <- resp

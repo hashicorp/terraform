@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configschema
 
@@ -18,6 +18,24 @@ func TestAttributeByPath(t *testing.T) {
 				Description: "a3",
 				NestedType: &Object{
 					Nesting: NestingList,
+					Attributes: map[string]*Attribute{
+						"nt1": {Description: "nt1"},
+						"nt2": {
+							Description: "nt2",
+							NestedType: &Object{
+								Nesting: NestingSingle,
+								Attributes: map[string]*Attribute{
+									"deeply_nested": {Description: "deeply_nested"},
+								},
+							},
+						},
+					},
+				},
+			},
+			"a4": {
+				Description: "a3",
+				NestedType: &Object{
+					Nesting: NestingMap,
 					Attributes: map[string]*Attribute{
 						"nt1": {Description: "nt1"},
 						"nt2": {
@@ -98,6 +116,11 @@ func TestAttributeByPath(t *testing.T) {
 			false,
 		},
 		{
+			cty.GetAttrPath("a3").IndexInt(1).GetAttr("nt2").GetAttr("deeply_nested"),
+			"deeply_nested",
+			true,
+		},
+		{
 			cty.GetAttrPath("b1"),
 			"block",
 			false,
@@ -131,6 +154,11 @@ func TestAttributeByPath(t *testing.T) {
 			// Index steps don't apply to the schema, so the set Index value doesn't matter.
 			cty.GetAttrPath("b3").IndexString("foo").GetAttr("b4").Index(cty.EmptyObjectVal).GetAttr("a9"),
 			"a9",
+			true,
+		},
+		{
+			cty.GetAttrPath("a4").IndexString("test").GetAttr("nt2").GetAttr("deeply_nested"),
+			"deeply_nested",
 			true,
 		},
 	} {

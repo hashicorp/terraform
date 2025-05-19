@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package renderers
 
@@ -48,7 +48,7 @@ func (renderer setRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 
 	elementOpts := opts.Clone()
 	elementOpts.OverrideNullSuffix = true
-	elementOpts.OverrideForcesReplacement = displayForcesReplacementInChildren
+	elementOpts.ForceForcesReplacement = displayForcesReplacementInChildren
 
 	unchangedElements := 0
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package arguments
 
@@ -44,6 +44,14 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 			tfdiags.Error,
 			"Failed to parse command-line flags",
 			err.Error(),
+		))
+	}
+
+	if refresh.State.StatePath != "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Deprecated flag: -state",
+			`Use the "path" attribute within the "local" backend to specify a file for state storage`,
 		))
 	}
 

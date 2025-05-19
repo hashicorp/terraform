@@ -1,30 +1,27 @@
 ---
-page_title: Managing Plugins - Terraform CLI
+page_title: Manage Terraform plugins 
 description: >-
-  Commands to install, configure, and show information about providers. Also
-  commands to reduce install effort in air-gapped environments.
+  Providers are types of plugins for Terraform that manage infrastructure resources. Learn about managing plugins using the Terraform CLI.
 ---
 
-# Managing Plugins
+# Manage plugins overview
 
-Terraform relies on plugins called "providers" in order to manage various types
-of resources. (For more information about providers, see
-[Providers](/terraform/language/providers) in the Terraform
-language docs.)
+This topic provides an overview of the how to manage plugins that Terraform relies on to manage various types
+of resources. Providers are the only plugin type Terraform users interact with. Refer to [Providers](/terraform/language/providers) in the Terraform
+language docs for additional information about providers.
 
--> **Note:** Providers are the only plugin type most Terraform users interact with. Terraform also supports third-party provisioner plugins, but
-we discourage their use.
+## Workflow
 
-Terraform downloads and/or installs any providers
-[required](/terraform/language/providers/requirements) by a configuration
-when [initializing](/terraform/cli/init) a working directory. By default,
-this works without any additional interaction but requires network access to
+When you initialize a working directory, Terraform installs any providers the Terraform configuration requires. Refer to 
+[Provider Requirements](/terraform/language/providers/requirements) in the Terraform configuration language information about requiring providers. Refer to the [`terraform init` command documentation](/terraform/cli/init) for additional information about how initialize the working directory. 
+
+By default, Terraform initializes the working directory without any additional interaction, but you must have network access to
 download providers from their source registry.
 
 You can configure Terraform's provider installation behavior to limit or skip
-network access, and to enable use of providers that aren't available via a
-networked source. Terraform also includes some commands to show information
-about providers and to reduce the effort of installing providers in airgapped
+network access, and to enable use of providers that are not available through a
+networked source. Terraform also includes commands that show information
+about providers and commands that reduce the effort of installing providers in air-gapped
 environments.
 
 ## Configuring Plugin Installation
@@ -50,9 +47,9 @@ offered by each provider.
 
 Use the [`terraform providers mirror`](/terraform/cli/commands/providers/mirror) command to
 download local copies of every provider required by the current working
-directory's configuration. This directory will use the nested directory layout
+directory's configuration. The directory uses the nested directory layout
 that Terraform expects when installing plugins from a local source, so you can
-transfer it directly to an airgapped system that runs Terraform.
+transfer it directly to an air-gapped system that runs Terraform.
 
 Use the [`terraform providers lock`](/terraform/cli/commands/providers/lock) command
 to update the lock file that Terraform uses to ensure predictable runs when

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local
 
@@ -15,7 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -27,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -48,7 +47,7 @@ func TestLocal_applyBasic(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("operation failed")
 	}
 
@@ -92,7 +91,7 @@ func TestLocal_applyCheck(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("operation failed")
 	}
 
@@ -123,7 +122,7 @@ func TestLocal_applyCheck(t *testing.T) {
 func TestLocal_applyEmptyDir(t *testing.T) {
 	b := TestLocal(t)
 
-	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -134,7 +133,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("operation succeeded; want error")
 	}
 
@@ -157,7 +156,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	b := TestLocal(t)
 
-	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -169,7 +168,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("apply operation failed")
 	}
 
@@ -187,12 +186,14 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 func TestLocal_applyError(t *testing.T) {
 	b := TestLocal(t)
 
-	schema := &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	schema := providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Computed: true},
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+						"id":  {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},
@@ -233,7 +234,7 @@ func TestLocal_applyError(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("operation succeeded; want failure")
 	}
 
@@ -288,7 +289,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 
 	output := done(t)
 
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatalf("apply succeeded; want error")
 	}
 
@@ -329,7 +330,7 @@ func TestLocal_applyRefreshFalse(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 
@@ -360,10 +361,10 @@ func (s failingState) WriteState(state *states.State) error {
 	return errors.New("fake failure")
 }
 
-func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationApply(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -373,8 +374,8 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 	depLocks := depsfile.NewLocks()
 	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test"))
 
-	return &backend.Operation{
-		Type:            backend.OperationTypeApply,
+	return &backendrun.Operation{
+		Type:            backendrun.OperationTypeApply,
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
 		StateLocker:     clistate.NewNoopLocker(),
@@ -386,13 +387,15 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 // applyFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
-func applyFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+func applyFixtureSchema() providers.ProviderSchema {
+	return providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Computed: true},
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+						"id":  {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},
@@ -426,7 +429,7 @@ func TestApply_applyCanceledAutoApprove(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 

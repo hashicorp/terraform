@@ -1,15 +1,18 @@
 ---
-page_title: 'Command: providers lock'
+page_title: terraform providers lock command reference
 description: |-
   The `terraform providers lock` command adds new provider selection information
   to the dependency lock file without initializing the referenced providers.
 ---
 
-# Command: terraform providers lock
+# `terraform providers lock` command
 
-The `terraform providers lock` consults upstream registries (by default) in
-order to write provider dependency information into
-[the dependency lock file](/terraform/language/files/dependency-lock).
+The `terraform providers lock` adds new provider selection information to the dependency lock file without initializing the referenced providers. 
+
+## Introduction
+
+When you run the command, Terraform consults upstream registries and writes provider dependency information into the
+the dependency lock file. Refer to [Dependency Lock File](/terraform/language/files/dependency-lock) in the Terraform configuration language reference documentation for additional information about the lock file.
 
 The common way to update the dependency lock file is as a side-effect of normal
 provider installation during
@@ -36,8 +39,6 @@ automatic approach may not be sufficient:
   [add additional checksums to the lock file](/terraform/language/files/dependency-lock#new-provider-package-checksums).
   You can avoid that by pre-populating hashes for all of the platforms you
   intend to use, using the `terraform providers lock` command.
-
--> `terraform providers lock` is available only in Terraform v0.14 or later.
 
 ## Usage
 
@@ -87,6 +88,13 @@ You can customize the default behavior using the following additional option:
   running on an AMD64 or x86_64 CPU.
 
   There is more detail on this option in the following section.
+
+* `-enable-plugin-cache` -  Enable the usage of the [globally configured plugin cache](/terraform/cli/config/config-file#provider-plugin-cache).
+  This will speed up the locking process. This is not enabled by default since
+  the plugin cache is not an authoritative source. As the
+  `terraform provider lock` command is used to ensure no untrusted provider
+  versions can be used installing the plugins from the cache is considered risky.
+
 
 ## Specifying Target Platforms
 

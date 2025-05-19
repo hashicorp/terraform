@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package states
 
@@ -7,9 +7,10 @@ import (
 	"log"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // SyncState is a wrapper around State that provides concurrency-safe access to
@@ -33,8 +34,9 @@ import (
 // for ensuring correct operation sequencing, such as building and walking
 // a dependency graph.
 type SyncState struct {
-	state *State
-	lock  sync.RWMutex
+	state    *State
+	writable bool
+	lock     sync.RWMutex
 }
 
 // Module returns a snapshot of the state of the module instance with the given
@@ -52,16 +54,18 @@ func (s *SyncState) Module(addr addrs.ModuleInstance) *Module {
 	return ret
 }
 
-// ModuleOutputs returns the set of OutputValues that matches the given path.
-func (s *SyncState) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.ModuleCall) []*OutputValue {
+// ModuleInstances returns the addresses of the module instances currently
+// store within state for the given module.
+func (s *SyncState) ModuleInstances(addr addrs.Module) []addrs.ModuleInstance {
 	s.lock.RLock()
-	defer s.lock.RUnlock()
-	var os []*OutputValue
+	ret := s.state.ModuleInstances(addr)
+	s.lock.RUnlock()
 
-	for _, o := range s.state.ModuleOutputs(parentAddr, module) {
-		os = append(os, o.DeepCopy())
+	insts := make([]addrs.ModuleInstance, len(ret))
+	for i, inst := range ret {
+		insts[i] = inst.Addr
 	}
-	return os
+	return insts
 }
 
 // RemoveModule removes the entire state for the given module, taking with
@@ -69,8 +73,7 @@ func (s *SyncState) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.
 // called only for modules whose resources have all been destroyed, but
 // that is not enforced by this method.
 func (s *SyncState) RemoveModule(addr addrs.ModuleInstance) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	s.state.RemoveModule(addr)
 }
@@ -90,71 +93,29 @@ func (s *SyncState) OutputValue(addr addrs.AbsOutputValue) *OutputValue {
 // SetOutputValue writes a given output value into the state, overwriting
 // any existing value of the same name.
 //
-// If the module containing the output is not yet tracked in state then it
-// be added as a side-effect.
+// The state only tracks output values for the root module, so attempts to
+// write output values for any other module will be silently ignored.
 func (s *SyncState) SetOutputValue(addr addrs.AbsOutputValue, value cty.Value, sensitive bool) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	if !addr.Module.IsRoot() {
+		return
+	}
 
-	ms := s.state.EnsureModule(addr.Module)
-	ms.SetOutputValue(addr.OutputValue.Name, value, sensitive)
+	defer s.beginWrite()()
+	s.state.SetOutputValue(addr, value, sensitive)
 }
 
 // RemoveOutputValue removes the stored value for the output value with the
 // given address.
 //
-// If this results in its containing module being empty, the module will be
-// pruned from the state as a side-effect.
+// The state only tracks output values for the root module, so attempts to
+// remove output values for any other module will be silently ignored.
 func (s *SyncState) RemoveOutputValue(addr addrs.AbsOutputValue) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	ms := s.state.Module(addr.Module)
-	if ms == nil {
+	if !addr.Module.IsRoot() {
 		return
 	}
-	ms.RemoveOutputValue(addr.OutputValue.Name)
-	s.maybePruneModule(addr.Module)
-}
 
-// LocalValue returns the current value associated with the given local value
-// address.
-func (s *SyncState) LocalValue(addr addrs.AbsLocalValue) cty.Value {
-	s.lock.RLock()
-	// cty.Value is immutable, so we don't need any extra copying here.
-	ret := s.state.LocalValue(addr)
-	s.lock.RUnlock()
-	return ret
-}
-
-// SetLocalValue writes a given output value into the state, overwriting
-// any existing value of the same name.
-//
-// If the module containing the local value is not yet tracked in state then it
-// will be added as a side-effect.
-func (s *SyncState) SetLocalValue(addr addrs.AbsLocalValue, value cty.Value) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	ms := s.state.EnsureModule(addr.Module)
-	ms.SetLocalValue(addr.LocalValue.Name, value)
-}
-
-// RemoveLocalValue removes the stored value for the local value with the
-// given address.
-//
-// If this results in its containing module being empty, the module will be
-// pruned from the state as a side-effect.
-func (s *SyncState) RemoveLocalValue(addr addrs.AbsLocalValue) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	ms := s.state.Module(addr.Module)
-	if ms == nil {
-		return
-	}
-	ms.RemoveLocalValue(addr.LocalValue.Name)
-	s.maybePruneModule(addr.Module)
+	defer s.beginWrite()()
+	s.state.RemoveOutputValue(addr)
 }
 
 // Resource returns a snapshot of the state of the resource with the given
@@ -181,13 +142,14 @@ func (s *SyncState) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceIn
 	return ret
 }
 
-// ResourceInstanceObject returns a snapshot of the current instance object
-// of the given generation belonging to the instance with the given address,
-// or nil if no such object is tracked..
+// ResourceInstanceObject returns a snapshot of the resource instance object
+// of the given deposed key belonging to the given resource instance. Use
+// [addrs.NotDeposed] for the deposed key to retrieve the "current" object,
+// if any. Returns nil if there is no such object.
 //
 // The return value is a pointer to a copy of the object, which the caller may
 // then freely access and mutate.
-func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen Generation) *ResourceInstanceObjectSrc {
+func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, dk DeposedKey) *ResourceInstanceObjectSrc {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -195,15 +157,14 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen G
 	if inst == nil {
 		return nil
 	}
-	return inst.GetGeneration(gen).DeepCopy()
+	return inst.Object(dk).DeepCopy()
 }
 
 // SetResourceMeta updates the resource-level metadata for the resource at
 // the given address, creating the containing module state and resource state
 // as a side-effect if not already present.
 func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.AbsProviderConfig) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	ms := s.state.EnsureModule(addr.Module)
 	ms.SetResourceProvider(addr.Resource, provider)
@@ -215,8 +176,7 @@ func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.A
 // but that is not enforced by this method. (Use RemoveResourceIfEmpty instead
 // to safely check first.)
 func (s *SyncState) RemoveResource(addr addrs.AbsResource) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	ms := s.state.EnsureModule(addr.Module)
 	ms.RemoveResource(addr.Resource)
@@ -230,8 +190,7 @@ func (s *SyncState) RemoveResource(addr addrs.AbsResource) {
 // objects prevented its removal. Returns true also if the resource was
 // already absent, and thus no action needed to be taken.
 func (s *SyncState) RemoveResourceIfEmpty(addr addrs.AbsResource) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	ms := s.state.Module(addr.Module)
 	if ms == nil {
@@ -272,8 +231,7 @@ func (s *SyncState) RemoveResourceIfEmpty(addr addrs.AbsResource) bool {
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.
 func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	ms := s.state.EnsureModule(addr.Module)
 	ms.SetResourceInstanceCurrent(addr.Resource, obj.DeepCopy(), provider)
@@ -304,8 +262,7 @@ func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, o
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.
 func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	ms := s.state.EnsureModule(addr.Module)
 	ms.SetResourceInstanceDeposed(addr.Resource, key, obj.DeepCopy(), provider)
@@ -324,8 +281,7 @@ func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, k
 // given instance, and so NotDeposed will be returned without modifying the
 // state at all.
 func (s *SyncState) DeposeResourceInstanceObject(addr addrs.AbsResourceInstance) DeposedKey {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	ms := s.state.Module(addr.Module)
 	if ms == nil {
@@ -340,8 +296,7 @@ func (s *SyncState) DeposeResourceInstanceObject(addr addrs.AbsResourceInstance)
 // that there aren't any races to use a particular key; this method will panic
 // if the given key is already in use.
 func (s *SyncState) DeposeResourceInstanceObjectForceKey(addr addrs.AbsResourceInstance, forcedKey DeposedKey) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	if forcedKey == NotDeposed {
 		// Usage error: should use DeposeResourceInstanceObject in this case
@@ -359,8 +314,7 @@ func (s *SyncState) DeposeResourceInstanceObjectForceKey(addr addrs.AbsResourceI
 // ForgetResourceInstanceAll removes the record of all objects associated with
 // the specified resource instance, if present. If not present, this is a no-op.
 func (s *SyncState) ForgetResourceInstanceAll(addr addrs.AbsResourceInstance) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	ms := s.state.Module(addr.Module)
 	if ms == nil {
@@ -370,11 +324,23 @@ func (s *SyncState) ForgetResourceInstanceAll(addr addrs.AbsResourceInstance) {
 	s.maybePruneModule(addr.Module)
 }
 
+// ForgetResourceInstanceCurrent removes the record of the current object with
+// the given address, if present. If not present, this is a no-op.
+func (s *SyncState) ForgetResourceInstanceCurrent(addr addrs.AbsResourceInstance) {
+	defer s.beginWrite()()
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		return
+	}
+	ms.ForgetResourceInstanceCurrent(addr.Resource)
+	s.maybePruneModule(addr.Module)
+}
+
 // ForgetResourceInstanceDeposed removes the record of the deposed object with
 // the given address and key, if present. If not present, this is a no-op.
 func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	ms := s.state.Module(addr.Module)
 	if ms == nil {
@@ -392,8 +358,7 @@ func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance
 // Returns true if the object was restored to current, or false if no change
 // was made at all.
 func (s *SyncState) MaybeRestoreResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	if key == NotDeposed {
 		panic("MaybeRestoreResourceInstanceDeposed called without DeposedKey")
@@ -426,8 +391,7 @@ func (s *SyncState) RemovePlannedResourceInstanceObjects() {
 	// so we can remove the need to create this "partial plan" during refresh
 	// that we then need to clean up before proceeding.
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	for _, ms := range s.state.Modules {
 		moduleAddr := ms.Addr
@@ -465,24 +429,26 @@ func (s *SyncState) RemovePlannedResourceInstanceObjects() {
 // the intent of preventing any references to them after they have become
 // stale due to starting (but possibly not completing) an update.
 func (s *SyncState) DiscardCheckResults() {
-	s.lock.Lock()
+	defer s.beginWrite()()
 	s.state.CheckResults = nil
-	s.lock.Unlock()
 }
 
 // RecordCheckResults replaces any check results already recorded in the state
 // with a new set taken from the given check state object.
 func (s *SyncState) RecordCheckResults(checkState *checks.State) {
 	newResults := NewCheckResults(checkState)
-	s.lock.Lock()
+	defer s.beginWrite()()
 	s.state.CheckResults = newResults
-	s.lock.Unlock()
 }
 
 // Lock acquires an explicit lock on the state, allowing direct read and write
 // access to the returned state object. The caller must call Unlock once
 // access is no longer needed, and then immediately discard the state pointer
 // pointer.
+//
+// If the [SyncState.Close] method was previously called on this object then
+// the caller must treat the result as read-only, since it now has shared
+// ownership with whoever called Close.
 //
 // Most callers should not use this. Instead, use the concurrency-safe
 // accessors and mutators provided directly on SyncState.
@@ -501,12 +467,16 @@ func (s *SyncState) Unlock() {
 	s.lock.Unlock()
 }
 
-// Close extracts the underlying state from inside this wrapper, making the
-// wrapper invalid for any future operations.
+// Close extracts the underlying state from inside this wrapper.
+//
+// After this function returns, the [State] object is shared between the
+// caller and this [SyncState] object, but the [SyncState] will only allow
+// read access. Callers must avoid accessing the [SyncState] concurrently
+// with any subsequent modifications to the state.
 func (s *SyncState) Close() *State {
 	s.lock.Lock()
 	ret := s.state
-	s.state = nil // make sure future operations can't still modify it
+	s.writable = false // only reading is allowed after close
 	s.lock.Unlock()
 	return ret
 }
@@ -534,43 +504,48 @@ func (s *SyncState) maybePruneModule(addr addrs.ModuleInstance) {
 }
 
 func (s *SyncState) MoveAbsResource(src, dst addrs.AbsResource) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	s.state.MoveAbsResource(src, dst)
 }
 
 func (s *SyncState) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	return s.state.MaybeMoveAbsResource(src, dst)
 }
 
 func (s *SyncState) MoveResourceInstance(src, dst addrs.AbsResourceInstance) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	s.state.MoveAbsResourceInstance(src, dst)
 }
 
 func (s *SyncState) MaybeMoveResourceInstance(src, dst addrs.AbsResourceInstance) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	return s.state.MaybeMoveAbsResourceInstance(src, dst)
 }
 
 func (s *SyncState) MoveModuleInstance(src, dst addrs.ModuleInstance) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	s.state.MoveModuleInstance(src, dst)
 }
 
 func (s *SyncState) MaybeMoveModuleInstance(src, dst addrs.ModuleInstance) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	defer s.beginWrite()()
 
 	return s.state.MaybeMoveModuleInstance(src, dst)
+}
+
+func (s *SyncState) beginWrite() func() {
+	s.lock.Lock()
+	if !s.writable {
+		s.lock.Unlock()
+		panic("attempt to write through non-writable SyncState")
+	}
+	return func() {
+		s.lock.Unlock()
+	}
 }

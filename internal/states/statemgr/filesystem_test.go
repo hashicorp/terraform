@@ -1,9 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package statemgr
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -417,7 +418,7 @@ func TestFilesystem_refreshWhileLocked(t *testing.T) {
 func TestFilesystem_GetRootOutputValues(t *testing.T) {
 	fs := testFilesystem(t)
 
-	outputs, err := fs.GetRootOutputValues()
+	outputs, err := fs.GetRootOutputValues(context.Background())
 	if err != nil {
 		t.Errorf("Expected GetRootOutputValues to not return an error, but it returned %v", err)
 	}

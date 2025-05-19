@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -7,7 +7,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -24,7 +26,11 @@ type ApplyGraphBuilder struct {
 	Config *configs.Config
 
 	// Changes describes the changes that we need apply.
-	Changes *plans.Changes
+	Changes *plans.ChangesSrc
+
+	// DeferredChanges describes the changes that were deferred during the plan
+	// and should not be applied.
+	DeferredChanges []*plans.DeferredResourceInstanceChangeSrc
 
 	// State is the current state
 	State *states.State
@@ -33,6 +39,12 @@ type ApplyGraphBuilder struct {
 	// part of the plan object, which we must reproduce in the apply step
 	// to get a consistent result.
 	RootVariableValues InputValues
+
+	// ExternalProviderConfigs are pre-initialized root module provider
+	// configurations that the graph builder should assume will be available
+	// immediately during the subsequent plan walk, without any explicit
+	// initialization step.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 
 	// Plugins is a library of the plug-in components (providers and
 	// provisioners) available for use.
@@ -52,13 +64,27 @@ type ApplyGraphBuilder struct {
 
 	// Plan Operation this graph will be used for.
 	Operation walkOperation
+
+	// ExternalReferences allows the external caller to pass in references to
+	// nodes that should not be pruned even if they are not referenced within
+	// the actual graph.
+	ExternalReferences []*addrs.Reference
+
+	// Overrides provides the set of overrides supplied by the testing
+	// framework.
+	Overrides *mocking.Overrides
+
+	// SkipGraphValidation indicates whether the graph builder should skip
+	// validation of the graph.
+	SkipGraphValidation bool
 }
 
 // See GraphBuilder
 func (b *ApplyGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps: b.Steps(),
-		Name:  "ApplyGraphBuilder",
+		Steps:               b.Steps(),
+		Name:                "ApplyGraphBuilder",
+		SkipGraphValidation: b.SkipGraphValidation,
 	}).Build(path)
 }
 
@@ -95,12 +121,21 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
-		&ModuleVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{
+			Config:       b.Config,
+			RawValues:    b.RootVariableValues,
+			DestroyApply: b.Operation == walkDestroy,
+		},
+		&ModuleVariableTransformer{
+			Config:       b.Config,
+			DestroyApply: b.Operation == walkDestroy,
+		},
+		&variableValidationTransformer{},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:       b.Config,
-			ApplyDestroy: b.Operation == walkDestroy,
+			Config:     b.Config,
+			Destroying: b.Operation == walkDestroy,
+			Overrides:  b.Overrides,
 		},
 
 		// Creates all the resource instances represented in the diff, along
@@ -111,6 +146,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:    b.State,
 			Changes:  b.Changes,
 			Config:   b.Config,
+		},
+
+		// Creates nodes for all the deferred changes.
+		&DeferredTransformer{
+			DeferredChanges: b.DeferredChanges,
 		},
 
 		// Add nodes and edges for check block assertions. Check block data
@@ -130,7 +170,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// add providers
-		transformProviders(concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config, b.ExternalProviderConfigs),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
@@ -144,12 +184,26 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Config: b.Config},
 
+		// Plug in any external references.
+		&ExternalReferenceTransformer{
+			ExternalReferences: b.ExternalReferences,
+		},
+
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 		&AttachDependenciesTransformer{},
 
+		// Nested data blocks should be loaded after every other resource has
+		// done its thing.
+		&checkStartTransformer{Config: b.Config, Operation: b.Operation},
+
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
+		//
+		// FIXME: this should not need to be recalculated during apply.
+		// Currently however, the instance object which stores the planned
+		// information is lost for newly created instances because it contains
+		// no state value, and we end up recalculating CBD for all nodes.
 		&ForcedCBDTransformer{},
 
 		// Destruction ordering
@@ -162,13 +216,18 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:  b.State,
 		},
 
-		// We need to remove configuration nodes that are not used at all, as
-		// they may not be able to evaluate, especially during destroy.
-		// These include variables, locals, and instance expanders.
-		&pruneUnusedNodesTransformer{},
+		// In a destroy, we need to remove configuration nodes that are not used
+		// at all, as they may not be able to evaluate. These include variables,
+		// locals, and instance expanders.
+		&pruneUnusedNodesTransformer{
+			skip: b.Operation != walkDestroy,
+		},
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
+
+		// Close any ephemeral resource instances.
+		&ephemeralResourceCloseTransformer{},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

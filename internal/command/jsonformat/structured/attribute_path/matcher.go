@@ -1,9 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package attribute_path
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+)
 
 // Matcher provides an interface for stepping through changes following an
 // attribute path.
@@ -173,8 +177,32 @@ func (p *PathMatcher) GetChildWithIndex(index int) Matcher {
 			continue
 		}
 
-		if int(path[0].(float64)) == index {
-			child.Paths = append(child.Paths, path[1:])
+		// Terraform actually allows user to provide strings into indexes as
+		// long as the string can be interpreted into a number. For example, the
+		// following are equivalent and we need to support them.
+		//    - test_resource.resource.list[0].attribute
+		//    - test_resource.resource.list["0"].attribute
+		//
+		// Note, that Terraform will raise a validation error if the string
+		// can't be coerced into a number, so we will panic here if anything
+		// goes wrong safe in the knowledge the validation should stop this from
+		// happening.
+
+		switch val := path[0].(type) {
+		case float64:
+			if int(path[0].(float64)) == index {
+				child.Paths = append(child.Paths, path[1:])
+			}
+		case string:
+			f, err := strconv.ParseFloat(val, 64)
+			if err != nil {
+				panic(fmt.Errorf("found invalid type within path (%v:%T), the validation shouldn't have allowed this to happen; this is a bug in Terraform, please report it", val, val))
+			}
+			if int(f) == index {
+				child.Paths = append(child.Paths, path[1:])
+			}
+		default:
+			panic(fmt.Errorf("found invalid type within path (%v:%T), the validation shouldn't have allowed this to happen; this is a bug in Terraform, please report it", val, val))
 		}
 	}
 	return child

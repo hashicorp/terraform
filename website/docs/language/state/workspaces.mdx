@@ -7,27 +7,27 @@ description: >-
 
 # Workspaces
 
-Each Terraform configuration has an associated [backend](/terraform/language/settings/backends/configuration) that defines how Terraform executes operations and where Terraform stores persistent data, like [state](/terraform/language/state/purpose).
+Each Terraform configuration has an associated [backend](/terraform/language/backend) that defines how Terraform executes operations and where Terraform stores persistent data, like [state](/terraform/language/state/purpose).
 
 The persistent data stored in the backend belongs to a workspace. The backend initially has only one workspace containing one Terraform state associated with that configuration. Some backends support multiple named workspaces, allowing multiple states to be associated with a single configuration. The configuration still has only one backend, but you can deploy multiple distinct instances of that configuration without configuring a new backend or changing authentication
 credentials.
 
--> **Note**: The Terraform CLI workspaces are different from [workspaces in Terraform Cloud](/terraform/cloud-docs/workspaces). Refer to [Initializing and Migrating](/terraform/cli/cloud/migrating) for details about migrating a configuration with multiple workspaces to Terraform Cloud.
+-> **Note**: The Terraform CLI workspaces are different from [workspaces in HCP Terraform](/terraform/cloud-docs/workspaces). Refer to [Connect to HCP Terraform](/terraform/cli/cloud/settings) for details about migrating a configuration with multiple workspaces to HCP Terraform.
 
 ## Backends Supporting Multiple Workspaces
 
 You can use multiple workspaces with the following backends:
 
-- [AzureRM](/terraform/language/settings/backends/azurerm)
-- [Consul](/terraform/language/settings/backends/consul)
-- [COS](/terraform/language/settings/backends/cos)
-- [GCS](/terraform/language/settings/backends/gcs)
-- [Kubernetes](/terraform/language/settings/backends/kubernetes)
-- [Local](/terraform/language/settings/backends/local)
-- [OSS](/terraform/language/settings/backends/oss)
-- [Postgres](/terraform/language/settings/backends/pg)
-- [Remote](/terraform/language/settings/backends/remote)
-- [S3](/terraform/language/settings/backends/s3)
+- [AzureRM](/terraform/language/backend/azurerm)
+- [Consul](/terraform/language/backend/consul)
+- [COS](/terraform/language/backend/cos)
+- [GCS](/terraform/language/backend/gcs)
+- [Kubernetes](/terraform/language/backend/kubernetes)
+- [Local](/terraform/language/backend/local)
+- [OSS](/terraform/language/backend/oss)
+- [Postgres](/terraform/language/backend/pg)
+- [Remote](/terraform/language/backend/remote)
+- [S3](/terraform/language/backend/s3)
 
 
 ## Using Workspaces
@@ -53,7 +53,7 @@ to spin up smaller cluster sizes. For example:
 
 ```hcl
 resource "aws_instance" "example" {
-  count = "${terraform.workspace == "default" ? 5 : 1}"
+  count = terraform.workspace == "default" ? 5 : 1
 
   # ... other arguments
 }

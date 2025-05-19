@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package kubernetes
 
@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"sort"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Workspaces returns a list of names for the workspaces found in k8s. The default
@@ -99,7 +100,8 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 			return nil, err
 		}
 
-		secretName, err := c.createSecretName()
+		// get base secret name
+		secretName, err := c.createSecretName(0)
 		if err != nil {
 			return nil, err
 		}

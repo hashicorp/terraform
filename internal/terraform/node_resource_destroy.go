@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -20,11 +20,6 @@ import (
 // destroyed.
 type NodeDestroyResourceInstance struct {
 	*NodeAbstractResourceInstance
-
-	// If DeposedKey is set to anything other than states.NotDeposed then
-	// this node destroys a deposed object of the associated instance
-	// rather than its current object.
-	DeposedKey states.DeposedKey
 }
 
 var (
@@ -41,9 +36,6 @@ var (
 )
 
 func (n *NodeDestroyResourceInstance) Name() string {
-	if n.DeposedKey != states.NotDeposed {
-		return fmt.Sprintf("%s (destroy deposed %s)", n.ResourceInstanceAddr(), n.DeposedKey)
-	}
 	return n.ResourceInstanceAddr().String() + " (destroy)"
 }
 
@@ -65,7 +57,7 @@ func (n *NodeDestroyResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 	// State takes precedence during destroy.
 	// If the resource was removed, there is no config to check.
-	// If CBD was forced from descendent, it should be saved in the state
+	// If CBD was forced from descendant, it should be saved in the state
 	// already.
 	if s := n.instanceState; s != nil {
 		if s.Current != nil {

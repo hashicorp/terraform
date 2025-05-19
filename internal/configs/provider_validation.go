@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configs
 
@@ -9,8 +9,267 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
+
+// validateProviderConfigsForTests performs the same role as
+// validateProviderConfigs except it validates the providers configured within
+// test files.
+//
+// To do this is calls out to validateProviderConfigs for each run block that
+// has ConfigUnderTest set.
+//
+// In addition, for each run block that executes against the main config it
+// validates the providers the run block wants to use match the providers
+// specified in the main configuration. It does this without reaching out to
+// validateProviderConfigs because the main configuration has already been
+// validated, and we don't want to redo all the work that happens in that
+// function. So, we only validate the providers our test files define match
+// the providers required by the main configuration.
+//
+// This function does some fairly controversial conversions into structures
+// expected by validateProviderConfigs but since we're just using it for
+// validation we'll still get the correct error messages, and we can make the
+// declaration ranges line up sensibly so we'll even get good diagnostics.
+func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
+
+	for name, test := range cfg.Module.Tests {
+		for _, run := range test.Runs {
+
+			if run.ConfigUnderTest == nil {
+				// Then we're calling out to the main configuration under test.
+				//
+				// We just need to make sure that the providers we are setting
+				// actually match the providers in the configuration. The main
+				// configuration has already been validated, so we don't need to
+				// do the whole thing again.
+
+				if len(run.Providers) > 0 {
+					// This is the easy case, we can just validate that the
+					// provider types match.
+					for _, provider := range run.Providers {
+
+						parentType, childType := provider.InParent.providerType, provider.InChild.providerType
+						if parentType.IsZero() {
+							parentType = addrs.NewDefaultProvider(provider.InParent.Name)
+						}
+						if childType.IsZero() {
+							childType = addrs.NewDefaultProvider(provider.InChild.Name)
+						}
+
+						if !childType.Equals(parentType) {
+							diags = append(diags, &hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Provider type mismatch",
+								Detail: fmt.Sprintf(
+									"The local name %q in %s represents provider %q, but %q in the root module represents %q.\n\nThis means the provider definition for %q within %s, or other provider definitions with the same name, have been referenced by multiple run blocks and assigned to different provider types.",
+									provider.InParent.Name, name, parentType, provider.InChild.Name, childType, provider.InParent.Name, name),
+								Subject: provider.InParent.NameRange.Ptr(),
+							})
+						}
+					}
+
+					// Skip to the next file, we only need to verify the types
+					// specified here.
+					continue
+				}
+
+				// Otherwise, we need to verify that the providers required by
+				// the configuration match the types defined by our test file.
+
+				for _, requirement := range cfg.Module.ProviderRequirements.RequiredProviders {
+					if provider, exists := test.Providers[requirement.Name]; exists {
+
+						providerType := provider.providerType
+						if providerType.IsZero() {
+							providerType = addrs.NewDefaultProvider(provider.Name)
+						}
+
+						if !providerType.Equals(requirement.Type) {
+							diags = append(diags, &hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Provider type mismatch",
+								Detail: fmt.Sprintf(
+									"The provider %q in %s represents provider %q, but %q in the root module represents %q.\n\nThis means the provider definition for %q within %s, or other provider definitions with the same name, have been referenced by multiple run blocks and assigned to different provider types.",
+									provider.moduleUniqueKey(), name, providerType, requirement.Name, requirement.Type, provider.moduleUniqueKey(), name),
+								Subject: provider.DeclRange.Ptr(),
+							})
+						}
+					}
+
+					for _, alias := range requirement.Aliases {
+						if provider, exists := test.Providers[alias.StringCompact()]; exists {
+
+							providerType := provider.providerType
+							if providerType.IsZero() {
+								providerType = addrs.NewDefaultProvider(provider.Name)
+							}
+
+							if !providerType.Equals(requirement.Type) {
+								diags = append(diags, &hcl.Diagnostic{
+									Severity: hcl.DiagError,
+									Summary:  "Provider type mismatch",
+									Detail: fmt.Sprintf(
+										"The provider %q in %s represents provider %q, but %q in the root module represents %q.\n\nThis means the provider definition for %q within %s, or other provider definitions with the same name, have been referenced by multiple run blocks and assigned to different provider types.",
+										provider.moduleUniqueKey(), name, providerType, alias.StringCompact(), requirement.Type, provider.moduleUniqueKey(), name),
+									Subject: provider.DeclRange.Ptr(),
+								})
+							}
+						}
+					}
+				}
+
+				for _, provider := range cfg.Module.ProviderConfigs {
+
+					providerType := provider.providerType
+					if providerType.IsZero() {
+						providerType = addrs.NewDefaultProvider(provider.Name)
+					}
+
+					if testProvider, exists := test.Providers[provider.moduleUniqueKey()]; exists {
+
+						testProviderType := testProvider.providerType
+						if testProviderType.IsZero() {
+							testProviderType = addrs.NewDefaultProvider(testProvider.Name)
+						}
+
+						if !providerType.Equals(testProviderType) {
+							diags = append(diags, &hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Provider type mismatch",
+								Detail: fmt.Sprintf(
+									"The provider %q in %s represents provider %q, but %q in the root module represents %q.\n\nThis means the provider definition for %q within %s has been referenced by multiple run blocks and assigned to different provider types.",
+									testProvider.moduleUniqueKey(), name, testProviderType, provider.moduleUniqueKey(), providerType, testProvider.moduleUniqueKey(), name),
+								Subject: testProvider.DeclRange.Ptr(),
+							})
+						}
+					}
+				}
+
+			} else {
+				// Then we're executing another module. We'll just call out to
+				// validateProviderConfigs and let it do the whole thing.
+
+				providers := run.Providers
+				if len(providers) == 0 {
+					// If the test run didn't provide us a subset of providers
+					// to use, we'll build our own. This is so that we can fit
+					// into the schema expected by validateProviderConfigs.
+
+					matchedProviders := make(map[string]PassedProviderConfig)
+
+					// We'll go over all the requirements in the module first
+					// and see if we have defined any providers for that
+					// requirement. If we have, then we'll take not of that.
+
+					for _, requirement := range cfg.Module.ProviderRequirements.RequiredProviders {
+
+						if provider, exists := test.Providers[requirement.Name]; exists {
+							matchedProviders[requirement.Name] = PassedProviderConfig{
+								InChild: &ProviderConfigRef{
+									Name:         requirement.Name,
+									NameRange:    requirement.DeclRange,
+									providerType: requirement.Type,
+								},
+								InParent: &ProviderConfigRef{
+									Name:         provider.Name,
+									NameRange:    provider.NameRange,
+									Alias:        provider.Alias,
+									AliasRange:   provider.AliasRange,
+									providerType: provider.providerType,
+								},
+							}
+						}
+
+						// Also, remember to check for any aliases the module
+						// expects.
+
+						for _, alias := range requirement.Aliases {
+							key := alias.StringCompact()
+
+							if provider, exists := test.Providers[key]; exists {
+								matchedProviders[key] = PassedProviderConfig{
+									InChild: &ProviderConfigRef{
+										Name:         requirement.Name,
+										NameRange:    requirement.DeclRange,
+										Alias:        alias.Alias,
+										AliasRange:   requirement.DeclRange.Ptr(),
+										providerType: requirement.Type,
+									},
+									InParent: &ProviderConfigRef{
+										Name:         provider.Name,
+										NameRange:    provider.NameRange,
+										Alias:        provider.Alias,
+										AliasRange:   provider.AliasRange,
+										providerType: provider.providerType,
+									},
+								}
+							}
+
+						}
+
+					}
+
+					// Next, we'll look at any providers the module has defined
+					// directly. If we have an equivalent provider in the test
+					// file then we'll add that in to override it. If the module
+					// has both built a required providers block and a provider
+					// block for the same provider, we'll overwrite the one we
+					// made for the requirement provider. We get more precise
+					// DeclRange objects from provider blocks so it makes for
+					// better error messages to use these.
+
+					for _, provider := range cfg.Module.ProviderConfigs {
+						key := provider.moduleUniqueKey()
+
+						if testProvider, exists := test.Providers[key]; exists {
+							matchedProviders[key] = PassedProviderConfig{
+								InChild: &ProviderConfigRef{
+									Name:         provider.Name,
+									NameRange:    provider.DeclRange,
+									Alias:        provider.Alias,
+									AliasRange:   provider.DeclRange.Ptr(),
+									providerType: provider.providerType,
+								},
+								InParent: &ProviderConfigRef{
+									Name:         testProvider.Name,
+									NameRange:    testProvider.NameRange,
+									Alias:        testProvider.Alias,
+									AliasRange:   testProvider.AliasRange,
+									providerType: testProvider.providerType,
+								},
+							}
+						}
+					}
+
+					// Last thing to do here is add them into the actual
+					// providers list that is going into the module call below.
+					for _, provider := range matchedProviders {
+						providers = append(providers, provider)
+					}
+
+				}
+
+				// Let's make a little fake module call that we can use to call
+				// into validateProviderConfigs.
+				mc := &ModuleCall{
+					Name:            run.Name,
+					SourceAddr:      run.Module.Source,
+					SourceAddrRange: run.Module.SourceDeclRange,
+					SourceSet:       true,
+					Version:         run.Module.Version,
+					Providers:       providers,
+					DeclRange:       run.Module.DeclRange,
+				}
+
+				diags = append(diags, validateProviderConfigs(mc, run.ConfigUnderTest, nil)...)
+			}
+		}
+	}
+
+	return diags
+}
 
 // validateProviderConfigs walks the full configuration tree from the root
 // module outward, static validation rules to the various combinations of
@@ -23,13 +282,20 @@ import (
 // however will generate an error if a suitable provider configuration is not
 // passed in through the module call.
 //
-// The call argument is the ModuleCall for the provided Config cfg. The
+// The parentCall argument is the ModuleCall for the provided Config cfg. The
 // noProviderConfigRange argument is passed down the call stack, indicating
 // that the module call, or a parent module call, has used a feature (at the
 // specified source location) that precludes providers from being configured at
 // all within the module.
+//
+// Set parentCall to nil when analyzing the root module. In that case the
+// given configuration is allowed to require passed-in provider configurations
+// without that being an error at this layer, although Terraform Core itself
+// will raise an error if asked to plan such a configuration without the caller
+// passing in suitable pre-configured providers to use.
 func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConfigRange *hcl.Range) (diags hcl.Diagnostics) {
 	mod := cfg.Module
+	analyzingRootModule := (parentCall == nil)
 
 	for name, child := range cfg.Children {
 		mc := mod.ModuleCalls[name]
@@ -307,25 +573,30 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 	}
 
 	// A declared alias requires either a matching configuration within the
-	// module, or one must be passed in.
-	for name, providerAddr := range configAliases {
-		_, confOk := configured[name]
-		_, passedOk := passedIn[name]
+	// module, or one must be passed in, unless we're analyzing the root
+	// module. For the root module it's up to Terraform Core to check if
+	// it's being given the required provider configurations as part of the
+	// options when creating a plan.
+	if !analyzingRootModule {
+		for name, providerAddr := range configAliases {
+			_, confOk := configured[name]
+			_, passedOk := passedIn[name]
 
-		if confOk || passedOk {
-			continue
+			if confOk || passedOk {
+				continue
+			}
+
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required provider configuration",
+				Detail: fmt.Sprintf(
+					"The child module requires an additional configuration for provider %s, with the local name %q.\n\nRefer to the module's documentation to understand the intended purpose of this additional provider configuration, and then add an entry for %s in the \"providers\" meta-argument in the module block to choose which provider configuration the module should use for that purpose.",
+					providerAddr.Provider.ForDisplay(), name,
+					name,
+				),
+				Subject: &parentCall.DeclRange,
+			})
 		}
-
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing required provider configuration",
-			Detail: fmt.Sprintf(
-				"The child module requires an additional configuration for provider %s, with the local name %q.\n\nRefer to the module's documentation to understand the intended purpose of this additional provider configuration, and then add an entry for %s in the \"providers\" meta-argument in the module block to choose which provider configuration the module should use for that purpose.",
-				providerAddr.Provider.ForDisplay(), name,
-				name,
-			),
-			Subject: &parentCall.DeclRange,
-		})
 	}
 
 	// You cannot pass in a provider that cannot be used

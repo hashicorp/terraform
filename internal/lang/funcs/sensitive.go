@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package funcs
 
@@ -28,8 +28,7 @@ var SensitiveFunc = function.New(&function.Spec{
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		val, _ := args[0].Unmark()
-		return val.Mark(marks.Sensitive), nil
+		return args[0].Mark(marks.Sensitive), nil
 	},
 })
 
@@ -52,12 +51,33 @@ var NonsensitiveFunc = function.New(&function.Spec{
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		if args[0].IsKnown() && !args[0].HasMark(marks.Sensitive) {
-			return cty.DynamicVal, function.NewArgErrorf(0, "the given value is not sensitive, so this call is redundant")
-		}
 		v, m := args[0].Unmark()
 		delete(m, marks.Sensitive) // remove the sensitive marking
 		return v.WithMarks(m), nil
+	},
+})
+
+var IssensitiveFunc = function.New(&function.Spec{
+	Params: []function.Parameter{{
+		Name:             "value",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowNull:        true,
+		AllowMarked:      true,
+		AllowDynamicType: true,
+	}},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		return cty.Bool, nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		switch v := args[0]; {
+		case v.HasMark(marks.Sensitive):
+			return cty.True, nil
+		case !v.IsKnown():
+			return cty.UnknownVal(cty.Bool), nil
+		default:
+			return cty.False, nil
+		}
 	},
 })
 
@@ -67,4 +87,8 @@ func Sensitive(v cty.Value) (cty.Value, error) {
 
 func Nonsensitive(v cty.Value) (cty.Value, error) {
 	return NonsensitiveFunc.Call([]cty.Value{v})
+}
+
+func Issensitive(v cty.Value) (cty.Value, error) {
+	return IssensitiveFunc.Call([]cty.Value{v})
 }

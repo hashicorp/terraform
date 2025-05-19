@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configschema
 
@@ -67,8 +67,10 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 			val = in.GetAttr(name)
 		case attrS.Computed || attrS.Optional:
 			val = cty.NullVal(attrType)
-		default:
+		case attrS.Required:
 			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q is required", name)
+		default:
+			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q has none of required, optional, or computed set", name)
 		}
 
 		val, err := convert.Convert(val, attrConvType)
@@ -108,13 +110,15 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					continue
 				}
 
+				coll, marks := coll.Unmark()
+
 				if !coll.CanIterateElements() {
 					return cty.UnknownVal(impliedType), path.NewErrorf("must be a list")
 				}
 				l := coll.LengthInt()
 
 				if l == 0 {
-					attrs[typeName] = cty.ListValEmpty(blockS.ImpliedType())
+					attrs[typeName] = cty.ListValEmpty(blockS.ImpliedType()).WithMarks(marks)
 					continue
 				}
 				elems := make([]cty.Value, 0, l)
@@ -130,7 +134,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 						elems = append(elems, val)
 					}
 				}
-				attrs[typeName] = cty.ListVal(elems)
+				attrs[typeName] = cty.ListVal(elems).WithMarks(marks)
 			default:
 				attrs[typeName] = cty.ListValEmpty(blockS.ImpliedType())
 			}
@@ -148,14 +152,15 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					attrs[typeName] = cty.UnknownVal(cty.Set(blockS.ImpliedType()))
 					continue
 				}
+				coll, marks := coll.Unmark()
 
 				if !coll.CanIterateElements() {
-					return cty.UnknownVal(impliedType), path.NewErrorf("must be a set")
+					return cty.UnknownVal(impliedType), path.NewErrorf("cannot iterate over %#v", coll)
 				}
 				l := coll.LengthInt()
 
 				if l == 0 {
-					attrs[typeName] = cty.SetValEmpty(blockS.ImpliedType())
+					attrs[typeName] = cty.SetValEmpty(blockS.ImpliedType()).WithMarks(marks)
 					continue
 				}
 				elems := make([]cty.Value, 0, l)
@@ -171,7 +176,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 						elems = append(elems, val)
 					}
 				}
-				attrs[typeName] = cty.SetVal(elems)
+				attrs[typeName] = cty.SetVal(elems).WithMarks(marks)
 			default:
 				attrs[typeName] = cty.SetValEmpty(blockS.ImpliedType())
 			}
@@ -189,13 +194,14 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					attrs[typeName] = cty.UnknownVal(cty.Map(blockS.ImpliedType()))
 					continue
 				}
+				coll, marks := coll.Unmark()
 
 				if !coll.CanIterateElements() {
 					return cty.UnknownVal(impliedType), path.NewErrorf("must be a map")
 				}
 				l := coll.LengthInt()
 				if l == 0 {
-					attrs[typeName] = cty.MapValEmpty(blockS.ImpliedType())
+					attrs[typeName] = cty.MapValEmpty(blockS.ImpliedType()).WithMarks(marks)
 					continue
 				}
 				elems := make(map[string]cty.Value)
@@ -218,24 +224,14 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				// If the attribute values here contain any DynamicPseudoTypes,
 				// the concrete type must be an object.
 				useObject := false
-				switch {
-				case coll.Type().IsObjectType():
+				if coll.Type().IsObjectType() || blockS.ImpliedType().HasDynamicTypes() {
 					useObject = true
-				default:
-					// It's possible that we were given a map, and need to coerce it to an object
-					ety := coll.Type().ElementType()
-					for _, v := range elems {
-						if !v.Type().Equals(ety) {
-							useObject = true
-							break
-						}
-					}
 				}
 
 				if useObject {
-					attrs[typeName] = cty.ObjectVal(elems)
+					attrs[typeName] = cty.ObjectVal(elems).WithMarks(marks)
 				} else {
-					attrs[typeName] = cty.MapVal(elems)
+					attrs[typeName] = cty.MapVal(elems).WithMarks(marks)
 				}
 			default:
 				attrs[typeName] = cty.MapValEmpty(blockS.ImpliedType())

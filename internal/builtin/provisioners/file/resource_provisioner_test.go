@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package file
 
@@ -73,6 +73,21 @@ func TestResourceProvider_Validate_bad_not_destination(t *testing.T) {
 func TestResourceProvider_Validate_bad_no_source(t *testing.T) {
 	v := cty.ObjectVal(map[string]cty.Value{
 		"destination": cty.StringVal("/tmp/bar"),
+	})
+
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: v,
+	})
+
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatal("Should have errors")
+	}
+}
+
+func TestResourceProvider_Validate_bad_null_source(t *testing.T) {
+	v := cty.ObjectVal(map[string]cty.Value{
+		"destination": cty.StringVal("/tmp/bar"),
+		"source":      cty.NullVal(cty.String),
 	})
 
 	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{

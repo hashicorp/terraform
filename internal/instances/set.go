@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package instances
 
@@ -49,6 +49,6 @@ func (s Set) HasResource(want addrs.AbsResource) bool {
 // If there are multiple module calls in the path that have repetition enabled
 // then the result is the full expansion of all combinations of all of their
 // declared instance keys.
-func (s Set) InstancesForModule(modAddr addrs.Module) []addrs.ModuleInstance {
-	return s.exp.expandModule(modAddr, true)
+func (s Set) InstancesForModule(modAddr addrs.Module, includeDirectOverrides bool) []addrs.ModuleInstance {
+	return s.exp.expandModule(modAddr, true, includeDirectOverrides)
 }

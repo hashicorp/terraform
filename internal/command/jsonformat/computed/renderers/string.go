@@ -1,14 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package renderers
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 )
 
 type evaluatedString struct {
@@ -30,8 +30,8 @@ func evaluatePrimitiveString(value interface{}, opts computed.RenderHumanOpts) e
 	str := value.(string)
 
 	if strings.HasPrefix(str, "{") || strings.HasPrefix(str, "[") {
-		var jv interface{}
-		if err := json.Unmarshal([]byte(str), &jv); err == nil {
+		jv, err := structured.ParseJson(strings.NewReader(str))
+		if err == nil {
 			return evaluatedString{
 				String: str,
 				Json:   jv,

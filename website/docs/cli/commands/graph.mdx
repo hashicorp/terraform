@@ -1,56 +1,54 @@
 ---
-page_title: 'Command: graph'
+page_title: terraform graph command reference
 description: >-
-  The terraform graph command generates a visual representation of a
+  The `terraform graph` command generates a visual representation of a
   configuration or execution plan that you can use to generate charts.
 ---
 
-# Command: graph
+# `terraform graph` command
 
-The `terraform graph` command is used to generate a visual
-representation of either a configuration or execution plan.
-The output is in the DOT format, which can be used by
-[GraphViz](http://www.graphviz.org) to generate charts.
+The `terraform graph` command generates a visual representation of a configuration or execution plan that you can use to generate charts. This command uses the DOT language generate graphs. Refer to the [GraphViz documentation](https://graphviz.org/doc/info/lang.html) for additional information.
 
 ## Usage
 
 Usage: `terraform graph [options]`
 
-Outputs the visual execution graph of Terraform resources according to
-either the current configuration or an execution plan.
+By default the result is a simplified graph which describes only the dependency
+ordering of the resources (`resource` and `data` blocks) in the configuration.
 
-The graph is outputted in DOT format. The typical program that can
-read this format is GraphViz, but many web services are also available
-to read this format.
-
-The `-type` flag can be used to control the type of graph shown. Terraform
-creates different graphs for different operations. See the options below
-for the list of types supported. The default type is "plan" if a
-configuration is given, and "apply" if a plan file is passed as an
-argument.
+The `-type=...` option optionally selects from a number of other graph types
+which have more detail, at the expense of also exposing some of the
+implementation details of the Terraform language runtime.
 
 Options:
 
-* `-plan=tfplan`    - Render graph using the specified plan file instead of the
-  configuration in the current directory.
+* `-plan=tfplan` - Produce a graph for applying the given plan. Implies `-type=apply`.
 
-* `-draw-cycles`    - Highlight any cycles in the graph with colored edges.
-  This helps when diagnosing cycle errors.
+* `-draw-cycles` - Highlight any cycles in the graph with colored edges.
+  This helps when diagnosing cycle errors. This option is supported only when
+  selecting one of the real graph operaton types using the `-type=...`
+  option.
 
-* `-type=plan`      - Type of graph to output. Can be: `plan`, `plan-refresh-only`, `plan-destroy`, or `apply`.
-
-* `-module-depth=n` - (deprecated) In prior versions of Terraform, specified the
-  depth of modules to show in the output.
+* `-type=...` - Selects a specific operation type to show the graph of, instead
+  of the default resources-only simplified graph.
+  Can be: `plan`, `plan-refresh-only`, `plan-destroy`, or `apply`.
 
 ## Generating Images
 
-The output of `terraform graph` is in the DOT format, which can
-easily be converted to an image by making use of `dot` provided
-by GraphViz:
+The graph output uses
+[the DOT language](https://en.wikipedia.org/wiki/DOT_(graph_description_language)),
+which is a machine-readable graph description language which originated in
+[Graphviz](https://graphviz.org/). You can use the Graphviz `dot` command
+to present the resulting graph description as an image. There are also various
+third-party online graph rendering services which accept this format.
+
+If you have the Graphviz `dot` command already installed, you can render
+a PNG image by piping into that command:
 
 ```shellsession
-$ terraform graph | dot -Tsvg > graph.svg
+$ terraform graph -type=plan | dot -Tpng >graph.png
 ```
 
-Here is an example graph output:
-![Graph Example](/img/docs/graph-example.png)
+The following is an example result:
+
+![A visualization of the plan graph of a hypothetical Terraform configuration, produced by dot](/img/docs/graph-example.png)

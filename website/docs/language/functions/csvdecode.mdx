@@ -63,7 +63,7 @@ locals {
 }
 
 resource "aws_instance" "example" {
-  for_each = { for inst in local.instances : inst.local_id => inst }
+  for_each = tomap({ for inst in local.instances : inst.local_id => inst })
 
   instance_type = each.value.instance_type
   ami           = each.value.ami

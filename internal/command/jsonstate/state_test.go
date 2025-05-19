@@ -1,10 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonstate
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -14,9 +15,14 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
+
+func ptrOf[T any](v T) *T {
+	return &v
+}
 
 func TestMarshalOutputs(t *testing.T) {
 	tests := []struct {
@@ -113,15 +119,18 @@ func TestMarshalOutputs(t *testing.T) {
 
 func TestMarshalAttributeValues(t *testing.T) {
 	tests := []struct {
-		Attr cty.Value
-		Want AttributeValues
+		Attr               cty.Value
+		Want               AttributeValues
+		WantSensitivePaths []cty.Path
 	}{
 		{
 			cty.NilVal,
 			nil,
+			nil,
 		},
 		{
 			cty.NullVal(cty.String),
+			nil,
 			nil,
 		},
 		{
@@ -129,12 +138,14 @@ func TestMarshalAttributeValues(t *testing.T) {
 				"foo": cty.StringVal("bar"),
 			}),
 			AttributeValues{"foo": json.RawMessage(`"bar"`)},
+			nil,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.NullVal(cty.String),
 			}),
 			AttributeValues{"foo": json.RawMessage(`null`)},
+			nil,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -150,8 +161,9 @@ func TestMarshalAttributeValues(t *testing.T) {
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
+			nil,
 		},
-		// Marked values
+		// Sensitive values
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"bar": cty.MapVal(map[string]cty.Value{
@@ -166,16 +178,43 @@ func TestMarshalAttributeValues(t *testing.T) {
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
+			[]cty.Path{
+				cty.GetAttrPath("baz").IndexInt(1),
+			},
 		},
 	}
 
 	for _, test := range tests {
-		got := marshalAttributeValues(test.Attr)
-		eq := reflect.DeepEqual(got, test.Want)
-		if !eq {
-			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
-		}
+		t.Run(fmt.Sprintf("%#v", test.Attr), func(t *testing.T) {
+			val, got, sensitivePaths, err := marshalAttributeValues(test.Attr)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if !reflect.DeepEqual(got, test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v\n", got, test.Want)
+			}
+			if !reflect.DeepEqual(sensitivePaths, test.WantSensitivePaths) {
+				t.Errorf("wrong marks\ngot:  %#v\nwant: %#v\n", sensitivePaths, test.WantSensitivePaths)
+			}
+			if _, marks := val.Unmark(); len(marks) != 0 {
+				t.Errorf("returned value still has marks; should have been unmarked\n%#v", marks)
+			}
+		})
 	}
+
+	t.Run("reject unsupported marks", func(t *testing.T) {
+		_, _, _, err := marshalAttributeValues(cty.ObjectVal(map[string]cty.Value{
+			"disallowed": cty.StringVal("a").Mark("unsupported"),
+		}))
+		if err == nil {
+			t.Fatalf("unexpected success; want error")
+		}
+		got := err.Error()
+		want := `.disallowed: cannot serialize value marked as cty.NewValueMarks("unsupported") for inclusion in a state snapshot (this is a bug in Terraform)`
+		if got != want {
+			t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+		}
+	})
 }
 
 func TestMarshalResources(t *testing.T) {
@@ -291,9 +330,8 @@ func TestMarshalResources(t *testing.T) {
 							Current: &states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{"foozles":"confuzles"}`),
-								AttrSensitivePaths: []cty.PathValueMarks{{
-									Path:  cty.Path{cty.GetAttrStep{Name: "foozles"}},
-									Marks: cty.NewValueMarks(marks.Sensitive)},
+								AttrSensitivePaths: []cty.Path{
+									cty.GetAttrPath("foozles"),
 								},
 							},
 						},
@@ -557,9 +595,8 @@ func TestMarshalResources(t *testing.T) {
 							Current: &states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{"data":{"woozles":"confuzles"}}`),
-								AttrSensitivePaths: []cty.PathValueMarks{{
-									Path:  cty.Path{cty.GetAttrStep{Name: "data"}},
-									Marks: cty.NewValueMarks(marks.Sensitive)},
+								AttrSensitivePaths: []cty.Path{
+									cty.GetAttrPath("data"),
 								},
 							},
 						},
@@ -586,6 +623,115 @@ func TestMarshalResources(t *testing.T) {
 				},
 			},
 			false,
+		},
+		"single resource with identity": {
+			map[string]*states.Resource{
+				"test_identity.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_identity",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:       states.ObjectReady,
+								AttrsJSON:    []byte(`{"woozles":"confuzles","foozles":"sensuzles","name":"bar"}`),
+								IdentityJSON: []byte(`{"foozles":"sensuzles","name":"bar"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			[]Resource{
+				{
+					Address:      "test_identity.bar",
+					Mode:         "managed",
+					Type:         "test_identity",
+					Name:         "bar",
+					Index:        nil,
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					AttributeValues: AttributeValues{
+						"name":    json.RawMessage(`"bar"`),
+						"foozles": json.RawMessage(`"sensuzles"`),
+						"woozles": json.RawMessage(`"confuzles"`),
+					},
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
+					IdentityValues: IdentityValues{
+						"name":    json.RawMessage(`"bar"`),
+						"foozles": json.RawMessage(`"sensuzles"`),
+					},
+					IdentitySchemaVersion: ptrOf[uint64](0),
+				},
+			},
+			false,
+		},
+		"single resource wrong identity schema": {
+			map[string]*states.Resource{
+				"test_identity.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_identity",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:                states.ObjectReady,
+								AttrsJSON:             []byte(`{"woozles":"confuzles","foozles":"sensuzles","name":"bar"}`),
+								IdentitySchemaVersion: 1,
+								IdentityJSON:          []byte(`{"foozles":"sensuzles","name":"bar"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			nil,
+			true,
+		},
+		"single resource missing identity schema": {
+			map[string]*states.Resource{
+				"test_thing.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:                states.ObjectReady,
+								AttrsJSON:             []byte(`{"woozles":"confuzles","foozles":"sensuzles"}`),
+								IdentitySchemaVersion: 0,
+								IdentityJSON:          []byte(`{"foozles":"sensuzles","name":"bar"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			nil,
+			true,
 		},
 	}
 
@@ -807,25 +953,47 @@ func TestMarshalModules_parent_no_resources(t *testing.T) {
 
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
-				ResourceTypes: map[string]*configschema.Block{
+				ResourceTypes: map[string]providers.Schema{
 					"test_thing": {
-						Attributes: map[string]*configschema.Attribute{
-							"woozles": {Type: cty.String, Optional: true, Computed: true},
-							"foozles": {Type: cty.String, Optional: true, Sensitive: true},
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"woozles": {Type: cty.String, Optional: true, Computed: true},
+								"foozles": {Type: cty.String, Optional: true, Sensitive: true},
+							},
 						},
 					},
 					"test_instance": {
-						Attributes: map[string]*configschema.Attribute{
-							"id":  {Type: cty.String, Optional: true, Computed: true},
-							"foo": {Type: cty.String, Optional: true},
-							"bar": {Type: cty.String, Optional: true},
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id":  {Type: cty.String, Optional: true, Computed: true},
+								"foo": {Type: cty.String, Optional: true},
+								"bar": {Type: cty.String, Optional: true},
+							},
 						},
 					},
 					"test_map_attr": {
-						Attributes: map[string]*configschema.Attribute{
-							"data": {Type: cty.Map(cty.String), Optional: true, Computed: true, Sensitive: true},
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"data": {Type: cty.Map(cty.String), Optional: true, Computed: true, Sensitive: true},
+							},
+						},
+					},
+					"test_identity": {
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"name":    {Type: cty.String, Required: true},
+								"woozles": {Type: cty.String, Optional: true, Computed: true},
+								"foozles": {Type: cty.String, Optional: true, Sensitive: true},
+							},
+						},
+						Identity: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"name":    {Type: cty.String, Required: true},
+								"foozles": {Type: cty.String, Optional: true},
+							},
+							Nesting: configschema.NestingSingle,
 						},
 					},
 				},

@@ -1,9 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -20,11 +22,11 @@ import (
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -32,14 +34,14 @@ func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
 	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
 
-	op := &backend.Operation{
+	op := &backendrun.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		Workspace:    backend.DefaultStateName,
@@ -63,16 +65,51 @@ func TestLocalRun_error(t *testing.T) {
 	// should then cause LocalRun to return with the state unlocked.
 	b.Backend = backendWithStateStorageThatFailsRefresh{}
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
 	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
 
-	op := &backend.Operation{
+	op := &backendrun.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
+		Workspace:    backend.DefaultStateName,
+		StateLocker:  stateLocker,
+	}
+
+	_, _, diags := b.LocalRun(op)
+	if !diags.HasErrors() {
+		t.Fatal("unexpected success")
+	}
+
+	// LocalRun() unlocks the state on failure
+	assertBackendStateUnlocked(t, b)
+}
+
+func TestLocalRun_cloudPlan(t *testing.T) {
+	configDir := "./testdata/apply"
+	b := TestLocal(t)
+
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	defer configCleanup()
+
+	planPath := "./testdata/plan-bookmark/bookmark.json"
+
+	planFile, err := planfile.OpenWrapped(planPath)
+	if err != nil {
+		t.Fatalf("unexpected error reading planfile: %s", err)
+	}
+
+	streams, _ := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
+
+	op := &backendrun.Operation{
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+		PlanFile:     planFile,
 		Workspace:    backend.DefaultStateName,
 		StateLocker:  stateLocker,
 	}
@@ -90,7 +127,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	// Write an empty state file with serial 3
@@ -122,7 +159,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	}
 	plan := &plans.Plan{
 		UIMode:  plans.NormalMode,
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
 		Backend: plans.Backend{
 			Type:   "local",
 			Config: backendConfigRaw,
@@ -146,7 +183,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	if err := planfile.Create(planPath, planfileArgs); err != nil {
 		t.Fatalf("unexpected error writing planfile: %s", err)
 	}
-	planFile, err := planfile.Open(planPath)
+	planFile, err := planfile.OpenWrapped(planPath)
 	if err != nil {
 		t.Fatalf("unexpected error reading planfile: %s", err)
 	}
@@ -155,7 +192,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	view := views.NewView(streams)
 	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
 
-	op := &backend.Operation{
+	op := &backendrun.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		PlanFile:     planFile,
@@ -225,7 +262,7 @@ func (s *stateStorageThatFailsRefresh) State() *states.State {
 	return nil
 }
 
-func (s *stateStorageThatFailsRefresh) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+func (s *stateStorageThatFailsRefresh) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
@@ -237,6 +274,6 @@ func (s *stateStorageThatFailsRefresh) RefreshState() error {
 	return fmt.Errorf("intentionally failing for testing purposes")
 }
 
-func (s *stateStorageThatFailsRefresh) PersistState(schemas *terraform.Schemas) error {
+func (s *stateStorageThatFailsRefresh) PersistState(schemas *schemarepo.Schemas) error {
 	return fmt.Errorf("unimplemented")
 }

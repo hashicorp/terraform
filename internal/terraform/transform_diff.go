@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -20,7 +20,7 @@ import (
 type DiffTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 	State    *states.State
-	Changes  *plans.Changes
+	Changes  *plans.ChangesSrc
 	Config   *configs.Config
 }
 
@@ -32,7 +32,7 @@ func (t *DiffTransformer) hasConfigConditions(addr addrs.AbsResourceInstance) bo
 		return false
 	}
 
-	cfg := t.Config.DescendentForInstance(addr.Module)
+	cfg := t.Config.DescendantForInstance(addr.Module)
 	if cfg == nil {
 		return false
 	}
@@ -63,7 +63,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// get evaluated before any of the corresponding instances by creating
 	// dependency edges, so we'll do some prep work here to ensure we'll only
 	// create connections to nodes that existed before we started here.
-	resourceNodes := map[string][]GraphNodeConfigResource{}
+	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
 	for _, node := range g.Vertices() {
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
@@ -76,8 +76,8 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		addr := rn.ResourceAddr().String()
-		resourceNodes[addr] = append(resourceNodes[addr], rn)
+		rAddr := rn.ResourceAddr()
+		resourceNodes.Put(rAddr, append(resourceNodes.Get(rAddr), rn))
 	}
 
 	for _, rc := range changes.Resources {
@@ -89,7 +89,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		// Depending on the action we'll need some different combinations of
 		// nodes, because destroying uses a special node type separate from
 		// other actions.
-		var update, delete, createBeforeDestroy bool
+		var update, delete, forget, createBeforeDestroy bool
 		switch rc.Action {
 		case plans.NoOp:
 			// For a no-op change we don't take any action but we still
@@ -103,18 +103,20 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			update = true
 			delete = true
 			createBeforeDestroy = (rc.Action == plans.CreateThenDelete)
+		case plans.Forget:
+			forget = true
 		default:
 			update = true
 		}
 
-		// A deposed instance may only have a change of Delete or NoOp. A NoOp
-		// can happen if the provider shows it no longer exists during the most
-		// recent ReadResource operation.
-		if dk != states.NotDeposed && !(rc.Action == plans.Delete || rc.Action == plans.NoOp) {
+		// A deposed instance may only have a change of Delete, Forget, or NoOp.
+		// A NoOp can happen if the provider shows it no longer exists during
+		// the most recent ReadResource operation.
+		if dk != states.NotDeposed && !(rc.Action == plans.Delete || rc.Action == plans.Forget || rc.Action == plans.NoOp) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid planned change for deposed object",
-				fmt.Sprintf("The plan contains a non-delete change for %s deposed object %s. The only valid action for a deposed object is to destroy it, so this is a bug in Terraform.", addr, dk),
+				fmt.Sprintf("The plan contains a non-remove change for %s deposed object %s. The only valid actions for a deposed object are to destroy it or remove it from state, so this is a bug in Terraform.", addr, dk),
 			))
 			continue
 		}
@@ -178,8 +180,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			}
 
 			g.Add(node)
-			rsrcAddr := addr.ContainingResource().String()
-			for _, rsrcNode := range resourceNodes[rsrcAddr] {
+			for _, rsrcNode := range resourceNodes.Get(addr.ConfigResource()) {
 				g.Connect(dag.BasicEdge(node, rsrcNode))
 			}
 		}
@@ -193,7 +194,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			if dk == states.NotDeposed {
 				node = &NodeDestroyResourceInstance{
 					NodeAbstractResourceInstance: abstract,
-					DeposedKey:                   dk,
 				}
 			} else {
 				node = &NodeDestroyDeposedResourceInstanceObject{
@@ -206,6 +206,24 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			} else {
 				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, dag.VertexName(node))
 			}
+			g.Add(node)
+		}
+
+		if forget {
+			var node GraphNodeResourceInstance
+			abstract := NewNodeAbstractResourceInstance(addr)
+			if dk == states.NotDeposed {
+				node = &NodeForgetResourceInstance{
+					NodeAbstractResourceInstance: abstract,
+				}
+			} else {
+				node = &NodeForgetDeposedResourceInstanceObject{
+					NodeAbstractResourceInstance: abstract,
+					DeposedKey:                   dk,
+				}
+			}
+
+			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, dag.VertexName(node))
 			g.Add(node)
 		}
 

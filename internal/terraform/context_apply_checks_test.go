@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -38,8 +39,8 @@ func TestContextChecks(t *testing.T) {
 		applyError   string
 		applyWarning string
 		state        *states.State
-		provider     *MockProvider
-		providerHook func(*MockProvider)
+		provider     *testing_provider.MockProvider
+		providerHook func(*testing_provider.MockProvider)
 	}{
 		"passing": {
 			configs: map[string]string{
@@ -66,12 +67,12 @@ check "passing" {
 					status: checks.StatusPass,
 				},
 			},
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -120,12 +121,12 @@ check "failing" {
 				},
 			},
 			applyWarning: "Check block assertion failed: negative number",
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -179,12 +180,12 @@ check "failing" {
 				},
 			},
 			applyWarning: "Check block assertion failed: positive number",
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -249,12 +250,12 @@ check "nested_data_block" {
 				},
 			},
 			applyWarning: "Check block assertion failed: negative number",
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -273,7 +274,7 @@ check "nested_data_block" {
 					}
 				},
 			},
-			providerHook: func(provider *MockProvider) {
+			providerHook: func(provider *testing_provider.MockProvider) {
 				provider.ReadDataSourceFn = func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 					// The data returned by the data sources are changing
 					// between the plan and apply stage. The nested data block
@@ -317,12 +318,12 @@ check "resource_block" {
 					status: checks.StatusPass,
 				},
 			},
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"id": {
 										Type:     cty.String,
@@ -334,7 +335,7 @@ check "resource_block" {
 					},
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"id": {
 										Type:     cty.String,
@@ -415,12 +416,12 @@ check "error" {
 				},
 			},
 			applyWarning: "data source read failed: something bad happened and the provider couldn't read the data source",
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -468,7 +469,7 @@ check "error" {
 						AttrsJSON: []byte(`{"number": -1}`),
 					},
 					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
+						Provider: addrs.NewDefaultProvider("checks"),
 						Module:   addrs.RootModule,
 					})
 			}),
@@ -490,12 +491,12 @@ check "error" {
 				},
 			},
 			applyWarning: "data source read failed: something bad happened and the provider couldn't read the data source",
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -507,7 +508,7 @@ check "error" {
 					},
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -568,7 +569,7 @@ check "passing" {
 						AttrsJSON: []byte(`{"number": -1}`),
 					},
 					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
+						Provider: addrs.NewDefaultProvider("checks"),
 						Module:   addrs.RootModule,
 					})
 			}),
@@ -582,12 +583,12 @@ check "passing" {
 					status: checks.StatusPass,
 				},
 			},
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -630,12 +631,12 @@ check "error" {
 `,
 			},
 			planError: "data source read failed: something bad happened and the provider couldn't read the data source",
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -673,12 +674,12 @@ check "error" {
 `,
 			},
 			planError: "Reference to scoped resource: The referenced data resource \"checks_object\" \"nested_data_block\" is not available from this context.",
-			provider: &MockProvider{
+			provider: &testing_provider.MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"id": {
 										Type:     cty.String,
@@ -735,13 +736,65 @@ check "error" {
 				test.providerHook(test.provider)
 			}
 
-			state, diags := ctx.Apply(plan, configs)
+			state, diags := ctx.Apply(plan, configs, nil)
 			if validateCheckDiagnostics(t, "apply", test.applyWarning, test.applyError, diags) {
 				return
 			}
 			validateCheckResults(t, "apply", test.apply, state.CheckResults)
 		})
 	}
+}
+
+func TestContextChecks_DoesNotPanicOnModuleExpansion(t *testing.T) {
+	// This is a bit of a special test, we're adding it to verify that
+	// https://github.com/hashicorp/terraform/issues/34062 is fixed.
+	//
+	// Essentially we make a check block in a child module that depends on a
+	// resource that has no changes. We don't care about the actual behaviour
+	// of the check block. We just don't want the apply operation to crash.
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "panic_at_the_disco" {
+   source = "./panic"
+}
+`,
+		"panic/main.tf": `
+resource "test_object" "object" {
+    test_string = "Hello, world!"
+}
+
+check "check_should_not_panic" {
+    assert {
+         condition     = test_object.object.test_string == "Hello, world!"
+         error_message = "condition violated"
+    }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("module.panic_at_the_disco.test_object.object"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"Hello, world!"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	}), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	_, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func validateCheckDiagnostics(t *testing.T, stage string, expectedWarning, expectedError string, actual tfdiags.Diagnostics) bool {
@@ -769,7 +822,7 @@ func validateCheckDiagnostics(t *testing.T, stage string, expectedWarning, expec
 		}
 	}
 
-	assertNoErrors(t, actual)
+	tfdiags.AssertNoErrors(t, actual)
 	return false
 }
 

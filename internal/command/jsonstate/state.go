@@ -1,11 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonstate
 
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
@@ -17,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -109,18 +112,35 @@ type Resource struct {
 
 	// Deposed is set if the resource is deposed in terraform state.
 	DeposedKey string `json:"deposed_key,omitempty"`
+
+	// The version of the resource identity schema the "identity" property
+	// conforms to.
+	// It's a pointer, because it should be optional, but also 0 is a valid
+	// schema version.
+	IdentitySchemaVersion *uint64 `json:"identity_schema_version,omitempty"`
+
+	// The JSON representation of the resource identity, whose structure
+	// depends on the resource identity schema.
+	IdentityValues IdentityValues `json:"identity,omitempty"`
 }
 
 // AttributeValues is the JSON representation of the attribute values of the
 // resource, whose structure depends on the resource type schema.
 type AttributeValues map[string]json.RawMessage
 
-func marshalAttributeValues(value cty.Value) AttributeValues {
+// IdentityValues is the JSON representation of the identity values of the
+// resource, whose structure depends on the resource identity schema.
+type IdentityValues map[string]json.RawMessage
+
+func marshalAttributeValues(value cty.Value) (unmarkedVal cty.Value, marshalledVals AttributeValues, sensitivePaths []cty.Path, err error) {
 	// unmark our value to show all values
-	value, _ = value.UnmarkDeep()
+	value, sensitivePaths, err = unmarkValueForMarshaling(value)
+	if err != nil {
+		return cty.NilVal, nil, nil, err
+	}
 
 	if value == cty.NilVal || value.IsNull() {
-		return nil
+		return value, nil, nil, nil
 	}
 
 	ret := make(AttributeValues)
@@ -131,7 +151,22 @@ func marshalAttributeValues(value cty.Value) AttributeValues {
 		vJSON, _ := ctyjson.Marshal(v, v.Type())
 		ret[k.AsString()] = json.RawMessage(vJSON)
 	}
-	return ret
+	return value, ret, sensitivePaths, nil
+}
+
+func marshalIdentityValues(value cty.Value) (IdentityValues, error) {
+	if value == cty.NilVal || value.IsNull() {
+		return nil, nil
+	}
+
+	ret := make(IdentityValues)
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		vJSON, _ := ctyjson.Marshal(v, v.Type())
+		ret[k.AsString()] = json.RawMessage(vJSON)
+	}
+	return ret, nil
 }
 
 // newState() returns a minimally-initialized state
@@ -149,7 +184,7 @@ func MarshalForRenderer(sf *statefile.File, schemas *terraform.Schemas) (Module,
 		return Module{}, nil, nil
 	}
 
-	outputs, err := MarshalOutputs(sf.State.RootModule().OutputValues)
+	outputs, err := MarshalOutputs(sf.State.RootOutputValues)
 	if err != nil {
 		return Module{}, nil, err
 	}
@@ -174,13 +209,11 @@ func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 	if sf.TerraformVersion != nil {
 		output.TerraformVersion = sf.TerraformVersion.String()
 	}
-
 	// output.StateValues
 	err := output.marshalStateValues(sf.State, schemas)
 	if err != nil {
 		return nil, err
 	}
-
 	// output.Checks
 	if sf.State.CheckResults != nil && sf.State.CheckResults.ConfigResults.Len() > 0 {
 		output.Checks = jsonchecks.MarshalCheckStates(sf.State.CheckResults)
@@ -195,7 +228,7 @@ func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.S
 	var err error
 
 	// only marshal the root module outputs
-	sv.Outputs, err = MarshalOutputs(s.RootModule().OutputValues)
+	sv.Outputs, err = MarshalOutputs(s.RootOutputValues)
 	if err != nil {
 		return err
 	}
@@ -377,7 +410,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				)
 			}
 
-			schema, version := schemas.ResourceTypeConfig(
+			schema := schemas.ResourceTypeConfig(
 				r.ProviderConfig.Provider,
 				resAddr.Mode,
 				resAddr.Type,
@@ -385,32 +418,52 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 			// It is possible that the only instance is deposed
 			if ri.Current != nil {
-				if version != ri.Current.SchemaVersion {
-					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, version)
+				if schema.Version != int64(ri.Current.SchemaVersion) {
+					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, schema.Version)
 				}
 
 				current.SchemaVersion = ri.Current.SchemaVersion
 
-				if schema == nil {
+				if schema.Body == nil {
 					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 				}
-				riObj, err := ri.Current.Decode(schema.ImpliedType())
+
+				// Check if we have an identity in the state
+				if ri.Current.IdentityJSON != nil {
+					if schema.IdentityVersion != int64(ri.Current.IdentitySchemaVersion) {
+						return nil, fmt.Errorf("resource identity schema version %d for %s in state does not match version %d from the provider", ri.Current.IdentitySchemaVersion, resAddr, schema.IdentityVersion)
+					}
+
+					if schema.Identity == nil {
+						return nil, fmt.Errorf("no resource identity schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
+					}
+
+					current.IdentitySchemaVersion = &ri.Current.IdentitySchemaVersion
+				}
+
+				riObj, err := ri.Current.Decode(schema)
 				if err != nil {
 					return nil, err
 				}
 
-				current.AttributeValues = marshalAttributeValues(riObj.Value)
-
-				value, marks := riObj.Value.UnmarkDeepWithPaths()
-				if schema.ContainsSensitive() {
-					marks = append(marks, schema.ValueMarks(value, nil)...)
+				var value cty.Value
+				var sensitivePaths []cty.Path
+				value, current.AttributeValues, sensitivePaths, err = marshalAttributeValues(riObj.Value)
+				if err != nil {
+					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
 				}
-				s := SensitiveAsBool(value.MarkWithPaths(marks))
+				sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(value, nil)...)
+				s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
 				}
 				current.SensitiveValues = v
+
+				current.IdentityValues, err = marshalIdentityValues(riObj.Identity)
+				if err != nil {
+					return nil, fmt.Errorf("preparing identity values for %s: %w", current.Address, err)
+				}
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
@@ -426,13 +479,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				ret = append(ret, current)
 			}
 
-			var sortedDeposedKeys []string
-			for k := range ri.Deposed {
-				sortedDeposedKeys = append(sortedDeposedKeys, string(k))
-			}
-			sort.Strings(sortedDeposedKeys)
-
-			for _, deposedKey := range sortedDeposedKeys {
+			for _, deposedKey := range slices.Sorted(maps.Keys(ri.Deposed)) {
 				rios := ri.Deposed[states.DeposedKey(deposedKey)]
 
 				// copy the base fields from the current instance
@@ -445,23 +492,29 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					Index:        current.Index,
 				}
 
-				riObj, err := rios.Decode(schema.ImpliedType())
+				riObj, err := rios.Decode(schema)
 				if err != nil {
 					return nil, err
 				}
 
-				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
-
-				value, marks := riObj.Value.UnmarkDeepWithPaths()
-				if schema.ContainsSensitive() {
-					marks = append(marks, schema.ValueMarks(value, nil)...)
+				var value cty.Value
+				var sensitivePaths []cty.Path
+				value, deposed.AttributeValues, sensitivePaths, err = marshalAttributeValues(riObj.Value)
+				if err != nil {
+					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
 				}
-				s := SensitiveAsBool(value.MarkWithPaths(marks))
+				sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(value, nil)...)
+				s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
 				}
 				deposed.SensitiveValues = v
+
+				deposed.IdentityValues, err = marshalIdentityValues(riObj.Identity)
+				if err != nil {
+					return nil, fmt.Errorf("preparing identity values for %s: %w", current.Address, err)
+				}
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
@@ -474,7 +527,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if riObj.Status == states.ObjectTainted {
 					deposed.Tainted = true
 				}
-				deposed.DeposedKey = deposedKey
+				deposed.DeposedKey = string(deposedKey)
 				ret = append(ret, deposed)
 			}
 		}
@@ -553,4 +606,25 @@ func SensitiveAsBool(val cty.Value) cty.Value {
 		// Should never happen, since the above should cover all types
 		panic(fmt.Sprintf("sensitiveAsBool cannot handle %#v", val))
 	}
+}
+
+// unmarkValueForMarshaling takes a value that possibly contains marked values
+// and returns an equal value without markings along with the separated mark
+// metadata that should be presented alongside the value in another JSON
+// property.
+//
+// This function only accepts the marks that are valid to persist, and so will
+// return an error if other marks are present. Marks that this package doesn't
+// know how to store must be dealt with somehow by a caller -- presumably by
+// replacing each marked value with some sort of storage placeholder.
+func unmarkValueForMarshaling(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
+	val, pvms := v.UnmarkDeepWithPaths()
+	sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	if len(otherMarks) != 0 {
+		return cty.NilVal, nil, fmt.Errorf(
+			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(otherMarks[0].Path), otherMarks[0].Marks,
+		)
+	}
+	return val, sensitivePaths, err
 }

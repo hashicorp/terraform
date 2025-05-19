@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local
 
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 )
 
-// backend.CLI impl.
-func (b *Local) CLIInit(opts *backend.CLIOpts) error {
+// backendrun.CLI impl.
+func (b *Local) CLIInit(opts *backendrun.CLIOpts) error {
 	b.ContextOpts = opts.ContextOpts
 	b.OpInput = opts.Input
 	b.OpValidation = opts.Validation

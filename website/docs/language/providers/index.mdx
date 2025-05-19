@@ -72,7 +72,7 @@ about it in your configuration. See the following pages for details:
 
 ## Provider Installation
 
-- Terraform Cloud and Terraform Enterprise install providers as part of every run.
+- HCP Terraform and Terraform Enterprise install providers as part of every run.
 
 - Terraform CLI finds and installs providers when
   [initializing a working directory](/terraform/cli/init). It can
@@ -88,10 +88,31 @@ To ensure Terraform always installs the same provider versions for a given
 configuration, you can use Terraform CLI to create a
 [dependency lock file](/terraform/language/files/dependency-lock)
 and commit it to version control along with your configuration. If a lock file
-is present, Terraform Cloud, CLI, and Enterprise will all obey it when
+is present, HCP Terraform, CLI, and Enterprise will all obey it when
 installing providers.
 
 > **Hands-on:** Try the [Lock and Upgrade Provider Versions](/terraform/tutorials/configuration-language/provider-versioning?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+### Private Providers
+
+If you are using a provider that is not in a Hashicorp-hosted registry, you may 
+need to attach additional credentials to your requests to external registries. 
+You do not need these credentials if your provider is in the Terraform public
+registry or the HCP Terraform private registry.
+
+By default, Terraform only authenticates the opening request from a provider to 
+the registry. The registry responds with 
+[follow-up URLs](/terraform/internals/provider-registry-protocol#find-a-provider-package) 
+that Terraform makes requests to, such as telling Terraform to download the 
+provider or the `SHASUMS` file. Hashicorp-hosted registries do not require 
+additional authentication for these follow-up requests. If your registry does 
+require additional credentials for follow-up requests, you can use a `.netrc`
+file to provide those credentials.
+
+By default, Terraform searches for the `.netrc` file in your `HOME` directory.
+However, you can override the default filesystem location by setting the `NETRC`
+environment variable. For information on the format of`.netrc`, refer to the
+[`curl` documentation](https://everything.curl.dev/usingcurl/netrc).
 
 ## How to Find Providers
 

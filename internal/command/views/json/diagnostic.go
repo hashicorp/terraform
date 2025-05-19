@@ -1,11 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package json
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -14,9 +13,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hcled"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // These severities map to the tfdiags.Severity values, plus an explicit
@@ -103,6 +103,11 @@ type DiagnosticSnippet struct {
 	// FunctionCall is information about a function call whose failure is
 	// being reported by this diagnostic, if any.
 	FunctionCall *DiagnosticFunctionCall `json:"function_call,omitempty"`
+
+	// TestAssertionExpr is information derived from a diagnostic that is caused
+	// by a failed run assertion. This field is only populated when the assertion
+	// is a binary expression, i.e `a operand b``.
+	TestAssertionExpr *DiagnosticTestBinaryExpr `json:"test_assertion_expr,omitempty"`
 }
 
 // DiagnosticExpressionValue represents an HCL traversal string (e.g.
@@ -127,6 +132,17 @@ type DiagnosticFunctionCall struct {
 	// called, if any. Might be omitted if we're reporting that a call failed
 	// because the given function name isn't known, for example.
 	Signature *Function `json:"signature,omitempty"`
+}
+
+// DiagnosticTestBinaryExpr represents a failed test assertion diagnostic
+// caused by a binary expression. It includes the left-hand side (LHS) and
+// right-hand side (RHS) values of the binary expression, as well as a warning
+// message if there is a potential issue with the values being compared.
+type DiagnosticTestBinaryExpr struct {
+	LHS         string `json:"lhs"`
+	RHS         string `json:"rhs"`
+	Warning     string `json:"warning"`
+	ShowVerbose bool   `json:"show_verbose"`
 }
 
 // NewDiagnostic takes a tfdiags.Diagnostic and a map of configuration sources,
@@ -275,7 +291,9 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				values := make([]DiagnosticExpressionValue, 0, len(vars))
 				seen := make(map[string]struct{}, len(vars))
 				includeUnknown := tfdiags.DiagnosticCausedByUnknown(diag)
+				includeEphemeral := tfdiags.DiagnosticCausedByEphemeral(diag)
 				includeSensitive := tfdiags.DiagnosticCausedBySensitive(diag)
+				testDiag := tfdiags.ExtraInfo[tfdiags.DiagnosticExtraCausedByTestFailure](diag)
 			Traversals:
 				for _, traversal := range vars {
 					for len(traversal) > 1 {
@@ -288,14 +306,57 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							continue
 						}
 
-						traversalStr := traversalStr(traversal)
+						traversalStr := tfdiags.TraversalStr(traversal)
 						if _, exists := seen[traversalStr]; exists {
 							continue Traversals // don't show duplicates when the same variable is referenced multiple times
 						}
 						value := DiagnosticExpressionValue{
 							Traversal: traversalStr,
 						}
+
+						// If the diagnostic is caused by a failed run assertion,
+						// we'll redact sensitive and ephemeral values within traversals, but format
+						// the values in a more human-readable way than the general case.
+						// If the value is unknown, we'll leave it to the general case to handle.
+						if testDiag != nil && val.IsKnown() {
+							valBuf, err := tfdiags.FormatValueStr(val)
+							if err != nil {
+								panic(err)
+							}
+							value.Statement = fmt.Sprintf("is %s", valBuf)
+							values = append(values, value)
+							seen[traversalStr] = struct{}{}
+							continue Traversals
+						}
+
+						// We'll skip any value that has a mark that we don't
+						// know how to handle, because in that case we can't
+						// know what that mark is intended to represent and so
+						// must be conservative.
+						_, valMarks := val.Unmark()
+						for mark := range valMarks {
+							switch mark {
+							case marks.Sensitive, marks.Ephemeral:
+								// These are handled below
+								continue
+							default:
+								// All other marks are unhandled, so we'll
+								// skip this traversal entirely.
+								continue Traversals
+							}
+						}
 						switch {
+						case val.HasMark(marks.Sensitive) && val.HasMark(marks.Ephemeral):
+							// We only mention the combination of sensitive and ephemeral
+							// values if the diagnostic we're rendering is explicitly
+							// marked as being caused by sensitive and ephemeral values,
+							// because otherwise readers tend to be misled into thinking the error
+							// is caused by the sensitive value even when it isn't.
+							if !includeSensitive || !includeEphemeral {
+								continue Traversals
+							}
+
+							value.Statement = "has an ephemeral, sensitive value"
 						case val.HasMark(marks.Sensitive):
 							// We only mention a sensitive value if the diagnostic
 							// we're rendering is explicitly marked as being
@@ -309,6 +370,11 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							// in order to minimize the chance of giving away
 							// whatever was sensitive about it.
 							value.Statement = "has a sensitive value"
+						case val.HasMark(marks.Ephemeral):
+							if !includeEphemeral {
+								continue Traversals
+							}
+							value.Statement = "has an ephemeral value"
 						case !val.IsKnown():
 							// We'll avoid saying anything about unknown or
 							// "known after apply" unless the diagnostic is
@@ -318,7 +384,27 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							// unknown value even when it isn't.
 							if ty := val.Type(); ty != cty.DynamicPseudoType {
 								if includeUnknown {
-									value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+									switch {
+									case ty.IsCollectionType():
+										valRng := val.Range()
+										minLen := valRng.LengthLowerBound()
+										maxLen := valRng.LengthUpperBound()
+										const maxLimit = 1024 // (upper limit is just an arbitrary value to avoid showing distracting large numbers in the UI)
+										switch {
+										case minLen == maxLen:
+											value.Statement = fmt.Sprintf("is a %s of length %d, known only after apply", ty.FriendlyName(), minLen)
+										case minLen != 0 && maxLen <= maxLimit:
+											value.Statement = fmt.Sprintf("is a %s with between %d and %d elements, known only after apply", ty.FriendlyName(), minLen, maxLen)
+										case minLen != 0:
+											value.Statement = fmt.Sprintf("is a %s with at least %d elements, known only after apply", ty.FriendlyName(), minLen)
+										case maxLen <= maxLimit:
+											value.Statement = fmt.Sprintf("is a %s with up to %d elements, known only after apply", ty.FriendlyName(), maxLen)
+										default:
+											value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+										}
+									default:
+										value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+									}
 								} else {
 									value.Statement = fmt.Sprintf("is a %s", ty.FriendlyName())
 								}
@@ -329,7 +415,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 								value.Statement = "will be known only after apply"
 							}
 						default:
-							value.Statement = fmt.Sprintf("is %s", compactValueStr(val))
+							value.Statement = fmt.Sprintf("is %s", tfdiags.CompactValueStr(val))
 						}
 						values = append(values, value)
 						seen[traversalStr] = struct{}{}
@@ -338,6 +424,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				sort.Slice(values, func(i, j int) bool {
 					return values[i].Traversal < values[j].Traversal
 				})
+
 				diagnostic.Snippet.Values = values
 
 				if callInfo := tfdiags.ExtraInfo[hclsyntax.FunctionCallDiagExtra](diag); callInfo != nil && callInfo.CalledFunctionName() != "" {
@@ -355,12 +442,51 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					diagnostic.Snippet.FunctionCall = callInfo
 				}
 
+				if testDiag != nil {
+					// If the test assertion is a binary expression, we'll include the human-readable
+					// formatted LHS and RHS values in the diagnostic snippet.
+					diagnostic.Snippet.TestAssertionExpr = formatRunBinaryDiag(ctx, fromExpr.Expression)
+					if diagnostic.Snippet.TestAssertionExpr != nil {
+						diagnostic.Snippet.TestAssertionExpr.ShowVerbose = testDiag.IsTestVerboseMode()
+					}
+				}
+
 			}
 
 		}
 	}
 
 	return diagnostic
+}
+
+// formatRunBinaryDiag formats the binary expression that caused the failed run diagnostic.
+// The LHS and RHS values are formatted in a more human-readable way, redacting
+// sensitive and ephemeral values only for the exact values that hold the mark(s).
+func formatRunBinaryDiag(ctx *hcl.EvalContext, expr hcl.Expression) *DiagnosticTestBinaryExpr {
+	bExpr, ok := expr.(*hclsyntax.BinaryOpExpr)
+	if !ok {
+		return nil
+	}
+	// The expression has already been evaluated and failed, so we can ignore the diags here.
+	lhs, _ := bExpr.LHS.Value(ctx)
+	rhs, _ := bExpr.RHS.Value(ctx)
+
+	lhsStr, err := tfdiags.FormatValueStr(lhs)
+	if err != nil {
+		panic(err)
+	}
+	rhsStr, err := tfdiags.FormatValueStr(rhs)
+	if err != nil {
+		panic(err)
+	}
+
+	ret := &DiagnosticTestBinaryExpr{LHS: lhsStr, RHS: rhsStr}
+
+	// The types do not match. We don't diff them.
+	if !lhs.Type().Equals(rhs.Type()) {
+		ret.Warning = "LHS and RHS values are of different types"
+	}
+	return ret
 }
 
 func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
@@ -383,111 +509,4 @@ func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
 	}
 
 	return file, offset
-}
-
-// compactValueStr produces a compact, single-line summary of a given value
-// that is suitable for display in the UI.
-//
-// For primitives it returns a full representation, while for more complex
-// types it instead summarizes the type, size, etc to produce something
-// that is hopefully still somewhat useful but not as verbose as a rendering
-// of the entire data structure.
-func compactValueStr(val cty.Value) string {
-	// This is a specialized subset of value rendering tailored to producing
-	// helpful but concise messages in diagnostics. It is not comprehensive
-	// nor intended to be used for other purposes.
-
-	if val.HasMark(marks.Sensitive) {
-		// We check this in here just to make sure, but note that the caller
-		// of compactValueStr ought to have already checked this and skipped
-		// calling into compactValueStr anyway, so this shouldn't actually
-		// be reachable.
-		return "(sensitive value)"
-	}
-
-	// WARNING: We've only checked that the value isn't sensitive _shallowly_
-	// here, and so we must never show any element values from complex types
-	// in here. However, it's fine to show map keys and attribute names because
-	// those are never sensitive in isolation: the entire value would be
-	// sensitive in that case.
-
-	ty := val.Type()
-	switch {
-	case val.IsNull():
-		return "null"
-	case !val.IsKnown():
-		// Should never happen here because we should filter before we get
-		// in here, but we'll do something reasonable rather than panic.
-		return "(not yet known)"
-	case ty == cty.Bool:
-		if val.True() {
-			return "true"
-		}
-		return "false"
-	case ty == cty.Number:
-		bf := val.AsBigFloat()
-		return bf.Text('g', 10)
-	case ty == cty.String:
-		// Go string syntax is not exactly the same as HCL native string syntax,
-		// but we'll accept the minor edge-cases where this is different here
-		// for now, just to get something reasonable here.
-		return fmt.Sprintf("%q", val.AsString())
-	case ty.IsCollectionType() || ty.IsTupleType():
-		l := val.LengthInt()
-		switch l {
-		case 0:
-			return "empty " + ty.FriendlyName()
-		case 1:
-			return ty.FriendlyName() + " with 1 element"
-		default:
-			return fmt.Sprintf("%s with %d elements", ty.FriendlyName(), l)
-		}
-	case ty.IsObjectType():
-		atys := ty.AttributeTypes()
-		l := len(atys)
-		switch l {
-		case 0:
-			return "object with no attributes"
-		case 1:
-			var name string
-			for k := range atys {
-				name = k
-			}
-			return fmt.Sprintf("object with 1 attribute %q", name)
-		default:
-			return fmt.Sprintf("object with %d attributes", l)
-		}
-	default:
-		return ty.FriendlyName()
-	}
-}
-
-// traversalStr produces a representation of an HCL traversal that is compact,
-// resembles HCL native syntax, and is suitable for display in the UI.
-func traversalStr(traversal hcl.Traversal) string {
-	// This is a specialized subset of traversal rendering tailored to
-	// producing helpful contextual messages in diagnostics. It is not
-	// comprehensive nor intended to be used for other purposes.
-
-	var buf bytes.Buffer
-	for _, step := range traversal {
-		switch tStep := step.(type) {
-		case hcl.TraverseRoot:
-			buf.WriteString(tStep.Name)
-		case hcl.TraverseAttr:
-			buf.WriteByte('.')
-			buf.WriteString(tStep.Name)
-		case hcl.TraverseIndex:
-			buf.WriteByte('[')
-			if keyTy := tStep.Key.Type(); keyTy.IsPrimitiveType() {
-				buf.WriteString(compactValueStr(tStep.Key))
-			} else {
-				// We'll just use a placeholder for more complex values,
-				// since otherwise our result could grow ridiculously long.
-				buf.WriteString("...")
-			}
-			buf.WriteByte(']')
-		}
-	}
-	return buf.String()
 }

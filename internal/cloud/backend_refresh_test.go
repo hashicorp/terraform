@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/cli"
+
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -17,31 +19,30 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/mitchellh/cli"
 )
 
-func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationRefresh(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
 	return testOperationRefreshWithTimeout(t, configDir, 0)
 }
 
-func testOperationRefreshWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationRefreshWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
 	stateLockerView := views.NewStateLocker(arguments.ViewHuman, view)
 	operationView := views.NewOperation(arguments.ViewHuman, false, view)
 
-	return &backend.Operation{
+	return &backendrun.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		PlanRefresh:  true,
 		StateLocker:  clistate.NewLocker(timeout, stateLockerView),
-		Type:         backend.OperationTypeRefresh,
+		Type:         backendrun.OperationTypeRefresh,
 		View:         operationView,
 	}, configCleanup, done
 }
@@ -65,13 +66,13 @@ func TestCloud_refreshBasicActuallyRunsApplyRefresh(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, "Proceeding with 'terraform apply -refresh-only -auto-approve'") {
-		t.Fatalf("expected TFC header in output: %s", output)
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 
 	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)

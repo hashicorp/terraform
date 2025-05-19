@@ -1,27 +1,25 @@
 ---
-page_title: Using Terraform Cloud - Terraform CLI
+page_title: Use HCP Terraform or Terraform Enterprise with the Terraform CLI 
 description: >-
-  Learn how to use Terraform Cloud and Terraform Enterprise on the command line with the Terraform CLI.
+  Learn how to use HCP Terraform and Terraform Enterprise on the command line with the Terraform CLI.
 ---
 
-# Using Terraform Cloud with Terraform CLI
+# Use HCP Terraform with the Terraform CLI 
 
-The Terraform CLI integration with Terraform Cloud lets you use Terraform Cloud and Terraform Enterprise on the command line. In the documentation Terraform Cloud instructions also apply to Terraform Enterprise, except where explicitly stated.
+The Terraform CLI integration with HCP Terraform lets you use HCP Terraform and Terraform Enterprise on the command line. In the documentation HCP Terraform instructions also apply to Terraform Enterprise, except where explicitly stated.
 
-Using Terraform Cloud through the command line is called the [CLI-driven run workflow](/terraform/cloud-docs/run/cli). When you use the CLI workflow, operations like `terraform plan` or `terraform apply` are remotely executed in Terraform Cloud's run environment by default, with log output streaming to the local terminal. This lets you use Terraform Cloud features within the familiar Terraform CLI workflow, including variables encrypted at rest in a Terraform Cloud workspace, cost estimates, and policy checking.
+Using HCP Terraform through the command line is called the [CLI-driven run workflow](/terraform/cloud-docs/run/cli). When you use the CLI workflow, operations like `terraform plan` or `terraform apply` are remotely executed in HCP Terraform's run environment by default, with log output streaming to the local terminal. This lets you use HCP Terraform features within the familiar Terraform CLI workflow, including variables encrypted at rest in an HCP Terraform workspace, cost estimates, and policy checking.
 
-> **Hands On:** Try the [Migrate State to Terraform Cloud](/terraform/tutorials/cloud/cloud-migrate) tutorial.
+> **Hands On:** Try the [Migrate State to HCP Terraform](/terraform/tutorials/cloud/cloud-migrate) tutorial.
 
-Workspaces can also be configured for local execution, in which case Terraform Cloud only stores state. In this mode, Terraform Cloud behaves just like a standard state backend.
+Workspaces can also be configured for local execution, in which case HCP Terraform only stores state. In this mode, HCP Terraform behaves just like a standard state backend.
 
--> **Note:** The CLI integration is available in Terraform 1.1.0 and later, and Terraform Enterprise 202201-1 and later. Previous versions can use the [`remote` backend](/terraform/language/settings/backends/remote). Refer to [Migrating from the remote
-backend](/terraform/cli/cloud/migrating) for details about switching to the CLI integration.
+-> **Note:** The CLI integration is available in Terraform 1.1.0 and later, and Terraform Enterprise 202201-1 and later. Previous versions can use the [`remote` backend](/terraform/language/backend/remote). Refer to [Migrating from the remote
+backend](/terraform/cli/cloud/settings#migrate-state-data) for details about switching to the CLI integration.
 
 ## Documentation Summary
 
-- [Terraform Cloud Settings](/terraform/cli/cloud/settings) documents the `cloud` block that you must add to your configuration to enable Terraform Cloud support.
-- [Initializing and Migrating](/terraform/cli/cloud/migrating) describes
-  how to start using Terraform Cloud with a working directory that already has state data.
-- [Command Line Arguments](/terraform/cli/cloud/command-line-arguments) lists the Terraform command flags that are specific to using Terraform with Terraform Cloud.
+- [Connect to HCP Terraform](/terraform/cli/cloud/settings) documents the `cloud` block that you must add to your configuration to enable HCP Terraform support.
+- [Command Line Arguments](/terraform/cli/cloud/command-line-arguments) lists the Terraform command flags that are specific to using Terraform with HCP Terraform.
 
-Refer to the [CLI-driven Run Workflow](/terraform/cloud-docs/run/cli) for more details about how to use Terraform Cloud from the command line.
+Refer to the [CLI-driven Run Workflow](/terraform/cloud-docs/run/cli) for more details about how to use HCP Terraform from the command line.

@@ -247,6 +247,8 @@ information as the **Previous Run State** but does so in a way that conforms
 to the current version of the resource type schema, which therefore allows
 Terraform Core to interact with the data fully for subsequent steps.
 
+No unknown values are permitted in the **Updated State**.
+
 ### ReadResource
 
 Although Terraform typically expects to have exclusive control over any remote
@@ -289,7 +291,7 @@ following two situations for each attribute:
 
 This operation returns the **Prior State** to use for the next call to
 `PlanResourceChange`, thus completing the circle and beginning this process
-over again.
+over again. No unknown values are permitted in the **Prior State**.
 
 ## Handling of Nested Blocks in Configuration
 

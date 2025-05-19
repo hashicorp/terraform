@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -40,7 +40,7 @@ func (n *nodeReportCheck) ModulePath() addrs.Module {
 
 func (n *nodeReportCheck) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	exp := ctx.InstanceExpander()
-	modInsts := exp.ExpandModule(n.ModulePath())
+	modInsts := exp.ExpandModule(n.ModulePath(), false)
 
 	instAddrs := addrs.MakeSet[addrs.Checkable]()
 	for _, modAddr := range modInsts {
@@ -79,16 +79,19 @@ func (n *nodeExpandCheck) ModulePath() addrs.Module {
 	return n.addr.Module
 }
 
-func (n *nodeExpandCheck) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandCheck) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	exp := ctx.InstanceExpander()
-	modInsts := exp.ExpandModule(n.ModulePath())
 
 	var g Graph
-	for _, modAddr := range modInsts {
+	forEachModuleInstance(exp, n.ModulePath(), false, func(modAddr addrs.ModuleInstance) {
 		testAddr := n.addr.Check.Absolute(modAddr)
 		log.Printf("[TRACE] nodeExpandCheck: Node for %s", testAddr)
 		g.Add(n.makeInstance(testAddr, n.config))
-	}
+	}, func(pem addrs.PartialExpandedModule) {
+		// TODO: Graph node to check the placeholder values for all possible module instances in this prefix.
+		testAddr := addrs.ObjectInPartialExpandedModule(pem, n.addr)
+		log.Printf("[WARN] nodeExpandCheck: not yet doing placeholder-check for all %s", testAddr)
+	})
 	addRootNodeToGraph(&g)
 
 	return &g, nil
@@ -99,8 +102,8 @@ func (n *nodeExpandCheck) References() []*addrs.Reference {
 	for _, assert := range n.config.Asserts {
 		// Check blocks reference anything referenced by conditions or messages
 		// in their check rules.
-		condition, _ := lang.ReferencesInExpr(assert.Condition)
-		message, _ := lang.ReferencesInExpr(assert.ErrorMessage)
+		condition, _ := langrefs.ReferencesInExpr(addrs.ParseRef, assert.Condition)
+		message, _ := langrefs.ReferencesInExpr(addrs.ParseRef, assert.ErrorMessage)
 		refs = append(refs, condition...)
 		refs = append(refs, message...)
 	}
@@ -173,8 +176,8 @@ func (n *nodeCheckAssert) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diag
 	// Otherwise let's still validate the config and references and return
 	// diagnostics if references do not exist etc.
 	var diags tfdiags.Diagnostics
-	for _, assert := range n.config.Asserts {
-		_, _, moreDiags := validateCheckRule(addrs.CheckAssertion, assert, ctx, n.addr, EvalDataForNoInstanceKey)
+	for ix, assert := range n.config.Asserts {
+		_, _, moreDiags := validateCheckRule(addrs.NewCheckRule(n.addr, addrs.CheckAssertion, ix), assert, ctx, EvalDataForNoInstanceKey)
 		diags = diags.Append(moreDiags)
 	}
 	return diags
@@ -182,4 +185,23 @@ func (n *nodeCheckAssert) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diag
 
 func (n *nodeCheckAssert) Name() string {
 	return n.addr.String() + " (assertions)"
+}
+
+var (
+	_ GraphNodeExecutable = (*nodeCheckStart)(nil)
+)
+
+// We need to ensure that any nested data sources execute after all other
+// resource changes have been applied. This node acts as a single point of
+// dependency that can enforce this ordering.
+type nodeCheckStart struct{}
+
+func (n *nodeCheckStart) Execute(context EvalContext, operation walkOperation) tfdiags.Diagnostics {
+	// This node doesn't actually do anything, except simplify the underlying
+	// graph structure.
+	return nil
+}
+
+func (n *nodeCheckStart) Name() string {
+	return "(execute checks)"
 }

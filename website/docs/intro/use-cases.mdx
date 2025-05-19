@@ -3,10 +3,10 @@ layout: "intro"
 page_title: "Use Cases"
 sidebar_current: "use-cases"
 description: |-
-  Learn how  Terraform enables multi-cloud deployments, application management, policy compliance, and self-service infrastructure.
+  Learn about Terraform use cases, such as enabling multi-cloud deployments, application management, policy compliance, and self-service infrastructure.
 ---
 
-# Use Cases
+# Terraform Use Cases
 
 [HashiCorp Terraform](/terraform/intro) is an infrastructure as code tool that lets you define infrastructure resources in human-readable configuration files that you can version, reuse, and share. You can then use a consistent workflow to safely and efficiently provision and manage your infrastructure throughout its lifecycle.
 
@@ -33,18 +33,18 @@ You can use Terraform to efficiently deploy, release, scale, and monitor infrast
 
 ## Self-Service Clusters
 
-At a large organization, your centralized operations team may get many repetitive infrastructure requests. You can use Terraform to build a "self-serve" infrastructure model that lets product teams manage their own infrastructure independently. You can create and use Terraform modules that codify the standards for deploying and managing services in your organization, allowing teams to efficiently deploy services in compliance with your organization’s practices. Terraform Cloud can also integrate with ticketing systems like ServiceNow to automatically generate new infrastructure requests.
+At a large organization, your centralized operations team may get many repetitive infrastructure requests. You can use Terraform to build a "self-serve" infrastructure model that lets product teams manage their own infrastructure independently. You can create and use Terraform modules that codify the standards for deploying and managing services in your organization, allowing teams to efficiently deploy services in compliance with your organization’s practices. HCP Terraform can also integrate with ticketing systems like ServiceNow to automatically generate new infrastructure requests.
 
 ### Resources
 
 - Try the [Use Modules from the Registry](/terraform/tutorials/modules/module-use) tutorial to get started using public modules in your Terraform configuration.
 Try the [Build and Use a Local Module](/terraform/tutorials/modules/module-create) tutorial to create a module to manage AWS S3 buckets.
-- Follow these [ServiceNow Service Catalog Integration Setup Instructions](/terraform/cloud-docs/integrations/service-now) to connect ServiceNow to Terraform Cloud.
+- Follow these [ServiceNow Service Catalog Integration Setup Instructions](/terraform/cloud-docs/integrations/service-now) to connect ServiceNow to HCP Terraform.
 
 
 ## Policy Compliance and Management
 
-Terraform can help you enforce policies on the types of resources teams can provision and use. Ticket-based review processes are a bottleneck that can slow down development. Instead, you can use Sentinel, a policy-as-code framework, to automatically enforce compliance and governance policies before Terraform makes infrastructure changes. Sentinel policies are available in Terraform Enterprise and [Terraform Cloud](https://www.hashicorp.com/products/terraform/pricing).
+Terraform can help you enforce policies on the types of resources teams can provision and use. Ticket-based review processes are a bottleneck that can slow down development. Instead, you can use Sentinel, a policy-as-code framework, to automatically enforce compliance and governance policies before Terraform makes infrastructure changes. Sentinel policies are available in Terraform Enterprise and [HCP Terraform](https://www.hashicorp.com/products/terraform/pricing).
 
 ### Resources
 
@@ -70,17 +70,17 @@ For example, when a service registers with [HashiCorp Consul](https://www.consul
 ### Resources
 
 - Try the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro) tutorial to install Consul-Terraform-Sync on a node. You will then configure it to communicate with a Consul datacenter, react to service changes, and execute an example task.
-- Try the [Consul-Terraform-Sync and Terraform Enterprise/Cloud Integration](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-terraform-enterprise) tutorial to configure Consul-Terraform-Sync to interact with Terraform Enterprise and Terraform Cloud.
+- Try the [Consul-Terraform-Sync and Terraform Enterprise/Cloud Integration](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-terraform-enterprise) tutorial to configure Consul-Terraform-Sync to interact with Terraform Enterprise and HCP Terraform.
 
 
 ## Kubernetes
 
-Kubernetes is an open-source workload scheduler for containerized applications. Terraform lets you both deploy a Kubernetes cluster and manage its resources (e.g., pods, deployments, services, etc.). You can also use the [Kubernetes Operator for Terraform](https://github.com/hashicorp/terraform-k8s) to manage cloud and on-prem infrastructure through a Kubernetes Custom Resource Definition (CRD) and Terraform Cloud.
+Kubernetes is an open-source workload scheduler for containerized applications. Terraform lets you both deploy a Kubernetes cluster and manage its resources (e.g., pods, deployments, services, etc.). You can also use the [Kubernetes Operator for Terraform](https://github.com/hashicorp/terraform-k8s) to manage cloud and on-prem infrastructure through a Kubernetes Custom Resource Definition (CRD) and HCP Terraform.
 
 ### Resources
 
 - Try the [Manage Kubernetes Resources via Terraform](/terraform/tutorials/kubernetes/kubernetes-provider) tutorial. You will use Terraform to schedule and expose a NGINX deployment on a Kubernetes cluster.
-- Try the [Deploy Infrastructure with the Terraform Cloud Operator for Kubernetes](/terraform/tutorials/kubernetes/kubernetes-operator) tutorial. You will configure and deploy the Operator to a Kubernetes cluster and use it to create a Terraform Cloud workspace and provision a message queue for an example application.
+- Try the [Deploy Infrastructure with the HCP Terraform Operator for Kubernetes](/terraform/tutorials/kubernetes/kubernetes-operator) tutorial. You will configure and deploy the Operator to a Kubernetes cluster and use it to create an HCP Terraform workspace and provision a message queue for an example application.
 
 
 ## Parallel Environments

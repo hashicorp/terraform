@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -30,8 +30,23 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
 
 	ctx := &MockEvalContext{
+		Scope:            evalContextModuleInstance{Addr: addrs.RootModuleInstance},
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
+		ProviderSchemaSchema: providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"aws_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	// Import a new aws_instance.foo, this time with ID=bar. The original
@@ -72,13 +87,15 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
+		ProviderSchemaSchema: providers.ProviderSchema{
+			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},
@@ -132,13 +149,15 @@ func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
+		ProviderSchemaSchema: providers.ProviderSchema{
+			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},

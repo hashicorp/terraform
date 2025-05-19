@@ -1,14 +1,16 @@
 ---
-page_title: 'Command: untaint'
+page_title: terraform untaint command reference
 description: |-
-  The `terraform untaint` command tells Terraform that an object is functioning
-  correctly, even though its creation failed or it was previously manually
-  marked as degraded.
+  The `terraform untaint` command removes the `tainted` status from infrastructure objects tracked in the Terraform state data.
 ---
 
-# Command: untaint
+# `terraform untaint` command
 
-Terraform has a marker called "tainted" which it uses to track that an object
+This topic provides reference information about the `terraform untaint` command.
+
+## Introduction
+
+Terraform has a marker called `tainted` which it uses to track that an object
 might be damaged and so a future Terraform plan ought to replace it.
 
 Terraform automatically marks an object as "tainted" if an error occurs during
@@ -61,12 +63,12 @@ This command also accepts the following options:
   if you are running Terraform in a context where its output will be
   rendered by a system that cannot interpret terminal formatting.
 
-For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
+For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/backend/remote)
 only, `terraform untaint`
 also accepts the option
 [`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
 For configurations using
-[the `local` backend](/terraform/language/settings/backends/local) only,
+[the `local` backend](/terraform/language/backend/local) only,
 `terraform untaint` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, and `-backup`](/terraform/language/backend/local#command-line-arguments).

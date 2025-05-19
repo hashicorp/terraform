@@ -1,22 +1,15 @@
 ---
-page_title: 'Command: state rm'
+page_title: terraform state rm command reference
 description: >-
-  The `terraform state rm` command removes bindings from the Terraform state,
-  causing Terraform to "forget about" existing objects.
+  The `terraform state rm` command removes bindings between resource instances defined in the Terraform configuration and corresponding remote objects.
 ---
 
-# Command: state rm
+# `terraform state rm` command
 
-The main function of [Terraform state](/terraform/language/state) is
-to track the bindings between resource instance addresses in your configuration
-and the remote objects they represent. Normally Terraform automatically
-updates the state in response to actions taken when applying a plan, such as
-removing a binding for a remote object that has now been deleted.
+The `terraform state rm` command removes the binding to an existing remote object without first destroying it. The remote object continues
+to exist but is no longer managed by Terraform.
 
-You can use `terraform state rm` in the less common situation where you wish
-to remove a binding to an existing remote object without first destroying it,
-which will effectively make Terraform "forget" the object while it continues
-to exist in the remote system.
+Instead of using the `terraform state rm` command, you can use `removed` blocks to remove resources. You can remove more than one resource at a time, and you can review removals as part of your normal plan and apply workflow. [Learn more about using `removed` blocks with resources](/terraform/language/resources/syntax#removing-resources) and [using `removed` blocks with modules](/terraform/language/modules/syntax#removing-modules).
 
 ## Usage
 
@@ -49,15 +42,15 @@ This command also accepts the following options:
   returning an error. The duration syntax is a number followed by a time
   unit letter, such as "3s" for three seconds.
 
-For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
+For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/backend/remote)
 only, `terraform state rm`
 also accepts the option
 [`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
 For configurations using
-[the `local` state rm](/terraform/language/settings/backends/local) only,
+[the `local` state rm](/terraform/language/backend/local) only,
 `terraform state rm` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, and `-backup`](/terraform/language/backend/local#command-line-arguments).
 
 ## Example: Remove all Instances of a Resource
 

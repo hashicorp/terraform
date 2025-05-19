@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configload
 
@@ -23,7 +23,7 @@ type moduleMgr struct {
 	// abstraction and will always write into the "real" filesystem.
 	CanInstall bool
 
-	// Dir is the path where descendent modules are (or will be) installed.
+	// Dir is the path where descendant modules are (or will be) installed.
 	Dir string
 
 	// Services is a service discovery client that will be used to find

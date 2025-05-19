@@ -82,12 +82,12 @@ providers) will retain their current functionality:
   [`output`](/terraform/language/values/outputs#declaring-an-output-value), and
   [`locals`](/terraform/language/values/locals#declaring-a-local-value) blocks
   for declaring the various kinds of named values in a module.
-* [`terraform`](/terraform/language/settings) blocks, including the nested
-  [`required_version`](/terraform/language/settings#specifying-a-required-terraform-version)
+* [`terraform`](/terraform/language/terraform) blocks, including the nested
+  [`required_version`](/terraform/language/terraform#terraform-required_version)
   and
   [`required_providers`](/terraform/language/providers/requirements#requiring-providers)
   arguments, and nested
-  [`backend`](/terraform/language/settings/backends/configuration#using-a-backend-block)
+  [`backend`](/terraform/language/backend#using-a-backend-block)
   blocks for backend configuration.
 
 We also intend to keep compatibility with all
@@ -301,13 +301,13 @@ order to use those plugins, and state storage backends other than those
 listed above may be removed from later versions of Terraform CLI once
 equivalent plugins are available.
 
-### The `remote` Backend and Terraform Cloud
+### The `remote` Backend and HCP Terraform
 
-The `remote` backend is maintained by the Terraform Cloud team and so its
-behavior may change along with ongoing changes to Terraform Cloud.
+The `remote` backend is maintained by the HCP Terraform team and so its
+behavior may change along with ongoing changes to HCP Terraform.
 
-There will be a supported mechanism to use Terraform CLI with Terraform Cloud
-throughout the v1.x releases, but the exact details may change. Terraform Cloud
+There will be a supported mechanism to use Terraform CLI with HCP Terraform
+throughout the v1.x releases, but the exact details may change. HCP Terraform
 evolves independently of Terraform CLI and is therefore not subject to these
 compatibility promises.
 

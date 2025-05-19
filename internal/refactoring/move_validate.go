@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package refactoring
 
@@ -56,7 +56,7 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 		// both stmt.From and stmt.To always belong to the same statement.
 		fromMod, _ := stmt.From.ModuleCallTraversals()
 
-		for _, fromModInst := range declaredInsts.InstancesForModule(fromMod) {
+		for _, fromModInst := range declaredInsts.InstancesForModule(fromMod, false) {
 			absFrom := stmt.From.InModuleInstance(fromModInst)
 
 			absTo := stmt.To.InModuleInstance(fromModInst)
@@ -158,18 +158,6 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 					StmtRange: stmt.DeclRange,
 				})
 			}
-
-			// Resource types must match.
-			if resourceTypesDiffer(absFrom, absTo) {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Resource type mismatch",
-					Detail: fmt.Sprintf(
-						"This statement declares a move from %s to %s, which is a %s of a different type.", absFrom, absTo, noun,
-					),
-				})
-			}
-
 		}
 	}
 
@@ -254,19 +242,6 @@ func moveableObjectExists(addr addrs.AbsMoveable, in instances.Set) bool {
 	}
 }
 
-func resourceTypesDiffer(absFrom, absTo addrs.AbsMoveable) bool {
-	switch absFrom := absFrom.(type) {
-	case addrs.AbsMoveableResource:
-		// addrs.UnifyMoveEndpoints guarantees that both addresses are of the
-		// same kind, so at this point we can assume that absTo is also an
-		// addrs.AbsResourceInstance or addrs.AbsResource.
-		absTo := absTo.(addrs.AbsMoveableResource)
-		return absFrom.AffectedAbsResource().Resource.Type != absTo.AffectedAbsResource().Resource.Type
-	default:
-		return false
-	}
-}
-
 func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiags.SourceRange, bool) {
 	switch addr := addr.(type) {
 	case addrs.ModuleInstance:
@@ -275,7 +250,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 		// (NOTE: This assumes "addr" can never be the root module instance,
 		// because the root module is never moveable.)
 		parentAddr, callAddr := addr.Call()
-		modCfg := cfg.DescendentForInstance(parentAddr)
+		modCfg := cfg.DescendantForInstance(parentAddr)
 		if modCfg == nil {
 			return tfdiags.SourceRange{}, false
 		}
@@ -296,7 +271,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 			return tfdiags.SourceRangeFromHCL(call.DeclRange), true
 		}
 	case addrs.AbsModuleCall:
-		modCfg := cfg.DescendentForInstance(addr.Module)
+		modCfg := cfg.DescendantForInstance(addr.Module)
 		if modCfg == nil {
 			return tfdiags.SourceRange{}, false
 		}
@@ -306,7 +281,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 		}
 		return tfdiags.SourceRangeFromHCL(call.DeclRange), true
 	case addrs.AbsResourceInstance:
-		modCfg := cfg.DescendentForInstance(addr.Module)
+		modCfg := cfg.DescendantForInstance(addr.Module)
 		if modCfg == nil {
 			return tfdiags.SourceRange{}, false
 		}
@@ -327,7 +302,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 			return tfdiags.SourceRangeFromHCL(rc.DeclRange), true
 		}
 	case addrs.AbsResource:
-		modCfg := cfg.DescendentForInstance(addr.Module)
+		modCfg := cfg.DescendantForInstance(addr.Module)
 		if modCfg == nil {
 			return tfdiags.SourceRange{}, false
 		}

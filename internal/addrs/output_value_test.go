@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package addrs
 
@@ -115,7 +115,7 @@ func TestParseAbsOutputValueStr(t *testing.T) {
 		t.Run(input, func(t *testing.T) {
 			got, diags := ParseAbsOutputValueStr(input)
 			for _, problem := range deep.Equal(got, tc.want) {
-				t.Errorf(problem)
+				t.Error(problem)
 			}
 			if len(diags) > 0 {
 				gotErr := diags.Err().Error()

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package getmodules
 
@@ -14,12 +14,19 @@ import (
 	"github.com/hashicorp/terraform/internal/copy"
 )
 
-// We configure our own go-getter detector and getter sets here, because
-// the set of sources we support is part of Terraform's documentation and
-// so we don't want any new sources introduced in go-getter to sneak in here
-// and work even though they aren't documented. This also insulates us from
-// any meddling that might be done by other go-getter callers linked into our
-// executable.
+// We configure our own go-getter getter set here, because the set of sources
+// we support is part of Terraform's documentation and so we don't want any
+// new sources introduced in go-getter to sneak in here and work even though
+// they aren't documented. This also insulates us from any meddling that might
+// be done by other go-getter callers linked into our executable.
+//
+// We don't use go-getter's own detectors because Terraform needs to be in
+// control of its own source address syntax due to it being covered by our
+// Terraform v1.x compatibility promises. However, we do still follow at least
+// what go-getter would've done at some point in the past that now represent's
+// Terraform's compatibility contract, and arrange for the result to be
+// something that should be consumable just by the set of getters defined
+// below.
 //
 // Note that over time we've found go-getter's design to be not wholly fit
 // for Terraform's purposes in various ways, and so we're continuing to use
@@ -31,56 +38,44 @@ import (
 // in this package which call into go-getter for more information on what
 // tradeoffs we're making here.
 
-var goGetterDetectors = []getter.Detector{
-	new(getter.GitHubDetector),
-	new(getter.GitDetector),
-
-	// Because historically BitBucket supported both Git and Mercurial
-	// repositories but used the same repository URL syntax for both,
-	// this detector takes the unusual step of actually reaching out
-	// to the BitBucket API to recognize the repository type. That
-	// means there's the possibility of an outgoing network request
-	// inside what is otherwise normally just a local string manipulation
-	// operation, but we continue to accept this for now.
-	//
-	// Perhaps a future version of go-getter will remove the check now
-	// that BitBucket only supports Git anyway. Aside from this historical
-	// exception, we should avoid adding any new detectors that make network
-	// requests in here, and limit ourselves only to ones that can operate
-	// entirely through local string manipulation.
-	new(getter.BitBucketDetector),
-
-	new(getter.GCSDetector),
-	new(getter.S3Detector),
-	new(fileDetector),
-}
-
 var goGetterNoDetectors = []getter.Detector{}
 
 var goGetterDecompressors = map[string]getter.Decompressor{
-	"bz2": new(getter.Bzip2Decompressor),
-	"gz":  new(getter.GzipDecompressor),
-	"xz":  new(getter.XzDecompressor),
-	"zip": new(getter.ZipDecompressor),
-
+	// Bzip2
+	"bz2":      new(getter.Bzip2Decompressor),
+	"tbz2":     new(getter.TarBzip2Decompressor),
 	"tar.bz2":  new(getter.TarBzip2Decompressor),
 	"tar.tbz2": new(getter.TarBzip2Decompressor),
 
+	// Gzip
+	"gz":     new(getter.GzipDecompressor),
 	"tar.gz": new(getter.TarGzipDecompressor),
 	"tgz":    new(getter.TarGzipDecompressor),
 
+	// Xz
+	"xz":     new(getter.XzDecompressor),
 	"tar.xz": new(getter.TarXzDecompressor),
 	"txz":    new(getter.TarXzDecompressor),
+
+	// Zip
+	"zip": new(getter.ZipDecompressor),
 }
 
 var goGetterGetters = map[string]getter.Getter{
-	"file":  new(getter.FileGetter),
-	"gcs":   new(getter.GCSGetter),
-	"git":   new(getter.GitGetter),
-	"hg":    new(getter.HgGetter),
-	"s3":    new(getter.S3Getter),
+	// Protocol-based getters
 	"http":  getterHTTPGetter,
 	"https": getterHTTPGetter,
+
+	// Cloud storage getters
+	"gcs": new(getter.GCSGetter),
+	"s3":  new(getter.S3Getter),
+
+	// Version control getters
+	"git": new(getter.GitGetter),
+	"hg":  new(getter.HgGetter),
+
+	// Local and file-based getters
+	"file": new(getter.FileGetter),
 }
 
 var getterHTTPClient = cleanhttp.DefaultClient()

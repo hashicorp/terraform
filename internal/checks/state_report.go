@@ -1,10 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package checks
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -50,6 +51,7 @@ func (c *State) ReportCheckableObjects(configAddr addrs.ConfigCheckable, objectA
 			checks[checkType] = make([]Status, count)
 		}
 
+		log.Printf("[TRACE] ReportCheckableObjects: %s -> %s", configAddr, objectAddr)
 		st.objects.Put(objectAddr, checks)
 	}
 }

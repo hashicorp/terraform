@@ -1,11 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package states
 
 import (
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -16,23 +14,13 @@ type Module struct {
 	// Resources contains the state for each resource. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Resources map[string]*Resource
-
-	// OutputValues contains the state for each output value. The keys in this
-	// map are output value names.
-	OutputValues map[string]*OutputValue
-
-	// LocalValues contains the value for each named output value. The keys
-	// in this map are local value names.
-	LocalValues map[string]cty.Value
 }
 
 // NewModule constructs an empty module state for the given module address.
 func NewModule(addr addrs.ModuleInstance) *Module {
 	return &Module{
-		Addr:         addr,
-		Resources:    map[string]*Resource{},
-		OutputValues: map[string]*OutputValue{},
-		LocalValues:  map[string]cty.Value{},
+		Addr:      addr,
+		Resources: map[string]*Resource{},
 	}
 }
 
@@ -196,6 +184,32 @@ func (ms *Module) ForgetResourceInstanceAll(addr addrs.ResourceInstance) {
 	}
 }
 
+// ForgetResourceInstanceCurrent removes the record of the current object with
+// the given address, if present. If not present, this is a no-op.
+func (ms *Module) ForgetResourceInstanceCurrent(addr addrs.ResourceInstance) {
+	rs := ms.Resource(addr.Resource)
+	if rs == nil {
+		return
+	}
+	is := rs.Instance(addr.Key)
+	if is == nil {
+		return
+	}
+
+	is.Current = nil
+
+	if !is.HasObjects() {
+		// If we have no objects at all then we'll clean up.
+		delete(rs.Instances, addr.Key)
+	}
+	if len(rs.Instances) == 0 {
+		// Also clean up if we only expect to have one instance anyway
+		// and there are none. We leave the resource behind if an each mode
+		// is active because an empty list or map of instances is a valid state.
+		delete(ms.Resources, addr.Resource.String())
+	}
+}
+
 // ForgetResourceInstanceDeposed removes the record of the deposed object with
 // the given address and key, if present. If not present, this is a no-op.
 func (ms *Module) ForgetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey) {
@@ -253,43 +267,6 @@ func (ms *Module) maybeRestoreResourceInstanceDeposed(addr addrs.ResourceInstanc
 	return true
 }
 
-// SetOutputValue writes an output value into the state, overwriting any
-// existing value of the same name.
-func (ms *Module) SetOutputValue(name string, value cty.Value, sensitive bool) *OutputValue {
-	os := &OutputValue{
-		Addr: addrs.AbsOutputValue{
-			Module: ms.Addr,
-			OutputValue: addrs.OutputValue{
-				Name: name,
-			},
-		},
-		Value:     value,
-		Sensitive: sensitive,
-	}
-	ms.OutputValues[name] = os
-	return os
-}
-
-// RemoveOutputValue removes the output value of the given name from the state,
-// if it exists. This method is a no-op if there is no value of the given
-// name.
-func (ms *Module) RemoveOutputValue(name string) {
-	delete(ms.OutputValues, name)
-}
-
-// SetLocalValue writes a local value into the state, overwriting any
-// existing value of the same name.
-func (ms *Module) SetLocalValue(name string, value cty.Value) {
-	ms.LocalValues[name] = value
-}
-
-// RemoveLocalValue removes the local value of the given name from the state,
-// if it exists. This method is a no-op if there is no value of the given
-// name.
-func (ms *Module) RemoveLocalValue(name string) {
-	delete(ms.LocalValues, name)
-}
-
 // PruneResourceHusks is a specialized method that will remove any Resource
 // objects that do not contain any instances, even if they have an EachMode.
 //
@@ -316,9 +293,9 @@ func (ms *Module) empty() bool {
 		return true
 	}
 
-	// This must be updated to cover any new collections added to Module
-	// in future.
-	return (len(ms.Resources) == 0 &&
-		len(ms.OutputValues) == 0 &&
-		len(ms.LocalValues) == 0)
+	// Resource instance objects -- each of which must belong to a resource --
+	// are the only significant thing we track on a per-module basis.
+	// (The presence of root module output values also causes a state to
+	// be "not empty", but the main [State] object tracks those.)
+	return len(ms.Resources) == 0
 }

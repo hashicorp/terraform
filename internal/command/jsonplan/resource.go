@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
 
@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-// Resource is the representation of a resource in the json plan
+// resource is the representation of a resource in the json plan
 type resource struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
@@ -42,6 +42,16 @@ type resource struct {
 	// SensitiveValues is similar to AttributeValues, but with all sensitive
 	// values replaced with true, and all non-sensitive leaf values omitted.
 	SensitiveValues json.RawMessage `json:"sensitive_values,omitempty"`
+
+	// The version of the resource identity schema the "identity" property
+	// conforms to.
+	// It's a pointer, because it should be optional, but also 0 is a valid
+	// schema version.
+	IdentitySchemaVersion *uint64 `json:"identity_schema_version,omitempty"`
+
+	// The JSON representation of the resource identity, whose structure
+	// depends on the resource identity schema.
+	IdentityValues attributeValues `json:"identity,omitempty"`
 }
 
 // ResourceChange is a description of an individual change action that Terraform
@@ -73,6 +83,7 @@ type ResourceChange struct {
 	Type         string          `json:"type,omitempty"`
 	Name         string          `json:"name,omitempty"`
 	Index        json.RawMessage `json:"index,omitempty"`
+	IndexUnknown bool            `json:"index_unknown,omitempty"`
 	ProviderName string          `json:"provider_name,omitempty"`
 
 	// "deposed", if set, indicates that this action applies to a "deposed"
@@ -92,4 +103,14 @@ type ResourceChange struct {
 	// information should be resilient to encountering unrecognized values
 	// and treat them as an unspecified reason.
 	ActionReason string `json:"action_reason,omitempty"`
+}
+
+// DeferredResourceChange is a description of a resource change that has been
+// deferred for some reason.
+type DeferredResourceChange struct {
+	// Reason is the reason why this resource change was deferred.
+	Reason string `json:"reason"`
+
+	// Change contains any information we have about the deferred change.
+	ResourceChange ResourceChange `json:"resource_change"`
 }

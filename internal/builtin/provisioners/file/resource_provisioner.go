@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package file
 
@@ -148,7 +148,7 @@ func getSrc(v cty.Value) (string, bool, error) {
 		return expansion, false, err
 
 	default:
-		panic("source and content cannot both be null")
+		return "", false, errors.New("source and content cannot both be null")
 	}
 }
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configs
 
@@ -35,9 +35,23 @@ type Provider struct {
 	// export this so providers don't need to be re-resolved.
 	// This same field is also added to the ProviderConfigRef struct.
 	providerType addrs.Provider
+
+	// Mock and MockData declare this provider as a "mock_provider", which means
+	// it should use the data in MockData instead of actually initialising the
+	// provider. MockDataDuringPlan tells the provider that, by default, it
+	// should generate values during the planning stage instead of waiting for
+	// the apply stage.
+	Mock               bool
+	MockDataDuringPlan bool
+	MockData           *MockData
+
+	// MockDataExternalSource is a file path pointing to the external data
+	// file for a mock provider. An empty string indicates all data should be
+	// loaded inline.
+	MockDataExternalSource string
 }
 
-func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
+func decodeProviderBlock(block *hcl.Block, testFile bool) (*Provider, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, config, moreDiags := block.Body.PartialContent(providerBlockSchema)
@@ -60,6 +74,10 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		NameRange: block.LabelRanges[0],
 		Config:    config,
 		DeclRange: block.DefRange,
+
+		// We'll just explicitly mark real providers as not being mocks even
+		// though this is the default.
+		Mock: false,
 	}
 
 	if attr, exists := content.Attributes["alias"]; exists {
@@ -77,15 +95,24 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["version"]; exists {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Version constraints inside provider configuration blocks are deprecated",
-			Detail:   "Terraform 0.13 and earlier allowed provider version constraints inside the provider configuration block, but that is now deprecated and will be removed in a future version of Terraform. To silence this warning, move the provider version constraint into the required_providers block.",
-			Subject:  attr.Expr.Range().Ptr(),
-		})
-		var versionDiags hcl.Diagnostics
-		provider.Version, versionDiags = decodeVersionConstraint(attr)
-		diags = append(diags, versionDiags...)
+		if testFile {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Version constraints are not allowed in test files",
+				Detail:   "Version constraints inside provider configuration blocks are not allowed in test files. To silence this error, move the provider version constraint into the required_providers block of the configuration that uses this provider.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		} else {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Version constraints inside provider configuration blocks are deprecated",
+				Detail:   "Terraform 0.13 and earlier allowed provider version constraints inside the provider configuration block, but that is now deprecated and will be removed in a future version of Terraform. To silence this warning, move the provider version constraint into the required_providers block.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+			var versionDiags hcl.Diagnostics
+			provider.Version, versionDiags = decodeVersionConstraint(attr)
+			diags = append(diags, versionDiags...)
+		}
 	}
 
 	// Reserved attribute names

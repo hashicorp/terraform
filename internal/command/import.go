@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -113,7 +113,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// This is to reduce the risk that a typo in the resource address will
 	// import something that Terraform will want to immediately destroy on
 	// the next plan, and generally acts as a reassurance of user intent.
-	targetConfig := config.DescendentForInstance(addr.Module)
+	targetConfig := config.DescendantForInstance(addr.Module)
 	if targetConfig == nil {
 		modulePath := addr.Module.String()
 		diags = diags.Append(&hcl.Diagnostic{
@@ -173,12 +173,12 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	// We require a backend.Local to build a context.
+	// We require a backendrun.Local to build a context.
 	// This isn't necessarily a "local.Local" backend, which provides local
 	// operations, however that is the only current implementation. A
 	// "local.Local" backend also doesn't necessarily provide local state, as
 	// that may be delegated to a "remotestate.Backend".
-	local, ok := b.(backend.Local)
+	local, ok := b.(backendrun.Local)
 	if !ok {
 		c.Ui.Error(ErrUnsupportedLocalOp)
 		return 1
@@ -235,8 +235,8 @@ func (c *ImportCommand) Run(args []string) int {
 	newState, importDiags := lr.Core.Import(lr.Config, lr.InputState, &terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			{
-				Addr: addr,
-				ID:   args[1],
+				LegacyAddr: addr,
+				LegacyID:   args[1],
 			},
 		},
 
@@ -341,7 +341,7 @@ func (c *ImportCommand) Synopsis() string {
 }
 
 const importCommandInvalidAddressReference = `For information on valid syntax, see:
-https://www.terraform.io/docs/cli/state/resource-addressing.html`
+https://developer.hashicorp.com/terraform/cli/state/resource-addressing`
 
 const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -229,8 +229,8 @@ func TestNodeAbstractResource_ReadResourceInstanceState(t *testing.T) {
 		t.Run(k, func(t *testing.T) {
 			ctx := new(MockEvalContext)
 			ctx.StateState = test.State.SyncWrapper()
-			ctx.PathPath = addrs.RootModuleInstance
-			ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+			ctx.Scope = evalContextModuleInstance{Addr: addrs.RootModuleInstance}
+			ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
 
 			ctx.ProviderProvider = providers.Interface(mockProvider)
 
@@ -294,8 +294,8 @@ func TestNodeAbstractResource_ReadResourceInstanceStateDeposed(t *testing.T) {
 		t.Run(k, func(t *testing.T) {
 			ctx := new(MockEvalContext)
 			ctx.StateState = test.State.SyncWrapper()
-			ctx.PathPath = addrs.RootModuleInstance
-			ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+			ctx.Scope = evalContextModuleInstance{Addr: addrs.RootModuleInstance}
+			ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
 			ctx.ProviderProvider = providers.Interface(mockProvider)
 
 			key := states.DeposedKey("00000001") // shim from legacy state assigns 0th deposed index this key

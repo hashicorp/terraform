@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
 
@@ -49,6 +49,27 @@ func (d *rpcFriendlyDiag) Source() Source {
 		Subject: d.Subject_,
 		Context: d.Context_,
 	}
+}
+
+func (d *rpcFriendlyDiag) Equals(otherDiag ComparableDiagnostic) bool {
+	od, ok := otherDiag.(*rpcFriendlyDiag)
+	if !ok {
+		return false
+	}
+	if d.Severity_ != od.Severity_ {
+		return false
+	}
+	if d.Summary_ != od.Summary_ {
+		return false
+	}
+	if d.Detail_ != od.Detail_ {
+		return false
+	}
+	if !sourceRangeEquals(d.Subject_, od.Subject_) {
+		return false
+	}
+
+	return true
 }
 
 func (d rpcFriendlyDiag) FromExpr() *FromExpr {

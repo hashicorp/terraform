@@ -1,13 +1,15 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -55,7 +57,7 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// Try to load plan if path is specified
-	var planFile *planfile.Reader
+	var planFile *planfile.WrappedPlanFile
 	if planPath != "" {
 		planFile, err = c.PlanFile(planPath)
 		if err != nil {
@@ -84,7 +86,7 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// We require a local backend
-	local, ok := b.(backend.Local)
+	local, ok := b.(backendrun.Local)
 	if !ok {
 		c.showDiagnostics(diags) // in case of any warnings in here
 		c.Ui.Error(ErrUnsupportedLocalOp)
@@ -113,13 +115,26 @@ func (c *GraphCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+	lr.Core.SetGraphOpts(&terraform.ContextGraphOpts{SkipGraphValidation: drawCycles})
 
 	if graphTypeStr == "" {
-		switch {
-		case lr.Plan != nil:
+		if planFile == nil {
+			// Simple resource dependency mode:
+			// This is based on the plan graph but we then further reduce it down
+			// to just resource dependency relationships, assuming that in most
+			// cases the most important thing is what order we'll visit the
+			// resources in.
+			fullG, graphDiags := lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.NormalMode)
+			diags = diags.Append(graphDiags)
+			if graphDiags.HasErrors() {
+				c.showDiagnostics(diags)
+				return 1
+			}
+
+			g := fullG.ResourceGraph()
+			return c.resourceOnlyGraph(g)
+		} else {
 			graphTypeStr = "apply"
-		default:
-			graphTypeStr = "plan"
 		}
 	}
 
@@ -140,7 +155,7 @@ func (c *GraphCommand) Run(args []string) int {
 		// here, though perhaps one day this should be an error.
 		if lr.Plan == nil {
 			plan = &plans.Plan{
-				Changes:      plans.NewChanges(),
+				Changes:      plans.NewChangesSrc(),
 				UIMode:       plans.NormalMode,
 				PriorState:   lr.InputState,
 				PrevRunState: lr.InputState,
@@ -189,8 +204,100 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(graphStr)
+	_, err = c.Streams.Stdout.File.WriteString(graphStr)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to write graph to stdout: %s", err))
+		return 1
+	}
 
+	return 0
+}
+
+func (c *GraphCommand) resourceOnlyGraph(graph addrs.DirectedGraph[addrs.ConfigResource]) int {
+	out := c.Streams.Stdout.File
+	fmt.Fprintln(out, "digraph G {")
+	// Horizontal presentation is easier to read because our nodes tend
+	// to be much wider than they are tall. The leftmost nodes in the output
+	// are those Terraform would visit first.
+	fmt.Fprintln(out, "  rankdir = \"RL\";")
+	fmt.Fprintln(out, "  node [shape = rect, fontname = \"sans-serif\"];")
+
+	// To help relate the output back to the configuration it came from,
+	// and to make the individual node labels more reasonably sized when
+	// deeply nested inside modules, we'll cluster the nodes together by
+	// the module they belong to and then show only the local resource
+	// address in the individual nodes. We'll accomplish that by sorting
+	// the nodes first by module, so we can then notice the transitions.
+	allAddrs := graph.AllNodes()
+	if len(allAddrs) == 0 {
+		fmt.Fprintln(out, "  /* This configuration does not contain any resources.         */")
+		fmt.Fprintln(out, "  /* For a more detailed graph, try: terraform graph -type=plan */")
+	}
+	addrsOrder := make([]addrs.ConfigResource, 0, len(allAddrs))
+	for _, addr := range allAddrs {
+		addrsOrder = append(addrsOrder, addr)
+	}
+	sort.Slice(addrsOrder, func(i, j int) bool {
+		iAddr, jAddr := addrsOrder[i], addrsOrder[j]
+		iModStr, jModStr := iAddr.Module.String(), jAddr.Module.String()
+		switch {
+		case iModStr != jModStr:
+			return iModStr < jModStr
+		default:
+			iRes, jRes := iAddr.Resource, jAddr.Resource
+			switch {
+			case iRes.Mode != jRes.Mode:
+				return iRes.Mode == addrs.DataResourceMode
+			case iRes.Type != jRes.Type:
+				return iRes.Type < jRes.Type
+			default:
+				return iRes.Name < jRes.Name
+			}
+		}
+	})
+
+	currentMod := addrs.RootModule
+	for _, addr := range addrsOrder {
+		if !addr.Module.Equal(currentMod) {
+			// We need a new subgraph, then.
+			// Experimentally it seems like nested clusters tend to make it
+			// hard for dot to converge on a good layout, so we'll stick with
+			// just one level of clusters for now but could revise later based
+			// on feedback.
+			if !currentMod.IsRoot() {
+				fmt.Fprintln(out, "  }")
+			}
+			currentMod = addr.Module
+			fmt.Fprintf(out, "  subgraph \"cluster_%s\" {\n", currentMod.String())
+			fmt.Fprintf(out, "    label = %q\n", currentMod.String())
+			fmt.Fprintf(out, "    fontname = %q\n", "sans-serif")
+		}
+		if currentMod.IsRoot() {
+			fmt.Fprintf(out, "  %q [label=%q];\n", addr.String(), addr.Resource.String())
+		} else {
+			fmt.Fprintf(out, "    %q [label=%q];\n", addr.String(), addr.Resource.String())
+		}
+	}
+	if !currentMod.IsRoot() {
+		fmt.Fprintln(out, "  }")
+	}
+
+	// Now we'll emit all of the edges.
+	// We use addrsOrder for both levels to ensure a consistent ordering between
+	// runs without further sorting, which means we visit more nodes than we
+	// really need to but this output format is only really useful for relatively
+	// small graphs anyway, so this should be fine.
+	for _, sourceAddr := range addrsOrder {
+		deps := graph.DirectDependenciesOf(sourceAddr)
+		for _, targetAddr := range addrsOrder {
+			if !deps.Has(targetAddr) {
+				continue
+			}
+			fmt.Fprintf(out, "  %q -> %q;\n", sourceAddr.String(), targetAddr.String())
+		}
+	}
+
+	fmt.Fprintln(out, "}")
 	return 0
 }
 
@@ -201,6 +308,12 @@ Usage: terraform [global options] graph [options]
   Produces a representation of the dependency graph between different
   objects in the current configuration and state.
 
+  By default the graph shows a summary only of the relationships between
+  resources in the configuration, since those are the main objects that
+  have side-effects whose ordering is significant. You can generate more
+  detailed graphs reflecting Terraform's actual evaluation strategy
+  by specifying the -type=TYPE option to select an operation type.
+
   The graph is presented in the DOT language. The typical program that can
   read this format is GraphViz, but many web services are also available
   to read this format.
@@ -208,17 +321,22 @@ Usage: terraform [global options] graph [options]
 Options:
 
   -plan=tfplan     Render graph using the specified plan file instead of the
-                   configuration in the current directory.
+                   configuration in the current directory. Implies -type=apply.
 
   -draw-cycles     Highlight any cycles in the graph with colored edges.
-                   This helps when diagnosing cycle errors.
+                   This helps when diagnosing cycle errors. This option is
+                   supported only when illustrating a real evaluation graph,
+                   selected using the -type=TYPE option.
 
-  -type=plan       Type of graph to output. Can be: plan, plan-refresh-only,
-                   plan-destroy, or apply. By default Terraform chooses
-				   "plan", or "apply" if you also set the -plan=... option.
+  -type=TYPE       Type of operation graph to output. Can be: plan,
+                   plan-refresh-only, plan-destroy, or apply. By default
+                   Terraform just summarizes the relationships between the
+                   resources in your configuration, without any particular
+                   operation in mind. Full operation graphs are more detailed
+                   but therefore often harder to read.
 
   -module-depth=n  (deprecated) In prior versions of Terraform, specified the
-				   depth of modules to show in the output.
+                   depth of modules to show in the output.
 `
 	return strings.TrimSpace(helpText)
 }

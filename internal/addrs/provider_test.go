@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package addrs
 
@@ -432,7 +432,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 	for name, test := range tests {
 		got, diags := ParseProviderSourceString(name)
 		for _, problem := range deep.Equal(got, test.Want) {
-			t.Errorf(problem)
+			t.Error(problem)
 		}
 		if len(diags) > 0 {
 			if test.Err == false {

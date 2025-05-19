@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package format contains helpers for formatting various Terraform
 // structures for human-readabout output.
@@ -26,6 +26,10 @@ func DiffActionSymbol(action plans.Action) string {
 		return "  [green]+[reset]"
 	case plans.Delete:
 		return "  [red]-[reset]"
+	case plans.Forget:
+		return " [red].[reset]"
+	case plans.CreateThenForget:
+		return " [green]+[reset]/[red].[reset]"
 	case plans.Read:
 		return " [cyan]<=[reset]"
 	case plans.Update:

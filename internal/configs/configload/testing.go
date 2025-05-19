@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configload
 
@@ -20,7 +20,7 @@ import (
 // In the case of any errors, t.Fatal (or similar) will be called to halt
 // execution of the test, so the calling test does not need to handle errors
 // itself.
-func NewLoaderForTests(t *testing.T) (*Loader, func()) {
+func NewLoaderForTests(t testing.TB) (*Loader, func()) {
 	t.Helper()
 
 	modulesDir, err := ioutil.TempDir("", "tf-configs")

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -7,8 +7,8 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // ResourceCountTransformer is a GraphTransformer that expands the count
@@ -17,7 +17,7 @@ import (
 // This assumes that the count is already interpolated.
 type ResourceCountTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
-	Schema   *configschema.Block
+	Schema   *providers.Schema
 
 	Addr          addrs.ConfigResource
 	InstanceAddrs []addrs.AbsResourceInstance

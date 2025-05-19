@@ -11,22 +11,31 @@ func _() {
 	_ = x[InvalidResourceMode-0]
 	_ = x[ManagedResourceMode-77]
 	_ = x[DataResourceMode-68]
+	_ = x[EphemeralResourceMode-69]
+	_ = x[ListResourceMode-76]
 }
 
 const (
 	_ResourceMode_name_0 = "InvalidResourceMode"
-	_ResourceMode_name_1 = "DataResourceMode"
-	_ResourceMode_name_2 = "ManagedResourceMode"
+	_ResourceMode_name_1 = "DataResourceModeEphemeralResourceMode"
+	_ResourceMode_name_2 = "ListResourceModeManagedResourceMode"
+)
+
+var (
+	_ResourceMode_index_1 = [...]uint8{0, 16, 37}
+	_ResourceMode_index_2 = [...]uint8{0, 16, 35}
 )
 
 func (i ResourceMode) String() string {
 	switch {
 	case i == 0:
 		return _ResourceMode_name_0
-	case i == 68:
-		return _ResourceMode_name_1
-	case i == 77:
-		return _ResourceMode_name_2
+	case 68 <= i && i <= 69:
+		i -= 68
+		return _ResourceMode_name_1[_ResourceMode_index_1[i]:_ResourceMode_index_1[i+1]]
+	case 76 <= i && i <= 77:
+		i -= 76
+		return _ResourceMode_name_2[_ResourceMode_index_2[i]:_ResourceMode_index_2[i+1]]
 	default:
 		return "ResourceMode(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

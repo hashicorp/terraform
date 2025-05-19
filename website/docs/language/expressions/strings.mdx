@@ -47,7 +47,7 @@ There are also two special escape sequences that do not use backslashes:
 
 ## Heredoc Strings
 
-Terraform also supports a "heredoc" style of string literal inspired by Unix
+Terraform supports a "heredoc" style of string literal inspired by Unix
 shell languages, which allows multi-line strings to be expressed more clearly.
 
 ```hcl
@@ -74,19 +74,24 @@ In the above example, `EOT` is the identifier selected. Any identifier is
 allowed, but conventionally this identifier is in all-uppercase and begins with
 `EO`, meaning "end of". `EOT` in this case stands for "end of text".
 
-### Generating JSON or YAML
+<Highlight>
 
 Don't use "heredoc" strings to generate JSON or YAML. Instead, use
 [the `jsonencode` function](/terraform/language/functions/jsonencode) or
 [the `yamlencode` function](/terraform/language/functions/yamlencode) so that Terraform
 can be responsible for guaranteeing valid JSON or YAML syntax.
 
+<CodeBlockConfig>
+
 ```hcl
-  example = jsonencode({
-    a = 1
-    b = "hello"
-  })
+example = jsonencode({
+  a = 1
+  b = "hello"
+})
 ```
+
+</CodeBlockConfig>
+</Highlight>
 
 ### Indented Heredocs
 
@@ -180,7 +185,7 @@ The following directives are supported:
 
   ```hcl
   <<EOT
-  %{ for ip in aws_instance.example.*.private_ip }
+  %{ for ip in aws_instance.example[*].private_ip }
   server ${ip}
   %{ endfor }
   EOT
@@ -201,7 +206,7 @@ marker appears at the end):
 
 ```hcl
 <<EOT
-%{ for ip in aws_instance.example.*.private_ip ~}
+%{ for ip in aws_instance.example[*].private_ip ~}
 server ${ip}
 %{ endfor ~}
 EOT

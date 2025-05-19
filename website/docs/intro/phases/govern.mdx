@@ -1,0 +1,22 @@
+---
+page_title: Govern Terraform
+description: Use codified, automated policy enforcement to govern your organization's standards and best practices.
+---
+
+# Govern Terraform
+
+As your teams grow, a common operational challenge is deciding how to enforce your organization's standards and practices. Using codified, automated policy enforcement with Sentinel or OPA ensures consistent application of your standards.
+
+## Govern infrastructure through policy
+
+You can use policy as code to ensure your infrastructure meets your organization's security, governance, and cost requirements. You can configure your workflows to automatically run policy checks as part of your Terraform operations and set conditions for how to handle policy failures. Soft enforcement lets prompts a user to approve an operation that fails a policy check, and hard enforcement blocks the operation entirely. 
+
+You can define policies that set standards for both your infrastructure configuration itself, and for the workflows around configuration deployment. Some examples of policy rules you can define include which ports are open in a firewall, the permitted sizes of virtual machines, or that deployments cannot take place on Fridays. In HCP Terraform and Terraform Enterprise you can use either [OPA](/terraform/cloud-docs/policy-enforcement/opa) or [Sentinel](https://www.hashicorp.com/sentinel) for your policy definitions. 
+
+Learn how to [write a Sentinel policy for a Terraform Deployment](/terraform/tutorials/policy/sentinel-policy) and how to [detect infrastructure drift and enforce OPA policies](/terraform/tutorials/cloud/drift-and-opa).
+
+## Next steps
+
+This guide introduces considerations to keep in mind as your organization adopts Terraform, but there are many more topics to explore. [HCP Terraform](/terraform/tutorials/cloud-get-started) provides a place to get started with many of these topics, and you can [get started for free](https://app.terraform.io/public/signup/account).
+
+The [HashiCorp Well-Architected Framework](/well-architected-framework) provides more in-depth information on how to adopt and scale your use of Terraform.

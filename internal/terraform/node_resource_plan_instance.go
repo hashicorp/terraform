@@ -1,19 +1,27 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -45,7 +53,7 @@ type NodePlannableResourceInstance struct {
 
 	// importTarget, if populated, contains the information necessary to plan
 	// an import of this resource.
-	importTarget ImportTarget
+	importTarget cty.Value
 }
 
 var (
@@ -69,6 +77,8 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
 		return n.dataResourceExecute(ctx)
+	case addrs.EphemeralResourceMode:
+		return n.ephemeralResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
@@ -96,36 +106,73 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		checkRuleSeverity = tfdiags.Warning
 	}
 
-	change, state, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges)
+	deferrals := ctx.Deferrals()
+	change, state, deferred, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges, deferrals.ShouldDeferResourceInstanceChanges(addr, n.Dependencies))
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	// write the data source into both the refresh state and the
-	// working state
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, refreshState))
-	if diags.HasErrors() {
-		return diags
-	}
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
-	if diags.HasErrors() {
-		return diags
+	// A nil change here indicates that Terraform is deciding NOT to make a
+	// change at all. In which case even if we wanted to try and defer it
+	// (because of a dependency) we can't as there is no change to defer.
+	//
+	// The most common case for this is when the data source is being refreshed
+	// but depends on unknown values or dependencies which means we just skip
+	// refreshing the data source. We maintain that behaviour here.
+	if change != nil && deferred != nil {
+		// Then this data source got deferred by the provider during planning.
+		deferrals.ReportDataSourceInstanceDeferred(addr, deferred.Reason, change)
+	} else {
+		// Not deferred; business as usual.
+
+		// write the data source into both the refresh state and the
+		// working state
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, refreshState))
+		if diags.HasErrors() {
+			return diags
+		}
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.writeChange(ctx, change, ""))
+
+		// Post-conditions might block further progress. We intentionally do this
+		// _after_ writing the state/diff because we want to check against
+		// the result of the operation, and to fail on future operations
+		// until the user makes the condition succeed.
+		checkDiags := evalCheckRules(
+			addrs.ResourcePostcondition,
+			n.Config.Postconditions,
+			ctx, addr, repeatData,
+			checkRuleSeverity,
+		)
+		diags = diags.Append(checkDiags)
 	}
 
-	diags = diags.Append(n.writeChange(ctx, change, ""))
+	return diags
+}
 
-	// Post-conditions might block further progress. We intentionally do this
-	// _after_ writing the state/diff because we want to check against
-	// the result of the operation, and to fail on future operations
-	// until the user makes the condition succeed.
-	checkDiags := evalCheckRules(
-		addrs.ResourcePostcondition,
-		n.Config.Postconditions,
-		ctx, addr, repeatData,
-		checkRuleSeverity,
-	)
-	diags = diags.Append(checkDiags)
+func (n *NodePlannableResourceInstance) ephemeralResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+	deferrals := ctx.Deferrals()
+	// For deferred ephemeral resources, we don't need to do anything here.
+	if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
+		deferrals.ReportEphemeralResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq)
+		return nil
+	}
+
+	deferred, diags := ephemeralResourceOpen(ctx, ephemeralResourceInput{
+		addr:           n.Addr,
+		config:         n.Config,
+		providerConfig: n.ResolvedProvider,
+	})
+
+	if deferred != nil {
+		// Then this ephemeral resource has been deferred while opening.
+		deferrals.ReportEphemeralResourceInstanceDeferred(n.Addr, deferred.Reason)
+	}
 
 	return diags
 }
@@ -134,7 +181,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 
-	var change *plans.ResourceInstanceChange
 	var instanceRefreshState *states.ResourceInstanceObject
 
 	checkRuleSeverity := tfdiags.Error
@@ -155,35 +201,56 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget.ID != ""
+	importing := n.importTarget != cty.NilVal && !n.preDestroyRefresh
 
-	if importing && n.Config == nil && !n.generateConfig {
-		// Then the user wrote an import target to a target that didn't exist.
-		if n.Addr.Module.IsRoot() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf",
-				Subject:  n.importTarget.Config.DeclRange.Ptr(),
-			})
-		} else {
-			// You can't generate config for a resource that is inside a
-			// module, so we will present a different error message for
-			// this case.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. The specified target is within a module, and must be defined as a resource within that module before anything can be imported.",
-				Subject:  n.importTarget.Config.DeclRange.Ptr(),
-			})
-		}
-		return diags
-	}
+	var deferred *providers.Deferred
 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
+
 	if importing {
-		instanceRefreshState, diags = n.importState(ctx, addr, provider)
+		if n.importTarget.IsWhollyKnown() {
+			var importDiags tfdiags.Diagnostics
+			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, n.importTarget, provider, providerSchema)
+			diags = diags.Append(importDiags)
+		} else {
+			// Otherwise, just mark the resource as deferred without trying to
+			// import it.
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonResourceConfigUnknown,
+			}
+			if n.Config == nil && len(n.generateConfigPath) > 0 {
+				// Then we're supposed to be generating configuration for this
+				// resource, but we can't because the configuration is unknown.
+				//
+				// Normally, the rest of this function would just be about
+				// planning the known configuration to make sure everything we
+				// do know about it is correct, but we can't even do that here.
+				//
+				// What we'll do is write out the address as being deferred with
+				// an entirely unknown value. Then we'll skip the rest of this
+				// function. (a) We're going to panic later when it complains
+				// about having no configuration, and (b) the rest of the
+				// function isn't doing anything as there is no configuration
+				// to validate.
+
+				impliedType := providerSchema.ResourceTypes[addr.Resource.Resource.Type].Body.ImpliedType()
+				ctx.Deferrals().ReportResourceInstanceDeferred(addr, providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
+					Addr:         addr,
+					PrevRunAddr:  addr,
+					ProviderAddr: n.ResolvedProvider,
+					Change: plans.Change{
+						Action: plans.NoOp, // assume we'll get the config generation correct.
+						Before: cty.NullVal(impliedType),
+						After:  cty.UnknownVal(impliedType),
+						Importing: &plans.Importing{
+							Target: n.importTarget,
+						},
+					},
+				})
+				return diags
+			}
+		}
 	} else {
 		var readDiags tfdiags.Diagnostics
 		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
@@ -193,42 +260,47 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	// We'll save a snapshot of what we just read from the state into the
-	// prevRunState before we do anything else, since this will capture the
-	// result of any schema upgrading that readResourceInstanceState just did,
-	// but not include any out-of-band changes we might detect in in the
-	// refresh step below.
-	diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, prevRunState))
-	if diags.HasErrors() {
-		return diags
-	}
-	// Also the refreshState, because that should still reflect schema upgrades
-	// even if it doesn't reflect upstream changes.
-	diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// In 0.13 we could be refreshing a resource with no config.
-	// We should be operating on managed resource, but check here to be certain
-	if n.Config == nil || n.Config.Managed == nil {
-		log.Printf("[WARN] managedResourceExecute: no Managed config value found in instance state for %q", n.Addr)
-	} else {
-		if instanceRefreshState != nil {
-			instanceRefreshState.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
+	if deferred == nil {
+		// We'll save a snapshot of what we just read from the state into the
+		// prevRunState before we do anything else, since this will capture the
+		// result of any schema upgrading that readResourceInstanceState just did,
+		// but not include any out-of-band changes we might detect in in the
+		// refresh step below.
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, prevRunState))
+		if diags.HasErrors() {
+			return diags
+		}
+		// Also the refreshState, because that should still reflect schema upgrades
+		// even if it doesn't reflect upstream changes.
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+		if diags.HasErrors() {
+			return diags
 		}
 	}
+
+	// we may need to detect a change in CreateBeforeDestroy to ensure it's
+	// stored when we are not refreshing
+	updatedCBD := false
+	if n.Config != nil && n.Config.Managed != nil && instanceRefreshState != nil {
+		newCBD := n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
+		updatedCBD = instanceRefreshState.CreateBeforeDestroy != newCBD
+		instanceRefreshState.CreateBeforeDestroy = newCBD
+	}
+
+	var refreshDeferred *providers.Deferred
+	// This is the state of the resource before we refresh the value, we need to keep track
+	// of this to report this as the before value if the refresh is deferred.
+	priorInstanceRefreshState := instanceRefreshState
 
 	// Refresh, maybe
 	// The import process handles its own refresh
 	if !n.skipRefresh && !importing {
-		s, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
+		var refreshDiags tfdiags.Diagnostics
+		instanceRefreshState, refreshDeferred, refreshDiags = n.refresh(ctx, states.NotDeposed, instanceRefreshState, ctx.Deferrals().DeferralAllowed())
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
-
-		instanceRefreshState = s
 
 		if instanceRefreshState != nil {
 			// When refreshing we start by merging the stored dependencies and
@@ -239,6 +311,23 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			instanceRefreshState.Dependencies = mergeDeps(n.Dependencies, instanceRefreshState.Dependencies)
 		}
 
+		if deferred == nil && refreshDeferred != nil {
+			deferred = refreshDeferred
+		}
+
+		if deferred == nil {
+			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+		}
+
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	if n.skipRefresh && !importing && updatedCBD {
+		// CreateBeforeDestroy must be set correctly in the state which is used
+		// to create the apply graph, so if we did not refresh the state make
+		// sure we still update any changes to CreateBeforeDestroy.
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 		if diags.HasErrors() {
 			return diags
@@ -264,16 +353,48 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
-		change, instancePlanState, repeatData, planDiags := n.plan(
-			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
+		change, instancePlanState, planDeferred, repeatData, planDiags := n.plan(
+			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
+			// If we are importing and generating a configuration, we need to
+			// ensure the change is written out so the configuration can be
+			// captured.
+			if planDeferred == nil && len(n.generateConfigPath) > 0 {
+				// Update our return plan
+				change := &plans.ResourceInstanceChange{
+					Addr:         n.Addr,
+					PrevRunAddr:  n.prevRunAddr(ctx),
+					ProviderAddr: n.ResolvedProvider,
+					Change: plans.Change{
+						// we only need a placeholder, so this will be a NoOp
+						Action:          plans.NoOp,
+						Before:          instanceRefreshState.Value,
+						After:           instanceRefreshState.Value,
+						GeneratedConfig: n.generatedConfigHCL,
+					},
+				}
+				diags = diags.Append(n.writeChange(ctx, change, ""))
+			}
+
 			return diags
 		}
 
+		if deferred == nil && planDeferred != nil {
+			deferred = planDeferred
+		}
+
 		if importing {
-			change.Importing = &plans.Importing{ID: n.importTarget.ID}
+			// There is a subtle difference between the import by identity
+			// and the import by ID. When importing by identity, we need to
+			// make sure to use the complete identity return by the provider
+			// instead of the (potential) incomplete one from the configuration.
+			if n.importTarget.Type().IsObjectType() {
+				change.Importing = &plans.Importing{Target: instanceRefreshState.Identity}
+			} else {
+				change.Importing = &plans.Importing{Target: n.importTarget}
+			}
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for
@@ -283,59 +404,86 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
 		}
 
-		diags = diags.Append(n.checkPreventDestroy(change))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		// FIXME: it is currently important that we write resource changes to
-		// the plan (n.writeChange) before we write the corresponding state
-		// (n.writeResourceInstanceState).
-		//
-		// This is because the planned resource state will normally have the
-		// status of states.ObjectPlanned, which causes later logic to refer to
-		// the contents of the plan to retrieve the resource data. Because
-		// there is no shared lock between these two data structures, reversing
-		// the order of these writes will cause a brief window of inconsistency
-		// which can lead to a failed safety check.
-		//
-		// Future work should adjust these APIs such that it is impossible to
-		// update these two data structures incorrectly through any objects
-		// reachable via the terraform.EvalContext API.
-		diags = diags.Append(n.writeChange(ctx, change, ""))
-
-		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		// If this plan resulted in a NoOp, then apply won't have a chance to make
-		// any changes to the stored dependencies. Since this is a NoOp we know
-		// that the stored dependencies will have no effect during apply, and we can
-		// write them out now.
-		if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
-			// the refresh state will be the final state for this resource, so
-			// finalize the dependencies here if they need to be updated.
-			instanceRefreshState.Dependencies = n.Dependencies
-			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+		deferrals := ctx.Deferrals()
+		if deferred != nil {
+			// Then this resource has been deferred either during the import,
+			// refresh or planning stage. We'll report the deferral and
+			// store what we could produce in the deferral tracker.
+			deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
+		} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
+			// We intentionally write the change before the subsequent checks, because
+			// all of the checks below this point are for problems caused by the
+			// context surrounding the change, rather than the change itself, and
+			// so it's helpful to still include the valid-in-isolation change as
+			// part of the plan as additional context in our error output.
+			//
+			// FIXME: it is currently important that we write resource changes to
+			// the plan (n.writeChange) before we write the corresponding state
+			// (n.writeResourceInstanceState).
+			//
+			// This is because the planned resource state will normally have the
+			// status of states.ObjectPlanned, which causes later logic to refer to
+			// the contents of the plan to retrieve the resource data. Because
+			// there is no shared lock between these two data structures, reversing
+			// the order of these writes will cause a brief window of inconsistency
+			// which can lead to a failed safety check.
+			//
+			// Future work should adjust these APIs such that it is impossible to
+			// update these two data structures incorrectly through any objects
+			// reachable via the terraform.EvalContext API.
+			diags = diags.Append(n.writeChange(ctx, change, ""))
 			if diags.HasErrors() {
 				return diags
 			}
-		}
+			diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
+			if diags.HasErrors() {
+				return diags
+			}
 
-		// Post-conditions might block completion. We intentionally do this
-		// _after_ writing the state/diff because we want to check against
-		// the result of the operation, and to fail on future operations
-		// until the user makes the condition succeed.
-		// (Note that some preconditions will end up being skipped during
-		// planning, because their conditions depend on values not yet known.)
-		checkDiags := evalCheckRules(
-			addrs.ResourcePostcondition,
-			n.Config.Postconditions,
-			ctx, n.ResourceInstanceAddr(), repeatData,
-			checkRuleSeverity,
-		)
-		diags = diags.Append(checkDiags)
+			diags = diags.Append(n.checkPreventDestroy(change))
+			if diags.HasErrors() {
+				return diags
+			}
+
+			// If this plan resulted in a NoOp, then apply won't have a chance to make
+			// any changes to the stored dependencies. Since this is a NoOp we know
+			// that the stored dependencies will have no effect during apply, and we can
+			// write them out now.
+			if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
+				// the refresh state will be the final state for this resource, so
+				// finalize the dependencies here if they need to be updated.
+				instanceRefreshState.Dependencies = n.Dependencies
+				diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+				if diags.HasErrors() {
+					return diags
+				}
+			}
+
+			// Post-conditions might block completion. We intentionally do this
+			// _after_ writing the state/diff because we want to check against
+			// the result of the operation, and to fail on future operations
+			// until the user makes the condition succeed.
+			// (Note that some preconditions will end up being skipped during
+			// planning, because their conditions depend on values not yet known.)
+			checkDiags := evalCheckRules(
+				addrs.ResourcePostcondition,
+				n.Config.Postconditions,
+				ctx, n.ResourceInstanceAddr(), repeatData,
+				checkRuleSeverity,
+			)
+			diags = diags.Append(checkDiags)
+		} else {
+			// The deferrals tracker says that we must defer changes for
+			// this resource instance, presumably due to a dependency on an
+			// upstream object that was already deferred. Therefore we just
+			// report our own deferral (capturing a placeholder value in the
+			// deferral tracker) and don't add anything to the plan or
+			// working state.
+			// In this case, the expression evaluator should use the placeholder
+			// value registered here as the value of this resource instance,
+			// instead of using the plan.
+			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		}
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
@@ -344,7 +492,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// values, which could result in a post-condition check relying on that
 		// value being inaccurate. Unless we decide to store the value of the
 		// for-each expression in state, this is unavoidable.
-		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+		forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
 		repeatData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 		checkDiags := evalCheckRules(
@@ -377,6 +525,21 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
+
+		// In this case we skipped planning changes and therefore need to report the deferral
+		// here, if there was one.
+		if refreshDeferred != nil {
+			ctx.Deferrals().ReportResourceInstanceDeferred(addr, deferred.Reason, &plans.ResourceInstanceChange{
+				Addr:         n.Addr,
+				PrevRunAddr:  n.Addr,
+				ProviderAddr: n.ResolvedProvider,
+				Change: plans.Change{
+					Action: plans.Read,
+					Before: priorInstanceRefreshState.Value,
+					After:  instanceRefreshState.Value,
+				},
+			})
+		}
 	}
 
 	return diags
@@ -415,93 +578,239 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importTarget cty.Value, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
-
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PrePlanImport(absAddr, n.importTarget.ID)
-	}))
-	if diags.HasErrors() {
-		return nil, diags
+	hookResourceID := HookResourceIdentity{
+		Addr:         absAddr,
+		ProviderAddr: n.ResolvedProvider.Provider,
 	}
 
-	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
-		TypeName: addr.Resource.Resource.Type,
-		ID:       n.importTarget.ID,
-	})
-	diags = diags.Append(resp.Diagnostics)
+	var deferred *providers.Deferred
+
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PrePlanImport(hookResourceID, importTarget)
+	}))
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, deferred, diags
+	}
+
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		return nil, deferred, diags
+	}
+
+	var resp providers.ImportResourceStateResponse
+	if n.override != nil {
+		// For overriding resources that are being imported, we cheat a little
+		// bit and look ahead at the configuration the user has provided and
+		// we'll use that as the basis for the resource we're going to make up
+		// that is due to be overridden.
+
+		// Note, we know we have configuration as it's impossible to enable
+		// config generation during tests, and the validation that config exists
+		// if configuration generation is off has already happened.
+		if n.Config == nil {
+			// But, just in case we change this at some point in the future,
+			// let's add a specific error message here we can test for to
+			// document the expectation somewhere. This shouldn't happen in
+			// production, so we don't bother with a pretty error.
+			diags = diags.Append(fmt.Errorf("override blocks do not support config generation"))
+			return nil, deferred, diags
+		}
+
+		forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
+		keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
+		if configDiags.HasErrors() {
+			// We have an overridden resource so we're definitely in a test and
+			// the users config is not valid. So give up and just report the
+			// problems in the users configuration. Normally, we'd import the
+			// resource before giving up but for a test it doesn't matter, the
+			// test fails in the same way and the state is just lost anyway.
+			//
+			// If there were only warnings from the config then we'll duplicate
+			// them if we include them (as the config will be loaded again
+			// later), so only add the configDiags into the main diags if we
+			// found actual errors.
+			diags = diags.Append(configDiags)
+			return nil, deferred, diags
+		}
+		configVal, _ = configVal.UnmarkDeep()
+
+		// Let's pretend we're reading the value as a data source so we
+		// pre-compute values now as if the resource has already been created.
+		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, &mocking.MockedData{
+			Value:             n.override.Values,
+			Range:             n.override.Range,
+			ComputedAsUnknown: false,
+		}, schema.Body)
+		resp = providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: addr.Resource.Resource.Type,
+					State:    ephemeral.StripWriteOnlyAttributes(override, schema.Body),
+				},
+			},
+			Diagnostics: overrideDiags.InConfigBody(n.Config.Config, absAddr.String()),
+		}
+	} else {
+		if importTarget.Type().IsObjectType() {
+			// Identity-based import
+			resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
+				TypeName:           addr.Resource.Resource.Type,
+				Identity:           importTarget,
+				ClientCapabilities: ctx.ClientCapabilities(),
+			})
+		} else {
+			// ID-based/string import
+			resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
+				TypeName:           addr.Resource.Resource.Type,
+				ID:                 importTarget.AsString(),
+				ClientCapabilities: ctx.ClientCapabilities(),
+			})
+		}
+	}
+	// If we don't support deferrals, but the provider reports a deferral and does not
+	// emit any error level diagnostics, we should emit an error.
+	if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+		diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+	}
+	diags = diags.Append(resp.Diagnostics)
+	deferred = resp.Deferred
+	if diags.HasErrors() {
+		return nil, deferred, diags
+	}
+
+	importType := "ID"
+	var importValue string
+	if importTarget.Type().IsObjectType() {
+		importType = "Identity"
+		importValue = tfdiags.ObjectToString(importTarget)
+	} else {
+		importValue = importTarget.AsString()
 	}
 
 	imported := resp.ImportedResources
 
-	if len(imported) == 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Import returned no resources",
-			fmt.Sprintf("While attempting to import with ID %s, the provider"+
-				"returned no instance states.",
-				n.importTarget.ID,
-			),
-		))
-		return nil, diags
-	}
-	for _, obj := range imported {
-		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), n.importTarget.ID, obj.TypeName)
-	}
 	if len(imported) > 1 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Multiple import states not supported",
-			fmt.Sprintf("While attempting to import with ID %s, the provider "+
+			fmt.Sprintf("While attempting to import with %s %s, the provider "+
 				"returned multiple resource instance states. This "+
 				"is not currently supported.",
-				n.importTarget.ID,
+				importType, importValue,
 			),
 		))
-		return nil, diags
 	}
 
-	// call post-import hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostPlanImport(absAddr, imported)
-	}))
+	if len(imported) == 0 {
+
+		// Sanity check against the providers. If the provider defers the response, it may not have been able to return a state, so we'll only error if no deferral was returned.
+		if deferred == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Import returned no resources",
+				fmt.Sprintf("While attempting to import with %s %s, the provider"+
+					"returned no instance states.",
+					importType, importValue,
+				),
+			))
+			return nil, deferred, diags
+		}
+
+		// If we were deferred, then let's make up a resource to represent the
+		// state we're going to import.
+		state := providers.ImportedResource{
+			TypeName: addr.Resource.Resource.Type,
+			State:    cty.NullVal(schema.Body.ImpliedType()),
+		}
+
+		// We skip the read and further validation since we make up the state
+		// of the imported resource anyways.
+		return states.NewResourceInstanceObjectFromIR(state), deferred, diags
+	}
+
+	for _, obj := range imported {
+		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), importValue, obj.TypeName)
+	}
+
+	// We can only call the hooks and validate the imported state if we have
+	// actually done the import.
+	if resp.Deferred == nil {
+		// call post-import hook
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostPlanImport(hookResourceID, imported)
+		}))
+	}
 
 	if imported[0].TypeName == "" {
-		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
-		return nil, diags
+		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.Addr.String()))
+		return nil, deferred, diags
 	}
 
-	importedState := imported[0].AsInstanceObject()
+	// Providers are supposed to return an identity when importing by identity
+	if importTarget.Type().IsObjectType() && imported[0].Identity.IsNull() {
+		diags = diags.Append(fmt.Errorf("import of %s didn't return an identity", n.Addr.String()))
+		return nil, deferred, diags
+	}
 
-	if importedState.Value.IsNull() {
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Import returned a non-null value for a write-only attribute",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"While attempting to import with %s %s, the provider %q returned a value for the write-only attribute \"%s%s\". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				importType, importValue, n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+			)
+		},
+		imported[0].State,
+		schema.Body,
+	)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
+		return nil, deferred, diags
+	}
+
+	importedState := states.NewResourceInstanceObjectFromIR(imported[0])
+	if deferred == nil && !importTarget.Type().IsObjectType() && importedState.Value.IsNull() {
+		// It's actually okay for a deferred import to have returned a null.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Import returned null resource",
-			fmt.Sprintf("While attempting to import with ID %s, the provider"+
+			fmt.Sprintf("While attempting to import with %s %s, the provider"+
 				"returned an instance with no state.",
-				n.importTarget.ID,
+				importType, importValue,
 			),
 		))
 	}
 
 	// refresh
 	riNode := &NodeAbstractResourceInstance{
-		Addr: n.importTarget.Addr,
+		Addr: n.Addr,
 		NodeAbstractResource: NodeAbstractResource{
 			ResolvedProvider: n.ResolvedProvider,
 		},
+		override: n.override,
 	}
-	instanceRefreshState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
+	instanceRefreshState, refreshDeferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState, ctx.Deferrals().DeferralAllowed())
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
-		return instanceRefreshState, diags
+		return instanceRefreshState, deferred, diags
+	}
+
+	// report the refresh was deferred, we don't need to error since the import step succeeded
+	if deferred == nil && refreshDeferred != nil {
+		deferred = refreshDeferred
 	}
 
 	// verify the existence of the imported resource
-	if instanceRefreshState.Value.IsNull() {
+	if refreshDeferred == nil && instanceRefreshState.Value.IsNull() {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -513,14 +822,94 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 					"is correct and that it is associated with the provider's "+
 					"configured region or endpoint, or use \"terraform apply\" to "+
 					"create a new remote object for this resource.",
-				n.importTarget.Addr,
+				n.Addr,
 			),
 		))
-		return instanceRefreshState, diags
+		return instanceRefreshState, deferred, diags
 	}
 
-	diags = diags.Append(riNode.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
-	return instanceRefreshState, diags
+	// If we're importing and generating config, generate it now. We only
+	// generate config if the import isn't being deferred. We should generate
+	// the configuration in the plan that the import is actually happening in.
+	if deferred == nil && len(n.generateConfigPath) > 0 {
+		if n.Config != nil {
+			return instanceRefreshState, nil, diags.Append(fmt.Errorf("tried to generate config for %s, but it already exists", n.Addr))
+		}
+
+		// Generate the HCL string first, then parse the HCL body from it.
+		// First we generate the contents of the resource block for use within
+		// the planning node. Then we wrap it in an enclosing resource block to
+		// pass into the plan for rendering.
+		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema.Body)
+		diags = diags.Append(generatedDiags)
+
+		n.generatedConfigHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
+
+		// parse the "file" as HCL to get the hcl.Body
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), filepath.Base(n.generateConfigPath), hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			return instanceRefreshState, nil, diags
+		}
+
+		// We have to do a kind of mini parsing of the content here to correctly
+		// mark attributes like 'provider' as hidden. We only care about the
+		// resulting content, so it's remain that gets passed into the resource
+		// as the config.
+		_, remain, resourceDiags := synthHCLFile.Body.PartialContent(configs.ResourceBlockSchema)
+		diags = diags.Append(resourceDiags)
+		if resourceDiags.HasErrors() {
+			return instanceRefreshState, nil, diags
+		}
+
+		n.Config = &configs.Resource{
+			Mode:     addrs.ManagedResourceMode,
+			Type:     n.Addr.Resource.Resource.Type,
+			Name:     n.Addr.Resource.Resource.Name,
+			Config:   remain,
+			Managed:  &configs.ManagedResource{},
+			Provider: n.ResolvedProvider.Provider,
+		}
+	}
+
+	if deferred == nil {
+		// Only write the state if the change isn't being deferred. We're also
+		// reporting the deferred status to the caller, so they should know
+		// not to read from the state.
+		diags = diags.Append(riNode.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+	}
+	return instanceRefreshState, deferred, diags
+}
+
+// generateHCLStringAttributes produces a string in HCL format for the given
+// resource state and schema without the surrounding block.
+func (n *NodePlannableResourceInstance) generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, tfdiags.Diagnostics) {
+	filteredSchema := schema.Filter(
+		configschema.FilterOr(
+			configschema.FilterReadOnlyAttribute,
+			configschema.FilterDeprecatedAttribute,
+
+			// The legacy SDK adds an Optional+Computed "id" attribute to the
+			// resource schema even if not defined in provider code.
+			// During validation, however, the presence of an extraneous "id"
+			// attribute in config will cause an error.
+			// Remove this attribute so we do not generate an "id" attribute
+			// where there is a risk that it is not in the real resource schema.
+			//
+			// TRADEOFF: Resources in which there actually is an
+			// Optional+Computed "id" attribute in the schema will have that
+			// attribute missing from generated config.
+			configschema.FilterHelperSchemaIdAttribute,
+		),
+		configschema.FilterDeprecatedBlock,
+	)
+
+	providerAddr := addrs.LocalProviderConfig{
+		LocalName: n.ResolvedProvider.Provider.Type,
+		Alias:     n.ResolvedProvider.Alias,
+	}
+
+	return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state.Value)
 }
 
 // mergeDeps returns the union of 2 sets of dependencies

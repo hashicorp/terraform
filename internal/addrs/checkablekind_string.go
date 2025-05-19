@@ -12,13 +12,15 @@ func _() {
 	_ = x[CheckableResource-82]
 	_ = x[CheckableOutputValue-79]
 	_ = x[CheckableCheck-67]
+	_ = x[CheckableInputVariable-73]
 }
 
 const (
 	_CheckableKind_name_0 = "CheckableKindInvalid"
 	_CheckableKind_name_1 = "CheckableCheck"
-	_CheckableKind_name_2 = "CheckableOutputValue"
-	_CheckableKind_name_3 = "CheckableResource"
+	_CheckableKind_name_2 = "CheckableInputVariable"
+	_CheckableKind_name_3 = "CheckableOutputValue"
+	_CheckableKind_name_4 = "CheckableResource"
 )
 
 func (i CheckableKind) String() string {
@@ -27,10 +29,12 @@ func (i CheckableKind) String() string {
 		return _CheckableKind_name_0
 	case i == 67:
 		return _CheckableKind_name_1
-	case i == 79:
+	case i == 73:
 		return _CheckableKind_name_2
-	case i == 82:
+	case i == 79:
 		return _CheckableKind_name_3
+	case i == 82:
+		return _CheckableKind_name_4
 	default:
 		return "CheckableKind(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

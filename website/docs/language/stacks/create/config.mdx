@@ -1,0 +1,91 @@
+---
+page_title: Define configuration
+description: Learn to write Stack configuration files to declare what infrastructure your Stack deploys.
+---
+
+# Define configuration
+
+In the Stack configuration file, you declare what infrastructure components are part of the Stack.
+
+Your Stack configuration file defines multiple components that share a lifecycle you can repeatedly deploy. This helps ensure consistency across environments and reduces the complexity of provisioning at scale.
+
+## Background
+
+You declare the infrastructure that makes up your Stack in the Stack configuration file. Stack configuration files replace Terraform’s traditional root module and serve as the blueprint for what your Stack deploys.
+
+Stack configuration files use a new file type, `tfstack.hcl`, to define everything that shares your Stack’s lifecycle. After writing your Stack configuration, you can write a deployment configuration to dictate how HCP Terraform deploys your Stack’s infrastructure. 
+
+As with Terraform configuration files, HCP Terraform processes all of the blocks in your Stack configuration and deployment configuration files in your Stack's root directory in dependency order. You can organize your Stack configuration into multiple files as in traditional Terraform configurations.
+
+### Requirements
+
+Before you begin writing your Stack configuration, ensure you have the `terraform-stacks-cli` for initializing and validating your Stack configurations. For installation guidance, refer to the [Stacks CLI reference](/terraform/language/stacks/reference/tfstacks-cli).
+
+## Define your Stack configuration
+
+We recommend [designing your Stack](/terraform/language/stacks/design) before you begin writing your configuration files. 
+
+All of your Stack’s configuration files must use the `.tfstack.hcl` file type. You can set up your Stack configuration into multiple files as in traditional Terraform configurations. For example, you can have `variables.tfstack.hcl`, `providers.tfstack.hcl`, and we recommend creating one root-level file for your `component` blocks, such as `components.tfstack.hcl`. 
+    
+The `component` block defines the pieces that make up your Stack. Add a `component` block for each top-level module you want to include in the Stack. Specify the source module, inputs, and providers for each component. 
+
+```hcl
+# components.tfstack.hcl
+
+component "cluster" {
+    source = "./eks"
+    inputs = {
+        aws_region          = var.aws_region
+        cluster_name_prefix = var.prefix
+        instance_type       = "t2.medium"
+    }
+    providers = {
+        aws       = provider.aws.this
+        random    = provider.random.this
+        tls       = provider.tls.this
+        cloudinit = provider.cloudinit.this
+    }
+}
+```
+
+After establishing your top-level modules, you can use child modules without adding additional `component` blocks.
+
+The Stack configuration file type accepts most classic Terraform configuration blocks but with some key differences. For more details on declaring providers in Stacks, refer to [Declare providers](/terraform/language/stacks/create/declare-providers). For more information on the Stack configuration file type and all the blocks and attributes it accepts, refer to the [Configuration file reference](/terraform/language/stacks/reference/tfstack). 
+
+The `component` block supports the `for_each` meta-argument if you need to replicate components across multiple instances. For example, the following configuration uses `for_each` to provision modules in multiple AWS regions for a given environment.
+
+```hcl
+# components.tfstack.hcl
+
+component "s3" {
+    for_each = var.regions
+
+    source = "./s3"
+
+    inputs = {
+        region = each.value
+    }
+
+    providers = {
+        aws    = provider.aws.configurations[each.value]
+        random = provider.random.this
+    }
+}
+```
+
+After writing your Stack configuration, use the Terraform Stacks CLI to validate it.
+
+## Validate your configuration
+
+Once you have finished your Stack configuration, use the `terraform-stacks-cli` tool to validate your configuration and generate the necessary provider lock files.
+
+```shell-session
+$ tfstacks init
+$ tfstacks validate
+```
+
+For installation guidance and more details, refer to the [Stacks CLI](/terraform/language/stacks/reference/tfstacks-cli).
+
+## Next steps
+
+If you have not yet defined the providers for your Stack, proceed to [Declare providers](/terraform/language/stacks/create/declare-providers). You can also learn how to [Authenticate your Stack](/terraform/language/stacks/deploy/authenticate) to ensure your providers are properly set up.  

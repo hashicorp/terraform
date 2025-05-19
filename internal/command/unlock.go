@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -10,9 +10,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/cli"
 )
 
 // UnlockCommand is a cli.Command implementation that manually unlocks
@@ -67,6 +67,9 @@ func (c *UnlockCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// This is a read-only operation with respect to the state contents
+	c.ignoreRemoteVersionConflict(b)
 
 	env, err := c.Workspace()
 	if err != nil {

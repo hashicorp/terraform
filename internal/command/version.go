@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -161,7 +161,7 @@ func (c *VersionCommand) Run(args []string) int {
 		if outdated {
 			c.Ui.Output(fmt.Sprintf(
 				"\nYour version of Terraform is out of date! The latest version\n"+
-					"is %s. You can update by downloading from https://www.terraform.io/downloads.html",
+					"is %s. You can update by downloading from https://developer.hashicorp.com/terraform/install",
 				latest))
 		}
 

@@ -1,9 +1,9 @@
 ---
-page_title: The Core Terraform Workflow - Guides
-description: 'An overview of how individuals, teams, and organizations can use Terraform. '
+page_title: Overview of the core Terraform workflow
+description: Learn how to provision and manage infrastructure using the core Terraform workflow for individuals, teams, and organizations.
 ---
 
-# The Core Terraform Workflow
+# Core Terraform Workflow Overview
 
 The core Terraform workflow has three steps:
 
@@ -13,7 +13,7 @@ The core Terraform workflow has three steps:
 
 This guide walks through how each of these three steps plays out in the context
 of working as an individual practitioner, how they evolve when a team is
-collaborating on infrastructure, and how Terraform Cloud enables this
+collaborating on infrastructure, and how HCP Terraform enables this
 workflow to run smoothly for entire organizations.
 
 ## Working as an Individual Practitioner
@@ -215,37 +215,44 @@ Just like the workflow for individuals, the core workflow for teams is a loop
 that plays out for each change. For some teams this loop happens a few times a
 week, for others, many times a day.
 
-## The Core Workflow Enhanced by Terraform Cloud
+## The Core Workflow Enhanced by HCP Terraform
 
 While the above described workflows enable the safe, predictable, and
 reproducible creating or changing of infrastructure, there are multiple
 collaboration points that can be streamlined, especially as teams and
-organizations scale.  We designed Terraform Cloud to support and enhance
+organizations scale.  We designed HCP Terraform to support and enhance
 the core Terraform workflow for anyone collaborating on infrastructure, from
-small teams to large organizations. Let's look at how Terraform Cloud makes
+small teams to large organizations. Let's look at how HCP Terraform makes
 for a better experience at each step.
 
 ### Write
 
-Terraform Cloud provides a centralized and secure location for storing
+HCP Terraform provides a centralized and secure location for storing
 input variables and state while also bringing back a tight feedback loop for
 speculative plans for config authors. Terraform configuration can interact with
-Terraform Cloud through the [CLI integration](/terraform/cli/cloud).
+HCP Terraform through the [CLI integration](/terraform/cli/cloud).
 
-```
+```hcl
 terraform {
   cloud {
     organization = "my-org"
     hostname = "app.terraform.io" # Optional; defaults to app.terraform.io
 
     workspaces {
-      tags = ["networking", "source:cli"]
+      tags = {
+        layer = "networking"
+        source = "cli"
+      }
+      
+      # For terraform versions below 1.10, you must specify key-only tags
+      # using a list of strings. Example:
+      # tags = ["networking", "source:cli"]
     }
   }
 }
 ```
 
-After you configure the integration, a Terraform Cloud API key is all your team members need to edit config and run speculative plans
+After you configure the integration, an HCP Terraform API key is all your team members need to edit config and run speculative plans
 against the latest version of the state file using all the remotely stored
 input variables.
 
@@ -273,7 +280,7 @@ authoring config until it is ready to propose as a change via a pull request.
 
 ### Plan
 
-Once a pull request is ready for review, Terraform Cloud makes the process
+Once a pull request is ready for review, HCP Terraform makes the process
 of reviewing a speculative plan easier for team members. First, the plan is
 automatically run when the pull request is created. Status updates to the pull
 request indicate while the plan is in progress.
@@ -285,17 +292,17 @@ changes in the speculative plan, right from the pull request view.
 
 For certain types of changes, this information is all that's needed for a team
 member to be able to approve the pull request. When a teammate needs to do a
-full review of the plan, clicking the link to Terraform Cloud brings up a
+full review of the plan, clicking the link to HCP Terraform brings up a
 view that allows them to quickly analyze the full plan details.
 
-![Screenshot of Pull Request run in Terraform Cloud](/img/docs/pr-plan.png)
+![Screenshot of Pull Request run in HCP Terraform](/img/docs/pr-plan.png)
 
 This page allows the reviewer to quickly determine if the plan is matching the
 config author's intent and evaluate the risk of the change.
 
 ### Apply
 
-After merge, Terraform Cloud presents the concrete plan to the team for
+After merge, HCP Terraform presents the concrete plan to the team for
 review and approval.
 
 ![Screenshot of concrete plan](/img/docs/concrete-plan.png)
@@ -303,9 +310,9 @@ review and approval.
 The team can discuss any outstanding questions about the plan before the change
 is made.
 
-![Screenshot of back-and-forth in Terraform Cloud comments](/img/docs/plan-comments.png)
+![Screenshot of back-and-forth in HCP Terraform comments](/img/docs/plan-comments.png)
 
-Once the Apply is confirmed, Terraform Cloud displays the progress live
+Once the Apply is confirmed, HCP Terraform displays the progress live
 to anyone who'd like to watch.
 
 ![Screenshot of in-progress Apply](/img/docs/in-progress-apply.png)
@@ -327,5 +334,5 @@ There are many different ways to use Terraform: as an individual user, a single
 team, or an entire organization at scale. Choosing the best approach for the
 density of collaboration needed will provide the most return on your investment
 in the core Terraform workflow. For organizations using Terraform at scale,
-Terraform Cloud introduces new layers that build on this core workflow to
+HCP Terraform introduces new layers that build on this core workflow to
 solve problems unique to teams and organizations.

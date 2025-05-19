@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package addrs
 
@@ -52,6 +52,27 @@ func ParseInstanceKey(key cty.Value) (InstanceKey, error) {
 // NoKey represents the absense of an InstanceKey, for the single instance
 // of a configuration object that does not use "count" or "for_each" at all.
 var NoKey InstanceKey
+
+// WildcardKey represents the "unknown" value of an InstanceKey. This is used
+// within the deferral logic to express absolute module and resource addresses
+// that are not known at the time of planning.
+var WildcardKey InstanceKey = &wildcardKey{}
+
+// wildcardKey is a special kind of InstanceKey that represents the "unknown"
+// value of an InstanceKey. This is used within the deferral logic to express
+// absolute module and resource addresses that are not known at the time of
+// planning.
+type wildcardKey struct{}
+
+func (w *wildcardKey) instanceKeySigil() {}
+
+func (w *wildcardKey) String() string {
+	return "[*]"
+}
+
+func (w *wildcardKey) Value() cty.Value {
+	return cty.DynamicVal
+}
 
 // IntKey is the InstanceKey representation representing integer indices, as
 // used when the "count" argument is specified or if for_each is used with
@@ -138,6 +159,11 @@ const (
 	NoKeyType     InstanceKeyType = 0
 	IntKeyType    InstanceKeyType = 'I'
 	StringKeyType InstanceKeyType = 'S'
+
+	// UnknownKeyType is a placeholder key type for situations where Terraform
+	// doesn't yet know which key type to use. There are no [InstanceKey]
+	// values of this type.
+	UnknownKeyType InstanceKeyType = '?'
 )
 
 // toHCLQuotedString is a helper which formats the given string in a way that

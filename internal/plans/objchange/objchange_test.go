@@ -1,12 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package objchange
 
 import (
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -953,7 +954,7 @@ func TestProposedNew(t *testing.T) {
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"bar": cty.StringVal("bosh"),
-						"baz": cty.NullVal(cty.List(cty.String)),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
 					}),
 				}),
 				"bloop": cty.ObjectVal(map[string]cty.Value{
@@ -1919,7 +1920,7 @@ func TestProposedNew(t *testing.T) {
 							Attributes: map[string]*configschema.Attribute{
 								"map": {
 									NestedType: &configschema.Object{
-										Nesting: configschema.NestingList,
+										Nesting: configschema.NestingMap,
 										Attributes: map[string]*configschema.Attribute{
 											"foo": {
 												Type: cty.String,
@@ -1941,7 +1942,7 @@ func TestProposedNew(t *testing.T) {
 					})),
 				}),
 				"map": cty.Map(cty.Object(map[string]cty.Type{
-					"list": cty.List(cty.Object(map[string]cty.Type{
+					"map": cty.List(cty.Object(map[string]cty.Type{
 						"foo": cty.String,
 					})),
 				})),
@@ -1959,11 +1960,11 @@ func TestProposedNew(t *testing.T) {
 				}),
 				"map": cty.MapVal(map[string]cty.Value{
 					"one": cty.ObjectVal(map[string]cty.Value{
-						"list": cty.ListVal([]cty.Value{
-							cty.ObjectVal(map[string]cty.Value{
+						"map": cty.MapVal(map[string]cty.Value{
+							"one": cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("a"),
 							}),
-							cty.ObjectVal(map[string]cty.Value{
+							"two": cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("b"),
 							}),
 						}),
@@ -1983,11 +1984,11 @@ func TestProposedNew(t *testing.T) {
 				}),
 				"map": cty.MapVal(map[string]cty.Value{
 					"one": cty.ObjectVal(map[string]cty.Value{
-						"list": cty.ListVal([]cty.Value{
-							cty.ObjectVal(map[string]cty.Value{
+						"map": cty.MapVal(map[string]cty.Value{
+							"one": cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("a"),
 							}),
-							cty.ObjectVal(map[string]cty.Value{
+							"two": cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("b"),
 							}),
 						}),
@@ -2728,13 +2729,146 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 		},
+		"planned data source": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"single_computed_obj": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"computed": {Type: cty.String, Computed: true},
+							},
+						},
+						Computed: true,
+					},
+					"single": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"optional": {Type: cty.String, Optional: true},
+								"computed": {Type: cty.String, Computed: true},
+							},
+						},
+						Optional: true,
+					},
+					"map": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"optional": {Type: cty.String, Optional: true},
+								"computed": {Type: cty.String, Computed: true},
+							},
+						},
+						Optional: true,
+					},
+					"list": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"optional": {Type: cty.String, Optional: true},
+								"computed": {Type: cty.String, Computed: true},
+							},
+						},
+						Optional: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"list_block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"optional": {Type: cty.String, Optional: true},
+								"computed": {Type: cty.String, Computed: true},
+							},
+						},
+					},
+				},
+			},
+			// planning a data resousrce starts with an uknown prior to fill in
+			// all posible computed attributes
+			cty.UnknownVal(cty.Object(map[string]cty.Type{
+				"single_computed_obj": cty.Object(map[string]cty.Type{
+					"computed": cty.String,
+				}),
+				"single": cty.Object(map[string]cty.Type{
+					"optional": cty.String,
+					"computed": cty.String,
+				}),
+				"map": cty.Map(cty.Object(map[string]cty.Type{
+					"optional": cty.String,
+					"computed": cty.String,
+				})),
+				"list": cty.List(cty.Object(map[string]cty.Type{
+					"optional": cty.String,
+					"computed": cty.String,
+				})),
+				"list_block": cty.List(cty.Object(map[string]cty.Type{
+					"optional": cty.String,
+					"computed": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"single_computed_obj": cty.NullVal(cty.Object(map[string]cty.Type{
+					"computed": cty.String,
+				})),
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"optional": cty.StringVal("config"),
+					"computed": cty.NullVal(cty.String),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.StringVal("config"),
+						"computed": cty.NullVal(cty.String),
+					}),
+				}),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.StringVal("config"),
+						"computed": cty.NullVal(cty.String),
+					}),
+				}),
+				"list_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.StringVal("config"),
+						"computed": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single_computed_obj": cty.UnknownVal(cty.Object(map[string]cty.Type{
+					"computed": cty.String,
+				})),
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"optional": cty.StringVal("config"),
+					"computed": cty.UnknownVal(cty.String),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.StringVal("config"),
+						"computed": cty.UnknownVal(cty.String),
+					}),
+				}),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.StringVal("config"),
+						"computed": cty.UnknownVal(cty.String),
+					}),
+				}),
+				"list_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.StringVal("config"),
+						"computed": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := ProposedNew(test.Schema, test.Prior, test.Config)
-			if !got.RawEquals(test.Want) {
-				t.Errorf("wrong result\ngot:  %swant: %s", dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
 			}
 		})
 	}

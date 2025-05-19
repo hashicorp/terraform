@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local
 
@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -31,10 +32,9 @@ type StateHook struct {
 	// Schemas are the schemas to use when persisting state due to
 	// PersistInterval. This is ignored if PersistInterval is zero,
 	// and PersistInterval is ignored if this is nil.
-	Schemas *terraform.Schemas
+	Schemas *schemarepo.Schemas
 
-	lastPersist  time.Time
-	forcePersist bool
+	intermediatePersist statemgr.IntermediateStatePersistInfo
 }
 
 var _ terraform.Hook = (*StateHook)(nil)
@@ -43,10 +43,12 @@ func (h *StateHook) PostStateUpdate(new *states.State) (terraform.HookAction, er
 	h.Lock()
 	defer h.Unlock()
 
-	if h.lastPersist.IsZero() {
+	h.intermediatePersist.RequestedPersistInterval = h.PersistInterval
+
+	if h.intermediatePersist.LastPersist.IsZero() {
 		// The first PostStateUpdate starts the clock for intermediate
 		// calls to PersistState.
-		h.lastPersist = time.Now()
+		h.intermediatePersist.LastPersist = time.Now()
 	}
 
 	if h.StateMgr != nil {
@@ -54,12 +56,14 @@ func (h *StateHook) PostStateUpdate(new *states.State) (terraform.HookAction, er
 			return terraform.HookActionHalt, err
 		}
 		if mgrPersist, ok := h.StateMgr.(statemgr.Persister); ok && h.PersistInterval != 0 && h.Schemas != nil {
-			if h.forcePersist || time.Since(h.lastPersist) >= h.PersistInterval {
+			if h.shouldPersist() {
 				err := mgrPersist.PersistState(h.Schemas)
 				if err != nil {
 					return terraform.HookActionHalt, err
 				}
-				h.lastPersist = time.Now()
+				h.intermediatePersist.LastPersist = time.Now()
+			} else {
+				log.Printf("[DEBUG] State storage %T declined to persist a state snapshot", h.StateMgr)
 			}
 		}
 	}
@@ -78,21 +82,32 @@ func (h *StateHook) Stopping() {
 	// do if they _do_ subsequently hard-kill Terraform during an apply.
 
 	if mgrPersist, ok := h.StateMgr.(statemgr.Persister); ok && h.Schemas != nil {
-		err := mgrPersist.PersistState(h.Schemas)
-		if err != nil {
-			// This hook can't affect Terraform Core's ongoing behavior,
-			// but it's a best effort thing anyway so we'll just emit a
-			// log to aid with debugging.
-			log.Printf("[ERROR] Failed to persist state after interruption: %s", err)
-		}
-
 		// While we're in the stopping phase we'll try to persist every
 		// new state update to maximize every opportunity we get to avoid
 		// losing track of objects that have been created or updated.
 		// Terraform Core won't start any new operations after it's been
 		// stopped, so at most we should see one more PostStateUpdate
 		// call per already-active request.
-		h.forcePersist = true
+		h.intermediatePersist.ForcePersist = true
+
+		if h.shouldPersist() {
+			err := mgrPersist.PersistState(h.Schemas)
+			if err != nil {
+				// This hook can't affect Terraform Core's ongoing behavior,
+				// but it's a best effort thing anyway so we'll just emit a
+				// log to aid with debugging.
+				log.Printf("[ERROR] Failed to persist state after interruption: %s", err)
+			}
+		} else {
+			log.Printf("[DEBUG] State storage %T declined to persist a state snapshot", h.StateMgr)
+		}
 	}
 
+}
+
+func (h *StateHook) shouldPersist() bool {
+	if m, ok := h.StateMgr.(statemgr.IntermediateStateConditionalPersister); ok {
+		return m.ShouldPersistIntermediateState(&h.intermediatePersist)
+	}
+	return statemgr.DefaultIntermediateStatePersistRule(&h.intermediatePersist)
 }

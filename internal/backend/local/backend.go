@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local
 
@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -31,7 +32,7 @@ const (
 	DefaultBackupExtension = ".backup"
 )
 
-// Local is an implementation of EnhancedBackend that performs all operations
+// Local is an implementation of backendrun.OperationsBackend that performs all operations
 // locally. This is the "default" backend and implements normal Terraform
 // behavior as it is well known.
 type Local struct {
@@ -58,6 +59,13 @@ type Local struct {
 	// and will override what'd be built from the State* fields if non-empty.
 	// While the interpretation of the State* fields depends on the active
 	// workspace, the OverrideState* fields are always used literally.
+	//
+	// OverrideStatePath is set as a result of the -state flag
+	// OverrideStateOutPath is set as a result of the -state-out flag
+	// OverrideStateBackupPath is set as a result of the -state-backup flag
+	//
+	// Note: these flags are only accepted by some commands.
+	// Importantly, they are not accepted by `init`.
 	OverrideStatePath       string
 	OverrideStateOutPath    string
 	OverrideStateBackupPath string
@@ -78,9 +86,9 @@ type Local struct {
 	OpInput      bool
 	OpValidation bool
 
-	// Backend, if non-nil, will use this backend for non-enhanced behavior.
+	// Backend, if non-nil, will use this backend for non-operations behavior.
 	// This allows local behavior with remote state storage. It is a way to
-	// "upgrade" a non-enhanced backend to an enhanced backend with typical
+	// "upgrade" a non-operations backend to an operations backend with typical
 	// behavior.
 	//
 	// If this is nil, local performs normal state loading and storage.
@@ -91,6 +99,7 @@ type Local struct {
 }
 
 var _ backend.Backend = (*Local)(nil)
+var _ backendrun.OperationsBackend = (*Local)(nil)
 
 // New returns a new initialized local backend.
 func New() *Local {
@@ -98,7 +107,7 @@ func New() *Local {
 }
 
 // NewWithBackend returns a new local backend initialized with a
-// dedicated backend for non-enhanced behavior.
+// dedicated backend for non-operations/state-storage behavior.
 func NewWithBackend(backend backend.Backend) *Local {
 	return &Local{
 		Backend: backend,
@@ -183,6 +192,10 @@ func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
+func (b *Local) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
+	return []backendrun.HostAlias{}, nil
+}
+
 func (b *Local) Workspaces() ([]string, error) {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
@@ -264,7 +277,7 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 	return s, nil
 }
 
-// Operation implements backend.Enhanced
+// Operation implements backendrun.OperationsBackend
 //
 // This will initialize an in-memory terraform.Context to perform the
 // operation within this process.
@@ -272,19 +285,19 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 // The given operation parameter will be merged with the ContextOpts on
 // the structure with the following rules. If a rule isn't specified and the
 // name conflicts, assume that the field is overwritten if set.
-func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
+func (b *Local) Operation(ctx context.Context, op *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	if op.View == nil {
 		panic("Operation called with nil View")
 	}
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
+	var f func(context.Context, context.Context, *backendrun.Operation, *backendrun.RunningOperation)
 	switch op.Type {
-	case backend.OperationTypeRefresh:
+	case backendrun.OperationTypeRefresh:
 		f = b.opRefresh
-	case backend.OperationTypePlan:
+	case backendrun.OperationTypePlan:
 		f = b.opPlan
-	case backend.OperationTypeApply:
+	case backendrun.OperationTypeApply:
 		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
@@ -300,7 +313,7 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	// Build our running operation
 	// the runninCtx is only used to block until the operation returns.
 	runningCtx, done := context.WithCancel(context.Background())
-	runningOp := &backend.RunningOperation{
+	runningOp := &backendrun.RunningOperation{
 		Context: runningCtx,
 	}
 
@@ -382,8 +395,14 @@ func (b *Local) opWait(
 	return
 }
 
-// StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
-// configured from the CLI.
+// StatePaths returns the StatePath, StateOutPath, and StateBackupPath for a given workspace name.
+// This value is affected by:
+//
+// * Default versus non-default workspace.
+//
+// * Values from the configuration.
+//
+// * Values configured from the CLI.
 func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	statePath := b.OverrideStatePath
 	stateOutPath := b.OverrideStateOutPath

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -27,7 +27,7 @@ func (t *RemovedModuleTransformer) Transform(g *Graph) error {
 	removed := map[string]addrs.Module{}
 
 	for _, m := range t.State.Modules {
-		cc := t.Config.DescendentForInstance(m.Addr)
+		cc := t.Config.DescendantForInstance(m.Addr)
 		if cc != nil {
 			continue
 		}

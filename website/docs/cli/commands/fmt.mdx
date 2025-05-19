@@ -1,33 +1,32 @@
 ---
-page_title: 'Command: fmt'
+page_title: terraform fmt command reference
 description: >-
-  The terraform fmt command rewrites configuration files to a canonical format
+  The `terraform fmt` command formats Terraform configuration contents so that it matches the canonical format
   and style.
 ---
 
-# Command: fmt
+# `terraform fmt` command
 
-The `terraform fmt` command is used to rewrite Terraform configuration files
-to a canonical format and style. This command applies a subset of
-the [Terraform language style conventions](/terraform/language/syntax/style),
+The `terraform fmt` command formats Terraform configuration file contents so that it matches the canonical format and style. This command applies a subset of
+the [Terraform language style conventions](/terraform/language/style#code-formatting),
 along with other minor adjustments for readability.
 
-Other Terraform commands that generate Terraform configuration will produce
-configuration files that conform to the style imposed by `terraform fmt`, so
-using this style in your own files will ensure consistency.
+## Introduction
+Terraform commands that generate Terraform configuration produce
+configuration files that conform to the style imposed by `terraform fmt`. Follow this style in your files to ensure consistency.
 
 The canonical format may change in minor ways between Terraform versions, so
 after upgrading Terraform we recommend to proactively run `terraform fmt`
 on your modules along with any other changes you are making to adopt the new
 version.
 
-We don't consider new formatting rules in `terraform fmt` to be a breaking
-change in new versions of Terraform, but we do aim to minimize changes for
-configurations that are already following the style examples shown in the
-Terraform documentation. When adding new formatting rules, they will usually
-aim to apply more of the rules already shown in the configuration examples
-in the documentation, and so we recommend following the documented style even
-for decisions that `terraform fmt` doesn't yet apply automatically.
+We do not consider new formatting rules in `terraform fmt` to be a breaking
+change in new versions of Terraform, but we minimize changes for
+configurations that already follow the style examples shown in the
+Terraform documentation. New formatting rules programmed into the `terraform fmt` 
+command are usually expansions to include existing rules from the documentation. 
+We recommend following the documented style even for decisions that `terraform fmt` 
+does not yet apply automatically.
 
 Formatting decisions are always subjective and so you might disagree with the
 decisions that `terraform fmt` makes. This command is intentionally opinionated
@@ -47,16 +46,17 @@ and the generated files.
 
 Usage: `terraform fmt [options] [target...]`
 
-By default, `fmt` scans the current directory for configuration files. If you
-provide a directory for the `target` argument, then `fmt` will scan that
-directory instead. If you provide a file, then `fmt` will process just that
-file. If you provide a single dash (`-`), then `fmt` will read from standard
-input (STDIN).
+By default, the `terraform fmt` command scans your current directory for configuration files. You can also provide a `target` argument to tell `terraform fmt` to scan:
+* A directory 
+* A specific file
+* Standard input by supplying a single dash (`-`).
 
-The command-line flags are all optional. The following flags are available:
+The `terraform fmt` command accepts the following arguments.
 
-* `-list=false` - Don't list the files containing formatting inconsistencies.
-* `-write=false` - Don't overwrite the input files. (This is implied by `-check` or when the input is STDIN.)
-* `-diff` - Display diffs of formatting changes.
-* `-check` - Check if the input is formatted. Exit status will be 0 if all input is properly formatted. If not, exit status will be non-zero and the command will output a list of filenames whose files are not properly formatted.
-* `-recursive` - Also process files in subdirectories. By default, only the given directory (or current directory) is processed.
+| Flag | Description | Required |
+| :---- | :---- | :---- |
+| `-list=false` | Prevents the command from listing the files containing formatting inconsistencies. | Optional |
+| `-diff` | Displays the diffs of formatting changes. | Optional |
+| `-write=false` | Prevents the command from overwriting files. This behavior is implied by the `-check` flag or if the input is from `STDIN`. | Optional |
+| `-check` | Checks if the input is formatted. The exit status is `0` if the command's input is properly formatted. Otherwise, the exit status is non-zero, and the command outputs a list of improperly formatted file names. | Optional |
+| `-recursive` | Processes files in subdirectories in addition to the current directory. By default, the command only processes the specified, or current, directory. | Optional |

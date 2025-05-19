@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -19,22 +19,23 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -88,7 +89,7 @@ type BackendWithRemoteTerraformVersion interface {
 // A side-effect of this method is the population of m.backendState, recording
 // the final resolved backend configuration after dealing with overrides from
 // the "terraform init" command line, etc.
-func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics) {
+func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// If no opts are set, then initialize
@@ -151,7 +152,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	cliOpts.Validation = true
 
 	// If the backend supports CLI initialization, do it.
-	if cli, ok := b.(backend.CLI); ok {
+	if cli, ok := b.(backendrun.CLI); ok {
 		if err := cli.CLIInit(cliOpts); err != nil {
 			diags = diags.Append(fmt.Errorf(
 				"Error initializing backend %T: %s\n\n"+
@@ -164,7 +165,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
-	if enhanced, ok := b.(backend.Enhanced); ok {
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.Backend: backend %T supports operations", b)
 		return enhanced, nil
 	}
@@ -201,7 +202,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &legacy.BackendState{
+		m.backendState = &workdir.BackendState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -229,7 +230,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 				Id:          "create-workspace",
 				Query:       "\n[reset][bold][yellow]No workspaces found.[reset]",
-				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, strings.Join(c.WorkspaceMapping.Tags, ", ")),
+				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, c.WorkspaceMapping.DescribeTags()),
 			})
 			if err != nil {
 				return fmt.Errorf("Couldn't create initial workspace: %w", err)
@@ -238,10 +239,10 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			if name == "" {
 				return fmt.Errorf("Couldn't create initial workspace: no name provided")
 			}
-			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new TFC workspace requested by the user (%s)", name)
+			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new HCP Terraform workspace requested by the user (%s)", name)
 			return m.SetWorkspace(name)
 		} else {
-			return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
+			return errors.New(strings.TrimSpace(errBackendNoExistingWorkspaces))
 		}
 	}
 
@@ -291,17 +292,17 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	}
 
 	workspace = workspaces[idx-1]
-	log.Printf("[TRACE] Meta.selectWorkspace: setting the current workpace according to user selection (%s)", workspace)
+	log.Printf("[TRACE] Meta.selectWorkspace: setting the current workspace according to user selection (%s)", workspace)
 	return m.SetWorkspace(workspace)
 }
 
-// BackendForPlan is similar to Backend, but uses backend settings that were
+// BackendForLocalPlan is similar to Backend, but uses backend settings that were
 // stored in a plan.
 //
 // The current workspace name is also stored as part of the plan, and so this
 // method will check that it matches the currently-selected workspace name
 // and produce error diagnostics if not.
-func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags.Diagnostics) {
+func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	f := backendInit.Backend(settings.Type)
@@ -310,7 +311,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 		return nil, diags
 	}
 	b := f()
-	log.Printf("[TRACE] Meta.BackendForPlan: instantiated backend of type %T", b)
+	log.Printf("[TRACE] Meta.BackendForLocalPlan: instantiated backend of type %T", b)
 
 	schema := b.ConfigSchema()
 	configVal, err := settings.Config.Decode(schema.ImpliedType())
@@ -332,7 +333,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	}
 
 	// If the backend supports CLI initialization, do it.
-	if cli, ok := b.(backend.CLI); ok {
+	if cli, ok := b.(backendrun.CLI); ok {
 		cliOpts, err := m.backendCLIOpts()
 		if err != nil {
 			diags = diags.Append(err)
@@ -350,14 +351,18 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
-	if enhanced, ok := b.(backend.Enhanced); ok {
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
 		return enhanced, nil
 	}
 
 	// Otherwise, we'll wrap our state-only remote backend in the local backend
 	// to cause any operations to be run locally.
-	log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
+	log.Printf("[TRACE] Meta.BackendForLocalPlan: backend %T does not support operations, so wrapping it in a local backend", b)
 	cliOpts, err := m.backendCLIOpts()
 	if err != nil {
 		diags = diags.Append(err)
@@ -373,14 +378,14 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	return local, diags
 }
 
-// backendCLIOpts returns a backend.CLIOpts object that should be passed to
+// backendCLIOpts returns a backendrun.CLIOpts object that should be passed to
 // a backend that supports local CLI operations.
-func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
+func (m *Meta) backendCLIOpts() (*backendrun.CLIOpts, error) {
 	contextOpts, err := m.contextOpts()
 	if contextOpts == nil && err != nil {
 		return nil, err
 	}
-	return &backend.CLIOpts{
+	return &backendrun.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
 		Streams:             m.Streams,
@@ -393,12 +398,12 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 	}, err
 }
 
-// Operation initializes a new backend.Operation struct.
+// Operation initializes a new backendrun.Operation struct.
 //
 // This prepares the operation. After calling this, the caller is expected
 // to modify fields of the operation such as Sequence to specify what will
 // be called.
-func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backend.Operation {
+func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.Operation {
 	schema := b.ConfigSchema()
 	workspace, err := m.Workspace()
 	if err != nil {
@@ -432,7 +437,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backend.Oper
 		log.Printf("[WARN] Failed to load dependency locks while preparing backend operation (ignored): %s", diags.Err().Error())
 	}
 
-	return &backend.Operation{
+	return &backendrun.Operation{
 		PlanOutBackend:  planOutBackend,
 		Targets:         m.targets,
 		UIIn:            m.UIInput(),
@@ -528,9 +533,9 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// ------------------------------------------------------------------------
 	// For historical reasons, current backend configuration for a working
-	// directory is kept in a *state-like* file, using the legacy state
-	// structures in the Terraform package. It is not actually a Terraform
-	// state, and so only the "backend" portion of it is actually used.
+	// directory is kept in a *state-like* file, using a subset of the oldstate
+	// snapshot version 3. It is not actually a Terraform state, and so only
+	// the "backend" portion of it is actually used.
 	//
 	// The remainder of this code often confusingly refers to this as a "state",
 	// so it's unfortunately important to remember that this is not actually
@@ -557,7 +562,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	s := sMgr.State()
 	if s == nil {
 		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
-		s = legacy.NewState()
+		s = workdir.NewBackendStateFile()
 	} else if s.Backend != nil {
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 	} else {
@@ -579,17 +584,6 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			m.backendState = s.Backend
 		}
 	}()
-
-	if !s.Remote.Empty() {
-		// Legacy remote state is no longer supported. User must first
-		// migrate with Terraform 0.11 or earlier.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Legacy remote state not supported",
-			"This working directory is configured for legacy remote state, which is no longer supported from Terraform v0.12 onwards. To migrate this environment, first run \"terraform init\" under a Terraform 0.11 release, and then upgrade Terraform again.",
-		))
-		return nil, diags
-	}
 
 	// This switch statement covers all the different combinations of
 	// configuring new backends, updating previously-configured backends, etc.
@@ -625,10 +619,10 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
 			if c.Type == "cloud" {
-				initReason := "Initial configuration of Terraform Cloud"
+				initReason := "Initial configuration of HCP Terraform or Terraform Enterprise"
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Terraform Cloud initialization required: please run \"terraform init\"",
+					"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
 					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 				))
 			} else {
@@ -726,11 +720,11 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	initReason := ""
 	switch cloudMode {
 	case cloud.ConfigMigrationIn:
-		initReason = fmt.Sprintf("Changed from backend %q to Terraform Cloud", previousBackendType)
+		initReason = fmt.Sprintf("Changed from backend %q to HCP Terraform", previousBackendType)
 	case cloud.ConfigMigrationOut:
-		initReason = fmt.Sprintf("Changed from Terraform Cloud to backend %q", previousBackendType)
+		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", previousBackendType)
 	case cloud.ConfigChangeInPlace:
-		initReason = "Terraform Cloud configuration block has changed"
+		initReason = "HCP Terraform configuration block has changed"
 	default:
 		switch {
 		case previousBackendType != currentBackendType:
@@ -745,13 +739,13 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	case cloud.ConfigChangeInPlace:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Terraform Cloud initialization required: please run \"terraform init\"",
+			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
 			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 		))
 	case cloud.ConfigMigrationIn:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Terraform Cloud initialization required: please run \"terraform init\"",
+			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
 			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 		))
 	default:
@@ -766,10 +760,10 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 }
 
 // backendFromState returns the initialized (not configured) backend directly
-// from the state. This should be used only when a user runs `terraform init
-// -backend=false`. This function returns a local backend if there is no state
-// or no backend configured.
-func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
+// from the backend state. This should be used only when a user runs
+// `terraform init -backend=false`. This function returns a local backend if
+// there is no backend state or no backend configured.
+func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	// Get the path to where we store a local cache of backend configuration
 	// if we're using a remote backend. This may not yet exist which means
@@ -831,6 +825,17 @@ func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
+	// If the result of loading the backend is an enhanced backend,
+	// then set up enhanced backend service aliases.
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
+		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+
+		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+	}
+
 	return b, diags
 }
 
@@ -876,7 +881,7 @@ func (m *Meta) backend_c_r_S(
 	backendType := s.Backend.Type
 
 	if cloudMode == cloud.ConfigMigrationOut {
-		m.Ui.Output("Migrating from Terraform Cloud to local state.")
+		m.Ui.Output("Migrating from HCP Terraform or Terraform Enterprise to local state.")
 	} else {
 		m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
 	}
@@ -1050,9 +1055,9 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// Store the metadata in our saved state location
 	s := sMgr.State()
 	if s == nil {
-		s = legacy.NewState()
+		s = workdir.NewBackendStateFile()
 	}
-	s.Backend = &legacy.BackendState{
+	s.Backend = &workdir.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -1088,7 +1093,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		return nil, diags
 	}
 
-	// By now the backend is successfully configured.  If using Terraform Cloud, the success
+	// By now the backend is successfully configured.  If using HCP Terraform, the success
 	// message is handled as part of the final init message
 	if _, ok := b.(*cloud.Cloud); !ok {
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
@@ -1122,11 +1127,11 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		// Notify the user
 		switch cloudMode {
 		case cloud.ConfigChangeInPlace:
-			m.Ui.Output("Terraform Cloud configuration has changed.")
+			m.Ui.Output("HCP Terraform configuration has changed.")
 		case cloud.ConfigMigrationIn:
-			m.Ui.Output(fmt.Sprintf("Migrating from backend %q to Terraform Cloud.", s.Backend.Type))
+			m.Ui.Output(fmt.Sprintf("Migrating from backend %q to HCP Terraform.", s.Backend.Type))
 		case cloud.ConfigMigrationOut:
-			m.Ui.Output(fmt.Sprintf("Migrating from Terraform Cloud to backend %q.", c.Type))
+			m.Ui.Output(fmt.Sprintf("Migrating from HCP Terraform to backend %q.", c.Type))
 		default:
 			if s.Backend.Type != c.Type {
 				output := fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)
@@ -1148,9 +1153,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		return nil, diags
 	}
 
-	// If this is a migration into, out of, or irrelevant to Terraform Cloud
+	// If this is a migration into, out of, or irrelevant to HCP Terraform
 	// mode then we will do state migration here. Otherwise, we just update
-	// the working directory initialization directly, because Terraform Cloud
+	// the working directory initialization directly, because HCP Terraform
 	// doesn't have configurable state storage anyway -- we're only changing
 	// which workspaces are relevant to this configuration, not where their
 	// state lives.
@@ -1195,9 +1200,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	// Update the backend state
 	s = sMgr.State()
 	if s == nil {
-		s = legacy.NewState()
+		s = workdir.NewBackendStateFile()
 	}
-	s.Backend = &legacy.BackendState{
+	s.Backend = &workdir.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -1221,7 +1226,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if output {
-		// By now the backend is successfully configured.  If using Terraform Cloud, the success
+		// By now the backend is successfully configured.  If using HCP Terraform, the success
 		// message is handled as part of the final init message
 		if _, ok := b.(*cloud.Cloud); !ok {
 			m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
@@ -1277,6 +1282,17 @@ func (m *Meta) savedBackend(sMgr *clistate.LocalState) (backend.Backend, tfdiags
 		return nil, diags
 	}
 
+	// If the result of loading the backend is an enhanced backend,
+	// then set up enhanced backend service aliases.
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
+		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+
+		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+	}
+
 	return b, diags
 }
 
@@ -1309,7 +1325,7 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 // this function will conservatively assume that migration is required,
 // expecting that the migration code will subsequently deal with the same
 // errors.
-func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *legacy.BackendState) bool {
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.BackendState) bool {
 	if s == nil || s.Empty() {
 		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
 		return true
@@ -1372,6 +1388,14 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 		return nil, cty.NilVal, diags
 	}
 
+	if !configVal.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unknown values within backend definition",
+			"The `terraform` configuration block should contain only concrete and static values. Another diagnostic should contain more information about which part of the configuration is problematic."))
+		return nil, cty.NilVal, diags
+	}
+
 	// TODO: test
 	if m.Input() {
 		var err error
@@ -1397,7 +1421,34 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags.InConfigBody(c.Config, ""))
 
+	// If the result of loading the backend is an enhanced backend,
+	// then set up enhanced backend service aliases.
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
+		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+			diags = diags.Append(err)
+			return nil, cty.NilVal, diags
+		}
+	}
+
 	return b, configVal, diags
+}
+
+// Helper method to get aliases from the enhanced backend and alias them
+// in the Meta service discovery. It's unfortunate that the Meta backend
+// is modifying the service discovery at this level, but the owner
+// of the service discovery pointer does not have easy access to the backend.
+func (m *Meta) setupEnhancedBackendAliases(b backendrun.OperationsBackend) error {
+	// Set up the service discovery aliases specified by the enhanced backend.
+	serviceAliases, err := b.ServiceDiscoveryAliases()
+	if err != nil {
+		return err
+	}
+
+	for _, alias := range serviceAliases {
+		m.Services.Alias(alias.From, alias.To)
+	}
+	return nil
 }
 
 // Helper method to ignore remote/cloud backend version conflicts. Only call this
@@ -1438,19 +1489,19 @@ func (m *Meta) remoteVersionCheck(b backend.Backend, workspace string) tfdiags.D
 func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if mode.InvolvesCloud() {
-		log.Printf("[TRACE] Meta.Backend: Terraform Cloud mode initialization type: %s", mode)
+		log.Printf("[TRACE] Meta.Backend: HCP Terraform or Terraform Enterprise mode initialization type: %s", mode)
 		if m.reconfigure {
 			if mode.IsCloudMigration() {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					"The -reconfigure option is unsupported when migrating to Terraform Cloud, because activating Terraform Cloud involves some additional steps.",
+					"The -reconfigure option is unsupported when migrating to HCP Terraform, because activating HCP Terraform involves some additional steps.",
 				))
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					"The -reconfigure option is for in-place reconfiguration of state backends only, and is not needed when changing Terraform Cloud settings.\n\nWhen using Terraform Cloud, initialization automatically activates any new Cloud configuration settings.",
+					"The -reconfigure option is for in-place reconfiguration of state backends only, and is not needed when changing HCP Terraform settings.\n\nWhen using HCP Terraform, initialization automatically activates any new Cloud configuration settings.",
 				))
 			}
 		}
@@ -1467,13 +1518,13 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using Terraform Cloud.\n\nTerraform Cloud migration has additional steps, configured by interactive prompts.", name),
+					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using HCP Terraform.\n\nHCP Terraform migrations have additional steps, configured by interactive prompts.", name),
 				))
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using Terraform Cloud.\n\nState storage is handled automatically by Terraform Cloud and so the state storage location is not configurable.", name),
+					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using HCP Terraform.\n\nState storage is handled automatically by HCP Terraform and so the state storage location is not configurable.", name),
 				))
 			}
 		}
@@ -1567,7 +1618,7 @@ configuration or state have been made.
 const errBackendInitCloud = `
 Reason: %s.
 
-Changes to the Terraform Cloud configuration block require reinitialization, to discover any changes to the available workspaces.
+Changes to the HCP Terraform configuration block require reinitialization, to discover any changes to the available workspaces.
 
 To re-initialize, run:
   terraform init
@@ -1601,11 +1652,11 @@ has changed. Terraform will now check for existing state in the backends.
 
 const inputCloudInitCreateWorkspace = `
 There are no workspaces with the configured tags (%s)
-in your Terraform Cloud organization. To finish initializing, Terraform needs at
+in your HCP Terraform organization. To finish initializing, Terraform needs at
 least one workspace available.
 
 Terraform can create a properly tagged workspace for you now. Please enter a
-name to create a new Terraform Cloud workspace.
+name to create a new HCP Terraform workspace.
 `
 
 const successBackendUnset = `

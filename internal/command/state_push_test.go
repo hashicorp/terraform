@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/mitchellh/cli"
 )
 
 func TestStatePush_empty(t *testing.T) {

@@ -1,15 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	tfe "github.com/hashicorp/go-tfe"
+
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -50,7 +51,7 @@ func (b *Cloud) runTaskStages(ctx context.Context, client *tfe.Client, runId str
 		// This error would be expected for older versions of TFE that do not allow
 		// fetching task_stages.
 		if !strings.HasSuffix(err.Error(), "Invalid include parameter") {
-			return taskStages, generalError("Failed to retrieve run", err)
+			return taskStages, b.generalError("Failed to retrieve run", err)
 		}
 	}
 
@@ -63,14 +64,14 @@ func (b *Cloud) getTaskStageWithAllOptions(ctx *IntegrationContext, stageID stri
 	}
 	stage, err := b.client.TaskStages.Read(ctx.StopContext, stageID, &options)
 	if err != nil {
-		return nil, generalError("Failed to retrieve task stage", err)
+		return nil, b.generalError("Failed to retrieve task stage", err)
 	} else {
 		return stage, nil
 	}
 }
 
 func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWriter, stageID string) error {
-	var errs *multierror.Error
+	var errs error
 
 	// Create our summarizers
 	summarizers := make([]taskStageSummarizer, 0)
@@ -93,7 +94,7 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		}
 		stage, err := b.client.TaskStages.Read(ctx.StopContext, stageID, &options)
 		if err != nil {
-			return false, generalError("Failed to retrieve task stage", err)
+			return false, b.generalError("Failed to retrieve task stage", err)
 		}
 
 		switch stage.Status {
@@ -113,6 +114,9 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 				errs = e
 			}
 			if ok {
+				if b.CLI != nil {
+					b.CLI.Output("------------------------------------------------------------------------")
+				}
 				return true, nil
 			}
 		case tfe.TaskStageCanceled, tfe.TaskStageErrored, tfe.TaskStageFailed:
@@ -121,6 +125,9 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 				errs = e
 			}
 			if ok {
+				if b.CLI != nil {
+					b.CLI.Output("------------------------------------------------------------------------")
+				}
 				return true, nil
 			}
 			return false, fmt.Errorf("Task Stage %s.", stage.Status)
@@ -134,8 +141,11 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 			}
 			cont, err := b.processStageOverrides(ctx, output, stage.ID)
 			if err != nil {
-				errs = multierror.Append(errs, err)
+				errs = errors.Join(errs, err)
 			} else {
+				if b.CLI != nil {
+					b.CLI.Output("------------------------------------------------------------------------")
+				}
 				return cont, nil
 			}
 		case tfe.TaskStageUnreachable:
@@ -143,15 +153,15 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		default:
 			return false, fmt.Errorf("Invalid Task stage status: %s ", stage.Status)
 		}
-		return false, errs.ErrorOrNil()
+		return false, errs
 	})
 }
 
-func processSummarizers(ctx *IntegrationContext, output IntegrationOutputWriter, stage *tfe.TaskStage, summarizers []taskStageSummarizer, errs *multierror.Error) (bool, *multierror.Error) {
+func processSummarizers(ctx *IntegrationContext, output IntegrationOutputWriter, stage *tfe.TaskStage, summarizers []taskStageSummarizer, errs error) (bool, error) {
 	for _, s := range summarizers {
 		cont, msg, err := s.Summarize(ctx, output, stage)
 		if err != nil {
-			errs = multierror.Append(errs, err)
+			errs = errors.Join(errs, err)
 			break
 		}
 
@@ -169,27 +179,29 @@ func processSummarizers(ctx *IntegrationContext, output IntegrationOutputWriter,
 }
 
 func (b *Cloud) processStageOverrides(context *IntegrationContext, output IntegrationOutputWriter, taskStageID string) (bool, error) {
+	if b.CLI != nil {
+		b.CLI.Output("--------------------------------\n")
+		b.CLI.Output(b.Colorize().Color(fmt.Sprintf("%c%c [bold]Override", Arrow, Arrow)))
+	}
 	opts := &terraform.InputOpts{
 		Id:          fmt.Sprintf("%c%c [bold]Override", Arrow, Arrow),
-		Query:       "\nDo you want to override the failed policy check?",
+		Query:       "\nDo you want to override the failed policies?",
 		Description: "Only 'override' will be accepted to override.",
 	}
-	runUrl := fmt.Sprintf(taskStageHeader, b.hostname, b.organization, context.Op.Workspace, context.Run.ID)
+	runURL := fmt.Sprintf(taskStageHeader, b.Hostname, b.Organization, context.Op.Workspace, context.Run.ID)
 	err := b.confirm(context.StopContext, context.Op, opts, context.Run, "override")
 	if err != nil && err != errRunOverridden {
-		return false, fmt.Errorf(
-			fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runUrl),
-		)
+		return false, fmt.Errorf("Failed to override: %w\n%s\n", err, runURL)
 	}
 
 	if err != errRunOverridden {
 		if _, err = b.client.TaskStages.Override(context.StopContext, taskStageID, tfe.TaskStageOverrideOptions{}); err != nil {
-			return false, generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+			return false, b.generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
 		} else {
 			return true, nil
 		}
 	} else {
-		output.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runUrl))
+		output.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runURL))
 	}
 	return false, nil
 }

@@ -1,6 +1,8 @@
 {
-  "format_version": "1.1",
-  "terraform_version": "1.2.0-dev",
+  "format_version": "1.2",
+  "terraform_version": "1.8.0-dev",
+  "applyable": true,
+  "complete": true,
   "variables": {
     "ami": {
       "value": "bad-ami"
@@ -33,13 +35,13 @@
   },
   "prior_state": {
     "format_version": "1.0",
-    "terraform_version": "1.1.0",
+    "terraform_version": "1.8.0",
     "values": {
       "outputs": {
         "foo_id": {
           "sensitive": false,
-          "type": "string",
-          "value": "placeholder"
+          "value": "placeholder",
+          "type": "string"
         }
       },
       "root_module": {
@@ -146,26 +148,70 @@
       ]
     }
   ],
-  "condition_results": [
+  "checks": [
     {
-      "address": "output.foo_id",
-      "condition_type": "OutputPrecondition",
-      "result": true,
-      "unknown": false
+      "address": {
+        "kind": "output_value",
+        "name": "foo_id",
+        "to_display": "output.foo_id"
+      },
+      "status": "pass",
+      "instances": [
+        {
+          "address": {
+            "to_display": "output.foo_id"
+          },
+          "status": "pass"
+        }
+      ]
     },
     {
-      "address": "test_instance.bar",
-      "condition_type": "ResourcePostcondition",
-      "result": false,
-      "unknown": false,
-      "error_message": "Resource ID is unacceptably short (9 characters)."
+      "address": {
+        "kind": "resource",
+        "mode": "managed",
+        "name": "bar",
+        "to_display": "test_instance.bar",
+        "type": "test_instance"
+      },
+      "status": "fail",
+      "instances": [
+        {
+          "address": {
+            "to_display": "test_instance.bar"
+          },
+          "status": "fail",
+          "problems": [
+            {
+              "message": "Resource ID is unacceptably short (9 characters)."
+            }
+          ]
+        }
+      ]
     },
     {
-      "address": "test_instance.foo",
-      "condition_type": "ResourcePrecondition",
-      "result": false,
-      "unknown": false,
-      "error_message": "Invalid AMI ID: must start with \"ami-\"."
+      "address": {
+        "kind": "resource",
+        "mode": "managed",
+        "name": "foo",
+        "to_display": "test_instance.foo",
+        "type": "test_instance"
+      },
+      "status": "fail",
+      "instances": [
+        {
+          "address": {
+            "to_display": "test_instance.foo"
+          },
+          "status": "fail",
+          "problems": [
+            {
+              "message": "Invalid AMI ID: must start with \"ami-\"."
+            }
+          ]
+        }
+      ]
     }
-  ]
+  ],
+  "timestamp": "2024-01-24T18:33:05Z",
+  "errored": false
 }

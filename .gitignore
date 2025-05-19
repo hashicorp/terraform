@@ -18,6 +18,8 @@ website/node_modules
 *.test
 *.iml
 
+go.work*
+
 /terraform
 
 website/vendor
@@ -25,3 +27,6 @@ vendor/
 
 # Coverage
 coverage.txt
+
+# IDEs
+.vscode/

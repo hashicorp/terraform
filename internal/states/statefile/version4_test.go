@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package statefile
 
@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // This test verifies that modules are sorted before resources:

@@ -1,14 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package plans
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
 )
 
 // ChangesSync is a wrapper around a Changes that provides a concurrency-safe
@@ -30,39 +28,38 @@ type ChangesSync struct {
 // The caller must ensure that there are no concurrent writes to the given
 // change while this method is running, but it is safe to resume mutating
 // it after this method returns without affecting the saved change.
-func (cs *ChangesSync) AppendResourceInstanceChange(changeSrc *ResourceInstanceChangeSrc) {
+func (cs *ChangesSync) AppendResourceInstanceChange(change *ResourceInstanceChange) {
 	if cs == nil {
 		panic("AppendResourceInstanceChange on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	s := changeSrc.DeepCopy()
+	s := change.DeepCopy()
 	cs.changes.Resources = append(cs.changes.Resources, s)
 }
 
 // GetResourceInstanceChange searches the set of resource instance changes for
-// one matching the given address and generation, returning it if it exists.
+// one matching the given address and deposed key, returning it if it exists.
+// Use [addrs.NotDeposed] as the deposed key to represent the "current"
+// object for the given resource instance.
 //
 // If no such change exists, nil is returned.
 //
 // The returned object is a deep copy of the change recorded in the plan, so
 // callers may mutate it although it's generally better (less confusing) to
 // treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance, gen states.Generation) *ResourceInstanceChangeSrc {
+func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance, dk addrs.DeposedKey) *ResourceInstanceChange {
 	if cs == nil {
 		panic("GetResourceInstanceChange on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	if gen == states.CurrentGen {
+	if dk == addrs.NotDeposed {
 		return cs.changes.ResourceInstance(addr).DeepCopy()
 	}
-	if dk, ok := gen.(states.DeposedKey); ok {
-		return cs.changes.ResourceInstanceDeposed(addr, dk).DeepCopy()
-	}
-	panic(fmt.Sprintf("unsupported generation value %#v", gen))
+	return cs.changes.ResourceInstanceDeposed(addr, dk).DeepCopy()
 }
 
 // GetChangesForConfigResource searches the set of resource instance
@@ -75,13 +72,13 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 // The returned objects are a deep copy of the change recorded in the plan, so
 // callers may mutate them although it's generally better (less confusing) to
 // treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
+func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChange {
 	if cs == nil {
 		panic("GetChangesForConfigResource on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
-	var changes []*ResourceInstanceChangeSrc
+	var changes []*ResourceInstanceChange
 	for _, c := range cs.changes.InstancesForConfigResource(addr) {
 		changes = append(changes, c.DeepCopy())
 	}
@@ -96,13 +93,13 @@ func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []
 // The returned objects are a deep copy of the change recorded in the plan, so
 // callers may mutate them although it's generally better (less confusing) to
 // treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetChangesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChangeSrc {
+func (cs *ChangesSync) GetChangesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChange {
 	if cs == nil {
 		panic("GetChangesForAbsResource on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
-	var changes []*ResourceInstanceChangeSrc
+	var changes []*ResourceInstanceChange
 	for _, c := range cs.changes.InstancesForAbsResource(addr) {
 		changes = append(changes, c.DeepCopy())
 	}
@@ -110,19 +107,14 @@ func (cs *ChangesSync) GetChangesForAbsResource(addr addrs.AbsResource) []*Resou
 }
 
 // RemoveResourceInstanceChange searches the set of resource instance changes
-// for one matching the given address and generation, and removes it from the
+// for one matching the given address and deposed key, and removes it from the
 // set if it exists.
-func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstance, gen states.Generation) {
+func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstance, dk addrs.DeposedKey) {
 	if cs == nil {
 		panic("RemoveResourceInstanceChange on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
-
-	dk := states.NotDeposed
-	if realDK, ok := gen.(states.DeposedKey); ok {
-		dk = realDK
-	}
 
 	addrStr := addr.String()
 	for i, r := range cs.changes.Resources {
@@ -141,15 +133,14 @@ func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstan
 // The caller must ensure that there are no concurrent writes to the given
 // change while this method is running, but it is safe to resume mutating
 // it after this method returns without affecting the saved change.
-func (cs *ChangesSync) AppendOutputChange(changeSrc *OutputChangeSrc) {
+func (cs *ChangesSync) AppendOutputChange(changeSrc *OutputChange) {
 	if cs == nil {
 		panic("AppendOutputChange on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	s := changeSrc.DeepCopy()
-	cs.changes.Outputs = append(cs.changes.Outputs, s)
+	cs.changes.Outputs = append(cs.changes.Outputs, changeSrc)
 }
 
 // GetOutputChange searches the set of output value changes for one matching
@@ -160,7 +151,7 @@ func (cs *ChangesSync) AppendOutputChange(changeSrc *OutputChangeSrc) {
 // The returned object is a deep copy of the change recorded in the plan, so
 // callers may mutate it although it's generally better (less confusing) to
 // treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChangeSrc {
+func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChange {
 	if cs == nil {
 		panic("GetOutputChange on nil ChangesSync")
 	}
@@ -176,7 +167,7 @@ func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChangeS
 // The returned objects are a deep copy of the change recorded in the plan, so
 // callers may mutate them although it's generally better (less confusing) to
 // treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetRootOutputChanges() []*OutputChangeSrc {
+func (cs *ChangesSync) GetRootOutputChanges() []*OutputChange {
 	if cs == nil {
 		panic("GetRootOutputChanges on nil ChangesSync")
 	}
@@ -193,7 +184,7 @@ func (cs *ChangesSync) GetRootOutputChanges() []*OutputChangeSrc {
 // The returned objects are a deep copy of the change recorded in the plan, so
 // callers may mutate them although it's generally better (less confusing) to
 // treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetOutputChanges(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChangeSrc {
+func (cs *ChangesSync) GetOutputChanges(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChange {
 	if cs == nil {
 		panic("GetOutputChange on nil ChangesSync")
 	}

@@ -1,18 +1,14 @@
 ---
-page_title: 'Command: taint'
+page_title: terraform taint command reference
 description: |-
-  The `terraform taint` command informs Terraform that a particular object
-  is damaged or degraded.
+  The `terraform taint` command marks specified objects in the Terraform state as tainted.
 ---
 
-# Command: taint
+# `terraform taint` command
 
-The `terraform taint` command informs Terraform that a particular object has
-become degraded or damaged. Terraform represents this by marking the
-object as "tainted" in the Terraform state, and Terraform will
-propose to replace it in the next plan you create.
+The `terraform taint` command marks specified objects in the Terraform state as tainted. Use the `terraform taint` command when objects become degraded or damaged. Terraform prompts you to replace the tainted objects in the next plan you create.
 
-~> **Warning:** This command is deprecated. For Terraform v0.15.2 and later, we recommend using the `-replace` option with `terraform apply` instead (details below).
+This command is deprecated. Instead, add the `-replace` option to your [`terraform apply` command](/terraform/cli/commands/apply).
 
 ## Recommended Alternative
 
@@ -55,11 +51,11 @@ This command accepts the following options:
   returning an error. The duration syntax is a number followed by a time
   unit letter, such as "3s" for three seconds.
 
-For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote) only, `terraform taint`
+For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/backend/remote) only, `terraform taint`
 also accepts the option
 [`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
 For configurations using
-[the `local` backend](/terraform/language/settings/backends/local) only,
+[the `local` backend](/terraform/language/backend/local) only,
 `terraform taint` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, and `-backup`](/terraform/language/backend/local#command-line-arguments).

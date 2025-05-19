@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -69,6 +69,10 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 		return nil, diags
 	}
 
+	// Command can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
 	// This is a read-only command
 	c.ignoreRemoteVersionConflict(b)
 
@@ -85,7 +89,7 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 		return nil, diags
 	}
 
-	output, err := stateStore.GetRootOutputValues()
+	output, err := stateStore.GetRootOutputValues(ctx)
 	if err != nil {
 		return nil, diags.Append(err)
 	}

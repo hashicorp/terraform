@@ -1,24 +1,28 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configs
 
 import (
 	"fmt"
 	"log"
+	"maps"
+	"slices"
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
 // A Config is a node in the tree of modules within a configuration.
 //
 // The module tree is constructed by following ModuleCall instances recursively
-// through the root module transitively into descendent modules.
+// through the root module transitively into descendant modules.
 //
 // A module tree described in *this* package represents the static tree
 // represented by configuration. During evaluation a static ModuleNode may
@@ -91,8 +95,16 @@ type ModuleRequirements struct {
 	Name         string
 	SourceAddr   addrs.ModuleSource
 	SourceDir    string
-	Requirements getproviders.Requirements
+	Requirements providerreqs.Requirements
 	Children     map[string]*ModuleRequirements
+	Tests        map[string]*TestFileModuleRequirements
+}
+
+// TestFileModuleRequirements maps the runs for a given test file to the module
+// requirements for that run block.
+type TestFileModuleRequirements struct {
+	Requirements providerreqs.Requirements
+	Runs         map[string]*ModuleRequirements
 }
 
 // NewEmptyConfig constructs a single-node configuration tree with an empty
@@ -126,17 +138,12 @@ func (c *Config) Depth() int {
 func (c *Config) DeepEach(cb func(c *Config)) {
 	cb(c)
 
-	names := make([]string, 0, len(c.Children))
-	for name := range c.Children {
-		names = append(names, name)
-	}
-
-	for _, name := range names {
-		c.Children[name].DeepEach(cb)
+	for _, ch := range c.Children {
+		ch.DeepEach(cb)
 	}
 }
 
-// AllModules returns a slice of all the receiver and all of its descendent
+// AllModules returns a slice of all the receiver and all of its descendant
 // nodes in the module tree, in the same order they would be visited by
 // DeepEach.
 func (c *Config) AllModules() []*Config {
@@ -147,14 +154,14 @@ func (c *Config) AllModules() []*Config {
 	return ret
 }
 
-// Descendent returns the descendent config that has the given path beneath
+// Descendant returns the descendant config that has the given path beneath
 // the receiver, or nil if there is no such module.
 //
 // The path traverses the static module tree, prior to any expansion to handle
 // count and for_each arguments.
 //
 // An empty path will just return the receiver, and is therefore pointless.
-func (c *Config) Descendent(path addrs.Module) *Config {
+func (c *Config) Descendant(path addrs.Module) *Config {
 	current := c
 	for _, name := range path {
 		current = current.Children[name]
@@ -165,13 +172,13 @@ func (c *Config) Descendent(path addrs.Module) *Config {
 	return current
 }
 
-// DescendentForInstance is like Descendent except that it accepts a path
+// DescendantForInstance is like Descendant except that it accepts a path
 // to a particular module instance in the dynamic module graph, returning
 // the node from the static module graph that corresponds to it.
 //
 // All instances created by a particular module call share the same
 // configuration, so the keys within the given path are disregarded.
-func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
+func (c *Config) DescendantForInstance(path addrs.ModuleInstance) *Config {
 	current := c
 	for _, step := range path {
 		current = current.Children[step.Name]
@@ -180,6 +187,46 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 		}
 	}
 	return current
+}
+
+// TargetExists returns true if it's possible for the provided target to exist
+// within the configuration.
+//
+// This doesn't consider instance expansion, so we're only making sure the
+// target could exist if the instance expansion expands correctly.
+func (c *Config) TargetExists(target addrs.Targetable) bool {
+	switch target.AddrType() {
+	case addrs.ConfigResourceAddrType:
+		addr := target.(addrs.ConfigResource)
+		module := c.Descendant(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.AbsResourceInstanceAddrType:
+		addr := target.(addrs.AbsResourceInstance)
+		module := c.DescendantForInstance(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.AbsResourceAddrType:
+		addr := target.(addrs.AbsResource)
+		module := c.DescendantForInstance(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.ModuleAddrType:
+		return c.Descendant(target.(addrs.Module)) != nil
+	case addrs.ModuleInstanceAddrType:
+		return c.DescendantForInstance(target.(addrs.ModuleInstance)) != nil
+	default:
+		panic(fmt.Errorf("unrecognized targetable type: %d", target.AddrType()))
+	}
 }
 
 // EntersNewPackage returns true if this call is to an external module, either
@@ -247,14 +294,14 @@ func (c *Config) VerifyDependencySelections(depLocks *depsfile.Locks) []error {
 			lock = depLocks.Provider(providerAddr)
 		}
 		if lock == nil {
-			log.Printf("[TRACE] Config.VerifyDependencySelections: provider %s has no lock file entry to satisfy %q", providerAddr, getproviders.VersionConstraintsString(constraints))
+			log.Printf("[TRACE] Config.VerifyDependencySelections: provider %s has no lock file entry to satisfy %q", providerAddr, providerreqs.VersionConstraintsString(constraints))
 			errs = append(errs, fmt.Errorf("provider %s: required by this configuration but no version is selected", providerAddr))
 			continue
 		}
 
 		selectedVersion := lock.Version()
-		allowedVersions := getproviders.MeetingConstraints(constraints)
-		log.Printf("[TRACE] Config.VerifyDependencySelections: provider %s has %s to satisfy %q", providerAddr, selectedVersion.String(), getproviders.VersionConstraintsString(constraints))
+		allowedVersions := providerreqs.MeetingConstraints(constraints)
+		log.Printf("[TRACE] Config.VerifyDependencySelections: provider %s has %s to satisfy %q", providerAddr, selectedVersion.String(), providerreqs.VersionConstraintsString(constraints))
 		if !allowedVersions.Has(selectedVersion) {
 			// The most likely cause of this is that the author of a module
 			// has changed its constraints, but this could also happen in
@@ -263,8 +310,8 @@ func (c *Config) VerifyDependencySelections(depLocks *depsfile.Locks) []error {
 			// distinguish those cases here in order to avoid the more
 			// specific error message potentially being a red herring in
 			// the edge-cases.
-			currentConstraints := getproviders.VersionConstraintsString(constraints)
-			lockedConstraints := getproviders.VersionConstraintsString(lock.VersionConstraints())
+			currentConstraints := providerreqs.VersionConstraintsString(constraints)
+			lockedConstraints := providerreqs.VersionConstraintsString(lock.VersionConstraints())
 			switch {
 			case currentConstraints != lockedConstraints:
 				errs = append(errs, fmt.Errorf("provider %s: locked version selection %s doesn't match the updated version constraints %q", providerAddr, selectedVersion.String(), currentConstraints))
@@ -290,9 +337,18 @@ func (c *Config) VerifyDependencySelections(depLocks *depsfile.Locks) []error {
 //
 // If the returned diagnostics includes errors then the resulting Requirements
 // may be incomplete.
-func (c *Config) ProviderRequirements() (getproviders.Requirements, hcl.Diagnostics) {
-	reqs := make(getproviders.Requirements)
-	diags := c.addProviderRequirements(reqs, true)
+func (c *Config) ProviderRequirements() (providerreqs.Requirements, hcl.Diagnostics) {
+	reqs := make(providerreqs.Requirements)
+	diags := c.addProviderRequirements(reqs, true, true)
+
+	return reqs, diags
+}
+
+// ProviderRequirementsConfigOnly searches the full tree of configuration
+// files for all providers. This function does not consider any test files.
+func (c *Config) ProviderRequirementsConfigOnly() (providerreqs.Requirements, hcl.Diagnostics) {
+	reqs := make(providerreqs.Requirements)
+	diags := c.addProviderRequirements(reqs, true, false)
 
 	return reqs, diags
 }
@@ -302,9 +358,9 @@ func (c *Config) ProviderRequirements() (getproviders.Requirements, hcl.Diagnost
 //
 // If the returned diagnostics includes errors then the resulting Requirements
 // may be incomplete.
-func (c *Config) ProviderRequirementsShallow() (getproviders.Requirements, hcl.Diagnostics) {
-	reqs := make(getproviders.Requirements)
-	diags := c.addProviderRequirements(reqs, false)
+func (c *Config) ProviderRequirementsShallow() (providerreqs.Requirements, hcl.Diagnostics) {
+	reqs := make(providerreqs.Requirements)
+	diags := c.addProviderRequirements(reqs, false, true)
 
 	return reqs, diags
 }
@@ -316,8 +372,8 @@ func (c *Config) ProviderRequirementsShallow() (getproviders.Requirements, hcl.D
 // If the returned diagnostics includes errors then the resulting Requirements
 // may be incomplete.
 func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagnostics) {
-	reqs := make(getproviders.Requirements)
-	diags := c.addProviderRequirements(reqs, false)
+	reqs := make(providerreqs.Requirements)
+	diags := c.addProviderRequirements(reqs, false, false)
 
 	children := make(map[string]*ModuleRequirements)
 	for name, child := range c.Children {
@@ -327,11 +383,33 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 		diags = append(diags, childDiags...)
 	}
 
+	tests := make(map[string]*TestFileModuleRequirements)
+	for name, test := range c.Module.Tests {
+		testReqs := &TestFileModuleRequirements{
+			Requirements: make(providerreqs.Requirements),
+			Runs:         make(map[string]*ModuleRequirements),
+		}
+
+		for _, run := range test.Runs {
+			if run.ConfigUnderTest == nil {
+				continue
+			}
+
+			runReqs, runDiags := run.ConfigUnderTest.ProviderRequirementsByModule()
+			runReqs.Name = run.Name
+			testReqs.Runs[run.Name] = runReqs
+			diags = append(diags, runDiags...)
+		}
+
+		tests[name] = testReqs
+	}
+
 	ret := &ModuleRequirements{
 		SourceAddr:   c.SourceAddr,
 		SourceDir:    c.Module.SourceDir,
 		Requirements: reqs,
 		Children:     children,
+		Tests:        tests,
 	}
 
 	return ret, diags
@@ -341,7 +419,7 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 // implementation, gradually mutating a shared requirements object to
 // eventually return. If the recurse argument is true, the requirements will
 // include all descendant modules; otherwise, only the specified module.
-func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse bool) hcl.Diagnostics {
+func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse, tests bool) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// First we'll deal with the requirements directly in _our_ module...
@@ -359,7 +437,7 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 			// don't exactly agree in practice 🙄 so this might produce new errors.
 			// TODO: Use the new parser throughout this package so we can get the
 			// better error messages it produces in more situations.
-			constraints, err := getproviders.ParseVersionConstraints(providerReqs.Requirement.Required.String())
+			constraints, err := providerreqs.ParseVersionConstraints(providerReqs.Requirement.Required.String())
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -386,6 +464,7 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 		}
 		reqs[fqn] = nil
 	}
+
 	for _, rc := range c.Module.DataResources {
 		fqn := rc.Provider
 		if _, exists := reqs[fqn]; exists {
@@ -394,22 +473,18 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 		}
 		reqs[fqn] = nil
 	}
-	for _, i := range c.Module.Import {
-		implied, err := addrs.ParseProviderPart(i.To.Resource.Resource.ImpliedProvider())
-		if err == nil {
-			provider := c.Module.ImpliedProviderForUnqualifiedType(implied)
-			if _, exists := reqs[provider]; exists {
-				// Explicit dependency already present
-				continue
-			}
-			reqs[provider] = nil
+
+	for _, rc := range c.Module.EphemeralResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
 		}
-		// We don't return a diagnostic here, because the invalid address will
-		// have been caught elsewhere.
+		reqs[fqn] = nil
 	}
 
-	// Import blocks that are generating config may also have a custom provider
-	// meta argument. Like the provider meta argument used in resource blocks,
+	// Import blocks that are generating config may have a custom provider
+	// meta-argument. Like the provider meta-argument used in resource blocks,
 	// we use this opportunity to load any implicit providers.
 	//
 	// We'll also use this to validate that import blocks and targeted resource
@@ -417,14 +492,14 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 	// this will be because the user has written explicit provider arguments
 	// that don't agree and we'll get them to fix it.
 	for _, i := range c.Module.Import {
-		if len(i.To.Module) > 0 {
+		if len(i.ToResource.Module) > 0 {
 			// All provider information for imports into modules should come
 			// from the module block, so we don't need to load anything for
 			// import targets within modules.
 			continue
 		}
 
-		if target, exists := c.Module.ManagedResources[i.To.String()]; exists {
+		if target, exists := c.Module.ManagedResources[i.ToResource.Resource.String()]; exists {
 			// This means the information about the provider for this import
 			// should come from the resource block itself and not the import
 			// block.
@@ -487,40 +562,63 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 
 	// "provider" block can also contain version constraints
 	for _, provider := range c.Module.ProviderConfigs {
-		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
-		if _, ok := reqs[fqn]; !ok {
-			// We'll at least have an unconstrained dependency then, but might
-			// add to this in the loop below.
-			reqs[fqn] = nil
-		}
-		if provider.Version.Required != nil {
-			// The model of version constraints in this package is still the
-			// old one using a different upstream module to represent versions,
-			// so we'll need to shim that out here for now. The two parsers
-			// don't exactly agree in practice 🙄 so this might produce new errors.
-			// TODO: Use the new parser throughout this package so we can get the
-			// better error messages it produces in more situations.
-			constraints, err := getproviders.ParseVersionConstraints(provider.Version.Required.String())
-			if err != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid version constraint",
-					// The errors returned by ParseVersionConstraint already include
-					// the section of input that was incorrect, so we don't need to
-					// include that here.
-					Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
-					Subject: provider.Version.DeclRange.Ptr(),
-				})
+		moreDiags := c.addProviderRequirementsFromProviderBlock(reqs, provider)
+		diags = append(diags, moreDiags...)
+	}
+
+	// We may have provider blocks and required_providers set in some testing
+	// files.
+	if tests && recurse {
+		for _, file := range c.Module.Tests {
+			// Then we'll also look for requirements in testing modules.
+			for _, run := range file.Runs {
+				if run.ConfigUnderTest != nil {
+					moreDiags := run.ConfigUnderTest.addProviderRequirements(reqs, true, false)
+					diags = append(diags, moreDiags...)
+				}
 			}
-			reqs[fqn] = append(reqs[fqn], constraints...)
 		}
 	}
 
 	if recurse {
 		for _, childConfig := range c.Children {
-			moreDiags := childConfig.addProviderRequirements(reqs, true)
+			moreDiags := childConfig.addProviderRequirements(reqs, true, false)
 			diags = append(diags, moreDiags...)
 		}
+	}
+
+	return diags
+}
+
+func (c *Config) addProviderRequirementsFromProviderBlock(reqs providerreqs.Requirements, provider *Provider) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
+	if _, ok := reqs[fqn]; !ok {
+		// We'll at least have an unconstrained dependency then, but might
+		// add to this in the loop below.
+		reqs[fqn] = nil
+	}
+	if provider.Version.Required != nil {
+		// The model of version constraints in this package is still the
+		// old one using a different upstream module to represent versions,
+		// so we'll need to shim that out here for now. The two parsers
+		// don't exactly agree in practice 🙄 so this might produce new errors.
+		// TODO: Use the new parser throughout this package so we can get the
+		// better error messages it produces in more situations.
+		constraints, err := providerreqs.ParseVersionConstraints(provider.Version.Required.String())
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid version constraint",
+				// The errors returned by ParseVersionConstraint already include
+				// the section of input that was incorrect, so we don't need to
+				// include that here.
+				Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+				Subject: provider.Version.DeclRange.Ptr(),
+			})
+		}
+		reqs[fqn] = append(reqs[fqn], constraints...)
 	}
 
 	return diags
@@ -529,7 +627,7 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 // resolveProviderTypes walks through the providers in the module and ensures
 // the true types are assigned based on the provider requirements for the
 // module.
-func (c *Config) resolveProviderTypes() {
+func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 	for _, child := range c.Children {
 		child.resolveProviderTypes()
 	}
@@ -571,6 +669,147 @@ func (c *Config) resolveProviderTypes() {
 			}
 		}
 	}
+
+	return providers
+}
+
+// resolveProviderTypesForTests matches resolveProviderTypes except it uses
+// the information from resolveProviderTypes to resolve the provider types for
+// providers defined within the configs test files.
+func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provider) {
+
+	for _, test := range c.Module.Tests {
+
+		// testProviders contains the configuration blocks for all the providers
+		// defined by this test file. It is keyed by the name of the provider
+		// and the values are a slice of provider configurations which contains
+		// all the definitions of a named provider of which there can be
+		// multiple because of aliases.
+		testProviders := make(map[string][]*Provider)
+		for _, provider := range test.Providers {
+			testProviders[provider.Name] = append(testProviders[provider.Name], provider)
+		}
+
+		// matchedProviders maps the names of providers from testProviders to
+		// the provider type we have identified for them so far. If during the
+		// course of resolving the types we find a run block is attempting to
+		// reuse a provider that has already been assigned a different type,
+		// then this is an error that we can raise now.
+		matchedProviders := make(map[string]addrs.Provider)
+
+		// First, we primarily draw our provider types from the main
+		// configuration under test. The providers for the main configuration
+		// are provided to us in the argument.
+
+		// We've now set provider types for all the providers required by the
+		// main configuration. But we can have modules with their own required
+		// providers referenced by the run blocks. We also have passed provider
+		// configs that can affect the types of providers when the names don't
+		// match, so we'll do that here.
+
+		for _, run := range test.Runs {
+
+			// If this run block is executing against our main configuration, we
+			// want to use the external providers passed in. If we are executing
+			// against a different module then we need to resolve the provider
+			// types for that first, and then use those providers.
+			providers := providers
+			if run.ConfigUnderTest != nil {
+				providers = run.ConfigUnderTest.resolveProviderTypes()
+			}
+
+			// We now check to see what providers this run block is actually
+			// using, and we can then assign types back to the
+
+			if len(run.Providers) > 0 {
+				// This provider is only using the subset of providers specified
+				// within the provider block.
+
+				for _, p := range run.Providers {
+					addr, exists := providers[p.InChild.Name]
+					if !exists {
+						// If this provider wasn't explicitly defined in the
+						// target module, then we'll set it to the default.
+						addr = addrs.NewDefaultProvider(p.InChild.Name)
+					}
+
+					// The child type is always just derived from the providers
+					// within the config this run block is using.
+					p.InChild.providerType = addr
+
+					// If we have previously assigned a type to the provider
+					// for the parent reference, then we use that for the
+					// parent type.
+					if addr, exists := matchedProviders[p.InParent.Name]; exists {
+						p.InParent.providerType = addr
+						continue
+					}
+
+					// Otherwise, we'll define the parent type based on the
+					// child and reference that backwards.
+					p.InParent.providerType = p.InChild.providerType
+
+					if aliases, exists := testProviders[p.InParent.Name]; exists {
+						matchedProviders[p.InParent.Name] = p.InParent.providerType
+						for _, alias := range aliases {
+							alias.providerType = p.InParent.providerType
+						}
+					}
+				}
+
+			} else {
+				// This provider is going to load all the providers it can using
+				// simple name matching.
+
+				for name, addr := range providers {
+
+					if _, exists := matchedProviders[name]; exists {
+						// Then we've already handled providers of this type
+						// previously.
+						continue
+					}
+
+					if aliases, exists := testProviders[name]; exists {
+						// Then this provider has been defined within our test
+						// config. Let's give it the appropriate type.
+						matchedProviders[name] = addr
+						for _, alias := range aliases {
+							alias.providerType = addr
+						}
+
+						continue
+					}
+
+					// If we get here then it means we don't actually have a
+					// provider block for this provider name within our test
+					// file. This is fine, it just means we don't have to do
+					// anything and the test will use the default provider for
+					// that name.
+
+				}
+			}
+
+		}
+
+		// Now, we've analysed all the test runs for this file. If any providers
+		// have not been claimed then we'll just give them the default provider
+		// for their name.
+		for name, aliases := range testProviders {
+			if _, exists := matchedProviders[name]; exists {
+				// Then this provider has a type already.
+				continue
+			}
+
+			addr := addrs.NewDefaultProvider(name)
+			matchedProviders[name] = addr
+
+			for _, alias := range aliases {
+				alias.providerType = addr
+			}
+		}
+
+	}
+
 }
 
 // ProviderTypes returns the FQNs of each distinct provider type referenced
@@ -585,12 +824,8 @@ func (c *Config) ProviderTypes() []addrs.Provider {
 	// Ignore diagnostics here because they relate to version constraints
 	reqs, _ := c.ProviderRequirements()
 
-	ret := make([]addrs.Provider, 0, len(reqs))
-	for k := range reqs {
-		ret = append(ret, k)
-	}
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].String() < ret[j].String()
+	ret := slices.SortedFunc(maps.Keys(reqs), func(i, j addrs.Provider) int {
+		return strings.Compare(i.String(), j.String())
 	})
 	return ret
 }
@@ -613,9 +848,9 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		return addr
 
 	case addrs.LocalProviderConfig:
-		// Find the descendent Config that contains the module that this
+		// Find the descendant Config that contains the module that this
 		// local config belongs to.
-		mc := c.Descendent(inModule)
+		mc := c.Descendant(inModule)
 		if mc == nil {
 			panic(fmt.Sprintf("ResolveAbsProviderAddr with non-existent module %s", inModule.String()))
 		}
@@ -647,6 +882,167 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 		return provider.Type
 	}
 	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
+}
+
+// RequiredProviderConfig represents a provider configuration that is required
+// by a module, either explicitly or implicitly.
+//
+// An explicit provider means the LocalName within the addrs.LocalProviderConfig
+// was defined directly within the configuration via a required_providers block
+// instead of implied due to the name of a resource or data block.
+//
+// This helps callers of the EffectiveRequiredProviderConfigs function tailor
+// error messages around implied or explicit provider types.
+type RequiredProviderConfig struct {
+	Local    addrs.LocalProviderConfig
+	Explicit bool
+}
+
+// EffectiveRequiredProviderConfigs returns a set of all of the provider
+// configurations this config's direct module expects to have passed in
+// (explicitly or implicitly) by its caller. This method only makes sense
+// to call on the object representing the root module.
+//
+// This includes both provider configurations declared explicitly using
+// configuration_aliases in the required_providers block _and_ configurations
+// that are implied to be required by declaring something that belongs to
+// an configuration for a provider even when there is no such declaration
+// inside the module itself.
+//
+// Terraform Core treats root modules differently than downstream modules in
+// that it will implicitly create empty provider configurations for any provider
+// config addresses that are implied in the configuration but not explicitly
+// configured. This function assumes those implied empty configurations don't
+// exist and so therefore any provider configuration without an explicit
+// "provider" block is a required provider config. In practice that means that
+// the answer is appropriate for downstream modules but not for root modules,
+// unless a root module is being used in a context where it is treated as if
+// a shared module, such as when directly testing a shared module or when
+// using a shared module as the root of the module tree of a stack component.
+//
+// This function assumes that the configuration is valid. It may produce under-
+// or over-constrained results if called on an invalid configuration.
+func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProviderConfig, RequiredProviderConfig] {
+	// The Terraform language has accumulated so many different ways to imply
+	// the need for a provider configuration that answering this is quite a
+	// complicated process that ends up potentially needing to visit the
+	// entire subtree of modules even though we're only actually answering
+	// about the current node's requirements. In the happy explicit case we
+	// can avoid any recursion, but that case is rare in practice.
+
+	if c == nil {
+		return addrs.MakeMap[addrs.RootProviderConfig, RequiredProviderConfig]()
+	}
+
+	// We'll start by visiting all of the "provider" blocks in the module and
+	// figuring out which provider configuration address they each declare. Any
+	// configuration addresses we find here cannot be "required" provider
+	// configs because the module instantiates them itself.
+	selfConfigured := addrs.MakeSet[addrs.RootProviderConfig]()
+	for _, pc := range c.Module.ProviderConfigs {
+		localAddr := pc.Addr()
+		sourceAddr := c.Module.ProviderForLocalConfig(localAddr)
+		selfConfigured.Add(addrs.RootProviderConfig{
+			Provider: sourceAddr,
+			Alias:    localAddr.Alias,
+		})
+	}
+	ret := addrs.MakeMap[addrs.RootProviderConfig, RequiredProviderConfig]()
+
+	// maybePut looks up the default local provider for the given root provider.
+	maybePut := func(addr addrs.RootProviderConfig) {
+		localName := c.Module.LocalNameForProvider(addr.Provider)
+		localAddr := addrs.LocalProviderConfig{
+			LocalName: localName,
+			Alias:     addr.Alias,
+		}
+		if !selfConfigured.Has(addr) && !ret.Has(addr) {
+			ret.Put(addr, RequiredProviderConfig{
+				Local: localAddr,
+
+				// Since we look at the required providers first below, and only
+				// the required providers can set explicit local names, this
+				// will always be false as the map entry will already have been
+				// set if this would be true.
+				Explicit: false,
+			})
+		}
+	}
+
+	// maybePutLocal looks up the default provider for the given local provider
+	// address.
+	maybePutLocal := func(localAddr addrs.LocalProviderConfig, explicit bool) {
+		// Caution: this function is only correct to use for LocalProviderConfig
+		// in the _current_ module c.Module. It will produce incorrect results
+		// if used for addresses from any child module.
+		addr := addrs.RootProviderConfig{
+			Provider: c.Module.ProviderForLocalConfig(localAddr),
+			Alias:    localAddr.Alias,
+		}
+		if !selfConfigured.Has(addr) && !ret.Has(addr) {
+			ret.Put(addr, RequiredProviderConfig{
+				Local:    localAddr,
+				Explicit: explicit,
+			})
+		}
+	}
+
+	if c.Module.ProviderRequirements != nil {
+		for _, req := range c.Module.ProviderRequirements.RequiredProviders {
+			for _, addr := range req.Aliases {
+				// The RequiredProviders block always produces explicit provider
+				// names.
+				maybePutLocal(addr, true)
+			}
+		}
+	}
+	for _, rc := range c.Module.ManagedResources {
+		maybePutLocal(rc.ProviderConfigAddr(), false)
+	}
+	for _, rc := range c.Module.DataResources {
+		maybePutLocal(rc.ProviderConfigAddr(), false)
+	}
+	for _, ic := range c.Module.Import {
+		if ic.ProviderConfigRef != nil {
+			maybePutLocal(addrs.LocalProviderConfig{
+				LocalName: ic.ProviderConfigRef.Name,
+				Alias:     ic.ProviderConfigRef.Alias,
+			}, false)
+		} else {
+			maybePut(addrs.RootProviderConfig{
+				Provider: ic.Provider,
+			})
+		}
+	}
+	for _, mc := range c.Module.ModuleCalls {
+		for _, pp := range mc.Providers {
+			maybePutLocal(pp.InParent.Addr(), false)
+		}
+		// If there aren't any explicitly-passed providers then
+		// the module implicitly requires a default configuration
+		// for each provider the child module mentions, since
+		// that would get implicitly passed into the child by
+		// Terraform Core.
+		// (We don't need to visit the child module at all if
+		// the call has an explicit "providers" argument, because
+		// we require that to be exhaustive when present.)
+		if len(mc.Providers) == 0 {
+			child := c.Children[mc.Name]
+			childReqs := child.EffectiveRequiredProviderConfigs()
+			for _, childReq := range childReqs.Keys() {
+				if childReq.Alias != "" {
+					continue // only default provider configs are eligible for this implicit treatment
+				}
+				// We must reinterpret the child address to appear as
+				// if written in its parent (our current module).
+				maybePut(addrs.RootProviderConfig{
+					Provider: childReq.Provider,
+				})
+			}
+		}
+	}
+
+	return ret
 }
 
 func (c *Config) CheckCoreVersionRequirements() hcl.Diagnostics {

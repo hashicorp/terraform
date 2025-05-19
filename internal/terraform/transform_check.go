@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -93,7 +93,10 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 							// Make sure we report our checks before we execute any
 							// embedded data resource.
 							g.Connect(dag.BasicEdge(other, report))
-							continue
+
+							// There's at most one embedded data source, and
+							// we've found it so stop looking.
+							break
 						}
 					}
 				}
@@ -113,10 +116,14 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 // ReportChecks returns true if this operation should report any check blocks
 // that it is about to execute.
 //
-// This is generally only true for planning operations, as apply operations
-// recreate the expected checks from the plan.
+// This is true for planning operations, as apply operations recreate the
+// expected checks from the plan.
+//
+// We'll also report the checks during an import operation. We still execute
+// our check blocks during an import operation so they need to be reported
+// first.
 func (t *checkTransformer) ReportChecks() bool {
-	return t.Operation == walkPlan
+	return t.Operation == walkPlan || t.Operation == walkImport
 }
 
 // ExecuteChecks returns true if this operation should actually execute any
@@ -126,7 +133,7 @@ func (t *checkTransformer) ReportChecks() bool {
 // graph, but they will only validate things like references and syntax.
 func (t *checkTransformer) ExecuteChecks() bool {
 	switch t.Operation {
-	case walkPlan, walkApply:
+	case walkPlan, walkApply, walkImport:
 		// We only actually execute the checks for plan and apply operations.
 		return true
 	default:

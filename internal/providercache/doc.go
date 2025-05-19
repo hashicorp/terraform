@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package providercache contains the logic for auto-installing providers from
 // packages obtained elsewhere, and for managing the local directories that

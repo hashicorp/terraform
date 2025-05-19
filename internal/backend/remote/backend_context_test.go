@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package remote
 
@@ -8,11 +8,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -20,7 +20,8 @@ import (
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestRemoteStoredVariableValue(t *testing.T) {
@@ -90,7 +91,7 @@ func TestRemoteStoredVariableValue(t *testing.T) {
 		"HCL computation": {
 			// This (stored expressions containing computation) is not a case
 			// we intentionally supported, but it became possible for remote
-			// operations in Terraform 0.12 (due to Terraform Cloud/Enterprise
+			// operations in Terraform 0.12 (due to HCP Terraform and Terraform Enterprise
 			// just writing the HCL verbatim into generated `.tfvars` files).
 			// We support it here for consistency, and we continue to support
 			// it in both places for backward-compatibility. In practice,
@@ -186,7 +187,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			b, bCleanup := testBackendDefault(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)
@@ -197,7 +198,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			streams, _ := terminal.StreamsForTesting(t)
 			view := views.NewStateLocker(arguments.ViewHuman, views.NewView(streams))
 
-			op := &backend.Operation{
+			op := &backendrun.Operation{
 				ConfigDir:    configDir,
 				ConfigLoader: configLoader,
 				StateLocker:  clistate.NewLocker(0, view),
@@ -253,12 +254,12 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 	varValue3 := "value3"
 
 	tests := map[string]struct {
-		localVariables    map[string]backend.UnparsedVariableValue
+		localVariables    map[string]backendrun.UnparsedVariableValue
 		remoteVariables   []*tfe.VariableCreateOptions
 		expectedVariables terraform.InputValues
 	}{
 		"no local variables": {
-			map[string]backend.UnparsedVariableValue{},
+			map[string]backendrun.UnparsedVariableValue{},
 			[]*tfe.VariableCreateOptions{
 				{
 					Key:      &varName1,
@@ -307,7 +308,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			},
 		},
 		"single conflicting local variable": {
-			map[string]backend.UnparsedVariableValue{
+			map[string]backendrun.UnparsedVariableValue{
 				varName3: testUnparsedVariableValue(varValue3),
 			},
 			[]*tfe.VariableCreateOptions{
@@ -356,7 +357,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			},
 		},
 		"no conflicting local variable": {
-			map[string]backend.UnparsedVariableValue{
+			map[string]backendrun.UnparsedVariableValue{
 				varName3: testUnparsedVariableValue(varValue3),
 			},
 			[]*tfe.VariableCreateOptions{
@@ -409,7 +410,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			b, bCleanup := testBackendDefault(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)
@@ -420,7 +421,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			streams, _ := terminal.StreamsForTesting(t)
 			view := views.NewStateLocker(arguments.ViewHuman, views.NewView(streams))
 
-			op := &backend.Operation{
+			op := &backendrun.Operation{
 				ConfigDir:    configDir,
 				ConfigLoader: configLoader,
 				StateLocker:  clistate.NewLocker(0, view),

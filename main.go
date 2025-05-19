@@ -1,9 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +14,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/apparentlymart/go-shquot/shquot"
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -24,8 +27,8 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-shellwords"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+	"go.opentelemetry.io/otel/trace"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 )
@@ -65,6 +68,24 @@ func realMain() int {
 	defer logging.PanicHandler()
 
 	var err error
+
+	err = openTelemetryInit()
+	if err != nil {
+		// openTelemetryInit can only fail if Terraform was run with an
+		// explicit environment variable to enable telemetry collection,
+		// so in typical use we cannot get here.
+		Ui.Error(fmt.Sprintf("Could not initialize telemetry: %s", err))
+		Ui.Error(fmt.Sprintf("Unset environment variable %s if you don't intend to collect telemetry from Terraform.", openTelemetryExporterEnvVar))
+		return 1
+	}
+	var ctx context.Context
+	var otelSpan trace.Span
+	{
+		// At minimum we emit a span covering the entire command execution.
+		_, displayArgs := shquot.POSIXShellSplit(os.Args)
+		ctx, otelSpan = tracer.Start(context.Background(), fmt.Sprintf("terraform %s", displayArgs))
+		defer otelSpan.End()
+	}
 
 	tmpLogPath := os.Getenv(envTmpLogPath)
 	if tmpLogPath != "" {
@@ -225,11 +246,11 @@ func realMain() int {
 		// in case they need to refer back to it for any special reason, though
 		// they should primarily be working with the override working directory
 		// that we've now switched to above.
-		initCommands(originalWd, streams, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
+		initCommands(ctx, originalWd, streams, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
 	}
 
 	// Run checkpoint
-	go runCheckpoint(config)
+	go runCheckpoint(ctx, config)
 
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
@@ -338,8 +359,13 @@ func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
 		return args, nil
 	}
 
+	swParser := &shellwords.Parser{
+		ParseEnv:      false,
+		ParseBacktick: false,
+	}
+
 	log.Printf("[INFO] %s value: %q", envName, v)
-	extra, err := shellwords.Parse(v)
+	extra, err := swParser.Parse(v)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Error parsing extra CLI args from %s: %s",

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package refactoring
 
@@ -15,6 +15,14 @@ import (
 type MoveStatement struct {
 	From, To  *addrs.MoveEndpointInModule
 	DeclRange tfdiags.SourceRange
+
+	// Provider is the provider configuration that applies to the "to" address
+	// of this move. As in, the provider that will manage the resource after
+	// it has been moved.
+	//
+	// This may be null if the "to" address points to a module instead of a
+	// resource.
+	Provider *addrs.AbsProviderConfig
 
 	// Implied is true for statements produced by ImpliedMoveStatements, and
 	// false for statements produced by FindMoveStatements.
@@ -47,12 +55,43 @@ func findMoveStatements(cfg *configs.Config, into []MoveStatement) []MoveStateme
 			panic(fmt.Sprintf("incompatible move endpoints in %s", mc.DeclRange))
 		}
 
-		into = append(into, MoveStatement{
+		stmt := MoveStatement{
 			From:      fromAddr,
 			To:        toAddr,
 			DeclRange: tfdiags.SourceRangeFromHCL(mc.DeclRange),
 			Implied:   false,
-		})
+		}
+
+		// We have the statement, let's see if we should attach a provider to
+		// it.
+		if toResource, ok := mc.To.ConfigMoveable(addrs.RootModule).(addrs.ConfigResource); ok {
+			// Only attach providers if we are moving resources, and we attach
+			// the to resource provider from the config. We can retrieve the
+			// from resource provider from the state later.
+			modCfg := cfg.Descendant(toResource.Module)
+			// It's possible that multiple refactorings have left a moved block
+			// that points to a module which no longer exists. This may also be
+			// a mistake, but the user will see the unexpected deletion in the
+			// plan if it is.
+			if modCfg != nil {
+				resourceConfig := modCfg.Module.ResourceByAddr(toResource.Resource)
+				if resourceConfig != nil {
+					// Check the target resource config actually exists before we
+					// try and extract the provider from them.
+
+					stmt.Provider = &addrs.AbsProviderConfig{
+						Module:   modAddr,
+						Provider: resourceConfig.Provider,
+					}
+
+					if resourceConfig.ProviderConfigRef != nil {
+						stmt.Provider.Alias = resourceConfig.ProviderConfigRef.Alias
+					}
+				}
+			}
+		}
+
+		into = append(into, stmt)
 	}
 
 	for _, childCfg := range cfg.Children {
@@ -135,14 +174,25 @@ func impliedMoveStatements(cfg *configs.Config, prevRunState *states.State, expl
 			}
 
 			if fromKey != toKey {
-				// We mustn't generate an impied statement if the user already
+				// We mustn't generate an implied statement if the user already
 				// wrote an explicit statement referring to this resource,
 				// because they may wish to select an instance key other than
 				// zero as the one to retain.
 				if !haveMoveStatementForResource(rAddr, explicitStmts) {
+
+					resource := cfg.Descendant(addrs.RootModule).Module.ResourceByAddr(rAddr.Resource)
+					provider := &addrs.AbsProviderConfig{
+						Module:   rAddr.Module.Module(),
+						Provider: resource.Provider,
+					}
+					if resource.ProviderConfigRef != nil {
+						provider.Alias = resource.ProviderConfigRef.Alias
+					}
+
 					into = append(into, MoveStatement{
 						From:      addrs.ImpliedMoveStatementEndpoint(rAddr.Instance(fromKey), approxSrcRange),
 						To:        addrs.ImpliedMoveStatementEndpoint(rAddr.Instance(toKey), approxSrcRange),
+						Provider:  provider,
 						DeclRange: approxSrcRange,
 						Implied:   true,
 					})

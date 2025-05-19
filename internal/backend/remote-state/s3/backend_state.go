@@ -1,27 +1,45 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package s3
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path"
 	"sort"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 
+	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
+const (
+	// defaultWorkspaceKeyPrefix is the default prefix for workspace storage.
+	// The colon is used to reduce the chance of name conflicts with existing objects.
+	defaultWorkspaceKeyPrefix = "env:"
+	// lockFileSuffix defines the suffix for Terraform state lock files.
+	lockFileSuffix = ".tflock"
+)
+
 func (b *Backend) Workspaces() ([]string, error) {
 	const maxKeys = 1000
+
+	ctx := context.TODO()
+	log := logger()
+	log = logWithOperation(log, operationBackendWorkspaces)
+	log = log.With(
+		logKeyBucket, b.bucketName,
+	)
 
 	prefix := ""
 
@@ -29,25 +47,41 @@ func (b *Backend) Workspaces() ([]string, error) {
 		prefix = b.workspaceKeyPrefix + "/"
 	}
 
-	params := &s3.ListObjectsInput{
-		Bucket:  &b.bucketName,
+	log = log.With(
+		logKeyBackendWorkspacePrefix, prefix,
+	)
+
+	params := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(b.bucketName),
 		Prefix:  aws.String(prefix),
-		MaxKeys: aws.Int64(maxKeys),
+		MaxKeys: aws.Int32(maxKeys),
 	}
 
 	wss := []string{backend.DefaultStateName}
-	err := b.s3Client.ListObjectsPages(params, func(page *s3.ListObjectsOutput, lastPage bool) bool {
+
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	pages := s3.NewListObjectsV2Paginator(b.s3Client, params)
+	for pages.HasMorePages() {
+		page, err := pages.NextPage(ctx)
+		if err != nil {
+			if IsA[*s3types.NoSuchBucket](err) {
+				return nil, fmt.Errorf(errS3NoSuchBucket, b.bucketName, err)
+			}
+			if foo, ok := As[smithy.APIError](err); b.workspaceKeyPrefix == defaultWorkspaceKeyPrefix && ok && foo.ErrorCode() == "AccessDenied" {
+				log.Warn("Unable to list non-default workspaces", "err", err.Error())
+				return wss[:1], nil
+			}
+			return nil, fmt.Errorf("Unable to list objects in S3 bucket %q with prefix %q: %w", b.bucketName, prefix, err)
+		}
+
 		for _, obj := range page.Contents {
-			ws := b.keyEnv(*obj.Key)
+			ws := b.keyEnv(aws.ToString(obj.Key))
 			if ws != "" {
 				wss = append(wss, ws)
 			}
 		}
-		return !lastPage
-	})
-
-	if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
-		return nil, fmt.Errorf(errS3NoSuchBucket, err)
 	}
 
 	sort.Strings(wss[1:])
@@ -94,9 +128,17 @@ func (b *Backend) keyEnv(key string) string {
 }
 
 func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+	log := logger()
+	log = logWithOperation(log, operationBackendDeleteWorkspace)
+	log = log.With(
+		logKeyBackendWorkspace, name,
+	)
+
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
+
+	log.Info("Deleting workspace")
 
 	client, err := b.remoteClient(name)
 	if err != nil {
@@ -122,6 +164,9 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		acl:                   b.acl,
 		kmsKeyID:              b.kmsKeyID,
 		ddbTable:              b.ddbTable,
+		skipS3Checksum:        b.skipS3Checksum,
+		lockFilePath:          b.getLockFilePath(name),
+		useLockFile:           b.useLockFile,
 	}
 
 	return client, nil
@@ -203,10 +248,6 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	return stateMgr, nil
 }
 
-func (b *Backend) client() *RemoteClient {
-	return &RemoteClient{}
-}
-
 func (b *Backend) path(name string) string {
 	if name == backend.DefaultStateName {
 		return b.keyName
@@ -222,3 +263,26 @@ Error: %s
 
 You may have to force-unlock this state in order to use it again.
 `
+
+var _ error = bucketRegionError{}
+
+type bucketRegionError struct {
+	requestRegion, bucketRegion string
+}
+
+func newBucketRegionError(requestRegion, bucketRegion string) bucketRegionError {
+	return bucketRegionError{
+		requestRegion: requestRegion,
+		bucketRegion:  bucketRegion,
+	}
+}
+
+func (err bucketRegionError) Error() string {
+	return fmt.Sprintf("requested bucket from %q, actual location %q", err.requestRegion, err.bucketRegion)
+}
+
+// getLockFilePath returns the path to the lock file for the given Terraform state.
+// For `default.tfstate`, the lock file is stored at `default.tfstate.tflock`.
+func (b *Backend) getLockFilePath(name string) string {
+	return b.path(name) + lockFileSuffix
+}

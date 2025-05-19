@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package main
 
@@ -35,7 +35,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply"},
@@ -75,7 +75,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply"},
@@ -115,7 +115,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply", "-auto-approve"},
@@ -153,7 +153,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply", "-auto-approve"},

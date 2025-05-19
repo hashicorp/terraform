@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -64,10 +64,14 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	// object state for now.
 	c.Meta.parallelism = args.Operation.Parallelism
 
-	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
-
 	// Prepare the backend with the backend-specific arguments
 	be, beDiags := c.PrepareBackend(args.State, args.ViewType)
+	b, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
+	if isRemoteBackend && !b.IsLocalOperations() {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarningsRemoteExecution())
+	} else {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+	}
 	diags = diags.Append(beDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -103,7 +107,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	if op.Result != backend.OperationSuccess {
+	if op.Result != backendrun.OperationSuccess {
 		return op.Result.ExitStatus()
 	}
 	if args.DetailedExitCode && !op.PlanEmpty {
@@ -113,7 +117,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
-func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
 	// path to pass these arguments to the functions that need them is
@@ -139,13 +143,13 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.V
 }
 
 func (c *PlanCommand) OperationRequest(
-	be backend.Enhanced,
+	be backendrun.OperationsBackend,
 	view views.Plan,
 	viewType arguments.ViewType,
 	args *arguments.Operation,
 	planOutPath string,
 	generateConfigOut string,
-) (*backend.Operation, tfdiags.Diagnostics) {
+) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
@@ -158,8 +162,9 @@ func (c *PlanCommand) OperationRequest(
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace
-	opReq.Type = backend.OperationTypePlan
+	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
+	opReq.DeferralAllowed = args.DeferralAllowed
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -171,7 +176,7 @@ func (c *PlanCommand) OperationRequest(
 	return opReq, diags
 }
 
-func (c *PlanCommand) GatherVariables(opReq *backend.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+func (c *PlanCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// FIXME the arguments package currently trivially gathers variable related
@@ -182,12 +187,12 @@ func (c *PlanCommand) GatherVariables(opReq *backend.Operation, args *arguments.
 	// package directly, removing this shim layer.
 
 	varArgs := args.All()
-	items := make([]rawFlag, len(varArgs))
+	items := make([]arguments.FlagNameValue, len(varArgs))
 	for i := range varArgs {
 		items[i].Name = varArgs[i].Name
 		items[i].Value = varArgs[i].Value
 	}
-	c.Meta.variableArgs = rawFlags{items: &items}
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
 	opReq.Variables, diags = c.collectVariableValues()
 
 	return diags
@@ -247,33 +252,42 @@ Plan Customization Options:
 
 Other Options:
 
-  -compact-warnings   If Terraform produces any warnings that are not
-                      accompanied by errors, shows them in a more compact form
-                      that includes only the summary messages.
+  -compact-warnings          If Terraform produces any warnings that are not
+                             accompanied by errors, shows them in a more compact
+                             form that includes only the summary messages.
 
-  -detailed-exitcode  Return detailed exit codes when the command exits. This
-                      will change the meaning of exit codes to:
-                      0 - Succeeded, diff is empty (no changes)
-                      1 - Errored
-                      2 - Succeeded, there is a diff
+  -detailed-exitcode         Return detailed exit codes when the command exits.
+                             This will change the meaning of exit codes to:
+                             0 - Succeeded, diff is empty (no changes)
+                             1 - Errored
+                             2 - Succeeded, there is a diff
 
-  -input=true         Ask for input for variables if not directly set.
+  -generate-config-out=path  (Experimental) If import blocks are present in
+                             configuration, instructs Terraform to generate HCL
+                             for any imported resources not already present. The
+                             configuration is written to a new file at PATH,
+                             which must not already exist. Terraform may still
+                             attempt to write configuration if the plan errors.
 
-  -lock=false         Don't hold a state lock during the operation. This is
-                      dangerous if others might concurrently run commands
-                      against the same workspace.
+  -input=true                Ask for input for variables if not directly set.
 
-  -lock-timeout=0s    Duration to retry a state lock.
+  -lock=false                Don't hold a state lock during the operation. This
+                             is dangerous if others might concurrently run
+                             commands against the same workspace.
 
-  -no-color           If specified, output won't contain any color.
+  -lock-timeout=0s           Duration to retry a state lock.
 
-  -out=path           Write a plan file to the given path. This can be used as
-                      input to the "apply" command.
+  -no-color                  If specified, output won't contain any color.
 
-  -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
+  -out=path                  Write a plan file to the given path. This can be
+                             used as input to the "apply" command.
 
-  -state=statefile    A legacy option used for the local backend only. See the
-                      local backend's documentation for more information.
+  -parallelism=n             Limit the number of concurrent operations. Defaults
+                             to 10.
+
+  -state=statefile           A legacy option used for the local backend only.
+                             See the local backend's documentation for more
+                             information.
 `
 	return strings.TrimSpace(helpText)
 }

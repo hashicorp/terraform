@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package initwd
 
@@ -14,11 +14,11 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/modsdir"
@@ -33,7 +33,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // DirFromModule populates the given directory (which must exist and be
 // empty) with the contents of the module at the given source address.
 //
-// It does this by installing the given module and all of its descendent
+// It does this by installing the given module and all of its descendant
 // modules in a temporary root directory and then copying the installed
 // files into suitable locations. As a consequence, any diagnostics it
 // generates will reveal the location of this temporary directory to the
@@ -43,12 +43,13 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // installation proceeds in a manner identical to normal module installation.
 //
 // If the given source address specifies a sub-directory of the given
-// package then only the sub-directory and its descendents will be copied
+// package then only the sub-directory and its descendants will be copied
 // into the given root directory, which will cause any relative module
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
 func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+
 	var diags tfdiags.Diagnostics
 
 	// The way this function works is pretty ugly, but we accept it because
@@ -128,7 +129,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 
 	// Now we need to create an artificial root module that will seed our
 	// installation process.
-	sourceAddr, err := addrs.ParseModuleSource(sourceAddrStr)
+	sourceAddr, err := moduleaddrs.ParseModuleSource(sourceAddrStr)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -157,11 +158,18 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	wrapHooks := installHooksInitDir{
 		Wrapped: hooks,
 	}
+	// Create a manifest record for the root module. This will be used if
+	// there are any relative-pathed modules in the root.
+	instManifest[""] = modsdir.Record{
+		Key: "",
+		Dir: rootDir,
+	}
 	fetcher := getmodules.NewPackageFetcher()
-	_, instDiags := inst.installDescendentModules(ctx, fakeRootModule, rootDir, instManifest, true, wrapHooks, fetcher)
-	diags = append(diags, instDiags...)
-	if instDiags.HasErrors() {
-		return diags
+
+	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
+	_, cDiags := inst.installDescendantModules(fakeRootModule, instManifest, walker, true)
+	if cDiags.HasErrors() {
+		return diags.Append(cDiags)
 	}
 
 	// If all of that succeeded then we'll now migrate what was installed
@@ -208,7 +216,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
 					if pathTraversesUp(mc.SourceAddrRaw) {
-						packageAddr, givenSubdir := getmodules.SplitPackageSubdir(sourceAddrStr)
+						packageAddr, givenSubdir := moduleaddrs.SplitPackageSubdir(sourceAddrStr)
 						newSubdir := filepath.Join(givenSubdir, mc.SourceAddrRaw)
 						if pathTraversesUp(newSubdir) {
 							// This should never happen in any reasonable
@@ -244,7 +252,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		if !strings.HasPrefix(record.Key, initFromModuleRootKeyPrefix) {
 			// Ignore the *real* root module, whose key is empty, since
 			// we're only interested in the module named "root" and its
-			// descendents.
+			// descendants.
 			continue
 		}
 
@@ -344,7 +352,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Failed to copy descendent module",
+				"Failed to copy descendant module",
 				fmt.Sprintf("Error copying module %q from %s to %s: %s.", newKey, tempPath, rootDir, err),
 			))
 			continue

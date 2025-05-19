@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -9,12 +9,17 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type EvalOpts struct {
 	SetVariables InputValues
+
+	// ExternalProviders is a set of pre-configured provider instances with
+	// the same purpose as [PlanOpts.ExternalProviders].
+	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
 }
 
 // Eval produces a scope in which expressions can be evaluated for
@@ -48,7 +53,10 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	state = state.DeepCopy()
 	var walker *ContextGraphWalker
 
-	variables := opts.SetVariables
+	var variables InputValues
+	if opts != nil {
+		variables = opts.SetVariables
+	}
 
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
@@ -60,13 +68,19 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	varDiags := checkInputVariables(config.Module.Variables, variables)
 	diags = diags.Append(varDiags)
 
+	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	if opts != nil {
+		externalProviderConfigs = opts.ExternalProviders
+	}
+
 	log.Printf("[DEBUG] Building and walking 'eval' graph")
 
 	graph, moreDiags := (&EvalGraphBuilder{
-		Config:             config,
-		State:              state,
-		RootVariableValues: variables,
-		Plugins:            c.plugins,
+		Config:                  config,
+		State:                   state,
+		RootVariableValues:      variables,
+		ExternalProviderConfigs: externalProviderConfigs,
+		Plugins:                 c.plugins,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -86,14 +100,22 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 		// If we skipped walking the graph (due to errors) then we'll just
 		// use a placeholder graph walker here, which'll refer to the
 		// unmodified state.
-		walker = c.graphWalker(walkEval, walkOpts)
+		walker = c.graphWalker(graph, walkEval, walkOpts)
 	}
 
+	return evalScopeFromGraphWalk(walker, moduleAddr), diags
+}
+
+// evalScopeFromGraphWalk takes a [ContextGraphWalker] that was already used
+// to run a graph walk and derives from it an evaluation scope which can
+// evaluate expressions for a given module path in whatever mode makes sense
+// for how the graph walker is configured.
+func evalScopeFromGraphWalk(walker *ContextGraphWalker, moduleAddr addrs.ModuleInstance) *lang.Scope {
 	// This is a bit weird since we don't normally evaluate outside of
 	// the context of a walk, but we'll "re-enter" our desired path here
 	// just to get hold of an EvalContext for it. ContextGraphWalker
 	// caches its contexts, so we should get hold of the context that was
 	// previously used for evaluation here, unless we skipped walking.
-	evalCtx := walker.EnterPath(moduleAddr)
-	return evalCtx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey), diags
+	evalCtx := walker.enterScope(evalContextModuleInstance{Addr: moduleAddr})
+	return evalCtx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 }

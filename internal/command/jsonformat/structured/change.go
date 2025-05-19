@@ -1,10 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structured
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
@@ -23,7 +26,7 @@ import (
 // functions.
 //
 // The Before and After fields are actually go-cty values, but we cannot convert
-// them directly because of the Terraform Cloud redacted endpoint. The redacted
+// them directly because of the HCP Terraform redacted endpoint. The redacted
 // endpoint turns sensitive values into strings regardless of their types.
 // Because of this, we cannot just do a direct conversion using the ctyjson
 // package. We would have to iterate through the schema first, find the
@@ -89,12 +92,20 @@ type Change struct {
 	// that we should display. Any element/attribute not matched by this Matcher
 	// should be skipped.
 	RelevantAttributes attribute_path.Matcher
+
+	// NonLegacySchema must only be used when rendering the change to the CLI,
+	// and is otherwise ignored. This flag is set when we can be sure that the
+	// change originated from a resource which is not using the legacy SDK, so
+	// we don't need to hide changes between empty and null strings.
+	// NonLegacySchema is only switched to true by the renderer, because that is
+	// where we have most of the schema information to detect the condition.
+	NonLegacySchema bool
 }
 
 // FromJsonChange unmarshals the raw []byte values in the jsonplan.Change
 // structs into generic interface{} types that can be reasoned about.
 func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Matcher) Change {
-	return Change{
+	ret := Change{
 		Before:             unmarshalGeneric(change.Before),
 		After:              unmarshalGeneric(change.After),
 		Unknown:            unmarshalGeneric(change.AfterUnknown),
@@ -103,6 +114,15 @@ func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Ma
 		ReplacePaths:       attribute_path.Parse(change.ReplacePaths, false),
 		RelevantAttributes: relevantAttributes,
 	}
+
+	// A forget-only action (i.e. ["forget"], not ["create", "forget"])
+	// should be represented as a no-op, so it does not look like we are
+	// proposing to delete the resource.
+	if len(change.Actions) == 1 && change.Actions[0] == "forget" {
+		ret = ret.AsNoOp()
+	}
+
+	return ret
 }
 
 // FromJsonResource unmarshals the raw values in the jsonstate.Resource structs
@@ -264,8 +284,8 @@ func unmarshalGeneric(raw json.RawMessage) interface{} {
 		return nil
 	}
 
-	var out interface{}
-	if err := json.Unmarshal(raw, &out); err != nil {
+	out, err := ParseJson(bytes.NewReader(raw))
+	if err != nil {
 		panic("unrecognized json type: " + err.Error())
 	}
 	return out
@@ -277,4 +297,22 @@ func unwrapAttributeValues(values jsonstate.AttributeValues) map[string]interfac
 		out[key] = unmarshalGeneric(value)
 	}
 	return out
+}
+
+func ParseJson(reader io.Reader) (interface{}, error) {
+	decoder := json.NewDecoder(reader)
+	decoder.UseNumber()
+
+	var jv interface{}
+	if err := decoder.Decode(&jv); err != nil {
+		return nil, err
+	}
+
+	// The JSON decoder should have consumed the entire input stream, so
+	// we should be at EOF now.
+	if token, err := decoder.Token(); err != io.EOF {
+		return nil, fmt.Errorf("unexpected token after valid JSON: %v", token)
+	}
+
+	return jv, nil
 }

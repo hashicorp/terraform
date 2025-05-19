@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ignoredFunctions = []string{"map", "list"}
+	ignoredFunctions = []string{"map", "list", "core::map", "core::list"}
 )
 
 // MetadataFunctionsCommand is a Command implementation that prints out information

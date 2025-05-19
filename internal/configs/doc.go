@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package configs contains types that represent Terraform configurations and
 // the different elements thereof.
@@ -17,6 +17,6 @@
 //
 // The Parser type is the main entry-point into this package. The LoadConfigDir
 // method can be used to load a single module directory, and then a full
-// configuration (including any descendent modules) can be produced using
+// configuration (including any descendant modules) can be produced using
 // the top-level BuildConfig method.
 package configs

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package planfile
 
@@ -7,7 +7,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -21,6 +22,25 @@ const tfstateFilename = "tfstate"
 const tfstatePreviousFilename = "tfstate-prev"
 const dependencyLocksFilename = ".terraform.lock.hcl" // matches the conventional name in an input configuration
 
+// ErrUnusableLocalPlan is an error wrapper to indicate that we *think* the
+// input represents plan file data, but can't use it for some reason (as
+// explained in the error text). Callers can check against this type with
+// errors.As() if they need to distinguish between corrupt plan files and more
+// fundamental problems like an empty file.
+type ErrUnusableLocalPlan struct {
+	inner error
+}
+
+func errUnusable(err error) *ErrUnusableLocalPlan {
+	return &ErrUnusableLocalPlan{inner: err}
+}
+func (e *ErrUnusableLocalPlan) Error() string {
+	return e.inner.Error()
+}
+func (e *ErrUnusableLocalPlan) Unwrap() error {
+	return e.inner
+}
+
 // Reader is the main type used to read plan files. Create a Reader by calling
 // Open.
 //
@@ -31,16 +51,18 @@ type Reader struct {
 	zip *zip.ReadCloser
 }
 
-// Open creates a Reader for the file at the given filename, or returns an
-// error if the file doesn't seem to be a planfile.
+// Open creates a Reader for the file at the given filename, or returns an error
+// if the file doesn't seem to be a planfile. NOTE: Most commands that accept a
+// plan file should use OpenWrapped instead, so they can support both local and
+// cloud plan files.
 func Open(filename string) (*Reader, error) {
 	r, err := zip.OpenReader(filename)
 	if err != nil {
 		// To give a better error message, we'll sniff to see if this looks
 		// like our old plan format from versions prior to 0.12.
-		if b, sErr := ioutil.ReadFile(filename); sErr == nil {
+		if b, sErr := os.ReadFile(filename); sErr == nil {
 			if bytes.HasPrefix(b, []byte("tfplan")) {
-				return nil, fmt.Errorf("the given plan file was created by an earlier version of Terraform; plan files cannot be shared between different Terraform versions")
+				return nil, errUnusable(fmt.Errorf("the given plan file was created by an earlier version of Terraform; plan files cannot be shared between different Terraform versions"))
 			}
 		}
 		return nil, err
@@ -84,12 +106,12 @@ func (r *Reader) ReadPlan() (*plans.Plan, error) {
 	if planFile == nil {
 		// This should never happen because we checked for this file during
 		// Open, but we'll check anyway to be safe.
-		return nil, fmt.Errorf("the plan file is invalid")
+		return nil, errUnusable(fmt.Errorf("the plan file is invalid"))
 	}
 
 	pr, err := planFile.Open()
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve plan from plan file: %s", err)
+		return nil, errUnusable(fmt.Errorf("failed to retrieve plan from plan file: %s", err))
 	}
 	defer pr.Close()
 
@@ -106,16 +128,16 @@ func (r *Reader) ReadPlan() (*plans.Plan, error) {
 	// access the prior state (this and the ReadStateFile method).
 	ret, err := readTfplan(pr)
 	if err != nil {
-		return nil, err
+		return nil, errUnusable(err)
 	}
 
 	prevRunStateFile, err := r.ReadPrevStateFile()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read previous run state from plan file: %s", err)
+		return nil, errUnusable(fmt.Errorf("failed to read previous run state from plan file: %s", err))
 	}
 	priorStateFile, err := r.ReadStateFile()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read prior state from plan file: %s", err)
+		return nil, errUnusable(fmt.Errorf("failed to read prior state from plan file: %s", err))
 	}
 
 	ret.PrevRunState = prevRunStateFile.State
@@ -134,12 +156,12 @@ func (r *Reader) ReadStateFile() (*statefile.File, error) {
 		if file.Name == tfstateFilename {
 			r, err := file.Open()
 			if err != nil {
-				return nil, fmt.Errorf("failed to extract state from plan file: %s", err)
+				return nil, errUnusable(fmt.Errorf("failed to extract state from plan file: %s", err))
 			}
 			return statefile.Read(r)
 		}
 	}
-	return nil, statefile.ErrNoState
+	return nil, errUnusable(statefile.ErrNoState)
 }
 
 // ReadPrevStateFile reads the previous state file embedded in the plan file, which
@@ -152,12 +174,12 @@ func (r *Reader) ReadPrevStateFile() (*statefile.File, error) {
 		if file.Name == tfstatePreviousFilename {
 			r, err := file.Open()
 			if err != nil {
-				return nil, fmt.Errorf("failed to extract previous state from plan file: %s", err)
+				return nil, errUnusable(fmt.Errorf("failed to extract previous state from plan file: %s", err))
 			}
 			return statefile.Read(r)
 		}
 	}
-	return nil, statefile.ErrNoState
+	return nil, errUnusable(statefile.ErrNoState)
 }
 
 // ReadConfigSnapshot reads the configuration snapshot embedded in the plan
@@ -215,7 +237,7 @@ func (r *Reader) ReadDependencyLocks() (*depsfile.Locks, tfdiags.Diagnostics) {
 				))
 				return nil, diags
 			}
-			src, err := ioutil.ReadAll(r)
+			src, err := io.ReadAll(r)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,

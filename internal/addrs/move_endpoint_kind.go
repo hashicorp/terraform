@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package addrs
 
@@ -9,7 +9,7 @@ import "fmt"
 // address can refer to.
 type MoveEndpointKind rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type MoveEndpointKind
+//go:generate go tool golang.org/x/tools/cmd/stringer -type MoveEndpointKind
 
 const (
 	// MoveEndpointModule indicates that a move endpoint either refers to

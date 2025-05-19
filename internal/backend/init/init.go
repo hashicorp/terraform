@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package init contains the list of backends that can be initialized and
 // basic helper functions for initializing those backends.
@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	backendRemote "github.com/hashicorp/terraform/internal/backend/remote"
 	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
@@ -22,6 +23,7 @@ import (
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	backendKubernetes "github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes"
+	backendOCI "github.com/hashicorp/terraform/internal/backend/remote-state/oci"
 	backendOSS "github.com/hashicorp/terraform/internal/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/internal/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/internal/backend/remote-state/s3"
@@ -66,8 +68,9 @@ func Init(services *disco.Disco) {
 		"oss":        func() backend.Backend { return backendOSS.New() },
 		"pg":         func() backend.Backend { return backendPg.New() },
 		"s3":         func() backend.Backend { return backendS3.New() },
+		"oci":        func() backend.Backend { return backendOCI.New() },
 
-		// Terraform Cloud 'backend'
+		// HCP Terraform 'backend'
 		// This is an implementation detail only, used for the cloud package
 		"cloud": func() backend.Backend { return backendCloud.New(services) },
 	}
@@ -127,15 +130,15 @@ func (b deprecatedBackendShim) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.
 // warning during validation.
 func deprecateBackend(b backend.Backend, message string) backend.Backend {
 	// Since a Backend wrapped by deprecatedBackendShim can no longer be
-	// asserted as an Enhanced or Local backend, disallow those types here
+	// asserted as an Operations Backend or Local backend, disallow those types here
 	// entirely.  If something other than a basic backend.Backend needs to be
 	// deprecated, we can add that functionality to schema.Backend or the
 	// backend itself.
-	if _, ok := b.(backend.Enhanced); ok {
-		panic("cannot use DeprecateBackend on an Enhanced Backend")
+	if _, ok := b.(backendrun.OperationsBackend); ok {
+		panic("cannot use DeprecateBackend on a Backend that supports operations")
 	}
 
-	if _, ok := b.(backend.Local); ok {
+	if _, ok := b.(backendrun.Local); ok {
 		panic("cannot use DeprecateBackend on a Local Backend")
 	}
 

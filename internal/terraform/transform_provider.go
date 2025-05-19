@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -11,11 +11,16 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config) GraphTransformer {
+func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config, externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface) GraphTransformer {
 	return GraphTransformMulti(
+		// Add placeholder nodes for any externally-configured providers
+		&externalProviderTransformer{
+			ExternalProviderConfigs: externalProviderConfigs,
+		},
 		// Add providers from the config
 		&ProviderConfigTransformer{
 			Config:   config,
@@ -257,28 +262,48 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	for _, p := range pm {
 		key := p.ProviderAddr().String()
 
-		// get the close provider of this type if we alread created it
-		closer := cpm[key]
-
-		if closer == nil {
-			// create a closer for this provider type
-			closer = &graphNodeCloseProvider{Addr: p.ProviderAddr()}
-			g.Add(closer)
-			cpm[key] = closer
+		// make sure we haven't created the closer node already
+		_, ok := cpm[key]
+		if ok {
+			log.Printf("[ERROR] CloseProviderTransformer: already created close node for %s", key)
+			continue
 		}
+
+		// create a closer for this provider type
+		closer := &graphNodeCloseProvider{Addr: p.ProviderAddr()}
+		g.Add(closer)
+		cpm[key] = closer
 
 		// Close node depends on the provider itself
 		// this is added unconditionally, so it will connect to all instances
 		// of the provider. Extra edges will be removed by transitive
 		// reduction.
 		g.Connect(dag.BasicEdge(closer, p))
+	}
 
-		// connect all the provider's resources to the close node
-		for _, s := range g.UpEdges(p) {
-			if _, ok := s.(GraphNodeProviderConsumer); ok {
-				g.Connect(dag.BasicEdge(closer, s))
-			}
+	// Now look for all provider consumers and connect them to the appropriate closers.
+	for _, v := range g.Vertices() {
+		pc, ok := v.(GraphNodeProviderConsumer)
+		if !ok {
+			continue
 		}
+
+		p, exact := pc.ProvidedBy()
+		if p == nil && exact {
+			// this node does not require a provider
+			continue
+		}
+
+		provider, ok := p.(addrs.AbsProviderConfig)
+		if !ok {
+			return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
+		}
+
+		closer, ok := cpm[provider.String()]
+		if !ok {
+			return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
+		}
+		g.Connect(dag.BasicEdge(closer, v))
 	}
 
 	return err
@@ -494,7 +519,9 @@ func (t *ProviderConfigTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	t.providers = make(map[string]GraphNodeProvider)
+	// We'll start with any provider nodes that are already in the graph,
+	// just so we can avoid creating any duplicates.
+	t.providers = providerVertexMap(g)
 	t.proxiable = make(map[string]bool)
 
 	// Start the transformation process
@@ -710,7 +737,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		addr := apn.ProviderAddr()
 
 		// Get the configuration.
-		mc := t.Config.Descendent(addr.Module)
+		mc := t.Config.Descendant(addr.Module)
 		if mc == nil {
 			log.Printf("[TRACE] ProviderConfigTransformer: no configuration available for %s", addr.String())
 			continue
@@ -729,5 +756,40 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		}
 	}
 
+	return nil
+}
+
+// externalProviderTransformer adds placeholder graph nodes for any providers
+// that were already instantiated and configured by the external caller.
+//
+// This should typically run before any other transformers that can add
+// nodes representing provider configurations, so that the others can notice
+// that a node is already present and therefore skip adding a duplicate.
+type externalProviderTransformer struct {
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+}
+
+func (t *externalProviderTransformer) Transform(g *Graph) error {
+	existing := providerVertexMap(g)
+
+	for rootAddr := range t.ExternalProviderConfigs {
+		absAddr := rootAddr.AbsProviderConfig()
+		if existing, exists := existing[absAddr.String()]; exists {
+			// We must not allow a non-external graph node to exist for
+			// an externally-configured provider, because that would
+			// cause strange things to happen. We shouldn't get here in
+			// practice because externalProviderTransformer should be
+			// the first transformer that introduces graph nodes representing
+			// provider configurations.
+			return fmt.Errorf("conflicting %T node for externally-configured provider %s (this is a bug in Terraform)", existing, absAddr)
+		}
+		abstract := &NodeAbstractProvider{
+			Addr: absAddr,
+		}
+		concrete := &nodeExternalProvider{
+			NodeAbstractProvider: abstract,
+		}
+		g.Add(concrete)
+	}
 	return nil
 }

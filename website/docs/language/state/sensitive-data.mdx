@@ -6,20 +6,24 @@ description: Sensitive data in Terraform state.
 # Sensitive Data in State
 
 Terraform state can contain sensitive data, depending on the resources in use
-and your definition of "sensitive." The state contains resource IDs and all
-resource attributes. For resources such as databases, this may contain initial
+and your definition of "sensitive." Unless your variables or resources are `ephemeral`, the state contains resource IDs and all resource attributes. For resources such as databases, this can contain initial
 passwords.
 
 When using local state, state is stored in plain-text JSON files.
 
-When using [remote state](/terraform/language/state/remote), state is only ever held in
-memory when used by Terraform. It may be encrypted at rest, but this depends on
-the specific remote state backend.
+When using [remote state](/terraform/language/state/remote), state is only ever held in memory when used by Terraform. It may be encrypted at rest, but this depends on the specific remote state backend.
+
+## Ephemeral data
+
+-> **Note**: Ephemeral variables, outputs, and resources are available in Terraform v1.10 and later.
+
+Terraform allows you to mark variables and outputs as ephemeral. Providers can also support specific `ephemeral` resources. Ephemerality in Terraform means that the data of a block is available during runtime, but Terraform does not write that data to state or plan files. The `ephemeral` property is helpful when managing credentials, tokens, or other temporary resources you do not want to store in Terraform state files.
+
+Learn more about defining ephemeral [input variables](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files), and [resources](/terraform/language/resources/ephemeral).
 
 ## Recommendations
 
-If you manage any sensitive data with Terraform (like database passwords, user
-passwords, or private keys), treat the state itself as sensitive data.
+Treat the state as sensitive data if you manage secret credentials like database passwords, user passwords, or private keys with Terraform. You can also mark your sensitive data in variables as `ephemeral` to prevent Terraform from writing those variables to your state and plan files.
 
 Storing state remotely can provide better security. As of Terraform 0.9,
 Terraform does not persist state to the local disk when remote state is in use,
@@ -27,11 +31,12 @@ and some backends can be configured to encrypt the state data at rest.
 
 For example:
 
-- [Terraform Cloud](https://cloud.hashicorp.com/products/terraform) always encrypts state at rest and
-  protects it with TLS in transit. Terraform Cloud also knows the identity of
+- [HCP Terraform](https://cloud.hashicorp.com/products/terraform) always encrypts state at rest and
+  protects it with TLS in transit. HCP Terraform also knows the identity of
   the user requesting state and maintains a history of state changes. This can
   be used to control access and track activity. [Terraform Enterprise](/terraform/enterprise)
   also supports detailed audit logging.
 - The S3 backend supports encryption at rest when the `encrypt` option is
   enabled. IAM policies and logging can be used to identify any invalid access.
   Requests for the state go over a TLS connection.
+- The GCS (Google Cloud Storage) backend supports using [customer-supplied](/terraform/language/backend/gcs#customer-supplied-encryption-keys) or [customer-managed (Cloud KMS)](/terraform/language/backend/gcs#customer-managed-encryption-keys-cloud-kms) encryption keys.

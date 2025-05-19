@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package funcs
 
@@ -46,14 +46,6 @@ func TestSensitive(t *testing.T) {
 			``,
 		},
 		{
-			// A value with some non-standard mark gets "fixed" to be marked
-			// with the standard "sensitive" mark. (This situation occurring
-			// would imply an inconsistency/bug elsewhere, so we're just
-			// being robust about it here.)
-			cty.NumberIntVal(1).Mark("bloop"),
-			``,
-		},
-		{
 			// A value deep already marked is allowed and stays marked,
 			// _and_ we'll also mark the outer collection as sensitive.
 			cty.ListVal([]cty.Value{cty.NumberIntVal(1).Mark(marks.Sensitive)}),
@@ -81,17 +73,7 @@ func TestSensitive(t *testing.T) {
 				t.Errorf("result is not marked sensitive")
 			}
 
-			gotRaw, gotMarks := got.Unmark()
-			if len(gotMarks) != 1 {
-				// We're only expecting to have the "sensitive" mark we checked
-				// above. Any others are an error, even if they happen to
-				// appear alongside "sensitive". (We might change this rule
-				// if someday we decide to use marks for some additional
-				// unrelated thing in Terraform, but currently we assume that
-				// _all_ marks imply sensitive, and so returning any other
-				// marks would be confusing.)
-				t.Errorf("extraneous marks %#v", gotMarks)
-			}
+			gotRaw, _ := got.Unmark()
 
 			// Disregarding shallow marks, the result should have the same
 			// effective value as the input.
@@ -130,16 +112,16 @@ func TestNonsensitive(t *testing.T) {
 			``,
 		},
 
-		// Passing a value that is already non-sensitive is an error,
-		// because this function should always be used with specific
-		// intention, not just as a "make everything visible" hammer.
+		// Passing a value that is already non-sensitive is not an error,
+		// as this function may be used with specific to ensure that all
+		// values are indeed non-sensitive
 		{
 			cty.NumberIntVal(1),
-			`the given value is not sensitive, so this call is redundant`,
+			``,
 		},
 		{
 			cty.NullVal(cty.String),
-			`the given value is not sensitive, so this call is redundant`,
+			``,
 		},
 
 		// Unknown values may become sensitive once they are known, so we
@@ -179,4 +161,76 @@ func TestNonsensitive(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIssensitive(t *testing.T) {
+	tests := []struct {
+		Input     cty.Value
+		Sensitive cty.Value
+		WantErr   string
+	}{
+		{
+			cty.NumberIntVal(1).Mark(marks.Sensitive),
+			cty.True,
+			``,
+		},
+		{
+			cty.NumberIntVal(1),
+			cty.False,
+			``,
+		},
+		{
+			cty.DynamicVal.Mark(marks.Sensitive),
+			cty.True,
+			``,
+		},
+		{
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.True,
+			``,
+		},
+		{
+			cty.NullVal(cty.EmptyObject).Mark(marks.Sensitive),
+			cty.True,
+			``,
+		},
+		{
+			cty.NullVal(cty.String),
+			cty.False,
+			``,
+		},
+		{
+			cty.DynamicVal,
+			cty.UnknownVal(cty.Bool),
+			``,
+		},
+		{
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.Bool),
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("issensitive(%#v)", test.Input), func(t *testing.T) {
+			got, err := Issensitive(test.Input)
+
+			if test.WantErr != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.WantErr; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Sensitive) {
+				t.Errorf("wrong result \ngot:  %#v\nwant: %#v", got, test.Sensitive)
+			}
+		})
+	}
+
 }

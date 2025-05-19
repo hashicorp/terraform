@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package kubernetes
 
@@ -195,5 +195,26 @@ func cleanupK8sResources(t *testing.T) {
 
 	if len(errs) > 0 {
 		t.Fatal(errs)
+	}
+}
+
+func Test_hasNumericSuffix(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"my-secret-123", true},
+		{"my-secret-abcd", false},
+		{"nodashhere", false},
+		{"another-secret-45abc", false},
+		{"some-thing-1", true},
+		{"some-thing-1-23", true},
+	}
+
+	for _, tt := range tests {
+		isNumeric := hasNumericSuffix(tt.input, "-")
+		if isNumeric != tt.expected {
+			t.Errorf("expected %v, got %v for input %s", tt.expected, isNumeric, tt.input)
+		}
 	}
 }

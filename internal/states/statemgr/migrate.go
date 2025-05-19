@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package statemgr
 
@@ -132,7 +132,7 @@ func Export(mgr Reader) *statefile.File {
 // is the receiver of that method and the "second" is the given argument.
 type SnapshotMetaRel rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=SnapshotMetaRel
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=SnapshotMetaRel
 
 const (
 	// SnapshotOlder indicates that two snapshots have a common lineage and

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonformat
 
@@ -30,6 +30,19 @@ type JSONLog struct {
 	Diagnostic *viewsjson.Diagnostic  `json:"diagnostic"`
 	Outputs    viewsjson.Outputs      `json:"outputs"`
 	Hook       map[string]interface{} `json:"hook"`
+
+	// Special fields for test messages.
+
+	TestRun  string `json:"@testrun,omitempty"`
+	TestFile string `json:"@testfile,omitempty"`
+
+	TestFileStatus     *viewsjson.TestFileStatus     `json:"test_file,omitempty"`
+	TestRunStatus      *viewsjson.TestRunStatus      `json:"test_run,omitempty"`
+	TestFileCleanup    *viewsjson.TestFileCleanup    `json:"test_cleanup,omitempty"`
+	TestSuiteSummary   *viewsjson.TestSuiteSummary   `json:"test_summary,omitempty"`
+	TestFatalInterrupt *viewsjson.TestFatalInterrupt `json:"test_interrupt,omitempty"`
+	TestState          *State                        `json:"test_state,omitempty"`
+	TestPlan           *Plan                         `json:"test_plan,omitempty"`
 }
 
 const (
@@ -48,6 +61,23 @@ const (
 	LogRefreshStart      JSONLogType = "refresh_start"
 	LogResourceDrift     JSONLogType = "resource_drift"
 	LogVersion           JSONLogType = "version"
+
+	// Ephemeral operation messages
+	LogEphemeralOpStart    JSONLogType = "ephemeral_op_start"
+	LogEphemeralOpComplete JSONLogType = "ephemeral_op_complete"
+	LogEphemeralOpErrored  JSONLogType = "ephemeral_op_errored"
+
+	// Test Messages
+	LogTestAbstract  JSONLogType = "test_abstract"
+	LogTestFile      JSONLogType = "test_file"
+	LogTestRun       JSONLogType = "test_run"
+	LogTestPlan      JSONLogType = "test_plan"
+	LogTestState     JSONLogType = "test_state"
+	LogTestSummary   JSONLogType = "test_summary"
+	LogTestCleanup   JSONLogType = "test_cleanup"
+	LogTestInterrupt JSONLogType = "test_interrupt"
+	LogTestStatus    JSONLogType = "test_status"
+	LogTestRetry     JSONLogType = "test_retry"
 )
 
 func incompatibleVersions(localVersion, remoteVersion string) bool {
@@ -82,7 +112,7 @@ type Renderer struct {
 	RunningInAutomation bool
 }
 
-func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...PlanRendererOpt) {
+func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...plans.Quality) {
 	if incompatibleVersions(jsonplan.FormatVersion, plan.PlanFormatVersion) || incompatibleVersions(jsonprovider.FormatVersion, plan.ProviderFormatVersion) {
 		renderer.Streams.Println(format.WordWrap(
 			renderer.Colorize.Color("\n[bold][red]Warning:[reset][bold] This plan was generated using a different version of Terraform, the diff presented here may be missing representations of recent features."),
@@ -119,11 +149,18 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		LogPlannedChange,
 		LogProvisionComplete,
 		LogProvisionErrored,
-		LogApplyErrored:
+		LogApplyErrored,
+		LogEphemeralOpErrored,
+		LogTestAbstract,
+		LogTestStatus,
+		LogTestRetry,
+		LogTestPlan,
+		LogTestState,
+		LogTestInterrupt:
 		// We won't display these types of logs
 		return nil
 
-	case LogApplyStart, LogApplyComplete, LogRefreshStart, LogProvisionStart, LogResourceDrift:
+	case LogApplyStart, LogApplyComplete, LogRefreshStart, LogProvisionStart, LogResourceDrift, LogEphemeralOpStart, LogEphemeralOpComplete:
 		msg := fmt.Sprintf(renderer.Colorize.Color("[bold]%s[reset]"), log.Message)
 		renderer.Streams.Println(msg)
 
@@ -167,6 +204,91 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		// generates a plan change summary for us
 		msg := fmt.Sprintf(renderer.Colorize.Color("[bold][green]%s[reset]"), log.Message)
 		renderer.Streams.Println("\n" + msg + "\n")
+
+	case LogTestFile:
+		status := log.TestFileStatus
+
+		var msg string
+		switch status.Progress {
+		case "starting":
+			msg = fmt.Sprintf(renderer.Colorize.Color("%s... [light_gray]in progress[reset]"), status.Path)
+		case "teardown":
+			msg = fmt.Sprintf(renderer.Colorize.Color("%s... [light_gray]tearing down[reset]"), status.Path)
+		case "complete":
+			switch status.Status {
+			case "error", "fail":
+				msg = fmt.Sprintf(renderer.Colorize.Color("%s... [red]fail[reset]"), status.Path)
+			case "pass":
+				msg = fmt.Sprintf(renderer.Colorize.Color("%s... [green]pass[reset]"), status.Path)
+			case "skip", "pending":
+				msg = fmt.Sprintf(renderer.Colorize.Color("%s... [light_gray]%s[reset]"), status.Path, string(status.Status))
+			}
+		case "running":
+			// Don't print anything for the running status.
+			break
+		}
+
+		renderer.Streams.Println(msg)
+
+	case LogTestRun:
+		status := log.TestRunStatus
+
+		if status.Progress != "complete" {
+			// Don't print anything for status updates, we only report when the
+			// run is actually finished.
+			break
+		}
+
+		var msg string
+		switch status.Status {
+		case "error", "fail":
+			msg = fmt.Sprintf(renderer.Colorize.Color("  %s... [red]fail[reset]"), status.Run)
+		case "pass":
+			msg = fmt.Sprintf(renderer.Colorize.Color("  %s... [green]pass[reset]"), status.Run)
+		case "skip", "pending":
+			msg = fmt.Sprintf(renderer.Colorize.Color("  %s... [light_gray]%s[reset]"), status.Run, string(status.Status))
+		}
+
+		renderer.Streams.Println(msg)
+
+	case LogTestSummary:
+		renderer.Streams.Println() // We start our summary with a line break.
+
+		summary := log.TestSuiteSummary
+
+		switch summary.Status {
+		case "pending", "skip":
+			renderer.Streams.Print("Executed 0 tests")
+			if summary.Skipped > 0 {
+				renderer.Streams.Printf(", %d skipped.\n", summary.Skipped)
+			} else {
+				renderer.Streams.Println(".")
+			}
+			return nil
+		case "pass":
+			renderer.Streams.Print(renderer.Colorize.Color("[green]Success![reset] "))
+		case "fail", "error":
+			renderer.Streams.Print(renderer.Colorize.Color("[red]Failure![reset] "))
+		}
+
+		renderer.Streams.Printf("%d passed, %d failed", summary.Passed, summary.Failed+summary.Errored)
+		if summary.Skipped > 0 {
+			renderer.Streams.Printf(", %d skipped.\n", summary.Skipped)
+		} else {
+			renderer.Streams.Println(".")
+		}
+
+	case LogTestCleanup:
+		cleanup := log.TestFileCleanup
+
+		renderer.Streams.Eprintln(format.WordWrap(log.Message, renderer.Streams.Stderr.Columns()))
+		for _, resource := range cleanup.FailedResources {
+			if len(resource.DeposedKey) > 0 {
+				renderer.Streams.Eprintf(" - %s (%s)\n", resource.Instance, resource.DeposedKey)
+			} else {
+				renderer.Streams.Eprintf(" - %s\n", resource.Instance)
+			}
+		}
 
 	default:
 		// If the log type is not a known log type, we will just print the log message

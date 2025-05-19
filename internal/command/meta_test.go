@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -14,10 +14,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/mitchellh/cli"
 )
 
 func TestMetaColorize(t *testing.T) {
@@ -217,6 +217,60 @@ func TestMeta_Env(t *testing.T) {
 	if env != backend.DefaultStateName {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
 	}
+}
+
+func TestMeta_StatePersistInterval(t *testing.T) {
+	m := new(Meta)
+	t.Run("when the env var is not defined", func(t *testing.T) {
+		interval := m.StatePersistInterval()
+		if interval != DefaultStatePersistInterval {
+			t.Fatalf("expected state persist interval to be %d, got: %d", DefaultStatePersistInterval, interval)
+		}
+	})
+	t.Run("with valid interval greater than the default", func(t *testing.T) {
+		os.Setenv(StatePersistIntervalEnvVar, "25")
+		t.Cleanup(func() {
+			os.Unsetenv(StatePersistIntervalEnvVar)
+		})
+
+		interval := m.StatePersistInterval()
+		if interval != 25 {
+			t.Fatalf("expected state persist interval to be 25, got: %d", interval)
+		}
+	})
+	t.Run("with a valid interval less than the default", func(t *testing.T) {
+		os.Setenv(StatePersistIntervalEnvVar, "10")
+		t.Cleanup(func() {
+			os.Unsetenv(StatePersistIntervalEnvVar)
+		})
+
+		interval := m.StatePersistInterval()
+		if interval != DefaultStatePersistInterval {
+			t.Fatalf("expected state persist interval to be %d, got: %d", DefaultStatePersistInterval, interval)
+		}
+	})
+	t.Run("with invalid integer interval", func(t *testing.T) {
+		os.Setenv(StatePersistIntervalEnvVar, "foo")
+		t.Cleanup(func() {
+			os.Unsetenv(StatePersistIntervalEnvVar)
+		})
+
+		interval := m.StatePersistInterval()
+		if interval != DefaultStatePersistInterval {
+			t.Fatalf("expected state persist interval to be %d, got: %d", DefaultStatePersistInterval, interval)
+		}
+	})
+	t.Run("with negative integer interval", func(t *testing.T) {
+		os.Setenv(StatePersistIntervalEnvVar, "-10")
+		t.Cleanup(func() {
+			os.Unsetenv(StatePersistIntervalEnvVar)
+		})
+
+		interval := m.StatePersistInterval()
+		if interval != DefaultStatePersistInterval {
+			t.Fatalf("expected state persist interval to be %d, got: %d", DefaultStatePersistInterval, interval)
+		}
+	})
 }
 
 func TestMeta_Workspace_override(t *testing.T) {

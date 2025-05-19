@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
 
@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -26,11 +25,11 @@ type stateValues struct {
 	RootModule module            `json:"root_module,omitempty"`
 }
 
-// attributeValues is the JSON representation of the attribute values of the
+// AttributeValues is the JSON representation of the attribute values of the
 // resource, whose structure depends on the resource type schema.
 type attributeValues map[string]interface{}
 
-func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+func marshalAttributeValues(value cty.Value) attributeValues {
 	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
@@ -47,7 +46,7 @@ func marshalAttributeValues(value cty.Value, schema *configschema.Block) attribu
 
 // marshalPlannedOutputs takes a list of changes and returns a map of output
 // values
-func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
+func marshalPlannedOutputs(changes *plans.ChangesSrc) (map[string]output, error) {
 	if changes.Outputs == nil {
 		// No changes - we're done here!
 		return nil, nil
@@ -93,7 +92,7 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
 
 }
 
-func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (module, error) {
+func marshalPlannedValues(changes *plans.ChangesSrc, schemas *terraform.Schemas) (module, error) {
 	var ret module
 
 	// build two maps:
@@ -166,7 +165,7 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 }
 
 // marshalPlanResources
-func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, error) {
+func marshalPlanResources(changes *plans.ChangesSrc, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, error) {
 	var ret []resource
 
 	for _, ri := range ris {
@@ -195,16 +194,16 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			)
 		}
 
-		schema, schemaVer := schemas.ResourceTypeConfig(
+		schema := schemas.ResourceTypeConfig(
 			r.ProviderAddr.Provider,
 			r.Addr.Resource.Resource.Mode,
 			resource.Type,
 		)
-		if schema == nil {
+		if schema.Body == nil {
 			return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
 		}
-		resource.SchemaVersion = schemaVer
-		changeV, err := r.Decode(schema.ImpliedType())
+		resource.SchemaVersion = uint64(schema.Version)
+		changeV, err := r.Decode(schema)
 		if err != nil {
 			return nil, err
 		}
@@ -220,10 +219,10 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
-				resource.AttributeValues = marshalAttributeValues(changeV.After, schema)
+				resource.AttributeValues = marshalAttributeValues(changeV.After)
 			} else {
 				knowns := omitUnknowns(changeV.After)
-				resource.AttributeValues = marshalAttributeValues(knowns, schema)
+				resource.AttributeValues = marshalAttributeValues(knowns)
 			}
 		}
 
@@ -233,6 +232,12 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			return nil, err
 		}
 		resource.SensitiveValues = v
+
+		if schema.Identity != nil && !changeV.AfterIdentity.IsNull() {
+			identityVersion := uint64(schema.IdentityVersion)
+			resource.IdentitySchemaVersion = &identityVersion
+			resource.IdentityValues = marshalAttributeValues(changeV.AfterIdentity)
+		}
 
 		ret = append(ret, resource)
 	}
@@ -247,7 +252,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 // marshalPlanModules iterates over a list of modules to recursively describe
 // the full module tree.
 func marshalPlanModules(
-	changes *plans.Changes,
+	changes *plans.ChangesSrc,
 	schemas *terraform.Schemas,
 	childModules []addrs.ModuleInstance,
 	moduleMap map[string][]addrs.ModuleInstance,

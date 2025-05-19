@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package lang
 
@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
 // Scope is the main type in this package, allowing dynamic evaluation of
@@ -19,6 +20,14 @@ import (
 type Scope struct {
 	// Data is used to resolve references in expressions.
 	Data Data
+
+	// ParseRef is a function that the scope uses to extract references from
+	// a hcl.Traversal. This controls the type of references the scope currently
+	// supports. As an example, the testing scope can reference outputs directly
+	// while the main Terraform context scope can not. This means that this
+	// function for the testing scope will happily return outputs, while the
+	// main context scope would fail if a user attempts to reference an output.
+	ParseRef langrefs.ParseRef
 
 	// SelfAddr is the address that the "self" object should be an alias of,
 	// or nil if the "self" object should not be available at all.
@@ -41,6 +50,18 @@ type Scope struct {
 	// important during a plan phase to avoid generating results that could
 	// then differ during apply.
 	PureOnly bool
+
+	// ExternalFuncs specifies optional additional functions contributed by
+	// components outside of Terraform Core.
+	//
+	// Do not modify anything this field refers to after constructing a
+	// Scope value; Scope methods may derive and cache other data from
+	// this data structure and will assume this entire structure is immutable.
+	ExternalFuncs ExternalFuncs
+
+	// FunctionResults stores the results from possibly impure functions to
+	// check for consistency between plan and apply.
+	FunctionResults *FunctionResults
 
 	funcs     map[string]function.Function
 	funcsLock sync.Mutex

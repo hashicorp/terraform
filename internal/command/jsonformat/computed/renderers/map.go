@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package renderers
 
@@ -71,7 +71,7 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 
 	elementOpts := opts.Clone()
 	elementOpts.OverrideNullSuffix = diff.Action == plans.Delete || renderer.overrideNullSuffix
-	elementOpts.OverrideForcesReplacement = forcesReplacementChildren
+	elementOpts.ForceForcesReplacement = forcesReplacementChildren
 
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(forcesReplacementSelf, opts)))

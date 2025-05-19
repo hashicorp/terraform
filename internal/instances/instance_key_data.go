@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package instances
 
@@ -28,4 +28,48 @@ type RepetitionData struct {
 	// For correct operation, EachKey must always be either of type cty.String
 	// or cty.Number if not nil.
 	EachKey, EachValue cty.Value
+}
+
+// TotallyUnknownRepetitionData is a [RepetitionData] value for situations
+// where don't even know yet what type of repetition will be used.
+var TotallyUnknownRepetitionData = RepetitionData{
+	CountIndex: cty.UnknownVal(cty.Number),
+	EachKey:    cty.UnknownVal(cty.String),
+	EachValue:  cty.DynamicVal,
+}
+
+// UnknownCountRepetitionData is a suitable [RepetitionData] value to use when
+// evaluating the configuration of an object which has a count argument that
+// is currently unknown.
+var UnknownCountRepetitionData = RepetitionData{
+	CountIndex: cty.UnknownVal(cty.Number),
+}
+
+// UnknownForEachRepetitionData generates a suitable [RepetitionData] value to
+// use when evaluating the configuration of an object whose for_each argument
+// is currently unknown.
+//
+// forEachType should be the type constraint of the unknown for_each argument
+// value. This should be of a type that is valid to use in for_each, but
+// if not then this will just return a very general RepetitionData that would
+// be suitable (but less specific) for any valid for_each value.
+func UnknownForEachRepetitionData(forEachType cty.Type) RepetitionData {
+	switch {
+	case forEachType.IsMapType():
+		return RepetitionData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.UnknownVal(forEachType.ElementType()),
+		}
+	case forEachType.IsSetType() && forEachType.ElementType().Equals(cty.String):
+		return RepetitionData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.UnknownVal(cty.String),
+		}
+	default:
+		// We know that each.key is always a string, at least.
+		return RepetitionData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.DynamicVal,
+		}
+	}
 }

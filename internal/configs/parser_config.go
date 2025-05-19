@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configs
 
@@ -32,12 +32,59 @@ func (p *Parser) LoadConfigFileOverride(path string) (*File, hcl.Diagnostics) {
 	return p.loadConfigFile(path, true)
 }
 
+// LoadTestFile reads the file at the given path and parses it as a Terraform
+// test file.
+//
+// It references the same LoadHCLFile as LoadConfigFile, so inherits the same
+// syntax selection behaviours.
+func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	test, testDiags := loadTestFile(body)
+	diags = append(diags, testDiags...)
+	return test, diags
+}
+
+func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	query, queryDiags := loadQueryFile(body)
+	diags = append(diags, queryDiags...)
+	return query, diags
+}
+
+// LoadMockDataFile reads the file at the given path and parses it as a
+// Terraform mock data file.
+//
+// It references the same LoadHCLFile as LoadConfigFile, so inherits the same
+// syntax selection behaviours.
+func (p *Parser) LoadMockDataFile(path string, useForPlanDefault bool) (*MockData, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	data, dataDiags := decodeMockDataBody(body, useForPlanDefault, MockDataFileOverrideSource)
+	diags = append(diags, dataDiags...)
+	return data, diags
+}
+
 func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnostics) {
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
 	}
 
+	return parseConfigFile(body, diags, override, p.allowExperiments)
+}
+
+func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperiments bool) (*File, hcl.Diagnostics) {
 	file := &File{}
 
 	var reqDiags hcl.Diagnostics
@@ -47,7 +94,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 	// We'll load the experiments first because other decoding logic in the
 	// loop below might depend on these experiments.
 	var expDiags hcl.Diagnostics
-	file.ActiveExperiments, expDiags = sniffActiveExperiments(body, p.allowExperiments)
+	file.ActiveExperiments, expDiags = sniffActiveExperiments(body, allowExperiments)
 	diags = append(diags, expDiags...)
 
 	content, contentDiags := body.Content(configFileSchema)
@@ -84,7 +131,9 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				case "required_providers":
 					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
-					file.RequiredProviders = append(file.RequiredProviders, reqs)
+					if reqs != nil {
+						file.RequiredProviders = append(file.RequiredProviders, reqs)
+					}
 
 				case "provider_meta":
 					providerCfg, cfgDiags := decodeProviderMetaBlock(innerBlock)
@@ -111,7 +160,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			})
 
 		case "provider":
-			cfg, cfgDiags := decodeProviderBlock(block)
+			cfg, cfgDiags := decodeProviderBlock(block, false)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ProviderConfigs = append(file.ProviderConfigs, cfg)
@@ -144,7 +193,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			}
 
 		case "resource":
-			cfg, cfgDiags := decodeResourceBlock(block, override)
+			cfg, cfgDiags := decodeResourceBlock(block, override, allowExperiments)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ManagedResources = append(file.ManagedResources, cfg)
@@ -157,11 +206,25 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				file.DataResources = append(file.DataResources, cfg)
 			}
 
+		case "ephemeral":
+			cfg, cfgDiags := decodeEphemeralBlock(block, override)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.EphemeralResources = append(file.EphemeralResources, cfg)
+			}
+
 		case "moved":
 			cfg, cfgDiags := decodeMovedBlock(block)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Moved = append(file.Moved, cfg)
+			}
+
+		case "removed":
+			cfg, cfgDiags := decodeRemovedBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Removed = append(file.Removed, cfg)
 			}
 
 		case "import":
@@ -176,6 +239,15 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Checks = append(file.Checks, cfg)
+			}
+
+		case "action":
+			if allowExperiments {
+				cfg, cfgDiags := decodeActionBlock(block)
+				diags = append(diags, cfgDiags...)
+				if cfg != nil {
+					file.Actions = append(file.Actions, cfg)
+				}
 			}
 
 		default:
@@ -266,7 +338,18 @@ var configFileSchema = &hcl.BodySchema{
 			LabelNames: []string{"type", "name"},
 		},
 		{
+			Type:       "ephemeral",
+			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "action",
+			LabelNames: []string{"type", "name"},
+		},
+		{
 			Type: "moved",
+		},
+		{
+			Type: "removed",
 		},
 		{
 			Type: "import",

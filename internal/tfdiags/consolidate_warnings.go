@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
 
@@ -46,9 +46,8 @@ func (diags Diagnostics) ConsolidateWarnings(threshold int) Diagnostics {
 			continue
 		}
 
-		if _, ok := diag.(CheckBlockDiagnostic); ok {
-			// Check diagnostics are never consolidated, the users have asked
-			// to be informed about each of these.
+		if DoNotConsolidateDiagnostic(diag) {
+			// Then do not consolidate this diagnostic.
 			newDiags = newDiags.Append(diag)
 			continue
 		}

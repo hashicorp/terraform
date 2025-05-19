@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package json
 
@@ -22,7 +22,7 @@ type ChangeSummary struct {
 }
 
 // The summary strings for apply and plan are accidentally a public interface
-// used by Terraform Cloud and Terraform Enterprise, so the exact formats of
+// used by HCP Terraform and Terraform Enterprise, so the exact formats of
 // these strings are important.
 func (cs *ChangeSummary) String() string {
 	switch cs.Operation {

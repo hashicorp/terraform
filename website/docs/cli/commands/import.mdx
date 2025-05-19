@@ -1,14 +1,15 @@
 ---
-page_title: 'Command: import'
-description: The terraform import command brings existing resources into Terraform state.
+page_title: terraform import command reference
+description: The `terraform import` command imports existing resources into Terraform state.
 ---
 
-# Command: import
+# `terraform import` command reference
+
+The `terraform import` command imports existing resources into Terraform. Refer to [Import](/terraform/cli/import) for additional information.
+
 
 > **Hands-on:** Try the [Import Terraform Configuration](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-The `terraform import` command [imports existing resources](/terraform/cli/import)
-into Terraform.
 
 ## Usage
 
@@ -35,6 +36,8 @@ If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
 [the State section](/terraform/language/state).
 
+Instead of manually importing resources, you can add the `import` block to your Terraform configurations so that Terraform imports resources when you run the `terraform apply` command. Using Terraform configurations  lets you automate resource imports as part of your CI/CD pipelines. Refer to the [`import` block reference documentation](/terraform/language/import) for additional information.
+
 The command-line flags are all optional. The following flags are available:
 
 - `-config=path` - Path to directory of Terraform configuration files that
@@ -52,7 +55,7 @@ The command-line flags are all optional. The following flags are available:
 
 - `-no-color` - If specified, output won't contain any color.
 
-- `-parallelism=n` - Limit the number of concurrent operation as Terraform
+- `-parallelism=n` - Limit the number of concurrent operations as Terraform
   [walks the graph](/terraform/internals/graph#walking-the-graph). Defaults
   to 10.
 
@@ -67,22 +70,22 @@ The command-line flags are all optional. The following flags are available:
 
 - `-var-file=foo` - Set variables in the Terraform configuration from
   a [variable file](/terraform/language/values/variables#variable-definitions-tfvars-files). If
-  a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
-  directory, they will be automatically loaded. `terraform.tfvars` is loaded
+  `terraform.tfvars` or any `.auto.tfvars` files are present in the current
+  directory, they are automatically loaded. Terraform loads `terraform.tfvars` 
   first and the `.auto.tfvars` files after in alphabetical order. Any files
   specified by `-var-file` override any values set automatically from files in
   the working directory. This flag can be used multiple times. This is only
   useful with the `-config` flag.
 
-For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
+For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/backend/remote)
 only, `terraform import`
 also accepts the option
 [`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
 For configurations using
-[the `local` backend](/terraform/language/settings/backends/local) only,
+[the `local` backend](/terraform/language/backend/local) only,
 `terraform import` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, and `-backup`](/terraform/language/backend/local#command-line-arguments).
 
 ## Provider Configuration
 
@@ -106,8 +109,8 @@ variable "access_key" {}
 variable "secret_key" {}
 
 provider "aws" {
-  access_key = "${var.access_key}"
-  secret_key = "${var.secret_key}"
+  access_key = var.access_key
+  secret_key = var.secret_key
 }
 ```
 

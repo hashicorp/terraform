@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
 
@@ -333,11 +333,11 @@ func TestOutputs(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		changes  *plans.Changes
+		changes  *plans.ChangesSrc
 		expected map[string]Change
 	}{
 		"copies all outputs": {
-			changes: &plans.Changes{
+			changes: &plans.ChangesSrc{
 				Outputs: []*plans.OutputChangeSrc{
 					{
 						Addr: root.OutputValue("first"),
@@ -373,7 +373,7 @@ func TestOutputs(t *testing.T) {
 			},
 		},
 		"skips non root modules": {
-			changes: &plans.Changes{
+			changes: &plans.ChangesSrc{
 				Outputs: []*plans.OutputChangeSrc{
 					{
 						Addr: root.OutputValue("first"),

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configload
 
@@ -45,7 +45,7 @@ func TestLoadConfigWithSnapshot(t *testing.T) {
 
 		problems := deep.Equal(wantModuleDirs, gotModuleDirs)
 		for _, problem := range problems {
-			t.Errorf(problem)
+			t.Error(problem)
 		}
 		if len(problems) > 0 {
 			return

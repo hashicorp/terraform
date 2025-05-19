@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package json
 
@@ -16,22 +16,23 @@ type Hook interface {
 	String() string
 }
 
-// ApplyStart: triggered by PreApply hook
-type applyStart struct {
+// operationStart: triggered by Pre{Apply,EphemeralOp} hook
+type operationStart struct {
 	Resource   ResourceAddr `json:"resource"`
 	Action     ChangeAction `json:"action"`
 	IDKey      string       `json:"id_key,omitempty"`
 	IDValue    string       `json:"id_value,omitempty"`
 	actionVerb string
+	msgType    MessageType
 }
 
-var _ Hook = (*applyStart)(nil)
+var _ Hook = (*operationStart)(nil)
 
-func (h *applyStart) HookType() MessageType {
-	return MessageApplyStart
+func (h *operationStart) HookType() MessageType {
+	return h.msgType
 }
 
-func (h *applyStart) String() string {
+func (h *operationStart) String() string {
 	var id string
 	if h.IDKey != "" && h.IDValue != "" {
 		id = fmt.Sprintf(" [%s=%s]", h.IDKey, h.IDValue)
@@ -40,49 +41,74 @@ func (h *applyStart) String() string {
 }
 
 func NewApplyStart(addr addrs.AbsResourceInstance, action plans.Action, idKey string, idValue string) Hook {
-	hook := &applyStart{
+	hook := &operationStart{
 		Resource:   newResourceAddr(addr),
 		Action:     changeAction(action),
 		IDKey:      idKey,
 		IDValue:    idValue,
 		actionVerb: startActionVerb(action),
+		msgType:    MessageApplyStart,
 	}
 
 	return hook
 }
 
-// ApplyProgress: currently triggered by a timer started on PreApply. In
+func NewEphemeralOpStart(addr addrs.AbsResourceInstance, action plans.Action) Hook {
+	hook := &operationStart{
+		Resource:   newResourceAddr(addr),
+		Action:     changeAction(action),
+		actionVerb: startActionVerb(action),
+		msgType:    MessageEphemeralOpStart,
+	}
+
+	return hook
+}
+
+// operationProgress: currently triggered by a timer started on Pre{Apply,EphemeralOp}. In
 // future, this might also be triggered by provider progress reporting.
-type applyProgress struct {
+type operationProgress struct {
 	Resource   ResourceAddr `json:"resource"`
 	Action     ChangeAction `json:"action"`
 	Elapsed    float64      `json:"elapsed_seconds"`
 	actionVerb string
 	elapsed    time.Duration
+	msgType    MessageType
 }
 
-var _ Hook = (*applyProgress)(nil)
+var _ Hook = (*operationProgress)(nil)
 
-func (h *applyProgress) HookType() MessageType {
-	return MessageApplyProgress
+func (h *operationProgress) HookType() MessageType {
+	return h.msgType
 }
 
-func (h *applyProgress) String() string {
+func (h *operationProgress) String() string {
 	return fmt.Sprintf("%s: Still %s... [%s elapsed]", h.Resource.Addr, h.actionVerb, h.elapsed)
 }
 
 func NewApplyProgress(addr addrs.AbsResourceInstance, action plans.Action, elapsed time.Duration) Hook {
-	return &applyProgress{
+	return &operationProgress{
 		Resource:   newResourceAddr(addr),
 		Action:     changeAction(action),
 		Elapsed:    elapsed.Seconds(),
 		actionVerb: progressActionVerb(action),
 		elapsed:    elapsed,
+		msgType:    MessageApplyProgress,
 	}
 }
 
-// ApplyComplete: triggered by PostApply hook
-type applyComplete struct {
+func NewEphemeralOpProgress(addr addrs.AbsResourceInstance, action plans.Action, elapsed time.Duration) Hook {
+	return &operationProgress{
+		Resource:   newResourceAddr(addr),
+		Action:     changeAction(action),
+		Elapsed:    elapsed.Seconds(),
+		actionVerb: progressActionVerb(action),
+		elapsed:    elapsed,
+		msgType:    MessageEphemeralOpProgress,
+	}
+}
+
+// operationComplete: triggered by PostApply hook
+type operationComplete struct {
 	Resource   ResourceAddr `json:"resource"`
 	Action     ChangeAction `json:"action"`
 	IDKey      string       `json:"id_key,omitempty"`
@@ -90,15 +116,16 @@ type applyComplete struct {
 	Elapsed    float64      `json:"elapsed_seconds"`
 	actionNoun string
 	elapsed    time.Duration
+	msgType    MessageType
 }
 
-var _ Hook = (*applyComplete)(nil)
+var _ Hook = (*operationComplete)(nil)
 
-func (h *applyComplete) HookType() MessageType {
-	return MessageApplyComplete
+func (h *operationComplete) HookType() MessageType {
+	return h.msgType
 }
 
-func (h *applyComplete) String() string {
+func (h *operationComplete) String() string {
 	var id string
 	if h.IDKey != "" && h.IDValue != "" {
 		id = fmt.Sprintf(" [%s=%s]", h.IDKey, h.IDValue)
@@ -107,7 +134,7 @@ func (h *applyComplete) String() string {
 }
 
 func NewApplyComplete(addr addrs.AbsResourceInstance, action plans.Action, idKey, idValue string, elapsed time.Duration) Hook {
-	return &applyComplete{
+	return &operationComplete{
 		Resource:   newResourceAddr(addr),
 		Action:     changeAction(action),
 		IDKey:      idKey,
@@ -115,36 +142,61 @@ func NewApplyComplete(addr addrs.AbsResourceInstance, action plans.Action, idKey
 		Elapsed:    elapsed.Seconds(),
 		actionNoun: actionNoun(action),
 		elapsed:    elapsed,
+		msgType:    MessageApplyComplete,
 	}
 }
 
-// ApplyErrored: triggered by PostApply hook on failure. This will be followed
-// by diagnostics when the apply finishes.
-type applyErrored struct {
-	Resource   ResourceAddr `json:"resource"`
-	Action     ChangeAction `json:"action"`
-	Elapsed    float64      `json:"elapsed_seconds"`
-	actionNoun string
-	elapsed    time.Duration
-}
-
-var _ Hook = (*applyErrored)(nil)
-
-func (h *applyErrored) HookType() MessageType {
-	return MessageApplyErrored
-}
-
-func (h *applyErrored) String() string {
-	return fmt.Sprintf("%s: %s errored after %s", h.Resource.Addr, h.actionNoun, h.elapsed)
-}
-
-func NewApplyErrored(addr addrs.AbsResourceInstance, action plans.Action, elapsed time.Duration) Hook {
-	return &applyErrored{
+func NewEphemeralOpComplete(addr addrs.AbsResourceInstance, action plans.Action, elapsed time.Duration) Hook {
+	return &operationComplete{
 		Resource:   newResourceAddr(addr),
 		Action:     changeAction(action),
 		Elapsed:    elapsed.Seconds(),
 		actionNoun: actionNoun(action),
 		elapsed:    elapsed,
+		msgType:    MessageEphemeralOpComplete,
+	}
+}
+
+// operationErrored: triggered by PostApply hook on failure. This will be followed
+// by diagnostics when the apply finishes.
+type operationErrored struct {
+	Resource   ResourceAddr `json:"resource"`
+	Action     ChangeAction `json:"action"`
+	Elapsed    float64      `json:"elapsed_seconds"`
+	actionNoun string
+	elapsed    time.Duration
+	msgType    MessageType
+}
+
+var _ Hook = (*operationErrored)(nil)
+
+func (h *operationErrored) HookType() MessageType {
+	return h.msgType
+}
+
+func (h *operationErrored) String() string {
+	return fmt.Sprintf("%s: %s errored after %s", h.Resource.Addr, h.actionNoun, h.elapsed)
+}
+
+func NewApplyErrored(addr addrs.AbsResourceInstance, action plans.Action, elapsed time.Duration) Hook {
+	return &operationErrored{
+		Resource:   newResourceAddr(addr),
+		Action:     changeAction(action),
+		Elapsed:    elapsed.Seconds(),
+		actionNoun: actionNoun(action),
+		elapsed:    elapsed,
+		msgType:    MessageApplyErrored,
+	}
+}
+
+func NewEphemeralOpErrored(addr addrs.AbsResourceInstance, action plans.Action, elapsed time.Duration) Hook {
+	return &operationErrored{
+		Resource:   newResourceAddr(addr),
+		Action:     changeAction(action),
+		Elapsed:    elapsed.Seconds(),
+		actionNoun: actionNoun(action),
+		elapsed:    elapsed,
+		msgType:    MessageEphemeralOpErrored,
 	}
 }
 
@@ -313,10 +365,18 @@ func startActionVerb(action plans.Action) string {
 		return "Destroying"
 	case plans.Read:
 		return "Refreshing"
-	case plans.CreateThenDelete, plans.DeleteThenCreate:
+	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "Replacing"
+	case plans.Forget:
+		return "Removing"
+	case plans.Open:
+		return "Opening"
+	case plans.Renew:
+		return "Renewing"
+	case plans.Close:
+		return "Closing"
 	case plans.NoOp:
 		// This should never be possible: a no-op planned change should not
 		// be applied. We'll fall back to "Applying".
@@ -339,10 +399,21 @@ func progressActionVerb(action plans.Action) string {
 		return "destroying"
 	case plans.Read:
 		return "refreshing"
-	case plans.CreateThenDelete, plans.DeleteThenCreate:
+	case plans.CreateThenDelete, plans.CreateThenForget, plans.DeleteThenCreate:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "replacing"
+	case plans.Open:
+		return "opening"
+	case plans.Renew:
+		return "renewing"
+	case plans.Close:
+		return "closing"
+	case plans.Forget:
+		// Removing a resource from state should not take very long. Fall back
+		// to "applying" just in case, since the terminology "forgetting" is
+		// meant to be internal to Terraform.
+		fallthrough
 	case plans.NoOp:
 		// This should never be possible: a no-op planned change should not
 		// be applied. We'll fall back to "applying".
@@ -353,7 +424,7 @@ func progressActionVerb(action plans.Action) string {
 }
 
 // Convert the subset of plans.Action values we expect to receive into a
-// noun for the applyComplete and applyErrored hook messages. This will be
+// noun for the operationComplete and operationErrored hook messages. This will be
 // combined into a phrase like "Creation complete after 1m4s".
 func actionNoun(action plans.Action) string {
 	switch action {
@@ -365,10 +436,18 @@ func actionNoun(action plans.Action) string {
 		return "Destruction"
 	case plans.Read:
 		return "Refresh"
-	case plans.CreateThenDelete, plans.DeleteThenCreate:
+	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "Replacement"
+	case plans.Forget:
+		return "Removal"
+	case plans.Open:
+		return "Opening"
+	case plans.Renew:
+		return "Renewal"
+	case plans.Close:
+		return "Closing"
 	case plans.NoOp:
 		// This should never be possible: a no-op planned change should not
 		// be applied. We'll fall back to "Apply".

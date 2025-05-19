@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package remote
 
@@ -19,7 +19,8 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/internal/backend"
+
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -27,7 +28,7 @@ import (
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
 
-func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
@@ -66,6 +67,15 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 			"Saving a generated plan is currently not supported",
 			`The "remote" backend does not support saving the generated execution `+
 				`plan locally at this time.`,
+		))
+	}
+
+	if op.GenerateConfigOut != "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Generating configuration is not currently supported",
+			`The "remote" backend does not currently support generating resource configuration `+
+				`as part of a plan.`,
 		))
 	}
 
@@ -174,10 +184,10 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	return b.plan(stopCtx, cancelCtx, op, w)
 }
 
-func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	if b.CLI != nil {
 		header := planDefaultHeader
-		if op.Type == backend.OperationTypeApply {
+		if op.Type == backendrun.OperationTypeApply {
 			header = applyDefaultHeader
 		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
@@ -185,7 +195,7 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
-		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
+		Speculative:   tfe.Bool(op.Type == backendrun.OperationTypePlan),
 	}
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
@@ -248,19 +258,24 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 	}
 
+	log.Printf("[TRACE] backend/remote: starting configuration upload at %q", configDir)
 	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
 	if err != nil {
 		return nil, generalError("Failed to upload configuration files", err)
 	}
+	log.Printf("[TRACE] backend/remote: finished configuration upload")
 
 	uploaded := false
 	for i := 0; i < 60 && !uploaded; i++ {
 		select {
 		case <-stopCtx.Done():
+			log.Printf("[TRACE] backend/remote: deadline reached while waiting for configuration status")
 			return nil, context.Canceled
 		case <-cancelCtx.Done():
+			log.Printf("[TRACE] backend/remote: operation cancelled while waiting for configuration status")
 			return nil, context.Canceled
 		case <-time.After(planConfigurationVersionsPollInterval):
+			log.Printf("[TRACE] backend/remote: reading configuration status")
 			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
 			if err != nil {
 				return nil, generalError("Failed to retrieve configuration version", err)
@@ -277,6 +292,7 @@ in order to capture the filesystem context the remote workspace expects:
 			"Failed to upload configuration files", errors.New("operation timed out"))
 	}
 
+	log.Printf("[TRACE] backend/remote: configuration uploaded and ready")
 	runOptions := tfe.RunCreateOptions{
 		ConfigurationVersion: cv,
 		Refresh:              tfe.Bool(op.PlanRefresh),
@@ -401,6 +417,15 @@ in order to capture the filesystem context the remote workspace expects:
 		return r, generalError("Failed to retrieve run", err)
 	}
 
+	// Wait for post plan tasks to complete before proceeding.
+	// Otherwise, in the case of an apply, if they are still running
+	// when we check for whether the run is confirmable the CLI will
+	// uncermoniously exit before the user has a chance to confirm, or for an auto-apply to take place.
+	err = b.waitForPostPlanTasks(stopCtx, cancelCtx, r)
+	if err != nil {
+		return r, err
+	}
+
 	// If the run is canceled or errored, we still continue to the
 	// cost-estimation and policy check phases to ensure we render any
 	// results available. In the case of a hard-failed policy check, the
@@ -434,8 +459,13 @@ Preparing the remote plan...
 `
 
 const runHeader = `
-[reset][yellow]To view this run in a browser, visit:
-https://%s/app/%s/%s/runs/%s[reset]
+[reset][yellow]To view this run in a browser, visit:[reset]
+[reset][yellow]https://%s/app/%s/%s/runs/%s[reset]
+`
+
+const runHeaderErr = `
+To view this run in a browser, visit:
+https://%s/app/%s/%s/runs/%s
 `
 
 // The newline in this error is to make it look good in the CLI!

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package renderers
 
@@ -37,7 +37,7 @@ func nullSuffix(action plans.Action, opts computed.RenderHumanOpts) string {
 // forcesReplacement returns the `# forces replacement` suffix if this change is
 // driving the entire resource to be replaced.
 func forcesReplacement(replace bool, opts computed.RenderHumanOpts) string {
-	if replace || opts.OverrideForcesReplacement {
+	if (replace || opts.ForceForcesReplacement) && !opts.ForbidForcesReplacement {
 		return opts.Colorize.Color(" [red]# forces replacement[reset]")
 	}
 	return ""

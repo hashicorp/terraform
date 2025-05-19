@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -433,7 +433,8 @@ func TestProcessIgnoreChangesIndividual(t *testing.T) {
 				ignore[i] = trav
 			}
 
-			ret, diags := processIgnoreChangesIndividual(test.Old, test.New, traversalsToPaths(ignore))
+			paths, _ := traversalsToPaths(ignore)
+			ret, diags := processIgnoreChangesIndividual(test.Old, test.New, paths)
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configschema
 
@@ -184,11 +184,11 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 }
 
 func (a *Attribute) decoderSpec(name string) hcldec.Spec {
-	ret := &hcldec.AttrSpec{Name: name}
-	if a == nil {
-		return ret
+	if a == nil || (a.Type == cty.NilType && a.NestedType == nil) {
+		panic("Invalid attribute schema: schema is nil.")
 	}
 
+	ret := &hcldec.AttrSpec{Name: name}
 	if a.NestedType != nil {
 		if a.Type != cty.NilType {
 			panic("Invalid attribute schema: NestedType and Type cannot both be set. This is a bug in the provider.")

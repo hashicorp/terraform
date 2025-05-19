@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package json
 
@@ -64,12 +64,20 @@ type ChangeAction string
 const (
 	ActionNoOp    ChangeAction = "noop"
 	ActionMove    ChangeAction = "move"
+	ActionForget  ChangeAction = "remove"
 	ActionCreate  ChangeAction = "create"
 	ActionRead    ChangeAction = "read"
 	ActionUpdate  ChangeAction = "update"
 	ActionReplace ChangeAction = "replace"
 	ActionDelete  ChangeAction = "delete"
 	ActionImport  ChangeAction = "import"
+
+	// While ephemeral resources do not represent a change
+	// or participate in the plan in the same way as the above
+	// we declare them here for convenience in helper functions.
+	ActionOpen  ChangeAction = "open"
+	ActionRenew ChangeAction = "renew"
+	ActionClose ChangeAction = "close"
 )
 
 func changeAction(action plans.Action) ChangeAction {
@@ -82,10 +90,18 @@ func changeAction(action plans.Action) ChangeAction {
 		return ActionRead
 	case plans.Update:
 		return ActionUpdate
-	case plans.DeleteThenCreate, plans.CreateThenDelete:
+	case plans.DeleteThenCreate, plans.CreateThenDelete, plans.CreateThenForget:
 		return ActionReplace
 	case plans.Delete:
 		return ActionDelete
+	case plans.Forget:
+		return ActionForget
+	case plans.Open:
+		return ActionOpen
+	case plans.Renew:
+		return ActionRenew
+	case plans.Close:
+		return ActionClose
 	default:
 		return ActionNoOp
 	}

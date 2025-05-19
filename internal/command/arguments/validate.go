@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package arguments
 
@@ -12,6 +12,15 @@ type Validate struct {
 	// Path is the directory containing the configuration to be validated. If
 	// unspecified, validate will use the current directory.
 	Path string
+
+	// TestDirectory is the directory containing any test files that should be
+	// validated alongside the main configuration. Should be relative to the
+	// Path.
+	TestDirectory string
+
+	// NoTests indicates that Terraform should not validate any test files
+	// included with the module.
+	NoTests bool
 
 	// ViewType specifies which output format to use: human, JSON, or "raw".
 	ViewType ViewType
@@ -29,6 +38,8 @@ func ParseValidate(args []string) (*Validate, tfdiags.Diagnostics) {
 	var jsonOutput bool
 	cmdFlags := defaultFlagSet("validate")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.StringVar(&validate.TestDirectory, "test-directory", "tests", "test-directory")
+	cmdFlags.BoolVar(&validate.NoTests, "no-tests", false, "no-tests")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(

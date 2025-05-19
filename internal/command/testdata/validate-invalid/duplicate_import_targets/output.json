@@ -11,22 +11,22 @@
       "range": {
         "filename": "testdata/validate-invalid/duplicate_import_targets/main.tf",
         "start": {
-          "line": 9,
-          "column": 1,
-          "byte": 85
+          "line": 10,
+          "column": 8,
+          "byte": 101
         },
         "end": {
-          "line": 9,
-          "column": 7,
-          "byte": 91
+          "line": 10,
+          "column": 24,
+          "byte": 117
         }
       },
       "snippet": {
-        "context": null,
-        "code": "import {",
-        "start_line": 9,
-        "highlight_start_offset": 0,
-        "highlight_end_offset": 6,
+        "context": "import",
+        "code": "  to = aws_instance.web",
+        "start_line": 10,
+        "highlight_start_offset": 7,
+        "highlight_end_offset": 23,
         "values": []
       }
     }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configschema
 
@@ -7,13 +7,12 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -410,9 +409,9 @@ func TestBlockDecoderSpec(t *testing.T) {
 				}
 			}
 
-			if !got.RawEquals(test.Want) {
-				t.Logf("[INFO] implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
-				t.Errorf("wrong result\ngot:  %s\nwant: %s", dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Logf("implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
+				t.Errorf("wrong result\n%s", diff)
 			}
 
 			// Double-check that we're producing consistent results for DecoderSpec
@@ -445,18 +444,6 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		Want      cty.Value
 		DiagCount int
 	}{
-		"empty": {
-			&Attribute{},
-			hcl.EmptyBody(),
-			cty.NilVal,
-			0,
-		},
-		"nil": {
-			nil,
-			hcl.EmptyBody(),
-			cty.NilVal,
-			0,
-		},
 		"optional string (null)": {
 			&Attribute{
 				Type:     cty.String,
@@ -864,9 +851,9 @@ func TestAttributeDecoderSpec(t *testing.T) {
 				}
 			}
 
-			if !got.RawEquals(test.Want) {
-				t.Logf("[INFO] implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
-				t.Errorf("wrong result\ngot:  %s\nwant: %s", dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Logf("implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
+				t.Errorf("wrong result\n%s", diff)
 			}
 		})
 	}
@@ -878,17 +865,33 @@ func TestAttributeDecoderSpec(t *testing.T) {
 // be removed when InternalValidate() is extended to validate Attribute specs
 // (and is used). See the #FIXME in decoderSpec.
 func TestAttributeDecoderSpec_panic(t *testing.T) {
-	attrS := &Attribute{
-		Type: cty.Object(map[string]cty.Type{
-			"nested_attribute": cty.String,
-		}),
-		NestedType: &Object{},
-		Optional:   true,
+	tests := map[string]struct {
+		Schema *Attribute
+	}{
+		"empty": {
+			Schema: &Attribute{},
+		},
+		"nil": {
+			Schema: nil,
+		},
+		"nested_attribute": {
+			Schema: &Attribute{
+				Type: cty.Object(map[string]cty.Type{
+					"nested_attribute": cty.String,
+				}),
+				NestedType: &Object{},
+				Optional:   true,
+			},
+		},
 	}
 
-	defer func() { recover() }()
-	attrS.decoderSpec("attr")
-	t.Errorf("expected panic")
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			defer func() { recover() }()
+			test.Schema.decoderSpec("attr")
+			t.Errorf("expected panic")
+		})
+	}
 }
 
 func TestListOptionalAttrsFromObject(t *testing.T) {

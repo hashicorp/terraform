@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -64,7 +64,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	}
 
 	// We require a local backend
-	local, ok := b.(backend.Local)
+	local, ok := b.(backendrun.Local)
 	if !ok {
 		c.showDiagnostics(diags) // in case of any warnings in here
 		c.Ui.Error(ErrUnsupportedLocalOp)

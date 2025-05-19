@@ -1,0 +1,43 @@
+{
+    "terraform_source_bundle": 1,
+    "packages": [
+        {
+            "source": "git::https://example.com/root.git",
+            "local": "root",
+            "meta": {}
+        },
+        {
+            "source": "git::https://example.com/nested.git",
+            "local": "nested",
+            "meta": {}
+        },
+        {
+            "source": "git::https://example.com/errored.git",
+            "local": "errored",
+            "meta": {}
+        },
+        {
+            "source": "git::https://example.com/errored-sources.git",
+            "local": "errored-sources",
+            "meta": {}
+        },
+        {
+            "source": "git::https://example.com/deprecated.git",
+            "local": "deprecated",
+            "meta": {}
+        }
+    ],
+    "registry": [
+        {
+            "source": "example.com/awesomecorp/nested/happycloud",
+            "versions": {
+                "1.0.0": {
+                    "source": "git::https://example.com/nested.git//subdir"
+                },
+                "2.0.0": {
+                    "source": "git::https://example.com/nested.git//intentionally-missing-v2"
+                }
+            }
+        }
+    ]
+}

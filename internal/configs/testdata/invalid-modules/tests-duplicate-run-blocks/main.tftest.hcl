@@ -1,0 +1,4 @@
+
+run "same" {}
+
+run "same" {}

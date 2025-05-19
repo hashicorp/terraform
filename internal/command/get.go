@@ -1,9 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -18,15 +19,21 @@ type GetCommand struct {
 
 func (c *GetCommand) Run(args []string) int {
 	var update bool
+	var testsDirectory string
 
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("get")
 	cmdFlags.BoolVar(&update, "update", false, "update")
+	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
+
+	// Initialization can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
 
 	path, err := ModulePath(cmdFlags.Args())
 	if err != nil {
@@ -36,7 +43,7 @@ func (c *GetCommand) Run(args []string) int {
 
 	path = c.normalizePath(path)
 
-	abort, diags := getModules(&c.Meta, path, update)
+	abort, diags := getModules(ctx, &c.Meta, path, testsDirectory, update)
 	c.showDiagnostics(diags)
 	if abort || diags.HasErrors() {
 		return 1
@@ -47,10 +54,10 @@ func (c *GetCommand) Run(args []string) int {
 
 func (c *GetCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] get [options] PATH
+Usage: terraform [global options] get [options]
 
-  Downloads and installs modules needed for the configuration given by
-  PATH.
+  Downloads and installs modules needed for the configuration in the 
+  current working directory.
 
   This recursively downloads all modules needed, such as modules
   imported by modules imported by the root and so on. If a module is
@@ -63,10 +70,12 @@ Usage: terraform [global options] get [options] PATH
 
 Options:
 
-  -update             Check already-downloaded modules for available updates
-                      and install the newest versions available.
+  -update               Check already-downloaded modules for available updates
+                        and install the newest versions available.
 
-  -no-color           Disable text coloring in the output.
+  -no-color             Disable text coloring in the output.
+
+  -test-directory=path	Set the Terraform test directory, defaults to "tests".
 
 `
 	return strings.TrimSpace(helpText)
@@ -76,10 +85,10 @@ func (c *GetCommand) Synopsis() string {
 	return "Install or upgrade remote Terraform modules"
 }
 
-func getModules(m *Meta, path string, upgrade bool) (abort bool, diags tfdiags.Diagnostics) {
+func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgrade bool) (abort bool, diags tfdiags.Diagnostics) {
 	hooks := uiModuleInstallHooks{
 		Ui:             m.Ui,
 		ShowLocalPaths: true,
 	}
-	return m.installModules(path, upgrade, hooks)
+	return m.installModules(ctx, path, testsDir, upgrade, true, hooks)
 }

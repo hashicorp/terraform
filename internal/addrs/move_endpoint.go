@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package addrs
 
@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -84,7 +85,7 @@ func (e *MoveEndpoint) MightUnifyWith(other *MoveEndpoint) bool {
 	return from != nil && to != nil
 }
 
-// ConfigMovable transforms the reciever into a ConfigMovable by resolving it
+// ConfigMoveable transforms the reciever into a ConfigMoveable by resolving it
 // relative to the given base module, which should be the module where
 // the MoveEndpoint expression was found.
 //
@@ -126,7 +127,7 @@ func (e *MoveEndpoint) ConfigMoveable(baseModule Module) ConfigMoveable {
 // it with the address of the module where it was declared in order to get
 // an absolute address relative to the root module.
 func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnostics) {
-	path, remain, diags := parseModuleInstancePrefix(traversal)
+	path, remain, diags := parseModuleInstancePrefix(traversal, false)
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -140,7 +141,7 @@ func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnost
 		}, diags
 	}
 
-	riAddr, moreDiags := parseResourceInstanceUnderModule(path, remain)
+	riAddr, moreDiags := parseResourceInstanceUnderModule(path, false, remain)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags

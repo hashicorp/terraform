@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package terminal encapsulates some platform-specific logic for detecting
 // if we're running in a terminal and, if so, properly configuring that

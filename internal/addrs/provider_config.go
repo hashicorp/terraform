@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package addrs
 
@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -53,6 +54,7 @@ type LocalProviderConfig struct {
 }
 
 var _ ProviderConfig = LocalProviderConfig{}
+var _ UniqueKeyer = LocalProviderConfig{}
 
 // NewDefaultLocalProviderConfig returns the address of the default (un-aliased)
 // configuration for the provider with the given local type name.
@@ -87,6 +89,14 @@ func (pc LocalProviderConfig) StringCompact() string {
 	return pc.LocalName
 }
 
+// UniqueKey implements UniqueKeyer.
+func (pc LocalProviderConfig) UniqueKey() UniqueKey {
+	// LocalProviderConfig acts as its own unique key.
+	return pc
+}
+
+func (pc LocalProviderConfig) uniqueKeySigil() {}
+
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
@@ -96,6 +106,7 @@ type AbsProviderConfig struct {
 }
 
 var _ ProviderConfig = AbsProviderConfig{}
+var _ UniqueKeyer = AbsProviderConfig{}
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider
 // configuration address. The following are examples of traversals that can be
@@ -111,7 +122,7 @@ var _ ProviderConfig = AbsProviderConfig{}
 // This type of address is typically not used prominently in the UI, except in
 // error messages that refer to provider configurations.
 func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
-	modInst, remain, diags := parseModuleInstancePrefix(traversal)
+	modInst, remain, diags := parseModuleInstancePrefix(traversal, false)
 	var ret AbsProviderConfig
 
 	// Providers cannot resolve within module instances, so verify that there
@@ -250,7 +261,7 @@ func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Dia
 //
 // We will not use this address form for any new file formats.
 func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
-	modInst, remain, diags := parseModuleInstancePrefix(traversal)
+	modInst, remain, diags := parseModuleInstancePrefix(traversal, false)
 	var ret AbsProviderConfig
 
 	// Providers cannot resolve within module instances, so verify that there
@@ -411,3 +422,73 @@ func (pc AbsProviderConfig) String() string {
 
 	return strings.Join(parts, ".")
 }
+
+func (pc AbsProviderConfig) Equal(other AbsProviderConfig) bool {
+	if !pc.Provider.Equals(other.Provider) {
+		return false
+	}
+	if pc.Alias != other.Alias {
+		return false
+	}
+	if !pc.Module.Equal(other.Module) {
+		return false
+	}
+	return true
+}
+
+// UniqueKey returns a unique key suitable for including the receiver in a
+// generic collection type such as `Map` or `Set`.
+//
+// As a special case, the [UniqueKey] for an AbsProviderConfig that belongs
+// to the root module is equal to the UniqueKey of the [RootProviderConfig]
+// address describing the same provider configuration. [Equivalent] will
+// return true if given an [AbsProviderConfig] and a [RootProviderConfig]
+// that both represent the same address.
+//
+// Non-root provider configurations never have keys equal to a
+// [RootProviderConfig].
+func (pc AbsProviderConfig) UniqueKey() UniqueKey {
+	if pc.Module.IsRoot() {
+		return RootProviderConfig{pc.Provider, pc.Alias}.UniqueKey()
+	}
+	return absProviderConfigUniqueKey(pc.String())
+}
+
+type absProviderConfigUniqueKey string
+
+func (k absProviderConfigUniqueKey) uniqueKeySigil() {}
+
+// RootProviderConfig is essentially a special variant of AbsProviderConfig
+// for situations where only root module provider configurations are allowed.
+//
+// It represents the same configuration as a corresponding [AbsProviderConfig]
+// whose Module field is set to [RootModule].
+type RootProviderConfig struct {
+	Provider Provider
+	Alias    string
+}
+
+// AbsProviderConfig returns the [AbsProviderConfig] value that represents the
+// same provider configuration as the receiver.
+//
+// Specifically, it sets [AbsProviderConfig.Module] to [RootModule] and
+// preserves the two other corresponding fields between these two types.
+func (p RootProviderConfig) AbsProviderConfig() AbsProviderConfig {
+	return AbsProviderConfig{
+		Module:   RootModule,
+		Provider: p.Provider,
+		Alias:    p.Alias,
+	}
+}
+
+func (p RootProviderConfig) String() string {
+	return p.AbsProviderConfig().String()
+}
+
+// UniqueKey returns a comparable unique key for the reciever suitable for
+// use in generic collection types such as [Set] and [Map].
+func (p RootProviderConfig) UniqueKey() UniqueKey {
+	// A RootProviderConfig is inherently comparable and so can be its own key
+	return p
+}
+func (p RootProviderConfig) uniqueKeySigil() {}

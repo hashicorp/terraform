@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package main
 
@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 // helpFunc is a cli.HelpFunc that can be used to output the help CLI instructions for Terraform.
@@ -60,7 +60,7 @@ All other commands:
 Global options (use these before the subcommand, if any):
   -chdir=DIR    Switch to a different working directory before executing the
                 given subcommand.
-  -help         Show this help output, or the help for a specified subcommand.
+  -help         Show this help output or the help for a specified subcommand.
   -version      An alias for the "version" subcommand.
 `, listCommands(commands, PrimaryCommands, maxKeyLen), listCommands(commands, otherCommands, maxKeyLen))
 

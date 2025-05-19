@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
@@ -9,13 +9,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 )
 
 // IntegrationOutputWriter is an interface used to to write output tailored for
-// Terraform Cloud integrations
+// HCP Terraform integrations
 type IntegrationOutputWriter interface {
 	End()
 	OutputElapsed(message string, maxMessage int)
@@ -23,12 +24,12 @@ type IntegrationOutputWriter interface {
 	SubOutput(str string)
 }
 
-// IntegrationContext is a set of data that is useful when performing Terraform Cloud integration operations
+// IntegrationContext is a set of data that is useful when performing HCP Terraform integration operations
 type IntegrationContext struct {
 	B             *Cloud
 	StopContext   context.Context
 	CancelContext context.Context
-	Op            *backend.Operation
+	Op            *backendrun.Operation
 	Run           *tfe.Run
 }
 

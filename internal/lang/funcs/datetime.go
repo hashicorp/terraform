@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package funcs
 
@@ -13,8 +13,9 @@ import (
 
 // TimestampFunc constructs a function that returns a string representation of the current date and time.
 var TimestampFunc = function.New(&function.Spec{
-	Params: []function.Parameter{},
-	Type:   function.StaticReturnType(cty.String),
+	Params:       []function.Parameter{},
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		return cty.StringVal(time.Now().UTC().Format(time.RFC3339)), nil
 	},
@@ -27,6 +28,9 @@ func MakeStaticTimestampFunc(static time.Time) function.Function {
 		Params: []function.Parameter{},
 		Type:   function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			if static.IsZero() {
+				return cty.UnknownVal(cty.String), nil
+			}
 			return cty.StringVal(static.Format(time.RFC3339)), nil
 		},
 	})
@@ -44,7 +48,8 @@ var TimeAddFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		ts, err := parseTimestamp(args[0].AsString())
 		if err != nil {
@@ -71,7 +76,8 @@ var TimeCmpFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		tsA, err := parseTimestamp(args[0].AsString())
 		if err != nil {

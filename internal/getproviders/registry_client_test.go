@@ -1,12 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package getproviders
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -448,8 +447,6 @@ func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
 			if test.wantErr != "" {
 				t.Fatalf("wrong error\ngot:  <nil>\nwant: %s", test.wantErr)
 			}
-
-			fmt.Printf("Got: %s, Want: %s\n", got, test.wantSuggestion)
 
 			if !got.Same(test.wantSuggestion) {
 				t.Fatalf("wrong result\ngot:  %s\nwant: %s", got.String(), test.wantSuggestion.String())

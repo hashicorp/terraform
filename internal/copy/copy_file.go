@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package copy
 
@@ -7,8 +7,6 @@ import (
 	"io"
 	"os"
 )
-
-// From: https://gist.github.com/m4ng0squ4sh/92462b38df26839a3ca324697c8cba04
 
 // CopyFile copies the contents of the file named src to the file named
 // by dst. The file will be created if it does not already exist. If the

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package checks
 
@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 )
 
-// State is a container for state tracking of all of the the checks declared in
+// State is a container for state tracking of all of the checks declared in
 // a particular Terraform configuration and their current statuses.
 //
 // A State object is mutable during plan and apply operations but should

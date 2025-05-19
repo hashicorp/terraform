@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cos
 
@@ -119,6 +119,27 @@ func TestRemoteClientWithEncryption(t *testing.T) {
 	remote.TestClient(t, rs.Client)
 }
 
+func TestRemoteClientWithEndpoint(t *testing.T) {
+	t.Parallel()
+
+	bucket := bucketName(t)
+
+	be := setupBackendWithEndpoint(t, bucket, defaultPrefix, defaultKey, false)
+	defer teardownBackend(t, be)
+
+	ss, err := be.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	rs, ok := ss.(*remote.State)
+	if !ok {
+		t.Fatalf("wrong state manager type\ngot:  %T\nwant: %T", ss, rs)
+	}
+
+	remote.TestClient(t, rs.Client)
+}
+
 func TestRemoteLocks(t *testing.T) {
 	t.Parallel()
 
@@ -201,6 +222,44 @@ func TestBackendWithEncryption(t *testing.T) {
 	backend.TestBackendStateLocks(t, be0, be1)
 }
 
+func TestBackendWithEndpoint(t *testing.T) {
+	t.Parallel()
+
+	bucket := bucketName(t)
+
+	be0 := setupBackendWithEndpoint(t, bucket, defaultPrefix, defaultKey, false)
+	defer teardownBackend(t, be0)
+
+	be1 := setupBackendWithEndpoint(t, bucket, defaultPrefix, defaultKey, false)
+	defer teardownBackend(t, be1)
+
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
+	backend.TestBackendStateForceUnlock(t, be0, be1)
+}
+
+func setupBackendWithEndpoint(t *testing.T, bucket, prefix, key string, encrypt bool) backend.Backend {
+	t.Helper()
+
+	skip := os.Getenv("TF_COS_APPID") == ""
+	if skip {
+		t.Skip("This test requires setting the TF_COS_APPID environment variable")
+	}
+
+	if os.Getenv(PROVIDER_REGION) == "" {
+		os.Setenv(PROVIDER_REGION, "ap-guangzhou")
+	}
+
+	appId := os.Getenv("TF_COS_APPID")
+	region := os.Getenv(PROVIDER_REGION)
+
+	if os.Getenv(PROVIDER_ENDPOINT) == "" {
+		os.Setenv(PROVIDER_ENDPOINT, fmt.Sprintf("http://%s.cos-internal.%s.tencentcos.cn", bucket+appId, region))
+	}
+
+	return setupBackend(t, bucket, prefix, key, encrypt)
+}
+
 func setupBackend(t *testing.T, bucket, prefix, key string, encrypt bool) backend.Backend {
 	t.Helper()
 
@@ -221,6 +280,10 @@ func setupBackend(t *testing.T, bucket, prefix, key string, encrypt bool) backen
 		"bucket": bucket + appId,
 		"prefix": prefix,
 		"key":    key,
+	}
+
+	if os.Getenv(PROVIDER_ENDPOINT) != "" {
+		config["endpoint"] = os.Getenv(PROVIDER_ENDPOINT)
 	}
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config))

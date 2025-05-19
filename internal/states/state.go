@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package states
 
@@ -10,7 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
 // State is the top-level type of a Terraform state.
@@ -28,6 +28,14 @@ type State struct {
 	// Modules contains the state for each module. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Modules map[string]*Module
+
+	// OutputValues contains the state for each output value defined in the
+	// root module.
+	//
+	// Output values in other modules don't persist anywhere between runs,
+	// so Terraform Core tracks those only internally and does not expose
+	// them in any artifacts that survive between runs.
+	RootOutputValues map[string]*OutputValue
 
 	// CheckResults contains a snapshot of the statuses of checks at the
 	// end of the most recent update to the state. Callers might compare
@@ -48,7 +56,8 @@ func NewState() *State {
 	modules := map[string]*Module{}
 	modules[addrs.RootModuleInstance.String()] = NewModule(addrs.RootModuleInstance)
 	return &State{
-		Modules: modules,
+		Modules:          modules,
+		RootOutputValues: make(map[string]*OutputValue),
 	}
 }
 
@@ -68,11 +77,11 @@ func (s *State) Empty() bool {
 	if s == nil {
 		return true
 	}
+	if len(s.RootOutputValues) != 0 {
+		return false
+	}
 	for _, ms := range s.Modules {
-		if len(ms.Resources) != 0 {
-			return false
-		}
-		if len(ms.OutputValues) != 0 {
+		if !ms.empty() {
 			return false
 		}
 	}
@@ -97,35 +106,6 @@ func (s *State) ModuleInstances(addr addrs.Module) []*Module {
 		}
 	}
 	return ms
-}
-
-// ModuleOutputs returns all outputs for the given module call under the
-// parentAddr instance.
-func (s *State) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.ModuleCall) []*OutputValue {
-	var os []*OutputValue
-	for _, m := range s.Modules {
-		// can't get outputs from the root module
-		if m.Addr.IsRoot() {
-			continue
-		}
-
-		parent, call := m.Addr.Call()
-		// make sure this is a descendent in the correct path
-		if !parentAddr.Equal(parent) {
-			continue
-		}
-
-		// and check if this is the correct child
-		if call.Name != module.Name {
-			continue
-		}
-
-		for _, o := range m.OutputValues {
-			os = append(os, o)
-		}
-	}
-
-	return os
 }
 
 // RemoveModule removes the module with the given address from the state,
@@ -193,6 +173,14 @@ func (s *State) HasManagedResourceInstanceObjects() bool {
 	return false
 }
 
+// HasRootOutputValues returns true if there's at least one root output value in the receiving state.
+func (s *State) HasRootOutputValues() bool {
+	if s == nil {
+		return false
+	}
+	return len(s.RootOutputValues) > 0
+}
+
 // Resource returns the state for the resource with the given address, or nil
 // if no such resource is tracked in the state.
 func (s *State) Resource(addr addrs.AbsResource) *Resource {
@@ -215,6 +203,18 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 	return ret
 }
 
+// AllResourceInstanceObjectAddrs returns a set of addresses for all of
+// the leaf resource instance objects of any mode that are tracked in this
+// state.
+//
+// If you only care about objects belonging to managed resources, use
+// [State.AllManagedResourceInstanceObjectAddrs] instead.
+func (s *State) AllResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
+	return s.allResourceInstanceObjectAddrs(func(addr addrs.AbsResourceInstanceObject) bool {
+		return true // we filter nothing
+	})
+}
+
 // AllManagedResourceInstanceObjectAddrs returns a set of addresses for all of
 // the leaf resource instance objects associated with managed resources that
 // are tracked in this state.
@@ -224,61 +224,43 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 // by deleting a workspace. This function is intended only for reporting
 // context in error messages, such as when we reject deleting a "non-empty"
 // workspace as detected by s.HasManagedResourceInstanceObjects.
-//
-// The ordering of the result is meaningless but consistent. DeposedKey will
-// be NotDeposed (the zero value of DeposedKey) for any "current" objects.
-// This method is guaranteed to return at least one item if
-// s.HasManagedResourceInstanceObjects returns true for the same state, and
-// to return a zero-length slice if it returns false.
-func (s *State) AllResourceInstanceObjectAddrs() []struct {
-	Instance   addrs.AbsResourceInstance
-	DeposedKey DeposedKey
-} {
+func (s *State) AllManagedResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
+	return s.allResourceInstanceObjectAddrs(func(addr addrs.AbsResourceInstanceObject) bool {
+		return addr.ResourceInstance.Resource.Resource.Mode == addrs.ManagedResourceMode
+	})
+}
+
+func (s *State) allResourceInstanceObjectAddrs(keepAddr func(addr addrs.AbsResourceInstanceObject) bool) addrs.Set[addrs.AbsResourceInstanceObject] {
 	if s == nil {
 		return nil
 	}
 
-	// We use an unnamed return type here just because we currently have no
-	// general need to return pairs of instance address and deposed key aside
-	// from this method, and this method itself is only of marginal value
-	// when producing some error messages.
-	//
-	// If that need ends up arising more in future then it might make sense to
-	// name this as addrs.AbsResourceInstanceObject, although that would require
-	// moving DeposedKey into the addrs package too.
-	type ResourceInstanceObject = struct {
-		Instance   addrs.AbsResourceInstance
-		DeposedKey DeposedKey
-	}
-	var ret []ResourceInstanceObject
-
+	ret := addrs.MakeSet[addrs.AbsResourceInstanceObject]()
 	for _, ms := range s.Modules {
 		for _, rs := range ms.Resources {
-			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
-				continue
-			}
-
 			for instKey, is := range rs.Instances {
 				instAddr := rs.Addr.Instance(instKey)
 				if is.Current != nil {
-					ret = append(ret, ResourceInstanceObject{instAddr, NotDeposed})
+					objAddr := addrs.AbsResourceInstanceObject{
+						ResourceInstance: instAddr,
+						DeposedKey:       addrs.NotDeposed,
+					}
+					if keepAddr(objAddr) {
+						ret.Add(objAddr)
+					}
 				}
 				for deposedKey := range is.Deposed {
-					ret = append(ret, ResourceInstanceObject{instAddr, deposedKey})
+					objAddr := addrs.AbsResourceInstanceObject{
+						ResourceInstance: instAddr,
+						DeposedKey:       deposedKey,
+					}
+					if keepAddr(objAddr) {
+						ret.Add(objAddr)
+					}
 				}
 			}
 		}
 	}
-
-	sort.SliceStable(ret, func(i, j int) bool {
-		objI, objJ := ret[i], ret[j]
-		switch {
-		case !objI.Instance.Equal(objJ.Instance):
-			return objI.Instance.Less(objJ.Instance)
-		default:
-			return objI.DeposedKey < objJ.DeposedKey
-		}
-	})
 
 	return ret
 }
@@ -296,24 +278,57 @@ func (s *State) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstan
 	return ms.ResourceInstance(addr.Resource)
 }
 
-// OutputValue returns the state for the output value with the given address,
-// or nil if no such output value is tracked in the state.
-func (s *State) OutputValue(addr addrs.AbsOutputValue) *OutputValue {
-	ms := s.Module(addr.Module)
-	if ms == nil {
+// ResourceInstance returns the (encoded) state for the resource instance object
+// with the given address, or nil if no such object is tracked in the state.
+func (s *State) ResourceInstanceObjectSrc(addr addrs.AbsResourceInstanceObject) *ResourceInstanceObjectSrc {
+	if s == nil {
+		panic("State.ResourceInstanceObjectSrc on nil *State")
+	}
+	rs := s.ResourceInstance(addr.ResourceInstance)
+	if rs == nil {
 		return nil
 	}
-	return ms.OutputValues[addr.OutputValue.Name]
+	if addr.DeposedKey != addrs.NotDeposed {
+		return rs.Deposed[addr.DeposedKey]
+	}
+	return rs.Current
 }
 
-// LocalValue returns the value of the named local value with the given address,
-// or cty.NilVal if no such value is tracked in the state.
-func (s *State) LocalValue(addr addrs.AbsLocalValue) cty.Value {
-	ms := s.Module(addr.Module)
-	if ms == nil {
-		return cty.NilVal
+// OutputValue returns the state for the output value with the given address,
+// or nil if no such output value is tracked in the state.
+//
+// Only root module output values are tracked in the state, so this always
+// returns nil for output values in any other module.
+func (s *State) OutputValue(addr addrs.AbsOutputValue) *OutputValue {
+	if !addr.Module.IsRoot() {
+		return nil
 	}
-	return ms.LocalValues[addr.LocalValue.Name]
+	return s.RootOutputValues[addr.OutputValue.Name]
+}
+
+// SetOutputValue updates the value stored for the given output value if and
+// only if it's a root module output value.
+//
+// All other output values will just be silently ignored, because we don't
+// store those here anymore. (They live in a namedvals.State object hidden
+// in the internals of Terraform Core.)
+func (s *State) SetOutputValue(addr addrs.AbsOutputValue, value cty.Value, sensitive bool) {
+	if !addr.Module.IsRoot() {
+		return
+	}
+	s.RootOutputValues[addr.OutputValue.Name] = &OutputValue{
+		Addr:      addr,
+		Value:     value,
+		Sensitive: sensitive,
+	}
+}
+
+// RemoveOutputValue removes the record of a previously-stored output value.
+func (s *State) RemoveOutputValue(addr addrs.AbsOutputValue) {
+	if !addr.Module.IsRoot() {
+		return
+	}
+	delete(s.RootOutputValues, addr.OutputValue.Name)
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
@@ -357,9 +372,9 @@ func (s *State) ProviderAddrs() []addrs.AbsProviderConfig {
 // the requirements returned by this method will always be unconstrained.
 // The result should usually be merged with a Requirements derived from the
 // current configuration in order to apply some constraints.
-func (s *State) ProviderRequirements() getproviders.Requirements {
+func (s *State) ProviderRequirements() providerreqs.Requirements {
 	configAddrs := s.ProviderAddrs()
-	ret := make(getproviders.Requirements, len(configAddrs))
+	ret := make(providerreqs.Requirements, len(configAddrs))
 	for _, configAddr := range configAddrs {
 		ret[configAddr.Provider] = nil // unconstrained dependency
 	}
@@ -390,7 +405,8 @@ func (s *State) PruneResourceHusks() {
 // SyncWrapper returns a SyncState object wrapping the receiver.
 func (s *State) SyncWrapper() *SyncState {
 	return &SyncState{
-		state: s,
+		state:    s,
+		writable: true, // initially writable, becoming read-only once closed
 	}
 }
 
@@ -554,13 +570,6 @@ func (s *State) MoveModuleInstance(src, dst addrs.ModuleInstance) {
 	if srcMod.Resources != nil {
 		for _, r := range srcMod.Resources {
 			r.Addr.Module = dst
-		}
-	}
-
-	// Update any OutputValues's addresses.
-	if srcMod.OutputValues != nil {
-		for _, ov := range srcMod.OutputValues {
-			ov.Addr.Module = dst
 		}
 	}
 }

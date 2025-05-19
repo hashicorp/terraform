@@ -1,11 +1,13 @@
 ---
-page_title: 'Internals: Resource Address'
-description: |-
-  A resource address is a string that identifies zero or more resource
-  instances in your overall configuration.
+page_title: Resource address reference
+description: Use the resource address to reference specific instances of resources elsewhere in the configuration. Learn how Terraform creates addresses for resources.
 ---
 
-# Resource Addressing
+# Resource Address Reference
+
+This topic provides reference information about resource addresses in Terraform. 
+
+## Syntax
 
 A _resource address_ is a string that identifies zero or more resource
 instances in your overall configuration.
@@ -71,7 +73,7 @@ resource_type.resource_name[instance index]
 -> In Terraform v0.12 and later, a resource spec without a module path prefix
 matches only resources in the root module. In earlier versions, a resource spec
 without a module path prefix would match resources with the same type and name
-in any descendent module.
+in any descendant module.
 
 ## Index values for Modules and Resources
 
@@ -118,12 +120,12 @@ Given a Terraform config that includes:
 ```hcl
 resource "aws_instance" "web" {
   # ...
-  for_each = {
+  for_each = tomap({
     "terraform": "value1",
     "resource":  "value2",
     "indexing":  "value3",
     "example":   "value4",
-  }
+  })
 }
 ```
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package arguments
 
@@ -77,6 +77,18 @@ type Operation struct {
 	// a module all at once. We could potentially loosen this later if we
 	// learn a use-case for broader matching.
 	ForceReplace []addrs.AbsResourceInstance
+
+	// DeferralAllowed enables experimental support for automatically performing
+	// a partial plan if some objects are not yet plannable (due to unknown
+	// values in count/for_each, or due to other missing dependencies that can't
+	// be resolved in a single plan/apply cycle).
+	//
+	// IMPORTANT: This feature should only be available when Terraform is built
+	// with experimental features enabled. Since extendedFlagSet can't currently
+	// test whether experimental features are enabled, the check needs to happen
+	// when _reading_ these Operation arguments and transferring values to the
+	// backendrun.Operation struct.
+	DeferralAllowed bool
 
 	// These private fields are used only temporarily during decoding. Use
 	// method Parse to populate the exported fields from these, validating
@@ -180,13 +192,13 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 }
 
 // Vars describes arguments which specify non-default variable values. This
-// interfce is unfortunately obscure, because the order of the CLI arguments
+// interface is unfortunately obscure, because the order of the CLI arguments
 // determines the final value of the gathered variables. In future it might be
 // desirable for the arguments package to handle the gathering of variables
 // directly, returning a map of variable values.
 type Vars struct {
-	vars     *flagNameValueSlice
-	varFiles *flagNameValueSlice
+	vars     *FlagNameValueSlice
+	varFiles *FlagNameValueSlice
 }
 
 func (v *Vars) All() []FlagNameValue {
@@ -223,17 +235,18 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 
 	if operation != nil {
 		f.IntVar(&operation.Parallelism, "parallelism", DefaultParallelism, "parallelism")
+		f.BoolVar(&operation.DeferralAllowed, "allow-deferral", false, "allow-deferral")
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
-		f.Var((*flagStringSlice)(&operation.targetsRaw), "target", "target")
-		f.Var((*flagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
+		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
+		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
 	}
 
 	// Gather all -var and -var-file arguments into one heterogenous structure
 	// to preserve the overall order.
 	if vars != nil {
-		varsFlags := newFlagNameValueSlice("-var")
+		varsFlags := NewFlagNameValueSlice("-var")
 		varFilesFlags := varsFlags.Alias("-var-file")
 		vars.vars = &varsFlags
 		vars.varFiles = &varFilesFlags
