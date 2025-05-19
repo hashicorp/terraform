@@ -11,11 +11,13 @@ description: >-
 
 Terraform can import existing infrastructure resources. This functionality lets you bring existing resources under Terraform management.
 
-~> **Warning:** Terraform expects that each remote object is bound to only one resource address. You should import each remote object to only one Terraform resource address. If you import the same object multiple times, Terraform may exhibit unwanted behavior. Refer to [State](/terraform/language/state) for more details.
+-> **Note:** Terraform v1.5.0 and later supports `import` blocks. Unlike the `terraform import` command, you can use `import` blocks to import more than one resource at a time, and you can review imports as part of your normal plan and apply workflow. [Learn more about `import` blocks](/terraform/language/import).
 
 ## State Only
 
-Terraform import can only import resources into the [state](/terraform/language/state). Importing does not generate configuration.
+~> **Warning:** Terraform expects that each remote object is bound to a _single_ resource address. You should import each remote object to _one_ Terraform resource address. If you import the same object multiple times, Terraform may exhibit unwanted behavior. See [State](/terraform/language/state) for more details.
+
+The `terraform import` CLI command can only import resources into the [state](/terraform/language/state). Importing via the CLI does _not_ generate configuration. If you want to generate the accompanying configuration for imported resources, [use the `import` block instead](/terraform/language/import).
 
 Before you run `terraform import` you must manually write a `resource` configuration block for the resource. The resource block describes where Terraform should map the imported object.
 

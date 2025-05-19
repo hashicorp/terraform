@@ -10,9 +10,11 @@ description: >-
 
 The `check` block can validate your infrastructure outside the usual resource lifecycle. Check blocks address a gap between post-apply and functional validation of infrastructure.
 
+> **Hands-on:** Try the [Validate Infrastructure Using Checks](/terraform/tutorials/configuration-language/checks) tutorial.
+
 Check blocks allow you to define [custom conditions](/terraform/language/expressions/custom-conditions) that execute on every Terraform plan or apply operation without affecting the overall status of an operation. Check blocks execute as the last step of a plan or apply after Terraform has planned or provisioned your infrastructure.
 
-## Checks Syntax
+## Syntax
 
 You can declare a `check` block with a local name, zero-to-one scoped [data sources](#scoped-data-sources), and one-to-many [assertions](#assertions).
 
@@ -31,7 +33,7 @@ check "health_check" {
 }
 ```
 
-### Scoped Data Sources
+### Scoped data sources
 
 You can use any data source from any provider as a scoped data source within a `check` block.
 
@@ -63,13 +65,13 @@ Unlike other [custom conditions](/terraform/language/expressions/custom-conditio
 
 Condition arguments within `assert` blocks can refer to scoped data sources within the enclosing `check` block and any variables, resources, data sources, or module outputs within the current module.
 
-[Learn more about assertions](/terraform/language/expressions/custom-conditions#check-assertions).
+[Learn more about assertions](/terraform/language/expressions/custom-conditions#checks-with-assertions).
 
 ### Meta-Arguments
 
 Check blocks do not currently support [meta-arguments](/terraform/language/resources/syntax#meta-arguments). We are still collecting feedback on this feature, so if your use case would benefit from check blocks supporting meta-arguments, please [let us know](https://github.com/hashicorp/terraform/issues/new/choose).
 
-## Continuous Validation in Terraform Cloud
+## Continuous validation in Terraform Cloud
 
 Terraform Cloud can automatically validate whether checks in a workspace’s configuration continue to pass after Terraform provisions new infrastructure. See [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation) for details.
 
@@ -79,7 +81,7 @@ Check blocks offer the most _flexible_ validation solution within Terraform. You
 
 There are major behavioral differences between check block assertions and other custom conditions, the main one being that check blocks do _not_ affect Terraform's execution of an operation. You can use this non-blocking behavior to decide the best type of validation for your use case.
 
-### Outputs and Variables
+### Outputs and variables
 
 [Output postconditions](/terraform/language/expressions/custom-conditions#outputs) and [variable validations](/terraform/language/expressions/custom-conditions#input-variable-validation) both make assertions around inputs and outputs.
 

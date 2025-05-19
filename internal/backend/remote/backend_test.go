@@ -725,3 +725,29 @@ func TestRemote_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 		t.Errorf("wrong summary: got %s, want %s", got, wantDetail)
 	}
 }
+
+func TestRemote_ServiceDiscoveryAliases(t *testing.T) {
+	s := testServer(t)
+	b := New(testDisco(s))
+
+	diag := b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String), // Forces aliasing to test server
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name":   cty.StringVal("prod"),
+			"prefix": cty.NullVal(cty.String),
+		}),
+	}))
+	if diag.HasErrors() {
+		t.Fatalf("expected no diagnostic errors, got %s", diag.Err())
+	}
+
+	aliases, err := b.ServiceDiscoveryAliases()
+	if err != nil {
+		t.Fatalf("expected no errors, got %s", err)
+	}
+	if len(aliases) != 1 {
+		t.Fatalf("expected 1 alias but got %d", len(aliases))
+	}
+}

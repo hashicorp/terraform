@@ -342,6 +342,11 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		errs = append(errs, path.NewErrorf("planned for existence but config wants absence"))
 		return errs
 	}
+	if !config.IsNull() && !planned.IsKnown() {
+		errs = append(errs, path.NewErrorf("planned unknown for configured value"))
+		return errs
+	}
+
 	if planned.IsNull() {
 		// No further checks possible if the planned value is null
 		return errs
@@ -442,16 +447,14 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		}
 
 	case configschema.NestingSet:
-		plannedL := planned.Length()
-		configL := config.Length()
-
-		// config wasn't known, then planned should be unknown too
-		if !plannedL.IsKnown() && !configL.IsKnown() {
+		if !planned.IsKnown() || !config.IsKnown() {
+			// if either is unknown we cannot check the lengths
 			return errs
 		}
 
-		lenEqual := plannedL.Equals(configL)
-		if !lenEqual.IsKnown() || lenEqual.False() {
+		plannedL := planned.LengthInt()
+		configL := config.LengthInt()
+		if plannedL != configL {
 			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}

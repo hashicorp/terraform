@@ -1,0 +1,3 @@
+module "../invalid" {
+  source  = "./child"
+}

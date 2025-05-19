@@ -8,19 +8,19 @@ description: >-
 
 You can create conditions that produce custom error messages for several types of objects in a configuration. For example, you can add a condition to an input variable that checks whether incoming image IDs are formatted properly. Custom conditions can capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-> **Hands On:** Try the [Validate Modules with Custom Conditions](/terraform/tutorials/configuration-language/custom-conditions) tutorial.
+> **Hands On:** Try the [Validate Infrastructure Using Checks](/terraform/tutorials/configuration-language/checks) tutorial to learn how to use `check` blocks. Try the [Validate Modules with Custom Conditions](/terraform/tutorials/configuration-language/custom-conditions) tutorial to learn how to use other custom conditions.
 
 This page explains the following:
-  - Creating checks with [assertions](#check-assertions) to verify your infrastructure as a whole (Terraform v1.5.0 and later)
+  - Creating checks with [assertions](#checks-with-assertions) to verify your infrastructure as a whole (Terraform v1.5.0 and later)
   - Creating [validation conditions](#input-variable-validation) for input variables (Terraform v0.13.0 and later)
   - Creating [preconditions and postconditions](#preconditions-and-postconditions) for resources, data sources, and outputs (Terraform v1.2.0 and later)
   - Writing effective [condition expressions](#condition-expressions) and [error messages](#error-messages)
   - When Terraform [evaluates custom conditions](#conditions-checked-only-during-apply) during the plan and apply cycle
 
-## Selecting a Custom Condition for Your Use Case
+## Selecting a Custom Condition for your use case
 
 Terraform's different custom conditions are best suited to various situations. Use the following broad guidelines to select the best custom condition for your use case:
-1. [Check blocks with assertions](#check-assertions) validate your infrastructure as a whole. Additionally, check blocks do not prevent or block the overall execution of Terraform operations.
+1. [Check blocks with assertions](#checks-with-assertions) validate your infrastructure as a whole. Additionally, check blocks do not prevent or block the overall execution of Terraform operations.
 1. [Validation conditions](#input-variable-validation) or [output postconditions](#preconditions-and-postconditions) can ensure your configuration's inputs and outputs meet specific requirements.
 1. Resource [preconditions and postconditions](#preconditions-and-postconditions) can validate that Terraform produces your configuration with predictable results.
 
@@ -213,7 +213,7 @@ You should also consider the following questions when creating preconditions and
 - Which approach is more convenient? If a particular resource has many dependencies that all make an assumption about that resource, it can be pragmatic to declare that once as a post-condition of the resource, rather than declaring it many times as preconditions on each of the dependencies.
 - Is it helpful to declare the same or similar conditions as both preconditions and postconditions? This can be useful if the postcondition is in a different module than the precondition because it lets the modules verify one another as they evolve independently.
 
-## Checks with assertions
+## Checks with Assertions
 
 -> **Note:** Check blocks and their assertions are only available in Terraform v1.5.0 and later.
 

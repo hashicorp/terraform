@@ -139,28 +139,25 @@ event "promote-production-packaging" {
   }
 }
 
-// commenting the ironbank update for now until it is all set up on the Ironbank side
-
-// event "update-ironbank" {
-//   depends = ["promote-production-packaging"]
-//   action "update-ironbank" {
-//     organization = "hashicorp"
-//     repository = "crt-workflows-common"
-//     workflow = "update-ironbank"
-//   }
-
-//   notification {
-//     on = "always"
-//   }
-// }
-
 event "crt-hook-tfc-upload" {
-  // this will need to be changed back to update-ironbank once the Ironbank setup is done
   depends = ["promote-production-packaging"]
   action "crt-hook-tfc-upload" {
     organization = "hashicorp"
     repository = "terraform-releases"
     workflow = "crt-hook-tfc-upload"
+  }
+
+  notification {
+    on = "always"
+  }
+}
+
+event "update-ironbank" {
+  depends = ["crt-hook-tfc-upload"]
+  action "update-ironbank" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "update-ironbank"
   }
 
   notification {
