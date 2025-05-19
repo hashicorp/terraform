@@ -839,7 +839,7 @@ func testBackendState(t *testing.T, s *states.State, c int) (*workdir.BackendSta
 	hash := backendConfig.Hash(configSchema)
 
 	state := workdir.NewBackendStateFile()
-	state.Backend = &workdir.BackendState{
+	state.Backend = &workdir.BackendConfigState{
 		Type:      "http",
 		ConfigRaw: json.RawMessage(fmt.Sprintf(`{"address":%q}`, srv.URL)),
 		Hash:      uint64(hash),
@@ -877,7 +877,7 @@ func testRemoteState(t *testing.T, s *states.State, c int) (*workdir.BackendStat
 	retState := workdir.NewBackendStateFile()
 
 	srv := httptest.NewServer(http.HandlerFunc(cb))
-	b := &workdir.BackendState{
+	b := &workdir.BackendConfigState{
 		Type: "http",
 	}
 	b.SetConfig(cty.ObjectVal(map[string]cty.Value{

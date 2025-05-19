@@ -202,7 +202,7 @@ type Meta struct {
 	configLoader *configload.Loader
 
 	// backendState is the currently active backend state
-	backendState *workdir.BackendState
+	backendState *workdir.BackendConfigState
 
 	// Variables for the context (private)
 	variableArgs arguments.FlagNameValueSlice
