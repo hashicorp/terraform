@@ -841,7 +841,7 @@ When `quiet` is set to `true`, Terraform prints `"Suppressed by quiet=true"` to 
 
 ### `inline` 
 
-Specifies a list of command strings for the remote resource to run.
+Specifies a list of command strings to execute on the remote resource.
 
 
 ```hcl
@@ -882,7 +882,7 @@ You cannot add a `script` argument in the same provisioner with `inline` or `scr
 
 ### `scripts`
 
-Specifies a list of relative or absolute paths to scripts on the local machine to copy and execute on the remote resource.  
+Specifies a list of relative or absolute paths to script files on the local machine to copy and execute on the remote resource.  
 
 
 ```hcl
