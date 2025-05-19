@@ -103,6 +103,81 @@ Success! 2 passed, 0 failed.
 	}
 }
 
+func TestTest_Parallelism(t *testing.T) {
+
+	streams, _ := terminal.StreamsForTesting(t)
+	view := views.NewTest(arguments.ViewHuman, views.NewView(streams))
+
+	colorize := mockColorize()
+	colorize.Disable = true
+
+	mock := NewMockClient()
+	client := &tfe.Client{
+		ConfigurationVersions: mock.ConfigurationVersions,
+		Organizations:         mock.Organizations,
+		RegistryModules:       mock.RegistryModules,
+		TestRuns:              mock.TestRuns,
+	}
+
+	if _, err := client.Organizations.Create(context.Background(), tfe.OrganizationCreateOptions{
+		Name: tfe.String("organisation"),
+	}); err != nil {
+		t.Fatalf("failed to create organisation: %v", err)
+	}
+
+	if _, err := client.RegistryModules.Create(context.Background(), "organisation", tfe.RegistryModuleCreateOptions{
+		Name:         tfe.String("name"),
+		Provider:     tfe.String("provider"),
+		RegistryName: "app.terraform.io",
+		Namespace:    "organisation",
+	}); err != nil {
+		t.Fatalf("failed to create registry module: %v", err)
+	}
+
+	runner := TestSuiteRunner{
+		// Configuration data.
+		ConfigDirectory:  "testdata/test",
+		TestingDirectory: "tests",
+		Config:           nil, // We don't need this for this test.
+		Source:           "app.terraform.io/organisation/name/provider",
+
+		// Cancellation controls, we won't be doing any cancellations in this
+		// test.
+		Stopped:      false,
+		Cancelled:    false,
+		StoppedCtx:   context.Background(),
+		CancelledCtx: context.Background(),
+
+		// Test Options, empty for this test.
+		GlobalVariables:      nil,
+		Verbose:              false,
+		OperationParallelism: 4,
+		Filters:              nil,
+
+		// Outputs
+		Renderer: &jsonformat.Renderer{
+			Streams:             streams,
+			Colorize:            colorize,
+			RunningInAutomation: false,
+		},
+		View:    view,
+		Streams: streams,
+
+		// Networking
+		Services:       nil, // Don't need this when the client is overridden.
+		clientOverride: client,
+	}
+
+	_, diags := runner.Test()
+	if len(diags) > 0 {
+		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
+	}
+
+	if mock.TestRuns.parallelism != 4 {
+		t.Errorf("expected parallelism to be 4 but was %d", mock.TestRuns.parallelism)
+	}
+}
+
 func TestTest_JSON(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)

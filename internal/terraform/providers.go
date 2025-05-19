@@ -8,7 +8,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -24,12 +26,22 @@ import (
 // here are somewhat vague to accommodate being used both to describe
 // an invalid component configuration and the problem of trying to plan and
 // apply a module that wasn't intended to be a root module.
-func checkExternalProviders(rootCfg *configs.Config, got map[addrs.RootProviderConfig]providers.Interface) tfdiags.Diagnostics {
+func checkExternalProviders(rootCfg *configs.Config, plan *plans.Plan, state *states.State, got map[addrs.RootProviderConfig]providers.Interface) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	allowedProviders := map[addrs.Provider]struct{}{}
+	allowedProviders := make(map[addrs.Provider]bool)
 	for _, addr := range rootCfg.ProviderTypes() {
-		allowedProviders[addr] = struct{}{}
+		allowedProviders[addr] = true
+	}
+	if state != nil {
+		for _, addr := range state.ProviderAddrs() {
+			allowedProviders[addr.Provider] = true
+		}
+	}
+	if plan != nil {
+		for _, addr := range plan.ProviderAddrs() {
+			allowedProviders[addr.Provider] = true
+		}
 	}
 	requiredConfigs := rootCfg.EffectiveRequiredProviderConfigs().Keys()
 
@@ -39,7 +51,7 @@ func checkExternalProviders(rootCfg *configs.Config, got map[addrs.RootProviderC
 	// we can't be precise because Terraform permits implicit default provider
 	// configurations.)
 	for cfgAddr := range got {
-		if _, allowed := allowedProviders[cfgAddr.Provider]; !allowed {
+		if !allowedProviders[cfgAddr.Provider] {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Unexpected provider configuration",

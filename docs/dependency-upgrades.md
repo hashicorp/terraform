@@ -76,16 +76,16 @@ typically fail.
 
 To apply the proposed change, you'll need to check out the branch that
 Dependabot created on your development system, run `make syncdeps`, add
-all of the files that get modified, and then amend dependabot's commit using
+all of the files that get modified, and then amend Dependabot's commit using
 `git commit --amend`.
 
-After you've done this, use `git push --force` to replace dependabot's original
+After you've done this, use `git push --force` to replace Dependabot's original
 commit with your new commit, and then wait for GitHub to re-run the PR
 checks. The code consistency checks should now pass.
 
 We've configured Dependabot to monitor only the root `go.mod` file for potential
 upgrades, because that one aggregates the dependencies for all other child
-modules. Therefore there should never be a dependabot upgrade targeting a
+modules. Therefore there should never be a Dependabot upgrade targeting a
 module in a subdirectory. If one _does_ get created somehow, you should close
 it and perform the same upgrade at the root of the repository instead, using
 the instructions in [Upgrading a Dependency](#upgrading-a-dependency) above.
@@ -124,7 +124,7 @@ special constraints due to how Terraform uses them:
       that would therefore cause the next Terraform version to break the
       v1.x compatibility promises.
 
-    Terraform's use of `go-getter` is all encapulated in `internal/getmodules`
+    Terraform's use of `go-getter` is all encapsulated in `internal/getmodules`
     and is set up to try to minimize the possibility that a go-getter upgrade
     would immediately introduce new functionality, but that encapsulation cannot
     prevent adoption of changes made to pre-existing functionality that

@@ -4,8 +4,11 @@
 package stubs
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -17,8 +20,10 @@ var _ providers.Interface = (*unknownProvider)(nil)
 // unknown to the current Terraform configuration. This is used when a reference
 // to a provider is unknown, or the provider itself has unknown instances.
 //
-// This provider wraps an unconfigured provider client, which is used to handle
-// offline functionality.
+// An unknownProvider is only returned in the context of a provider that should
+// have been configured by Stacks. This provider should not be configured again,
+// or used for any dedicated offline functionality (such as moving resources and
+// provider functions).
 type unknownProvider struct {
 	unconfiguredClient providers.Interface
 }
@@ -33,6 +38,10 @@ func (u *unknownProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.
 	return u.unconfiguredClient.GetProviderSchema()
+}
+
+func (u *unknownProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return u.unconfiguredClient.GetResourceIdentitySchemas()
 }
 
 func (u *unknownProvider) ValidateProviderConfig(request providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
@@ -53,13 +62,32 @@ func (u *unknownProvider) ValidateDataResourceConfig(request providers.ValidateD
 	return u.unconfiguredClient.ValidateDataResourceConfig(request)
 }
 
+func (u *unknownProvider) ValidateListResourceConfig(request providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	// This is offline functionality, so we can hand it off to the unconfigured
+	// client.
+	return u.unconfiguredClient.ValidateListResourceConfig(request)
+}
+
+// ValidateEphemeralResourceConfig implements providers.Interface.
+func (p *unknownProvider) ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	return providers.ValidateEphemeralResourceConfigResponse{
+		Diagnostics: nil,
+	}
+}
+
 func (u *unknownProvider) UpgradeResourceState(request providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.
 	return u.unconfiguredClient.UpgradeResourceState(request)
 }
 
-func (u *unknownProvider) ConfigureProvider(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+func (u *unknownProvider) UpgradeResourceIdentity(request providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	// This is offline functionality, so we can hand it off to the unconfigured
+	// client.
+	return u.unconfiguredClient.UpgradeResourceIdentity(request)
+}
+
+func (u *unknownProvider) ConfigureProvider(_ providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	// This shouldn't be called, we don't configure an unknown provider within
 	// stacks and Terraform Core shouldn't call this method.
 	panic("attempted to configure an unknown provider")
@@ -104,7 +132,7 @@ func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChang
 		// library, but it is doing exactly what we need it to do.
 
 		schema := u.GetProviderSchema().ResourceTypes[request.TypeName]
-		val, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, schema.Block)
+		val, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, nil, schema.Body)
 		if diags.HasErrors() {
 			// All the potential errors we get back from this function are
 			// related to the user badly defining mocks. We should never hit
@@ -113,7 +141,7 @@ func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChang
 		}
 
 		return providers.PlanResourceChangeResponse{
-			PlannedState: val,
+			PlannedState: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
@@ -158,7 +186,7 @@ func (u *unknownProvider) ImportResourceState(request providers.ImportResourceSt
 			ImportedResources: []providers.ImportedResource{
 				{
 					TypeName: request.TypeName,
-					State:    cty.UnknownVal(schema.Block.ImpliedType()),
+					State:    cty.UnknownVal(schema.Body.ImpliedType()),
 				},
 			},
 			Deferred: &providers.Deferred{
@@ -178,10 +206,17 @@ func (u *unknownProvider) ImportResourceState(request providers.ImportResourceSt
 	}
 }
 
-func (u *unknownProvider) MoveResourceState(request providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
-	// This is offline functionality, so we can hand it off to the unconfigured
-	// client.
-	return u.unconfiguredClient.MoveResourceState(request)
+func (u *unknownProvider) MoveResourceState(_ providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called MoveResourceState on an unknown provider",
+		"Terraform called MoveResourceState on an unknown provider. This is a bug in Terraform - please report this error.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.MoveResourceStateResponse{
+		Diagnostics: diags,
+	}
 }
 
 func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
@@ -194,8 +229,8 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 		// unknown values. This isn't the original use case for the mocking
 		// library, but it is doing exactly what we need it to do.
 
-		schema := u.GetProviderSchema().ResourceTypes[request.TypeName]
-		val, diags := mocking.PlanComputedValuesForResource(request.Config, schema.Block)
+		schema := u.GetProviderSchema().DataSources[request.TypeName]
+		val, diags := mocking.PlanComputedValuesForResource(request.Config, nil, schema.Body)
 		if diags.HasErrors() {
 			// All the potential errors we get back from this function are
 			// related to the user badly defining mocks. We should never hit
@@ -204,7 +239,7 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 		}
 
 		return providers.ReadDataSourceResponse{
-			State: val,
+			State: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
@@ -222,10 +257,44 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 	}
 }
 
-func (u *unknownProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
-	// This is offline functionality, so we can hand it off to the unconfigured
-	// client.
-	return u.unconfiguredClient.CallFunction(request)
+// OpenEphemeralResource implements providers.Interface.
+func (u *unknownProvider) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+	// TODO: Once there's a definition for how deferred actions ought to work
+	// for ephemeral resource instances, make this report that this one needs
+	// to be deferred if the client announced that it supports deferral.
+	//
+	// For now this is just always an error, because ephemeral resources are
+	// just a prototype being developed concurrently with deferred actions.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot open this resource instance because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.OpenEphemeralResourceResponse{
+		Diagnostics: diags,
+	}
+}
+
+// RenewEphemeralResource implements providers.Interface.
+func (u *unknownProvider) RenewEphemeralResource(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	// We don't have anything to do here because OpenEphemeralResource didn't really
+	// actually "open" anything.
+	return providers.RenewEphemeralResourceResponse{}
+}
+
+// CloseEphemeralResource implements providers.Interface.
+func (u *unknownProvider) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
+	// We don't have anything to do here because OpenEphemeralResource didn't really
+	// actually "open" anything.
+	return providers.CloseEphemeralResourceResponse{}
+}
+
+func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) providers.CallFunctionResponse {
+	return providers.CallFunctionResponse{
+		Err: fmt.Errorf("CallFunction shouldn't be called on an unknown provider; this is a bug in Terraform - please report this error"),
+	}
 }
 
 func (u *unknownProvider) Close() error {

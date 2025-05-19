@@ -19,15 +19,13 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// How long to wait between sending heartbeat/progress messages
-const heartbeatInterval = 10 * time.Second
-
 func newJSONHook(view *JSONView) *jsonHook {
 	return &jsonHook{
-		view:      view,
-		applying:  make(map[string]applyProgress),
-		timeNow:   time.Now,
-		timeAfter: time.After,
+		view:             view,
+		resourceProgress: make(map[string]resourceProgress),
+		timeNow:          time.Now,
+		timeAfter:        time.After,
+		periodicUiTimer:  defaultPeriodicUiTimer,
 	}
 }
 
@@ -36,24 +34,26 @@ type jsonHook struct {
 
 	view *JSONView
 
-	// Concurrent map of resource addresses to allow the sequence of pre-apply,
-	// progress, and post-apply messages to share data about the resource
-	applying     map[string]applyProgress
-	applyingLock sync.Mutex
+	// Concurrent map of resource addresses to allow tracking
+	// progress, and post-action messages to share data about the resource
+	resourceProgress   map[string]resourceProgress
+	resourceProgressMu sync.Mutex
 
 	// Mockable functions for testing the progress timer goroutine
 	timeNow   func() time.Time
 	timeAfter func(time.Duration) <-chan time.Time
+
+	periodicUiTimer time.Duration
 }
 
 var _ terraform.Hook = (*jsonHook)(nil)
 
-type applyProgress struct {
+type resourceProgress struct {
 	addr   addrs.AbsResourceInstance
 	action plans.Action
 	start  time.Time
 
-	// done is used for post-apply to stop the progress goroutine
+	// done is used for post-action to stop the progress goroutine
 	done chan struct{}
 
 	// heartbeatDone is used to allow tests to safely wait for the progress
@@ -67,16 +67,16 @@ func (h *jsonHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedK
 		h.view.Hook(json.NewApplyStart(id.Addr, action, idKey, idValue))
 	}
 
-	progress := applyProgress{
+	progress := resourceProgress{
 		addr:          id.Addr,
 		action:        action,
 		start:         h.timeNow().Round(time.Second),
 		done:          make(chan struct{}),
 		heartbeatDone: make(chan struct{}),
 	}
-	h.applyingLock.Lock()
-	h.applying[id.Addr.String()] = progress
-	h.applyingLock.Unlock()
+	h.resourceProgressMu.Lock()
+	h.resourceProgress[id.Addr.String()] = progress
+	h.resourceProgressMu.Unlock()
 
 	if action != plans.NoOp {
 		go h.applyingHeartbeat(progress)
@@ -84,13 +84,13 @@ func (h *jsonHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedK
 	return terraform.HookActionContinue, nil
 }
 
-func (h *jsonHook) applyingHeartbeat(progress applyProgress) {
+func (h *jsonHook) applyingHeartbeat(progress resourceProgress) {
 	defer close(progress.heartbeatDone)
 	for {
 		select {
 		case <-progress.done:
 			return
-		case <-h.timeAfter(heartbeatInterval):
+		case <-h.timeAfter(h.periodicUiTimer):
 		}
 
 		elapsed := h.timeNow().Round(time.Second).Sub(progress.start)
@@ -100,13 +100,13 @@ func (h *jsonHook) applyingHeartbeat(progress applyProgress) {
 
 func (h *jsonHook) PostApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
 	key := id.Addr.String()
-	h.applyingLock.Lock()
-	progress := h.applying[key]
+	h.resourceProgressMu.Lock()
+	progress := h.resourceProgress[key]
 	if progress.done != nil {
 		close(progress.done)
 	}
-	delete(h.applying, key)
-	h.applyingLock.Unlock()
+	delete(h.resourceProgress, key)
+	h.resourceProgressMu.Unlock()
 
 	if progress.action == plans.NoOp {
 		return terraform.HookActionContinue, nil
@@ -163,5 +163,71 @@ func (h *jsonHook) PreRefresh(id terraform.HookResourceIdentity, dk addrs.Depose
 func (h *jsonHook) PostRefresh(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (terraform.HookAction, error) {
 	idKey, idValue := format.ObjectValueID(newState)
 	h.view.Hook(json.NewRefreshComplete(id.Addr, idKey, idValue))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) PreEphemeralOp(id terraform.HookResourceIdentity, action plans.Action) (terraform.HookAction, error) {
+	// this uses the same plans.Read action as a data source to indicate that
+	// the ephemeral resource can't be processed until apply, so there is no
+	// progress hook
+	if action == plans.Read {
+		return terraform.HookActionContinue, nil
+	}
+
+	h.view.Hook(json.NewEphemeralOpStart(id.Addr, action))
+	progress := resourceProgress{
+		addr:          id.Addr,
+		action:        action,
+		start:         h.timeNow().Round(time.Second),
+		done:          make(chan struct{}),
+		heartbeatDone: make(chan struct{}),
+	}
+	h.resourceProgressMu.Lock()
+	h.resourceProgress[id.Addr.String()] = progress
+	h.resourceProgressMu.Unlock()
+
+	go h.ephemeralOpHeartbeat(progress)
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) ephemeralOpHeartbeat(progress resourceProgress) {
+	defer close(progress.heartbeatDone)
+	for {
+		select {
+		case <-progress.done:
+			return
+		case <-h.timeAfter(h.periodicUiTimer):
+		}
+
+		elapsed := h.timeNow().Round(time.Second).Sub(progress.start)
+		h.view.Hook(json.NewEphemeralOpProgress(progress.addr, progress.action, elapsed))
+	}
+}
+
+func (h *jsonHook) PostEphemeralOp(id terraform.HookResourceIdentity, action plans.Action, opErr error) (terraform.HookAction, error) {
+	key := id.Addr.String()
+	h.resourceProgressMu.Lock()
+	progress := h.resourceProgress[key]
+	if progress.done != nil {
+		close(progress.done)
+	}
+	delete(h.resourceProgress, key)
+	h.resourceProgressMu.Unlock()
+
+	if progress.action == plans.NoOp {
+		return terraform.HookActionContinue, nil
+	}
+
+	elapsed := h.timeNow().Round(time.Second).Sub(progress.start)
+
+	if opErr != nil {
+		// Errors are collected and displayed post-operation, so no need to
+		// re-render them here. Instead just signal that this operation failed.
+		h.view.Hook(json.NewEphemeralOpErrored(id.Addr, progress.action, elapsed))
+	} else {
+		h.view.Hook(json.NewEphemeralOpComplete(id.Addr, progress.action, elapsed))
+	}
+
 	return terraform.HookActionContinue, nil
 }

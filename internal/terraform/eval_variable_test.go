@@ -1188,7 +1188,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, ctx, varCfg.Validations, varCfg.DeclRange,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, false,
 			)
 
 			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
@@ -1347,7 +1347,7 @@ variable "bar" {
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, ctx, varCfg.Validations, varCfg.DeclRange,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, false,
 			)
 
 			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
@@ -1377,7 +1377,7 @@ variable "bar" {
 	}
 }
 
-func TestEvalVariableValidation_unknownValues(t *testing.T) {
+func TestEvalVariableValidation_unknownErrorMessage(t *testing.T) {
 	t.Run("known condition, unknown error_message", func(t *testing.T) {
 		rule := &configs.CheckRule{
 			Condition:    hcltest.MockExprLiteral(cty.False),
@@ -1389,7 +1389,17 @@ func TestEvalVariableValidation_unknownValues(t *testing.T) {
 			Variable: addrs.InputVariable{Name: "foo"},
 		}
 
-		result, diags := evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0)
+		// this should not produce any error when validationWalk is true
+		result, diags := evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, true)
+		if got, want := result.Status, checks.StatusUnknown; got != want {
+			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
+		}
+		if diags.HasErrors() {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+
+		// any other time this should result in an error
+		result, diags = evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, false)
 		if got, want := result.Status, checks.StatusError; got != want {
 			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
 		}

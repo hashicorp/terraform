@@ -8,8 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -158,15 +159,10 @@ func writeConfigSnapshot(snap *configload.Snapshot, z *zip.Writer) error {
 	// need to be user-actionable.
 
 	var manifest configSnapshotModuleManifest
-	keys := make([]string, 0, len(snap.Modules))
-	for k := range snap.Modules {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
 
 	// We'll re-use this fileheader for each Create we do below.
 
-	for _, k := range keys {
+	for _, k := range slices.Sorted(maps.Keys(snap.Modules)) {
 		snapMod := snap.Modules[k]
 		record := configSnapshotModuleRecord{
 			Dir:        snapMod.Dir,

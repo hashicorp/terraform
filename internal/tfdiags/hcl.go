@@ -57,6 +57,49 @@ func (d hclDiagnostic) ExtraInfo() interface{} {
 	return d.diag.Extra
 }
 
+func (d hclDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
+	od, ok := otherDiag.(hclDiagnostic)
+	if !ok {
+		return false
+	}
+	if d.diag.Severity != od.diag.Severity {
+		return false
+	}
+	if d.diag.Summary != od.diag.Summary {
+		return false
+	}
+	if d.diag.Detail != od.diag.Detail {
+		return false
+	}
+	if !hclRangeEquals(d.diag.Subject, od.diag.Subject) {
+		return false
+	}
+
+	// we can't compare extra values without knowing what they are
+	if d.ExtraInfo() != nil || od.ExtraInfo() != nil {
+		return false
+	}
+
+	return true
+}
+
+func hclRangeEquals(l, r *hcl.Range) bool {
+	if l == nil || r == nil {
+		return false
+	}
+
+	if l.Filename != r.Filename {
+		return false
+	}
+	if l.Start.Byte != r.Start.Byte {
+		return false
+	}
+	if l.End.Byte != r.End.Byte {
+		return false
+	}
+	return true
+}
+
 // SourceRangeFromHCL constructs a SourceRange from the corresponding range
 // type within the HCL package.
 func SourceRangeFromHCL(hclRange hcl.Range) SourceRange {

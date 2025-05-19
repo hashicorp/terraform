@@ -6,7 +6,10 @@ package configs
 import (
 	"fmt"
 	"log"
+	"maps"
+	"slices"
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -19,7 +22,7 @@ import (
 // A Config is a node in the tree of modules within a configuration.
 //
 // The module tree is constructed by following ModuleCall instances recursively
-// through the root module transitively into descendent modules.
+// through the root module transitively into descendant modules.
 //
 // A module tree described in *this* package represents the static tree
 // represented by configuration. During evaluation a static ModuleNode may
@@ -135,17 +138,12 @@ func (c *Config) Depth() int {
 func (c *Config) DeepEach(cb func(c *Config)) {
 	cb(c)
 
-	names := make([]string, 0, len(c.Children))
-	for name := range c.Children {
-		names = append(names, name)
-	}
-
-	for _, name := range names {
-		c.Children[name].DeepEach(cb)
+	for _, ch := range c.Children {
+		ch.DeepEach(cb)
 	}
 }
 
-// AllModules returns a slice of all the receiver and all of its descendent
+// AllModules returns a slice of all the receiver and all of its descendant
 // nodes in the module tree, in the same order they would be visited by
 // DeepEach.
 func (c *Config) AllModules() []*Config {
@@ -156,14 +154,14 @@ func (c *Config) AllModules() []*Config {
 	return ret
 }
 
-// Descendent returns the descendent config that has the given path beneath
+// Descendant returns the descendant config that has the given path beneath
 // the receiver, or nil if there is no such module.
 //
 // The path traverses the static module tree, prior to any expansion to handle
 // count and for_each arguments.
 //
 // An empty path will just return the receiver, and is therefore pointless.
-func (c *Config) Descendent(path addrs.Module) *Config {
+func (c *Config) Descendant(path addrs.Module) *Config {
 	current := c
 	for _, name := range path {
 		current = current.Children[name]
@@ -174,13 +172,13 @@ func (c *Config) Descendent(path addrs.Module) *Config {
 	return current
 }
 
-// DescendentForInstance is like Descendent except that it accepts a path
+// DescendantForInstance is like Descendant except that it accepts a path
 // to a particular module instance in the dynamic module graph, returning
 // the node from the static module graph that corresponds to it.
 //
 // All instances created by a particular module call share the same
 // configuration, so the keys within the given path are disregarded.
-func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
+func (c *Config) DescendantForInstance(path addrs.ModuleInstance) *Config {
 	current := c
 	for _, step := range path {
 		current = current.Children[step.Name]
@@ -200,7 +198,7 @@ func (c *Config) TargetExists(target addrs.Targetable) bool {
 	switch target.AddrType() {
 	case addrs.ConfigResourceAddrType:
 		addr := target.(addrs.ConfigResource)
-		module := c.Descendent(addr.Module)
+		module := c.Descendant(addr.Module)
 		if module != nil {
 			return module.Module.ResourceByAddr(addr.Resource) != nil
 		} else {
@@ -208,7 +206,7 @@ func (c *Config) TargetExists(target addrs.Targetable) bool {
 		}
 	case addrs.AbsResourceInstanceAddrType:
 		addr := target.(addrs.AbsResourceInstance)
-		module := c.DescendentForInstance(addr.Module)
+		module := c.DescendantForInstance(addr.Module)
 		if module != nil {
 			return module.Module.ResourceByAddr(addr.Resource.Resource) != nil
 		} else {
@@ -216,20 +214,19 @@ func (c *Config) TargetExists(target addrs.Targetable) bool {
 		}
 	case addrs.AbsResourceAddrType:
 		addr := target.(addrs.AbsResource)
-		module := c.DescendentForInstance(addr.Module)
+		module := c.DescendantForInstance(addr.Module)
 		if module != nil {
 			return module.Module.ResourceByAddr(addr.Resource) != nil
 		} else {
 			return false
 		}
 	case addrs.ModuleAddrType:
-		return c.Descendent(target.(addrs.Module)) != nil
+		return c.Descendant(target.(addrs.Module)) != nil
 	case addrs.ModuleInstanceAddrType:
-		return c.DescendentForInstance(target.(addrs.ModuleInstance)) != nil
+		return c.DescendantForInstance(target.(addrs.ModuleInstance)) != nil
 	default:
 		panic(fmt.Errorf("unrecognized targetable type: %d", target.AddrType()))
 	}
-	return true
 }
 
 // EntersNewPackage returns true if this call is to an external module, either
@@ -347,6 +344,15 @@ func (c *Config) ProviderRequirements() (providerreqs.Requirements, hcl.Diagnost
 	return reqs, diags
 }
 
+// ProviderRequirementsConfigOnly searches the full tree of configuration
+// files for all providers. This function does not consider any test files.
+func (c *Config) ProviderRequirementsConfigOnly() (providerreqs.Requirements, hcl.Diagnostics) {
+	reqs := make(providerreqs.Requirements)
+	diags := c.addProviderRequirements(reqs, true, false)
+
+	return reqs, diags
+}
+
 // ProviderRequirementsShallow searches only the direct receiver for explicit
 // and implicit dependencies on providers. Descendant modules are ignored.
 //
@@ -458,7 +464,17 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 		}
 		reqs[fqn] = nil
 	}
+
 	for _, rc := range c.Module.DataResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
+	for _, rc := range c.Module.EphemeralResources {
 		fqn := rc.Provider
 		if _, exists := reqs[fqn]; exists {
 			// Explicit dependency already present
@@ -808,12 +824,8 @@ func (c *Config) ProviderTypes() []addrs.Provider {
 	// Ignore diagnostics here because they relate to version constraints
 	reqs, _ := c.ProviderRequirements()
 
-	ret := make([]addrs.Provider, 0, len(reqs))
-	for k := range reqs {
-		ret = append(ret, k)
-	}
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].String() < ret[j].String()
+	ret := slices.SortedFunc(maps.Keys(reqs), func(i, j addrs.Provider) int {
+		return strings.Compare(i.String(), j.String())
 	})
 	return ret
 }
@@ -836,9 +848,9 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		return addr
 
 	case addrs.LocalProviderConfig:
-		// Find the descendent Config that contains the module that this
+		// Find the descendant Config that contains the module that this
 		// local config belongs to.
-		mc := c.Descendent(inModule)
+		mc := c.Descendant(inModule)
 		if mc == nil {
 			panic(fmt.Sprintf("ResolveAbsProviderAddr with non-existent module %s", inModule.String()))
 		}

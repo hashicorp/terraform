@@ -37,11 +37,9 @@
   },
   {
     "@level": "info",
-    "@message": "local_file.local_file: Creation complete after 0s [id=2248ee2fa0aaaad99178531f924bf00b4b0a8f4e]",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
-      "elapsed_seconds": 0,
       "id_key": "id",
       "id_value": "2248ee2fa0aaaad99178531f924bf00b4b0a8f4e",
       "resource": {
@@ -63,6 +61,7 @@
     "changes": {
       "add": 1,
       "change": 0,
+      "import": 0,
       "operation": "apply",
       "remove": 0
     },

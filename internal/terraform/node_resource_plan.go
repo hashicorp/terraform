@@ -61,14 +61,10 @@ var (
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachDependencies   = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
-	_ graphNodeExpandsInstances     = (*nodeExpandPlannableResource)(nil)
 )
 
 func (n *nodeExpandPlannableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (expand)"
-}
-
-func (n *nodeExpandPlannableResource) expandsInstances() {
 }
 
 // GraphNodeAttachDependencies
@@ -167,7 +163,7 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 			// if we have a legacy addr, it was supplied on the commandline so
 			// there is nothing to expand
 			if !imp.LegacyAddr.Equal(addrs.AbsResourceInstance{}) {
-				knownImports.Put(imp.LegacyAddr, cty.StringVal(imp.IDString))
+				knownImports.Put(imp.LegacyAddr, cty.StringVal(imp.LegacyID))
 				return knownImports, unknownImports, diags
 			}
 
@@ -177,7 +173,6 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 		}
 
 		if imp.Config.ForEach == nil {
-
 			traversal, hds := hcl.AbsTraversalForExpr(imp.Config.To)
 			diags = diags.Append(hds)
 			to, tds := addrs.ParseAbsResourceInstance(traversal)
@@ -186,7 +181,26 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 				return knownImports, unknownImports, diags
 			}
 
-			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, to, ctx, EvalDataForNoInstanceKey, allowUnknown)
+			diags = diags.Append(validateImportTargetExpansion(n.Config, to, imp.Config.To))
+
+			var importID cty.Value
+			var evalDiags tfdiags.Diagnostics
+			if imp.Config.ID != nil {
+				importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
+			} else if imp.Config.Identity != nil {
+				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+				if err != nil {
+					diags = diags.Append(err)
+					return knownImports, unknownImports, diags
+				}
+				schema := providerSchema.SchemaForResourceAddr(to.Resource.Resource)
+
+				importID, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, EvalDataForNoInstanceKey, allowUnknown)
+			} else {
+				// Should never happen
+				return knownImports, unknownImports, diags
+			}
+
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return knownImports, unknownImports, diags
@@ -237,13 +251,32 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 		}
 
 		for _, keyData := range forEachData {
+			var evalDiags tfdiags.Diagnostics
 			res, evalDiags := evalImportToExpression(imp.Config.To, keyData)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return knownImports, unknownImports, diags
 			}
 
-			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, res, ctx, keyData, allowUnknown)
+			diags = diags.Append(validateImportTargetExpansion(n.Config, res, imp.Config.To))
+
+			var importID cty.Value
+			if imp.Config.ID != nil {
+				importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, allowUnknown)
+			} else if imp.Config.Identity != nil {
+				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+				if err != nil {
+					diags = diags.Append(err)
+					return knownImports, unknownImports, diags
+				}
+				schema := providerSchema.SchemaForResourceAddr(res.Resource.Resource)
+
+				importID, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, keyData, allowUnknown)
+			} else {
+				// Should never happen
+				return knownImports, unknownImports, diags
+			}
+
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return knownImports, unknownImports, diags
@@ -283,19 +316,37 @@ func (n *nodeExpandPlannableResource) validateExpandedImportTargets(expandedImpo
 			))
 			return diags
 		}
+
+		if n.Config == nil && n.generateConfigPath == "" && len(n.importTargets) == 1 {
+			// we have no config and aren't generating any. This isn't caught during
+			// validation because generateConfigPath is only a plan option. If we
+			// got this far however, it means this node is eligible for config
+			// generation, so suggest it to the user.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Configuration for import target does not exist",
+				Detail:   fmt.Sprintf("The configuration for the given import target %s does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf", n.Addr),
+				Subject:  n.importTargets[0].Config.To.Range().Ptr(),
+			})
+			return diags
+		}
 	}
 
 	return diags
 }
 
-func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInstances []addrs.ModuleInstance, imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, tfdiags.Diagnostics) {
-	var g Graph
-	var diags tfdiags.Diagnostics
-
-	// Lock the state while we inspect it
-	state := ctx.State().Lock()
+func (n *nodeExpandPlannableResource) findOrphans(ctx EvalContext, moduleInstances []addrs.ModuleInstance) []*states.Resource {
+	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
+		// ephemeral resources don't exist in state
+		return nil
+	}
 
 	var orphans []*states.Resource
+
+	// Lock the state while we inspect it
+	sMgr := ctx.State()
+	state := sMgr.Lock()
+
 	for _, res := range state.Resources(n.Addr) {
 		found := false
 		for _, m := range moduleInstances {
@@ -310,11 +361,16 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 			orphans = append(orphans, res)
 		}
 	}
+	sMgr.Unlock()
 
-	// We'll no longer use the state directly here, and the other functions
-	// we'll call below may use it so we'll release the lock.
-	state = nil
-	ctx.State().Unlock()
+	return orphans
+}
+
+func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInstances []addrs.ModuleInstance, imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, tfdiags.Diagnostics) {
+	var g Graph
+	var diags tfdiags.Diagnostics
+
+	orphans := n.findOrphans(ctx, moduleInstances)
 
 	for _, res := range orphans {
 		for key := range res.Instances {
@@ -385,7 +441,7 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
-	moreDiags := n.writeResourceState(moduleCtx, resAddr)
+	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags

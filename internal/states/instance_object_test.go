@@ -4,18 +4,48 @@
 package states
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func TestResourceInstanceObject_encode(t *testing.T) {
 	value := cty.ObjectVal(map[string]cty.Value{
 		"foo": cty.True,
+		"obj": cty.ObjectVal(map[string]cty.Value{
+			"sensitive": cty.StringVal("secret").Mark(marks.Sensitive),
+		}),
+		"sensitive_a": cty.StringVal("secret").Mark(marks.Sensitive),
+		"sensitive_b": cty.StringVal("secret").Mark(marks.Sensitive),
 	})
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type: cty.Bool,
+				},
+				"obj": {
+					Type: cty.Object(map[string]cty.Type{
+						"sensitive": cty.String,
+					}),
+				},
+				"sensitive_a": {
+					Type: cty.String,
+				},
+				"sensitive_b": {
+					Type: cty.String,
+				},
+			},
+		},
+		Version: 0,
+	}
 	// The in-memory order of resource dependencies is random, since they're an
 	// unordered set.
 	depsOne := []addrs.ConfigResource{
@@ -65,7 +95,7 @@ func TestResourceInstanceObject_encode(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			rios, err := obj.Encode(value.Type(), 0)
+			rios, err := obj.Encode(schema)
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
@@ -83,6 +113,14 @@ func TestResourceInstanceObject_encode(t *testing.T) {
 			t.Errorf("identical dependencies got encoded in different orders:\n%s", diff)
 		}
 	}
+
+	// sensitive paths must also be consistent got comparison
+	for i := 0; i < len(encoded)-1; i++ {
+		a, b := fmt.Sprintf("%#v", encoded[i].AttrSensitivePaths), fmt.Sprintf("%#v", encoded[i+1].AttrSensitivePaths)
+		if diff := cmp.Diff(a, b); diff != "" {
+			t.Errorf("sensitive paths got encoded in different orders:\n%s", diff)
+		}
+	}
 }
 
 func TestResourceInstanceObject_encodeInvalidMarks(t *testing.T) {
@@ -93,12 +131,22 @@ func TestResourceInstanceObject_encodeInvalidMarks(t *testing.T) {
 		// value in the state.
 		"foo": cty.True.Mark("unsupported"),
 	})
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type: cty.Bool,
+				},
+			},
+		},
+		Version: 0,
+	}
 
 	obj := &ResourceInstanceObject{
 		Value:  value,
 		Status: ObjectReady,
 	}
-	_, err := obj.Encode(value.Type(), 0)
+	_, err := obj.Encode(schema)
 	if err == nil {
 		t.Fatalf("unexpected success; want error")
 	}

@@ -26,7 +26,7 @@ const VarEnvPrefix = "TF_VAR_"
 
 // collectVariableValuesForTests inspects the various places that test
 // values can come from and constructs a map ready to be passed to the
-// backend as part of a backend.Operation.
+// backend as part of a backendrun.Operation.
 //
 // This method returns diagnostics relating to the collection of the values,
 // but the values themselves may produce additional diagnostics when finally
@@ -87,7 +87,7 @@ func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]b
 
 // collectVariableValues inspects the various places that root module input variable
 // values can come from and constructs a map ready to be passed to the
-// backend as part of a backend.Operation.
+// backend as part of a backendrun.Operation.
 //
 // This method returns diagnostics relating to the collection of the values,
 // but the values themselves may produce additional diagnostics when finally

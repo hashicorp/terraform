@@ -8,12 +8,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 )
 
-// graphNodeExpandsInstances is implemented by nodes that causes instances to
-// be registered in the instances.Expander.
-type graphNodeExpandsInstances interface {
-	expandsInstances()
-}
-
 // forEachModuleInstance is a helper to deal with the common need of doing
 // some action for every dynamic module instance associated with a static
 // module path.

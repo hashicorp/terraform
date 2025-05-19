@@ -15,4 +15,4 @@ packages=$(go list ./... | egrep -v ${skip})
 
 # Note that we globally disable some checks. The list is controlled by the
 # top-level staticcheck.conf file in this repo.
-go run honnef.co/go/tools/cmd/staticcheck ${packages}
+go tool honnef.co/go/tools/cmd/staticcheck ${packages}

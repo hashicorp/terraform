@@ -7,7 +7,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -16,6 +15,11 @@ import (
 type Interface interface {
 	// GetSchema returns the complete schema for the provider.
 	GetProviderSchema() GetProviderSchemaResponse
+
+	// GetResourceIdentitySchemas returns the identity schemas for all managed resources
+	// for the provider. Usually you don't need to call this method directly as GetProviderSchema
+	// will merge the identity schemas into the provider schema.
+	GetResourceIdentitySchemas() GetResourceIdentitySchemasResponse
 
 	// ValidateProviderConfig allows the provider to validate the configuration.
 	// The ValidateProviderConfigResponse.PreparedConfig field is unused. The
@@ -31,11 +35,25 @@ type Interface interface {
 	// configuration values.
 	ValidateDataResourceConfig(ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse
 
+	// ValidateEphemeralResourceConfig allows the provider to validate the
+	// ephemeral resource configuration values.
+	ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse
+
+	// ValidateListResourceConfig allows the provider to validate the list
+	// resource configuration values.
+	ValidateListResourceConfig(ValidateListResourceConfigRequest) ValidateListResourceConfigResponse
+
 	// UpgradeResourceState is called when the state loader encounters an
 	// instance state whose schema version is less than the one reported by the
 	// currently-used version of the corresponding provider, and the upgraded
 	// result is used for any further processing.
 	UpgradeResourceState(UpgradeResourceStateRequest) UpgradeResourceStateResponse
+
+	// UpgradeResourceIdentity is called when the state loader encounters an
+	// instance identity whose schema version is less than the one reported by
+	// the currently-used version of the corresponding provider, and the upgraded
+	// result is used for any further processing.
+	UpgradeResourceIdentity(UpgradeResourceIdentityRequest) UpgradeResourceIdentityResponse
 
 	// Configure configures and initialized the provider.
 	ConfigureProvider(ConfigureProviderRequest) ConfigureProviderResponse
@@ -74,6 +92,15 @@ type Interface interface {
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
 
+	// OpenEphemeralResource opens an ephemeral resource instance.
+	OpenEphemeralResource(OpenEphemeralResourceRequest) OpenEphemeralResourceResponse
+	// RenewEphemeralResource extends the validity of a previously-opened ephemeral
+	// resource instance.
+	RenewEphemeralResource(RenewEphemeralResourceRequest) RenewEphemeralResourceResponse
+	// CloseEphemeralResource closes an ephemeral resource instance, with the intent
+	// of rendering it invalid as soon as possible.
+	CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEphemeralResourceResponse
+
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
@@ -85,7 +112,7 @@ type Interface interface {
 // should only be used when handling a value for that method. The handling of
 // of schemas in any other context should always use ProviderSchema, so that
 // the in-memory representation can be more easily changed separately from the
-// RCP protocol.
+// RPC protocol.
 type GetProviderSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
@@ -99,6 +126,14 @@ type GetProviderSchemaResponse struct {
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
 
+	// EphemeralResourceTypes maps the name of an ephemeral resource type
+	// to its schema.
+	EphemeralResourceTypes map[string]Schema
+
+	// ListResourceTypes maps the name of an ephemeral resource type to its
+	// schema.
+	ListResourceTypes map[string]Schema
+
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
@@ -110,6 +145,25 @@ type GetProviderSchemaResponse struct {
 	ServerCapabilities ServerCapabilities
 }
 
+// GetResourceIdentitySchemasResponse is the return type for GetResourceIdentitySchemas,
+// and should only be used when handling a value for that method. The handling of
+// of schemas in any other context should always use ResourceIdentitySchemas, so that
+// the in-memory representation can be more easily changed separately from the
+// RPC protocol.
+type GetResourceIdentitySchemasResponse struct {
+	// IdentityTypes map the resource type name to that type's identity schema.
+	IdentityTypes map[string]IdentitySchema
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type IdentitySchema struct {
+	Version int64
+
+	Body *configschema.Object
+}
+
 // Schema pairs a provider or resource schema with that schema's version.
 // This is used to be able to upgrade the schema in UpgradeResourceState.
 //
@@ -118,7 +172,10 @@ type GetProviderSchemaResponse struct {
 // for everything within a particular provider.
 type Schema struct {
 	Version int64
-	Block   *configschema.Block
+	Body    *configschema.Block
+
+	IdentityVersion int64
+	Identity        *configschema.Object
 }
 
 // ServerCapabilities allows providers to communicate extra information
@@ -149,6 +206,10 @@ type ClientCapabilities struct {
 	// The deferral_allowed capability signals that the client is able to
 	// handle deferred responses from the provider.
 	DeferralAllowed bool
+
+	// The write_only_attributes_allowed capability signals that the client
+	// is able to handle write_only attributes for managed resources.
+	WriteOnlyAttributesAllowed bool
 }
 
 type ValidateProviderConfigRequest struct {
@@ -170,6 +231,9 @@ type ValidateResourceConfigRequest struct {
 	// Config is the configuration value to validate, which may contain unknown
 	// values.
 	Config cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ValidateResourceConfigResponse struct {
@@ -187,6 +251,34 @@ type ValidateDataResourceConfigRequest struct {
 }
 
 type ValidateDataResourceConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ValidateEphemeralResourceConfigRequest struct {
+	// TypeName is the name of the data source type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate, which may contain unknown
+	// values.
+	Config cty.Value
+}
+
+type ValidateEphemeralResourceConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ValidateListResourceConfigRequest struct {
+	// TypeName is the name of the list resource type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate, which may contain unknown
+	// values.
+	Config cty.Value
+}
+
+type ValidateListResourceConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
@@ -211,6 +303,26 @@ type UpgradeResourceStateRequest struct {
 type UpgradeResourceStateResponse struct {
 	// UpgradedState is the newly upgraded resource state.
 	UpgradedState cty.Value
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type UpgradeResourceIdentityRequest struct {
+	// TypeName is the name of the resource type being upgraded
+	TypeName string
+
+	// Version is version of the schema that created the current identity.
+	Version int64
+
+	// RawIdentityJSON contains the identity that needs to be
+	// upgraded to match the current schema version.
+	RawIdentityJSON []byte
+}
+
+type UpgradeResourceIdentityResponse struct {
+	// UpgradedState is the newly upgraded resource identity.
+	UpgradedIdentity cty.Value
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
@@ -253,6 +365,9 @@ type ReadResourceRequest struct {
 
 	// ClientCapabilities contains information about the client's capabilities.
 	ClientCapabilities ClientCapabilities
+
+	// CurrentIdentity is the current identity data of the resource.
+	CurrentIdentity cty.Value
 }
 
 // DeferredReason is a string that describes why a resource was deferred.
@@ -306,6 +421,10 @@ type ReadResourceResponse struct {
 	// Deferred if present signals that the provider was not able to fully
 	// complete this operation and a susequent run is required.
 	Deferred *Deferred
+
+	// Identity is the object-typed value representing the identity of the remote
+	// object within Terraform.
+	Identity cty.Value
 }
 
 type PlanResourceChangeRequest struct {
@@ -339,6 +458,9 @@ type PlanResourceChangeRequest struct {
 
 	// ClientCapabilities contains information about the client's capabilities.
 	ClientCapabilities ClientCapabilities
+
+	// PriorIdentity is the current identity data of the resource.
+	PriorIdentity cty.Value
 }
 
 type PlanResourceChangeResponse struct {
@@ -368,6 +490,9 @@ type PlanResourceChangeResponse struct {
 	// Deferred if present signals that the provider was not able to fully
 	// complete this operation and a susequent run is required.
 	Deferred *Deferred
+
+	// PlannedIdentity is the planned identity data of the resource.
+	PlannedIdentity cty.Value
 }
 
 type ApplyResourceChangeRequest struct {
@@ -395,6 +520,9 @@ type ApplyResourceChangeRequest struct {
 	// each provider, and it should not be used without coordination with
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
+
+	// PlannedIdentity is the planned identity data of the resource.
+	PlannedIdentity cty.Value
 }
 
 type ApplyResourceChangeResponse struct {
@@ -416,6 +544,9 @@ type ApplyResourceChangeResponse struct {
 	// otherwise fail due to this imprecise mapping. No other provider or SDK
 	// implementation is permitted to set this.
 	LegacyTypeSystem bool
+
+	// NewIdentity is the new identity data of the resource.
+	NewIdentity cty.Value
 }
 
 type ImportResourceStateRequest struct {
@@ -428,6 +559,9 @@ type ImportResourceStateRequest struct {
 
 	// ClientCapabilities contains information about the client's capabilities.
 	ClientCapabilities ClientCapabilities
+
+	// Identity is the identity data of the resource.
+	Identity cty.Value
 }
 
 type ImportResourceStateResponse struct {
@@ -446,7 +580,7 @@ type ImportResourceStateResponse struct {
 }
 
 // ImportedResource represents an object being imported into Terraform with the
-// help of a provider. An ImportedObject is a RemoteObject that has been read
+// help of a provider. An ImportedResource is a RemoteObject that has been read
 // by the provider's import handler but hasn't yet been committed to state.
 type ImportedResource struct {
 	// TypeName is the name of the resource type associated with the
@@ -462,6 +596,9 @@ type ImportedResource struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+
+	// Identity is the identity data of the resource.
+	Identity cty.Value
 }
 
 type MoveResourceStateRequest struct {
@@ -489,6 +626,9 @@ type MoveResourceStateRequest struct {
 	// TargetTypeName is the name of the resource type that the resource is
 	// being moved to.
 	TargetTypeName string
+
+	// SourceIdentity is the identity data of the resource that is being moved.
+	SourceIdentity []byte
 }
 
 type MoveResourceStateResponse struct {
@@ -502,24 +642,9 @@ type MoveResourceStateResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
-}
 
-// AsInstanceObject converts the receiving ImportedObject into a
-// ResourceInstanceObject that has status ObjectReady.
-//
-// The returned object does not know its own resource type, so the caller must
-// retain the ResourceType value from the source object if this information is
-// needed.
-//
-// The returned object also has no dependency addresses, but the caller may
-// freely modify the direct fields of the returned object without affecting
-// the receiver.
-func (ir ImportedResource) AsInstanceObject() *states.ResourceInstanceObject {
-	return &states.ResourceInstanceObject{
-		Status:  states.ObjectReady,
-		Value:   ir.State,
-		Private: ir.Private,
-	}
+	// TargetIdentity is the identity data of the resource that is being moved.
+	TargetIdentity cty.Value
 }
 
 type ReadDataSourceRequest struct {
@@ -583,4 +708,16 @@ type CallFunctionResponse struct {
 	// of function.ArgError from the go-cty package to specify a problem with a
 	// specific argument.
 	Err error
+}
+
+type ListResourceRequest struct {
+	// TypeName is the name of the resource type being read.
+	TypeName string
+
+	// Config is the block body for the list resource.
+	Config cty.Value
+
+	// IncludeResourceObject can be set to true when a provider should include
+	// the full resource object for each result
+	IncludeResourceObject bool
 }

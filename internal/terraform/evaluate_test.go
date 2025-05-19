@@ -295,7 +295,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"id": {
 									Type:     cty.String,
@@ -469,7 +469,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"id": {
 									Type:     cty.String,
@@ -503,10 +503,8 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 		Type: "test_resource",
 		Name: "foo",
 	}
-	schema, _ := schemas.ResourceTypeConfig(addrs.NewDefaultProvider("test"), addr.Mode, addr.Type)
-	// This encoding separates out the After's marks into its AfterValMarks
-	csrc, _ := change.Encode(schema.ImpliedType())
-	changesSync.AppendResourceInstanceChange(csrc)
+
+	changesSync.AppendResourceInstanceChange(change)
 
 	evaluator := &Evaluator{
 		Meta: &ContextMeta{

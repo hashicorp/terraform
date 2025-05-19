@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	providerTesting "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
@@ -102,17 +103,19 @@ func TestPlanning_DestroyMode(t *testing.T) {
 		statekeys.String(statekeys.ComponentInstance{
 			ComponentInstanceAddr: aComponentInstAddr,
 		}): &tfstackdata1.StateComponentInstanceV1{
-			// Intentionally unpopulated because this operation doesn't
-			// actually depend on anything other than knowing that the
-			// component instance used to exist.
+			DependentAddrs: []string{"component.b"},
+			OutputValues: map[string]*tfstackdata1.DynamicValue{
+				"result": mustPlanDynamicValue(t, cty.StringVal(`result for "a" from prior state`)),
+			},
 		},
 
 		statekeys.String(statekeys.ComponentInstance{
 			ComponentInstanceAddr: bComponentInstAddr,
 		}): &tfstackdata1.StateComponentInstanceV1{
-			// Intentionally unpopulated because this operation doesn't
-			// actually depend on anything other than knowing that the
-			// component instance used to exist.
+			DependencyAddrs: []string{"component.a"},
+			OutputValues: map[string]*tfstackdata1.DynamicValue{
+				"result": mustPlanDynamicValue(t, cty.StringVal(`result for "b" from prior state`)),
+			},
 		},
 
 		statekeys.String(statekeys.ResourceInstanceObject{
@@ -168,11 +171,11 @@ func TestPlanning_DestroyMode(t *testing.T) {
 				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
-							Block: &configschema.Block{},
+							Body: &configschema.Block{},
 						},
 						ResourceTypes: map[string]providers.Schema{
 							"test": {
-								Block: resourceTypeSchema,
+								Body: resourceTypeSchema,
 							},
 						},
 						ServerCapabilities: providers.ServerCapabilities{
@@ -247,8 +250,8 @@ func TestPlanning_DestroyMode(t *testing.T) {
 	plan, diags := testPlan(t, main)
 	assertNoDiagnostics(t, diags)
 
-	aCmpPlan := plan.Components.Get(aComponentInstAddr)
-	bCmpPlan := plan.Components.Get(bComponentInstAddr)
+	aCmpPlan := plan.GetComponent(aComponentInstAddr)
+	bCmpPlan := plan.GetComponent(bComponentInstAddr)
 	if aCmpPlan == nil || bCmpPlan == nil {
 		t.Fatalf(
 			"incomplete plan\n%s: %#v\n%s: %#v",
@@ -268,7 +271,9 @@ func TestPlanning_DestroyMode(t *testing.T) {
 
 	if planSrc := aPlan.Changes.ResourceInstance(aResourceInstAddr.Item); planSrc != nil {
 		rAddr := aResourceInstAddr
-		plan, err := planSrc.Decode(resourceTypeSchema.ImpliedType())
+		plan, err := planSrc.Decode(providers.Schema{
+			Body: resourceTypeSchema,
+		})
 		if err != nil {
 			t.Fatalf("can't decode change for %s: %s", rAddr, err)
 		}
@@ -292,7 +297,9 @@ func TestPlanning_DestroyMode(t *testing.T) {
 
 	if planSrc := bPlan.Changes.ResourceInstance(bResourceInstAddr.Item); planSrc != nil {
 		rAddr := bResourceInstAddr
-		plan, err := planSrc.Decode(resourceTypeSchema.ImpliedType())
+		plan, err := planSrc.Decode(providers.Schema{
+			Body: resourceTypeSchema,
+		})
 		if err != nil {
 			t.Fatalf("can't decode change for %s: %s", rAddr, err)
 		}
@@ -355,7 +362,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"in": {
 										Type:     cty.Map(cty.String),
@@ -405,8 +412,6 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 		plan, diags := testPlan(t, main)
 		assertNoDiagnostics(t, diags)
 
-		componentPlans := plan.Components
-
 		tests := []struct {
 			component        stackaddrs.AbsComponent
 			wantDependencies []stackaddrs.AbsComponent
@@ -446,7 +451,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 						Component: test.component.Item,
 					},
 				}
-				cp := componentPlans.Get(instAddr)
+				cp := plan.GetComponent(instAddr)
 				{
 					got := cp.Dependencies
 					want := collections.NewSet[stackaddrs.AbsComponent]()
@@ -499,7 +504,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 					if stack == nil {
 						t.Fatalf("no declaration for %s", test.componentAddr.Stack)
 					}
-					component := stack.Component(ctx, test.componentAddr.Item)
+					component := stack.Component(test.componentAddr.Item)
 					if component == nil {
 						t.Fatalf("no declaration for %s", test.componentAddr)
 					}
@@ -516,79 +521,6 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 
 			return struct{}{}, nil
 		})
-	})
-
-	subtestInPromisingTask(t, "input variable dependents", func(ctx context.Context, t *testing.T) {
-		stack := main.Stack(ctx, stackaddrs.RootStackInstance.Child("child", addrs.NoKey), PlanPhase)
-		if stack == nil {
-			t.Fatalf("embedded stack isn't declared")
-		}
-		ivs := stack.InputVariables(ctx)
-		iv := ivs[stackaddrs.InputVariable{Name: "in"}]
-		if iv == nil {
-			t.Fatalf("input variable isn't declared")
-		}
-
-		got := iv.RequiredComponents(ctx)
-		want := collections.NewSet[stackaddrs.AbsComponent]()
-		want.Add(cmpB)
-
-		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
-			t.Errorf("wrong result\n%s", diff)
-		}
-	})
-
-	subtestInPromisingTask(t, "output value dependents", func(ctx context.Context, t *testing.T) {
-		stack := main.MainStack(ctx)
-		ovs := stack.OutputValues(ctx)
-		ov := ovs[stackaddrs.OutputValue{Name: "out"}]
-		if ov == nil {
-			t.Fatalf("output value isn't declared")
-		}
-
-		got := ov.RequiredComponents(ctx)
-		want := collections.NewSet[stackaddrs.AbsComponent]()
-		want.Add(cmpA)
-
-		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
-			t.Errorf("wrong result\n%s", diff)
-		}
-	})
-
-	subtestInPromisingTask(t, "embedded stack dependents", func(ctx context.Context, t *testing.T) {
-		stack := main.MainStack(ctx)
-		sc := stack.EmbeddedStackCall(ctx, stackaddrs.StackCall{Name: "child"})
-		if sc == nil {
-			t.Fatalf("embedded stack call isn't declared")
-		}
-
-		got := sc.RequiredComponents(ctx)
-		want := collections.NewSet[stackaddrs.AbsComponent]()
-		want.Add(cmpB)
-
-		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
-			t.Errorf("wrong result\n%s", diff)
-		}
-	})
-
-	subtestInPromisingTask(t, "provider config dependents", func(ctx context.Context, t *testing.T) {
-		stack := main.MainStack(ctx)
-		pc := stack.Provider(ctx, stackaddrs.ProviderConfig{
-			Provider: addrs.NewBuiltInProvider("foo"),
-			Name:     "bar",
-		})
-		if pc == nil {
-			t.Fatalf("provider configuration isn't declared")
-		}
-
-		got := pc.RequiredComponents(ctx)
-		want := collections.NewSet[stackaddrs.AbsComponent]()
-		want.Add(cmpA)
-		want.Add(cmpB)
-
-		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
-			t.Errorf("wrong result\n%s", diff)
-		}
 	})
 }
 
@@ -615,11 +547,11 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
-							Block: &configschema.Block{},
+							Body: &configschema.Block{},
 						},
 						ResourceTypes: map[string]providers.Schema{
 							"test": {
-								Block: &configschema.Block{},
+								Body: &configschema.Block{},
 							},
 						},
 					},
@@ -657,11 +589,11 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 		plan, diags := testPlan(t, main)
 		assertNoErrors(t, diags)
 
-		firstPlan := plan.Components.Get(componentFirstInstAddr)
+		firstPlan := plan.GetComponent(componentFirstInstAddr)
 		if firstPlan.PlanComplete {
 			t.Error("first component has a complete plan; should be incomplete because it has deferred actions")
 		}
-		secondPlan := plan.Components.Get(componentSecondInstAddr)
+		secondPlan := plan.GetComponent(componentSecondInstAddr)
 		if secondPlan.PlanComplete {
 			t.Error("second component has a complete plan; should be incomplete because everything in it should've been deferred")
 		}
@@ -705,7 +637,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"test": {
-							Block: &configschema.Block{},
+							Body: &configschema.Block{},
 						},
 					},
 				},
@@ -763,11 +695,15 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		plan, err := stackplan.LoadFromProto(rawPlan)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		// Apply
 		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 			outp, outpTest := testApplyOutput(t, nil)
-			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+			_, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 				ProviderFactories: providerFactories,
 			}, outp)
 			if err != nil {
@@ -804,7 +740,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 			Nice *stackplan.Plan
 			Raw  []*anypb.Any
 		}
-		plans, err := promising.MainTask(ctx, func(ctx context.Context) (Plans, error) {
+		plan, err := promising.MainTask(ctx, func(ctx context.Context) (*stackplan.Plan, error) {
 			main := NewForPlanning(cfg, state, PlanOpts{
 				PlanningMode:      plans.NormalMode,
 				ProviderFactories: providerFactories,
@@ -812,19 +748,16 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 			})
 			outp, outpTest := testPlanOutput(t)
 			main.PlanAll(ctx, outp)
-			rawPlan := outpTest.RawChanges(t)
 			// The original bug would occur at this point, because
 			// outpTest.Close attempts to parse the raw plan, which fails if
 			// any part of that structure is not syntactically valid.
 			plan, diags := outpTest.Close(t)
 			assertNoDiagnostics(t, diags)
-			return Plans{plan, rawPlan}, nil
+			return plan, nil
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		plan := plans.Nice
-		rawPlan := plans.Raw
 
 		// We'll check whether the data resource even appears in the plan,
 		// because if not then this test is no longer testing what it thinks
@@ -837,7 +770,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 		// address for this data resource, but no planned action because
 		// dropping a data resource from the state is not an "action" in the
 		// usual sense (it doesn't cause any calls to the provider).
-		mainPlan := plan.Components.Get(stackaddrs.AbsComponentInstance{
+		mainPlan := plan.GetComponent(stackaddrs.AbsComponentInstance{
 			Stack: stackaddrs.RootStackInstance,
 			Item: stackaddrs.ComponentInstance{
 				Component: stackaddrs.Component{Name: "main"},
@@ -863,7 +796,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 		// we're left with no remnant of the data resource in the updated state.
 		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 			outp, outpTest := testApplyOutput(t, nil)
-			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+			_, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 				ProviderFactories: providerFactories,
 			}, outp)
 			if err != nil {
@@ -901,7 +834,7 @@ func TestPlanning_PathValues(t *testing.T) {
 			t.Fatalf("unexpected diagnostics: %s", diags)
 		}
 
-		component, ok := plan.Components.GetOk(stackaddrs.AbsComponentInstance{
+		component := plan.GetComponent(stackaddrs.AbsComponentInstance{
 			Stack: stackaddrs.RootStackInstance,
 			Item: stackaddrs.ComponentInstance{
 				Component: stackaddrs.Component{
@@ -910,7 +843,7 @@ func TestPlanning_PathValues(t *testing.T) {
 				Key: addrs.NoKey,
 			},
 		})
-		if !ok {
+		if component == nil {
 			t.Fatalf("component not found in plan")
 		}
 
@@ -1010,7 +943,7 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 	cfg := testStackConfig(t, "local_value", "custom_provider")
 	providerFactories := map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-			provider := stacks_testing_provider.NewProvider()
+			provider := stacks_testing_provider.NewProvider(t)
 			return provider, nil
 		},
 	}
@@ -1022,13 +955,6 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
-	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
-		PlanningMode:      plans.NormalMode,
-		ProviderFactories: providerFactories,
-		DependencyLocks:   *lock,
-		PlanTimestamp:     time.Now().UTC(),
-	})
-
 	comp2Addr := stackaddrs.AbsComponentInstance{
 		Stack: stackaddrs.RootStackInstance,
 		Item: stackaddrs.ComponentInstance{
@@ -1038,7 +964,14 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 
 	rawPlan, err := promising.MainTask(ctx, func(ctx context.Context) ([]*anypb.Any, error) {
 		outp, outpTest := testPlanOutput(t)
+		main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+			PlanningMode:      plans.NormalMode,
+			ProviderFactories: providerFactories,
+			DependencyLocks:   *lock,
+			PlanTimestamp:     time.Now().UTC(),
+		})
 		main.PlanAll(ctx, outp)
+		defer main.DoCleanup(ctx)
 		rawPlan := outpTest.RawChanges(t)
 		_, diags := outpTest.Close(t)
 		assertNoDiagnostics(t, diags)
@@ -1049,12 +982,20 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	plan, err := stackplan.LoadFromProto(rawPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	_, err = promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 		outp, outpTest := testApplyOutput(t, nil)
-		_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+		main, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 			ProviderFactories: providerFactories,
 			DependencyLocks:   *lock,
 		}, outp)
+		if main != nil {
+			defer main.DoCleanup(ctx)
+		}
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1112,4 +1053,12 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func mustPlanDynamicValue(t *testing.T, v cty.Value) *tfstackdata1.DynamicValue {
+	ret, err := stacks.ToDynamicValue(v, cty.DynamicPseudoType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tfstackdata1.Terraform1ToStackDataDynamicValue(ret)
 }

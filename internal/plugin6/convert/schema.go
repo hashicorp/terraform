@@ -35,6 +35,7 @@ func ConfigSchemaToProto(b *configschema.Block) *proto.Schema_Block {
 			Required:        a.Required,
 			Sensitive:       a.Sensitive,
 			Deprecated:      a.Deprecated,
+			WriteOnly:       a.WriteOnly,
 		}
 
 		if a.Type != cty.NilType {
@@ -95,11 +96,44 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 }
 
 // ProtoToProviderSchema takes a proto.Schema and converts it to a providers.Schema.
-func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
-	return providers.Schema{
+// It takes an optional resource identity schema for resources that support identity.
+func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) providers.Schema {
+	schema := providers.Schema{
 		Version: s.Version,
-		Block:   ProtoToConfigSchema(s.Block),
+		Body:    ProtoToConfigSchema(s.Block),
 	}
+
+	if id != nil {
+		schema.IdentityVersion = id.Version
+		schema.Identity = ProtoToIdentitySchema(id.IdentityAttributes)
+	}
+
+	return schema
+}
+
+func ProtoToIdentitySchema(attributes []*proto.ResourceIdentitySchema_IdentityAttribute) *configschema.Object {
+	obj := &configschema.Object{
+		Attributes: make(map[string]*configschema.Attribute),
+		Nesting:    configschema.NestingSingle,
+	}
+
+	for _, a := range attributes {
+		attr := &configschema.Attribute{
+			Description: a.Description,
+			Required:    a.RequiredForImport,
+			Optional:    a.OptionalForImport,
+		}
+
+		if a.Type != nil {
+			if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
+				panic(err)
+			}
+		}
+
+		obj.Attributes[a.Name] = attr
+	}
+
+	return obj
 }
 
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
@@ -123,6 +157,7 @@ func ProtoToConfigSchema(b *proto.Schema_Block) *configschema.Block {
 			Computed:        a.Computed,
 			Sensitive:       a.Sensitive,
 			Deprecated:      a.Deprecated,
+			WriteOnly:       a.WriteOnly,
 		}
 
 		if a.Type != nil {
@@ -213,6 +248,7 @@ func protoObjectToConfigSchema(b *proto.Schema_Object) *configschema.Object {
 			Computed:        a.Computed,
 			Sensitive:       a.Sensitive,
 			Deprecated:      a.Deprecated,
+			WriteOnly:       a.WriteOnly,
 		}
 
 		if a.Type != nil {
@@ -266,7 +302,6 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 
 	for _, name := range sortedKeys(b.Attributes) {
 		a := b.Attributes[name]
-
 		attr := &proto.Schema_Attribute{
 			Name:            name,
 			Description:     a.Description,
@@ -276,6 +311,7 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 			Required:        a.Required,
 			Sensitive:       a.Sensitive,
 			Deprecated:      a.Deprecated,
+			WriteOnly:       a.WriteOnly,
 		}
 
 		if a.Type != cty.NilType {
@@ -296,5 +332,34 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 	return &proto.Schema_Object{
 		Attributes: attributes,
 		Nesting:    nesting,
+	}
+}
+
+func ResourceIdentitySchemaToProto(schema providers.IdentitySchema) *proto.ResourceIdentitySchema {
+	identityAttributes := []*proto.ResourceIdentitySchema_IdentityAttribute{}
+
+	for _, name := range sortedKeys(schema.Body.Attributes) {
+		a := schema.Body.Attributes[name]
+		attr := &proto.ResourceIdentitySchema_IdentityAttribute{
+			Name:              name,
+			Description:       a.Description,
+			RequiredForImport: a.Required,
+			OptionalForImport: a.Optional,
+		}
+
+		if a.Type != cty.NilType {
+			ty, err := json.Marshal(a.Type)
+			if err != nil {
+				panic(err)
+			}
+			attr.Type = ty
+		}
+
+		identityAttributes = append(identityAttributes, attr)
+	}
+
+	return &proto.ResourceIdentitySchema{
+		Version:            schema.Version,
+		IdentityAttributes: identityAttributes,
 	}
 }

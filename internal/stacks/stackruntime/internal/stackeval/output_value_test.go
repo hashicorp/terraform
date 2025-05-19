@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOutputValueResultValue(t *testing.T) {
@@ -98,8 +99,8 @@ func TestOutputValueResultValue(t *testing.T) {
 
 			t.Run("root", func(t *testing.T) {
 				promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-					mainStack := main.MainStack(ctx)
-					rootOutput := mainStack.OutputValues(ctx)[stackaddrs.OutputValue{Name: "root"}]
+					mainStack := main.MainStack()
+					rootOutput := mainStack.OutputValues()[stackaddrs.OutputValue{Name: "root"}]
 					if rootOutput == nil {
 						t.Fatal("root output value doesn't exist at all")
 					}
@@ -135,7 +136,7 @@ func TestOutputValueResultValue(t *testing.T) {
 						if childStack == nil {
 							t.Fatal("child stack doesn't exist at all")
 						}
-						childOutput := childStack.OutputValues(ctx)[stackaddrs.OutputValue{Name: "foo"}]
+						childOutput := childStack.OutputValues()[stackaddrs.OutputValue{Name: "foo"}]
 						if childOutput == nil {
 							t.Fatal("child output value doesn't exist at all")
 						}
@@ -166,8 +167,8 @@ func TestOutputValueResultValue(t *testing.T) {
 				})
 				t.Run("from the root perspective", func(t *testing.T) {
 					promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-						mainStack := main.MainStack(ctx)
-						childOutput := mainStack.OutputValues(ctx)[stackaddrs.OutputValue{Name: "child"}]
+						mainStack := main.MainStack()
+						childOutput := mainStack.OutputValues()[stackaddrs.OutputValue{Name: "child"}]
 						if childOutput == nil {
 							t.Fatal("child output value doesn't exist at all")
 						}
@@ -196,30 +197,34 @@ func TestOutputValueEphemeral(t *testing.T) {
 	ctx := context.Background()
 
 	tests := map[string]struct {
-		fixtureName string
-		givenVal    cty.Value
-		allowed     bool
-		wantVal     cty.Value
+		fixtureName                 string
+		givenVal                    cty.Value
+		allowed                     bool
+		expectedDiagnosticSummaries []string
+		wantVal                     cty.Value
 	}{
-		"ephemeral and allowed": {
-			fixtureName: "ephemeral_yes",
-			givenVal:    cty.StringVal("beep").Mark(marks.Ephemeral),
-			allowed:     true,
-			wantVal:     cty.StringVal("beep").Mark(marks.Ephemeral),
+		"ephemeral and declared as ephemeral": {
+			fixtureName:                 "ephemeral_yes",
+			givenVal:                    cty.StringVal("beep").Mark(marks.Ephemeral),
+			allowed:                     false,
+			expectedDiagnosticSummaries: []string{"Ephemeral output value not allowed on root stack"},
+			wantVal:                     cty.StringVal("beep").Mark(marks.Ephemeral),
 		},
-		"ephemeral and not allowed": {
-			fixtureName: "ephemeral_no",
-			givenVal:    cty.StringVal("beep").Mark(marks.Ephemeral),
-			allowed:     false,
-			wantVal:     cty.UnknownVal(cty.String),
+		"ephemeral and not declared as ephemeral": {
+			fixtureName:                 "ephemeral_no",
+			givenVal:                    cty.StringVal("beep").Mark(marks.Ephemeral),
+			allowed:                     false,
+			expectedDiagnosticSummaries: []string{"Ephemeral value not allowed"},
+			wantVal:                     cty.UnknownVal(cty.String),
 		},
-		"non-ephemeral and allowed": {
-			fixtureName: "ephemeral_yes",
-			givenVal:    cty.StringVal("beep"),
-			allowed:     true,
-			wantVal:     cty.StringVal("beep").Mark(marks.Ephemeral),
+		"non-ephemeral and declared as ephemeral": {
+			fixtureName:                 "ephemeral_yes",
+			givenVal:                    cty.StringVal("beep"),
+			allowed:                     false,
+			expectedDiagnosticSummaries: []string{"Ephemeral output value not allowed on root stack", "Expected ephemeral value"},
+			wantVal:                     cty.StringVal("beep").Mark(marks.Ephemeral),
 		},
-		"non-ephemeral and not allowed": {
+		"non-ephemeral and not declared as ephemeral": {
 			fixtureName: "ephemeral_no",
 			givenVal:    cty.StringVal("beep"),
 			allowed:     true,
@@ -240,8 +245,8 @@ func TestOutputValueEphemeral(t *testing.T) {
 			})
 
 			promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-				stack := main.MainStack(ctx)
-				output := stack.OutputValues(ctx)[outputAddr]
+				stack := main.MainStack()
+				output := stack.OutputValues()[outputAddr]
 				if output == nil {
 					t.Fatalf("missing %s", outputAddr)
 				}
@@ -259,22 +264,110 @@ func TestOutputValueEphemeral(t *testing.T) {
 					if !diags.HasErrors() {
 						t.Fatalf("no errors; should have failed")
 					}
-					found := 0
+
+					foundDiagSummaries := make(map[string]bool)
 					for _, diag := range diags {
 						summary := diag.Description().Summary
-						if summary == "Ephemeral value not allowed" {
-							found++
-						}
+						foundDiagSummaries[summary] = true
 					}
-					if found == 0 {
-						t.Errorf("no diagnostics about disallowed ephemeral values\n%s", diags.Err().Error())
-					} else if found > 1 {
-						t.Errorf("found %d errors about disallowed ephemeral values, but wanted only one\n%s", found, diags.Err().Error())
+
+					if len(foundDiagSummaries) != len(test.expectedDiagnosticSummaries) {
+						t.Fatalf("wrong number of diagnostics, expected %v, got \n%s", test.expectedDiagnosticSummaries, diags.Err().Error())
+					}
+
+					for _, expectedSummary := range test.expectedDiagnosticSummaries {
+						if !foundDiagSummaries[expectedSummary] {
+							t.Fatalf("missing diagnostic with summary %s", expectedSummary)
+						}
 					}
 				}
 				return struct{}{}, nil
 			})
 		})
 	}
+}
 
+func TestOutputValueEphemeralInChildStack(t *testing.T) {
+	ctx := context.Background()
+
+	tests := map[string]struct {
+		fixtureName                 string
+		givenVal                    cty.Value
+		allowed                     bool
+		expectedDiagnosticSummaries []string
+		wantVal                     cty.Value
+	}{
+		"ephemeral and declared as ephemeral": {
+			fixtureName: "ephemeral_child",
+			givenVal:    cty.StringVal("beep").Mark(marks.Ephemeral),
+			allowed:     true,
+			wantVal:     cty.StringVal("beep").Mark(marks.Ephemeral),
+		},
+		"non-ephemeral and declared as ephemeral": {
+			fixtureName:                 "ephemeral_child",
+			givenVal:                    cty.StringVal("beep"),
+			allowed:                     false,
+			expectedDiagnosticSummaries: []string{"Expected ephemeral value"},
+			wantVal:                     cty.StringVal("beep").Mark(marks.Ephemeral),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			cfg := testStackConfig(t, "output_value", test.fixtureName)
+			outputAddr := stackaddrs.OutputValue{Name: "result"}
+
+			main := testEvaluator(t, testEvaluatorOpts{
+				Config: cfg,
+				TestOnlyGlobals: map[string]cty.Value{
+					"result": test.givenVal,
+				},
+			})
+
+			promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
+				rootStack := main.MainStack()
+				childStackStep := stackaddrs.StackInstanceStep{
+					Name: "child",
+					Key:  addrs.NoKey,
+				}
+				stack := rootStack.ChildStack(ctx, childStackStep, ValidatePhase)
+				output := stack.OutputValues()[outputAddr]
+				if output == nil {
+					t.Fatalf("missing %s", outputAddr)
+				}
+				want := test.wantVal
+				got, diags := output.CheckResultValue(ctx, InspectPhase)
+				if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+					t.Errorf("wrong value for %s\n%s", outputAddr, diff)
+				}
+
+				if test.allowed {
+					if diags.HasErrors() {
+						t.Errorf("unexpected errors\n%s", diags.Err().Error())
+					}
+				} else {
+					if !diags.HasErrors() {
+						t.Fatalf("no errors; should have failed")
+					}
+
+					foundDiagSummaries := make(map[string]bool)
+					for _, diag := range diags {
+						summary := diag.Description().Summary
+						foundDiagSummaries[summary] = true
+					}
+
+					if len(foundDiagSummaries) != len(test.expectedDiagnosticSummaries) {
+						t.Fatalf("wrong number of diagnostics, expected %v, got \n%s", test.expectedDiagnosticSummaries, diags.Err().Error())
+					}
+
+					for _, expectedSummary := range test.expectedDiagnosticSummaries {
+						if !foundDiagSummaries[expectedSummary] {
+							t.Fatalf("missing diagnostic with summary %s", expectedSummary)
+						}
+					}
+				}
+				return struct{}{}, nil
+			})
+		})
+	}
 }

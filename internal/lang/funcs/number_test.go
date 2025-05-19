@@ -218,6 +218,12 @@ func TestParseInt(t *testing.T) {
 			``,
 		},
 		{
+			cty.StringVal("128").Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Number).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Number).RefineNotNull().Mark(marks.Sensitive),
+			``,
+		},
+		{
 			cty.StringVal("128").Mark("boop"),
 			cty.NumberIntVal(10).Mark(marks.Sensitive),
 			cty.NumberIntVal(128).WithMarks(cty.NewValueMarks("boop", marks.Sensitive)),

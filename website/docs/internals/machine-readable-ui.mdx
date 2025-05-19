@@ -1,17 +1,18 @@
 ---
-page_title: 'Internals: Machine-Readable UI'
+page_title: Machine-readable output reference
 description: >-
-  Terraform provides a machine-readable streaming JSON UI output for plan,
-  apply, and refresh operations.
+  Terraform streams machine-readable output in JSON format, letting you use third-party tools to monitor operations.
 ---
 
-# Machine-Readable UI
+# Machine-readable UI Output Reference
 
--> **Note:** This format is available in Terraform 0.15.3 and later.
+This topic provides reference information about the machine-readable output Terraform prints. 
 
-By default, many Terraform commands display UI output as unstructured text, intended to be read by a user via a terminal emulator. This text stream is not a stable interface for integrations. Some commands support a `-json` flag, which enables a structured JSON output mode with a defined interface.
+## Introduction
 
-For long-running commands such as `plan`, `apply`, `refresh`, and `test`, the `-json` flag outputs a stream of JSON UI messages, one per line. These can be processed one message at a time, with integrating software filtering, combining, or modifying the output as desired.
+By default, many Terraform commands display UI output as unstructured text that is intended to be read in a terminal emulator. This text stream is not a stable interface for integrations. Some commands support a `-json` flag, which enables a structured JSON output mode with a defined interface.
+
+For long-running commands such as `plan`, `apply`, `refresh`, and `test`, the `-json` flag outputs a stream of JSON UI messages. The ouptut messages appear one per line so that you can process the messages by integrating software filtering, combining, or modifying the output as desired.
 
 The first message output has type `version`, and includes a `ui` key, which as of Terraform 1.1.0 has
 value `"1.0"`. The semantics of this version are:
@@ -23,8 +24,8 @@ value `"1.0"`. The semantics of this version are:
   backward-compatible. Reject any input which reports an unsupported major
   version.
 
-We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+Refer to 
+[Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises) for additional information.
 
 ## Sample JSON Output
 
@@ -254,6 +255,10 @@ Performing Terraform operations to a resource will often result in several messa
 - `provision_errored`: when an error is enountered during provisioning
 - `refresh_start`: when reading a resource during refresh
 - `refresh_complete`: on successful refresh
+- `ephemeral_op_start`: when starting an ephemeral resource operation
+- `ephemeral_op_progress`: periodically showing elapsed time output during ephemeral resource operation
+- `ephemeral_op_complete`: on successful ephemeral resource operation completion
+- `ephemeral_op_errored`: when an error is encountered during ephemeral resource operation
 
 Each of these messages has a `hook` object, which has different fields for each type. All hooks have a [`resource` object](#resource-object) which identifies which resource is the subject of the operation.
 
@@ -582,6 +587,138 @@ The `refresh_complete` message `hook` object has the following keys:
     "id_value": "1971614370559474622"
   },
   "type": "refresh_complete"
+}
+```
+
+## Ephemeral Operation Start
+
+The `ephemeral_op_start` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `action`: the action the ephemeral resource is going through. Values: `open`, `renew`, `close`
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "ephemeral.random_password.example: Opening...",
+  "@module": "terraform.ui",
+  "@timestamp": "2024-10-30T10:34:26.222465-00:00",
+  "hook": {
+    "resource": {
+      "addr": "ephemeral.random_password.example",
+      "module": "",
+      "resource": "ephemeral.random_password.example",
+      "implied_provider": "random",
+      "resource_type": "random_password",
+      "resource_name": "example",
+      "resource_key": null
+    },
+    "action": "open"
+  },
+  "type": "ephemeral_op_start"
+}
+```
+
+## Ephemeral Operation Progress
+
+The `ephemeral_op_progress` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `action`: the action the ephemeral resource is going through. Values: `open`, `renew`, `close`
+- `elapsed_seconds`: time elapsed since the operation started, expressed as an integer number of seconds
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "ephemeral.random_password.example: Closing... [3s elapsed]",
+  "@module": "terraform.ui",
+  "@timestamp": "2024-10-30T10:34:26.222465-00:00",
+  "hook": {
+    "resource": {
+      "addr": "ephemeral.random_password.example",
+      "module": "",
+      "resource": "ephemeral.random_password.example",
+      "implied_provider": "random",
+      "resource_type": "random_password",
+      "resource_name": "example",
+      "resource_key": null
+    },
+    "action": "close",
+    "elapsed_seconds": 3
+  },
+  "type": "ephemeral_op_progress"
+}
+```
+
+## Ephemeral Operation Complete
+
+The `ephemeral_op_start` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `action`: the action the ephemeral resource is going through. Values: `open`, `renew`, `close`
+- `elapsed_seconds`: time elapsed since the operation started, expressed as an integer number of seconds
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "ephemeral.random_password.example: Opening complete after 1s",
+  "@module": "terraform.ui",
+  "@timestamp": "2024-10-30T10:34:26.222465-00:00",
+  "hook": {
+    "resource": {
+      "addr": "ephemeral.random_password.example",
+      "module": "",
+      "resource": "ephemeral.random_password.example",
+      "implied_provider": "random",
+      "resource_type": "random_password",
+      "resource_name": "example",
+      "resource_key": null
+    },
+    "action": "open",
+    "elapsed_seconds": 1
+  },
+  "type": "ephemeral_op_complete"
+}
+```
+
+## Ephemeral Operation Errored
+
+The `ephemeral_op_start` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `action`: the action the ephemeral resource is going through. Values: `open`, `renew`, `close`
+- `elapsed_seconds`: time elapsed since the operation started, expressed as an integer number of seconds
+
+The exact detail of the error will be rendered as a separate `diagnostic` message.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "ephemeral.random_password.example: Opening errored after 2s",
+  "@module": "terraform.ui",
+  "@timestamp": "2024-10-30T10:34:26.222465-00:00",
+  "hook": {
+    "resource": {
+      "addr": "ephemeral.random_password.example",
+      "module": "",
+      "resource": "ephemeral.random_password.example",
+      "implied_provider": "random",
+      "resource_type": "random_password",
+      "resource_name": "example",
+      "resource_key": null
+    },
+    "action": "open",
+    "elapsed_seconds": 2
+  },
+  "type": "ephemeral_op_errored"
 }
 ```
 

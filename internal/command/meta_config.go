@@ -36,7 +36,7 @@ func (m *Meta) normalizePath(path string) string {
 }
 
 // loadConfig reads a configuration from the given directory, which should
-// contain a root module and have already have any required descendent modules
+// contain a root module and have already have any required descendant modules
 // installed.
 func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -177,7 +177,7 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 }
 
 // installModules reads a root module from the given directory and attempts
-// recursively to install all of its descendent modules.
+// recursively to install all of its descendant modules.
 //
 // The given hooks object will be notified of installation progress, which
 // can then be relayed to the end-user. The uiModuleInstallHooks type in

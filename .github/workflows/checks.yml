@@ -17,6 +17,11 @@ name: Quick Checks
 
 on:
   pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
   push:
     branches:
       - '*'
@@ -36,33 +41,23 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ steps.go.outputs.version }}
-
-      # NOTE: This cache is shared so the following step must always be
-      # identical across the unit-tests, e2e-tests, and consistency-checks
-      # jobs, or else weird things could happen.
-      - name: Cache Go modules
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-        with:
-          path: "~/go/pkg"
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            go-mod-
+          cache-dependency-path: go.sum
 
       - name: "Unit tests"
         run: |
           # We run tests for all packages from all modules in this repository.
           for dir in $(go list -m -f '{{.Dir}}' github.com/hashicorp/terraform/...); do
-              (cd $dir && go test "./...")
+              (cd $dir && go test -cover "./...")
           done
 
   race-tests:
@@ -71,27 +66,17 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ steps.go.outputs.version }}
-
-      # NOTE: This cache is shared so the following step must always be
-      # identical across the unit-tests, e2e-tests, and consistency-checks
-      # jobs, or else weird things could happen.
-      - name: Cache Go modules
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-        with:
-          path: "~/go/pkg"
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            go-mod-
+          cache-dependency-path: go.sum
 
       # The race detector add significant time to the unit tests, so only run
       # it for select packages.
@@ -109,27 +94,17 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ steps.go.outputs.version }}
-
-      # NOTE: This cache is shared so the following step must always be
-      # identical across the unit-tests, e2e-tests, and consistency-checks
-      # jobs, or else weird things could happen.
-      - name: Cache Go modules
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-        with:
-          path: "~/go/pkg"
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            go-mod-
+          cache-dependency-path: go.sum
 
       - name: "End-to-end tests"
         run: |
@@ -141,7 +116,7 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0 # We need to do comparisons against the main branch.
 
@@ -150,20 +125,10 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ steps.go.outputs.version }}
-
-      # NOTE: This cache is shared so the following step must always be
-      # identical across the unit-tests, e2e-tests, and consistency-checks
-      # jobs, or else weird things could happen.
-      - name: Cache Go modules
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-        with:
-          path: "~/go/pkg"
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            go-mod-
+          cache-dependency-path: go.sum
 
       - name: "go.mod and go.sum consistency check"
         run: |
@@ -177,7 +142,7 @@ jobs:
           fi
 
       - name: Cache protobuf tools
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: "tools/protobuf-compile/.workdir"
           key: protobuf-tools-${{ hashFiles('tools/protobuf-compile/protobuf-compile.go') }}
@@ -186,7 +151,7 @@ jobs:
 
       - name: "Code consistency checks"
         run: |
-          make fmtcheck importscheck copyright generate staticcheck exhaustive protobuf
+          make fmtcheck importscheck vetcheck copyright generate staticcheck exhaustive protobuf
           if [[ -n "$(git status --porcelain)" ]]; then
             echo >&2 "ERROR: Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
             git >&2 status --porcelain

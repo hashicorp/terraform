@@ -137,7 +137,28 @@ func (v ValueSourceType) GoString() string {
 	return fmt.Sprintf("terraform.%s", v)
 }
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type ValueSourceType
+func (v ValueSourceType) DiagnosticLabel() string {
+	switch v {
+	case ValueFromConfig:
+		return "set by the default value in configuration"
+	case ValueFromAutoFile:
+		return "set by an automatically loaded .tfvars file"
+	case ValueFromNamedFile:
+		return "set by a .tfvars file passed through -var-file argument"
+	case ValueFromCLIArg:
+		return "set by a CLI argument"
+	case ValueFromEnvVar:
+		return "set by an environment variable"
+	case ValueFromInput:
+		return "set by an interactive input"
+	case ValueFromPlan:
+		return "set by the plan"
+	default:
+		return "unknown"
+	}
+}
+
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ValueSourceType
 
 // InputValues is a map of InputValue instances.
 type InputValues map[string]*InputValue

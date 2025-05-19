@@ -39,7 +39,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		close(resp.PlannedChanges) // MUST be the last channel to close
 	}()
 
-	var errored, applyable bool
+	var errored bool
 
 	planTimestamp := time.Now().UTC()
 	if req.ForcePlanTimestamp != nil {
@@ -58,11 +58,6 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 	main.PlanAll(ctx, stackeval.PlanOutput{
 		AnnouncePlannedChange: func(ctx context.Context, change stackplan.PlannedChange) {
 			resp.PlannedChanges <- change
-			if componentChange, ok := change.(*stackplan.PlannedChangeComponentInstance); ok {
-				if componentChange.PlanApplyable {
-					applyable = true
-				}
-			}
 		},
 		AnnounceDiagnostics: func(ctx context.Context, diags tfdiags.Diagnostics) {
 			for _, diag := range diags {
@@ -82,9 +77,8 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		resp.Diagnostics <- diag
 	}
 
-	// An overall stack plan is applyable if at least one of its component
-	// instances is applyable and we had no error diagnostics.
-	resp.Applyable = !errored && applyable
+	// An overall stack plan is applyable if it has no error diagnostics.
+	resp.Applyable = !errored
 
 	// Before we return we'll emit one more special planned change just to
 	// remember in the raw plan sequence whether we considered this plan to be

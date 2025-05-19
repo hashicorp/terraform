@@ -171,7 +171,10 @@ as defined for managed resources, with the same syntax and behavior.
 ## Lifecycle Customizations
 
 Data resources do not have any customization settings available
-for their lifecycle. However, the `lifecycle` block is reserved for future versions.
+for their lifecycle. Only the `precondition` and `postcondition`
+blocks are allowed in the data resource `lifecycle` block.
+
+Refer to [Custom Condition Checks](#custom-condition-checks) for more details.
 
 ## Example
 

@@ -622,9 +622,9 @@ func TestNodeValidatableResource_ValidateResource_invalidIgnoreChangesComputed(t
 
 	mp := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{Block: ms},
+			Provider: providers.Schema{Body: ms},
 			ResourceTypes: map[string]providers.Schema{
-				"test_object": providers.Schema{Block: ms},
+				"test_object": providers.Schema{Body: ms},
 			},
 		},
 	}
@@ -686,5 +686,351 @@ func TestNodeValidatableResource_ValidateResource_invalidIgnoreChangesComputed(t
 
 The attribute computed_string is decided by the provider alone and therefore there can be no configured value to compare with. Including this attribute in ignore_changes has no effect. Remove the attribute from ignore_changes to quiet this warning.`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
+	}
+}
+
+func Test_validateResourceForbiddenEphemeralValues(t *testing.T) {
+	simpleAttrs := map[string]*configschema.Attribute{
+		"input":    {Type: cty.String, Optional: true},
+		"input_wo": {Type: cty.String, Optional: true, WriteOnly: true},
+	}
+
+	dynAttrs := map[string]*configschema.Attribute{
+		"input":    {Type: cty.String, Optional: true},
+		"input_wo": {Type: cty.String, Optional: true, WriteOnly: true},
+		"dyn":      {Type: cty.DynamicPseudoType, Optional: true},
+		"dyn_wo":   {Type: cty.DynamicPseudoType, Optional: true, WriteOnly: true},
+	}
+
+	allAttrs := map[string]*configschema.Attribute{
+		"input":    {Type: cty.String, Optional: true},
+		"input_wo": {Type: cty.String, Optional: true, WriteOnly: true},
+		"dyn":      {Type: cty.DynamicPseudoType, Optional: true},
+		"dyn_wo":   {Type: cty.DynamicPseudoType, Optional: true, WriteOnly: true},
+		"nested_single_attr": {
+			NestedType: &configschema.Object{
+				Nesting:    configschema.NestingSingle,
+				Attributes: dynAttrs,
+			},
+			Optional: true,
+		},
+		"nested_list_attr": {
+			NestedType: &configschema.Object{
+				Nesting:    configschema.NestingList,
+				Attributes: dynAttrs,
+			},
+			Optional: true,
+		},
+		"nested_set_attr": {
+			NestedType: &configschema.Object{
+				Nesting: configschema.NestingSet,
+				Attributes: map[string]*configschema.Attribute{
+					"input": {Type: cty.String, Optional: true},
+				},
+			},
+			Optional: true,
+		},
+		"nested_single_attr_wo": {
+			NestedType: &configschema.Object{
+				Nesting:    configschema.NestingSingle,
+				Attributes: simpleAttrs,
+			},
+			Optional:  true,
+			WriteOnly: true,
+		},
+		"nested_list_attr_wo": {
+			NestedType: &configschema.Object{
+				Nesting:    configschema.NestingList,
+				Attributes: dynAttrs,
+			},
+			Optional:  true,
+			WriteOnly: true,
+		},
+		"nested_set_attr_wo": {
+			NestedType: &configschema.Object{
+				Nesting: configschema.NestingSet,
+				Attributes: map[string]*configschema.Attribute{
+					"input": {Type: cty.String, Optional: true},
+				},
+			},
+			Optional:  true,
+			WriteOnly: true,
+		},
+	}
+
+	schema := &configschema.Block{
+		Attributes: allAttrs,
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"single": {
+				Block: configschema.Block{
+					Attributes: dynAttrs,
+				},
+				Nesting: configschema.NestingSingle,
+			},
+			"list": {
+				Block: configschema.Block{
+					Attributes: dynAttrs,
+				},
+				Nesting: configschema.NestingList,
+			},
+			"set": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"input": {Type: cty.String, Optional: true},
+					},
+				},
+				Nesting: configschema.NestingSet,
+			},
+			"map": {
+				Block: configschema.Block{
+					Attributes: simpleAttrs,
+				},
+				Nesting: configschema.NestingMap,
+			},
+		},
+	}
+
+	if err := schema.InternalValidate(); err != nil {
+		t.Fatal(err)
+	}
+
+	type testCase struct {
+		obj   cty.Value
+		valid bool
+	}
+
+	tests := map[string]testCase{
+		"wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"input_wo": cty.StringVal("wo").Mark(marks.Ephemeral),
+			}),
+			valid: true,
+		},
+		"not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+			}),
+			valid: false,
+		},
+		"dyn_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"dyn_wo": cty.StringVal("wo").Mark(marks.Ephemeral),
+			}),
+			valid: true,
+		},
+		"dyn_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"dyn": cty.StringVal("wo").Mark(marks.Ephemeral),
+			}),
+			valid: false,
+		},
+		"nested_dyn_wo": {
+			// an ephemeral mark within a dynamic attribute is valid if the entire
+			// attr is write-only
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"dyn_wo": cty.ObjectVal(map[string]cty.Value{
+					"ephem": cty.StringVal("wo").Mark(marks.Ephemeral),
+				}),
+			}),
+			valid: true,
+		},
+		"nested_nested_dyn_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"dyn_wo": cty.ObjectVal(map[string]cty.Value{
+					"nested": cty.ObjectVal(map[string]cty.Value{
+						"ephem": cty.StringVal("wo").Mark(marks.Ephemeral),
+					}),
+				}),
+			}),
+			valid: true,
+		},
+		"nested_dyn_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"dyn": cty.ObjectVal(map[string]cty.Value{
+					"ephem": cty.StringVal("wo").Mark(marks.Ephemeral),
+				}),
+			}),
+			valid: false,
+		},
+		"nested_single_attr_attr_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"nested_single_attr": cty.ObjectVal(map[string]cty.Value{
+					"input_wo": cty.StringVal("wo").Mark(marks.Ephemeral),
+				}),
+			}),
+			valid: true,
+		},
+		"nested_single_attr_attr_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"nested_single_attr": cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				}),
+			}),
+			valid: false,
+		},
+		"nested_single_attr_wo_not_wo_attr": {
+			// we can assign an ephemeral to input because the outer
+			// nested_single_attr_wo attribute is write-only
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"nested_single_attr_wo": cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				}),
+			}),
+			valid: true,
+		},
+		"nested_set_attr": {
+			// there is no possible input_wo because the schema validated that
+			// it cannot exist
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"nested_set_attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				})}),
+			}),
+			valid: false,
+		},
+		"nested_set_attr_wo": {
+			// assigning an ephemeral to input is valid, because the outer set is write-only
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"nested_set_attr_wo": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				})}),
+			}),
+			valid: true,
+		},
+		"nested_list_attr_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"nested_list_attr": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				})}),
+			}),
+			valid: false,
+		},
+		"nested_list_attr_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"nested_list_attr_wo": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				})}),
+			}),
+			valid: true,
+		},
+
+		"single_block_attr_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"input_wo": cty.StringVal("wo").Mark(marks.Ephemeral),
+				}),
+			}),
+			valid: true,
+		},
+		"single_block_attr_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				}),
+			}),
+			valid: false,
+		},
+		"single_block_dyn_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"dyn_wo": cty.ObjectVal(map[string]cty.Value{
+						"ephem": cty.StringVal("wo").Mark(marks.Ephemeral),
+					}),
+				}),
+			}),
+			valid: true,
+		},
+		"single_block_dyn_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"dyn": cty.ObjectVal(map[string]cty.Value{
+						"ephem": cty.StringVal("wo").Mark(marks.Ephemeral),
+					}),
+				}),
+			}),
+			valid: false,
+		},
+		"list_block_attr_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"input_wo": cty.StringVal("wo").Mark(marks.Ephemeral),
+				})}),
+			}),
+			valid: true,
+		},
+		"list_block_attr_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				})}),
+			}),
+			valid: false,
+		},
+		"list_block_dyn_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"dyn_wo": cty.ObjectVal(map[string]cty.Value{
+						"ephem": cty.StringVal("wo").Mark(marks.Ephemeral),
+					}),
+				})}),
+			}),
+			valid: true,
+		},
+		"list_block_dyn_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"dyn": cty.ObjectVal(map[string]cty.Value{
+						"ephem": cty.StringVal("wo").Mark(marks.Ephemeral),
+					}),
+				})}),
+			}),
+			valid: false,
+		},
+		"set_block_attr_wo": {
+			// the ephemeral value within a set will always transfer the mark to
+			// the outer set, but set blocks cannot be write-only
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+				})}),
+			}),
+			valid: false,
+		},
+		"map_block_attr_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"test": cty.ObjectVal(map[string]cty.Value{
+						"input_wo": cty.StringVal("wo").Mark(marks.Ephemeral),
+					}),
+				}),
+			}),
+			valid: true,
+		},
+		"map_block_attr_not_wo": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"test": cty.ObjectVal(map[string]cty.Value{
+						"input": cty.StringVal("wo").Mark(marks.Ephemeral),
+					}),
+				}),
+			}),
+			valid: false,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			val, err := schema.CoerceValue(tc.obj)
+			if err != nil {
+				t.Fatal(err)
+			}
+			diags := validateResourceForbiddenEphemeralValues(nil, val, schema)
+			switch {
+			case tc.valid && diags.HasErrors():
+				t.Fatal("unexpected diags:", diags.ErrWithWarnings())
+			case !tc.valid && !diags.HasErrors():
+				t.Fatal("expected diagnostics, got none")
+			}
+		})
 	}
 }

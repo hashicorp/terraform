@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
@@ -17,7 +17,7 @@ import (
 // types, and the others will be used only for one of plan or apply.
 type ResourceInstanceStatus rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ResourceInstanceStatus resource_instance.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ResourceInstanceStatus resource_instance.go
 
 const (
 	ResourceInstanceStatusInvalid ResourceInstanceStatus = 0
@@ -32,26 +32,26 @@ const (
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ResourceInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_ResourceInstanceStatus_Status {
+func (s ResourceInstanceStatus) ForProtobuf() stacks.StackChangeProgress_ResourceInstanceStatus_Status {
 	switch s {
 	case ResourceInstancePending:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_PENDING
+		return stacks.StackChangeProgress_ResourceInstanceStatus_PENDING
 	case ResourceInstanceRefreshing:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_REFRESHING
+		return stacks.StackChangeProgress_ResourceInstanceStatus_REFRESHING
 	case ResourceInstanceRefreshed:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_REFRESHED
+		return stacks.StackChangeProgress_ResourceInstanceStatus_REFRESHED
 	case ResourceInstancePlanning:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_PLANNING
+		return stacks.StackChangeProgress_ResourceInstanceStatus_PLANNING
 	case ResourceInstancePlanned:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_PLANNED
+		return stacks.StackChangeProgress_ResourceInstanceStatus_PLANNED
 	case ResourceInstanceApplying:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_APPLYING
+		return stacks.StackChangeProgress_ResourceInstanceStatus_APPLYING
 	case ResourceInstanceApplied:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_APPLIED
+		return stacks.StackChangeProgress_ResourceInstanceStatus_APPLIED
 	case ResourceInstanceErrored:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_ERRORED
+		return stacks.StackChangeProgress_ResourceInstanceStatus_ERRORED
 	default:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_INVALID
+		return stacks.StackChangeProgress_ResourceInstanceStatus_INVALID
 	}
 }
 
@@ -61,7 +61,7 @@ func (s ResourceInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_Res
 // either "provisioned" or "errored".
 type ProvisionerStatus rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ProvisionerStatus resource_instance.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ProvisionerStatus resource_instance.go
 
 const (
 	ProvisionerStatusInvalid ProvisionerStatus = 0
@@ -71,16 +71,16 @@ const (
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ProvisionerStatus) ForProtobuf() terraform1.StackChangeProgress_ProvisionerStatus_Status {
+func (s ProvisionerStatus) ForProtobuf() stacks.StackChangeProgress_ProvisionerStatus_Status {
 	switch s {
 	case ProvisionerProvisioning:
-		return terraform1.StackChangeProgress_ProvisionerStatus_PROVISIONING
+		return stacks.StackChangeProgress_ProvisionerStatus_PROVISIONING
 	case ProvisionerProvisioned:
-		return terraform1.StackChangeProgress_ProvisionerStatus_PROVISIONING
+		return stacks.StackChangeProgress_ProvisionerStatus_PROVISIONING
 	case ProvisionerErrored:
-		return terraform1.StackChangeProgress_ProvisionerStatus_ERRORED
+		return stacks.StackChangeProgress_ProvisionerStatus_ERRORED
 	default:
-		return terraform1.StackChangeProgress_ProvisionerStatus_INVALID
+		return stacks.StackChangeProgress_ProvisionerStatus_INVALID
 	}
 }
 

@@ -15,9 +15,12 @@ const (
 	Delete           Action = '-'
 	Forget           Action = '.'
 	CreateThenForget Action = '⨥'
+	Open             Action = '⟃'
+	Renew            Action = '⟳'
+	Close            Action = '⫏'
 )
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type Action
+//go:generate go tool golang.org/x/tools/cmd/stringer -type Action
 
 // IsReplace returns true if the action is one of the actions that
 // represent replacing an existing object with a new object.

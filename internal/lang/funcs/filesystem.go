@@ -24,19 +24,25 @@ import (
 // MakeFileFunc constructs a function that takes a file path and returns the
 // contents of that file, either directly as a string (where valid UTF-8 is
 // required) or as a string containing base64 bytes.
-func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
+func MakeFileFunc(baseDir string, encBase64 bool, wrap ImplWrapper) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
 		Type:         function.StaticReturnType(cty.String),
 		RefineResult: refineNotNull,
-		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		Impl: wrap(func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
+
+			if !pathArg.IsKnown() {
+				return cty.UnknownVal(cty.String).WithMarks(pathMarks), nil
+			}
+
 			path := pathArg.AsString()
 			src, err := readFileBytes(baseDir, path, pathMarks)
 			if err != nil {
@@ -54,7 +60,7 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 				}
 				return cty.StringVal(string(src)).WithMarks(pathMarks), nil
 			}
-		},
+		}),
 	})
 }
 
@@ -71,7 +77,7 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 // As a special exception, a referenced template file may not recursively call
 // the templatefile function, since that would risk the same file being
 // included into itself indefinitely.
-func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string])) function.Function {
+func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string]), wrap ImplWrapper) function.Function {
 	loadTmpl := func(fn string, marks cty.ValueMarks) (hcl.Expression, cty.ValueMarks, error) {
 		// We re-use File here to ensure the same filename interpretation
 		// as it does, along with its other safety checks.
@@ -94,13 +100,16 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]funct
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 			{
-				Name: "vars",
-				Type: cty.DynamicPseudoType,
+				Name:         "vars",
+				Type:         cty.DynamicPseudoType,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
 		Type: func(args []cty.Value) (cty.Type, error) {
@@ -117,40 +126,53 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]funct
 			if err != nil {
 				return cty.DynamicPseudoType, err
 			}
+			vars, _ := args[1].UnmarkDeep()
 
 			// This is safe even if args[1] contains unknowns because the HCL
 			// template renderer itself knows how to short-circuit those.
-			val, err := renderTmpl(expr, args[1])
+			val, err := renderTmpl(expr, vars)
 			return val.Type(), err
 		},
-		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		Impl: wrap(func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
+
+			vars, varsMarks := args[1].UnmarkDeep()
+
+			if !pathArg.IsKnown() || !vars.IsKnown() {
+				return cty.UnknownVal(retType).WithMarks(pathMarks, varsMarks), nil
+			}
+
 			expr, tmplMarks, err := loadTmpl(pathArg.AsString(), pathMarks)
 			if err != nil {
 				return cty.DynamicVal, err
 			}
-			result, err := renderTmpl(expr, args[1])
-			return result.WithMarks(tmplMarks), err
-		},
+			result, err := renderTmpl(expr, vars)
+			return result.WithMarks(tmplMarks, varsMarks), err
+		}),
 	})
-
 }
 
 // MakeFileExistsFunc constructs a function that takes a path
 // and determines whether a file exists at that path
-func MakeFileExistsFunc(baseDir string) function.Function {
+func MakeFileExistsFunc(baseDir string, wrap ImplWrapper) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
 		Type:         function.StaticReturnType(cty.Bool),
 		RefineResult: refineNotNull,
-		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		Impl: wrap(func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
+
+			if !pathArg.IsKnown() {
+				return cty.UnknownVal(cty.Bool).WithMarks(pathMarks), nil
+			}
+
 			path := pathArg.AsString()
 			path, err := homedir.Expand(path)
 			if err != nil {
@@ -200,34 +222,40 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 			}
 
 			return cty.False, err
-		},
+		}),
 	})
 }
 
 // MakeFileSetFunc constructs a function that takes a glob pattern
 // and enumerates a file set from that pattern
-func MakeFileSetFunc(baseDir string) function.Function {
+func MakeFileSetFunc(baseDir string, wrap ImplWrapper) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 			{
-				Name:        "pattern",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "pattern",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
 		Type:         function.StaticReturnType(cty.Set(cty.String)),
 		RefineResult: refineNotNull,
-		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		Impl: wrap(func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
-			path := pathArg.AsString()
 			patternArg, patternMarks := args[1].Unmark()
-			pattern := patternArg.AsString()
 
+			if !pathArg.IsKnown() || !patternArg.IsKnown() {
+				return cty.UnknownVal(retType).WithMarks(pathMarks, patternMarks), nil
+			}
+
+			path := pathArg.AsString()
+			pattern := patternArg.AsString()
 			marks := []cty.ValueMarks{pathMarks, patternMarks}
 
 			if !filepath.IsAbs(path) {
@@ -275,7 +303,7 @@ func MakeFileSetFunc(baseDir string) function.Function {
 			}
 
 			return cty.SetVal(matchVals).WithMarks(marks...), nil
-		},
+		}),
 	})
 }
 
@@ -387,7 +415,7 @@ func readFileBytes(baseDir, path string, marks cty.ValueMarks) ([]byte, error) {
 // directory, so this wrapper takes a base directory string and uses it to
 // construct the underlying function before calling it.
 func File(baseDir string, path cty.Value) (cty.Value, error) {
-	fn := MakeFileFunc(baseDir, false)
+	fn := MakeFileFunc(baseDir, false, noopWrapper)
 	return fn.Call([]cty.Value{path})
 }
 
@@ -397,7 +425,7 @@ func File(baseDir string, path cty.Value) (cty.Value, error) {
 // directory, so this wrapper takes a base directory string and uses it to
 // construct the underlying function before calling it.
 func FileExists(baseDir string, path cty.Value) (cty.Value, error) {
-	fn := MakeFileExistsFunc(baseDir)
+	fn := MakeFileExistsFunc(baseDir, noopWrapper)
 	return fn.Call([]cty.Value{path})
 }
 
@@ -407,7 +435,7 @@ func FileExists(baseDir string, path cty.Value) (cty.Value, error) {
 // directory, so this wrapper takes a base directory string and uses it to
 // construct the underlying function before calling it.
 func FileSet(baseDir string, path, pattern cty.Value) (cty.Value, error) {
-	fn := MakeFileSetFunc(baseDir)
+	fn := MakeFileSetFunc(baseDir, noopWrapper)
 	return fn.Call([]cty.Value{path, pattern})
 }
 
@@ -419,7 +447,7 @@ func FileSet(baseDir string, path, pattern cty.Value) (cty.Value, error) {
 // directory, so this wrapper takes a base directory string and uses it to
 // construct the underlying function before calling it.
 func FileBase64(baseDir string, path cty.Value) (cty.Value, error) {
-	fn := MakeFileFunc(baseDir, true)
+	fn := MakeFileFunc(baseDir, true, noopWrapper)
 	return fn.Call([]cty.Value{path})
 }
 
@@ -452,4 +480,13 @@ func Dirname(path cty.Value) (cty.Value, error) {
 // If the leading segment in the path is not `~` then the given path is returned unmodified.
 func Pathexpand(path cty.Value) (cty.Value, error) {
 	return PathExpandFunc.Call([]cty.Value{path})
+}
+
+// ImplWrapper allows us to pass in a wrapper function to inject behavior into
+// function implementations, because we don't have access to the function.Spec
+// from the returned function.Function
+type ImplWrapper func(function.ImplFunc) function.ImplFunc
+
+func noopWrapper(fn function.ImplFunc) function.ImplFunc {
+	return fn
 }

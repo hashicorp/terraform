@@ -108,7 +108,7 @@ func (c *InitCommand) Run(args []string) int {
 	if initArgs.FromModule != "" {
 		src := initArgs.FromModule
 
-		empty, err := configs.IsEmptyDir(path)
+		empty, err := configs.IsEmptyDir(path, initArgs.TestsDirectory)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Error validating destination directory: %s", err))
 			view.Diagnostics(diags)
@@ -148,7 +148,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// If our directory is empty, then we're done. We can't get or set up
 	// the backend with an empty directory.
-	empty, err := configs.IsEmptyDir(path)
+	empty, err := configs.IsEmptyDir(path, initArgs.TestsDirectory)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
 		view.Diagnostics(diags)
@@ -167,7 +167,7 @@ func (c *InitCommand) Run(args []string) int {
 	// be the first error displayed if that is an issue, but other operations are required
 	// before being able to check core version requirements.
 	if rootModEarly == nil {
-		diags = diags.Append(fmt.Errorf(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
+		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
 		view.Diagnostics(diags)
 
 		return 1
@@ -259,7 +259,7 @@ func (c *InitCommand) Run(args []string) int {
 	diags = diags.Append(earlyConfDiags)
 	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -276,7 +276,7 @@ func (c *InitCommand) Run(args []string) int {
 	// show other errors from loading the full configuration tree.
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
 		view.Diagnostics(diags)
 		return 1
 	}

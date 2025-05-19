@@ -265,11 +265,142 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{"bad: block schema is nil"},
 		},
+		"nested set block with write-only attribute": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"bad": {
+						Nesting: NestingSet,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"wo": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			[]string{"bad: NestingSet blocks may not contain WriteOnly attributes"},
+		},
+		"nested set attributes with write-only attribute": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"bad": {
+						NestedType: &Object{
+							Attributes: map[string]*Attribute{
+								"wo": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+							Nesting: NestingSet,
+						},
+						Optional: true,
+					},
+				},
+			},
+			[]string{"bad: NestingSet attributes may not contain WriteOnly attributes"},
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			errs := joinedErrors(test.Block.InternalValidate())
+			if got, want := len(errs), len(test.Errs); got != want {
+				t.Errorf("wrong number of errors %d; want %d", got, want)
+				for _, err := range errs {
+					t.Logf("- %s", err.Error())
+				}
+			} else {
+				if len(errs) > 0 {
+					for i := range errs {
+						if errs[i].Error() != test.Errs[i] {
+							t.Errorf("wrong error: got %s, want %s", errs[i].Error(), test.Errs[i])
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestObjectInternalValidate(t *testing.T) {
+	tests := map[string]struct {
+		Object *Object
+		Errs   []string
+	}{
+		"empty": {
+			&Object{},
+			[]string{},
+		},
+		"valid": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"bar": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+				Nesting: NestingSingle,
+			},
+			[]string{},
+		},
+		"nil": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"foo": nil,
+				},
+				Nesting: NestingSingle,
+			},
+			[]string{"foo: attribute schema is nil"},
+		},
+		"attribute with no flags set": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type: cty.String,
+					},
+				},
+				Nesting: NestingSingle,
+			},
+			[]string{"foo: must set Optional, Required or Computed"},
+		},
+		"attribute required and optional": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type:     cty.String,
+						Required: true,
+						Optional: true,
+					},
+				},
+				Nesting: NestingSingle,
+			},
+			[]string{"foo: cannot set both Optional and Required"},
+		},
+		"attribute with missing type": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Optional: true,
+					},
+				},
+				Nesting: NestingSingle,
+			},
+			[]string{"foo: either Type or NestedType must be defined"},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			errs := joinedErrors(test.Object.InternalValidate())
 			if got, want := len(errs), len(test.Errs); got != want {
 				t.Errorf("wrong number of errors %d; want %d", got, want)
 				for _, err := range errs {

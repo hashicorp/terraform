@@ -90,13 +90,18 @@ type Hook interface {
 
 	// PrePlanImport and PostPlanImport are called during a plan before and after planning to import
 	// a new resource using the configuration-driven import workflow.
-	PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error)
+	PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error)
 	PostPlanImport(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error)
 
 	// PreApplyImport and PostApplyImport are called during an apply for each imported resource when
 	// using the configuration-driven import workflow.
 	PreApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error)
 	PostApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error)
+
+	// PreEphemeralOp and PostEphemeralOp are called during an operation on ephemeral resource
+	// such as opening, renewal or closing
+	PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error)
+	PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error)
 
 	// Stopping is called if an external signal requests that Terraform
 	// gracefully abort an operation in progress.
@@ -180,7 +185,7 @@ func (*NilHook) PostImportState(id HookResourceIdentity, imported []providers.Im
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *NilHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
@@ -193,6 +198,14 @@ func (h *NilHook) PreApplyImport(id HookResourceIdentity, importing plans.Import
 }
 
 func (h *NilHook) PostApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

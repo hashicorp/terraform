@@ -1,0 +1,107 @@
+---
+page_title: Set conditions for deployment plans
+description: Learn how to use the orchestrate block to automatically approve Stack deployment plans and help you manage your Stack deployments at scale.
+---
+
+# Set conditions for deployment plans
+
+Orchestration rules allow you to automate aspects of your Stack deployments, such as auto-approving plans when those plans meet certain conditions. By setting orchestration rules, you can help streamline managing many deployments.
+
+## Create orchestration rules
+
+Add `orchestrate` blocks to define rules for handling deployment plans in your deployment configuration file (`tfdeploy.hcl`).
+
+The `orchestrate` block uses a `check` block to determine if a condition has passed or not, and every condition must pass for the `orchestrate` rule to take effect. For details on the syntax of an `orchestrate` block, refer to the [Deployment configuration file reference](/terraform/language/stacks/reference/tfdeploy).
+
+### Orchestrate rule types
+
+There are two orchestration rule types to choose from:
+
+1. The `auto_approve` rule executes after a Stack creates a plan and automatically approves a plan if all checks pass.  
+1. The `replan` rule executes after a Stack applies a plan, automatically triggering a replan if all the checks pass.
+
+The `auto_approve` rule is helpful when you know you want a certain type of plan to go ahead without manual intervention. For example, Stacks have a default `auto_approve` rule named `empty_plan`, which automatically approves a plan if it has no changes. 
+
+As another example, you could create a rule that automatically approves deployments if a component has not changed. 
+
+```hcl
+# deployments.tfdeploy.hcl
+
+orchestrate "auto_approve" "no_pet_changes" {
+    check {
+        # Check that the pet component has no changes
+        condition = context.plan.component_changes["component.pet"].total == 0
+        reason = "Not automatically approved because changes proposed to pet component."
+    }
+}
+```
+
+The above `orchestrate` block automatically approves plans if they do not include any changes for the `pet` component. 
+
+The `replan` rule is helpful when you need your Stack to perform another plan after it applies the last one. You could create a rule to automatically replan a deployment if the production deployment errors out.
+
+```hcl
+# deployments.tfdeploy.hcl
+
+orchestrate "replan" "replan_prod_for_errors" {
+    check {
+        condition = context.plan.deployment == deployment.production
+        reason = "Only automatically replan production deployments."
+    }
+
+    check {
+        condition = context.plan.applyable == false
+        reason = "Only automatically replan plans that were not applyable."
+    }
+
+    check {
+        condition = context.plan.replans < 2
+        reason = "Only automatically replan failed plans once."
+    }
+}
+```
+
+The above `orchestrate` block triggers a replan if the production deployment of a Stack errors out and if HCP Terraform hasn't already attempted to replan.
+
+### Leverage orchestration context
+
+The `orchestrate` block can use the `context` variable, which provides access to detailed information about the deployment plan, such as the number of changes, the specific components involved, and the deployment’s status.
+
+Use `context` to create more sophisticated checks and conditions. For example, you can automatically approve all planning operations.
+
+```hcl
+# deployments.tfdeploy.hcl
+
+orchestrate "auto_approve" "allow_plans" {
+    check {
+        # Check that the operation is a plan
+        condition = context.operation == "plan"
+        reason = "Apply operations need manual approval."
+    }
+}
+```
+
+Another example of using `context` is automatically approving plans that do not remove resources in non-production deployments.
+
+```hcl
+# deployments.tfdeploy.hcl
+orchestrate "auto_approve" "safe_plans" {
+    # Ensure that no resource is removed.
+    check {
+        condition = context.plan.changes.remove == 0
+        reason    = "Plan is destroying ${context.plan.changes.remove} resources."
+    }
+
+    # Ensure that the deployment is not your production environment. 
+    check {
+        condition = context.plan.deployment != deployment.production
+        reason    = "Production plans are not eligible for auto_approve."
+    }
+}
+```
+
+For more information on the information available in the context variable, refer to the [Deployment configuration file reference](/terraform/language/stacks/reference/tfdeploy).
+ 
+## Next steps
+
+With your Stack and deployment configurations complete, your Stack is ready to be deployed by HCP Terraform. To learn more about creating a Stack in HCP Terraform, refer to [Create a Stack](/terraform/cloud-docs/stacks/create).

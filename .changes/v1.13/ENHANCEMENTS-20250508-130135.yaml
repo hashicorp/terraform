@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Filesystem functions are now checked for consistent results to catch invalid data during apply
+time: 2025-05-08T13:01:35.450576-04:00
+custom:
+    Issue: "37001"
