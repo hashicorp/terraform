@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
@@ -524,9 +523,9 @@ func TestPlan(t *testing.T) {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove component instance",
-						Detail:   "The component instance stack.for_each.component.self[\"foo\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/for-each-component/for-each-component.tfstack.hcl:15,1-17.",
+						Detail:   "The component instance stack.for_each.component.self[\"foo\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/for-each-component/for-each-component.tfcomponent.hcl:15,1-17.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 38, Column: 1, Byte: 505},
 							End:      hcl.Pos{Line: 38, Column: 8, Byte: 512},
 						},
@@ -534,9 +533,9 @@ func TestPlan(t *testing.T) {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove component instance",
-						Detail:   "The component instance stack.simple[\"foo\"].component.self is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/valid/valid.tfstack.hcl:19,1-17.",
+						Detail:   "The component instance stack.simple[\"foo\"].component.self is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/valid/valid.tfcomponent.hcl:19,1-17.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 60, Column: 1, Byte: 811},
 							End:      hcl.Pos{Line: 60, Column: 8, Byte: 818},
 						},
@@ -966,9 +965,9 @@ func TestPlan(t *testing.T) {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove stack instance",
-						Detail:   "The stack instance stack.simple[\"component\"] is targeted by an embedded stack block and cannot be removed. The relevant embedded stack is defined at git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfstack.hcl:25,1-15.",
+						Detail:   "The stack instance stack.simple[\"component\"] is targeted by an embedded stack block and cannot be removed. The relevant embedded stack is defined at git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfcomponent.hcl:25,1-15.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 36, Column: 1, Byte: 441},
 							End:      hcl.Pos{Line: 36, Column: 8, Byte: 448},
 						},
@@ -996,9 +995,9 @@ func TestPlan(t *testing.T) {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove stack instance",
-						Detail:   "The stack instance stack.embedded[\"component\"].stack.simple[\"component\"] is targeted by an embedded stack block and cannot be removed. The relevant embedded stack is defined at git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfstack.hcl:25,1-15.",
+						Detail:   "The stack instance stack.embedded[\"component\"].stack.simple[\"component\"] is targeted by an embedded stack block and cannot be removed. The relevant embedded stack is defined at git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfcomponent.hcl:25,1-15.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-from-embedded-stack/removed-stack-from-embedded-stack.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-from-embedded-stack/removed-stack-from-embedded-stack.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 28, Column: 1, Byte: 360},
 							End:      hcl.Pos{Line: 28, Column: 8, Byte: 367},
 						},
@@ -1042,9 +1041,9 @@ func TestPlan(t *testing.T) {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove component instance",
-						Detail:   "The component instance stack.simple[\"component\"].component.self is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/valid/valid.tfstack.hcl:19,1-17.",
+						Detail:   "The component instance stack.simple[\"component\"].component.self is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/valid/valid.tfcomponent.hcl:19,1-17.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 51, Column: 1, Byte: 708},
 							End:      hcl.Pos{Line: 51, Column: 8, Byte: 715},
 						},
@@ -1088,7 +1087,7 @@ func TestPlan(t *testing.T) {
 						Summary:  "Invalid removed block",
 						Detail:   "The component instance stack.simple[\"component\"].component.self could not be removed. The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 60, Column: 1, Byte: 811},
 							End:      hcl.Pos{Line: 60, Column: 8, Byte: 818},
 						},
@@ -1172,7 +1171,7 @@ func TestPlan(t *testing.T) {
 						Summary:  "Invalid removed block",
 						Detail:   "The component instance stack.embedded[\"component\"].stack.simple[\"component\"].component.self could not be removed. The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-from-embedded-stack/removed-stack-from-embedded-stack.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-from-embedded-stack/removed-stack-from-embedded-stack.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 28, Column: 1, Byte: 360},
 							End:      hcl.Pos{Line: 28, Column: 8, Byte: 367},
 						},
@@ -1210,7 +1209,7 @@ func TestPlan(t *testing.T) {
 						Summary:  "Invalid removed block",
 						Detail:   "The component instance stack.embedded.component.self could not be removed. The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/orphaned-component/orphaned-component.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/orphaned-component/orphaned-component.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 10, Column: 1, Byte: 131},
 							End:      hcl.Pos{Line: 10, Column: 8, Byte: 138},
 						},
@@ -1490,7 +1489,7 @@ func TestPlanWithMissingInputVariable(t *testing.T) {
 		Summary:  "Reference to undeclared input variable",
 		Detail:   `There is no variable "input" block declared in this stack.`,
 		Subject: &hcl.Range{
-			Filename: mainBundleSourceAddrStr("plan-undeclared-variable-in-component/undeclared-variable.tfstack.hcl"),
+			Filename: mainBundleSourceAddrStr("plan-undeclared-variable-in-component/undeclared-variable.tfcomponent.hcl"),
 			Start:    hcl.Pos{Line: 17, Column: 13, Byte: 250},
 			End:      hcl.Pos{Line: 17, Column: 22, Byte: 259},
 		},
@@ -1541,7 +1540,7 @@ func TestPlanWithNoValueForRequiredVariable(t *testing.T) {
 		Summary:  "No value for required variable",
 		Detail:   `The root input variable "var.beep" is not set, and has no default value.`,
 		Subject: &hcl.Range{
-			Filename: mainBundleSourceAddrStr("plan-no-value-for-required-variable/unset-variable.tfstack.hcl"),
+			Filename: mainBundleSourceAddrStr("plan-no-value-for-required-variable/unset-variable.tfcomponent.hcl"),
 			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
 			End:      hcl.Pos{Line: 1, Column: 16, Byte: 15},
 		},
@@ -1566,7 +1565,7 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 			inputs: map[stackaddrs.InputVariable]ExternalInputValue{
 				{Name: "beep"}: {
 					Value:    cty.NullVal(cty.DynamicPseudoType),
-					DefRange: tfdiags.SourceRange{Filename: "fake.tfstack.hcl"},
+					DefRange: tfdiags.SourceRange{Filename: "fake.tfcomponent.hcl"},
 				},
 			},
 		},
@@ -6119,7 +6118,7 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 				{
 					severity: tfdiags.Error,
 					summary:  "Cannot remove component instance",
-					detail:   "The component instance component.self[\"a\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/removed-component-instance/removed-component-instance.tfstack.hcl:18,1-17.",
+					detail:   "The component instance component.self[\"a\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/removed-component-instance/removed-component-instance.tfcomponent.hcl:18,1-17.",
 				},
 			},
 		},
@@ -6166,7 +6165,7 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 			sort.SliceStable(gotPlanDiags, diagnosticSortFunc(gotPlanDiags))
 
 			expectDiagnosticsForTest(t, gotPlanDiags, tc.wantPlanDiags...)
-			if diff := cmp.Diff(tc.wantPlanChanges, gotPlanChanges, ctydebug.CmpOptions, cmpCollectionsSet, cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{})); diff != "" {
+			if diff := cmp.Diff(tc.wantPlanChanges, gotPlanChanges, changesCmpOpts); diff != "" {
 				t.Errorf("wrong changes\n%s", diff)
 			}
 		})
@@ -6318,17 +6317,3 @@ func expectOutput(t *testing.T, name string, changes []stackplan.PlannedChange) 
 	t.Fatalf("expected output value %q", name)
 	return nil
 }
-
-var cmpCollectionsSet = cmp.Comparer(func(x, y collections.Set[stackaddrs.AbsComponent]) bool {
-	if x.Len() != y.Len() {
-		return false
-	}
-
-	for v := range x.All() {
-		if !y.Has(v) {
-			return false
-		}
-	}
-
-	return true
-})

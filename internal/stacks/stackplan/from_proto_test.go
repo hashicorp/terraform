@@ -92,50 +92,11 @@ func TestAddRaw(t *testing.T) {
 
 			opts := cmp.Options{
 				ctydebug.CmpOptions,
-				cmpCollectionsSet[stackaddrs.InputVariable](),
-				cmpCollectionsSet[stackaddrs.OutputValue](),
-				cmpCollectionsSet[stackaddrs.AbsComponentInstance](),
-				cmpCollectionsMap[stackaddrs.AbsComponentInstance, *Component](),
+				collections.CmpOptions,
 			}
 			if diff := cmp.Diff(test.Want, loader.ret, opts...); diff != "" {
 				t.Errorf("AddRaw() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
-}
-
-func cmpCollectionsSet[V any]() cmp.Option {
-	return cmp.Comparer(func(x, y collections.Set[V]) bool {
-		if x.Len() != y.Len() {
-			return false
-		}
-
-		for v := range x.All() {
-			if !y.Has(v) {
-				return false
-			}
-		}
-
-		return true
-	})
-}
-
-func cmpCollectionsMap[K, V any]() cmp.Option {
-	return cmp.Comparer(func(x, y collections.Map[K, V]) bool {
-		if x.Len() != y.Len() {
-			return false
-		}
-
-		for key, entry := range x.All() {
-			if !y.HasKey(key) {
-				return false
-			}
-
-			if !cmp.Equal(entry, y.Get(key)) {
-				return false
-			}
-		}
-
-		return true
-	})
 }

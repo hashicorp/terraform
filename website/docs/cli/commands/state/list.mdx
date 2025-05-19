@@ -54,6 +54,18 @@ aws_instance.bar[0]
 aws_instance.bar[1]
 ```
 
+## Example: Filtering with an index
+
+This example will show you how to filter when your filter includes an index:
+
+```
+$ terraform state list 'foo[0].bar'
+foo[0].bar.lorem
+foo[0].bar.ipsum
+```
+
+Use single quotes to prevent your command line from interpreting the square brackets as shell syntax.
+
 ## Example: Filtering by Module
 
 This example will list resources in the given module and any submodules:

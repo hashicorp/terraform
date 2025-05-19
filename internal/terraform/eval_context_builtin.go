@@ -77,7 +77,7 @@ type BuiltinEvalContext struct {
 	InputValue              UIInput
 	ProviderCache           map[string]providers.Interface
 	ProviderFuncCache       map[string]providers.Interface
-	ProviderFuncResults     *providers.FunctionResults
+	FunctionResults         *lang.FunctionResults
 	ProviderInputConfig     map[string]map[string]cty.Value
 	ProviderLock            *sync.Mutex
 	ProvisionerCache        map[string]provisioners.Interface
@@ -510,7 +510,7 @@ func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs 
 		ret.Provider[localName] = make(map[string]function.Function, len(funcDecls))
 		funcs := ret.Provider[localName]
 		for name, decl := range funcDecls {
-			funcs[name] = decl.BuildFunction(providerAddr, name, ctx.ProviderFuncResults, func() (providers.Interface, error) {
+			funcs[name] = decl.BuildFunction(providerAddr, name, ctx.FunctionResults, func() (providers.Interface, error) {
 				return ctx.functionProvider(providerAddr)
 			})
 		}

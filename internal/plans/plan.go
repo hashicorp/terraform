@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -159,10 +159,10 @@ type Plan struct {
 	// Timestamp is the record of truth for when the plan happened.
 	Timestamp time.Time
 
-	// ProviderFunctionResults stores hashed results from all provider
-	// function calls, so that calls during apply can be checked for
-	// consistency.
-	ProviderFunctionResults []providers.FunctionHash
+	// FunctionResults stores hashed results from all providers function calls
+	// and builtin calls which may access external state so that calls during
+	// apply can be checked for consistency.
+	FunctionResults []lang.FunctionResultHash
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
