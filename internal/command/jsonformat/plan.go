@@ -31,6 +31,7 @@ type Plan struct {
 	ResourceDrift      []jsonplan.ResourceChange         `json:"resource_drift,omitempty"`
 	RelevantAttributes []jsonplan.ResourceAttr           `json:"relevant_attributes,omitempty"`
 	DeferredChanges    []jsonplan.DeferredResourceChange `json:"deferred_changes,omitempty"`
+	ActionInvocations  []jsonplan.ActionInvocation       `json:"action_invocations,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
@@ -433,6 +434,10 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 
 	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(deferred.diff.change), deferred.diff.diff.RenderHuman(0, opts)))
 	return buf.String(), true
+}
+
+func renderHumanActionInvocation(renderer Renderer, invocation jsonplan.ActionInvocation) string {
+	return ""
 }
 
 func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action, changeCause string) string {

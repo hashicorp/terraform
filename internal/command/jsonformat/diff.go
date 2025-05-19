@@ -74,6 +74,10 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 		})
 	}
 
+	for _, action := range plan.ActionInvocations {
+		diffs.actionInvocations = append(diffs.actionInvocations, action)
+	}
+
 	for key, output := range plan.OutputChanges {
 		change := structured.FromJsonChange(output, attribute_path.AlwaysMatcher())
 		diffs.outputs[key] = differ.ComputeDiffForOutput(change)
@@ -83,10 +87,11 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 }
 
 type diffs struct {
-	drift    []diff
-	changes  []diff
-	deferred []deferredDiff
-	outputs  map[string]computed.Diff
+	drift             []diff
+	changes           []diff
+	deferred          []deferredDiff
+	actionInvocations []jsonplan.ActionInvocation // TODO: Rethink if we need a different type here
+	outputs           map[string]computed.Diff
 }
 
 func (d diffs) Empty() bool {
@@ -100,6 +105,10 @@ func (d diffs) Empty() bool {
 		if output.Action != plans.NoOp {
 			return false
 		}
+	}
+
+	if len(d.actionInvocations) > 0 {
+		return false
 	}
 
 	return true
