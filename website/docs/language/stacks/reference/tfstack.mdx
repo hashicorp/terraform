@@ -100,7 +100,7 @@ This section provides details about the fields you can configure in the `variabl
 
 Use the `output` block to make information about your infrastructure available in the HCP Terraform UI to expose information about your Stack. The `output` block functions the same way in Stack configuration as it does in traditional Terraform configurations with a few small differences. 
 
-In Stack configurations, `output` blocks do not support the `type` or `sensitive` fields, and they do not support the `preconditions` argument. Learn more about [Outputs](/terraform/language/values/outputs).
+In Stack configurations, `output` blocks require the `type` argument, and they do not support the `preconditions` block. Learn more about [Outputs](/terraform/language/values/outputs).
 
 ### Complete configuration
 
@@ -108,7 +108,10 @@ When every field is defined, an `output` block has the following form:
 ```hcl
 output "unique_name_of_output" {
   description = "Description of the purpose of this output"
+  type        = string
   value       = component.component_name.some_value
+  sensitive   = false
+  ephemeral   = false
 }
 ```
 
@@ -119,7 +122,10 @@ This section provides details about the fields you can configure in the `output`
 | Field | Description | Type | Required |
 | :---- | :---- | :---- | :---- |
 | `description` | A human-friendly description for the output. | string | Optional |
+| `type` | The type of the output. | type constraint | Required |
 | `value` | The value to output. | any | Required |
+| `sensitive` | Marks the variable as sensitive, which prevents its value from being displayed in logs or in the HCP Terraform UI.  | bool | Optional |
+| `ephemeral` | Whether to exclude the value from plans and state data. | bool | Optional |
 
 ## `required_providers` and `provider` block configuration
 
