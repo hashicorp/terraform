@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -21,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -76,6 +76,11 @@ type Evaluator struct {
 	// ensures they can be safely accessed and modified concurrently.
 	Changes *plans.ChangesSync
 
+	// FunctionResults carries forward the global cache of function results to
+	// be used when building out all the builtin functions returned in the
+	// Scope.
+	FunctionResults *lang.FunctionResults
+
 	PlanTimestamp time.Time
 }
 
@@ -87,14 +92,15 @@ type Evaluator struct {
 // address.
 func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable, extFuncs lang.ExternalFuncs) *lang.Scope {
 	return &lang.Scope{
-		Data:          data,
-		ParseRef:      addrs.ParseRef,
-		SelfAddr:      self,
-		SourceAddr:    source,
-		PureOnly:      e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
-		BaseDir:       ".", // Always current working directory for now.
-		PlanTimestamp: e.PlanTimestamp,
-		ExternalFuncs: extFuncs,
+		Data:            data,
+		ParseRef:        addrs.ParseRef,
+		SelfAddr:        self,
+		SourceAddr:      source,
+		PureOnly:        e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
+		BaseDir:         ".", // Always current working directory for now.
+		PlanTimestamp:   e.PlanTimestamp,
+		ExternalFuncs:   extFuncs,
+		FunctionResults: e.FunctionResults,
 	}
 }
 
@@ -556,7 +562,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// We need to build an abs provider address, but we can use a default
 	// instance since we're only interested in the schema.
 	schema := d.getResourceSchema(addr, config.Provider)
-	if schema == nil {
+	if schema.Body == nil {
 		// This shouldn't happen, since validation before we get here should've
 		// taken care of it, but we'll show a reasonable error message anyway.
 		diags = diags.Append(&hcl.Diagnostic{
@@ -567,7 +573,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		})
 		return cty.DynamicVal, diags
 	}
-	ty := schema.ImpliedType()
+	ty := schema.Body.ImpliedType()
 
 	if addr.Mode == addrs.EphemeralResourceMode {
 		// FIXME: This does not yet work with deferrals, and it would be nice to
@@ -629,9 +635,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			}
 
 		default:
-			// We should only end up here during the validate walk,
-			// since later walks should have at least partial states populated
-			// for all resources in the configuration.
+			// We should only end up here during the validate walk (or
+			// console/eval), since later walks should have at least partial
+			// states populated for all resources in the configuration.
 			return cty.DynamicVal, diags
 		}
 	}
@@ -681,22 +687,21 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		// and need to be replaced by the planned value here.
 		if is.Current.Status == states.ObjectPlanned {
 			if change == nil {
-				// If the object is in planned status then we should not get
-				// here, since we should have found a pending value in the plan
-				// above instead.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Missing pending object in plan",
-					Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
-					Subject:  &config.DeclRange,
-				})
+				// FIXME: This is usually an unfortunate case where we need to
+				// lookup an individual instance referenced via "self" for
+				// postconditions which we know exists, but because evaluation
+				// must always get the resource in aggregate some instance
+				// changes may not yet be registered.
+				instances[key] = cty.DynamicVal
+				// log the problem for debugging, since it may be a legitimate error we can't catch
+				log.Printf("[WARN] instance %s is marked as having a change pending but that change is not recorded in the plan", instAddr)
 				continue
 			}
 			instances[key] = change.After
 			continue
 		}
 
-		ios, err := is.Current.Decode(ty)
+		ios, err := is.Current.Decode(schema)
 		if err != nil {
 			// This shouldn't happen, since by the time we get here we
 			// should have upgraded the state data already.
@@ -791,8 +796,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if d.Operation == walkValidate {
-		// Ephemeral instances are never live during the validate walk
+	if d.Operation == walkValidate || d.Operation == walkEval {
+		// Ephemeral instances are never live during the validate walk. Eval is
+		// similarly offline, and since there is no value stored we can't return
+		// anything other than dynamic.
 		return cty.DynamicVal.Mark(marks.Ephemeral), diags
 	}
 
@@ -895,13 +902,13 @@ func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdi
 	}
 }
 
-func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) *configschema.Block {
-	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
+func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) providers.Schema {
+	schema, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
 	if err != nil {
 		// We have plently other codepaths that will detect and report
 		// schema lookup errors before we'd reach this point, so we'll just
 		// treat a failure here the same as having no schema.
-		return nil
+		return providers.Schema{}
 	}
 	return schema
 }

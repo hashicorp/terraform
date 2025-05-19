@@ -37,13 +37,13 @@ but it applies to the main Terraform workflow commands `terraform plan` and
 For these commands, the role of the command implementation is to read and parse
 any command line arguments, command line options, and environment variables
 that are needed for the given command and use them to produce a
-[`backend.Operation`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend#Operation)
+[`backendrun.Operation`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend/backendrun#Operation)
 object that describes an action to be taken.
 
 An _operation_ consists of:
 
 * The action to be taken (e.g. "plan", "apply").
-* The name of the [workspace](https://www.terraform.io/docs/state/workspaces.html)
+* The name of the [workspace](https://developer.hashicorp.com/terraform/language/state/workspaces)
   where the action will be taken.
 * Root module input variables to use for the action.
 * For the "plan" operation, a path to the directory containing the configuration's root module.
@@ -52,14 +52,14 @@ An _operation_ consists of:
 "force" flag, etc.
 
 The operation is then passed to the currently-selected
-[backend](https://www.terraform.io/docs/backends/index.html). Each backend name
+[backend](https://developer.hashicorp.com/terraform/language/backend). Each backend name
 corresponds to an implementation of
 [`backend.Backend`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend#Backend), using a
 mapping table in
 [the `backend/init` package](http://localhost:8080/github.com/hashicorp/terraform/internal/backend/init).
 
 Backends that are able to execute operations additionally implement
-[`backend.Enhanced`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend#Enhanced);
+[`backendrun.OperationsBackend`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend/backendrun#OperationsBackend);
 the command-handling code calls `Operation` with the operation it has
 constructed, and then the backend is responsible for executing that action.
 
@@ -107,7 +107,7 @@ is represented by
 
 The `configs` package contains some low-level functionality for constructing
 configuration objects, but the main entry point is in the sub-package
-[`configload`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs/configload]),
+[`configload`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs/configload),
 via
 [`configload.Loader`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs/configload#Loader).
 A loader deals with all of the details of installing child modules
@@ -131,7 +131,7 @@ allowing Terraform to interpret them at a more appropriate time.
 ## State Manager
 
 A _state manager_ is responsible for storing and retrieving snapshots of the
-[Terraform state](https://www.terraform.io/docs/language/state/index.html)
+[Terraform state](https://developer.hashicorp.com/terraform/language/state)
 for a particular workspace. Each manager is an implementation of
 some combination of interfaces in
 [the `statemgr` package](http://localhost:8080/github.com/hashicorp/terraform/internal/states/statemgr),
@@ -147,7 +147,7 @@ The implementation
 [`statemgr.Filesystem`](http://localhost:8080/github.com/hashicorp/terraform/internal/states/statemgr#Filesystem) is used
 by default (by the `local` backend) and is responsible for the familiar
 `terraform.tfstate` local file that most Terraform users start with, before
-they switch to [remote state](https://www.terraform.io/docs/language/state/remote.html).
+they switch to [remote state](https://developer.hashicorp.com/terraform/language/state/remote).
 Other implementations of `statemgr.Full` are used to implement remote state.
 Each of these saves and retrieves state via a remote network service
 appropriate to the backend that creates it.
@@ -208,7 +208,7 @@ important examples include:
 * [`ProviderTransformer`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#ProviderTransformer),
   which associates each resource or resource instance with exactly one
   provider configuration (implementing
-  [the inheritance rules](https://www.terraform.io/docs/language/modules/develop/providers.html))
+  [the inheritance rules](https://developer.hashicorp.com/terraform/language/modules/develop/providers))
   and then creates "happens after" edges to ensure that the providers are
   initialized before taking any actions with the resources that belong to
   them.
@@ -282,7 +282,7 @@ a plan operation would include the following high-level steps:
   this operation.
 
 Each execution step for a vertex is an implementation of
-[`terraform.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#Execute).
+[`terraform.GraphNodeExecutable.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#GraphNodeExecutable.Execute).
 As with graph transforms, the behavior of these implementations varies widely:
 whereas graph transforms can take any action against the graph, an `Execute`
 implementation can take any action against the `EvalContext`.
@@ -298,7 +298,7 @@ In order to be executed, a vertex must implement
 which has a single `Execute` method that handles. There are numerous `Execute`
 implementations with different behaviors, but some prominent examples are:
 
-* [NodePlannableResource.Execute](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#NodePlannableResourceInstance.Execute), which handles the `plan` operation.
+* [`NodePlannableResource.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#NodePlannableResourceInstance.Execute), which handles the `plan` operation.
 
 * [`NodeApplyableResourceInstance.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#NodeApplyableResourceInstance.Execute), which handles the main `apply` operation.
 

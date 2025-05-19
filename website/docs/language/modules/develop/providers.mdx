@@ -331,7 +331,7 @@ provider "aws" {
 
 provider "google" {
   alias       = "usw1"
-  credentials = "${file("account.json")}"
+  credentials = file("account.json")
   project     = "my-project-id"
   region      = "us-west1"
   zone        = "us-west1-a"
@@ -339,7 +339,7 @@ provider "google" {
 
 provider "google" {
   alias       = "usw2"
-  credentials = "${file("account.json")}"
+  credentials = file("account.json")
   project     = "my-project-id"
   region      = "us-west2"
   zone        = "us-west2-a"

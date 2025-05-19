@@ -1,7 +1,7 @@
 {
   "format_version": "1.2",
   "terraform_version": "1.8.0-dev",
-  "applyable": false,
+  "applyable": true,
   "complete": true,
   "variables": {
     "ami": {

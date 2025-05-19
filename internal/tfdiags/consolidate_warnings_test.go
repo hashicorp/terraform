@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -92,9 +91,7 @@ func TestConsolidateWarnings(t *testing.T) {
 		Extra: doNotConsolidate(true),
 	})
 
-	// We're using ForRPC here to force the diagnostics to be of a consistent
-	// type that we can easily assert against below.
-	got := diags.ConsolidateWarnings(2).ForRPC()
+	got := diags.ConsolidateWarnings(2)
 	want := Diagnostics{
 		// First set
 		&rpcFriendlyDiag{
@@ -247,9 +244,7 @@ func TestConsolidateWarnings(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("wrong result\n%s", diff)
-	}
+	AssertDiagnosticsMatch(t, want, got)
 }
 
 type doNotConsolidate bool

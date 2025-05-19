@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -53,8 +54,7 @@ type NodeAbstractResource struct {
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
 
-	Schema        *configschema.Block // Schema for processing the configuration body
-	SchemaVersion uint64              // Schema version of "Schema", as decided by the provider
+	Schema *providers.Schema // Schema for processing the configuration body
 
 	// Config and RemovedConfig are mutally-exclusive, because a
 	// resource can't be both declared and removed at the same time.
@@ -70,8 +70,7 @@ type NodeAbstractResource struct {
 	Targets []addrs.Targetable
 
 	// Set from AttachDataResourceDependsOn
-	dependsOn      []addrs.ConfigResource
-	forceDependsOn bool
+	dependsOn []addrs.ConfigResource
 
 	// The address of the provider this resource will use
 	ResolvedProvider addrs.AbsProviderConfig
@@ -86,6 +85,8 @@ type NodeAbstractResource struct {
 	// generateConfigPath tells this node which file to write generated config
 	// into. If empty, then config should not be generated.
 	generateConfigPath string
+
+	forceCreateBeforeDestroy bool
 }
 
 var (
@@ -102,6 +103,7 @@ var (
 	_ GraphNodeTargetable                  = (*NodeAbstractResource)(nil)
 	_ graphNodeAttachDataResourceDependsOn = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
+	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -144,6 +146,24 @@ func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Resource}
 }
 
+// CreateBeforeDestroy returns this node's CreateBeforeDestroy status.
+func (n *NodeAbstractResource) CreateBeforeDestroy() bool {
+	if n.forceCreateBeforeDestroy {
+		return n.forceCreateBeforeDestroy
+	}
+
+	if n.Config != nil && n.Config.Managed != nil {
+		return n.Config.Managed.CreateBeforeDestroy
+	}
+
+	return false
+}
+
+func (n *NodeAbstractResource) ModifyCreateBeforeDestroy(v bool) error {
+	n.forceCreateBeforeDestroy = v
+	return nil
+}
+
 // GraphNodeReferencer
 func (n *NodeAbstractResource) References() []*addrs.Reference {
 	var result []*addrs.Reference
@@ -169,7 +189,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 
 		// ReferencesInBlock() requires a schema
 		if n.Schema != nil {
-			refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema)
+			refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.Body)
 			result = append(result, refs...)
 		}
 
@@ -223,6 +243,8 @@ func (n *NodeAbstractResource) ImportReferences() []*addrs.Reference {
 		}
 
 		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ID)
+		result = append(result, refs...)
+		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.Identity)
 		result = append(result, refs...)
 		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ForEach)
 		result = append(result, refs...)
@@ -357,9 +379,8 @@ func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
 }
 
 // graphNodeAttachDataResourceDependsOn
-func (n *NodeAbstractResource) AttachDataResourceDependsOn(deps []addrs.ConfigResource, force bool) {
+func (n *NodeAbstractResource) AttachDataResourceDependsOn(deps []addrs.ConfigResource) {
 	n.dependsOn = deps
-	n.forceDependsOn = force
 }
 
 // GraphNodeAttachResourceConfig
@@ -369,9 +390,8 @@ func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource, rc *con
 }
 
 // GraphNodeAttachResourceSchema impl
-func (n *NodeAbstractResource) AttachResourceSchema(schema *configschema.Block, version uint64) {
+func (n *NodeAbstractResource) AttachResourceSchema(schema *providers.Schema) {
 	n.Schema = schema
-	n.SchemaVersion = version
 }
 
 // GraphNodeAttachProviderMetaConfigs impl
@@ -472,12 +492,12 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, nil
 	}
 
-	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.Resource.ContainingResource())
+	if schema.Body == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
 		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 	}
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -486,7 +506,13 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, diags
 	}
 
-	obj, err := src.Decode(schema.ImpliedType())
+	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
+	diags = diags.Append(upgradeDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	obj, err := src.Decode(schema)
 	if err != nil {
 		diags = diags.Append(err)
 	}
@@ -517,14 +543,14 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return nil, diags
 	}
 
-	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.Resource.ContainingResource())
+	if schema.Body == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
 		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 
 	}
 
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -537,7 +563,13 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return nil, diags
 	}
 
-	obj, err := src.Decode(schema.ImpliedType())
+	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
+	diags = diags.Append(upgradeDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	obj, err := src.Decode(schema)
 	if err != nil {
 		diags = diags.Append(err)
 	}

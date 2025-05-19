@@ -77,7 +77,7 @@ type BuiltinEvalContext struct {
 	InputValue              UIInput
 	ProviderCache           map[string]providers.Interface
 	ProviderFuncCache       map[string]providers.Interface
-	ProviderFuncResults     *providers.FunctionResults
+	FunctionResults         *lang.FunctionResults
 	ProviderInputConfig     map[string]map[string]cty.Value
 	ProviderLock            *sync.Mutex
 	ProvisionerCache        map[string]provisioners.Interface
@@ -228,7 +228,8 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 		TerraformVersion: version.String(),
 		Config:           cfg,
 		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+			DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
+			WriteOnlyAttributesAllowed: true,
 		},
 	}
 
@@ -406,7 +407,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 		return nil, false, diags
 	}
 
-	path := traversalToPath(ref.Remaining)
+	path, _ := traversalToPath(ref.Remaining)
 	attrBefore, _ := path.Apply(change.Before)
 	attrAfter, _ := path.Apply(change.After)
 
@@ -509,7 +510,7 @@ func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs 
 		ret.Provider[localName] = make(map[string]function.Function, len(funcDecls))
 		funcs := ret.Provider[localName]
 		for name, decl := range funcDecls {
-			funcs[name] = decl.BuildFunction(providerAddr, name, ctx.ProviderFuncResults, func() (providers.Interface, error) {
+			funcs[name] = decl.BuildFunction(providerAddr, name, ctx.FunctionResults, func() (providers.Interface, error) {
 				return ctx.functionProvider(providerAddr)
 			})
 		}
@@ -611,4 +612,11 @@ func (ctx *BuiltinEvalContext) Forget() bool {
 
 func (ctx *BuiltinEvalContext) EphemeralResources() *ephemeral.Resources {
 	return ctx.EphemeralResourcesValue
+}
+
+func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities {
+	return providers.ClientCapabilities{
+		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
+		WriteOnlyAttributesAllowed: true,
+	}
 }

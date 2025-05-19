@@ -17,6 +17,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -341,17 +342,13 @@ func (c *Config) Merge(c2 *Config) *Config {
 	var result Config
 	result.Providers = make(map[string]string)
 	result.Provisioners = make(map[string]string)
-	for k, v := range c.Providers {
-		result.Providers[k] = v
-	}
+	maps.Copy(result.Providers, c.Providers)
+	maps.Copy(result.Provisioners, c.Provisioners)
 	for k, v := range c2.Providers {
 		if v1, ok := c.Providers[k]; ok {
 			log.Printf("[INFO] Local %s provider configuration '%s' overrides '%s'", k, v, v1)
 		}
 		result.Providers[k] = v
-	}
-	for k, v := range c.Provisioners {
-		result.Provisioners[k] = v
 	}
 	for k, v := range c2.Provisioners {
 		if v1, ok := c.Provisioners[k]; ok {
@@ -375,35 +372,23 @@ func (c *Config) Merge(c2 *Config) *Config {
 
 	if (len(c.Hosts) + len(c2.Hosts)) > 0 {
 		result.Hosts = make(map[string]*ConfigHost)
-		for name, host := range c.Hosts {
-			result.Hosts[name] = host
-		}
-		for name, host := range c2.Hosts {
-			result.Hosts[name] = host
-		}
+		maps.Copy(result.Hosts, c.Hosts)
+		maps.Copy(result.Hosts, c2.Hosts)
 	}
 
 	if (len(c.Credentials) + len(c2.Credentials)) > 0 {
 		result.Credentials = make(map[string]map[string]interface{})
-		for host, creds := range c.Credentials {
-			result.Credentials[host] = creds
-		}
-		for host, creds := range c2.Credentials {
-			// We just clobber an entry from the other file right now. Will
-			// improve on this later using the more-robust merging behavior
-			// built in to HCL2.
-			result.Credentials[host] = creds
-		}
+		maps.Copy(result.Credentials, c.Credentials)
+		// We just clobber an entry from the other file right now. Will
+		// improve on this later using the more-robust merging behavior
+		// built in to HCL2.
+		maps.Copy(result.Credentials, c2.Credentials)
 	}
 
 	if (len(c.CredentialsHelpers) + len(c2.CredentialsHelpers)) > 0 {
 		result.CredentialsHelpers = make(map[string]*ConfigCredentialsHelper)
-		for name, helper := range c.CredentialsHelpers {
-			result.CredentialsHelpers[name] = helper
-		}
-		for name, helper := range c2.CredentialsHelpers {
-			result.CredentialsHelpers[name] = helper
-		}
+		maps.Copy(result.CredentialsHelpers, c.CredentialsHelpers)
+		maps.Copy(result.CredentialsHelpers, c2.CredentialsHelpers)
 	}
 
 	if (len(c.ProviderInstallation) + len(c2.ProviderInstallation)) > 0 {

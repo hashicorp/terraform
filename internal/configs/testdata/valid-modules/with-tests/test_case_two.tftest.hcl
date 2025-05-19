@@ -1,3 +1,5 @@
+test {}
+
 # test_run_one does a complete apply
 run "test_run_one" {
   variables {

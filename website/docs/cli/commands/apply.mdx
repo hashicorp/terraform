@@ -1,11 +1,10 @@
 ---
-page_title: 'Command: apply'
-description: >-
-  The terraform apply command executes the actions proposed in a Terraform plan
+page_title: terraform apply command reference
+description: The `terraform apply` command executes the actions proposed in a Terraform plan
   to create, update, or destroy infrastructure.
 ---
 
-# Command: apply
+# `terraform apply` command
 
 The `terraform apply` command executes the actions proposed in a Terraform
 plan.
@@ -15,8 +14,6 @@ plan.
 ## Usage
 
 Usage: `terraform apply [options] [plan file]`
-
-
 
 ### Automatic Plan Mode
 
@@ -88,6 +85,9 @@ The following options change how the apply command executes and reports on the a
 - `-parallelism=n` - Limit the number of concurrent operations as Terraform
   [walks the graph](/terraform/internals/graph#walking-the-graph). Defaults to
   10\.
+
+- `-replace=resource` - Terraform will plan to replace this resource instance
+   instead of doing an update or no-op action.
 
 - All [planning modes](/terraform/cli/commands/plan#planning-modes) and
 [planning options](/terraform/cli/commands/plan#planning-options) for

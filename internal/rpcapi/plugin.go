@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/rpcapi/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
@@ -82,7 +84,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *s
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
 		dependenciesStub.ActivateRPCServer(newDependenciesServer(handles, services))
-		stacksStub.ActivateRPCServer(newStacksServer(stopper, handles, opts))
+		stacksStub.ActivateRPCServer(newStacksServer(stopper, handles, services, opts))
 		packagesStub.ActivateRPCServer(newPackagesServer(services))
 
 		// If the client requested any extra capabililties that we're going
@@ -101,9 +103,25 @@ type serviceOpts struct {
 }
 
 func newServiceDisco(config *setup.Config) (*disco.Disco, error) {
-	services := disco.New()
-	credSrc := newCredentialsSource()
+	// First, we'll try and load any credentials that might have been available
+	// to the UI. It's perfectly fine if there are none so any errors we find
+	// are from malformed credentials rather than missing ones.
 
+	file, diags := cliconfig.LoadConfig()
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("problem loading CLI configuration: %w", diags.ErrWithWarnings())
+	}
+
+	helperPlugins := pluginDiscovery.FindPlugins("credentials", cliconfig.GlobalPluginDirs())
+	src, err := file.CredentialsSource(helperPlugins)
+	if err != nil {
+		return nil, fmt.Errorf("problem creating credentials source: %w", err)
+	}
+	services := disco.NewWithCredentialsSource(src)
+
+	// Second, we'll side-load any credentials that might have been passed in.
+
+	credSrc := services.CredentialsSource()
 	if config != nil {
 		for host, cred := range config.GetCredentials() {
 			if err := credSrc.StoreForHost(svchost.Hostname(host), auth.HostCredentialsToken(cred.Token)); err != nil {

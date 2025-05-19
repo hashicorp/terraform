@@ -40,11 +40,9 @@
   },
   {
     "@level": "info",
-    "@message": "local_file.local_file: Destruction complete after 0s",
     "@module": "terraform.ui",
     "hook": {
       "action": "delete",
-      "elapsed_seconds": 0,
       "resource": {
         "addr": "local_file.local_file",
         "implied_provider": "local",
@@ -77,11 +75,9 @@
   },
   {
     "@level": "info",
-    "@message": "local_file.local_file: Creation complete after 0s [id=648a5452054fca119f95b07f9ea992cc6d9681df]",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
-      "elapsed_seconds": 0,
       "id_key": "id",
       "id_value": "648a5452054fca119f95b07f9ea992cc6d9681df",
       "resource": {
@@ -103,6 +99,7 @@
     "changes": {
       "add": 1,
       "change": 0,
+      "import": 0,
       "operation": "apply",
       "remove": 1
     },

@@ -17,7 +17,7 @@ import (
 // types, and the others will be used only for one of plan or apply.
 type ResourceInstanceStatus rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ResourceInstanceStatus resource_instance.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ResourceInstanceStatus resource_instance.go
 
 const (
 	ResourceInstanceStatusInvalid ResourceInstanceStatus = 0
@@ -61,7 +61,7 @@ func (s ResourceInstanceStatus) ForProtobuf() stacks.StackChangeProgress_Resourc
 // either "provisioned" or "errored".
 type ProvisionerStatus rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ProvisionerStatus resource_instance.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ProvisionerStatus resource_instance.go
 
 const (
 	ProvisionerStatusInvalid ProvisionerStatus = 0

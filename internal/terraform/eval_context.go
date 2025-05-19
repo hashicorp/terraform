@@ -28,6 +28,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type hookFunc func(func(Hook) (HookAction, error)) error
+
 // EvalContext is the interface that is given to eval nodes to execute.
 type EvalContext interface {
 	// Stopped returns a context that is canceled when evaluation is stopped via
@@ -188,6 +190,10 @@ type EvalContext interface {
 	// means that Terraform either cannot plan an action at all or cannot
 	// perform a planned action due to an upstream dependency being deferred.
 	Deferrals() *deferring.Deferred
+
+	// ClientCapabilities returns the client capabilities sent to the providers
+	// for each request. They define what this terraform instance is capable of.
+	ClientCapabilities() providers.ClientCapabilities
 
 	// MoveResults returns a map describing the results of handling any
 	// resource instance move statements prior to the graph walk, so that

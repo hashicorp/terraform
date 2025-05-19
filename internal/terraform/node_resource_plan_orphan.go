@@ -122,22 +122,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	shouldDefer := ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies)
-
-	var change *plans.ResourceInstanceChange
-	var pDiags tfdiags.Diagnostics
-	var deferred *providers.Deferred
-	if forget {
-		change, pDiags = n.planForget(ctx, oldState, "")
-		diags = diags.Append(pDiags)
-	} else {
-		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
-		diags = diags.Append(pDiags)
-	}
-	if diags.HasErrors() {
-		return diags
-	}
-
 	if !n.skipRefresh && !forget {
 		// Refresh this instance even though it is going to be destroyed, in
 		// order to catch missing resources. If this is a normal plan,
@@ -153,18 +137,29 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 
 		oldState = refreshedState
 
-		if deferred == nil {
-			// set the overall deferred status if it wasn't already set.
-			deferred = refreshDeferred
-		}
-
-		if deferred == nil && !shouldDefer {
+		if refreshDeferred == nil {
 			// only update the state if we're not deferring the change
 			diags = diags.Append(n.writeResourceInstanceState(ctx, refreshedState, refreshState))
 			if diags.HasErrors() {
 				return diags
 			}
 		}
+	}
+
+	shouldDefer := ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies)
+
+	var change *plans.ResourceInstanceChange
+	var pDiags tfdiags.Diagnostics
+	var deferred *providers.Deferred
+	if forget {
+		change, pDiags = n.planForget(ctx, oldState, "")
+		diags = diags.Append(pDiags)
+	} else {
+		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
+		diags = diags.Append(pDiags)
+	}
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// We might be able to offer an approximate reason for why we are

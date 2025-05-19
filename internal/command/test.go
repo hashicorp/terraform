@@ -5,7 +5,6 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -59,6 +59,9 @@ Options:
 
   -no-color             If specified, output won't contain any color.
 
+  -parallelism=n        Limit the number of concurrent operations within the 
+  						plan/apply operation of a test run. Defaults to 10.
+
   -test-directory=path	Set the Terraform test directory, defaults to "tests".
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
@@ -99,33 +102,9 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		c.View.HelpPrompt("test")
 		return 1
 	}
+	c.Meta.parallelism = args.OperationParallelism
 
 	view := views.NewTest(args.ViewType, c.View)
-	var junitXMLView *views.TestJUnitXMLFile
-	if args.JUnitXMLFile != "" {
-		// JUnit XML output is currently experimental, so that we can gather
-		// feedback on exactly how we should map the test results to this
-		// JUnit-oriented format before anyone starts depending on it for real.
-		if !c.AllowExperimentalFeatures {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"JUnit XML output is not available",
-				"The -junit-xml option is currently experimental and therefore available only in alpha releases of Terraform CLI.",
-			))
-			view.Diagnostics(nil, nil, diags)
-			return 1
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"JUnit XML output is experimental",
-			"The -junit-xml option is currently experimental and therefore subject to breaking changes or removal, even in patch releases.",
-		))
-		junitXMLView = views.NewTestJUnitXMLFile(args.JUnitXMLFile)
-		view = views.TestMulti{
-			view,
-			junitXMLView,
-		}
-	}
 
 	// The specified testing directory must be a relative path, and it must
 	// point to a directory that is a descendant of the configuration directory.
@@ -208,24 +187,25 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 
 		runner = &cloud.TestSuiteRunner{
-			ConfigDirectory:  ".", // Always loading from the current directory.
-			TestingDirectory: args.TestDirectory,
-			Config:           config,
-			Services:         c.Services,
-			Source:           args.CloudRunSource,
-			GlobalVariables:  variables,
-			Stopped:          false,
-			Cancelled:        false,
-			StoppedCtx:       stopCtx,
-			CancelledCtx:     cancelCtx,
-			Verbose:          args.Verbose,
-			Filters:          args.Filter,
-			Renderer:         renderer,
-			View:             view,
-			Streams:          c.Streams,
+			ConfigDirectory:      ".", // Always loading from the current directory.
+			TestingDirectory:     args.TestDirectory,
+			Config:               config,
+			Services:             c.Services,
+			Source:               args.CloudRunSource,
+			GlobalVariables:      variables,
+			Stopped:              false,
+			Cancelled:            false,
+			StoppedCtx:           stopCtx,
+			CancelledCtx:         cancelCtx,
+			Verbose:              args.Verbose,
+			OperationParallelism: args.OperationParallelism,
+			Filters:              args.Filter,
+			Renderer:             renderer,
+			View:                 view,
+			Streams:              c.Streams,
 		}
 	} else {
-		runner = &local.TestSuiteRunner{
+		localRunner := &local.TestSuiteRunner{
 			Config: config,
 			// The GlobalVariables are loaded from the
 			// main configuration directory
@@ -243,6 +223,14 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Filter:              args.Filter,
 			Verbose:             args.Verbose,
 		}
+
+		// JUnit output is only compatible with local test execution
+		if args.JUnitXMLFile != "" {
+			// Make sure TestCommand's calls loadConfigWithTests before this code, so configLoader is not nil
+			localRunner.JUnit = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader, localRunner)
+		}
+
+		runner = localRunner
 	}
 
 	var testDiags tfdiags.Diagnostics
@@ -303,16 +291,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 	case <-runningCtx.Done():
 		// tests finished normally with no interrupts.
-	}
-
-	if junitXMLView != nil {
-		if err := junitXMLView.Err(); err != nil {
-			testDiags = testDiags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to write JUnit XML report",
-				fmt.Sprintf("Could not write the requested JUnit XML report: %s.", err),
-			))
-		}
 	}
 
 	view.Diagnostics(nil, nil, testDiags)

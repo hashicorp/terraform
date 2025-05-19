@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -381,6 +382,17 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 		"id": cty.String,
 	})
 
+	objSchema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		},
+	}
+
 	plan := &plans.Plan{
 		Changes: &plans.ChangesSrc{
 			Outputs: []*plans.OutputChangeSrc{
@@ -453,7 +465,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 	}
 
 	for _, rics := range newPlan.Changes.Resources {
-		ric, err := rics.Decode(objTy)
+		ric, err := rics.Decode(objSchema)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -8,10 +8,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type InspectOpts struct {
@@ -78,7 +79,7 @@ func (m *Main) EvalExpr(ctx context.Context, expr hcl.Expression, scopeStackInst
 		}, nil
 	})
 	if err != nil {
-		ret.Diagnostics = ret.Diagnostics.Append(diagnosticsForPromisingTaskError(err, m))
+		ret.Diagnostics = ret.Diagnostics.Append(diagnosticsForPromisingTaskError(err))
 	}
 	return ret.Result, ret.Diagnostics
 }

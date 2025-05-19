@@ -129,7 +129,7 @@ func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to 
 	// Check for cycles, and back out the edge if there are any.
 	// The cycles we are looking for only appears between providers, so don't
 	// waste time checking for cycles if both nodes use the same provider.
-	if fromProvider != toProvider && len(g.Cycles()) > 0 {
+	if fromProvider != toProvider && g.Ancestors(to).Include(from) {
 		log.Printf("[DEBUG] DestroyEdgeTransformer: skipping inter-provider edge %s->%s which creates a cycle",
 			dag.VertexName(from), dag.VertexName(to))
 		g.RemoveEdge(e)
@@ -311,105 +311,43 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	// We need a reverse depth first walk of modules, processing them in order
-	// from the leaf modules to the root. This allows us to remove unneeded
-	// dependencies from child modules, freeing up nodes in the parent module
-	// to also be removed.
+	// we need to track nodes to keep, because the dependency trees can overlap,
+	// so we can't just remove all dependencies of nodes we don't want.
+	keep := make(dag.Set)
 
-	nodes := g.Vertices()
+	// Only keep destroyers, their providers, and anything the providers need
+	// for configuration. Since the destroyer should already be hooked up to the
+	// provider, keeping all the destroyer dependencies should suffice.
+	for _, n := range g.Vertices() {
+		// a special case of destroyer, is that by convention Terraform expects
+		// root outputs to be "destroyed", and the output node is what writes
+		// the nil state. A root module output currently identifies itself as a
+		// temporary value which is not temporary for that reason.
+		if tmp, ok := n.(graphNodeTemporaryValue); ok && !tmp.temporaryValue() {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping root output %s", dag.VertexName(n))
+			keep.Add(n)
+			continue
+		}
 
-	for removed := true; removed; {
-		removed = false
+		// from here we only search for managed resource destroy nodes
+		n, ok := n.(GraphNodeDestroyer)
+		if !ok {
+			continue
+		}
 
-		for i := 0; i < len(nodes); i++ {
-			// run this in a closure, so we can return early rather than
-			// dealing with complex looping and labels
-			func() {
-				n := nodes[i]
-				switch n := n.(type) {
+		log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping destroy node %s", dag.VertexName(n))
+		keep.Add(n)
 
-				case graphNodeTemporaryValue:
-					// root module outputs indicate they are not temporary by
-					// returning false here.
-					if !n.temporaryValue() {
-						return
-					}
+		for _, anc := range g.Ancestors(n) {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping %s as dependency of %s", dag.VertexName(anc), dag.VertexName(n))
+			keep.Add(anc)
+		}
+	}
 
-					// temporary values, which consist of variables, locals,
-					// and outputs, must be kept if anything refers to them.
-					for _, v := range g.UpEdges(n) {
-						// keep any value which is connected through a
-						// reference
-						if _, ok := v.(GraphNodeReferencer); ok {
-							return
-						}
-					}
-
-				case graphNodeExpandsInstances:
-					// FIXME: Ephemeral resources have kind of broken this
-					// transformer. They work like temporary values in that they
-					// should not exist when there are no dependencies, but also
-					// share expansion nodes with all other resource modes. We
-					// can't use graphNodeTemporaryValue because then all
-					// resources will be caught by the previous case here.
-					if n, ok := n.(GraphNodeConfigResource); ok && n.ResourceAddr().Resource.Mode == addrs.EphemeralResourceMode {
-						return
-					}
-
-					// Any nodes that expand instances are kept when their
-					// instances may need to be evaluated.
-					for _, v := range g.UpEdges(n) {
-						switch v.(type) {
-						case graphNodeExpandsInstances:
-							// Root module output values (which the following
-							// condition matches) are exempt because we know
-							// there is only ever exactly one instance of the
-							// root module, and so it's not actually important
-							// to expand it and so this lets us do a bit more
-							// pruning than we'd be able to do otherwise.
-							if tmp, ok := v.(graphNodeTemporaryValue); ok && !tmp.temporaryValue() {
-								continue
-							}
-
-							// expanders can always depend on module expansion
-							// themselves
-							return
-						case GraphNodeResourceInstance:
-							// resource instances always depend on their
-							// resource node, which is an expander
-							return
-						}
-					}
-
-				case GraphNodeProvider:
-					// Only keep providers for evaluation if they have
-					// resources to handle.
-					// The provider transformers removed most unused providers
-					// earlier, however there may be more to prune now based on
-					// targeting or a destroy with no related instances in the
-					// state.
-					if g.MatchDescendant(n, func(v dag.Vertex) bool {
-						if _, ok := v.(GraphNodeProviderConsumer); ok {
-							return true
-						}
-						return false
-					}) {
-						return
-					}
-
-				default:
-					return
-				}
-
-				log.Printf("[DEBUG] pruneUnusedNodes: %s is no longer needed, removing", dag.VertexName(n))
-				g.Remove(n)
-				removed = true
-
-				// remove the node from our iteration as well
-				last := len(nodes) - 1
-				nodes[i], nodes[last] = nodes[last], nodes[i]
-				nodes = nodes[:last]
-			}()
+	for _, n := range g.Vertices() {
+		if !keep.Include(n) {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: removing %s", dag.VertexName(n))
+			g.Remove(n)
 		}
 	}
 

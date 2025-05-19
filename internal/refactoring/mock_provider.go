@@ -3,6 +3,7 @@ package refactoring
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -19,13 +20,17 @@ type mockProvider struct {
 func (provider *mockProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
-			"foo": {},
-			"bar": {},
+			"foo": {Body: &configschema.Block{}},
+			"bar": {Body: &configschema.Block{}},
 		},
 		ServerCapabilities: providers.ServerCapabilities{
 			MoveResourceState: provider.moveResourceState,
 		},
 	}
+}
+
+func (provider *mockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	panic("not implemented in mock")
 }
 
 func (provider *mockProvider) ValidateProviderConfig(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
@@ -40,7 +45,15 @@ func (provider *mockProvider) ValidateDataResourceConfig(providers.ValidateDataR
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) ValidateListResourceConfig(providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) UpgradeResourceState(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
 	panic("not implemented in mock")
 }
 

@@ -37,6 +37,10 @@ var (
 	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
+func (n *NodePlanDestroyableResourceInstance) Name() string {
+	return n.NodeAbstractResource.Name() + " (destroy)"
+}
+
 // GraphNodeDestroyer
 func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 	addr := n.ResourceInstanceAddr()

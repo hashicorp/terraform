@@ -1,15 +1,15 @@
 ---
-page_title: 'Command: validate'
+page_title: terraform validate command reference
 description: >-
-  The `terraform validate` command is used to validate the syntax of the
-  terraform files.
+  The `terraform validate` command validates the syntax of Terraform configuration files in a directory.
 ---
 
-# Command: validate
+# `terraform validate` command
 
 The `terraform validate` command validates the configuration files in a
-directory, referring only to the configuration and not accessing any remote
-services such as remote state, provider APIs, etc.
+directory. It does not validate remote services, such as remote state or provider APIs.
+
+## Introduction
 
 Validate runs checks that verify whether a configuration is syntactically
 valid and internally consistent, regardless of any provided variables or

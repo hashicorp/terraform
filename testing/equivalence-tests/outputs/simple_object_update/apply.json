@@ -39,11 +39,9 @@
   },
   {
     "@level": "info",
-    "@message": "tfcoremock_object.object: Modifications complete after 0s [id=00e14fba-4d56-6cc5-b685-633555376e3f]",
     "@module": "terraform.ui",
     "hook": {
       "action": "update",
-      "elapsed_seconds": 0,
       "id_key": "id",
       "id_value": "00e14fba-4d56-6cc5-b685-633555376e3f",
       "resource": {
@@ -65,6 +63,7 @@
     "changes": {
       "add": 0,
       "change": 1,
+      "import": 0,
       "operation": "apply",
       "remove": 0
     },

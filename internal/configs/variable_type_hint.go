@@ -22,7 +22,7 @@ package configs
 //   - TypeHintMap requires a type that could be converted to an object
 type VariableTypeHint rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type VariableTypeHint
+//go:generate go tool golang.org/x/tools/cmd/stringer -type VariableTypeHint
 
 // TypeHintNone indicates the absence of a type hint. Values specified in
 // ambiguous contexts will be treated as literal strings, as if TypeHintString

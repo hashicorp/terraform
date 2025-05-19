@@ -22,8 +22,8 @@ import (
 //
 // LoadConfig performs the basic syntax and uniqueness validations that are
 // required to process the individual modules
-func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
-	return l.loadConfig(l.parser.LoadConfigDir(rootDir))
+func (l *Loader) LoadConfig(rootDir string, parserOpts ...configs.Option) (*configs.Config, hcl.Diagnostics) {
+	return l.loadConfig(l.parser.LoadConfigDir(rootDir, parserOpts...))
 }
 
 // LoadConfigWithTests matches LoadConfig, except the configs.Config contains
@@ -58,7 +58,7 @@ func (l *Loader) LoadExternalMockData(provider *configs.Provider) (*configs.Mock
 	}
 
 	// Otherwise, just hand this off to the parser to handle.
-	return l.parser.LoadMockDataDir(provider.MockDataExternalSource, provider.DeclRange)
+	return l.parser.LoadMockDataDir(provider.MockDataExternalSource, provider.MockDataDuringPlan, provider.DeclRange)
 }
 
 // moduleWalkerLoad is a configs.ModuleWalkerFunc for loading modules that

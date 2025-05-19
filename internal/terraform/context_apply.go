@@ -162,7 +162,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
-	moreDiags = checkExternalProviders(config, opts.ExternalProviders)
+	moreDiags = checkExternalProviders(config, plan, nil, opts.ExternalProviders)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, nil, diags
@@ -198,7 +198,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		// We also want to propagate the timestamp from the plan file.
 		PlanTimeTimestamp: plan.Timestamp,
 
-		ProviderFuncResults: providers.NewFunctionResultsTable(plan.ProviderFunctionResults),
+		FunctionResults: lang.NewFunctionResultsTable(plan.FunctionResults),
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -370,6 +370,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		Operation:               operation,
 		ExternalReferences:      plan.ExternalReferences,
 		Overrides:               plan.Overrides,
+		SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

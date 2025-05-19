@@ -7452,6 +7452,277 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 	runTestCases(t, testCases)
 }
 
+func TestResourceChange_writeOnlyAttributes(t *testing.T) {
+	testCases := map[string]testCase{
+		"create": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.Object(map[string]cty.Type{
+				"id":         cty.String,
+				"write_only": cty.String,
+				"conn_info": cty.Object(map[string]cty.Type{
+					"user":                    cty.String,
+					"write_only_set_password": cty.String,
+				}),
+				"block": cty.List(cty.Object(map[string]cty.Type{
+					"user":               cty.String,
+					"block_set_password": cty.String,
+				})),
+			})),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"write_only": cty.NullVal(cty.String),
+				"conn_info": cty.ObjectVal(map[string]cty.Value{
+					"user":                    cty.StringVal("not-secret"),
+					"write_only_set_password": cty.NullVal(cty.String),
+				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("this-is-not-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"write_only": {Type: cty.String, WriteOnly: true},
+					"conn_info": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"user":                    {Type: cty.String, Optional: true},
+								"write_only_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":               {Type: cty.String, Optional: true},
+								"block_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + conn_info  = {
+          + user                    = "not-secret"
+          + write_only_set_password = (sensitive, write-only attribute)
+        }
+      + id         = "i-02ae66f368e8518a9"
+      + write_only = (write-only attribute)
+
+      + block {
+          + block_set_password = (write-only attribute)
+          + user               = "this-is-not-secret"
+        }
+    }`,
+		},
+		"update attribute": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"write_only": cty.NullVal(cty.String),
+				"conn_info": cty.ObjectVal(map[string]cty.Value{
+					"user":                    cty.StringVal("not-secret"),
+					"write_only_set_password": cty.NullVal(cty.String),
+				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("not-so-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a10"),
+				"write_only": cty.NullVal(cty.String),
+				"conn_info": cty.ObjectVal(map[string]cty.Value{
+					"user":                    cty.StringVal("not-secret"),
+					"write_only_set_password": cty.NullVal(cty.String),
+				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("not-so-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"write_only": {Type: cty.String, WriteOnly: true},
+					"conn_info": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"user":                    {Type: cty.String, Optional: true},
+								"write_only_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":               {Type: cty.String, Optional: true},
+								"block_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> "i-02ae66f368e8518a10"
+        # (2 unchanged attributes hidden)
+
+        # (1 unchanged block hidden)
+    }`,
+		},
+		"update - delete block": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"write_only": cty.NullVal(cty.String),
+				"conn_info": cty.ObjectVal(map[string]cty.Value{
+					"user":                    cty.StringVal("not-secret"),
+					"write_only_set_password": cty.NullVal(cty.String),
+				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("not-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"write_only": cty.NullVal(cty.String),
+				"conn_info": cty.NullVal(cty.Object(map[string]cty.Type{
+					"user":                    cty.String,
+					"write_only_set_password": cty.String,
+				})),
+				"block": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"user":               cty.String,
+					"block_set_password": cty.String,
+				}))),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"write_only": {Type: cty.String, WriteOnly: true},
+					"conn_info": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"user":                    {Type: cty.String, Optional: true},
+								"write_only_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":               {Type: cty.String, Optional: true},
+								"block_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      - conn_info  = {
+          - user                    = "not-secret" -> null
+          - write_only_set_password = (sensitive, write-only attribute) -> null
+        } -> null
+        id         = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+
+      - block {
+          - block_set_password = (write-only attribute) -> null
+          - user               = "not-secret" -> null
+        }
+    }`,
+		},
+		"delete": {
+			Action: plans.Delete,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"write_only": cty.NullVal(cty.String),
+				"conn_info": cty.ObjectVal(map[string]cty.Value{
+					"user":                    cty.StringVal("not-secret"),
+					"write_only_set_password": cty.NullVal(cty.String),
+				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("not-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
+			}),
+			After: cty.NullVal(cty.Object(map[string]cty.Type{
+				"id":         cty.String,
+				"write_only": cty.String,
+				"conn_info": cty.Object(map[string]cty.Type{
+					"user":                    cty.String,
+					"write_only_set_password": cty.String,
+				}),
+				"block": cty.List(cty.Object(map[string]cty.Type{
+					"user":               cty.String,
+					"block_set_password": cty.String,
+				})),
+			})),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"write_only": {Type: cty.String, WriteOnly: true},
+					"conn_info": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"user":                    {Type: cty.String, Optional: true},
+								"write_only_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":               {Type: cty.String, Optional: true},
+								"block_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be destroyed
+  - resource "test_instance" "example" {
+      - conn_info  = {
+          - user                    = "not-secret" -> null
+          - write_only_set_password = (sensitive, write-only attribute) -> null
+        } -> null
+      - id         = "i-02ae66f368e8518a9" -> null
+      - write_only = (write-only attribute) -> null
+
+      - block {
+          - block_set_password = (write-only attribute) -> null
+          - user               = "not-secret" -> null
+        }
+    }`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
 func TestResourceChange_moved(t *testing.T) {
 	prevRunAddr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -7578,12 +7849,12 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 
 			beforeDynamicValue, err := plans.NewDynamicValue(beforeVal, ty)
 			if err != nil {
-				t.Fatalf("failed to create dynamic before value: " + err.Error())
+				t.Fatalf("failed to create dynamic before value: %s", err)
 			}
 
 			afterDynamicValue, err := plans.NewDynamicValue(afterVal, ty)
 			if err != nil {
-				t.Fatalf("failed to create dynamic after value: " + err.Error())
+				t.Fatalf("failed to create dynamic after value: %s", err)
 			}
 
 			src := &plans.ResourceInstanceChangeSrc{
@@ -7611,12 +7882,12 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					src.ProviderAddr.Provider: {
 						ResourceTypes: map[string]providers.Schema{
 							src.Addr.Resource.Resource.Type: {
-								Block: tc.Schema,
+								Body: tc.Schema,
 							},
 						},
 						DataSources: map[string]providers.Schema{
 							src.Addr.Resource.Resource.Type: {
-								Block: tc.Schema,
+								Body: tc.Schema,
 							},
 						},
 					},
@@ -7624,7 +7895,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 			jsonchanges, err := jsonplan.MarshalResourceChanges([]*plans.ResourceInstanceChangeSrc{src}, tfschemas)
 			if err != nil {
-				t.Errorf("failed to marshal resource changes: " + err.Error())
+				t.Errorf("failed to marshal resource changes: %s", err)
 				return
 			}
 
@@ -7955,7 +8226,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 					providerAddr.Provider: {
 						ResourceTypes: map[string]providers.Schema{
 							"test_instance": {
-								Block: blockSchema,
+								Body: blockSchema,
 							},
 						},
 					},
@@ -7963,7 +8234,9 @@ func TestResourceChange_deferredActions(t *testing.T) {
 			}
 			var changes []*plans.DeferredResourceInstanceChangeSrc
 			for _, change := range tc.changes {
-				changeSrc, err := change.Encode(blockSchema.ImpliedType())
+				changeSrc, err := change.Encode(providers.Schema{
+					Body: blockSchema,
+				})
 				if err != nil {
 					t.Fatalf("Failed to encode change: %s", err)
 				}

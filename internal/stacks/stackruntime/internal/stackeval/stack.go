@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"iter"
 	"sync"
 	"time"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
@@ -31,159 +31,86 @@ import (
 // repetition arguments (if any) evaluated to determine how many instances
 // it has.
 type Stack struct {
-	addr stackaddrs.StackInstance
+	addr     stackaddrs.StackInstance
+	parent   *Stack
+	config   *StackConfig
+	main     *Main
+	deferred bool
+	mode     plans.Mode
 
-	main *Main
+	removed *Removed // contains removed logic
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
-	mu sync.Mutex
-	// childStacks is a cache of all of the child stacks that have been
-	// requested, but this could include non-existant child stacks requested
-	// through ChildStackUnchecked, so should not be used directly by
-	// anything that needs to return only child stacks that actually exist;
-	// use ChildStackChecked if you need to be sure it's actually configured.
-	childStacks    map[stackaddrs.StackInstanceStep]*Stack
-	inputVariables map[stackaddrs.InputVariable]*InputVariable
-	localValues    map[stackaddrs.LocalValue]*LocalValue
-	stackCalls     map[stackaddrs.StackCall]*StackCall
-	outputValues   map[stackaddrs.OutputValue]*OutputValue
-	components     map[stackaddrs.Component]*Component
-	removed        map[stackaddrs.Component]*Removed
-	providers      map[stackaddrs.ProviderConfigRef]*Provider
+	mu                 sync.Mutex
+	inputVariables     map[stackaddrs.InputVariable]*InputVariable
+	localValues        map[stackaddrs.LocalValue]*LocalValue
+	stackCalls         map[stackaddrs.StackCall]*StackCall
+	outputValues       map[stackaddrs.OutputValue]*OutputValue
+	components         map[stackaddrs.Component]*Component
+	providers          map[stackaddrs.ProviderConfigRef]*Provider
+	removedInitialised bool
 }
 
 var (
 	_ ExpressionScope = (*Stack)(nil)
 	_ Plannable       = (*Stack)(nil)
+	_ Applyable       = (*Stack)(nil)
 )
 
-func newStack(main *Main, addr stackaddrs.StackInstance) *Stack {
+func newStack(
+	main *Main,
+	addr stackaddrs.StackInstance,
+	parent *Stack,
+	config *StackConfig,
+	removed *Removed,
+	mode plans.Mode,
+	deferred bool) *Stack {
 	return &Stack{
-		addr: addr,
-		main: main,
+		parent:   parent,
+		config:   config,
+		addr:     addr,
+		deferred: deferred,
+		mode:     mode,
+		main:     main,
+		removed:  removed,
 	}
 }
 
-func (s *Stack) Addr() stackaddrs.StackInstance {
-	return s.addr
-}
-
-func (s *Stack) IsRoot() bool {
-	return s.addr.IsRoot()
-}
-
-// ParentStack returns the object representing this stack's caller, or nil
-// if this is already the root stack.
-func (s *Stack) ParentStack(ctx context.Context) *Stack {
-	if s.IsRoot() {
-		return nil
-	}
-	parentAddr := s.Addr().Parent()
-	// Unchecked because if our own address is valid then the parent
-	// address must also be valid.
-	return s.main.StackUnchecked(ctx, parentAddr)
-}
-
-// ChildStackUnchecked returns an object representing a child of this stack, or
-// nil if the "name" part of the step doesn't correspond to a declared
-// embedded stack call.
-//
-// This method does not check whether the "key" part of the given step matches
-// one of the stack call's declared instance keys, so it should be used only
-// with known-good instance keys or the resulting object will fail
-// unpredictably. If you aren't sure whether the key you have is correct
-// then consider [Stack.ChildStackChecked], but note that it's more expensive
-// because it must block for the "for_each" expression to be fully resolved.
-func (s *Stack) ChildStackUnchecked(ctx context.Context, addr stackaddrs.StackInstanceStep) *Stack {
-	calls := s.EmbeddedStackCalls(ctx)
+// ChildStack returns the child stack at the given address.
+func (s *Stack) ChildStack(ctx context.Context, addr stackaddrs.StackInstanceStep, phase EvalPhase) *Stack {
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
-	if _, exists := calls[callAddr]; !exists {
-		return nil
-	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, exists := s.childStacks[addr]; !exists {
-		childAddr := s.Addr().Child(addr.Name, addr.Key)
-		if s.childStacks == nil {
-			s.childStacks = make(map[stackaddrs.StackInstanceStep]*Stack)
+	if call := s.EmbeddedStackCalls()[callAddr]; call != nil {
+		instances, unknown := call.Instances(ctx, phase)
+		if unknown {
+			return call.UnknownInstance(ctx, addr.Key, phase).Stack(ctx, phase)
 		}
-		s.childStacks[addr] = newStack(s.main, childAddr)
+
+		if instance, exists := instances[addr.Key]; exists {
+			return instance.Stack(ctx, phase)
+		}
 	}
 
-	return s.childStacks[addr]
-}
+	calls := s.Removed().stackCalls[callAddr]
+	for _, call := range calls {
+		absolute := append(s.addr, addr)
 
-// ChildStackChecked returns an object representing a child of this stack,
-// or nil if the step doesn't correspond to a declared instance of the
-// corresponding embedded stack call.
-//
-// This is a more correct but also more expensive variant of
-// [Stack.ChildStackUnchecked]. To perform the check it must force the relevant
-// child stack call to evaluate its for_each expression, if any, which might
-// in turn block on the resolution of other objects. The need to evaluate
-// for_each also means that callers must designate which evaluation phase
-// they intend to work in, since the set of instances might be known in one
-// phase but not another.
-//
-// If the stack call's for_each expression isn't yet ready to resolve such that
-// we cannot know which child instances are declared then ChildStackChecked
-// will optimistically assume that the child exists, but operations on that
-// optimistic result are likely to return unknown values or other indeterminate
-// results themselves.
-func (s *Stack) ChildStackChecked(ctx context.Context, addr stackaddrs.StackInstanceStep, phase EvalPhase) *Stack {
-	candidate := s.ChildStackUnchecked(ctx, addr)
-	if candidate == nil {
-		// Don't even need to check the instance key, then.
-		return nil
+		instances, unknown := call.InstancesFor(ctx, absolute, phase)
+		if unknown {
+			return call.UnknownInstance(ctx, absolute, phase).Stack(ctx, phase)
+		}
+		for _, instance := range instances {
+			return instance.Stack(ctx, phase)
+		}
 	}
 
-	// If the "unchecked" function succeeded then we know the embedded stack
-	// call is present but we don't know if it has the given instance key.
-	calls := s.EmbeddedStackCalls(ctx)
-	callAddr := stackaddrs.StackCall{Name: addr.Name}
-	call := calls[callAddr]
-
-	instances, unknown := call.Instances(ctx, phase)
-	if unknown {
-		return candidate
-	}
-
-	if instances == nil {
-		return nil
-	}
-	if _, exists := instances[addr.Key]; !exists {
-		return nil
-	}
-	return candidate
-}
-
-// StackConfig returns the [StackConfig] corresponding to this Stack, which
-// represents the static configuration as opposed to the dynamic instance
-// of that configuration.
-//
-// For embedded stacks called using for_each, multiple dynamic Stack instances
-// can potentially share the same [StackConfig]. The root stack config always
-// has exactly one instance.
-func (s *Stack) StackConfig(ctx context.Context) *StackConfig {
-	configAddr := s.addr.ConfigAddr()
-	return s.main.StackConfig(ctx, configAddr)
-}
-
-// ConfigDeclarations returns a pointer to the [stackconfig.Declarations]
-// object describing the configured declarations from this stack's
-// configuration files.
-func (s *Stack) ConfigDeclarations(ctx context.Context) *stackconfig.Declarations {
-	// The declarations really belong to the static StackConfig, since
-	// all instances of a particular stack configuration share the same
-	// source code.ResolveExpressionReference
-	return s.StackConfig(ctx).ConfigDeclarations(ctx)
+	return nil
 }
 
 // InputVariables returns a map of all of the input variables declared within
 // this stack's configuration.
-func (s *Stack) InputVariables(ctx context.Context) map[stackaddrs.InputVariable]*InputVariable {
+func (s *Stack) InputVariables() map[stackaddrs.InputVariable]*InputVariable {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -193,26 +120,26 @@ func (s *Stack) InputVariables(ctx context.Context) map[stackaddrs.InputVariable
 		return s.inputVariables
 	}
 
-	decls := s.ConfigDeclarations(ctx)
+	decls := s.config.config.Stack
 	ret := make(map[stackaddrs.InputVariable]*InputVariable, len(decls.InputVariables))
 	for _, c := range decls.InputVariables {
 		absAddr := stackaddrs.AbsInputVariable{
-			Stack: s.Addr(),
+			Stack: s.addr,
 			Item:  stackaddrs.InputVariable{Name: c.Name},
 		}
-		ret[absAddr.Item] = newInputVariable(s.main, absAddr)
+		ret[absAddr.Item] = newInputVariable(s.main, absAddr, s, s.config.InputVariable(absAddr.Item))
 	}
 	s.inputVariables = ret
 	return ret
 }
 
-func (s *Stack) InputVariable(ctx context.Context, addr stackaddrs.InputVariable) *InputVariable {
-	return s.InputVariables(ctx)[addr]
+func (s *Stack) InputVariable(addr stackaddrs.InputVariable) *InputVariable {
+	return s.InputVariables()[addr]
 }
 
 // LocalValues returns a map of all of the input variables declared within
 // this stack's configuration.
-func (s *Stack) LocalValues(ctx context.Context) map[stackaddrs.LocalValue]*LocalValue {
+func (s *Stack) LocalValues() map[stackaddrs.LocalValue]*LocalValue {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -222,28 +149,28 @@ func (s *Stack) LocalValues(ctx context.Context) map[stackaddrs.LocalValue]*Loca
 		return s.localValues
 	}
 
-	decls := s.ConfigDeclarations(ctx)
+	decls := s.config.config.Stack
 	ret := make(map[stackaddrs.LocalValue]*LocalValue, len(decls.LocalValues))
 	for _, c := range decls.LocalValues {
 		absAddr := stackaddrs.AbsLocalValue{
-			Stack: s.Addr(),
+			Stack: s.addr,
 			Item:  stackaddrs.LocalValue{Name: c.Name},
 		}
-		ret[absAddr.Item] = newLocalValue(s.main, absAddr)
+		ret[absAddr.Item] = newLocalValue(s.main, absAddr, s, s.config.LocalValue(absAddr.Item))
 	}
 	s.localValues = ret
 	return ret
 }
 
 // LocalValue returns the [LocalValue] specified by address
-func (s *Stack) LocalValue(ctx context.Context, addr stackaddrs.LocalValue) *LocalValue {
-	return s.LocalValues(ctx)[addr]
+func (s *Stack) LocalValue(addr stackaddrs.LocalValue) *LocalValue {
+	return s.LocalValues()[addr]
 }
 
 // InputsType returns an object type that the object representing the caller's
 // values for this stack's input variables must conform to.
-func (s *Stack) InputsType(ctx context.Context) (cty.Type, *typeexpr.Defaults) {
-	vars := s.InputVariables(ctx)
+func (s *Stack) InputsType() (cty.Type, *typeexpr.Defaults) {
+	vars := s.InputVariables()
 	atys := make(map[string]cty.Type, len(vars))
 	defs := &typeexpr.Defaults{
 		DefaultValues: make(map[string]cty.Value),
@@ -251,9 +178,9 @@ func (s *Stack) InputsType(ctx context.Context) (cty.Type, *typeexpr.Defaults) {
 	}
 	var opts []string
 	for vAddr, v := range vars {
-		cfg := v.Config(ctx)
+		cfg := v.config
 		atys[vAddr.Name] = cfg.TypeConstraint()
-		if def := cfg.DefaultValue(ctx); def != cty.NilVal {
+		if def := cfg.DefaultValue(); def != cty.NilVal {
 			defs.DefaultValues[vAddr.Name] = def
 			opts = append(opts, vAddr.Name)
 		}
@@ -268,7 +195,7 @@ func (s *Stack) InputsType(ctx context.Context) (cty.Type, *typeexpr.Defaults) {
 
 // EmbeddedStackCalls returns a map of all of the embedded stack calls declared
 // within this stack's configuration.
-func (s *Stack) EmbeddedStackCalls(ctx context.Context) map[stackaddrs.StackCall]*StackCall {
+func (s *Stack) EmbeddedStackCalls() map[stackaddrs.StackCall]*StackCall {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -278,24 +205,47 @@ func (s *Stack) EmbeddedStackCalls(ctx context.Context) map[stackaddrs.StackCall
 		return s.stackCalls
 	}
 
-	decls := s.ConfigDeclarations(ctx)
+	decls := s.config.config.Stack
 	ret := make(map[stackaddrs.StackCall]*StackCall, len(decls.EmbeddedStacks))
 	for _, c := range decls.EmbeddedStacks {
 		absAddr := stackaddrs.AbsStackCall{
-			Stack: s.Addr(),
+			Stack: s.addr,
 			Item:  stackaddrs.StackCall{Name: c.Name},
 		}
-		ret[absAddr.Item] = newStackCall(s.main, absAddr)
+		ret[absAddr.Item] = newStackCall(s.main, absAddr, s, s.config.StackCall(absAddr.Item))
 	}
 	s.stackCalls = ret
 	return ret
 }
 
-func (s *Stack) EmbeddedStackCall(ctx context.Context, addr stackaddrs.StackCall) *StackCall {
-	return s.EmbeddedStackCalls(ctx)[addr]
+func (s *Stack) EmbeddedStackCall(addr stackaddrs.StackCall) *StackCall {
+	return s.EmbeddedStackCalls()[addr]
 }
 
-func (s *Stack) Components(ctx context.Context) map[stackaddrs.Component]*Component {
+func (s *Stack) RemovedEmbeddedStackCall(addr stackaddrs.StackCall) []*RemovedStackCall {
+	return s.Removed().stackCalls[addr]
+}
+
+func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) iter.Seq[stackaddrs.StackInstance] {
+	switch phase {
+	case PlanPhase:
+		return s.main.PlanPrevState().StackInstances(stackaddrs.AbsStackCall{
+			Stack: s.addr,
+			Item:  addr,
+		})
+	case ApplyPhase:
+		return s.main.PlanBeingApplied().StackInstances(stackaddrs.AbsStackCall{
+			Stack: s.addr,
+			Item:  addr,
+		})
+	default:
+		// We're not executing with an existing state in the other phases, so
+		// we have no known instances.
+		return func(yield func(stackaddrs.StackInstance) bool) {}
+	}
+}
+
+func (s *Stack) Components() map[stackaddrs.Component]*Component {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -305,76 +255,87 @@ func (s *Stack) Components(ctx context.Context) map[stackaddrs.Component]*Compon
 		return s.components
 	}
 
-	decls := s.ConfigDeclarations(ctx)
+	decls := s.config.config.Stack
 	ret := make(map[stackaddrs.Component]*Component, len(decls.Components))
 	for _, c := range decls.Components {
 		absAddr := stackaddrs.AbsComponent{
-			Stack: s.Addr(),
+			Stack: s.addr,
 			Item:  stackaddrs.Component{Name: c.Name},
 		}
-		ret[absAddr.Item] = newComponent(s.main, absAddr)
+		ret[absAddr.Item] = newComponent(s.main, absAddr, s, s.config.Component(absAddr.Item))
 	}
 	s.components = ret
 	return ret
 }
 
-func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Component {
-	return s.Components(ctx)[addr]
+func (s *Stack) Component(addr stackaddrs.Component) *Component {
+	return s.Components()[addr]
 }
 
-func (s *Stack) Removeds(ctx context.Context) map[stackaddrs.Component]*Removed {
+func (s *Stack) Removed() *Removed {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.removed != nil {
+	if s.removedInitialised {
 		return s.removed
 	}
 
-	decls := s.ConfigDeclarations(ctx)
-	ret := make(map[stackaddrs.Component]*Removed, len(decls.Removed))
-	for _, r := range decls.Removed {
-		absAddr := stackaddrs.AbsComponent{
-			Stack: s.Addr(),
-			Item:  r.FromComponent,
+	// otherwise we're going to initialise removed.
+
+	for addr, configs := range s.config.RemovedComponents().All() {
+		blocks := make([]*RemovedComponent, 0, len(configs))
+		for _, config := range configs {
+			blocks = append(blocks, newRemovedComponent(s.main, addr, s, config))
 		}
-		ret[absAddr.Item] = newRemoved(s.main, absAddr)
+
+		s.removed.AddComponent(addr, blocks)
 	}
-	s.removed = ret
-	return ret
+
+	for addr, configs := range s.config.RemovedStackCalls().All() {
+		blocks := make([]*RemovedStackCall, 0, len(configs))
+		for _, config := range configs {
+			blocks = append(blocks, newRemovedStackCall(s.main, addr, s, config))
+		}
+
+		s.removed.AddStackCall(addr, blocks)
+	}
+
+	s.removedInitialised = true
+	return s.removed
 }
 
-func (s *Stack) Removed(ctx context.Context, addr stackaddrs.Component) *Removed {
-	return s.Removeds(ctx)[addr]
+func (s *Stack) RemovedComponent(addr stackaddrs.Component) []*RemovedComponent {
+	return s.Removed().components[addr]
 }
 
 // ApplyableComponents returns the combination of removed blocks and declared
 // components for a given component address.
-func (s *Stack) ApplyableComponents(ctx context.Context, addr stackaddrs.Component) (*Component, *Removed) {
-	return s.Component(ctx, addr), s.Removed(ctx, addr)
+func (s *Stack) ApplyableComponents(addr stackaddrs.Component) (*Component, []*RemovedComponent) {
+	return s.Component(addr), s.RemovedComponent(addr)
 }
 
 // KnownComponentInstances returns a set of the component instances that belong
 // to the given component from the current state or plan.
-func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase EvalPhase) collections.Set[stackaddrs.ComponentInstance] {
+func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase EvalPhase) iter.Seq[stackaddrs.ComponentInstance] {
 	switch phase {
 	case PlanPhase:
 		return s.main.PlanPrevState().ComponentInstances(stackaddrs.AbsComponent{
-			Stack: s.Addr(),
+			Stack: s.addr,
 			Item:  component,
 		})
 	case ApplyPhase:
-		return s.main.PlanBeingApplied().ComponentInstances(stackaddrs.AbsComponent{
-			Stack: s.Addr(),
+		return s.main.PlanBeingApplied().ComponentInstanceAddresses(stackaddrs.AbsComponent{
+			Stack: s.addr,
 			Item:  component,
 		})
 	default:
 		// We're not executing with an existing state in the other phases, so
 		// we have no known instances.
-		return collections.NewSet[stackaddrs.ComponentInstance]()
+		return func(yield func(stackaddrs.ComponentInstance) bool) {}
 	}
 }
 
-func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *Provider {
+func (s *Stack) ProviderByLocalAddr(localAddr stackaddrs.ProviderConfigRef) *Provider {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -385,53 +346,40 @@ func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.Pr
 		s.providers = make(map[stackaddrs.ProviderConfigRef]*Provider)
 	}
 
-	decls := s.ConfigDeclarations(ctx)
+	decls := s.config.config.Stack
 
 	sourceAddr, ok := decls.RequiredProviders.ProviderForLocalName(localAddr.ProviderLocalName)
 	if !ok {
 		return nil
 	}
 	configAddr := stackaddrs.AbsProviderConfig{
-		Stack: s.Addr(),
+		Stack: s.addr,
 		Item: stackaddrs.ProviderConfig{
 			Provider: sourceAddr,
 			Name:     localAddr.Name,
 		},
 	}
 
-	// FIXME: stackconfig borrows a type from "addrs" rather than the one
-	// in "stackaddrs", for no good reason other than implementation order.
-	// We should eventually heal this and use stackaddrs.ProviderConfigRef
-	// in the stackconfig API too.
-	k := addrs.LocalProviderConfig{
-		LocalName: localAddr.ProviderLocalName,
-		Alias:     localAddr.Name,
-	}
-	decl, ok := decls.ProviderConfigs[k]
-	if !ok {
-		return nil
-	}
-
-	provider := newProvider(s.main, configAddr, decl)
+	provider := newProvider(s.main, configAddr, s, s.config.ProviderByLocalAddr(localAddr))
 	s.providers[localAddr] = provider
 	return provider
 }
 
-func (s *Stack) Provider(ctx context.Context, addr stackaddrs.ProviderConfig) *Provider {
-	decls := s.ConfigDeclarations(ctx)
+func (s *Stack) Provider(addr stackaddrs.ProviderConfig) *Provider {
+	decls := s.config.config.Stack
 
 	localName, ok := decls.RequiredProviders.LocalNameForProvider(addr.Provider)
 	if !ok {
 		return nil
 	}
-	return s.ProviderByLocalAddr(ctx, stackaddrs.ProviderConfigRef{
+	return s.ProviderByLocalAddr(stackaddrs.ProviderConfigRef{
 		ProviderLocalName: localName,
 		Name:              addr.Name,
 	})
 }
 
-func (s *Stack) Providers(ctx context.Context) map[stackaddrs.ProviderConfigRef]*Provider {
-	decls := s.ConfigDeclarations(ctx)
+func (s *Stack) Providers() map[stackaddrs.ProviderConfigRef]*Provider {
+	decls := s.config.config.Stack
 	if len(decls.ProviderConfigs) == 0 {
 		return nil
 	}
@@ -445,7 +393,7 @@ func (s *Stack) Providers(ctx context.Context) map[stackaddrs.ProviderConfigRef]
 			ProviderLocalName: weirdAddr.LocalName,
 			Name:              weirdAddr.Alias,
 		}
-		ret[addr] = s.ProviderByLocalAddr(ctx, addr)
+		ret[addr] = s.ProviderByLocalAddr(addr)
 		// FIXME: The above doesn't deal with the case where the provider
 		// block refers to an undeclared provider local name. What should
 		// we do in that case? Maybe it doesn't matter if package stackconfig
@@ -456,7 +404,7 @@ func (s *Stack) Providers(ctx context.Context) map[stackaddrs.ProviderConfigRef]
 
 // OutputValues returns a map of all of the output values declared within
 // this stack's configuration.
-func (s *Stack) OutputValues(ctx context.Context) map[stackaddrs.OutputValue]*OutputValue {
+func (s *Stack) OutputValues() map[stackaddrs.OutputValue]*OutputValue {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -466,25 +414,25 @@ func (s *Stack) OutputValues(ctx context.Context) map[stackaddrs.OutputValue]*Ou
 		return s.outputValues
 	}
 
-	decls := s.ConfigDeclarations(ctx)
+	decls := s.config.config.Stack
 	ret := make(map[stackaddrs.OutputValue]*OutputValue, len(decls.OutputValues))
 	for _, c := range decls.OutputValues {
 		absAddr := stackaddrs.AbsOutputValue{
-			Stack: s.Addr(),
+			Stack: s.addr,
 			Item:  stackaddrs.OutputValue{Name: c.Name},
 		}
-		ret[absAddr.Item] = newOutputValue(s.main, absAddr)
+		ret[absAddr.Item] = newOutputValue(s.main, absAddr, s, s.config.OutputValue(absAddr.Item))
 	}
 	s.outputValues = ret
 	return ret
 }
 
-func (s *Stack) OutputValue(ctx context.Context, addr stackaddrs.OutputValue) *OutputValue {
-	return s.OutputValues(ctx)[addr]
+func (s *Stack) OutputValue(addr stackaddrs.OutputValue) *OutputValue {
+	return s.OutputValues()[addr]
 }
 
 func (s *Stack) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
-	ovs := s.OutputValues(ctx)
+	ovs := s.OutputValues()
 	elems := make(map[string]cty.Value, len(ovs))
 	for addr, ov := range ovs {
 		elems[addr.Name] = ov.ResultValue(ctx, phase)
@@ -501,7 +449,7 @@ func (s *Stack) ResolveExpressionReference(ctx context.Context, ref stackaddrs.R
 
 // ExternalFunctions implements ExpressionScope.
 func (s *Stack) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return s.main.ProviderFunctions(ctx, s.StackConfig(ctx))
+	return s.main.ProviderFunctions(ctx, s.config)
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -526,7 +474,7 @@ func (s *Stack) resolveExpressionReference(
 	// unit tests in this package. The function called in this branch will
 	// return an error itself if we're not running in a suitable test situation.
 	if addr, ok := ref.Target.(stackaddrs.TestOnlyGlobal); ok {
-		return s.main.resolveTestOnlyGlobalReference(ctx, addr, ref.SourceRange)
+		return s.main.resolveTestOnlyGlobalReference(addr, ref.SourceRange)
 	}
 
 	// TODO: Most of the below would benefit from "Did you mean..." suggestions
@@ -541,7 +489,7 @@ func (s *Stack) resolveExpressionReference(
 	// are different in terms of static vs dynamic types.
 	switch addr := ref.Target.(type) {
 	case stackaddrs.InputVariable:
-		ret := s.InputVariable(ctx, addr)
+		ret := s.InputVariable(addr)
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -553,7 +501,7 @@ func (s *Stack) resolveExpressionReference(
 		}
 		return ret, diags
 	case stackaddrs.LocalValue:
-		ret := s.LocalValue(ctx, addr)
+		ret := s.LocalValue(addr)
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -565,7 +513,7 @@ func (s *Stack) resolveExpressionReference(
 		}
 		return ret, diags
 	case stackaddrs.Component:
-		ret := s.Component(ctx, addr)
+		ret := s.Component(addr)
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -577,7 +525,7 @@ func (s *Stack) resolveExpressionReference(
 		}
 		return ret, diags
 	case stackaddrs.StackCall:
-		ret := s.EmbeddedStackCall(ctx, addr)
+		ret := s.EmbeddedStackCall(addr)
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -589,7 +537,7 @@ func (s *Stack) resolveExpressionReference(
 		}
 		return ret, diags
 	case stackaddrs.ProviderConfigRef:
-		ret := s.ProviderByLocalAddr(ctx, addr)
+		ret := s.ProviderByLocalAddr(addr)
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -675,12 +623,60 @@ func (s *Stack) resolveExpressionReference(
 // just inert containers; the plan walk driver must also explore everything
 // nested inside the stack and plan those separately.
 func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
-	if !s.IsRoot() {
-		// Nothing to do for non-root stacks
-		return nil, nil
+	var diags tfdiags.Diagnostics
+
+	// We're going to validate that all the removed blocks in this stack resolve
+	// to unique instance addresses.
+	for _, blocks := range s.Removed().components {
+		seen := make(map[addrs.InstanceKey]*RemovedComponentInstance)
+		for _, block := range blocks {
+			insts, unknown := block.InstancesFor(ctx, s.addr, PlanPhase)
+			if unknown {
+				continue
+			}
+
+			for _, inst := range insts {
+				if existing, exists := seen[inst.from.Item.Key]; exists {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid `from` attribute",
+						Detail:   fmt.Sprintf("The `from` attribute resolved to component instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
+						Subject:  inst.call.config.config.DeclRange.ToHCL().Ptr(),
+					})
+					continue
+				}
+				seen[inst.from.Item.Key] = inst
+			}
+		}
 	}
 
-	var diags tfdiags.Diagnostics
+	for _, blocks := range s.Removed().stackCalls {
+		seen := collections.NewMap[stackaddrs.StackInstance, *RemovedStackCallInstance]()
+		for _, block := range blocks {
+			insts, unknown := block.InstancesFor(ctx, s.addr, PlanPhase)
+			if unknown {
+				continue
+			}
+
+			for _, inst := range insts {
+				if existing, exists := seen.GetOk(inst.from); exists {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid `from` attribute",
+						Detail:   fmt.Sprintf("The `from` attribute resolved to stack instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
+						Subject:  inst.call.config.config.DeclRange.ToHCL().Ptr(),
+					})
+					continue
+				}
+				seen.Put(inst.from, inst)
+			}
+		}
+	}
+
+	if !s.addr.IsRoot() {
+		// Nothing more to do for non-root stacks
+		return nil, diags
+	}
 
 	// We want to check that all of the components we have in state are
 	// targeted by something (either a component or a removed block) in
@@ -692,7 +688,8 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	// if a component is targeted.
 
 	var changes []stackplan.PlannedChange
-	for inst := range s.main.PlanPrevState().AllComponentInstances().All() {
+Instance:
+	for inst := range s.main.PlanPrevState().AllComponentInstances() {
 
 		// We track here whether this component instance has any associated
 		// resources. If this component is empty, and not referenced in the
@@ -711,6 +708,37 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 				continue
 			}
 
+			// Normally, this is a simple error. The user has deleted an entire
+			// stack without adding an equivalent removed block for the stack
+			// so now the instances in that stack are all unclaimed.
+			//
+			// However, the user may have tried to write removed blocks that
+			// target specific components within a removed stack instead of
+			// just targeting the entire stack. This is invalid, for one it is
+			// easier for the user if they could just remove the whole stack,
+			// and for two it is very difficult for us to reconcile orphaned
+			// removed components and removed embedded stacks that could be
+			// floating anywhere in the configuration - instead, we'll just
+			// not allow this.
+			//
+			// In this case, we want to change the error message to be more
+			// user-friendly than the generic one, so we need to discover if
+			// this has happened here, and if so, modify the error message.
+
+			removed, _ := s.validateMissingInstanceAgainstRemovedBlocks(ctx, inst, PlanPhase)
+			if removed != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid removed block",
+					Detail:   fmt.Sprintf("The component instance %s could not be removed. The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.", inst.String()),
+					Subject:  removed.DeclRange.ToHCL().Ptr(),
+				})
+				continue
+			}
+
+			// If we fall out here, then we found no relevant removed blocks
+			// so we can return the generic error message!
+
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Unclaimed component instance",
@@ -719,7 +747,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 			continue
 		}
 
-		component, removed := stack.ApplyableComponents(ctx, inst.Item.Component)
+		component, removeds := stack.ApplyableComponents(inst.Item.Component)
 		if component != nil {
 			insts, unknown := component.Instances(ctx, PlanPhase)
 			if unknown {
@@ -737,20 +765,23 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 			}
 		}
 
-		if removed != nil {
-			insts, unknown, _ := removed.Instances(ctx, PlanPhase)
+		for _, removed := range removeds {
+			insts, unknown := removed.InstancesFor(ctx, inst.Stack, PlanPhase)
 			if unknown {
 				// We can't determine if the component is targeted or not. This
 				// is okay, as any changes to this component will be deferred
 				// anyway and a follow up plan will then detect the missing
 				// component if it exists.
-				continue
+				continue Instance
 			}
 
-			if _, exists := insts[inst.Item.Key]; exists {
-				// This component is targeted by a removed block, so we won't
-				// add an error.
-				continue
+			for _, i := range insts {
+				// the instance key for a removed block doesn't always translate
+				// directly into the instance key in the address, so we have
+				// to check for the correct one.
+				if i.from.Item.Key == inst.Item.Key {
+					continue Instance
+				}
 			}
 		}
 
@@ -777,7 +808,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	// and any that do not appear in the configuration we'll mark as deleted.
 
 	for addr, value := range s.main.PlanPrevState().RootOutputValues() {
-		if s.OutputValue(ctx, addr) != nil {
+		if s.OutputValue(addr) != nil {
 			// Then this output value is in the configuration, and will be
 			// processed independently.
 			continue
@@ -796,7 +827,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	// any that don't appear in the configuration any more.
 
 	for addr, variable := range s.main.PlanPrevState().RootInputVariables() {
-		if s.InputVariable(ctx, addr) != nil {
+		if s.InputVariable(addr) != nil {
 			// Then this input variable is in the configuration, and will
 			// be processed independently.
 			continue
@@ -816,8 +847,8 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 }
 
 // CheckApply implements Applyable.
-func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	if !s.IsRoot() {
+func (s *Stack) CheckApply(_ context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	if !s.addr.IsRoot() {
 		return nil, nil
 	}
 
@@ -856,34 +887,87 @@ func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfd
 }
 
 func (s *Stack) tracingName() string {
-	addr := s.Addr()
+	addr := s.addr
 	if addr.IsRoot() {
 		return "root stack"
 	}
 	return addr.String()
 }
 
-// reportNamedPromises implements namedPromiseReporter.
-func (s *Stack) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// validateMissingInstanceAgainstRemovedBlocks returns the removed config most
+// applicable to the target address if it exists.
+//
+// We have an edge case where a user has written a removed block that targets
+// a stacks or components within stacks that are not defined anywhere in the
+// stack (either in a removed blocks or an embedded stack). We consider this to
+// be an error - if you remove an entire stack from the configuration then you
+// should write a removed block that targets that stack not several removed
+// blocks that target things inside the removed block.
+//
+// The above edge case is exposed when we check that all component instances
+// in state are included in the plan. This function is called with the absolute
+// address of the problematic component (the target). The error we would
+// normally return would say that the component isn't targeted by any component
+// or removed blocks. This is misleading for the discussed edge case, as the
+// user may have written a removed block that targets the component specifically
+// but it is just not getting executed as it is in a stack that is also not
+// in the configuration.
+//
+// The function aims to discover if a removed block does exist that might target
+// this component. Note, that since we can have removed blocks that target
+// entire stacks we do check both removed blocks and direct components on the
+// assumption that a removed stack might expand to include the target component
+// and we want to capture that removed stack specifically.
+func (s *Stack) validateMissingInstanceAgainstRemovedBlocks(ctx context.Context, target stackaddrs.AbsComponentInstance, phase EvalPhase) (*stackconfig.Removed, *stackconfig.Component) {
+	if len(target.Stack) == 0 {
 
-	for _, child := range s.childStacks {
-		child.reportNamedPromises(cb)
+		// First, we'll handle the simple case. This means we are actually
+		// targeting a component that should be in the current stack, so we'll
+		// just look to see if there is a removed block that targets this
+		// component directly.
+
+		components, ok := s.Removed().components[target.Item.Component]
+		if ok {
+			for _, component := range components {
+				// we have the component, let's check the
+				insts, _ := component.InstancesFor(ctx, s.addr, phase)
+				if inst, ok := insts[target.Item.Key]; ok {
+					return inst.call.config.config, nil
+				}
+			}
+		}
+
+		if component := s.Component(target.Item.Component); component != nil {
+			insts, _ := component.Instances(ctx, phase)
+			if inst, ok := insts[target.Item.Key]; ok {
+				return nil, inst.call.config.config
+			}
+		}
+
+		return nil, nil
 	}
-	for _, child := range s.inputVariables {
-		child.reportNamedPromises(cb)
+
+	// more complicated now, we need to look into a child stack
+
+	next := target.Stack[0]
+	rest := stackaddrs.AbsComponentInstance{
+		Stack: target.Stack[1:],
+		Item:  target.Item,
 	}
-	for _, child := range s.outputValues {
-		child.reportNamedPromises(cb)
+
+	if child := s.ChildStack(ctx, next, phase); child != nil {
+		return child.validateMissingInstanceAgainstRemovedBlocks(ctx, rest, phase)
 	}
-	for _, child := range s.stackCalls {
-		child.reportNamedPromises(cb)
+
+	// if we get here, then we had no child stack to check against. But, things
+	// are not over yet! we also have might have orphaned removed blocks.
+	// these are tracked in the Removed() struct directly, so we'll also look
+	// into there. this is the actual troublesome case we're checking for so
+	// we do expect to actually get here for these checks.
+
+	if child, ok := s.Removed().children[next.Name]; ok {
+		return child.validateMissingInstanceAgainstRemovedBlocks(ctx, append(s.addr, next), rest, phase)
 	}
-	for _, child := range s.components {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.providers {
-		child.reportNamedPromises(cb)
-	}
+
+	return nil, nil
 }

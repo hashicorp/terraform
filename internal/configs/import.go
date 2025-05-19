@@ -15,6 +15,8 @@ import (
 type Import struct {
 	ID hcl.Expression
 
+	Identity hcl.Expression
+
 	To hcl.Expression
 	// The To address may not be resolvable immediately if it contains dynamic
 	// index expressions, so we will extract the ConfigResource address and
@@ -41,6 +43,10 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 
 	if attr, exists := content.Attributes["id"]; exists {
 		imp.ID = attr.Expr
+	}
+
+	if attr, exists := content.Attributes["identity"]; exists {
+		imp.Identity = attr.Expr
 	}
 
 	if attr, exists := content.Attributes["to"]; exists {
@@ -87,6 +93,24 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 		diags = append(diags, providerDiags...)
 	}
 
+	if imp.ID == nil && imp.Identity == nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import block",
+			Detail:   "At least one of 'id' or 'identity' must be specified.",
+			Subject:  block.DefRange.Ptr(),
+		})
+	}
+
+	if imp.ID != nil && imp.Identity != nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import block",
+			Detail:   "Only one of 'id' or 'identity' can be specified.",
+			Subject:  block.DefRange.Ptr(),
+		})
+	}
+
 	return imp, diags
 }
 
@@ -99,12 +123,14 @@ var importBlockSchema = &hcl.BodySchema{
 			Name: "for_each",
 		},
 		{
-			Name:     "id",
-			Required: true,
+			Name: "id",
 		},
 		{
 			Name:     "to",
 			Required: true,
+		},
+		{
+			Name: "identity",
 		},
 	},
 }

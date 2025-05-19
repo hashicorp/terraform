@@ -19,7 +19,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// StateMvCommand is a Command implementation that shows a single resource.
+// StateMvCommand is a Command implementation that changes bindings
+// in Terraform state so that existing remote objects bind to new resource instances.
 type StateMvCommand struct {
 	StateMeta
 }

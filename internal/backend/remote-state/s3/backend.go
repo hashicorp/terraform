@@ -152,11 +152,12 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "DynamoDB table for state locking and consistency",
+				Deprecated:  true,
 			},
 			"use_lockfile": {
 				Type:        cty.Bool,
 				Optional:    true,
-				Description: "(Experimental) Whether to use a lockfile for locking the state file.",
+				Description: "Whether to use a lockfile for locking the state file.",
 			},
 			"profile": {
 				Type:        cty.String,
@@ -534,6 +535,7 @@ var endpointsSchema = singleNestedAttribute{
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the DynamoDB API",
+				Deprecated:  true,
 			},
 			validateString{
 				Validators: []stringValidator{
@@ -687,6 +689,11 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	attrPath = cty.GetAttrPath("shared_credentials_file")
 	if val := obj.GetAttr("shared_credentials_file"); !val.IsNull() {
 		diags = diags.Append(deprecatedAttrDiag(attrPath, cty.GetAttrPath("shared_credentials_files")))
+	}
+
+	attrPath = cty.GetAttrPath("dynamodb_table")
+	if val := obj.GetAttr("dynamodb_table"); !val.IsNull() {
+		diags = diags.Append(deprecatedAttrDiag(attrPath, cty.GetAttrPath("use_lockfile")))
 	}
 
 	endpointFields := map[string]string{
@@ -896,7 +903,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	cfg := &awsbase.Config{
 		AccessKey:               stringAttr(obj, "access_key"),
 		APNInfo:                 stdUserAgentProducts(),
-		CallerDocumentationURL:  "https://www.terraform.io/docs/language/settings/backends/s3.html",
+		CallerDocumentationURL:  "https://developer.hashicorp.com/terraform/language/backend/s3",
 		CallerName:              "S3 Backend",
 		Logger:                  baselog,
 		MaxRetries:              intAttrDefault(obj, "max_retries", 5),

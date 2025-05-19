@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -33,7 +32,7 @@ import (
 // element of for_each for each [Provider].
 type ProviderInstance struct {
 	provider   *Provider
-	key        addrs.InstanceKey
+	addr       stackaddrs.AbsProviderConfigInstance
 	repetition instances.RepetitionData
 
 	main *Main
@@ -44,23 +43,12 @@ type ProviderInstance struct {
 
 var _ ExpressionScope = (*ProviderInstance)(nil)
 
-func newProviderInstance(provider *Provider, key addrs.InstanceKey, repetition instances.RepetitionData) *ProviderInstance {
+func newProviderInstance(provider *Provider, addr stackaddrs.AbsProviderConfigInstance, repetition instances.RepetitionData) *ProviderInstance {
 	return &ProviderInstance{
 		provider:   provider,
-		key:        key,
+		addr:       addr,
 		main:       provider.main,
 		repetition: repetition,
-	}
-}
-
-func (p *ProviderInstance) Addr() stackaddrs.AbsProviderConfigInstance {
-	providerAddr := p.provider.Addr()
-	return stackaddrs.AbsProviderConfigInstance{
-		Stack: providerAddr.Stack,
-		Item: stackaddrs.ProviderConfigInstance{
-			ProviderConfig: providerAddr.Item,
-			Key:            p.key,
-		},
 	}
 }
 
@@ -68,12 +56,12 @@ func (p *ProviderInstance) RepetitionData() instances.RepetitionData {
 	return p.repetition
 }
 
-func (p *ProviderInstance) ProviderType(ctx context.Context) *ProviderType {
-	return p.main.ProviderType(ctx, p.Addr().Item.ProviderConfig.Provider)
+func (p *ProviderInstance) ProviderType() *ProviderType {
+	return p.main.ProviderType(p.addr.Item.ProviderConfig.Provider)
 }
 
 func (p *ProviderInstance) ProviderArgsDecoderSpec(ctx context.Context) (hcldec.Spec, error) {
-	return p.provider.Config(ctx).ProviderArgsDecoderSpec(ctx)
+	return p.provider.config.ProviderArgsDecoderSpec(ctx)
 }
 
 // ProviderArgs returns an object value representing the provider configuration
@@ -87,12 +75,12 @@ func (p *ProviderInstance) ProviderArgs(ctx context.Context, phase EvalPhase) ct
 
 func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, p.providerArgs.For(phase), p.main,
+		ctx, p.tracingName(), p.providerArgs.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			providerType := p.ProviderType(ctx)
-			decl := p.provider.Declaration(ctx)
+			providerType := p.ProviderType()
+			decl := p.provider.config.config
 			spec, err := p.ProviderArgsDecoderSpec(ctx)
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -165,7 +153,7 @@ func (p *ProviderInstance) Client(ctx context.Context, phase EvalPhase) provider
 
 func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (providers.Interface, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, p.client.For(phase), p.main,
+		ctx, p.tracingName()+" plugin client", p.client.For(phase),
 		func(ctx context.Context) (providers.Interface, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -181,8 +169,8 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				panic("provider instance with unknown count index")
 			}
 
-			providerType := p.ProviderType(ctx)
-			decl := p.provider.Declaration(ctx)
+			providerType := p.ProviderType()
+			decl := p.provider.config.config
 
 			client, err := p.main.ProviderFactories().NewUnconfiguredClient(providerType.Addr())
 			if err != nil {
@@ -191,7 +179,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 					Summary:  "Failed to start provider plugin",
 					Detail: fmt.Sprintf(
 						"Could not create an instance of %s for %s: %s.",
-						providerType.Addr(), p.Addr(), err,
+						providerType.Addr(), p.addr, err,
 					),
 					Subject: decl.DeclRange.ToHCL().Ptr(),
 				})
@@ -227,7 +215,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 						Summary:  "Failed to terminate provider plugin",
 						Detail: fmt.Sprintf(
 							"Error closing the instance of %s for %s: %s.",
-							providerType.Addr(), p.Addr(), err,
+							providerType.Addr(), p.addr, err,
 						),
 						Subject: decl.DeclRange.ToHCL().Ptr(),
 					})
@@ -256,11 +244,9 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			}
 
 			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
-				TerraformVersion: version.SemVer.String(),
-				Config:           unmarkedArgs,
-				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: true,
-				},
+				TerraformVersion:   version.SemVer.String(),
+				Config:             unmarkedArgs,
+				ClientCapabilities: ClientCapabilities(),
 			})
 			diags = diags.Append(resp.Diagnostics)
 			if resp.Diagnostics.HasErrors() {
@@ -283,13 +269,12 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 // than the for_each argument inside a provider block, which get evaluated
 // once per provider instance.
 func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := p.provider.Stack(ctx)
-	return stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
+	return p.provider.stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
 }
 
 // ExternalFunctions implements ExpressionScope.
 func (p *ProviderInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return p.main.ProviderFunctions(ctx, p.main.StackConfig(ctx, p.Addr().Stack.ConfigAddr()))
+	return p.main.ProviderFunctions(ctx, p.provider.config.stack)
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -325,17 +310,5 @@ func (p *ProviderInstance) CheckApply(ctx context.Context) ([]stackstate.Applied
 
 // tracingName implements Plannable.
 func (p *ProviderInstance) tracingName() string {
-	return p.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (p *ProviderInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := p.Addr().String()
-	clientName := name + " plugin client"
-	p.providerArgs.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), name)
-	})
-	p.client.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[providers.Interface]]) {
-		cb(o.PromiseID(), clientName)
-	})
+	return p.addr.String()
 }

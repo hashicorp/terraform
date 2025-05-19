@@ -80,6 +80,11 @@ func (p *SourceBundleParser) IsConfigDir(source sourceaddrs.FinalSource) bool {
 	return (len(primaryPaths) + len(overridePaths)) > 0
 }
 
+// Bundle returns the source bundle that this parser is reading from.
+func (p *SourceBundleParser) Bundle() *sourcebundle.Bundle {
+	return p.sources
+}
+
 func (p *SourceBundleParser) dirSources(source sourceaddrs.FinalSource) (primary, override []sourceaddrs.FinalSource, diags hcl.Diagnostics) {
 	localDir, err := p.sources.LocalPathForSource(source)
 	if err != nil {

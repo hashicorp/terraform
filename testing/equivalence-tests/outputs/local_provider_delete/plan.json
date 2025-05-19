@@ -1,4 +1,6 @@
 {
+  "applyable": true,
+  "complete": true,
   "configuration": {
     "provider_config": {
       "local": {
@@ -9,7 +11,8 @@
     },
     "root_module": {}
   },
-  "format_version": "1.1",
+  "errored": false,
+  "format_version": "1.2",
   "planned_values": {
     "root_module": {}
   },
@@ -24,7 +27,9 @@
             "name": "local_file",
             "provider_name": "registry.terraform.io/hashicorp/local",
             "schema_version": 0,
-            "sensitive_values": {},
+            "sensitive_values": {
+              "sensitive_content": true
+            },
             "type": "local_file",
             "values": {
               "content": "{\"hello\":\"world\"}",
@@ -51,6 +56,47 @@
         ],
         "after": null,
         "after_sensitive": false,
+        "after_unknown": {},
+        "before": {
+          "content": "{\"hello\":\"world\"}",
+          "content_base64": null,
+          "directory_permission": "0777",
+          "file_permission": "0777",
+          "filename": "output.json",
+          "id": "2248ee2fa0aaaad99178531f924bf00b4b0a8f4e",
+          "sensitive_content": null,
+          "source": null
+        },
+        "before_sensitive": {
+          "sensitive_content": true
+        }
+      },
+      "mode": "managed",
+      "name": "local_file",
+      "provider_name": "registry.terraform.io/hashicorp/local",
+      "type": "local_file"
+    }
+  ],
+  "resource_drift": [
+    {
+      "address": "local_file.local_file",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "after": {
+          "content": "{\"hello\":\"world\"}",
+          "content_base64": null,
+          "directory_permission": "0777",
+          "file_permission": "0777",
+          "filename": "output.json",
+          "id": "2248ee2fa0aaaad99178531f924bf00b4b0a8f4e",
+          "sensitive_content": null,
+          "source": null
+        },
+        "after_sensitive": {
+          "sensitive_content": true
+        },
         "after_unknown": {},
         "before": {
           "content": "{\"hello\":\"world\"}",

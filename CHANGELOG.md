@@ -1,38 +1,10 @@
-## 1.10.0 (Unreleased)
+## 1.13.0 (Unreleased)
 
-NEW FEATURES:
- - **Ephemeral resources**: Ephemeral resources are read anew during each phase of Terraform evaluation, and cannot be persisted to state storage. Ephemeral resources always produce ephemeral values.
- - **Ephemeral values**: Input variables and outputs can now be defined as ephemeral. Ephemeral values may only be used in certain contexts in Terraform configuration, and are not persisted to the plan or state files.
-    - `terraform output -json` now displays ephemeral outputs. The value of an ephemeral output is always `null` unless a plan or apply is being run. Note that `terraform output` (without the `-json`) flag does not yet display ephemeral outputs.
-    - **`ephemeralasnull` function**: a function takes a value of any type and returns a similar value of the same type with any ephemeral values replaced with non-ephemeral null values and all non-ephemeral values preserved.
-
-BUG FIXES:
-
-- The `secret_suffix` in the `kubernetes` backend now includes validation to prevent errors when the `secret_suffix` ends with a number ([#35666](https://github.com/hashicorp/terraform/pull/35666)).
-- The error message for an invalid default value for an input variable now indicates when the problem is with a nested value in a complex data type. ([#35465](https://github.com/hashicorp/terraform/issues/35465))
-- Sensitive marks could be incorrectly transferred to nested resource values, causing erroneous changes during a plan ([#35501](https://github.com/hashicorp/terraform/issues/35501))
-- Allow unknown `error_message` values to pass the core validate step, so variable validation can be completed later during plan
-  ([#35537](https://github.com/hashicorp/terraform/issues/35537))
-- Unencoded slashes within GitHub module source refs were being truncated and incorrectly used as subdirectories in the request path ([#35552](https://github.com/hashicorp/terraform/issues/35552))
-
-ENHANCEMENTS:
-
-- The `element` function now accepts negative indices ([#35501](https://github.com/hashicorp/terraform/issues/35501))
-- Import block validation has been improved to provide more useful errors and catch more invalid cases during `terraform validate` ([#35543](https://github.com/hashicorp/terraform/issues/35543))
-- Performance enhancements for resource evaluation, especially when large numbers of resource instances are involved ([#35558](https://github.com/hashicorp/terraform/issues/35558))
-- The `plan`, `apply`, and `refresh` commands now produce a deprecated warning when using the `-state` flag. Instead use the `path` attribute within the `local` backend to modify the state file. ([#35660](https://github.com/hashicorp/terraform/issues/35660))
-
-UPGRADE NOTES:
-
-- backend/s3: Removes deprecated attributes for assuming IAM role. Must use the `assume_role` block ([#35721](https://github.com/hashicorp/terraform/issues/35721))
-- backend/s3: The s3 backend now supports S3 native state locking. When used with DynamoDB-based locking, locks will be acquired from both sources. In a future minor release of Terraform the DynamoDB locking mechanism and associated arguments will be deprecated. ([#35661](https://github.com/hashicorp/terraform/issues/35661))
-- `moved`: Moved blocks now respect reserved keywords when parsing resource addresses. Configurations that reference resources with type names that match top level blocks and keywords from `moved` blocks will need to prepend the `resource.` identifier to these references. ([#35850](https://github.com/hashicorp/terraform/issues/35850))
 
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
 
-- `terraform test` accepts a new option `-junit-xml=FILENAME`. If specified, and if the test configuration is valid enough to begin executing, then Terraform writes a JUnit XML test result report to the given filename, describing similar information as included in the normal test output. ([#34291](https://github.com/hashicorp/terraform/issues/34291))
 - The new command `terraform rpcapi` exposes some Terraform Core functionality through an RPC interface compatible with [`go-plugin`](https://github.com/hashicorp/go-plugin). The exact RPC API exposed here is currently subject to change at any time, because it's here primarily as a vehicle to support the [Terraform Stacks](https://www.hashicorp.com/blog/terraform-stacks-explained) private preview and so will be broken if necessary to respond to feedback from private preview participants, or possibly for other reasons. Do not use this mechanism yet outside of Terraform Stacks private preview.
 - The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values. This experiment is under active development, and so it's not yet useful to participate in this experiment
 
@@ -40,6 +12,9 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 
 For information on prior major and minor releases, refer to their changelogs:
 
+- [v1.12](https://github.com/hashicorp/terraform/blob/v1.12/CHANGELOG.md)
+- [v1.11](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md)
+- [v1.10](https://github.com/hashicorp/terraform/blob/v1.10/CHANGELOG.md)
 - [v1.9](https://github.com/hashicorp/terraform/blob/v1.9/CHANGELOG.md)
 - [v1.8](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)
 - [v1.7](https://github.com/hashicorp/terraform/blob/v1.7/CHANGELOG.md)

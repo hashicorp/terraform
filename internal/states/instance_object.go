@@ -11,8 +11,9 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // ResourceInstanceObject is the local representation of a specific remote
@@ -26,6 +27,10 @@ type ResourceInstanceObject struct {
 	// Value is the object-typed value representing the remote object within
 	// Terraform.
 	Value cty.Value
+
+	// Identity is the object-typed value representing the identity of the remote
+	// object within Terraform.
+	Identity cty.Value
 
 	// Private is an opaque value set by the provider when this object was
 	// last created or updated. Terraform Core does not use this value in
@@ -52,10 +57,29 @@ type ResourceInstanceObject struct {
 	CreateBeforeDestroy bool
 }
 
+// NewResourceInstanceObjectFromIR converts the receiving
+// ImportedResource into a ResourceInstanceObject that has status ObjectReady.
+//
+// The returned object does not know its own resource type, so the caller must
+// retain the ResourceType value from the source object if this information is
+// needed.
+//
+// The returned object also has no dependency addresses, but the caller may
+// freely modify the direct fields of the returned object without affecting
+// the receiver.
+func NewResourceInstanceObjectFromIR(ir providers.ImportedResource) *ResourceInstanceObject {
+	return &ResourceInstanceObject{
+		Status:   ObjectReady,
+		Value:    ir.State,
+		Private:  ir.Private,
+		Identity: ir.Identity,
+	}
+}
+
 // ObjectStatus represents the status of a RemoteObject.
 type ObjectStatus rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type ObjectStatus
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ObjectStatus
 
 const (
 	// ObjectReady is an object status for an object that is ready to use.
@@ -80,21 +104,20 @@ const (
 	ObjectPlanned ObjectStatus = 'P'
 )
 
-// Encode marshals the value within the receiver to produce a
+// Encode marshals values within the receiver to produce a
 // ResourceInstanceObjectSrc ready to be written to a state file.
 //
-// The given type must be the implied type of the resource type schema, and
-// the given value must conform to it. It is important to pass the schema
-// type and not the object's own type so that dynamically-typed attributes
-// will be stored correctly. The caller must also provide the version number
-// of the schema that the given type was derived from, which will be recorded
-// in the source object so it can be used to detect when schema migration is
-// required on read.
+// The schema must contain the resource type body, and the given value must
+// conform its implied type. The schema must also contain the version number
+// of the schema, which will be recorded in the source object so it can be
+// used to detect when schema migration is required on read.
+// The schema may also contain an resource identity schema and version number,
+// which will be used to encode the resource identity.
 //
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this
 // method is called.
-func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+func (o *ResourceInstanceObject) Encode(schema providers.Schema) (*ResourceInstanceObjectSrc, error) {
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
@@ -114,9 +137,18 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// and raise an error about that.
 	val = cty.UnknownAsNull(val)
 
-	src, err := ctyjson.Marshal(val, ty)
+	src, err := ctyjson.Marshal(val, schema.Body.ImpliedType())
 	if err != nil {
 		return nil, err
+	}
+
+	var idJSON []byte
+	// If the Identity is known and not null we can marshal it.
+	if !o.Identity.IsNull() && o.Identity.IsWhollyKnown() && schema.Identity != nil {
+		idJSON, err = ctyjson.Marshal(o.Identity, schema.Identity.ImpliedType())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Dependencies are collected and merged in an unordered format (using map
@@ -132,15 +164,18 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	sort.Slice(dependencies, func(i, j int) bool { return dependencies[i].String() < dependencies[j].String() })
 
 	return &ResourceInstanceObjectSrc{
-		SchemaVersion:       schemaVersion,
-		AttrsJSON:           src,
-		AttrSensitivePaths:  sensitivePaths,
-		Private:             o.Private,
-		Status:              o.Status,
-		Dependencies:        dependencies,
-		CreateBeforeDestroy: o.CreateBeforeDestroy,
+		SchemaVersion:         uint64(schema.Version),
+		AttrsJSON:             src,
+		AttrSensitivePaths:    sensitivePaths,
+		Private:               o.Private,
+		Status:                o.Status,
+		Dependencies:          dependencies,
+		CreateBeforeDestroy:   o.CreateBeforeDestroy,
+		IdentityJSON:          idJSON,
+		IdentitySchemaVersion: uint64(schema.IdentityVersion),
 		// The cached value must have all its marks since it bypasses decoding.
-		decodeValueCache: o.Value,
+		decodeValueCache:    o.Value,
+		decodeIdentityCache: o.Identity,
 	}, nil
 }
 
@@ -173,8 +208,15 @@ func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []c
 	if len(withOtherMarks) != 0 {
 		return cty.NilVal, nil, fmt.Errorf(
 			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
+			format.CtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
 		)
 	}
+
+	// sort the sensitive paths for consistency in comparison and serialization
+	sort.Slice(sensitivePaths, func(i, j int) bool {
+		// use our human-readable format of paths for comparison
+		return format.CtyPath(sensitivePaths[i]) < format.CtyPath(sensitivePaths[j])
+	})
+
 	return val, sensitivePaths, nil
 }

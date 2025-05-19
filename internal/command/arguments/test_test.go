@@ -4,10 +4,8 @@
 package arguments
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
@@ -74,66 +72,125 @@ func TestParseTest(t *testing.T) {
 		"defaults": {
 			args: nil,
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "tests",
-				ViewType:      ViewHuman,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: nil,
 		},
 		"with-filters": {
 			args: []string{"-filter=one.tftest.hcl", "-filter=two.tftest.hcl"},
 			want: &Test{
-				Filter:        []string{"one.tftest.hcl", "two.tftest.hcl"},
-				TestDirectory: "tests",
-				ViewType:      ViewHuman,
-				Vars:          &Vars{},
+				Filter:               []string{"one.tftest.hcl", "two.tftest.hcl"},
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: nil,
 		},
 		"json": {
 			args: []string{"-json"},
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "tests",
-				ViewType:      ViewJSON,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewJSON,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: nil,
 		},
 		"test-directory": {
 			args: []string{"-test-directory=other"},
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "other",
-				ViewType:      ViewHuman,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "other",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: nil,
 		},
 		"verbose": {
 			args: []string{"-verbose"},
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "tests",
-				ViewType:      ViewHuman,
-				Verbose:       true,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Verbose:              true,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
+		},
+		"with-parallelism-set": {
+			args: []string{"-parallelism=5"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 5,
+			},
+			wantDiags: nil,
+		},
+		"with-parallelism-0": {
+			args: []string{"-parallelism=0"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+			},
+			wantDiags: nil,
+		},
+		"cloud-with-parallelism-0": {
+			args: []string{"-parallelism=0", "-cloud-run=foobar"},
+			want: &Test{
+				CloudRunSource:       "foobar",
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 0,
+			},
+			wantDiags: nil,
 		},
 		"unknown flag": {
 			args: []string{"-boop"},
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "tests",
-				ViewType:      ViewHuman,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to parse command-line flags",
 					"flag provided but not defined: -boop",
+				),
+			},
+		},
+		"incompatible flags: -junit-xml and -cloud-run": {
+			args: []string{"-junit-xml=./output.xml", "-cloud-run=foobar"},
+			want: &Test{
+				CloudRunSource:       "foobar",
+				JUnitXMLFile:         "./output.xml",
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+			},
+			wantDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Incompatible command-line flags",
+					"The -junit-xml option is currently not compatible with remote test execution via the -cloud-run flag. If you are interested in JUnit XML output for remotely-executed tests please open an issue in GitHub.",
 				),
 			},
 		},
@@ -149,9 +206,7 @@ func TestParseTest(t *testing.T) {
 				t.Errorf("diff:\n%s", diff)
 			}
 
-			if !reflect.DeepEqual(diags, tc.wantDiags) {
-				t.Errorf("wrong result\ngot: %s\nwant: %s", spew.Sdump(diags), spew.Sdump(tc.wantDiags))
-			}
+			tfdiags.AssertDiagnosticsMatch(t, diags, tc.wantDiags)
 		})
 	}
 }

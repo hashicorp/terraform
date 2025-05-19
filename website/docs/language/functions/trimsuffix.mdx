@@ -7,13 +7,23 @@ description: |-
 
 # `trimsuffix` Function
 
-`trimsuffix` removes the specified suffix from the end of the given string.
+`trimsuffix` removes the specified suffix from the end of the given string, but only once, even if the suffix appears multiple times. If the suffix does not appear at the very end of the string, the original string is returned unchanged.
 
 ## Examples
 
 ```
 > trimsuffix("helloworld", "world")
 hello
+```
+
+```
+> trimsuffix("helloworld", "cat")
+helloworld
+```
+
+```
+> trimsuffix("hello--", "-")
+hello-
 ```
 
 ## Related Functions

@@ -67,7 +67,7 @@ func TestApply_componentOrdering(t *testing.T) {
 	testProviderSchema := providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_report": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"marker": {
 							Type:     cty.String,
@@ -165,7 +165,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		t.Fatalf("plan is not applyable")
 	}
 	{
-		cmpPlan := plan.Components.Get(cmpCInstAddr)
+		cmpPlan := plan.GetComponent(cmpCInstAddr)
 		gotDeps := cmpPlan.Dependencies
 		wantDeps := collections.NewSet[stackaddrs.AbsComponent]()
 		wantDeps.Add(cmpBAddr)
@@ -174,7 +174,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		}
 	}
 	{
-		cmpPlan := plan.Components.Get(cmpBInst1Addr)
+		cmpPlan := plan.GetComponent(cmpBInst1Addr)
 		gotDeps := cmpPlan.Dependencies
 		wantDeps := collections.NewSet[stackaddrs.AbsComponent]()
 		wantDeps.Add(cmpAAddr)

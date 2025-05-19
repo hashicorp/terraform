@@ -18,6 +18,10 @@ type Test struct {
 	// will be executed.
 	Filter []string
 
+	// OperationParallelism is the limit Terraform places on total parallel operations
+	// during the plan or apply command within a single test run.
+	OperationParallelism int
+
 	// TestDirectory allows the user to override the directory that the test
 	// command will use to discover test files, defaults to "tests". Regardless
 	// of the value here, test files within the configuration directory will
@@ -55,6 +59,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&test.JUnitXMLFile, "junit-xml", "", "junit-xml")
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
+	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
 
 	// TODO: Finalise the name of this flag.
 	cmdFlags.StringVar(&test.CloudRunSource, "cloud-run", "", "cloud-run")
@@ -64,6 +69,20 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 			tfdiags.Error,
 			"Failed to parse command-line flags",
 			err.Error()))
+	}
+
+	if len(test.JUnitXMLFile) > 0 && len(test.CloudRunSource) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible command-line flags",
+			"The -junit-xml option is currently not compatible with remote test execution via the -cloud-run flag. If you are interested in JUnit XML output for remotely-executed tests please open an issue in GitHub."))
+	}
+
+	// Only set the default parallelism if this is not a cloud-run test.
+	// A cloud-run test will eventually run its own local test, and if the
+	// user still hasn't set the parallelism, that run will use the default.
+	if test.OperationParallelism < 1 && len(test.CloudRunSource) == 0 {
+		test.OperationParallelism = DefaultParallelism
 	}
 
 	switch {

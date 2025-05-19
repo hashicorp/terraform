@@ -6,7 +6,7 @@ package plans
 // Mode represents the various mutually-exclusive modes for creating a plan.
 type Mode rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type Mode
+//go:generate go tool golang.org/x/tools/cmd/stringer -type Mode
 
 const (
 	// NormalMode is the default planning mode, which aims to synchronize the

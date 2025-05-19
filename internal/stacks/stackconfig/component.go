@@ -8,9 +8,11 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions/constraints"
 	"github.com/hashicorp/go-slug/sourceaddrs"
+	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	stackparser "github.com/hashicorp/terraform/internal/stacks/stackconfig/parser"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -79,6 +81,34 @@ type Component struct {
 	DependsOn []hcl.Traversal
 
 	DeclRange tfdiags.SourceRange
+}
+
+// ModuleConfig returns the module configuration for the given address within
+// the provided source bundle.
+func (c *Component) ModuleConfig(bundle *sourcebundle.Bundle) (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	parser := configs.NewSourceBundleParser(bundle)
+	if !parser.IsConfigDir(c.FinalSourceAddr) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Component configuration not found",
+			Detail:   fmt.Sprintf("No module configuration found for component %q at %s.", c.Name, c.FinalSourceAddr),
+			Subject:  c.SourceAddrRange.ToHCL().Ptr(),
+		})
+		return nil, diags
+	}
+
+	module, moreDiags := parser.LoadConfigDir(c.FinalSourceAddr)
+	diags = diags.Append(moreDiags)
+
+	if module != nil {
+		walker := stackparser.NewSourceBundleModuleWalker(c.FinalSourceAddr, bundle, parser)
+		config, moreDiags := configs.BuildConfig(module, walker, nil)
+		diags = diags.Append(moreDiags)
+		return config, diags
+	}
+
+	return nil, diags
 }
 
 func decodeComponentBlock(block *hcl.Block) (*Component, tfdiags.Diagnostics) {

@@ -362,7 +362,7 @@ func TestBackendConfig_InvalidRegion(t *testing.T) {
 			confDiags := b.Configure(configSchema)
 			diags = diags.Append(confDiags)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -528,7 +528,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -660,7 +660,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 
 			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -783,7 +783,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -943,7 +943,7 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -1409,6 +1409,22 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				),
 			},
 		},
+
+		"dynamodb_table deprecation": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":         cty.StringVal("test"),
+				"key":            cty.StringVal("test"),
+				"region":         cty.StringVal("us-west-2"),
+				"dynamodb_table": cty.StringVal("test"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeWarningDiag(
+					"Deprecated Parameter",
+					`The parameter "dynamodb_table" is deprecated. Use parameter "use_lockfile" instead.`,
+					cty.GetAttrPath("dynamodb_table"),
+				),
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -1419,7 +1435,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
 
-			if diff := cmp.Diff(valDiags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(valDiags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -1919,9 +1935,7 @@ func TestBackendConfig_Proxy(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
-				t.Errorf("unexpected diagnostics difference: %s", diff)
-			}
+			tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectedDiags)
 
 			client := b.awsConfig.HTTPClient
 			bClient, ok := client.(*awshttp.BuildableClient)
@@ -2038,6 +2052,76 @@ func TestBackendLockedWithFile(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
+func TestBackendLockedWithFile_ObjectLock_Compliance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeCompliance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedWithFile_ObjectLock_Governance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeGovernance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
 func TestBackendLockedWithFileAndDynamoDB(t *testing.T) {
 	testACC(t)
 
@@ -2134,6 +2218,116 @@ func TestBackend_LockFileCleanupOnDynamoDBLock(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+
+	// Attempt to retrieve the lock file from S3.
+	_, err := b1.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(b1.bucketName),
+		Key:    aws.String(b1.keyName + ".tflock"),
+	})
+	// We expect an error here, indicating that the lock file does not exist.
+	// The absence of the lock file is expected, as it should have been
+	// cleaned up following a failed lock acquisition due to `b1` already
+	// acquiring a DynamoDB lock.
+	if err != nil {
+		if !IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	} else {
+		t.Fatalf("expected error, got none")
+	}
+}
+
+func TestBackend_LockFileCleanupOnDynamoDBLock_ObjectLock_Compliance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   false, // Only use DynamoDB
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true, // Use both DynamoDB and lockfile
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeCompliance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+
+	// Attempt to retrieve the lock file from S3.
+	_, err := b1.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(b1.bucketName),
+		Key:    aws.String(b1.keyName + ".tflock"),
+	})
+	// We expect an error here, indicating that the lock file does not exist.
+	// The absence of the lock file is expected, as it should have been
+	// cleaned up following a failed lock acquisition due to `b1` already
+	// acquiring a DynamoDB lock.
+	if err != nil {
+		if !IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	} else {
+		t.Fatalf("expected error, got none")
+	}
+}
+
+func TestBackend_LockFileCleanupOnDynamoDBLock_ObjectLock_Governance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   false, // Only use DynamoDB
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true, // Use both DynamoDB and lockfile
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeGovernance),
+	)
 	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
@@ -2303,7 +2497,7 @@ func TestBackendConfigKmsKeyId(t *testing.T) {
 				diags = diags.Append(confDiags)
 			}
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -2433,7 +2627,7 @@ func TestBackendSSECustomerKey(t *testing.T) {
 				diags = diags.Append(confDiags)
 			}
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -3087,7 +3281,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateNestedAttribute(assumeRoleSchema, config, path, &diags)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})

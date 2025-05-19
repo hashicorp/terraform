@@ -57,6 +57,13 @@ func (b Base) ConfigSchema() *configschema.Block {
 func (b Base) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	if configVal.IsNull() {
+		// We expect the backend configuration to be an object, so if it's
+		// null for some reason (e.g. because of an interrupt), we'll turn
+		// it into an empty object so that we can still coerce it
+		configVal = cty.EmptyObjectVal
+	}
+
 	schema := b.Schema
 
 	v, err := schema.CoerceValue(configVal)

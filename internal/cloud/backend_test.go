@@ -79,6 +79,151 @@ func TestCloud_backendWithTags(t *testing.T) {
 	}
 }
 
+func TestCloud_backendWithKVTags(t *testing.T) {
+	b, bCleanup := testBackendWithKVTags(t)
+	defer bCleanup()
+
+	_, err := b.client.Workspaces.Create(context.Background(), "hashicorp", tfe.WorkspaceCreateOptions{
+		Name: tfe.String("ws-billing-101"),
+		TagBindings: []*tfe.TagBinding{
+			{Key: "dept", Value: "billing"},
+			{Key: "costcenter", Value: "101"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("error creating workspace: %s", err)
+	}
+
+	workspaces, err := b.Workspaces()
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+
+	actual := len(workspaces)
+	if actual != 1 {
+		t.Fatalf("expected 1 workspaces, got %d", actual)
+	}
+
+	if workspaces[0] != "ws-billing-101" {
+		t.Fatalf("expected workspace name to be 'ws-billing-101', got %s", workspaces[0])
+	}
+}
+
+func TestCloud_DescribeTags(t *testing.T) {
+	cases := map[string]struct {
+		expected   string
+		expectedOr []string
+		config     cty.Value
+	}{
+		"one set tag": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("org"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.SetVal([]cty.Value{
+						cty.StringVal("billing"),
+					}),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+			expected: "billing",
+		},
+		"two set tags": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("org"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.SetVal([]cty.Value{
+						cty.StringVal("billing"),
+						cty.StringVal("cc101"),
+					}),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+			expected: "billing, cc101",
+		},
+		"one kv tag": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("org"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.MapVal(map[string]cty.Value{
+						"dept": cty.StringVal("billing"),
+					}),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+			expected: "dept=billing",
+		},
+		"two kv tags": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("org"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.MapVal(map[string]cty.Value{
+						"dept":       cty.StringVal("billing"),
+						"costcenter": cty.StringVal("101"),
+					}),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+			expectedOr: []string{"costcenter=101, dept=billing", "dept=billing, costcenter=101"},
+		},
+		"no tags": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("org"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("default"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+			expected: "",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			b, cleanup := testUnconfiguredBackend(t)
+			t.Cleanup(cleanup)
+
+			_, valDiags := b.PrepareConfig(tc.config)
+			if valDiags.Err() != nil {
+				t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+			}
+
+			diags := b.Configure(tc.config)
+			if diags.Err() != nil {
+				t.Fatalf("%s: unexpected configure result: %v", name, diags.Err())
+			}
+
+			actual := b.WorkspaceMapping.DescribeTags()
+			if tc.expectedOr != nil {
+				for _, expected := range tc.expectedOr {
+					if actual == expected {
+						return
+					}
+				}
+				t.Fatalf("expected one of %v, got %q", tc.expectedOr, actual)
+			}
+
+			if actual != tc.expected {
+				t.Fatalf("expected %q, got %q", tc.expected, actual)
+			}
+		})
+	}
+}
+
 // Test b.PrepareConfig, which actually does very little; most real validation
 // happens later in resolveCloudConfig.
 func TestCloud_PrepareConfig(t *testing.T) {
@@ -503,6 +648,20 @@ func TestCloud_config(t *testing.T) {
 				}),
 			}),
 		},
+		"with_kv_tags": {
+			config: cty.ObjectVal((map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.MapVal(map[string]cty.Value{
+						"dept": cty.StringVal("billing"),
+					}),
+					"project": cty.NullVal(cty.String),
+				}),
+			})),
+		},
 		"with_a_name": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
@@ -544,6 +703,47 @@ func TestCloud_config(t *testing.T) {
 				}),
 			}),
 			valErr: `Only one of workspace "tags" or "name" is allowed.`,
+		},
+		"invalid tags dynamic type": {
+			config: cty.ObjectVal((map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.NullVal(cty.String),
+					"tags":    cty.StringVal("dept:billing"),
+					"project": cty.NullVal(cty.String),
+				}),
+			})),
+			confErr: `tags must be a set or object, not string`,
+		},
+		"invalid tags dynamic type, object with non-string": {
+			config: cty.ObjectVal((map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.MapVal(map[string]cty.Value{
+						"dept": cty.NumberIntVal(1),
+					}),
+					"project": cty.NullVal(cty.String),
+				}),
+			})),
+			confErr: `tag object values must be strings`,
+		},
+		"invalid tags dynamic type, tuple non-string": {
+			config: cty.ObjectVal((map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.NullVal(cty.String),
+					"tags":    cty.TupleVal([]cty.Value{cty.NumberIntVal(1)}),
+					"project": cty.NullVal(cty.String),
+				}),
+			})),
+			confErr: `tag elements must be strings`,
 		},
 		"null config": {
 			config: cty.NullVal(cty.EmptyObject),
@@ -993,7 +1193,29 @@ func TestCloud_resolveCloudConfig(t *testing.T) {
 				organization: "hashicorp",
 				token:        "",
 				workspaceMapping: WorkspaceMapping{
-					Tags: []string{"billing", "applications"},
+					TagsAsSet: []string{"billing", "applications"},
+				},
+			},
+		},
+		"with kv tags set": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"hostname":     cty.StringVal("hashicorp.com"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.MapVal(map[string]cty.Value{
+						"dept": cty.StringVal("billing"),
+					}),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+			expectedResult: cloudConfig{
+				hostname:     "hashicorp.com",
+				organization: "hashicorp",
+				token:        "",
+				workspaceMapping: WorkspaceMapping{
+					TagsAsMap: map[string]string{"dept": "billing"},
 				},
 			},
 		},
@@ -1025,9 +1247,13 @@ func TestCloud_resolveCloudConfig(t *testing.T) {
 			} else { // check result
 				// Sort tags first to avoid flaking, since the slice order from
 				// a cty.Set isn't guaranteed:
-				sort.Strings(tc.expectedResult.workspaceMapping.Tags)
-				sort.Strings(result.workspaceMapping.Tags)
+				sort.Strings(tc.expectedResult.workspaceMapping.TagsAsSet)
+				sort.Strings(result.workspaceMapping.TagsAsSet)
 				if !reflect.DeepEqual(tc.expectedResult, result) {
+					t.Fatalf("%s: expected final config of %#v but instead got %#v", name, tc.expectedResult, result)
+				}
+
+				if !reflect.DeepEqual(tc.expectedResult.workspaceMapping.asTFETagBindings(), result.workspaceMapping.asTFETagBindings()) {
 					t.Fatalf("%s: expected final config of %#v but instead got %#v", name, tc.expectedResult, result)
 				}
 			}

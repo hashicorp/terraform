@@ -32,6 +32,14 @@ type EmbeddedStack struct {
 	VersionConstraints                       constraints.IntersectionSpec
 	SourceAddrRange, VersionConstraintsRange tfdiags.SourceRange
 
+	// FinalSourceAddr is populated only when a configuration is loaded
+	// through [LoadConfigDir], and in that case contains the finalized
+	// address produced by resolving the SourceAddr field relative to
+	// the address of the file where the component was declared. This
+	// is the address to use if you intend to load the component's
+	// root module from a source bundle.
+	FinalSourceAddr sourceaddrs.FinalSource
+
 	ForEach hcl.Expression
 
 	// Inputs is an expression that should produce a value that can convert

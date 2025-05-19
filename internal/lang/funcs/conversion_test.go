@@ -181,6 +181,24 @@ func TestTo(t *testing.T) {
 			cty.DynamicVal,
 			`incompatible object type for conversion: attribute "foo" is required`,
 		},
+		{
+			cty.UnknownVal(cty.Object(map[string]cty.Type{"foo": cty.String})).Mark(marks.Ephemeral).Mark("boop"),
+			cty.Map(cty.String),
+			cty.UnknownVal(cty.Map(cty.String)).Mark(marks.Ephemeral).Mark("boop"),
+			``,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("world").Mark("beep"),
+			}).Mark("boop"),
+			cty.Map(cty.String),
+			cty.MapVal(map[string]cty.Value{
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("world").Mark("beep"),
+			}).Mark("boop"),
+			``,
+		},
 	}
 
 	for _, test := range tests {
@@ -322,13 +340,15 @@ func TestEphemeralAsNull(t *testing.T) {
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"addr":  cty.StringVal("127.0.0.1:12654").Mark(marks.Ephemeral),
-				"greet": cty.StringVal("hello"),
+				"greet": cty.StringVal("hello").Mark(marks.Sensitive),
 				"happy": cty.True,
+				"both":  cty.NumberIntVal(2).WithMarks(cty.NewValueMarks(marks.Sensitive, marks.Ephemeral)),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"addr":  cty.NullVal(cty.String),
-				"greet": cty.StringVal("hello"),
+				"greet": cty.StringVal("hello").Mark(marks.Sensitive),
 				"happy": cty.True,
+				"both":  cty.NullVal(cty.Number).Mark(marks.Sensitive),
 			}),
 		},
 	}

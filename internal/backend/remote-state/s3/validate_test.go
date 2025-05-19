@@ -73,7 +73,7 @@ func TestValidateKMSKey(t *testing.T) {
 
 			diags := validateKMSKey(path, testcase.in)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -137,7 +137,7 @@ func TestValidateKeyARN(t *testing.T) {
 
 			diags := validateKMSKeyARN(path, testcase.in)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -189,7 +189,7 @@ func TestValidateStringLenBetween(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateStringLenBetween(min, max)(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -232,7 +232,7 @@ func TestValidateStringMatches(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateStringMatches(testcase.re, "Value must be like ok")(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -298,7 +298,7 @@ func TestValidateARN(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateARN(validators...)(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -386,7 +386,7 @@ The string content was valid JSON, your policy document may have been double-enc
 			var diags tfdiags.Diagnostics
 			validateIAMPolicyDocument(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -449,7 +449,7 @@ func TestValidateSetStringElements(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateSetStringElements(validators...)(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -512,7 +512,7 @@ func TestValidateSetStringElements(t *testing.T) {
 // 			var diags tfdiags.Diagnostics
 // 			validateStringSetValues(validators...)(testcase.val, path, &diags)
 
-// 			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+// 			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 // 				t.Errorf("unexpected diagnostics difference: %s", diff)
 // 			}
 // 		})
@@ -578,7 +578,7 @@ func TestValidateDuration(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateDuration(validators...)(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -635,7 +635,7 @@ func TestValidateDurationBetween(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateDurationBetween(min, max)(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -712,7 +712,7 @@ func TestValidateStringLegacyURL(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateStringLegacyURL(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -789,7 +789,7 @@ func TestValidateStringValidURL(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateStringValidURL(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -832,7 +832,7 @@ func Test_validateStringDoesNotContain(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateStringDoesNotContain(testcase.s)(testcase.val, path, &diags)
 
-			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, testcase.expected, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
