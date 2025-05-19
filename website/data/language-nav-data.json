@@ -33,7 +33,8 @@
         "routes": [
           { "title": "Define configuration", "path": "stacks/deploy/config" },
           { "title": "Set conditions for deployment plans", "path": "stacks/deploy/conditions" },
-          { "title": "Authenticate a Stack", "path": "stacks/deploy/authenticate" }
+          { "title": "Authenticate a Stack", "path": "stacks/deploy/authenticate" },
+          { "title": "Pass data from one Stack to another", "path": "stacks/deploy/pass-data" }
         ]
       },
       {
@@ -1063,6 +1064,10 @@
       {
         "title": "Import Existing Resources",
         "path": "state/import"
+      },
+      {
+        "title": "Refactor state",
+        "path": "state/refactor"
       },
       { "title": "Locking", "path": "state/locking" },
       { "title": "Workspaces", "path": "state/workspaces" },
