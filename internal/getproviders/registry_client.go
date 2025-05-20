@@ -376,7 +376,7 @@ func (c *registryClient) findClosestProtocolCompatibleVersion(ctx context.Contex
 	for versionStr := range available {
 		v, err := ParseVersion(versionStr)
 		if err != nil {
-			log.Printf("[ERROR] registry response includes invalid version string %q. skipping: %s", versionStr, err)
+			log.Printf("[WARN] registry response includes invalid version string %q. skipping: %s", versionStr, err)
 			continue
 		}
 		versionList = append(versionList, v)

@@ -69,7 +69,7 @@ func (s *RegistrySource) AvailableVersions(ctx context.Context, provider addrs.P
 	for str := range versionsResponse {
 		v, err := ParseVersion(str)
 		if err != nil {
-			log.Printf("[ERROR] registry response includes invalid version string %q. skipping: %s", str, err)
+			log.Printf("[WARN] registry response includes invalid version string %q. skipping: %s", str, err)
 			continue
 		}
 		ret = append(ret, v)
