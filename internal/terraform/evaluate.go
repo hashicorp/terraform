@@ -575,7 +575,8 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	}
 	ty := schema.Body.ImpliedType()
 
-	if addr.Mode == addrs.EphemeralResourceMode {
+	switch addr.Mode {
+	case addrs.EphemeralResourceMode:
 		// FIXME: This does not yet work with deferrals, and it would be nice to
 		// find some way to refactor this so that the following code is not so
 		// tethered to the current implementation details. Instead we should
@@ -584,6 +585,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		// then retrieving the value for each instance to assemble into the
 		// result, using some per-resource-mode logic maintained elsewhere.
 		return d.getEphemeralResource(addr, rng)
+	case addrs.ListResourceMode:
+		return d.getListResource(config, rng)
+	default:
+		// continue with the rest of the function
 	}
 
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
@@ -788,6 +793,130 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		ret = val
+	}
+
+	return ret, diags
+}
+
+func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	switch d.Operation {
+	case walkValidate:
+		return cty.DynamicVal, diags
+	case walkQuery:
+		// continue
+	default:
+		return cty.DynamicVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Unsupported operation`,
+			Detail:   fmt.Sprintf("List resources are not supported in %s operations.", d.Operation),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	}
+
+	// The provider result of a list resource is always a tuple, but
+	// we will wrap that tuple in an object with a single attribute "data",
+	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
+	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
+	wrappedVal := func(v *states.ResourceInstanceObject) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{
+			"data":     v.Value,
+			"identity": v.Identity,
+		})
+	}
+	lAddr := config.Addr()
+	mAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: lAddr.Type,
+		Name: lAddr.Name,
+	}
+	resourceSchema := d.getResourceSchema(mAddr, config.Provider)
+	if resourceSchema.Body == nil {
+		// This shouldn't happen, since validation before we get here should've
+		// taken care of it, but we'll show a reasonable error message anyway.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing resource type schema`,
+			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", lAddr, config.Provider),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+	resourceType := resourceSchema.Body.ImpliedType()
+	instances := d.Evaluator.State.GetListResource(lAddr.Absolute(d.ModulePath))
+
+	if len(instances.Values()) == 0 {
+		// Since we know there are no instances, return an empty container of the expected type.
+		switch {
+		case config.Count != nil:
+			return cty.EmptyTupleVal, diags
+		case config.ForEach != nil:
+			return cty.EmptyObjectVal, diags
+		default:
+			return cty.DynamicVal, diags
+		}
+	}
+
+	var ret cty.Value
+	switch {
+	case config.Count != nil:
+		// figure out what the last index we have is
+		length := -1
+		for _, inst := range instances.Elems {
+			if intKey, ok := inst.Key.Resource.Key.(addrs.IntKey); ok {
+				length = max(int(intKey)+1, length)
+			}
+		}
+
+		if length > 0 {
+			vals := make([]cty.Value, length)
+			for _, inst := range instances.Elems {
+				key := inst.Key.Resource.Key
+				if intKey, ok := key.(addrs.IntKey); ok {
+					vals[int(intKey)] = wrappedVal(inst.Value)
+				}
+			}
+
+			// Insert unknown values where there are any missing instances
+			for i, v := range vals {
+				if v == cty.NilVal {
+					vals[i] = cty.UnknownVal(resourceType)
+				}
+			}
+			ret = cty.TupleVal(vals)
+		} else {
+			ret = cty.EmptyTupleVal
+		}
+	case config.ForEach != nil:
+		vals := make(map[string]cty.Value)
+		for _, inst := range instances.Elems {
+			key := inst.Key.Resource.Key
+			if strKey, ok := key.(addrs.StringKey); ok {
+				vals[string(strKey)] = wrappedVal(inst.Value)
+			}
+		}
+
+		if len(vals) > 0 {
+			// We use an object rather than a map here because resource schemas
+			// may include dynamically-typed attributes, which will then cause
+			// each instance to potentially have a different runtime type even
+			// though they all conform to the static schema.
+			ret = cty.ObjectVal(vals)
+		} else {
+			ret = cty.EmptyObjectVal
+		}
+
+		return ret, diags
+	default:
+		inst, ok := instances.GetOk(lAddr.Absolute(d.ModulePath).Instance(addrs.NoKey))
+		if !ok {
+			// if the instance is missing, insert an unknown value
+			inst = &states.ResourceInstanceObject{
+				Value: cty.UnknownVal(resourceType),
+			}
+		}
+
+		ret = wrappedVal(inst)
 	}
 
 	return ret, diags
