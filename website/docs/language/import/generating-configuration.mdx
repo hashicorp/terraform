@@ -15,7 +15,7 @@ Starting with Terraform's generated HCL, we recommend iterating to find your ide
 To generate configuration, run `terraform plan` with the `-generate-config-out` flag and supply a new file path. Do not supply a path to an existing file, or Terraform throws an error.
 
 ```shell
-$ terraform plan -generate-config-out=generated_resources.tf
+$ terraform plan -generate-config-out="generated_resources.tf"
 ```
 
 If any resources targeted by an `import` block do not exist in your configuration, Terraform then generates and writes configuration for those resources in `generated_resources.tf`.
@@ -117,7 +117,6 @@ aws_iot_thing.bar: Importing... [id=foo]
 aws_iot_thing.bar: Import complete [id=foo]
 
 Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
-
 ```
 
 Commit your new resource configuration to your version control system.
@@ -131,7 +130,7 @@ Terraform generates configuration for importable resources during a plan by requ
 Terraform will display an error like the one below if it does not receive values for resource attributes while generating configuration.
 
 ```shell
-$ terraform plan -generate-config-out=generated.tf
+$ terraform plan -generate-config-out="generated.tf"
 ╷
 │ Error: Conflicting configuration arguments
 │ 

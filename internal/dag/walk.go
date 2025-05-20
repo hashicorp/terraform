@@ -76,6 +76,15 @@ func (w *Walker) init() {
 	}
 }
 
+// NewWalker creates a new walker with the given callback function.
+func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
+	w := &Walker{Callback: cb}
+	for _, opt := range opts {
+		opt(w)
+	}
+	return w
+}
+
 type walkerVertex struct {
 	// These should only be set once on initialization and never written again.
 	// They are not protected by a lock since they don't need to be since

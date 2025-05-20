@@ -6,14 +6,16 @@ package stackeval
 import (
 	"context"
 
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type ValidateOpts struct {
 	ProviderFactories ProviderFactories
+	DependencyLocks   depsfile.Locks
 }
 
-// Validateable is implemented by objects that can participate in validation.
+// Validatable is implemented by objects that can participate in validation.
 type Validatable interface {
 	// Validate returns diagnostics for any part of the reciever which
 	// has an invalid configuration.

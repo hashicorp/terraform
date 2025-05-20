@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/registry/response"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
@@ -48,7 +47,7 @@ func TestModuleInstaller(t *testing.T) {
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
 		{
@@ -79,7 +78,7 @@ func TestModuleInstaller(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                "in root module",
@@ -381,7 +380,7 @@ func TestModuleInstaller_symlink(t *testing.T) {
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
 		{
@@ -412,7 +411,7 @@ func TestModuleInstaller_symlink(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                "in root module",
@@ -430,6 +429,45 @@ func TestModuleInstaller_symlink(t *testing.T) {
 		gotTraces[path] = varDesc
 	})
 	assertResultDeepEqual(t, gotTraces, wantTraces)
+}
+
+func TestLoaderInstallModules_invalidRegistry(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
+	}
+
+	fixtureDir := filepath.Clean("testdata/invalid-registry-modules")
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer done()
+
+	hooks := &testInstallHooks{}
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+
+	loader, close := configload.NewLoaderForTests(t)
+	defer close()
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		tfdiags.AssertDiagnosticCount(t, diags, 1)
+		assertDiagnosticSummary(t, diags, "Unreadable module subdirectory")
+
+		// the diagnostic should specifically call out the submodule that failed
+		if !strings.Contains(diags[0].Description().Detail, "target submodule modules/child_c") {
+			t.Errorf("unmatched error detail")
+		}
+	}
 }
 
 func TestLoaderInstallModules_registry(t *testing.T) {
@@ -457,7 +495,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.1"))
 
@@ -571,7 +609,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                             "in local caller for registry-modules",
@@ -594,70 +632,6 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	})
 	assertResultDeepEqual(t, gotTraces, wantTraces)
 
-}
-
-func TestLoaderInstallModules_registry_deprecated(t *testing.T) {
-	fixtureDir := filepath.Clean("testdata/registry-module-from-test")
-	tmpDir, done := tempChdir(t, fixtureDir)
-	// the module installer runs filepath.EvalSymlinks() on the destination
-	// directory before copying files, and the resultant directory is what is
-	// returned by the install hooks. Without this, tests could fail on machines
-	// where the default temp dir was a symlink.
-	dir, err := filepath.EvalSymlinks(tmpDir)
-	if err != nil {
-		t.Error(err)
-	}
-
-	defer done()
-
-	hooks := &testInstallHooks{}
-	modulesDir := filepath.Join(dir, ".terraform/modules")
-
-	loader, close := configload.NewLoaderForTests(t)
-	defer close()
-
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
-
-	// Avoid actual registry lookup by populating registry cache
-	packageAddr := addrs.ModuleRegistryPackage{
-		Host:         svchost.Hostname("registry.terraform.io"),
-		Namespace:    "hashicorp",
-		Name:         "module-installer-acctest",
-		TargetSystem: "aws",
-	}
-
-	inst.registryPackageVersions[packageAddr] = &response.ModuleVersions{
-		Modules: []*response.ModuleProviderVersions{
-			{
-				Source: "",
-				Versions: []*response.ModuleVersion{
-					{
-						Version:    "0.0.1",
-						Root:       response.VersionSubmodule{},
-						Submodules: []*response.VersionSubmodule{},
-						Deprecation: &response.Deprecation{
-							Reason: "This module version is deprecated",
-							Link:   "https://example.com/deprecation",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
-
-	if !diags.HasWarnings() {
-		t.Fatal("expected warning")
-	} else {
-		assertDiagnosticCount(t, diags, 1)
-		assertDiagnosticSummary(t, diags, "Module version 0.0.1 of registry.terraform.io/hashicorp/module-installer-acctest/aws is deprecated")
-
-		wantDetail := "This module version is deprecated\n\nMore information: https://example.com/deprecation"
-		if diags[0].Description().Detail != wantDetail {
-			t.Errorf("wrong deprecation detail\nwant: %s\ngot: %s", wantDetail, diags[0].Description().Detail)
-		}
-	}
 }
 
 func TestLoaderInstallModules_goGetter(t *testing.T) {
@@ -684,7 +658,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
 		// the configuration builder visits each level of calls in lexicographical
@@ -765,7 +739,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                             "in local caller for go-getter-modules",
@@ -802,7 +776,7 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
 		{
@@ -827,7 +801,7 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfigWithTests(".", "tests")
-	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	if config.Module.Tests["tests/main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
 		t.Fatalf("should have loaded config into the relevant run block but did not")
@@ -859,7 +833,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.1"))
 	wantCalls := []testInstallHookCall{
@@ -936,7 +910,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfigWithTests(".", "tests")
-	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	if config.Module.Tests["main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
 		t.Fatalf("should have loaded config into the relevant run block but did not")
@@ -1023,35 +997,19 @@ func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 	}
 }
 
-func assertNoDiagnostics(t *testing.T, diags tfdiags.Diagnostics) bool {
-	t.Helper()
-	return assertDiagnosticCount(t, diags, 0)
-}
-
-func assertDiagnosticCount(t *testing.T, diags tfdiags.Diagnostics, want int) bool {
-	t.Helper()
-	if len(diags) != want {
-		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
-		for _, diag := range diags {
-			t.Logf("- %#v", diag.Description().Summary)
-		}
-		return true
-	}
-	return false
-}
-
 func assertDiagnosticSummary(t *testing.T, diags tfdiags.Diagnostics, want string) bool {
 	t.Helper()
 
 	for _, diag := range diags {
 		if diag.Description().Summary == want {
+			t.Logf("matching diagnostic detail %q", diag.Description().Detail)
 			return false
 		}
 	}
 
 	t.Errorf("missing diagnostic summary %q", want)
 	for _, diag := range diags {
-		t.Logf("- %#v", diag)
+		t.Logf("- %#v", diag.Description().Summary)
 	}
 	return true
 }

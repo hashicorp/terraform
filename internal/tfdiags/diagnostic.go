@@ -27,9 +27,13 @@ type Diagnostic interface {
 	ExtraInfo() interface{}
 }
 
+type ComparableDiagnostic interface {
+	Equals(otherDiag ComparableDiagnostic) bool
+}
+
 type Severity rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=Severity
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=Severity
 
 const (
 	Error   Severity = 'E'
@@ -64,9 +68,4 @@ type Source struct {
 type FromExpr struct {
 	Expression  hcl.Expression
 	EvalContext *hcl.EvalContext
-}
-
-// PublicExtraInfo is an interface for marking Extra field that contain public extra information
-type PublicExtraInfo interface {
-	IsPublic()
 }

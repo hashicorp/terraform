@@ -6,15 +6,14 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -23,42 +22,36 @@ import (
 // StackCall represents a "stack" block in a stack configuration after
 // its containing stacks have been expanded into stack instances.
 type StackCall struct {
-	addr stackaddrs.AbsStackCall
+	addr   stackaddrs.AbsStackCall
+	stack  *Stack
+	config *StackCallConfig
 
 	main *Main
 
 	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances    perEvalPhase[promising.Once[withDiagnostics[map[addrs.InstanceKey]*StackCallInstance]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*StackCallInstance]]]]
+
+	unknownInstancesMutex sync.Mutex
+	unknownInstances      map[addrs.InstanceKey]*StackCallInstance
 }
 
 var _ Plannable = (*StackCall)(nil)
 var _ Referenceable = (*StackCall)(nil)
 
-func newStackCall(main *Main, addr stackaddrs.AbsStackCall) *StackCall {
+func newStackCall(main *Main, addr stackaddrs.AbsStackCall, stack *Stack, config *StackCallConfig) *StackCall {
 	return &StackCall{
-		addr: addr,
-		main: main,
+		addr:             addr,
+		main:             main,
+		stack:            stack,
+		config:           config,
+		unknownInstances: make(map[addrs.InstanceKey]*StackCallInstance),
 	}
 }
 
-func (c *StackCall) Addr() stackaddrs.AbsStackCall {
-	return c.addr
-}
-
-func (c *StackCall) Config(ctx context.Context) *StackCallConfig {
-	configAddr := stackaddrs.ConfigForAbs(c.addr)
-	return c.main.StackCallConfig(ctx, configAddr)
-}
-
-func (c *StackCall) Caller(ctx context.Context) *Stack {
-	callerAddr := c.Addr().Stack
-	// Unchecked because StackCall instances only get constructed from
-	// Stack objects, and so our address is derived from there.
-	return c.main.StackUnchecked(ctx, callerAddr)
-}
-
-func (c *StackCall) Declaration(ctx context.Context) *stackconfig.EmbeddedStack {
-	return c.Config(ctx).Declaration(ctx)
+// GetExternalRemovedBlocks fetches the removed blocks that target the stack
+// instances being created by this stack call.
+func (c *StackCall) GetExternalRemovedBlocks() *Removed {
+	return c.stack.Removed().Next(c.addr.Item.Name)
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression
@@ -95,15 +88,15 @@ func (c *StackCall) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value
 // that we cannot know the for_each value.
 func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	val, diags := doOnceWithDiags(
-		ctx, c.forEachValue.For(phase), c.main,
+		ctx, c.tracingName()+" for_each", c.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			cfg := c.Declaration(ctx)
+			cfg := c.config.config
 
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Caller(ctx), "stack")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.stack, "stack")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -142,42 +135,68 @@ func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 // for_each expression is invalid because we assume that the main plan walk
 // will visit the stack call directly and ask it to check itself, and that
 // call will be the one responsible for returning any diagnostics.
-func (c *StackCall) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*StackCallInstance {
-	ret, _ := c.CheckInstances(ctx, phase)
-	return ret
+func (c *StackCall) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*StackCallInstance, bool) {
+	ret, unknown, _ := c.CheckInstances(ctx, phase)
+	return ret, unknown
 }
 
-func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*StackCallInstance, tfdiags.Diagnostics) {
-	return doOnceWithDiags(
-		ctx, c.instances.For(phase), c.main,
-		func(ctx context.Context) (map[addrs.InstanceKey]*StackCallInstance, tfdiags.Diagnostics) {
+func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*StackCallInstance, bool, tfdiags.Diagnostics) {
+	result, diags := doOnceWithDiags(
+		ctx, c.tracingName()+" instances", c.instances.For(phase),
+		func(ctx context.Context) (instancesResult[*StackCallInstance], tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
 
 			diags = diags.Append(forEachValueDiags)
 			if diags.HasErrors() {
-				return nil, diags
+				return instancesResult[*StackCallInstance]{}, diags
 			}
 
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *StackCallInstance {
-				return newStackCallInstance(c, ik, rd)
-			}, true), diags
+				return newStackCallInstance(c, ik, rd, c.stack.mode, c.stack.deferred)
+			}), diags
 		},
 	)
+	return result.insts, result.unknown, diags
+}
+
+func (c *StackCall) UnknownInstance(ctx context.Context, key addrs.InstanceKey, phase EvalPhase) *StackCallInstance {
+	c.unknownInstancesMutex.Lock()
+	defer c.unknownInstancesMutex.Unlock()
+
+	if inst, ok := c.unknownInstances[key]; ok {
+		return inst
+	}
+
+	forEachType := c.ForEachValue(ctx, phase).Type()
+	repetitionData := instances.UnknownForEachRepetitionData(forEachType)
+	if key != addrs.WildcardKey {
+		repetitionData.EachKey = key.Value()
+	}
+
+	inst := newStackCallInstance(c, key, repetitionData, c.stack.mode, true)
+	c.unknownInstances[key] = inst
+	return inst
 }
 
 func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
-	decl := c.Declaration(ctx)
-	insts := c.Instances(ctx, phase)
-	childResultType := c.Config(ctx).CalleeConfig(ctx).ResultType(ctx)
+	decl := c.config.config
+	insts, unknown := c.Instances(ctx, phase)
+	childResultType := c.config.TargetConfig().ResultType()
 
 	switch {
 	case decl.ForEach != nil:
-		if insts == nil {
-			// If we don't even know what instances we have then all we can
-			// say is that our result ought to be a map of an object type
-			// constructed from the child stack's output values.
+
+		if unknown {
+			// We don't know what instances we have, so we can't know what
+			// the result will be.
 			return cty.UnknownVal(cty.Map(childResultType))
+		}
+
+		if insts == nil {
+			// Then we errored during instance calculation, this should have
+			// already been reported.
+			return cty.NilVal
 		}
 
 		// We expect that the instances all have string keys, which will
@@ -188,7 +207,7 @@ func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 			if !ok {
 				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
 			}
-			elems[string(k)] = inst.CalledStack(ctx).ResultValue(ctx, phase)
+			elems[string(k)] = inst.Stack(ctx, phase).ResultValue(ctx, phase)
 		}
 		if len(elems) == 0 {
 			return cty.MapValEmpty(childResultType)
@@ -211,7 +230,7 @@ func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 			panic("single-instance stack call does not have an addrs.NoKey instance")
 		}
 
-		return inst.CalledStack(ctx).ResultValue(ctx, phase)
+		return inst.Stack(ctx, phase).ResultValue(ctx, phase)
 	}
 }
 
@@ -223,7 +242,7 @@ func (c *StackCall) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty
 func (c *StackCall) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := c.CheckInstances(ctx, phase)
+	_, _, moreDiags := c.CheckInstances(ctx, phase)
 	diags = diags.Append(moreDiags)
 
 	// All of the other arguments in a stack call get evaluated separately
@@ -248,17 +267,13 @@ func (c *StackCall) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange,
 }
 
 // References implements Referrer
-func (c *StackCall) References(ctx context.Context) []stackaddrs.AbsReference {
-	cfg := c.Declaration(ctx)
+func (c *StackCall) References(context.Context) []stackaddrs.AbsReference {
+	cfg := c.config.config
 	var ret []stackaddrs.Reference
-	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
-	ret = append(ret, ReferencesInExpr(ctx, cfg.Inputs)...)
-	return makeReferencesAbsolute(ret, c.Addr().Stack)
-}
-
-// RequiredComponents implements Applyable
-func (c *StackCall) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return c.main.requiredComponentsForReferrer(ctx, c, PlanPhase)
+	ret = append(ret, ReferencesInExpr(cfg.ForEach)...)
+	ret = append(ret, ReferencesInExpr(cfg.Inputs)...)
+	ret = append(ret, referencesInTraversals(cfg.DependsOn)...)
+	return makeReferencesAbsolute(ret, c.addr.Stack)
 }
 
 // CheckApply implements Applyable.
@@ -267,26 +282,5 @@ func (c *StackCall) CheckApply(ctx context.Context) ([]stackstate.AppliedChange,
 }
 
 func (c *StackCall) tracingName() string {
-	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *StackCall) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := c.Addr().String()
-	instsName := name + " instances"
-	forEachName := name + " for_each"
-	c.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[map[addrs.InstanceKey]*StackCallInstance]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// StackCallInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to stack call instances are always indirect through the stack call this
-	// shouldn't be a big deal in most cases.
-	c.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
+	return c.addr.String()
 }

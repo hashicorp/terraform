@@ -1,39 +1,36 @@
 ---
-page_title: Provider Metadata
+page_title: Collect Provider Metadata
 description: >-
-  For advanced use cases, modules can provide some pre-defined metadata for
-  providers.
+  Provider developers can enable the modules created for the their providers to collect provider metadata.
 ---
 
-# Provider Metadata
+# Collect Provider Metadata
 
-In some situations it's beneficial for a provider to offer an interface
+This topic describes how to create an inferface in the providers you develop that allows you to collect metadata that is unrelated to the resources in the module, such as usage statistics. This is an advanced topic and is not required to use Terraform. 
+
+## Introduction
+
+In some situations it is beneficial for a provider to offer an interface
 through which modules can pass it information unrelated to the resources
 in the module, but scoped on a per-module basis.
 
-Provider Metadata allows a provider to declare metadata fields it expects,
+Provider metadata allows a provider to declare metadata fields it expects,
 which individual modules can then populate independently of any provider
 configuration. While provider configurations are often shared between modules,
 provider metadata is always module-specific.
 
-Provider Metadata is intended primarily for the situation where an official
+Provider metadata is intended primarily for the situation where an official
 module is developed by the same vendor that produced the provider it is
 intended to work with, to allow the vendor to indirectly obtain usage
 statistics for each module via the provider. For that reason, this
 documentation is presented from the perspective of the provider developer
 rather than the module developer.
 
-~> **Advanced Topic!** This page covers technical details
-of Terraform. You don't need to understand these details to
-effectively use Terraform. The details are documented here for
-module authors and provider developers working on advanced
-functionality.
 
-~> **Experimental Feature!** This functionality is still considered
-experimental, and anyone taking advantage of it should [coordinate
+~> **Experimental Feature:** This functionality is
+experimental. You should [coordinate
 with the Terraform team](https://github.com/hashicorp/terraform/issues/new)
-to help the team understand how the feature is being used and to make
-sure their use case is taken into account as the feature develops.
+so that they can understand how you are using this functionality. Doing so ensures that your use cases are taken into account as the feature evolves.
 
 ## Defining the Schema
 

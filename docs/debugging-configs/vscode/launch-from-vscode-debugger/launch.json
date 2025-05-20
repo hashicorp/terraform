@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Runs Terraform using the Terraform configuration specified via the chdir argument
+            "name": "Run Terraform in debug mode",
+            "request": "launch",
+            "type": "go",
+            "args": [
+                "-chdir=<absolute path to a Terraform configuration>",
+                // Change this array to perform different terraform commands with different arguments.
+                "plan",
+                "-var='name=value'"
+            ],
+            // "cwd": "<absolute path to a Terraform configuration>", // An alternative to using the -chdir global flag above.
+            // Environment variables can be set from a file or as key-value pairs in the configuration.
+            // "env": {
+            //     "MY_ENV": "my-value",
+            // },
+            // "envFile": "./vscode/private.env",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "console": "integratedTerminal", // allows responding to y/n in terminal, e.g. in apply command.
+            "showLog": false // dlv's logs
+        }
+    ]
+}

@@ -82,7 +82,7 @@ func (k checkRuleKey) uniqueKeySigil() {}
 // itself.)
 type CheckRuleType int
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=CheckRuleType check_rule.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=CheckRuleType check_rule.go
 
 const (
 	InvalidCondition      CheckRuleType = 0

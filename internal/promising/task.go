@@ -31,14 +31,17 @@ func MainTask[T any](ctx context.Context, impl func(ctx context.Context) (T, err
 	// The implementation function must have either resolved all of its
 	// promises or transferred responsibility for them to another task
 	// before it returns.
+	var unresolvedErr ErrUnresolved
 	for unresolved := range mainT.responsible {
-		resolvePromise(unresolved, nil, ErrUnresolved)
-		if err == nil {
-			// If the task wasn't already returning its own error then we'll
-			// make it return ErrUnresolved so the caller can see that the
-			// task behaved incorrectly.
-			err = ErrUnresolved
-		}
+		oneErr := ErrUnresolved{unresolved.promiseID()}
+		resolvePromise(unresolved, nil, oneErr)
+		unresolvedErr = append(unresolvedErr, unresolved.promiseID())
+	}
+	if err == nil && len(unresolvedErr) != 0 {
+		// If the task wasn't already returning its own error then we'll
+		// make it return our ErrUnresolved so the caller will know that the
+		// task behaved incorrectly.
+		err = unresolvedErr
 	}
 	return v, err
 }
@@ -112,7 +115,8 @@ func AsyncTask[P PromiseContainer](ctx context.Context, promises P, impl func(ct
 		// promises or transferred responsibility for them to another task
 		// before it returns.
 		for unresolved := range newT.responsible {
-			resolvePromise(unresolved, nil, ErrUnresolved)
+			err := ErrUnresolved{unresolved.promiseID()}
+			resolvePromise(unresolved, nil, err)
 		}
 	}()
 }

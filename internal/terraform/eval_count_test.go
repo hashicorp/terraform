@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -23,7 +24,7 @@ func TestEvaluateCountExpression(t *testing.T) {
 			hcltest.MockExprLiteral(cty.NumberIntVal(0)),
 			0,
 		},
-		"expression with marked value": {
+		"expression with sensitive value": {
 			hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark(marks.Sensitive)),
 			8,
 		},
@@ -45,6 +46,21 @@ func TestEvaluateCountExpression(t *testing.T) {
 				)
 			}
 		})
+	}
+}
+
+func TestEvaluateCountExpression_ephemeral(t *testing.T) {
+	expr := hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark(marks.Ephemeral))
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+	_, diags := evaluateCountExpression(expr, ctx, false)
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success; want error")
+	}
+	gotErrs := diags.Err().Error()
+	wantErr := `The given "count" is derived from an ephemeral value`
+	if !strings.Contains(gotErrs, wantErr) {
+		t.Errorf("missing expected error\ngot:\n%s\nwant substring: %s", gotErrs, wantErr)
 	}
 }
 

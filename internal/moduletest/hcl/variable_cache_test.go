@@ -64,27 +64,26 @@ func TestFileVariables(t *testing.T) {
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
 
-			caches := &VariableCaches{
-				FileVariables: func() map[string]hcl.Expression {
+			caches := NewVariableCaches(func(vc *VariableCaches) {
+				vc.FileVariables = func() map[string]hcl.Expression {
 					vars := make(map[string]hcl.Expression)
 					for name, value := range tc.Values {
-						expr, diags := hclsyntax.ParseExpression([]byte(value), "test.tf", hcl.Pos{0, 0, 0})
+						expr, diags := hclsyntax.ParseExpression([]byte(value), "test.tf", hcl.Pos{Line: 0, Column: 0, Byte: 0})
 						if len(diags) > 0 {
 							t.Fatalf("unexpected errors: %v", diags)
 						}
 						vars[name] = expr
 					}
 					return vars
-				}(),
-				GlobalVariables: func() map[string]backendrun.UnparsedVariableValue {
+				}()
+				vc.GlobalVariables = func() map[string]backendrun.UnparsedVariableValue {
 					vars := make(map[string]backendrun.UnparsedVariableValue)
 					for name, value := range tc.GlobalValues {
 						vars[name] = &variable{name, value}
 					}
 					return vars
-				}(),
-			}
-
+				}()
+			})
 			config := makeConfigWithVariables(tc.Variables)
 
 			cache := caches.GetCache("test", config)
@@ -171,15 +170,15 @@ func TestGlobalVariables(t *testing.T) {
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
 
-			caches := &VariableCaches{
-				GlobalVariables: func() map[string]backendrun.UnparsedVariableValue {
+			caches := NewVariableCaches(func(vc *VariableCaches) {
+				vc.GlobalVariables = func() map[string]backendrun.UnparsedVariableValue {
 					vars := make(map[string]backendrun.UnparsedVariableValue)
 					for name, value := range tc.Values {
 						vars[name] = &variable{name, value}
 					}
 					return vars
-				}(),
-			}
+				}()
+			})
 
 			config := makeConfigWithVariables(tc.Variables)
 

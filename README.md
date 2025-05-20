@@ -1,12 +1,12 @@
 # Terraform
 
-- Website: https://www.terraform.io
+- Website: https://developer.hashicorp.com/terraform
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
-- Documentation: [https://www.terraform.io/docs/](https://www.terraform.io/docs/)
-- Tutorials: [HashiCorp's Learn Platform](https://learn.hashicorp.com/terraform)
+- Documentation: [https://developer.hashicorp.com/terraform/docs](https://developer.hashicorp.com/terraform/docs)
+- Tutorials: [HashiCorp's Learn Platform](https://developer.hashicorp.com/terraform/tutorials)
 - Certification Exam: [HashiCorp Certified: Terraform Associate](https://www.hashicorp.com/certification/#hashicorp-certified-terraform-associate)
 
-<img alt="Terraform" src="https://www.datocms-assets.com/2885/1629941242-logo-terraform-main.svg" width="600px">
+<img alt="Terraform" src="https://www.datocms-assets.com/2885/1731373310-terraform_white.svg" width="600px">
 
 Terraform is a tool for building, changing, and versioning infrastructure safely and efficiently. Terraform can manage existing and popular service providers as well as custom in-house solutions.
 
@@ -24,10 +24,10 @@ For more information, refer to the [What is Terraform?](https://www.terraform.io
 
 ## Getting Started & Documentation
 
-Documentation is available on the [Terraform website](https://www.terraform.io):
+Documentation is available on the [Terraform website](https://developer.hashicorp.com/terraform):
 
-- [Introduction](https://www.terraform.io/intro)
-- [Documentation](https://www.terraform.io/docs)
+- [Introduction](https://developer.hashicorp.com/terraform/intro)
+- [Documentation](https://developer.hashicorp.com/terraform/docs)
 
 If you're new to Terraform and want to get started creating infrastructure, please check out our [Getting Started guides](https://learn.hashicorp.com/terraform#getting-started) on HashiCorp's learning platform. There are also [additional guides](https://learn.hashicorp.com/terraform#operations-and-development) to continue your learning.
 
@@ -35,7 +35,7 @@ Show off your Terraform knowledge by passing a certification exam. Visit the [ce
 
 ## Developing Terraform
 
-This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins, and Terraform can automatically download providers that are published on [the Terraform Registry](https://registry.terraform.io). HashiCorp develops some providers, and others are developed by other organizations. For more information, see [Extending Terraform](https://www.terraform.io/docs/extend/index.html).
+This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins, and Terraform can automatically download providers that are published on [the Terraform Registry](https://registry.terraform.io). HashiCorp develops some providers, and others are developed by other organizations. For more information, refer to [Plugin development](https://developer.hashicorp.com/terraform/plugin).
 
 - To learn more about compiling Terraform and contributing suggested changes, refer to [the contributing guide](.github/CONTRIBUTING.md).
 

@@ -27,3 +27,6 @@ vendor/
 
 # Coverage
 coverage.txt
+
+# IDEs
+.vscode/

@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Include resource identity in import apply UI output
+time: 2025-05-14T11:21:52.75746+02:00
+custom:
+    Issue: "37044"

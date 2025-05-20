@@ -57,7 +57,7 @@ func (diags Diagnostics) Append(new ...interface{}) Diagnostics {
 			diags = append(diags, ti)
 		case Diagnostics:
 			diags = append(diags, ti...) // flatten
-		case diagnosticsAsError:
+		case DiagnosticsAsError:
 			diags = diags.Append(ti.Diagnostics) // unwrap
 		case NonFatalError:
 			diags = diags.Append(ti.Diagnostics) // unwrap
@@ -76,6 +76,46 @@ func (diags Diagnostics) Append(new ...interface{}) Diagnostics {
 
 	// Given the above, we should never end up with a non-nil empty slice
 	// here, but we'll make sure of that so callers can rely on empty == nil
+	if len(diags) == 0 {
+		return nil
+	}
+
+	return diags
+}
+
+// ContainsDiagnostic returns true of a given diagnostic is contained
+// within the Diagnostics slice.
+// Comparisons are done via [ComparableDiagnostic].
+func (diags Diagnostics) ContainsDiagnostic(diag ComparableDiagnostic) bool {
+	for _, d := range diags {
+		if cd, ok := d.(ComparableDiagnostic); ok && diag.Equals(cd) {
+			return true
+		}
+	}
+	return false
+}
+
+// AppendWithoutDuplicates appends a Diagnostic unless one is already contained
+// according to [ContainsDiagnostic], i.e. based on [ComparableDiagnostic].
+func (diags Diagnostics) AppendWithoutDuplicates(newDiags ...Diagnostic) Diagnostics {
+	for _, newItem := range newDiags {
+		if newItem == nil {
+			continue
+		}
+
+		cd, ok := newItem.(ComparableDiagnostic)
+		if !ok {
+			// append what we cannot compare
+			diags = diags.Append(newItem)
+			continue
+		}
+		if diags.ContainsDiagnostic(cd) {
+			continue
+		}
+
+		diags = diags.Append(newItem)
+	}
+
 	if len(diags) == 0 {
 		return nil
 	}
@@ -111,7 +151,7 @@ func diagnosticsForError(err error) []Diagnostic {
 
 	// If we've wrapped a Diagnostics in an error then we'll unwrap
 	// it and add it directly.
-	var asErr diagnosticsAsError
+	var asErr DiagnosticsAsError
 	if errors.As(err, &asErr) {
 		return asErr.Diagnostics
 	}
@@ -140,6 +180,17 @@ func diagnosticsForError(err error) []Diagnostic {
 	return []Diagnostic{
 		nativeError{err},
 	}
+}
+
+// Warnings returns a Diagnostics list containing only diagnostics with a severity of Warning.
+func (diags Diagnostics) Warnings() Diagnostics {
+	var warns = Diagnostics{}
+	for _, diag := range diags {
+		if diag.Severity() == Warning {
+			warns = append(warns, diag)
+		}
+	}
+	return warns
 }
 
 // HasErrors returns true if any of the diagnostics in the list have
@@ -195,7 +246,7 @@ func (diags Diagnostics) Err() error {
 	if !diags.HasErrors() {
 		return nil
 	}
-	return diagnosticsAsError{diags}
+	return DiagnosticsAsError{diags}
 }
 
 // ErrWithWarnings is similar to Err except that it will also return a non-nil
@@ -246,11 +297,12 @@ func (diags Diagnostics) Sort() {
 	sort.Stable(sortDiagnostics(diags))
 }
 
-type diagnosticsAsError struct {
+// DiagnosticsAsError embeds diagnostics, and satisfies the error interface.
+type DiagnosticsAsError struct {
 	Diagnostics
 }
 
-func (dae diagnosticsAsError) Error() string {
+func (dae DiagnosticsAsError) Error() string {
 	diags := dae.Diagnostics
 	switch {
 	case len(diags) == 0:
@@ -280,7 +332,7 @@ func (dae diagnosticsAsError) Error() string {
 
 // WrappedErrors is an implementation of errwrap.Wrapper so that an error-wrapped
 // diagnostics object can be picked apart by errwrap-aware code.
-func (dae diagnosticsAsError) WrappedErrors() []error {
+func (dae DiagnosticsAsError) WrappedErrors() []error {
 	var errs []error
 	for _, diag := range dae.Diagnostics {
 		if wrapper, isErr := diag.(nativeError); isErr {

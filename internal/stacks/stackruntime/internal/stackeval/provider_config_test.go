@@ -50,15 +50,15 @@ func TestProviderConfig_CheckProviderArgs_EmptyConfig(t *testing.T) {
 	}
 	getProviderConfig := func(ctx context.Context, t *testing.T, main *Main) *ProviderConfig {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		return provider.Config(ctx)
+		return provider.config
 	}
 
 	subtestInPromisingTask(t, "valid", func(ctx context.Context, t *testing.T) {
@@ -72,7 +72,7 @@ func TestProviderConfig_CheckProviderArgs_EmptyConfig(t *testing.T) {
 		config := getProviderConfig(ctx, t, main)
 
 		want := cty.EmptyObjectVal
-		got, diags := config.CheckProviderArgs(ctx, ValidatePhase)
+		got, diags := config.CheckProviderArgs(ctx, InspectPhase)
 		assertNoDiags(t, diags)
 
 		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
@@ -101,7 +101,7 @@ func TestProviderConfig_CheckProviderArgs(t *testing.T) {
 		mockProvider := &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"test": {
 								Type:     cty.String,
@@ -132,15 +132,15 @@ func TestProviderConfig_CheckProviderArgs(t *testing.T) {
 	}
 	getProviderConfig := func(ctx context.Context, t *testing.T, main *Main) *ProviderConfig {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		return provider.Config(ctx)
+		return provider.config
 	}
 
 	subtestInPromisingTask(t, "valid", func(ctx context.Context, t *testing.T) {
@@ -159,7 +159,7 @@ func TestProviderConfig_CheckProviderArgs(t *testing.T) {
 		want := cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("yep"),
 		})
-		got, diags := config.CheckProviderArgs(ctx, ValidatePhase)
+		got, diags := config.CheckProviderArgs(ctx, InspectPhase)
 		assertNoDiags(t, diags)
 
 		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
@@ -196,7 +196,7 @@ func TestProviderConfig_CheckProviderArgs(t *testing.T) {
 		want := cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("yep").Mark("nope"),
 		})
-		got, diags := config.CheckProviderArgs(ctx, ValidatePhase)
+		got, diags := config.CheckProviderArgs(ctx, InspectPhase)
 		assertNoDiags(t, diags)
 
 		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {

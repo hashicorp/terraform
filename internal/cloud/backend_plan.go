@@ -197,19 +197,24 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 	}
 
+	log.Printf("[TRACE] backend/cloud: starting configuration upload at %q", configDir)
 	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
 	if err != nil {
 		return nil, b.generalError("Failed to upload configuration files", err)
 	}
+	log.Printf("[TRACE] backend/cloud: finished configuration upload")
 
 	uploaded := false
 	for i := 0; i < 60 && !uploaded; i++ {
 		select {
 		case <-stopCtx.Done():
+			log.Printf("[TRACE] backend/cloud: deadline reached while waiting for configuration status")
 			return nil, context.Canceled
 		case <-cancelCtx.Done():
+			log.Printf("[TRACE] backend/cloud: operation cancelled while waiting for configuration status")
 			return nil, context.Canceled
 		case <-time.After(planConfigurationVersionsPollInterval):
+			log.Printf("[TRACE] backend/cloud: reading configuration status")
 			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
 			if err != nil {
 				return nil, b.generalError("Failed to retrieve configuration version", err)
@@ -226,6 +231,7 @@ in order to capture the filesystem context the remote workspace expects:
 			"Failed to upload configuration files", errors.New("operation timed out"))
 	}
 
+	log.Printf("[TRACE] backend/cloud: configuration uploaded and ready")
 	runOptions := tfe.RunCreateOptions{
 		ConfigurationVersion: cv,
 		Refresh:              tfe.Bool(op.PlanRefresh),
@@ -420,11 +426,11 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 		// Second, check the agent version is high enough.
 		agentEnv, isSet := os.LookupEnv("TFC_AGENT_VERSION")
 		if !isSet {
-			return fmt.Errorf("Error reading Terraform Cloud agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
+			return fmt.Errorf("Error reading HCP Terraform Agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
 		}
 		currentAgentVersion, err := version.NewVersion(agentEnv)
 		if err != nil {
-			return fmt.Errorf("Error parsing Terraform Cloud agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
+			return fmt.Errorf("Error parsing HCP Terraform Agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
 		}
 		desiredAgentVersion, _ := version.NewVersion("1.10")
 		if currentAgentVersion.LessThan(desiredAgentVersion) {

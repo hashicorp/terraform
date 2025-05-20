@@ -86,7 +86,7 @@ A `for` expression can also include an optional `if` clause to filter elements
 from the source collection, producing a value with fewer elements than
 the source value:
 
-```
+```hcl
 [for s in var.list : upper(s) if s != ""]
 ```
 

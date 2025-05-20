@@ -363,6 +363,17 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"ephemeralasnull": {
+			{
+				`ephemeralasnull(local.ephemeral)`,
+				cty.NullVal(cty.String),
+			},
+			{
+				`ephemeralasnull("not ephemeral")`,
+				cty.StringVal("not ephemeral"),
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,
@@ -1231,7 +1242,6 @@ func TestFunctions(t *testing.T) {
 	}
 
 	experimentalFuncs := map[string]experiments.Experiment{}
-	experimentalFuncs["defaults"] = experiments.ModuleVariableOptionalAttrs
 
 	// We'll also register a few "external functions" so that we can
 	// verify that registering these works. The functions actually
@@ -1330,6 +1340,7 @@ func TestFunctions(t *testing.T) {
 					data := &dataForTests{
 						LocalValues: map[string]cty.Value{
 							"greeting_template": cty.StringVal("Hello, ${name}!"),
+							"ephemeral":         cty.StringVal("ephemeral").Mark(marks.Ephemeral),
 						},
 					}
 					scope := &Scope{
@@ -1363,6 +1374,26 @@ func TestFunctions(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestPlanTimeStampUnknown(t *testing.T) {
+	// plantimestamp should return an unknown if there is no timestamp, which
+	// happens during validation
+	expr, parseDiags := hclsyntax.ParseExpression([]byte("plantimestamp()"), "test.hcl", hcl.Pos{Line: 1, Column: 1})
+	if parseDiags.HasErrors() {
+		t.Fatal(parseDiags)
+	}
+
+	scope := &Scope{}
+	got, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+
+	}
+
+	if got.IsKnown() {
+		t.Fatalf("plantimestamp() should be unknown, got %#v\n", got)
 	}
 }
 

@@ -29,7 +29,7 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 		mockProvider := &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"test": {
 								Type:     cty.String,
@@ -60,15 +60,16 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 	}
 	getProviderInstance := func(ctx context.Context, t *testing.T, main *Main) *ProviderInstance {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		insts := provider.Instances(ctx, InspectPhase)
+		insts, unknown := provider.Instances(ctx, InspectPhase)
+		assertFalse(t, unknown)
 		inst, ok := insts[addrs.NoKey]
 		if !ok {
 			t.Fatal("missing NoKey instance of provider.foo.bar")
@@ -167,7 +168,7 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 		// We'll make sure the configuration really does omit the config
 		// block, in case someone modifies the fixture in future without
 		// realizing we're relying on that invariant here.
-		decl := inst.provider.Declaration(ctx)
+		decl := inst.provider.config.config
 		if decl.Config != nil {
 			t.Fatal("test fixture has a config block for the provider; should omit it")
 		}
@@ -303,7 +304,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 		mockProvider := &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"test": {
 								Type:     cty.String,
@@ -333,15 +334,16 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 	}
 	getProviderInstance := func(ctx context.Context, t *testing.T, main *Main) *ProviderInstance {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		insts := provider.Instances(ctx, InspectPhase)
+		insts, unknown := provider.Instances(ctx, InspectPhase)
+		assertFalse(t, unknown)
 		inst, ok := insts[addrs.NoKey]
 		if !ok {
 			t.Fatal("missing NoKey instance of provider.foo.bar")
@@ -366,7 +368,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 		assertNoDiags(t, diags)
 
 		switch c := client.(type) {
-		case providerClose:
+		case unconfigurableProvider:
 			break
 		default:
 			t.Errorf("unexpected client type %#T", c)
@@ -381,6 +383,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 				Config: cty.ObjectVal(map[string]cty.Value{
 					"test": cty.StringVal("yep"),
 				}),
+				ClientCapabilities: ClientCapabilities(),
 			}
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 				t.Errorf("wrong request\n%s", diff)
@@ -405,7 +408,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 		assertNoDiags(t, diags)
 
 		switch c := client.(type) {
-		case providerClose:
+		case unconfigurableProvider:
 			break
 		default:
 			t.Errorf("unexpected client type %#T", c)
@@ -420,6 +423,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 				Config: cty.ObjectVal(map[string]cty.Value{
 					"test": cty.StringVal("yep"),
 				}),
+				ClientCapabilities: ClientCapabilities(),
 			}
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 				t.Errorf("wrong request\n%s", diff)

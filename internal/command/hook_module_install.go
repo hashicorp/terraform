@@ -42,7 +42,9 @@ func (h uiModuleInstallHooks) Install(modulePath string, v *version.Version, loc
 func (h uiModuleInstallHooks) log(message string) {
 	switch h.View.(type) {
 	case view:
-		h.View.Log(message)
+		// there is no unformatted option for the View interface, so we need to
+		// pass message as a parameter to avoid double escaping % characters
+		h.View.Log("%s", message)
 	default:
 		h.Ui.Info(message)
 	}

@@ -5,38 +5,33 @@ package configschema
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/zclconf/go-cty/cty"
 )
 
-// copyAndExtendPath returns a copy of a cty.Path with some additional
-// `cty.PathStep`s appended to its end, to simplify creating new child paths.
-func copyAndExtendPath(path cty.Path, nextSteps ...cty.PathStep) cty.Path {
-	newPath := make(cty.Path, len(path), len(path)+len(nextSteps))
-	copy(newPath, path)
-	newPath = append(newPath, nextSteps...)
-	return newPath
-}
+// WARNING: SensitivePaths must exactly mirror the WriteOnlyPaths method, since
+// they both use the same process just for different attribute types. Any fixes
+// here must be made in WriteOnlyPaths, and vice versa.
 
 // SensitivePaths returns a set of paths into the given value that should
 // be marked as sensitive based on the static declarations in the schema.
 func (b *Block) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
 	var ret []cty.Path
 
-	// We can mark attributes as sensitive even if the value is null
+	// A block as a whole cannot be sensitive, so nothing to return
+	if val.IsNull() || !val.IsKnown() {
+		return ret
+	}
+
 	for name, attrS := range b.Attributes {
 		if attrS.Sensitive {
-			attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+			attrPath := slices.Concat(basePath, cty.GetAttrPath(name))
 			ret = append(ret, attrPath)
 		}
 	}
 
-	// If the value is null, no other marks are possible
-	if val.IsNull() {
-		return ret
-	}
-
-	// Extract marks for nested attribute type values
+	// Extract paths for marks from nested attribute type values
 	for name, attrS := range b.Attributes {
 		// If the attribute has no nested type, or the nested type doesn't
 		// contain any sensitive attributes, skip inspecting it
@@ -45,11 +40,11 @@ func (b *Block) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
 		}
 
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+		attrPath := slices.Concat(basePath, cty.GetAttrPath(name))
 		ret = append(ret, attrS.NestedType.SensitivePaths(val.GetAttr(name), attrPath)...)
 	}
 
-	// Extract marks for nested blocks
+	// Extract paths for marks from nested blocks
 	for name, blockS := range b.BlockTypes {
 		// If our block doesn't contain any sensitive attributes, skip inspecting it
 		if !blockS.Block.ContainsSensitive() {
@@ -62,7 +57,7 @@ func (b *Block) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
 		}
 
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		blockPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+		blockPath := slices.Concat(basePath, cty.GetAttrPath(name))
 
 		switch blockS.Nesting {
 		case NestingSingle, NestingGroup:
@@ -73,7 +68,7 @@ func (b *Block) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
 				idx, blockEV := it.Element()
 				// Create a copy of the path, with this block instance's index
 				// step added, to add to our PathValueMarks slice
-				blockInstancePath := copyAndExtendPath(blockPath, cty.IndexStep{Key: idx})
+				blockInstancePath := slices.Concat(blockPath, cty.IndexPath(idx))
 				morePaths := blockS.Block.SensitivePaths(blockEV, blockInstancePath)
 				ret = append(ret, morePaths...)
 			}
@@ -102,7 +97,7 @@ func (o *Object) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
 		switch o.Nesting {
 		case NestingSingle, NestingGroup:
 			// Create a path to this attribute
-			attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+			attrPath := slices.Concat(basePath, cty.GetAttrPath(name))
 
 			if attrS.Sensitive {
 				// If the entire attribute is sensitive, mark it so
@@ -125,7 +120,7 @@ func (o *Object) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
 				// of the loops: index into the collection, then the contained
 				// attribute name. This is because we have one type
 				// representing multiple collection elements.
-				attrPath := copyAndExtendPath(basePath, cty.IndexStep{Key: idx}, cty.GetAttrStep{Name: name})
+				attrPath := slices.Concat(basePath, cty.IndexPath(idx).GetAttr(name))
 
 				if attrS.Sensitive {
 					// If the entire attribute is sensitive, mark it so

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`import` blocks: Now support importing a resource via a new identity attribute. This is mutually exclusive with the `id` attribute'
+time: 2025-04-17T18:20:36.814657+02:00
+custom:
+    Issue: "36703"

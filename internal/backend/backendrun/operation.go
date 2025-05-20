@@ -177,8 +177,8 @@ func (o *Operation) Config() (*configs.Config, tfdiags.Diagnostics) {
 // operation.
 //
 // If the given diagnostics contains errors then the operation's result
-// will be set to backend.OperationFailure. It will be set to
-// backend.OperationSuccess otherwise. It will then use o.View.Diagnostics
+// will be set to backendrun.OperationFailure. It will be set to
+// backendrun.OperationSuccess otherwise. It will then use o.View.Diagnostics
 // to show the given diagnostics before returning.
 //
 // Callers should feel free to do each of these operations separately in

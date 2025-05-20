@@ -9,7 +9,7 @@ import "fmt"
 // target address can refer to.
 type RemoveTargetKind rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type RemoveTargetKind
+//go:generate go tool golang.org/x/tools/cmd/stringer -type RemoveTargetKind
 
 const (
 	// RemoveTargetModule indicates that a remove target refers to

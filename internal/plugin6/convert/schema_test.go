@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -109,6 +110,12 @@ func TestConvertSchemaBlocks(t *testing.T) {
 												Name:     "required",
 												Type:     []byte(`"number"`),
 												Required: true,
+											},
+											{
+												Name:      "write_only",
+												Type:      []byte(`"string"`),
+												Optional:  true,
+												WriteOnly: true,
 											},
 										},
 									},
@@ -229,6 +236,11 @@ func TestConvertSchemaBlocks(t *testing.T) {
 											"required": {
 												Type:     cty.Number,
 												Required: true,
+											},
+											"write_only": {
+												Type:      cty.String,
+												Optional:  true,
+												WriteOnly: true,
 											},
 										},
 									},
@@ -411,6 +423,25 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 						Computed: true,
 					},
 					{
+						Name: "object",
+						NestedType: &proto.Schema_Object{
+							Nesting: proto.Schema_Object_SINGLE,
+							Attributes: []*proto.Schema_Attribute{
+								{
+									Name:     "optional",
+									Type:     []byte(`"string"`),
+									Optional: true,
+								},
+								{
+									Name:      "write_only",
+									Type:      []byte(`"string"`),
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+						},
+					},
+					{
 						Name:     "optional",
 						Type:     []byte(`"string"`),
 						Optional: true,
@@ -426,6 +457,12 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 						Type:     []byte(`"number"`),
 						Required: true,
 					},
+					{
+						Name:      "write_only",
+						Type:      []byte(`"string"`),
+						Optional:  true,
+						WriteOnly: true,
+					},
 				},
 			},
 			&configschema.Block{
@@ -433,6 +470,22 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 					"computed": {
 						Type:     cty.List(cty.Bool),
 						Computed: true,
+					},
+					"object": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"optional": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"write_only": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+						},
 					},
 					"optional": {
 						Type:     cty.String,
@@ -446,6 +499,11 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 					"required": {
 						Type:     cty.Number,
 						Required: true,
+					},
+					"write_only": {
+						Type:      cty.String,
+						Optional:  true,
+						WriteOnly: true,
 					},
 				},
 			},
@@ -561,6 +619,93 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			converted := ConfigSchemaToProto(tc.Block)
+			if !cmp.Equal(converted, tc.Want, typeComparer, equateEmpty, ignoreUnexported) {
+				t.Fatal(cmp.Diff(converted, tc.Want, typeComparer, equateEmpty, ignoreUnexported))
+			}
+		})
+	}
+}
+
+func TestProtoToResourceIdentitySchema(t *testing.T) {
+	tests := map[string]struct {
+		Attributes []*proto.ResourceIdentitySchema_IdentityAttribute
+		Want       *configschema.Object
+	}{
+		"simple": {
+			[]*proto.ResourceIdentitySchema_IdentityAttribute{
+				{
+					Name:              "id",
+					Type:              []byte(`"string"`),
+					RequiredForImport: true,
+					OptionalForImport: false,
+					Description:       "Something",
+				},
+			},
+			&configschema.Object{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:        cty.String,
+						Description: "Something",
+						Required:    true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			converted := ProtoToIdentitySchema(tc.Attributes)
+			if !cmp.Equal(converted, tc.Want, typeComparer, valueComparer, equateEmpty) {
+				t.Fatal(cmp.Diff(converted, tc.Want, typeComparer, valueComparer, equateEmpty))
+			}
+		})
+	}
+}
+
+func TestResourceIdentitySchemaToProto(t *testing.T) {
+	tests := map[string]struct {
+		Want   *proto.ResourceIdentitySchema
+		Schema providers.IdentitySchema
+	}{
+		"attributes": {
+			&proto.ResourceIdentitySchema{
+				Version: 1,
+				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
+					{
+						Name:              "optional",
+						Type:              []byte(`"string"`),
+						OptionalForImport: true,
+					},
+					{
+						Name:              "required",
+						Type:              []byte(`"number"`),
+						RequiredForImport: true,
+					},
+				},
+			},
+			providers.IdentitySchema{
+				Version: 1,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"optional": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"required": {
+							Type:     cty.Number,
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			converted := ResourceIdentitySchemaToProto(tc.Schema)
 			if !cmp.Equal(converted, tc.Want, typeComparer, equateEmpty, ignoreUnexported) {
 				t.Fatal(cmp.Diff(converted, tc.Want, typeComparer, equateEmpty, ignoreUnexported))
 			}

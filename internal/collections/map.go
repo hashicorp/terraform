@@ -3,6 +3,8 @@
 
 package collections
 
+import "iter"
+
 // Set represents an associative array from keys of type K to values of type V.
 //
 // A caller-provided "key function" defines how to produce a comparable unique
@@ -24,8 +26,12 @@ type MapElem[K, V any] struct {
 
 // NewMap constructs a new map whose key type knows how to calculate its own
 // unique keys, by implementing [UniqueKeyer] of itself.
-func NewMap[K UniqueKeyer[K], V any]() Map[K, V] {
-	return NewMapFunc[K, V](K.UniqueKey)
+func NewMap[K UniqueKeyer[K], V any](elems ...MapElem[K, V]) Map[K, V] {
+	m := NewMapFunc[K, V](K.UniqueKey)
+	for _, elems := range elems {
+		m.Put(elems.K, elems.V)
+	}
+	return m
 }
 
 // NewMapFunc constructs a new map with the given "map function".
@@ -112,31 +118,26 @@ func (m Map[K, V]) Delete(k K) {
 	delete(m.elems, uniq)
 }
 
-// Elems exposes the internal underlying representation of the map directly,
-// as a pragmatic compromise for efficient iteration.
+// All returns an iterator over the elements of the map, in an unspecified
+// order.
 //
-// The result of this function is part of the internal state of the receiver
-// and so callers MUST NOT modify it. If a caller is using locks to ensure
-// safe concurrent access then any reads of the resulting map must be
-// guarded by the same lock as would be used for other methods that read
-// data from the reciever.
+// This is intended for use in a range-over-func statement, like this:
 //
-// The only correct use of this function is as part of a "for ... range"
-// statement using only the values of the resulting map:
-//
-//	for _, elem := range map.Elems() {
-//	    k := elem.K
-//	    v := elem.V
-//	    // ...
+//	for k, v := range map.All() {
+//		// do something with k and/or v
 //	}
 //
-// Do not access or make any assumptions about the keys of the resulting
-// map. Their exact values are an implementation detail of the receiver.
-func (m Map[K, V]) Elems() map[UniqueKey[K]]MapElem[K, V] {
-	// This is regrettable but the only viable way to support efficient
-	// iteration over map elements until Go gains support for range
-	// loops over custom iterator functions.
-	return m.elems
+// Modifying the map during iteration causes unspecified results. Modifying
+// the map concurrently with advancing the iterator causes undefined behavior
+// including possible memory unsafety.
+func (m Map[K, V]) All() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		for _, elem := range m.elems {
+			if !yield(elem.K, elem.V) {
+				return
+			}
+		}
+	}
 }
 
 // Len returns the number of elements in the map.

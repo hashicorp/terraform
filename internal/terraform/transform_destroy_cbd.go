@@ -45,14 +45,14 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 		}
 
 		if !dn.CreateBeforeDestroy() {
-			// If there are no CBD decendent (dependent nodes), then we
+			// If there are no CBD decendant (dependent nodes), then we
 			// do nothing here.
-			if !t.hasCBDDescendent(g, v) {
-				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendent, so skipping", dag.VertexName(v), v)
+			if !t.hasCBDDescendant(g, v) {
+				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendant, so skipping", dag.VertexName(v), v)
 				continue
 			}
 
-			// If this isn't naturally a CBD node, this means that an descendent is
+			// If this isn't naturally a CBD node, this means that an descendant is
 			// and we need to auto-upgrade this node to CBD. We do this because
 			// a CBD node depending on non-CBD will result in cycles. To avoid this,
 			// we always attempt to upgrade it.
@@ -71,28 +71,18 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// hasCBDDescendent returns true if any descendent (node that depends on this)
+// hasCBDDescendant returns true if any descendant (node that depends on this)
 // has CBD set.
-func (t *ForcedCBDTransformer) hasCBDDescendent(g *Graph, v dag.Vertex) bool {
-	s, _ := g.Descendents(v)
-	if s == nil {
-		return true
-	}
-
-	for _, ov := range s {
+func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
+	return g.MatchDescendant(v, func(ov dag.Vertex) bool {
 		dn, ok := ov.(GraphNodeDestroyerCBD)
-		if !ok {
-			continue
-		}
-
-		if dn.CreateBeforeDestroy() {
-			// some descendent is CreateBeforeDestroy, so we need to follow suit
-			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendent %q", dag.VertexName(v), dag.VertexName(ov))
+		if ok && dn.CreateBeforeDestroy() {
+			// some descendant is CreateBeforeDestroy, so we need to follow suit
+			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendant %q", dag.VertexName(v), dag.VertexName(ov))
 			return true
 		}
-	}
-
-	return false
+		return false
+	})
 }
 
 // CBDEdgeTransformer modifies the edges of create-before-destroy ("CBD") nodes
@@ -115,9 +105,16 @@ func (t *ForcedCBDTransformer) hasCBDDescendent(g *Graph, v dag.Vertex) bool {
 // DiffTransformer when building the apply graph.
 type CBDEdgeTransformer struct {
 	// Module and State are only needed to look up dependencies in
-	// any way possible. Either can be nil if not availabile.
+	// any way possible. Either can be nil if not available.
 	Config *configs.Config
 	State  *states.State
+
+	// FIXME: This should optimally be decided entirely during plan, and then we
+	// can rely on the planned changes to determine the CreateBeforeDestroy
+	// status. This would require very careful auditing however, since not all
+	// nodes are represented exactly in the changes, and the way
+	// CreateBeforeDestroy propagates through the graph is extremely important
+	// for correctness and to prevent cycles.
 }
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {

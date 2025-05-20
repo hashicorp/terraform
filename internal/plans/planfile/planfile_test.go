@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -53,7 +54,7 @@ func TestRoundtrip(t *testing.T) {
 	// Minimal plan too, since the serialization of the tfplan portion of the
 	// file is tested more fully in tfplan_test.go .
 	planIn := &plans.Plan{
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 			Outputs:   []*plans.OutputChangeSrc{},
 		},
@@ -119,7 +120,7 @@ func TestRoundtrip(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to read plan: %s", err)
 		}
-		if diff := cmp.Diff(planIn, planOut); diff != "" {
+		if diff := cmp.Diff(planIn, planOut, collections.CmpOptions); diff != "" {
 			t.Errorf("plan did not survive round-trip\n%s", diff)
 		}
 	})

@@ -273,6 +273,28 @@ func TestTemplateString(t *testing.T) {
 		want         cty.Value
 		wantErr      string
 	}{
+		{ // a single string interpolation that evaluates to null should fail
+			`template`,
+			map[string]cty.Value{
+				"template": cty.StringVal(`${test}`),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"test": cty.NullVal(cty.String),
+			}),
+			cty.NilVal,
+			`<templatestring argument>:1,1-8: Template result is null; The result of the template is null, which is not a valid result for a templatestring call.`,
+		},
+		{ // a single string interpolation that evaluates to unknown should not fail
+			`template`,
+			map[string]cty.Value{
+				"template": cty.StringVal(`${test}`),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"test": cty.UnknownVal(cty.String),
+			}),
+			cty.UnknownVal(cty.String).RefineNotNull(),
+			``,
+		},
 		{
 			`template`,
 			map[string]cty.Value{
@@ -334,6 +356,55 @@ func TestTemplateString(t *testing.T) {
 			}),
 			cty.StringVal(`it's a value`),
 			``,
+		},
+		{
+			`data.whatever.whatever[each.key].result`,
+			map[string]cty.Value{
+				"data": cty.ObjectVal(map[string]cty.Value{
+					"whatever": cty.ObjectVal(map[string]cty.Value{
+						"whatever": cty.MapVal(map[string]cty.Value{
+							"foo": cty.ObjectVal(map[string]cty.Value{
+								"result": cty.StringVal("it's ${a}"),
+							}),
+						}),
+					}),
+				}),
+				"each": cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("foo"),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+			}),
+			cty.StringVal(`it's a value`),
+			``,
+		},
+		{
+			`data.whatever.whatever[*].result`,
+			map[string]cty.Value{
+				"data": cty.ObjectVal(map[string]cty.Value{
+					"whatever": cty.ObjectVal(map[string]cty.Value{
+						"whatever": cty.TupleVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"result": cty.StringVal("it's ${a}"),
+							}),
+						}),
+					}),
+				}),
+				"each": cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("foo"),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+			}),
+			cty.NilVal,
+			// We have an intentional hole in our heuristic for whether the
+			// first argument is a suitable expression which permits splat
+			// expressions just so that we can return the type mismatch error
+			// from the result not being a string, instead of the more general
+			// error about it not being a supported expression type.
+			`invalid template value: a string is required`,
 		},
 		{
 			`"can't write $${not_allowed}"`,

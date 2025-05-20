@@ -529,7 +529,7 @@ func TestRefresh_varsUnset(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
@@ -559,7 +559,7 @@ func TestRefresh_backup(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// Output path
-	outf, err := ioutil.TempFile(td, "tf")
+	outf, err := os.CreateTemp(td, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -574,7 +574,7 @@ func TestRefresh_backup(t *testing.T) {
 	}
 
 	// Backup path
-	backupf, err := ioutil.TempFile(td, "tf")
+	backupf, err := os.CreateTemp(td, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -729,7 +729,7 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
@@ -769,7 +769,7 @@ func TestRefresh_targeted(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Computed: true},
 					},
@@ -927,7 +927,7 @@ func refreshFixtureSchema() *providers.GetProviderSchemaResponse {
 	return &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
@@ -944,7 +944,7 @@ func refreshFixtureSchema() *providers.GetProviderSchemaResponse {
 func refreshVarFixtureSchema() *providers.GetProviderSchemaResponse {
 	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"value": {Type: cty.String, Optional: true},
 				},
@@ -952,7 +952,7 @@ func refreshVarFixtureSchema() *providers.GetProviderSchemaResponse {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Optional: true, Computed: true},
 					},

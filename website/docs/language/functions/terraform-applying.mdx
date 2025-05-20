@@ -1,0 +1,44 @@
+---
+page_title: terraform.applying reference - Functions - Configuration Language
+description: |-
+  The terraform.applying symbol enables you to determine if Terraform is currently running an apply operation.
+---
+
+# The `terraform.applying` symbol
+
+-> **Note**: The `terraform.applying` symbol is available in Terraform v1.10 and later.
+
+You can use the `terraform.applying` symbol in your configuration to determine if Terraform is currently running an apply operation.
+
+Terraform automatically sets `terraform.applying` to `true` when you run an [apply](/terraform/cli/commands/apply) operation, and `false` during any other operation. The [planning mode](/terraform/cli/commands/plan#planning-modes) you run `terraform apply` in does not affect `terraform.applying`, meaning that even in destroy mode, `terraform.applying` is still `true`.
+
+You can use `terraform.applying` to change Terraform behavior during apply operations. In the following example, Terraform uses your read-only credentials when running a plan operation but uses your write credentials when you run an apply operation: 
+
+```hcl
+locals {
+  aws_read_role_arn  = "arn:aws:iam::XXXXX:role/terraform-read"
+  aws_write_role_arn = "arn:aws:iam::XXXXX:role/terraform-full"
+
+  role_arn = terraform.applying ? local.aws_write_role_arn : local.aws_read_role_arn
+}
+
+provider "aws" {
+  region = "us-west-2"
+
+  assume_role {
+    role_arn     = local.role_arn
+  }
+}
+
+```
+
+
+The `terraform.applying` symbol is an ephemeral value and is only available during Terraform operations. Terraform does not write ephemeral values to plan or state files. Additionally, you can only reference `terraform.applying` in the following ephemeral contexts:
+
+- In a [write-only argument](/terraform/language/resources/ephemeral/write-only)
+- In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
+- In [local values](/terraform/language/values/locals#ephemeral-values)
+- In [ephemeral resources](/terraform/language/resources/ephemeral)
+- In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+- Configuring providers in the `provider` block
+- In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
