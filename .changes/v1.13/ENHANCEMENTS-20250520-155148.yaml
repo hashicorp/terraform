@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Allow successful init when provider constraint matches at least one valid version
+time: 2025-05-20T15:51:48.961362+02:00
+custom:
+    Issue: "37137"
