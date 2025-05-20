@@ -6,7 +6,7 @@ standards periodically, and we aim to adopt those new versions in new
 minor releases of Terraform in order to support additional characters added
 in those new versions.
 
-Unfortunately, due to those features being implemented by relying on a number
+Unfortunately, due to those features relying on multiple
 of external libraries, adopting a new version of Unicode is not as simple as
 just updating a version number somewhere. This document aims to describe the
 various steps required to adopt a new version of Unicode in Terraform.
