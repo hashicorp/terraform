@@ -4,15 +4,10 @@
 package workdir
 
 import (
-	"bytes"
 	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
 func TestParseBackendStateFile(t *testing.T) {
@@ -94,50 +89,5 @@ func TestParseBackendStateFile(t *testing.T) {
 				t.Errorf("wrong result\n%s", diff)
 			}
 		})
-	}
-}
-
-func ParseBackendStateConfig(t *testing.T) {
-	// This test only really covers the happy path because Config/SetConfig is
-	// largely just a thin wrapper around configschema's "ImpliedType" and
-	// cty's json unmarshal/marshal and both of those are well-tested elsewhere.
-
-	s := &BackendConfigState{
-		Type: "whatever",
-		ConfigRaw: []byte(`{
-			"foo": "bar"
-		}`),
-	}
-
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"foo": {
-				Type:     cty.String,
-				Optional: true,
-			},
-		},
-	}
-	got, err := s.Config(schema)
-	want := cty.ObjectVal(map[string]cty.Value{
-		"foo": cty.StringVal("bar"),
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
-		t.Errorf("wrong result\n%s", diff)
-	}
-
-	err = s.SetConfig(cty.ObjectVal(map[string]cty.Value{
-		"foo": cty.StringVal("baz"),
-	}), schema)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-
-	gotRaw := s.ConfigRaw
-	wantRaw := []byte(`{"foo":"baz"}`)
-	if !bytes.Equal(wantRaw, gotRaw) {
-		t.Errorf("wrong raw config after encode\ngot:  %s\nwant: %s", gotRaw, wantRaw)
 	}
 }
