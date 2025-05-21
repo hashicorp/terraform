@@ -4,6 +4,8 @@
 package providers
 
 import (
+	"iter"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -104,8 +106,12 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
-	// ListResource queries the remote for a specific resource type
-	ListResource(ListResourceRequest) error
+	// ListResource queries the remote for a specific resource type and returns an iterator of items
+	//
+	// An error indicates that there was a problem before calling the provider,
+	// like a missing schema. Problems during a list operation are reported as
+	// diagnostics on the yielded events.
+	ListResource(ListResourceRequest) (ListResourceResponse, error)
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
@@ -728,13 +734,6 @@ type ListResourceEvent struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-// ListResourceCallback is called for each resource found during ListResource
-type ListResourceCallback interface {
-	// OnItem is called for each resource found
-	// Return true to continue receiving events, false to stop
-	OnItem(event ListResourceEvent) bool
-}
-
 type ListResourceRequest struct {
 	// TypeName is the name of the resource type being read.
 	TypeName string
@@ -745,7 +744,7 @@ type ListResourceRequest struct {
 	// IncludeResourceObject can be set to true when a provider should include
 	// the full resource object for each result
 	IncludeResourceObject bool
-
-	// Callback is called for each resource found
-	Callback ListResourceCallback
 }
+
+// ListResourceResponse is an iterator type that yields ListResourceEvents
+type ListResourceResponse iter.Seq[ListResourceEvent]

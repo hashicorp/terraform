@@ -5,7 +5,6 @@ package plugin6
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -20,7 +19,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -1364,262 +1362,209 @@ func TestGRPCProvider_closeEphemeralResource(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
-// MockListResourceClient is a mock implementation of the Provider_ListResourceClient interface for testing
-type MockListResourceClient struct {
-	events []*proto.ListResource_Event
-	index  int
-	ctx    context.Context
+// Mock implementation of the ListResource stream client
+type mockListResourceStreamClient struct {
+	events  []*proto.ListResource_Event
+	current int
+	proto.Provider_ListResourceClient
 }
 
-func (m *MockListResourceClient) Recv() (*proto.ListResource_Event, error) {
-	if m.index >= len(m.events) {
+func (m *mockListResourceStreamClient) Recv() (*proto.ListResource_Event, error) {
+	if m.current >= len(m.events) {
 		return nil, io.EOF
 	}
-	event := m.events[m.index]
-	m.index++
+
+	event := m.events[m.current]
+	m.current++
 	return event, nil
 }
 
-func (m *MockListResourceClient) Header() (metadata.MD, error) {
-	return nil, nil
-}
-
-func (m *MockListResourceClient) Trailer() metadata.MD {
-	return nil
-}
-
-func (m *MockListResourceClient) CloseSend() error {
-	return nil
-}
-
-func (m *MockListResourceClient) Context() context.Context {
-	return m.ctx
-}
-
-func (m *MockListResourceClient) SendMsg(interface{}) error {
-	return nil
-}
-
-func (m *MockListResourceClient) RecvMsg(interface{}) error {
-	return nil
-}
-
-// testListResourceCallback implements providers.ListResourceCallback for testing
-type testListResourceCallback struct {
-	onItem func(providers.ListResourceEvent) bool
-}
-
-func (c *testListResourceCallback) OnItem(event providers.ListResourceEvent) bool {
-	if c.onItem != nil {
-		return c.onItem(event)
-	}
-	return true
-}
-
 func TestGRPCProvider_ListResource(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	client := mockproto.NewMockProviderClient(ctrl)
+	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	// Mock schema
-	client.EXPECT().GetProviderSchema(
-		gomock.Any(),
-		gomock.Any(),
-		gomock.Any(),
-	).Return(providerProtoSchema(), nil)
-
-	client.EXPECT().GetResourceIdentitySchemas(
-		gomock.Any(),
-		gomock.Any(),
-		gomock.Any(),
-	).Return(providerResourceIdentitySchemas(), nil)
-
-	// Create events for the stream
-	events := []*proto.ListResource_Event{
-		{
-			DisplayName: "resource1",
-			Identity: &proto.ResourceIdentityData{
-				IdentityData: &proto.DynamicValue{
-					Msgpack: []byte("\x81\xa7id_attr\xa5value1"),
+	// Create a mock stream client that will return resource events
+	mockStream := &mockListResourceStreamClient{
+		events: []*proto.ListResource_Event{
+			{
+				DisplayName: "Test Resource 1",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+					},
 				},
 			},
-		},
-		{
-			DisplayName: "resource2",
-			Identity: &proto.ResourceIdentityData{
-				IdentityData: &proto.DynamicValue{
-					Msgpack: []byte("\x81\xa7id_attr\xa5value2"),
+			{
+				DisplayName: "Test Resource 2",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-2"),
+					},
+				},
+				ResourceObject: &proto.DynamicValue{
+					Msgpack: []byte("\x81\xadresource_attr\xa5value"),
 				},
 			},
 		},
 	}
 
-	// Mock stream client
-	mockStream := &MockListResourceClient{
-		events: events,
-		index:  0,
-		ctx:    context.Background(),
-	}
-
-	// Set up expectations for ListResource call
 	client.EXPECT().ListResource(
-		gomock.Any(),
 		gomock.Any(),
 		gomock.Any(),
 	).Return(mockStream, nil)
 
-	// Create a test callback to collect events
-	var receivedEvents []providers.ListResourceEvent
-	testCallback := &testListResourceCallback{
-		onItem: func(event providers.ListResourceEvent) bool {
-			receivedEvents = append(receivedEvents, event)
-			return true
-		},
-	}
-
-	err := p.ListResource(providers.ListResourceRequest{
-		TypeName: "list",
-		Config:   cty.ObjectVal(map[string]cty.Value{"filter_attr": cty.StringVal("value")}),
-		Callback: testCallback,
+	// Create the request
+	configVal := cty.ObjectVal(map[string]cty.Value{
+		"filter_attr": cty.StringVal("filter-value"),
 	})
+	request := providers.ListResourceRequest{
+		TypeName:              "list",
+		Config:                configVal,
+		IncludeResourceObject: true,
+	}
 
+	// Call the function
+	response, err := p.ListResource(request)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if len(receivedEvents) != 2 {
-		t.Fatalf("expected 2 events, got %d", len(receivedEvents))
+	// Validate the response by consuming the iterator
+	var events []providers.ListResourceEvent
+	for event := range response {
+		events = append(events, event)
 	}
 
-	if receivedEvents[0].DisplayName != "resource1" {
-		t.Errorf("expected DisplayName 'resource1', got '%s'", receivedEvents[0].DisplayName)
+	// Verify that we received both events
+	if len(events) != 2 {
+		t.Fatalf("Expected 2 events, got %d", len(events))
 	}
 
-	if receivedEvents[1].DisplayName != "resource2" {
-		t.Errorf("expected DisplayName 'resource2', got '%s'", receivedEvents[1].DisplayName)
-	}
-}
-
-func TestGRPCProvider_ListResource_EarlyTermination(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	client := mockproto.NewMockProviderClient(ctrl)
-
-	// Mock schema
-	client.EXPECT().GetProviderSchema(
-		gomock.Any(),
-		gomock.Any(),
-		gomock.Any(),
-	).Return(providerProtoSchema(), nil)
-
-	client.EXPECT().GetResourceIdentitySchemas(
-		gomock.Any(),
-		gomock.Any(),
-		gomock.Any(),
-	).Return(providerResourceIdentitySchemas(), nil)
-
-	// Create events for the stream
-	events := []*proto.ListResource_Event{
-		{
-			DisplayName: "resource1",
-			Identity: &proto.ResourceIdentityData{
-				IdentityData: &proto.DynamicValue{
-					Msgpack: []byte("\x81\xa7id_attr\xa5value1"),
-				},
-			},
-		},
-		{
-			DisplayName: "resource2",
-			Identity: &proto.ResourceIdentityData{
-				IdentityData: &proto.DynamicValue{
-					Msgpack: []byte("\x81\xa7id_attr\xa5value2"),
-				},
-			},
-		},
+	// Verify first event
+	if events[0].DisplayName != "Test Resource 1" {
+		t.Errorf("Expected DisplayName 'Test Resource 1', got '%s'", events[0].DisplayName)
 	}
 
-	// Mock stream client
-	mockStream := &MockListResourceClient{
-		events: events,
-		index:  0,
-		ctx:    context.Background(),
-	}
-
-	// Set up expectations for ListResource call
-	client.EXPECT().ListResource(
-		gomock.Any(),
-		gomock.Any(),
-		gomock.Any(),
-	).Return(mockStream, nil)
-
-	p := &GRPCProvider{
-		client: client,
-	}
-
-	// Create a test callback that stops after the first event
-	var receivedEvents []providers.ListResourceEvent
-	testCallback := &testListResourceCallback{
-		onItem: func(event providers.ListResourceEvent) bool {
-			receivedEvents = append(receivedEvents, event)
-			return false // Stop after first event
-		},
-	}
-
-	err := p.ListResource(providers.ListResourceRequest{
-		TypeName: "list",
-		Config:   cty.ObjectVal(map[string]cty.Value{"filter_attr": cty.StringVal("value")}),
-		Callback: testCallback,
+	expectedId1 := cty.ObjectVal(map[string]cty.Value{
+		"id_attr": cty.StringVal("id-1"),
 	})
-
-	if err != nil {
-		t.Fatal(err)
+	if !events[0].Identity.RawEquals(expectedId1) {
+		t.Errorf("Expected Identity %#v, got %#v", expectedId1, events[0].Identity)
 	}
 
-	if len(receivedEvents) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(receivedEvents))
+	// ResourceObject should be null for the first event as it wasn't provided
+	if !events[0].ResourceObject.IsNull() {
+		t.Errorf("Expected ResourceObject to be null, got %#v", events[0].ResourceObject)
 	}
 
-	if receivedEvents[0].DisplayName != "resource1" {
-		t.Errorf("expected DisplayName 'resource1', got '%s'", receivedEvents[0].DisplayName)
+	// Verify second event
+	if events[1].DisplayName != "Test Resource 2" {
+		t.Errorf("Expected DisplayName 'Test Resource 2', got '%s'", events[1].DisplayName)
+	}
+
+	expectedId2 := cty.ObjectVal(map[string]cty.Value{
+		"id_attr": cty.StringVal("id-2"),
+	})
+	if !events[1].Identity.RawEquals(expectedId2) {
+		t.Errorf("Expected Identity %#v, got %#v", expectedId2, events[1].Identity)
+	}
+
+	expectedResource := cty.ObjectVal(map[string]cty.Value{
+		"resource_attr": cty.StringVal("value"),
+	})
+	if !events[1].ResourceObject.RawEquals(expectedResource) {
+		t.Errorf("Expected ResourceObject %#v, got %#v", expectedResource, events[1].ResourceObject)
 	}
 }
 
 func TestGRPCProvider_ListResource_Error(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	client := mockproto.NewMockProviderClient(ctrl)
-
-	// Mock schema
-	client.EXPECT().GetProviderSchema(
-		gomock.Any(),
-		gomock.Any(),
-		gomock.Any(),
-	).Return(providerProtoSchema(), nil)
-
-	client.EXPECT().GetResourceIdentitySchemas(
-		gomock.Any(),
-		gomock.Any(),
-		gomock.Any(),
-	).Return(providerResourceIdentitySchemas(), nil)
-
-	// Set up expectations for ListResource call with error
-	client.EXPECT().ListResource(
-		gomock.Any(),
-		gomock.Any(),
-		gomock.Any(),
-	).Return(nil, fmt.Errorf("test error"))
-
+	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	err := p.ListResource(providers.ListResourceRequest{
-		TypeName: "list",
-		Config:   cty.ObjectVal(map[string]cty.Value{"filter_attr": cty.StringVal("value")}),
-		Callback: &testListResourceCallback{},
-	})
+	// Test case where the provider returns an error
+	client.EXPECT().ListResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(nil, fmt.Errorf("provider error"))
 
+	configVal := cty.ObjectVal(map[string]cty.Value{
+		"filter_attr": cty.StringVal("filter-value"),
+	})
+	request := providers.ListResourceRequest{
+		TypeName: "list",
+		Config:   configVal,
+	}
+
+	// Call the function
+	_, err := p.ListResource(request)
 	if err == nil {
-		t.Fatal("expected error but got nil")
+		t.Fatal("Expected error, but got none")
+	}
+}
+
+func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	// Create a mock stream client that will return a resource event with diagnostics
+	mockStream := &mockListResourceStreamClient{
+		events: []*proto.ListResource_Event{
+			{
+				DisplayName: "Test Resource With Warning",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+					},
+				},
+				Diagnostic: []*proto.Diagnostic{
+					{
+						Severity: proto.Diagnostic_WARNING,
+						Summary:  "Test warning",
+						Detail:   "This is a test warning",
+					},
+				},
+			},
+		},
+	}
+
+	client.EXPECT().ListResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(mockStream, nil)
+
+	// Create the request
+	configVal := cty.ObjectVal(map[string]cty.Value{
+		"filter_attr": cty.StringVal("filter-value"),
+	})
+	request := providers.ListResourceRequest{
+		TypeName: "list",
+		Config:   configVal,
+	}
+
+	// Call the function
+	response, err := p.ListResource(request)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Validate the response
+	var events []providers.ListResourceEvent
+	for event := range response {
+		events = append(events, event)
+	}
+
+	// Verify that we received one event with diagnostics
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+
+	if !events[0].Diagnostics.HasWarnings() {
+		t.Fatal("Expected warning diagnostics, but got none")
 	}
 }

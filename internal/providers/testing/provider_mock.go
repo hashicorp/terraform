@@ -127,9 +127,9 @@ type MockProvider struct {
 	CallFunctionFn       func(providers.CallFunctionRequest) providers.CallFunctionResponse
 
 	ListResourceCalled   bool
-	ListResourceResponse error
+	ListResourceResponse providers.ListResourceResponse
 	ListResourceRequest  providers.ListResourceRequest
-	ListResourceFn       func(providers.ListResourceRequest) error
+	ListResourceFn       func(providers.ListResourceRequest) (providers.ListResourceResponse, error)
 
 	CloseCalled bool
 	CloseError  error
@@ -832,7 +832,7 @@ func (p *MockProvider) CallFunction(r providers.CallFunctionRequest) providers.C
 	return p.CallFunctionResponse
 }
 
-func (p *MockProvider) ListResource(r providers.ListResourceRequest) error {
+func (p *MockProvider) ListResource(r providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 	p.Lock()
 	defer p.Unlock()
 	p.ListResourceCalled = true
@@ -842,7 +842,7 @@ func (p *MockProvider) ListResource(r providers.ListResourceRequest) error {
 		return p.ListResourceFn(r)
 	}
 
-	return p.ListResourceResponse
+	return p.ListResourceResponse, nil
 }
 
 func (p *MockProvider) Close() error {

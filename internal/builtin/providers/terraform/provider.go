@@ -271,8 +271,8 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 	}
 }
 
-func (p *Provider) ListResource(req providers.ListResourceRequest) error {
-	return fmt.Errorf("unsupported list resource type %q", req.TypeName)
+func (p *Provider) ListResource(req providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+	return nil, fmt.Errorf("unsupported list resource type %q", req.TypeName)
 }
 
 // Close is a noop for this provider, since it's run in-process.
