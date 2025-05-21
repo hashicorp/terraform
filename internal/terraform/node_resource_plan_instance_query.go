@@ -65,54 +65,34 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
-	err = provider.ListResource(providers.ListResourceRequest{
+	resp := provider.ListResource(providers.ListResourceRequest{
 		TypeName: n.Config.Type,
 		Config:   unmarkedConfigVal,
 	})
-	if err != nil {
-		return diags.Append(fmt.Errorf("failed to list %s: %s", n.Addr, err))
+
+	resources := make([]cty.Value, 0)
+	identities := make([]cty.Value, 0)
+
+	for list, err := range resp {
+		if err != nil {
+			return diags.Append(fmt.Errorf("failed to list %s: %s", n.Addr, err))
+		}
+		resources = append(resources, list.ResourceObject)
+		identities = append(identities, list.Identity)
 	}
 
-	// TODO: Store the result of the list call in the context
-	madeUp := []cty.Value{
-		cty.ObjectVal(map[string]cty.Value{
-			"instance_type": cty.StringVal(n.Addr.String()),
-			"ami":           cty.StringVal("ami-123456"),
-			"deprecated":    cty.NullVal(cty.String),
-			"instance_key":  cty.StringVal("foo"),
-		}),
-		cty.ObjectVal(map[string]cty.Value{
-			"instance_type": cty.StringVal(fmt.Sprintf("%s-v2", n.Addr.String())),
-			"ami":           cty.StringVal("ami-654321"),
-			"deprecated":    cty.NullVal(cty.String),
-			"instance_key":  cty.StringVal("foo"),
-		}),
-		cty.ObjectVal(map[string]cty.Value{
-			"instance_type": cty.StringVal(fmt.Sprintf("%s-v3", n.Addr.String())),
-			"ami":           cty.StringVal("ami-789012"),
-			"deprecated":    cty.StringVal("foo"),
-			"instance_key":  cty.NullVal(cty.String),
-		}),
+	var vals, ids cty.Value
+	if len(resources) > 0 {
+		vals = cty.ListVal(resources)
+		ids = cty.ListVal(identities)
+	} else {
+		vals = cty.ListValEmpty(cty.Object(map[string]cty.Type{}))
+		ids = cty.ListValEmpty(cty.Object(map[string]cty.Type{}))
 	}
 
-	// Create identity values for the resources
-	identities := []cty.Value{
-		cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("i-v1"),
-		}),
-		cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("i-v2"),
-		}),
-		cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("i-v3"),
-		}),
-	}
-
-	if configVal.GetAttr("filter").GetAttr("attr").AsString() != "empty" {
-		ctx.State().SetListResourceInstance(n.Addr, &states.ResourceInstanceObject{
-			Value:    cty.ListVal(madeUp),
-			Identity: cty.ListVal(identities),
-		})
-	}
+	ctx.State().SetListResourceInstance(n.Addr, &states.ResourceInstanceObject{
+		Value:    vals,
+		Identity: ids,
+	})
 	return diags
 }
