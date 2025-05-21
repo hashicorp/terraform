@@ -1057,10 +1057,64 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
+	// If we were in a state_storage_C_r_s method then we'd instead set a value for s.StateStorage
 	s.Backend = &workdir.BackendConfigState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
+	}
+
+	// This fails due to the eval context lacking scope
+	// myCtx := &terraform.BuiltinEvalContext{}
+	// val, _, evalDiags := myCtx.EvaluateBlock(opts.ConfigOverride, b.ConfigSchema(), nil, terraform.EvalDataForNoInstanceKey)
+	// if evalDiags.HasErrors() {
+	// 	diags = diags.Append(evalDiags)
+	// 	return nil, diags
+	// }
+
+	// Even if the above succeeded this might fail due to needing all attrs present - depends on returned value from EvaluateBlock.
+	// overridesJSON, err := ctyjson.Marshal(val, b.ConfigSchema().ImpliedType())
+	// if err != nil {
+	// 	diags = diags.Append(fmt.Errorf("Can't serialize overrides as JSON: %s", err))
+	// 	return nil, diags
+	// }
+
+	overrideMap := make(map[string]cty.Value)
+	if opts.ConfigOverride != nil {
+		overrideAttrs, overrideDiags := opts.ConfigOverride.JustAttributes()
+		diags = diags.Append(overrideDiags)
+		if overrideDiags.HasErrors() {
+			return nil, diags
+		}
+		for _, v := range overrideAttrs {
+			val, exprDiags := v.Expr.Value(nil)
+			diags = diags.Append(exprDiags)
+			if exprDiags.HasErrors() {
+				return nil, diags
+			}
+			overrideMap[v.Name] = val
+		}
+		// For ctyjson.Marshal to be successful the cty.Object made below needs
+		// all attrs represented, even if the value is null.
+		for k, v := range b.ConfigSchema().Attributes {
+			if _, ok := overrideMap[k]; !ok {
+				overrideMap[k] = cty.NullVal(v.Type)
+			}
+		}
+
+		overrides := cty.ObjectVal(overrideMap)
+		overridesJSON, err := ctyjson.Marshal(overrides, b.ConfigSchema().ImpliedType())
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("error when marshalling CLI overrides to JSON: %w", err))
+			return nil, diags
+		}
+
+		// Use the data to represent the overrides in the state file
+		// Note: in this prototype the backend section of the JSON still is a combo of
+		// config and overrides.
+		s.ConfigOverrides = &workdir.ConfigOverrideState{
+			Overrides: json.RawMessage([]byte(overridesJSON)),
+		}
 	}
 
 	// Verify that selected workspace exists in the backend.

@@ -51,6 +51,12 @@ func New() backend.Backend {
 						Description: "The name of the Google Cloud Storage bucket",
 					},
 
+					"my_bool": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "a boolean",
+					},
+
 					"prefix": {
 						Type:        cty.String,
 						Optional:    true,
