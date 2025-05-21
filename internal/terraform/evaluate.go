@@ -813,7 +813,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 	switch d.Operation {
 	case walkValidate:
 		return cty.DynamicVal, diags
-	case walkQuery:
+	case walkQuery, walkPlan:
 		// continue
 	default:
 		return cty.DynamicVal, diags.Append(&hcl.Diagnostic{

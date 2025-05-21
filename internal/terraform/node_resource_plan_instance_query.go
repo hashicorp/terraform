@@ -73,12 +73,15 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	resources := make([]cty.Value, 0)
 	identities := make([]cty.Value, 0)
 
-	for list, err := range resp {
+	for evt, err := range resp {
 		if err != nil {
 			return diags.Append(fmt.Errorf("failed to list %s: %s", n.Addr, err))
 		}
-		resources = append(resources, list.ResourceObject)
-		identities = append(identities, list.Identity)
+		if evt.Diagnostics.HasErrors() {
+			return diags.Append(evt.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+		}
+		resources = append(resources, evt.ResourceObject)
+		identities = append(identities, evt.Identity)
 	}
 
 	var vals, ids cty.Value
