@@ -1,12 +1,25 @@
-## 1.13.0 (Unreleased)
+## 1.13.0-alpha20250521 (May 21, 2025)
 
 
-EXPERIMENTS:
+NEW FEATURES:
 
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
+* The new command `terraform stacks` exposes some stack operations through the cli. The available subcommands depend on the stacks plugin implementation. Use `terraform stacks -help` to see available commands. ([#36931](https://github.com/hashicorp/terraform/issues/36931))
 
-- The new command `terraform rpcapi` exposes some Terraform Core functionality through an RPC interface compatible with [`go-plugin`](https://github.com/hashicorp/go-plugin). The exact RPC API exposed here is currently subject to change at any time, because it's here primarily as a vehicle to support the [Terraform Stacks](https://www.hashicorp.com/blog/terraform-stacks-explained) private preview and so will be broken if necessary to respond to feedback from private preview participants, or possibly for other reasons. Do not use this mechanism yet outside of Terraform Stacks private preview.
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values. This experiment is under active development, and so it's not yet useful to participate in this experiment
+* Deferred actions: The `plan`, `apply`, and `refresh` commands now support the `-allow-deferral` flag. The flag enables Terraform and Terraform Providers to defer changes with unresolvable unknown values to future plans instead of failing the entire plan. ([#37067](https://github.com/hashicorp/terraform/issues/37067))
+
+
+ENHANCEMENTS:
+
+* Filesystem functions are now checked for consistent results to catch invalid data during apply ([#37001](https://github.com/hashicorp/terraform/issues/37001))
+
+* Allow successful init when provider constraint matches at least one valid version ([#37137](https://github.com/hashicorp/terraform/issues/37137))
+
+
+NOTES:
+
+* The command `terraform rpcapi` is now generally available. It is not intended for public consumption, but exposes certain Terraform operations through an RPC interface compatible with [go-plugin](https://github.com/hashicorp/go-plugin). ([#37067](https://github.com/hashicorp/terraform/issues/37067))
+
+
 
 ## Previous Releases
 
