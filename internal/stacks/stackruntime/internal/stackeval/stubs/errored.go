@@ -246,7 +246,7 @@ func (p *erroredProvider) ValidateListResourceConfig(providers.ValidateListResou
 }
 
 // ListResource implements providers.Interface.
-func (p *erroredProvider) ListResource(providers.ListResourceRequest) error {
+func (p *erroredProvider) ListResource(req providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -254,5 +254,5 @@ func (p *erroredProvider) ListResource(providers.ListResourceRequest) error {
 		"Cannot list this resource because its associated provider configuration is invalid.",
 		nil, // nil attribute path means the overall configuration block
 	))
-	return diags.Err()
+	return nil, diags.Err()
 }
