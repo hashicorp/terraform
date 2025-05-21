@@ -62,7 +62,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 		expectedErrMsg []string
 		assertState    func(*states.State)
 		InputVariables InputValues
-		listResourceFn func(request providers.ListResourceRequest) providers.ListResourceResponse
+		listResourceFn func(request providers.ListResourceRequest) (providers.ListResourceResponse, error)
 	}{
 		{
 			name: "valid list reference",
@@ -103,14 +103,14 @@ func TestContext2Plan_queryList(t *testing.T) {
 					Value: cty.StringVal("foo"),
 				},
 			},
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-789012")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent, error) bool) {
+				return func(yield func(providers.ListResourceEvent) bool) {
 					for i, v := range madeUp {
 						evt := providers.ListResourceEvent{
 							ResourceObject: v,
@@ -118,11 +118,11 @@ func TestContext2Plan_queryList(t *testing.T) {
 								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
 							}),
 						}
-						if !yield(evt, nil) {
+						if !yield(evt) {
 							return
 						}
 					}
-				}
+				}, nil
 			},
 			assertState: func(state *states.State) {
 				// Verify test list resource
@@ -188,13 +188,13 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent, error) bool) {
+				return func(yield func(providers.ListResourceEvent) bool) {
 					for i, v := range madeUp {
 						evt := providers.ListResourceEvent{
 							ResourceObject: v,
@@ -202,11 +202,11 @@ func TestContext2Plan_queryList(t *testing.T) {
 								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
 							}),
 						}
-						if !yield(evt, nil) {
+						if !yield(evt) {
 							return
 						}
 					}
-				}
+				}, nil
 			},
 			InputVariables: InputValues{
 				"input": &InputValue{
@@ -272,11 +272,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 				"Invalid list resource traversal",
 				"The first step in the traversal for a list resource must be an attribute \"data\"",
 			},
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				return func(yield func(providers.ListResourceEvent, error) bool) {
-					return
-				}
-			},
 			InputVariables: InputValues{
 				"input": &InputValue{
 					Value: cty.StringVal("foo"),
@@ -326,11 +321,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 				"A list resource \"test_resource1\" \"attr\" has not been declared in the root module.",
 				"Did you mean the managed resource list.test_resource1? If so, please use the fully qualified name of the resource, e.g. resource.list.test_resource1",
 			},
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				return func(yield func(providers.ListResourceEvent, error) bool) {
-					return
-				}
-			},
 			InputVariables: InputValues{
 				"input": &InputValue{
 					Value: cty.StringVal("foo"),
@@ -370,12 +360,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent, error) bool) {
+				return func(yield func(providers.ListResourceEvent) bool) {
 					for i, v := range madeUp {
 						evt := providers.ListResourceEvent{
 							ResourceObject: v,
@@ -383,11 +373,11 @@ func TestContext2Plan_queryList(t *testing.T) {
 								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
 							}),
 						}
-						if !yield(evt, nil) {
+						if !yield(evt) {
 							return
 						}
 					}
-				}
+				}, nil
 			},
 			assertState: func(state *states.State) {
 				// Verify test list resource
@@ -422,11 +412,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 			diagCount: 1,
 			expectedErrMsg: []string{
 				"A list resource \"non_existent\" \"attr\" has not been declared in the root module.",
-			},
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				return func(yield func(providers.ListResourceEvent, error) bool) {
-					return
-				}
 			},
 		},
 		{
@@ -463,12 +448,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 			expectedErrMsg: []string{
 				"Unsupported attribute: This object has no argument, nested block, or exported attribute named \"invalid_attr\".",
 			},
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent, error) bool) {
+				return func(yield func(providers.ListResourceEvent) bool) {
 					for i, v := range madeUp {
 						evt := providers.ListResourceEvent{
 							ResourceObject: v,
@@ -476,11 +461,11 @@ func TestContext2Plan_queryList(t *testing.T) {
 								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
 							}),
 						}
-						if !yield(evt, nil) {
+						if !yield(evt) {
 							return
 						}
 					}
-				}
+				}, nil
 			},
 		},
 		{
@@ -515,11 +500,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 			diagCount: 1,
 			expectedErrMsg: []string{
 				"Cycle: list.test_resource",
-			},
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				return func(yield func(providers.ListResourceEvent, error) bool) {
-					return
-				}
 			},
 		},
 		{
@@ -557,12 +537,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent, error) bool) {
+				return func(yield func(providers.ListResourceEvent) bool) {
 					for i, v := range madeUp {
 						evt := providers.ListResourceEvent{
 							ResourceObject: v,
@@ -570,11 +550,11 @@ func TestContext2Plan_queryList(t *testing.T) {
 								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
 							}),
 						}
-						if !yield(evt, nil) {
+						if !yield(evt) {
 							return
 						}
 					}
-				}
+				}, nil
 			},
 			assertState: func(state *states.State) {
 				// Verify test1 list resource
@@ -627,12 +607,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent, error) bool) {
+				return func(yield func(providers.ListResourceEvent) bool) {
 					for i, v := range madeUp {
 						evt := providers.ListResourceEvent{
 							ResourceObject: v,
@@ -640,11 +620,11 @@ func TestContext2Plan_queryList(t *testing.T) {
 								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
 							}),
 						}
-						if !yield(evt, nil) {
+						if !yield(evt) {
 							return
 						}
 					}
-				}
+				}, nil
 			},
 			assertState: func(state *states.State) {
 				// Check that the plan state contains the list resources with for_each
@@ -687,9 +667,13 @@ func TestContext2Plan_queryList(t *testing.T) {
 			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
 			provider.GetProviderSchemaResponse = schemaResp
 			var requestConfigs = make(map[string]cty.Value)
-			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			provider.ListResourceFn = func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				requestConfigs[request.TypeName] = request.Config
-				return tc.listResourceFn(request)
+				fn := tc.listResourceFn
+				if fn == nil {
+					return func(yield func(providers.ListResourceEvent) bool) {}, nil
+				}
+				return fn(request)
 			}
 
 			ctx, diags := NewContext(&ContextOpts{

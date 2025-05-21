@@ -48,7 +48,7 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 		name           string
 		mainConfig     string
 		queryConfig    string
-		listResourceFn func(request providers.ListResourceRequest) providers.ListResourceResponse
+		listResourceFn func(request providers.ListResourceRequest) (providers.ListResourceResponse, error)
 		inputVar       string
 		expectedConfig map[string]cty.Value
 		resourceErrMap map[string]bool // map of resource address to expected error status
@@ -89,14 +89,14 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 				}
 			`,
 			inputVar: "foo",
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-789012")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent, error) bool) {
+				return func(yield func(providers.ListResourceEvent) bool) {
 					for i, v := range madeUp {
 						evt := providers.ListResourceEvent{
 							ResourceObject: v,
@@ -104,11 +104,11 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
 							}),
 						}
-						if !yield(evt, nil) {
+						if !yield(evt) {
 							return
 						}
 					}
-				}
+				}, nil
 			},
 			expectedConfig: map[string]cty.Value{
 				"test_resource": cty.ObjectVal(map[string]cty.Value{
@@ -162,8 +162,8 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 				}
 			`,
 			inputVar: "empty",
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				return func(yield func(providers.ListResourceEvent, error) bool) {}
+			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+				return func(yield func(providers.ListResourceEvent) bool) {}, nil
 			},
 			expectedConfig: map[string]cty.Value{
 				"test_resource": cty.ObjectVal(map[string]cty.Value{
@@ -187,7 +187,7 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 			p.GetProviderSchemaResponse = schemaResp
 
 			var requestConfigs = make(map[string]cty.Value)
-			p.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+			p.ListResourceFn = func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				requestConfigs[request.TypeName] = request.Config
 				return tc.listResourceFn(request)
 			}

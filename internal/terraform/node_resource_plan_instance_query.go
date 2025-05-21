@@ -65,18 +65,18 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
-	resp := provider.ListResource(providers.ListResourceRequest{
+	resp, err := provider.ListResource(providers.ListResourceRequest{
 		TypeName: n.Config.Type,
 		Config:   unmarkedConfigVal,
 	})
+	if err != nil {
+		return diags.Append(fmt.Errorf("failed to list %s: %s", n.Addr, err))
+	}
 
 	resources := make([]cty.Value, 0)
 	identities := make([]cty.Value, 0)
 
-	for evt, err := range resp {
-		if err != nil {
-			return diags.Append(fmt.Errorf("failed to list %s: %s", n.Addr, err))
-		}
+	for evt := range resp {
 		if evt.Diagnostics.HasErrors() {
 			return diags.Append(evt.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 		}
