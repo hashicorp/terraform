@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
@@ -107,8 +106,6 @@ type Context struct {
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
-
-	valsState *namedvals.State
 }
 
 // (additional methods on Context can be found in context_*.go files.)
