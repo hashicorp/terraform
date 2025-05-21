@@ -297,7 +297,7 @@ func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) provider
 	}
 }
 
-func (u *unknownProvider) ListResource(providers.ListResourceRequest) error {
+func (u *unknownProvider) ListResource(providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -305,7 +305,7 @@ func (u *unknownProvider) ListResource(providers.ListResourceRequest) error {
 		"Terraform called ListResource on an unknown provider. This is a bug in Terraform - please report this error.",
 		nil, // nil attribute path means the overall configuration block
 	))
-	return diags.Err()
+	return nil, diags.Err()
 }
 
 func (u *unknownProvider) Close() error {

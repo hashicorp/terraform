@@ -413,7 +413,7 @@ func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
 }
 
-func (m *Mock) ListResource(request ListResourceRequest) error {
+func (m *Mock) ListResource(request ListResourceRequest) (ListResourceResponse, error) {
 	return m.Provider.ListResource(request)
 }
 
