@@ -182,6 +182,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			parser := NewParser(nil)
 			path := filepath.Join(testDir, name)
+			parser.AllowLanguageExperiments(true)
 
 			mod, diags := parser.LoadConfigDirWithTests(path, "tests")
 			if diags.HasErrors() {

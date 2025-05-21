@@ -121,10 +121,15 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 			}
 		}
 
+		mode := plans.DestroyMode
+		if r.main.PlanningOpts().PlanningMode == plans.RefreshOnlyMode {
+			mode = plans.RefreshOnlyMode
+		}
+
 		plantimestamp := r.main.PlanTimestamp()
 		forget := !r.call.config.config.Destroy
 		opts := &terraform.PlanOpts{
-			Mode:                       plans.DestroyMode,
+			Mode:                       mode,
 			SetVariables:               r.PlanPrevInputs(),
 			ExternalProviders:          providerClients,
 			DeferralAllowed:            true,
@@ -135,7 +140,28 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 			ForcePlanTimestamp: &plantimestamp,
 		}
 
-		plan, moreDiags := PlanComponentInstance(ctx, r.main, r.PlanPrevState(), opts, r)
+		h := hooksFromContext(ctx)
+		hookSingle(ctx, h.PendingComponentInstancePlan, r.Addr())
+		seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, r.Addr())
+		plan, moreDiags := PlanComponentInstance(ctx, r.main, r.PlanPrevState(), opts, []terraform.Hook{
+			&componentInstanceTerraformHook{
+				ctx:   ctx,
+				seq:   seq,
+				hooks: hooksFromContext(ctx),
+				addr:  r.Addr(),
+			},
+		}, r)
+		if plan != nil {
+			ReportComponentInstance(ctx, plan, h, seq, r)
+			if plan.Complete {
+				hookMore(ctx, seq, h.EndComponentInstancePlan, r.Addr())
+			} else {
+				hookMore(ctx, seq, h.DeferComponentInstancePlan, r.Addr())
+			}
+		} else {
+			hookMore(ctx, seq, h.ErrorComponentInstancePlan, r.Addr())
+		}
+
 		return plan, diags.Append(moreDiags)
 	})
 }
@@ -244,10 +270,11 @@ func (r *RemovedComponentInstance) PlanChanges(ctx context.Context) ([]stackplan
 
 	var changes []stackplan.PlannedChange
 	if plan != nil {
-		var action plans.Action
-		if r.call.config.config.Destroy {
-			action = plans.Delete
-		} else {
+		action := plans.Delete
+		switch {
+		case r.main.PlanningOpts().PlanningMode == plans.RefreshOnlyMode:
+			action = plans.Read
+		case !r.call.config.config.Destroy:
 			action = plans.Forget
 		}
 		changes, moreDiags = stackplan.FromPlan(ctx, r.ModuleTree(ctx), plan, nil, action, r)

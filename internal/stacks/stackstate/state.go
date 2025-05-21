@@ -83,6 +83,11 @@ func (s *State) HasComponentInstance(addr stackaddrs.AbsComponentInstance) bool 
 	return stack.getComponentInstance(addr.Item) != nil
 }
 
+func (s *State) HasStackInstance(addr stackaddrs.StackInstance) bool {
+	stack := s.root.getDescendent(addr)
+	return stack != nil
+}
+
 // AllComponentInstances returns a set of addresses for all of the component
 // instances that are tracked in the state.
 //

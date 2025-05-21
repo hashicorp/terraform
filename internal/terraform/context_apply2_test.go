@@ -2224,6 +2224,7 @@ import {
 						Required: true,
 					},
 				},
+				Nesting: configschema.NestingSingle,
 			},
 		},
 	})

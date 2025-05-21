@@ -18,8 +18,10 @@ require (
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/iam v1.1.5 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
+	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-versions v1.0.2 // indirect
+	github.com/bmatcuk/doublestar v1.1.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -40,6 +42,7 @@ require (
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
+	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1 // indirect

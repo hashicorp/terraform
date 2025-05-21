@@ -7,11 +7,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
@@ -247,25 +244,8 @@ func walkComponent[Output any](
 				// instance dynamically and off we go
 
 				unknownComponentBlockClaimedSomething = true
-
-				if inst.Key == addrs.WildcardKey {
-					// use the preset unknown instance if the key is actually
-					// the wildcard
-					inst := unknownComponentBlock.UnknownInstance(ctx, phase)
-					visit(ctx, walk, inst)
-
-					continue
-				}
-
-				inst := newComponentInstance(unknownComponentBlock, stackaddrs.AbsComponentInstance{
-					Stack: stack.addr,
-					Item:  inst,
-				}, instances.RepetitionData{
-					EachKey:   inst.Key.Value(),
-					EachValue: cty.UnknownVal(cty.DynamicPseudoType),
-				}, stack.mode, true)
+				inst := unknownComponentBlock.UnknownInstance(ctx, inst.Key, phase)
 				visit(ctx, walk, inst)
-
 				continue
 			}
 
@@ -273,13 +253,11 @@ func walkComponent[Output any](
 				// then we didn't have an unknown component block, but we do
 				// have an unknown removed component block to claim it
 
-				inst := newRemovedComponentInstance(unknownRemovedComponentBlock, stackaddrs.AbsComponentInstance{
+				from := stackaddrs.AbsComponentInstance{
 					Stack: stack.addr,
 					Item:  inst,
-				}, instances.RepetitionData{
-					EachKey:   inst.Key.Value(),
-					EachValue: cty.UnknownVal(cty.DynamicPseudoType),
-				}, true)
+				}
+				inst := unknownRemovedComponentBlock.UnknownInstance(ctx, from, phase)
 				visit(ctx, walk, inst)
 
 				continue
@@ -292,7 +270,7 @@ func walkComponent[Output any](
 
 		if !unknownComponentBlockClaimedSomething {
 			// then we want to include the partial unknown component instance
-			inst := unknownComponentBlock.UnknownInstance(ctx, phase)
+			inst := unknownComponentBlock.UnknownInstance(ctx, addrs.WildcardKey, phase)
 			visit(ctx, walk, inst)
 		}
 	})
@@ -393,20 +371,7 @@ func walkEmbeddedStack[Output any](
 
 			if unknownStackCall != nil {
 				unknownStackCallClaimedSomething = true
-
-				if inst[len(inst)-1].Key == addrs.WildcardKey {
-					inst := unknownStackCall.UnknownInstance(ctx, phase)
-					visit(ctx, walk, inst)
-					childStack := inst.Stack(ctx, phase)
-					walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
-					continue
-				}
-
-				inst := newStackCallInstance(unknownStackCall, inst[len(inst)-1].Key, instances.RepetitionData{
-					EachKey:   inst[len(inst)-1].Key.Value(),
-					EachValue: cty.UnknownVal(cty.DynamicPseudoType),
-				}, stack.mode, true)
-
+				inst := unknownStackCall.UnknownInstance(ctx, inst[len(inst)-1].Key, phase)
 				visit(ctx, walk, inst)
 				childStack := inst.Stack(ctx, phase)
 				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
@@ -415,11 +380,7 @@ func walkEmbeddedStack[Output any](
 			}
 
 			if unknownRemovedStackCall != nil {
-				inst := newRemovedStackCallInstance(unknownRemovedStackCall, inst, instances.RepetitionData{
-					EachKey:   inst[len(inst)-1].Key.Value(),
-					EachValue: cty.UnknownVal(cty.DynamicPseudoType),
-				}, true)
-
+				inst := unknownRemovedStackCall.UnknownInstance(ctx, inst, phase)
 				visit(ctx, walk, inst)
 				childStack := inst.Stack(ctx, phase)
 				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
@@ -430,7 +391,7 @@ func walkEmbeddedStack[Output any](
 
 		if !unknownStackCallClaimedSomething {
 			// then we want to include the partial unknown component instance
-			inst := unknownStackCall.UnknownInstance(ctx, phase)
+			inst := unknownStackCall.UnknownInstance(ctx, addrs.WildcardKey, phase)
 			visit(ctx, walk, inst)
 			childStack := inst.Stack(ctx, phase)
 			walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)

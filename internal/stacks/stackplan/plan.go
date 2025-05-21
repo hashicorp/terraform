@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
@@ -82,10 +82,10 @@ type Plan struct {
 	// associated resources.
 	DeletedComponents collections.Set[stackaddrs.AbsComponentInstance]
 
-	// ProviderFunctionResults is a shared table of results from calling
+	// FunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning
 	// stage to use during apply operations.
-	ProviderFunctionResults []providers.FunctionHash
+	FunctionResults []lang.FunctionResultHash
 
 	// PlanTimestamp is the time at which the plan was created.
 	PlanTimestamp time.Time
@@ -161,6 +161,10 @@ func (p *Plan) GetOrCreate(addr stackaddrs.AbsComponentInstance, component *Comp
 func (p *Plan) GetComponent(addr stackaddrs.AbsComponentInstance) *Component {
 	targetStackInstance := p.Root.GetDescendentStack(addr.Stack)
 	return targetStackInstance.GetComponent(addr.Item)
+}
+
+func (p *Plan) GetStack(addr stackaddrs.StackInstance) *StackInstance {
+	return p.Root.GetDescendentStack(addr)
 }
 
 // RequiredProviderInstances returns a description of all of the provider

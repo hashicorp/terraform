@@ -49,6 +49,8 @@ type Module struct {
 	ManagedResources   map[string]*Resource
 	DataResources      map[string]*Resource
 	EphemeralResources map[string]*Resource
+	ListResources      map[string]*Resource
+	Actions            map[string]*Action
 
 	Moved   []*Moved
 	Removed []*Removed
@@ -95,7 +97,8 @@ type File struct {
 	Removed []*Removed
 	Import  []*Import
 
-	Checks []*Check
+	Checks  []*Check
+	Actions []*Action
 }
 
 // NewModuleWithTests matches NewModule except it will also load in the provided
@@ -128,9 +131,11 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ManagedResources:   map[string]*Resource{},
 		EphemeralResources: map[string]*Resource{},
 		DataResources:      map[string]*Resource{},
+		ListResources:      map[string]*Resource{},
 		Checks:             map[string]*Check{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
 		Tests:              map[string]*TestFile{},
+		Actions:            map[string]*Action{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -197,6 +202,8 @@ func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
 		return m.DataResources[key]
 	case addrs.EphemeralResourceMode:
 		return m.EphemeralResources[key]
+	case addrs.ListResourceMode:
+		return m.ListResources[key]
 	default:
 		return nil
 	}
@@ -491,6 +498,104 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.Import = append(m.Import, i)
 	}
 
+	for _, a := range file.Actions {
+		key := a.moduleUniqueKey()
+		if existing, exists := m.Actions[key]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Duplicate action %q configuration", existing.Type),
+				Detail:   fmt.Sprintf("An action named %q was already declared at %s. Resource names must be unique per type in each module.", existing.Name, existing.DeclRange),
+				Subject:  &a.DeclRange,
+			})
+			continue
+		}
+		m.Actions[key] = a
+
+		// set the provider FQN for the action
+		if a.ProviderConfigRef != nil {
+			a.Provider = m.ProviderForLocalConfig(a.ProviderConfigAddr())
+		} else {
+			// an invalid resource name (for e.g. "null resource" instead of
+			// "null_resource") can cause a panic down the line in addrs:
+			// https://github.com/hashicorp/terraform/issues/25560
+			implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
+			if err == nil {
+				a.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+			// We don't return a diagnostic because the invalid resource name
+			// will already have been caught.
+		}
+	}
+
+	return diags
+}
+
+func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for _, pc := range file.ProviderConfigs {
+		key := pc.moduleUniqueKey()
+		if existing, exists := m.ProviderConfigs[key]; exists {
+			if existing.Alias == "" {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate provider configuration",
+					Detail:   fmt.Sprintf("A default (non-aliased) provider configuration for %q was already given at %s. If multiple configurations are required, set the \"alias\" argument for alternative configurations.", existing.Name, existing.DeclRange),
+					Subject:  &pc.DeclRange,
+				})
+			} else {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate provider configuration",
+					Detail:   fmt.Sprintf("A provider configuration for %q with alias %q was already given at %s. Each configuration for the same provider must have a distinct alias.", existing.Name, existing.Alias, existing.DeclRange),
+					Subject:  &pc.DeclRange,
+				})
+			}
+			continue
+		}
+		m.ProviderConfigs[key] = pc
+	}
+
+	for _, v := range file.Variables {
+		if existing, exists := m.Variables[v.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate variable declaration",
+				Detail:   fmt.Sprintf("A variable named %q was already declared at %s. Variable names must be unique within a module.", existing.Name, existing.DeclRange),
+				Subject:  &v.DeclRange,
+			})
+		}
+		m.Variables[v.Name] = v
+	}
+
+	for _, l := range file.Locals {
+		if existing, exists := m.Locals[l.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate local value definition",
+				Detail:   fmt.Sprintf("A local value named %q was already defined at %s. Local value names must be unique within a module.", existing.Name, existing.DeclRange),
+				Subject:  &l.DeclRange,
+			})
+		}
+		m.Locals[l.Name] = l
+	}
+
+	for _, ql := range file.ListResources {
+		key := ql.moduleUniqueKey()
+		if existing, exists := m.ListResources[key]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Duplicate list %q configuration", existing.Type),
+				Detail:   fmt.Sprintf("A %s list named %q was already declared at %s. List names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
+				Subject:  &ql.DeclRange,
+			})
+			continue
+		}
+		// set the provider FQN for the resource
+		m.ListResources[key] = ql
+		ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
+	}
+
 	return diags
 }
 
@@ -679,6 +784,22 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			Detail:   "Import blocks can appear only in normal files, not in override files.",
 			Subject:  m.DeclRange.Ptr(),
 		})
+	}
+
+	for _, a := range file.Actions {
+		key := a.moduleUniqueKey()
+		existing, exists := m.Actions[key]
+		if !exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing resource to override",
+				Detail:   fmt.Sprintf("There is no action named %q. An override file can only override a resource block defined in a primary configuration file.", a.Name),
+				Subject:  &a.DeclRange,
+			})
+			continue
+		}
+		mergeDiags := existing.merge(a, m.ProviderRequirements.RequiredProviders)
+		diags = append(diags, mergeDiags...)
 	}
 
 	return diags

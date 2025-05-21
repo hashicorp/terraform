@@ -282,6 +282,17 @@ func initCommands(
 			}, nil
 		},
 
+		// "rpcapi" is handled a bit differently because the whole point of
+		// this interface is to bypass the CLI layer so wrapping automation can
+		// get as-direct-as-possible access to Terraform Core functionality,
+		// without interference from behaviors that are intended for CLI
+		// end-user convenience. We bypass the "command" package entirely
+		// for this command in particular.
+		"rpcapi": rpcapi.CLICommandFactory(rpcapi.CommandFactoryOpts{
+			ExperimentsAllowed: meta.AllowExperimentalFeatures,
+			ShutdownCh:         meta.ShutdownCh,
+		}),
+
 		"show": func() (cli.Command, error) {
 			return &command.ShowCommand{
 				Meta: meta,
@@ -434,16 +445,11 @@ func initCommands(
 			}, nil
 		}
 
-		// "rpcapi" is handled a bit differently because the whole point of
-		// this interface is to bypass the CLI layer so wrapping automation can
-		// get as-direct-as-possible access to Terraform Core functionality,
-		// without interference from behaviors that are intended for CLI
-		// end-user convenience. We bypass the "command" package entirely
-		// for this command in particular.
-		Commands["rpcapi"] = rpcapi.CLICommandFactory(rpcapi.CommandFactoryOpts{
-			ExperimentsAllowed: meta.AllowExperimentalFeatures,
-			ShutdownCh:         meta.ShutdownCh,
-		})
+		Commands["stacks"] = func() (cli.Command, error) {
+			return &command.StacksCommand{
+				Meta: meta,
+			}, nil
+		}
 	}
 
 	PrimaryCommands = []string{
