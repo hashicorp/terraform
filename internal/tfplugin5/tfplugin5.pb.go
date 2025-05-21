@@ -748,138 +748,6 @@ func (x *Schema) GetBlock() *Schema_Block {
 	return nil
 }
 
-// ServerCapabilities allows providers to communicate extra information
-// regarding supported protocol features. This is used to indicate
-// availability of certain forward-compatible changes which may be optional
-// in a major protocol version, but cannot be tested for directly.
-type ServerCapabilities struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The plan_destroy capability signals that a provider expects a call
-	// to PlanResourceChange when a resource is going to be destroyed.
-	PlanDestroy bool `protobuf:"varint,1,opt,name=plan_destroy,json=planDestroy,proto3" json:"plan_destroy,omitempty"`
-	// The get_provider_schema_optional capability indicates that this
-	// provider does not require calling GetProviderSchema to operate
-	// normally, and the caller can used a cached copy of the provider's
-	// schema.
-	GetProviderSchemaOptional bool `protobuf:"varint,2,opt,name=get_provider_schema_optional,json=getProviderSchemaOptional,proto3" json:"get_provider_schema_optional,omitempty"`
-	// The move_resource_state capability signals that a provider supports the
-	// MoveResourceState RPC.
-	MoveResourceState bool `protobuf:"varint,3,opt,name=move_resource_state,json=moveResourceState,proto3" json:"move_resource_state,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *ServerCapabilities) Reset() {
-	*x = ServerCapabilities{}
-	mi := &file_tfplugin5_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ServerCapabilities) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ServerCapabilities) ProtoMessage() {}
-
-func (x *ServerCapabilities) ProtoReflect() protoreflect.Message {
-	mi := &file_tfplugin5_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ServerCapabilities.ProtoReflect.Descriptor instead.
-func (*ServerCapabilities) Descriptor() ([]byte, []int) {
-	return file_tfplugin5_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *ServerCapabilities) GetPlanDestroy() bool {
-	if x != nil {
-		return x.PlanDestroy
-	}
-	return false
-}
-
-func (x *ServerCapabilities) GetGetProviderSchemaOptional() bool {
-	if x != nil {
-		return x.GetProviderSchemaOptional
-	}
-	return false
-}
-
-func (x *ServerCapabilities) GetMoveResourceState() bool {
-	if x != nil {
-		return x.MoveResourceState
-	}
-	return false
-}
-
-// ClientCapabilities allows Terraform to publish information regarding
-// supported protocol features. This is used to indicate availability of
-// certain forward-compatible changes which may be optional in a major
-// protocol version, but cannot be tested for directly.
-type ClientCapabilities struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The deferral_allowed capability signals that the client is able to
-	// handle deferred responses from the provider.
-	DeferralAllowed bool `protobuf:"varint,1,opt,name=deferral_allowed,json=deferralAllowed,proto3" json:"deferral_allowed,omitempty"`
-	// The write_only_attributes_allowed capability signals that the client
-	// is able to handle write_only attributes for managed resources.
-	WriteOnlyAttributesAllowed bool `protobuf:"varint,2,opt,name=write_only_attributes_allowed,json=writeOnlyAttributesAllowed,proto3" json:"write_only_attributes_allowed,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
-}
-
-func (x *ClientCapabilities) Reset() {
-	*x = ClientCapabilities{}
-	mi := &file_tfplugin5_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ClientCapabilities) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ClientCapabilities) ProtoMessage() {}
-
-func (x *ClientCapabilities) ProtoReflect() protoreflect.Message {
-	mi := &file_tfplugin5_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ClientCapabilities.ProtoReflect.Descriptor instead.
-func (*ClientCapabilities) Descriptor() ([]byte, []int) {
-	return file_tfplugin5_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *ClientCapabilities) GetDeferralAllowed() bool {
-	if x != nil {
-		return x.DeferralAllowed
-	}
-	return false
-}
-
-func (x *ClientCapabilities) GetWriteOnlyAttributesAllowed() bool {
-	if x != nil {
-		return x.WriteOnlyAttributesAllowed
-	}
-	return false
-}
-
 type Function struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// parameters is the ordered list of positional function parameters.
@@ -905,7 +773,7 @@ type Function struct {
 
 func (x *Function) Reset() {
 	*x = Function{}
-	mi := &file_tfplugin5_proto_msgTypes[11]
+	mi := &file_tfplugin5_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -917,7 +785,7 @@ func (x *Function) String() string {
 func (*Function) ProtoMessage() {}
 
 func (x *Function) ProtoReflect() protoreflect.Message {
-	mi := &file_tfplugin5_proto_msgTypes[11]
+	mi := &file_tfplugin5_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +798,7 @@ func (x *Function) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Function.ProtoReflect.Descriptor instead.
 func (*Function) Descriptor() ([]byte, []int) {
-	return file_tfplugin5_proto_rawDescGZIP(), []int{11}
+	return file_tfplugin5_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Function) GetParameters() []*Function_Parameter {
@@ -980,6 +848,138 @@ func (x *Function) GetDeprecationMessage() string {
 		return x.DeprecationMessage
 	}
 	return ""
+}
+
+// ServerCapabilities allows providers to communicate extra information
+// regarding supported protocol features. This is used to indicate
+// availability of certain forward-compatible changes which may be optional
+// in a major protocol version, but cannot be tested for directly.
+type ServerCapabilities struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The plan_destroy capability signals that a provider expects a call
+	// to PlanResourceChange when a resource is going to be destroyed.
+	PlanDestroy bool `protobuf:"varint,1,opt,name=plan_destroy,json=planDestroy,proto3" json:"plan_destroy,omitempty"`
+	// The get_provider_schema_optional capability indicates that this
+	// provider does not require calling GetProviderSchema to operate
+	// normally, and the caller can used a cached copy of the provider's
+	// schema.
+	GetProviderSchemaOptional bool `protobuf:"varint,2,opt,name=get_provider_schema_optional,json=getProviderSchemaOptional,proto3" json:"get_provider_schema_optional,omitempty"`
+	// The move_resource_state capability signals that a provider supports the
+	// MoveResourceState RPC.
+	MoveResourceState bool `protobuf:"varint,3,opt,name=move_resource_state,json=moveResourceState,proto3" json:"move_resource_state,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ServerCapabilities) Reset() {
+	*x = ServerCapabilities{}
+	mi := &file_tfplugin5_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServerCapabilities) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServerCapabilities) ProtoMessage() {}
+
+func (x *ServerCapabilities) ProtoReflect() protoreflect.Message {
+	mi := &file_tfplugin5_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServerCapabilities.ProtoReflect.Descriptor instead.
+func (*ServerCapabilities) Descriptor() ([]byte, []int) {
+	return file_tfplugin5_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ServerCapabilities) GetPlanDestroy() bool {
+	if x != nil {
+		return x.PlanDestroy
+	}
+	return false
+}
+
+func (x *ServerCapabilities) GetGetProviderSchemaOptional() bool {
+	if x != nil {
+		return x.GetProviderSchemaOptional
+	}
+	return false
+}
+
+func (x *ServerCapabilities) GetMoveResourceState() bool {
+	if x != nil {
+		return x.MoveResourceState
+	}
+	return false
+}
+
+// ClientCapabilities allows Terraform to publish information regarding
+// supported protocol features. This is used to indicate availability of
+// certain forward-compatible changes which may be optional in a major
+// protocol version, but cannot be tested for directly.
+type ClientCapabilities struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The deferral_allowed capability signals that the client is able to
+	// handle deferred responses from the provider.
+	DeferralAllowed bool `protobuf:"varint,1,opt,name=deferral_allowed,json=deferralAllowed,proto3" json:"deferral_allowed,omitempty"`
+	// The write_only_attributes_allowed capability signals that the client
+	// is able to handle write_only attributes for managed resources.
+	WriteOnlyAttributesAllowed bool `protobuf:"varint,2,opt,name=write_only_attributes_allowed,json=writeOnlyAttributesAllowed,proto3" json:"write_only_attributes_allowed,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *ClientCapabilities) Reset() {
+	*x = ClientCapabilities{}
+	mi := &file_tfplugin5_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClientCapabilities) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientCapabilities) ProtoMessage() {}
+
+func (x *ClientCapabilities) ProtoReflect() protoreflect.Message {
+	mi := &file_tfplugin5_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientCapabilities.ProtoReflect.Descriptor instead.
+func (*ClientCapabilities) Descriptor() ([]byte, []int) {
+	return file_tfplugin5_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ClientCapabilities) GetDeferralAllowed() bool {
+	if x != nil {
+		return x.DeferralAllowed
+	}
+	return false
+}
+
+func (x *ClientCapabilities) GetWriteOnlyAttributesAllowed() bool {
+	if x != nil {
+		return x.WriteOnlyAttributesAllowed
+	}
+	return false
 }
 
 // Deferred is a message that indicates that change is deferred for a reason.
@@ -2558,7 +2558,7 @@ func (x *Function_Parameter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Function_Parameter.ProtoReflect.Descriptor instead.
 func (*Function_Parameter) Descriptor() ([]byte, []int) {
-	return file_tfplugin5_proto_rawDescGZIP(), []int{11, 0}
+	return file_tfplugin5_proto_rawDescGZIP(), []int{9, 0}
 }
 
 func (x *Function_Parameter) GetName() string {
@@ -2638,7 +2638,7 @@ func (x *Function_Return) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Function_Return.ProtoReflect.Descriptor instead.
 func (*Function_Return) Descriptor() ([]byte, []int) {
-	return file_tfplugin5_proto_rawDescGZIP(), []int{11, 1}
+	return file_tfplugin5_proto_rawDescGZIP(), []int{9, 1}
 }
 
 func (x *Function_Return) GetType() []byte {
@@ -6246,26 +6246,7 @@ var file_tfplugin5_proto_rawDesc = string([]byte{
 	0x56, 0x41, 0x4c, 0x49, 0x44, 0x10, 0x00, 0x12, 0x0a, 0x0a, 0x06, 0x53, 0x49, 0x4e, 0x47, 0x4c,
 	0x45, 0x10, 0x01, 0x12, 0x08, 0x0a, 0x04, 0x4c, 0x49, 0x53, 0x54, 0x10, 0x02, 0x12, 0x07, 0x0a,
 	0x03, 0x53, 0x45, 0x54, 0x10, 0x03, 0x12, 0x07, 0x0a, 0x03, 0x4d, 0x41, 0x50, 0x10, 0x04, 0x12,
-	0x09, 0x0a, 0x05, 0x47, 0x52, 0x4f, 0x55, 0x50, 0x10, 0x05, 0x22, 0xa8, 0x01, 0x0a, 0x12, 0x53,
-	0x65, 0x72, 0x76, 0x65, 0x72, 0x43, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65,
-	0x73, 0x12, 0x21, 0x0a, 0x0c, 0x70, 0x6c, 0x61, 0x6e, 0x5f, 0x64, 0x65, 0x73, 0x74, 0x72, 0x6f,
-	0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0b, 0x70, 0x6c, 0x61, 0x6e, 0x44, 0x65, 0x73,
-	0x74, 0x72, 0x6f, 0x79, 0x12, 0x3f, 0x0a, 0x1c, 0x67, 0x65, 0x74, 0x5f, 0x70, 0x72, 0x6f, 0x76,
-	0x69, 0x64, 0x65, 0x72, 0x5f, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x5f, 0x6f, 0x70, 0x74, 0x69,
-	0x6f, 0x6e, 0x61, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x19, 0x67, 0x65, 0x74, 0x50,
-	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x4f, 0x70, 0x74,
-	0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x12, 0x2e, 0x0a, 0x13, 0x6d, 0x6f, 0x76, 0x65, 0x5f, 0x72, 0x65,
-	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x08, 0x52, 0x11, 0x6d, 0x6f, 0x76, 0x65, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
-	0x53, 0x74, 0x61, 0x74, 0x65, 0x22, 0x82, 0x01, 0x0a, 0x12, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74,
-	0x43, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65, 0x73, 0x12, 0x29, 0x0a, 0x10,
-	0x64, 0x65, 0x66, 0x65, 0x72, 0x72, 0x61, 0x6c, 0x5f, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0f, 0x64, 0x65, 0x66, 0x65, 0x72, 0x72, 0x61, 0x6c,
-	0x41, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x12, 0x41, 0x0a, 0x1d, 0x77, 0x72, 0x69, 0x74, 0x65,
-	0x5f, 0x6f, 0x6e, 0x6c, 0x79, 0x5f, 0x61, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73,
-	0x5f, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x1a,
-	0x77, 0x72, 0x69, 0x74, 0x65, 0x4f, 0x6e, 0x6c, 0x79, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75,
-	0x74, 0x65, 0x73, 0x41, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x22, 0x8e, 0x05, 0x0a, 0x08, 0x46,
+	0x09, 0x0a, 0x05, 0x47, 0x52, 0x4f, 0x55, 0x50, 0x10, 0x05, 0x22, 0x8e, 0x05, 0x0a, 0x08, 0x46,
 	0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x3d, 0x0a, 0x0a, 0x70, 0x61, 0x72, 0x61, 0x6d,
 	0x65, 0x74, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x74, 0x66,
 	0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x35, 0x2e, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e,
@@ -6306,7 +6287,26 @@ var file_tfplugin5_proto_rawDesc = string([]byte{
 	0x35, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x4b, 0x69, 0x6e, 0x64, 0x52, 0x0f, 0x64, 0x65,
 	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x4b, 0x69, 0x6e, 0x64, 0x1a, 0x1c, 0x0a,
 	0x06, 0x52, 0x65, 0x74, 0x75, 0x72, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0xa2, 0x01, 0x0a, 0x08,
+	0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0xa8, 0x01, 0x0a, 0x12,
+	0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x43, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69,
+	0x65, 0x73, 0x12, 0x21, 0x0a, 0x0c, 0x70, 0x6c, 0x61, 0x6e, 0x5f, 0x64, 0x65, 0x73, 0x74, 0x72,
+	0x6f, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0b, 0x70, 0x6c, 0x61, 0x6e, 0x44, 0x65,
+	0x73, 0x74, 0x72, 0x6f, 0x79, 0x12, 0x3f, 0x0a, 0x1c, 0x67, 0x65, 0x74, 0x5f, 0x70, 0x72, 0x6f,
+	0x76, 0x69, 0x64, 0x65, 0x72, 0x5f, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x5f, 0x6f, 0x70, 0x74,
+	0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x19, 0x67, 0x65, 0x74,
+	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x4f, 0x70,
+	0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x12, 0x2e, 0x0a, 0x13, 0x6d, 0x6f, 0x76, 0x65, 0x5f, 0x72,
+	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x08, 0x52, 0x11, 0x6d, 0x6f, 0x76, 0x65, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x22, 0x82, 0x01, 0x0a, 0x12, 0x43, 0x6c, 0x69, 0x65, 0x6e,
+	0x74, 0x43, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65, 0x73, 0x12, 0x29, 0x0a,
+	0x10, 0x64, 0x65, 0x66, 0x65, 0x72, 0x72, 0x61, 0x6c, 0x5f, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65,
+	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0f, 0x64, 0x65, 0x66, 0x65, 0x72, 0x72, 0x61,
+	0x6c, 0x41, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x12, 0x41, 0x0a, 0x1d, 0x77, 0x72, 0x69, 0x74,
+	0x65, 0x5f, 0x6f, 0x6e, 0x6c, 0x79, 0x5f, 0x61, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65,
+	0x73, 0x5f, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52,
+	0x1a, 0x77, 0x72, 0x69, 0x74, 0x65, 0x4f, 0x6e, 0x6c, 0x79, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62,
+	0x75, 0x74, 0x65, 0x73, 0x41, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x22, 0xa2, 0x01, 0x0a, 0x08,
 	0x44, 0x65, 0x66, 0x65, 0x72, 0x72, 0x65, 0x64, 0x12, 0x32, 0x0a, 0x06, 0x72, 0x65, 0x61, 0x73,
 	0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1a, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75,
 	0x67, 0x69, 0x6e, 0x35, 0x2e, 0x44, 0x65, 0x66, 0x65, 0x72, 0x72, 0x65, 0x64, 0x2e, 0x52, 0x65,
@@ -7198,9 +7198,9 @@ var file_tfplugin5_proto_goTypes = []any{
 	(*ResourceIdentitySchema)(nil),                   // 10: tfplugin5.ResourceIdentitySchema
 	(*ResourceIdentityData)(nil),                     // 11: tfplugin5.ResourceIdentityData
 	(*Schema)(nil),                                   // 12: tfplugin5.Schema
-	(*ServerCapabilities)(nil),                       // 13: tfplugin5.ServerCapabilities
-	(*ClientCapabilities)(nil),                       // 14: tfplugin5.ClientCapabilities
-	(*Function)(nil),                                 // 15: tfplugin5.Function
+	(*Function)(nil),                                 // 13: tfplugin5.Function
+	(*ServerCapabilities)(nil),                       // 14: tfplugin5.ServerCapabilities
+	(*ClientCapabilities)(nil),                       // 15: tfplugin5.ClientCapabilities
 	(*Deferred)(nil),                                 // 16: tfplugin5.Deferred
 	(*GetMetadata)(nil),                              // 17: tfplugin5.GetMetadata
 	(*GetProviderSchema)(nil),                        // 18: tfplugin5.GetProviderSchema
@@ -7325,7 +7325,7 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	48,  // 16: tfplugin5.Schema.NestedBlock.block:type_name -> tfplugin5.Schema.Block
 	2,   // 17: tfplugin5.Schema.NestedBlock.nesting:type_name -> tfplugin5.Schema.NestedBlock.NestingMode
 	0,   // 18: tfplugin5.Function.Parameter.description_kind:type_name -> tfplugin5.StringKind
-	13,  // 19: tfplugin5.GetMetadata.Response.server_capabilities:type_name -> tfplugin5.ServerCapabilities
+	14,  // 19: tfplugin5.GetMetadata.Response.server_capabilities:type_name -> tfplugin5.ServerCapabilities
 	5,   // 20: tfplugin5.GetMetadata.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	57,  // 21: tfplugin5.GetMetadata.Response.data_sources:type_name -> tfplugin5.GetMetadata.DataSourceMetadata
 	58,  // 22: tfplugin5.GetMetadata.Response.resources:type_name -> tfplugin5.GetMetadata.ResourceMetadata
@@ -7340,10 +7340,10 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	66,  // 31: tfplugin5.GetProviderSchema.Response.list_resource_schemas:type_name -> tfplugin5.GetProviderSchema.Response.ListResourceSchemasEntry
 	5,   // 32: tfplugin5.GetProviderSchema.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	12,  // 33: tfplugin5.GetProviderSchema.Response.provider_meta:type_name -> tfplugin5.Schema
-	13,  // 34: tfplugin5.GetProviderSchema.Response.server_capabilities:type_name -> tfplugin5.ServerCapabilities
+	14,  // 34: tfplugin5.GetProviderSchema.Response.server_capabilities:type_name -> tfplugin5.ServerCapabilities
 	12,  // 35: tfplugin5.GetProviderSchema.Response.ResourceSchemasEntry.value:type_name -> tfplugin5.Schema
 	12,  // 36: tfplugin5.GetProviderSchema.Response.DataSourceSchemasEntry.value:type_name -> tfplugin5.Schema
-	15,  // 37: tfplugin5.GetProviderSchema.Response.FunctionsEntry.value:type_name -> tfplugin5.Function
+	13,  // 37: tfplugin5.GetProviderSchema.Response.FunctionsEntry.value:type_name -> tfplugin5.Function
 	12,  // 38: tfplugin5.GetProviderSchema.Response.EphemeralResourceSchemasEntry.value:type_name -> tfplugin5.Schema
 	12,  // 39: tfplugin5.GetProviderSchema.Response.ListResourceSchemasEntry.value:type_name -> tfplugin5.Schema
 	4,   // 40: tfplugin5.PrepareProviderConfig.Request.config:type_name -> tfplugin5.DynamicValue
@@ -7359,18 +7359,18 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	11,  // 50: tfplugin5.UpgradeResourceIdentity.Response.upgraded_identity:type_name -> tfplugin5.ResourceIdentityData
 	5,   // 51: tfplugin5.UpgradeResourceIdentity.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	4,   // 52: tfplugin5.ValidateResourceTypeConfig.Request.config:type_name -> tfplugin5.DynamicValue
-	14,  // 53: tfplugin5.ValidateResourceTypeConfig.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
+	15,  // 53: tfplugin5.ValidateResourceTypeConfig.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
 	5,   // 54: tfplugin5.ValidateResourceTypeConfig.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	4,   // 55: tfplugin5.ValidateDataSourceConfig.Request.config:type_name -> tfplugin5.DynamicValue
 	5,   // 56: tfplugin5.ValidateDataSourceConfig.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	4,   // 57: tfplugin5.ValidateEphemeralResourceConfig.Request.config:type_name -> tfplugin5.DynamicValue
 	5,   // 58: tfplugin5.ValidateEphemeralResourceConfig.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	4,   // 59: tfplugin5.Configure.Request.config:type_name -> tfplugin5.DynamicValue
-	14,  // 60: tfplugin5.Configure.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
+	15,  // 60: tfplugin5.Configure.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
 	5,   // 61: tfplugin5.Configure.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	4,   // 62: tfplugin5.ReadResource.Request.current_state:type_name -> tfplugin5.DynamicValue
 	4,   // 63: tfplugin5.ReadResource.Request.provider_meta:type_name -> tfplugin5.DynamicValue
-	14,  // 64: tfplugin5.ReadResource.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
+	15,  // 64: tfplugin5.ReadResource.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
 	11,  // 65: tfplugin5.ReadResource.Request.current_identity:type_name -> tfplugin5.ResourceIdentityData
 	4,   // 66: tfplugin5.ReadResource.Response.new_state:type_name -> tfplugin5.DynamicValue
 	5,   // 67: tfplugin5.ReadResource.Response.diagnostics:type_name -> tfplugin5.Diagnostic
@@ -7380,7 +7380,7 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	4,   // 71: tfplugin5.PlanResourceChange.Request.proposed_new_state:type_name -> tfplugin5.DynamicValue
 	4,   // 72: tfplugin5.PlanResourceChange.Request.config:type_name -> tfplugin5.DynamicValue
 	4,   // 73: tfplugin5.PlanResourceChange.Request.provider_meta:type_name -> tfplugin5.DynamicValue
-	14,  // 74: tfplugin5.PlanResourceChange.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
+	15,  // 74: tfplugin5.PlanResourceChange.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
 	11,  // 75: tfplugin5.PlanResourceChange.Request.prior_identity:type_name -> tfplugin5.ResourceIdentityData
 	4,   // 76: tfplugin5.PlanResourceChange.Response.planned_state:type_name -> tfplugin5.DynamicValue
 	7,   // 77: tfplugin5.PlanResourceChange.Response.requires_replace:type_name -> tfplugin5.AttributePath
@@ -7395,7 +7395,7 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	4,   // 86: tfplugin5.ApplyResourceChange.Response.new_state:type_name -> tfplugin5.DynamicValue
 	5,   // 87: tfplugin5.ApplyResourceChange.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	11,  // 88: tfplugin5.ApplyResourceChange.Response.new_identity:type_name -> tfplugin5.ResourceIdentityData
-	14,  // 89: tfplugin5.ImportResourceState.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
+	15,  // 89: tfplugin5.ImportResourceState.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
 	11,  // 90: tfplugin5.ImportResourceState.Request.identity:type_name -> tfplugin5.ResourceIdentityData
 	4,   // 91: tfplugin5.ImportResourceState.ImportedResource.state:type_name -> tfplugin5.DynamicValue
 	11,  // 92: tfplugin5.ImportResourceState.ImportedResource.identity:type_name -> tfplugin5.ResourceIdentityData
@@ -7409,7 +7409,7 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	11,  // 100: tfplugin5.MoveResourceState.Response.target_identity:type_name -> tfplugin5.ResourceIdentityData
 	4,   // 101: tfplugin5.ReadDataSource.Request.config:type_name -> tfplugin5.DynamicValue
 	4,   // 102: tfplugin5.ReadDataSource.Request.provider_meta:type_name -> tfplugin5.DynamicValue
-	14,  // 103: tfplugin5.ReadDataSource.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
+	15,  // 103: tfplugin5.ReadDataSource.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
 	4,   // 104: tfplugin5.ReadDataSource.Response.state:type_name -> tfplugin5.DynamicValue
 	5,   // 105: tfplugin5.ReadDataSource.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	16,  // 106: tfplugin5.ReadDataSource.Response.deferred:type_name -> tfplugin5.Deferred
@@ -7421,7 +7421,7 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	4,   // 112: tfplugin5.ProvisionResource.Request.connection:type_name -> tfplugin5.DynamicValue
 	5,   // 113: tfplugin5.ProvisionResource.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	4,   // 114: tfplugin5.OpenEphemeralResource.Request.config:type_name -> tfplugin5.DynamicValue
-	14,  // 115: tfplugin5.OpenEphemeralResource.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
+	15,  // 115: tfplugin5.OpenEphemeralResource.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
 	5,   // 116: tfplugin5.OpenEphemeralResource.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	118, // 117: tfplugin5.OpenEphemeralResource.Response.renew_at:type_name -> google.protobuf.Timestamp
 	4,   // 118: tfplugin5.OpenEphemeralResource.Response.result:type_name -> tfplugin5.DynamicValue
@@ -7431,7 +7431,7 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	5,   // 122: tfplugin5.CloseEphemeralResource.Response.diagnostics:type_name -> tfplugin5.Diagnostic
 	111, // 123: tfplugin5.GetFunctions.Response.functions:type_name -> tfplugin5.GetFunctions.Response.FunctionsEntry
 	5,   // 124: tfplugin5.GetFunctions.Response.diagnostics:type_name -> tfplugin5.Diagnostic
-	15,  // 125: tfplugin5.GetFunctions.Response.FunctionsEntry.value:type_name -> tfplugin5.Function
+	13,  // 125: tfplugin5.GetFunctions.Response.FunctionsEntry.value:type_name -> tfplugin5.Function
 	4,   // 126: tfplugin5.CallFunction.Request.arguments:type_name -> tfplugin5.DynamicValue
 	4,   // 127: tfplugin5.CallFunction.Response.result:type_name -> tfplugin5.DynamicValue
 	6,   // 128: tfplugin5.CallFunction.Response.error:type_name -> tfplugin5.FunctionError
