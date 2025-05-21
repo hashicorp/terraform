@@ -41,11 +41,7 @@ func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
 	// a root config node that will add the file states to the context
 	rootConfigNode := t.addRootConfigNode(g, statesMap)
 
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
-			continue
-		}
+	for node := range dag.SelectSeq(g.VerticesSeq(), &NodeTestRun{}) {
 		key := node.run.GetStateKey()
 		if _, exists := statesMap[key]; !exists {
 			state := &TestFileState{
