@@ -810,6 +810,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Checks:             states.NewCheckResults(walker.Checks),
 		Timestamp:          timestamp,
 		FunctionResults:    funcResults.GetHashes(),
+		PostPlanState:      walker.State.Close(),
 
 		// Other fields get populated by Context.Plan after we return
 	}

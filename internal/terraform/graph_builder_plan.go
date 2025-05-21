@@ -148,7 +148,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			importTargets: b.ImportTargets,
 
 			// the validate walk also needs to include query-related nodes.
-			includeQuery: slices.Contains([]walkOperation{walkValidate, walkQuery}, b.Operation),
+			includeQuery: slices.Contains([]walkOperation{walkValidate, walkQuery, walkPlan}, b.Operation),
 			// We only want to generate config during a plan operation.
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
