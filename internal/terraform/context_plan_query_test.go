@@ -215,7 +215,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 			},
 			assertState: func(state *states.State) {
 				// Check that the plan state contains the list resources
-				// We need to check if the list resources exist by iterating through all list resources
 				allLists := state.AllListResourceInstances()
 
 				// Check for test_resource.test with count
@@ -230,6 +229,22 @@ func TestContext2Plan_queryList(t *testing.T) {
 				test2Inst, ok := allLists[test2Key]
 				if !ok || test2Inst.Len() == 0 {
 					t.Fatalf("Expected list resource test_resource.test2 to exist in state, but it doesn't")
+				}
+
+				// Verify instance types
+				expectedTypes := []string{"ami-123456", "ami-654321"}
+				actualTypes := make([]string, 0)
+
+				for _, obj := range testInst.Elements() {
+					val := obj.Value
+					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+						return false
+					})
+				}
+
+				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+					t.Fatalf("Expected instance types to match, but they differ: %s", diff)
 				}
 			},
 		},
@@ -384,6 +399,22 @@ func TestContext2Plan_queryList(t *testing.T) {
 				testInst := state.GetListResource(addrs.RootModuleInstance.Resource(addrs.ListResourceMode, "test_resource", "test"))
 				if testInst.Len() == 0 {
 					t.Fatalf("Expected list resource test_resource.test to exist in state, but it doesn't")
+				}
+
+				// Verify instance types
+				expectedTypes := []string{"ami-123456"}
+				actualTypes := make([]string, 0)
+
+				for _, obj := range testInst.Elements() {
+					val := obj.Value
+					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+						return false
+					})
+				}
+
+				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+					t.Fatalf("Expected instance types to match, but they differ: %s", diff)
 				}
 			},
 		},
@@ -568,6 +599,36 @@ func TestContext2Plan_queryList(t *testing.T) {
 				if test2Inst.Len() == 0 {
 					t.Fatalf("Expected list resource test_resource.test2 to exist in state, but it doesn't")
 				}
+
+				// Verify instance types for test1
+				expectedTypes := []string{"ami-123456"}
+				actualTypes := make([]string, 0)
+
+				for _, obj := range test1Inst.Elements() {
+					val := obj.Value
+					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+						return false
+					})
+				}
+
+				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+					t.Fatalf("Expected instance types for test1 to match, but they differ: %s", diff)
+				}
+
+				// Verify instance types for test2 (should be the same as test1)
+				actualTypes = make([]string, 0)
+				for _, obj := range test2Inst.Elements() {
+					val := obj.Value
+					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+						return false
+					})
+				}
+
+				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+					t.Fatalf("Expected instance types for test2 to match, but they differ: %s", diff)
+				}
 			},
 			InputVariables: InputValues{
 				"test_var": &InputValue{
@@ -647,6 +708,39 @@ func TestContext2Plan_queryList(t *testing.T) {
 				test2Inst, ok := allLists[test2Key]
 				if !ok || test2Inst.Len() == 0 {
 					t.Fatalf("Expected instances of test_resource.test2 with for_each to exist in state, but found none")
+				}
+
+				// Verify instance types in test1 resources
+				expectedTypes := []string{"ami-123456"}
+
+				// For each element in the test1Inst map, verify the instance types
+				for _, elem := range test1Inst.Elements() {
+					actualTypes := make([]string, 0)
+					obj := elem.Value
+
+					obj.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+						return false
+					})
+
+					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+						t.Fatalf("Expected instance types for test1 to match, but they differ: %s", diff)
+					}
+				}
+
+				// Also verify instance types in test2 resources
+				for _, elem := range test2Inst.Elements() {
+					actualTypes := make([]string, 0)
+					obj := elem.Value
+
+					obj.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+						return false
+					})
+
+					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+						t.Fatalf("Expected instance types for test2 to match, but they differ: %s", diff)
+					}
 				}
 			},
 		},
