@@ -30,6 +30,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	var evalFromPlan bool
 	cmdFlags := c.Meta.extendedFlagSet("console")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "use state locking")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.BoolVar(&evalFromPlan, "plan", false, "evaluate from plan")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -226,6 +227,10 @@ Options:
 
   -state=path       Legacy option for the local backend only. See the local
                     backend's documentation for more information.
+
+  -lock=false       Don't hold a state lock during the operation. This is
+					dangerous if others might concurrently run commands
+					against the same workspace.
 
   -plan             Create a new plan (as if running "terraform plan") and
                     then evaluate expressions against its planned state,
