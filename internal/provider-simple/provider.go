@@ -5,6 +5,7 @@
 package simple
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -49,6 +50,7 @@ func Provider() providers.Interface {
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
+			Actions: map[string]providers.ActionSchema{},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
 			},
@@ -209,6 +211,24 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	// Our schema doesn't include any functions, so it should be impossible
 	// to get in here.
 	panic("CallFunction on provider that didn't declare any functions")
+}
+
+func (s simple) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get in here.
+	panic("PlanAction on provider that didn't declare any actions")
+}
+
+func (s simple) InvokeAction(context.Context, providers.InvokeActionRequest) providers.InvokeActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get in here.
+	panic("InvokeAction on provider that didn't declare any actions")
+}
+
+func (s simple) CancelAction(providers.CancelActionRequest) providers.CancelActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get in here.
+	panic("CancelAction on provider that didn't declare any actions")
 }
 
 func (s simple) Close() error {

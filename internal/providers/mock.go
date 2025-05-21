@@ -4,6 +4,7 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
@@ -40,6 +41,38 @@ type Mock struct {
 
 	schema         *GetProviderSchemaResponse
 	identitySchema *GetResourceIdentitySchemasResponse
+}
+
+func (m *Mock) PlanAction(request PlanActionRequest) PlanActionResponse {
+	// Mock implementation for PlanAction
+	return PlanActionResponse{
+		NewConfig:   request.PlannedConfig,
+		Diagnostics: nil,
+	}
+}
+
+func (m *Mock) InvokeAction(_ context.Context, request InvokeActionRequest) InvokeActionResponse {
+	// Mock implementation for InvokeAction
+	return InvokeActionResponse{
+		CancellationToken: "",
+		Events: func() <-chan InvokeActionEvent {
+			ch := make(chan InvokeActionEvent, 1)
+			ch <- &InvokeActionEvent_Finished{
+				NewConfig:   request.PlannedConfig,
+				Diagnostics: nil,
+			}
+			close(ch)
+			return ch
+		}(),
+		Diagnostics: nil,
+	}
+}
+
+func (m *Mock) CancelAction(request CancelActionRequest) CancelActionResponse {
+	// Mock implementation for CancelAction
+	return CancelActionResponse{
+		Diagnostics: nil,
+	}
 }
 
 func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {

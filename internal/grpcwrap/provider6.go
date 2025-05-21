@@ -814,6 +814,120 @@ func (p *provider6) ListResource(*tfplugin6.ListResource_Request, tfplugin6.Prov
 	panic("not implemented")
 }
 
+func (p *provider6) PlanAction(_ context.Context, req *tfplugin6.PlanAction_Request) (*tfplugin6.PlanAction_Response, error) {
+	resp := &tfplugin6.PlanAction_Response{}
+	actionSchema := p.schema.Actions[req.TypeName]
+	ty := actionSchema.Block.ImpliedType()
+
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	planResp := p.provider.PlanAction(providers.PlanActionRequest{
+		TypeName:      req.TypeName,
+		PlannedConfig: configVal,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, planResp.Diagnostics)
+	if planResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	resp.NewConfig, err = encodeDynamicValue6(planResp.NewConfig, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+	}
+
+	return resp, nil
+}
+
+func (p *provider6) InvokeAction(req *tfplugin6.InvokeAction_Request, server tfplugin6.Provider_InvokeActionServer) error {
+
+	actionSchema, ok := p.schema.Actions[req.TypeName]
+	if !ok {
+		return fmt.Errorf("action schema not found for type %q", req.TypeName)
+	}
+
+	ty := actionSchema.Block.ImpliedType()
+	configVal, err := decodeDynamicValue6(req.PlannedConfig, ty)
+	if err != nil {
+		return err
+	}
+
+	// At this point we consider the action started and send the
+	// started message.
+	server.Send(&tfplugin6.InvokeAction_Event{
+		Event: &tfplugin6.InvokeAction_Event_Started_{
+			Started: &tfplugin6.InvokeAction_Event_Started{
+				CancellationToken: "", // TODO: Implement cancellation
+				Diagnostics:       []*tfplugin6.Diagnostic{},
+			},
+		},
+	})
+
+	invokeClient := p.provider.InvokeAction(context.Background(), providers.InvokeActionRequest{
+		TypeName:      req.TypeName,
+		PlannedConfig: configVal,
+	})
+
+	go func() {
+		for event := range invokeClient.Events {
+			if !ok {
+				return
+			}
+
+			switch evt := event.(type) {
+			case *providers.InvokeActionEvent_Progress:
+				server.Send(&tfplugin6.InvokeAction_Event{
+					Event: &tfplugin6.InvokeAction_Event_Progress_{
+						Progress: &tfplugin6.InvokeAction_Event_Progress{
+							Diagnostics: convert.AppendProtoDiag([]*tfplugin6.Diagnostic{}, evt.Diagnostics),
+							Stdout:      evt.Stdout,
+							Stderr:      evt.Stderr,
+						},
+					},
+				})
+			case *providers.InvokeActionEvent_Finished:
+				diags := []*tfplugin6.Diagnostic{}
+
+				newConfig, err := encodeDynamicValue6(evt.NewConfig, ty)
+				if err != nil {
+					diags = convert.AppendProtoDiag(diags, err)
+				}
+
+				server.Send(&tfplugin6.InvokeAction_Event{
+					Event: &tfplugin6.InvokeAction_Event_Finished_{
+						Finished: &tfplugin6.InvokeAction_Event_Finished{
+							Diagnostics: convert.AppendProtoDiag(diags, evt.Diagnostics),
+							Cancelled:   evt.Cancelled,
+							NewConfig:   newConfig,
+						},
+					},
+				})
+				return
+			}
+		}
+
+	}()
+
+	return nil
+}
+
+func (p *provider6) CancelAction(_ context.Context, req *tfplugin6.CancelAction_Request) (*tfplugin6.CancelAction_Response, error) {
+	resp := &tfplugin6.CancelAction_Response{}
+
+	cancelResp := p.provider.CancelAction(providers.CancelActionRequest{
+		CancellationToken: req.CancellationToken,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, cancelResp.Diagnostics)
+	if cancelResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	return resp, nil
+}
+
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {
 	resp := &tfplugin6.StopProvider_Response{}
 	err := p.provider.Stop()

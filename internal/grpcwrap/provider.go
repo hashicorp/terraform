@@ -46,6 +46,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		DataSourceSchemas:        make(map[string]*tfplugin5.Schema),
 		EphemeralResourceSchemas: make(map[string]*tfplugin5.Schema),
 		ListResourceSchemas:      make(map[string]*tfplugin5.Schema),
+		ActionSchemas:            make(map[string]*tfplugin5.ActionSchema),
 	}
 
 	resp.Provider = &tfplugin5.Schema{
@@ -91,6 +92,21 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 	} else {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
+	}
+
+	for typ, act := range p.schema.Actions {
+		linkedResources := make([]*tfplugin5.ActionSchema_LinkedResource, len(act.LinkedResources))
+		for i, linked := range act.LinkedResources {
+			linkedResources[i] = &tfplugin5.ActionSchema_LinkedResource{
+				Attribute: convert.PathToAttributePath(linked.AttributePath),
+				Type:      linked.TypeName,
+			}
+		}
+		resp.ActionSchemas[typ] = &tfplugin5.ActionSchema{
+			Version:         act.Version,
+			Block:           convert.ConfigSchemaToProto(act.Block),
+			LinkedResources: linkedResources,
+		}
 	}
 
 	resp.ServerCapabilities = &tfplugin5.ServerCapabilities{
@@ -764,6 +780,117 @@ func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.Upg
 
 func (p *provider) ListResource(*tfplugin5.ListResource_Request, tfplugin5.Provider_ListResourceServer) error {
 	panic("not implemented")
+}
+
+func (p *provider) PlanAction(_ context.Context, req *tfplugin5.PlanAction_Request) (*tfplugin5.PlanAction_Response, error) {
+	resp := &tfplugin5.PlanAction_Response{}
+
+	actionSchema, ok := p.schema.Actions[req.TypeName]
+	if !ok {
+		return nil, fmt.Errorf("action schema not found for action %q", req.TypeName)
+	}
+
+	ty := actionSchema.Block.ImpliedType()
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	planResp := p.provider.PlanAction(providers.PlanActionRequest{
+		TypeName:      req.TypeName,
+		PlannedConfig: configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, planResp.Diagnostics)
+	if planResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	resp.NewConfig, err = encodeDynamicValue(planResp.NewConfig, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+	}
+
+	return resp, nil
+}
+
+func (p *provider) InvokeAction(req *tfplugin5.InvokeAction_Request, server tfplugin5.Provider_InvokeActionServer) error {
+
+	actionSchema, ok := p.schema.Actions[req.TypeName]
+	if !ok {
+		return fmt.Errorf("action schema not found for action %q", req.TypeName)
+	}
+
+	ty := actionSchema.Block.ImpliedType()
+	configVal, err := decodeDynamicValue(req.PlannedConfig, ty)
+	if err != nil {
+		return err
+	}
+
+	// At this point we consider the action to be "started"
+	// so we send an event to indicate that.
+	server.Send(&tfplugin5.InvokeAction_Event{
+		Event: &tfplugin5.InvokeAction_Event_Started_{
+			Started: &tfplugin5.InvokeAction_Event_Started{
+				CancellationToken: "", // TODO: Implement cancellation
+				Diagnostics:       []*tfplugin5.Diagnostic{},
+			},
+		},
+	})
+
+	invokeClient := p.provider.InvokeAction(context.Background(), providers.InvokeActionRequest{
+		TypeName:      req.TypeName,
+		PlannedConfig: configVal,
+	})
+
+	go func() {
+		for event := range invokeClient.Events {
+			switch evt := event.(type) {
+			case *providers.InvokeActionEvent_Progress:
+				server.Send(&tfplugin5.InvokeAction_Event{
+					Event: &tfplugin5.InvokeAction_Event_Progress_{
+						Progress: &tfplugin5.InvokeAction_Event_Progress{
+							Diagnostics: convert.AppendProtoDiag([]*tfplugin5.Diagnostic{}, evt.Diagnostics),
+							Stdout:      evt.Stdout,
+							Stderr:      evt.Stderr,
+						},
+					},
+				})
+			case *providers.InvokeActionEvent_Finished:
+				diags := []*tfplugin5.Diagnostic{}
+
+				newConfig, err := encodeDynamicValue(evt.NewConfig, ty)
+				if err != nil {
+					diags = convert.AppendProtoDiag(diags, err)
+				}
+
+				server.Send(&tfplugin5.InvokeAction_Event{
+					Event: &tfplugin5.InvokeAction_Event_Finished_{
+						Finished: &tfplugin5.InvokeAction_Event_Finished{
+							Diagnostics: convert.AppendProtoDiag(diags, evt.Diagnostics),
+							Cancelled:   evt.Cancelled,
+							NewConfig:   newConfig,
+						},
+					},
+				})
+				return
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (p *provider) CancelAction(_ context.Context, req *tfplugin5.CancelAction_Request) (*tfplugin5.CancelAction_Response, error) {
+	resp := &tfplugin5.CancelAction_Response{}
+
+	cancelResp := p.provider.CancelAction(providers.CancelActionRequest{
+		CancellationToken: req.CancellationToken,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, cancelResp.Diagnostics)
+	return resp, nil
 }
 
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
