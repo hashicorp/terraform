@@ -107,6 +107,96 @@ func NewBinary(t *testing.T, binaryPath, workingDir string) *binary {
 	}
 }
 
+func NewBinaryFromFolder(t *testing.T, binaryPath, workingDir string) *binary {
+	tmpDir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		panic(err)
+	}
+
+	// For our purposes here we do a very simplistic file copy that doesn't
+	// attempt to preserve file permissions, attributes, alternate data
+	// streams, etc. Since we only have to deal with our own fixtures in
+	// the testdata subdir, we know we don't need to deal with anything
+	// of this nature.
+	err = filepath.Walk(workingDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if path == workingDir {
+			// nothing to do at the root
+			return nil
+		}
+
+		if filepath.Base(path) == ".exists" {
+			// We use this file just to let git know the "empty" fixture
+			// exists. It is not used by any test.
+			return nil
+		}
+
+		// Calculate relative path from workingDir
+		relPath, err := filepath.Rel(workingDir, path)
+		if err != nil {
+			return err
+		}
+
+		dstPath := filepath.Join(tmpDir, relPath)
+
+		// Handle symbolic links
+		if info.Mode()&os.ModeSymlink != 0 {
+			// Ensure parent directory exists for the symlink
+			if err := os.MkdirAll(filepath.Dir(dstPath), os.ModePerm); err != nil {
+				return err
+			}
+
+			linkTarget, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+
+			// Create the symlink in the destination with the exact same target
+			// This preserves relative links as-is
+			return os.Symlink(linkTarget, dstPath)
+		}
+
+		// Handle directories
+		if info.IsDir() {
+			// Create all parent directories if they don't exist
+			return os.MkdirAll(dstPath, os.ModePerm)
+		}
+
+		// Handle regular files
+		// Ensure parent directory exists
+		if err := os.MkdirAll(filepath.Dir(dstPath), os.ModePerm); err != nil {
+			return err
+		}
+
+		src, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+
+		dst, err := os.OpenFile(dstPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+		if err != nil {
+			return err
+		}
+		defer dst.Close()
+
+		_, err = io.Copy(dst, src)
+		return err
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	return &binary{
+		binPath: binaryPath,
+		workDir: tmpDir,
+	}
+}
+
 // AddEnv appends an entry to the environment variable table passed to any
 // commands subsequently run.
 func (b *binary) AddEnv(entry string) {

@@ -4,6 +4,6 @@ variable "v" {
   default     = ""
 }
 
-module "child_a" {
-  source = "./modules/child_a"
+module "child" {
+  source = "./modules/child"
 }
