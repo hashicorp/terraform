@@ -58,7 +58,7 @@ func (t *TestProvidersTransformer) transformSingleConfig(config *configs.Config)
 		providers[provider.Addr().StringCompact()] = true
 	}
 
-	// Third, we look at the resources and data sources.
+	// Third, we look at the resources and data sources.g
 	for _, resource := range config.Module.ManagedResources {
 		if resource.ProviderConfigRef != nil {
 			providers[resource.ProviderConfigRef.String()] = true

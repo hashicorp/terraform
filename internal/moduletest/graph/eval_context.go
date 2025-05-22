@@ -7,14 +7,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"sort"
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
-
-	"maps"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -24,9 +23,17 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+// TestFileState is a helper struct that just maps a run block to the state that
+// was produced by the execution of that run block.
+type TestFileState struct {
+	Run   *moduletest.Run
+	State *states.State
+}
 
 // EvalContext is a container for context relating to the evaluation of a
 // particular .tftest.hcl file.
@@ -87,7 +94,7 @@ type EvalContextOpts struct {
 // evaluating the runs within a test suite.
 // The context is initialized with the provided cancel and stop contexts, and
 // these contexts can be used from external commands to signal the termination of the test suite.
-func NewEvalContext(opts *EvalContextOpts) *EvalContext {
+func NewEvalContext(opts EvalContextOpts) *EvalContext {
 	cancelCtx, cancel := context.WithCancel(opts.CancelCtx)
 	stopCtx, stop := context.WithCancel(opts.StopCtx)
 	return &EvalContext{

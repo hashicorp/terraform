@@ -13,6 +13,10 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type GraphNodeExecutable interface {
+	Execute(ctx *EvalContext)
+}
+
 // TestGraphBuilder is a GraphBuilder implementation that builds a graph for
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
@@ -46,11 +50,11 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
-		&TestConfigTransformer{File: b.File},
 		&TestStateCleanupTransformer{opts},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
 		&CloseTestGraphTransformer{},
+		&EvalContextTransformer{File: b.File},
 		&terraform.TransitiveReductionTransformer{},
 	}
 
