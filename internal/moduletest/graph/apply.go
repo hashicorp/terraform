@@ -72,8 +72,6 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 		return
 	}
 
-	n.AddVariablesToConfig(variables)
-
 	if ctx.Verbose() {
 		schemas, diags := tfCtx.Schemas(config, updated)
 
