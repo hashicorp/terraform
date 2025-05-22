@@ -5,7 +5,6 @@ package e2etest
 
 import (
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -58,9 +57,6 @@ func TestTerraformProviderData(t *testing.T) {
 }
 
 func TestTerraformSymlinkModuleInstall_windows(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("this test only runs on Windows")
-	}
 	tf := e2e.NewBinaryFromFolder(t, terraformBin, "testdata/local-module-symlink")
 
 	_, stderr, err := tf.Run("init", "-input=false")
