@@ -45,11 +45,14 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 		log.Printf("[TRACE] Executing graph transform %T", step)
 
 		err := step.Transform(g)
-		if thisStepStr := g.StringWithNodeTypes(); thisStepStr != lastStepStr {
-			log.Printf("[TRACE] Completed graph transform %T with new graph:\n%s  ------", step, logging.Indent(thisStepStr))
-			lastStepStr = thisStepStr
-		} else {
-			log.Printf("[TRACE] Completed graph transform %T (no changes)", step)
+
+		if logging.GraphTrace {
+			if thisStepStr := g.StringWithNodeTypes(); thisStepStr != lastStepStr {
+				log.Printf("[TRACE] Completed graph transform %T with new graph:\n%s  ------", step, logging.Indent(thisStepStr))
+				lastStepStr = thisStepStr
+			} else {
+				log.Printf("[TRACE] Completed graph transform %T (no changes)", step)
+			}
 		}
 
 		if err != nil {
@@ -63,6 +66,11 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 				return g, diags
 			}
 		}
+	}
+
+	if !logging.GraphTrace {
+		// print the graph at least once for normal trace logs
+		log.Printf("[TRACE] Completed graph transform:\n%s  ------", g.StringWithNodeTypes())
 	}
 
 	// Return early if the graph validation is skipped

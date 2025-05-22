@@ -27,6 +27,10 @@ const (
 	envLogProvider = "TF_LOG_PROVIDER"
 	envLogCloud    = "TF_LOG_CLOUD"
 	envLogStacks   = "TF_LOG_STACKS"
+
+	// This variable is defined here for consistency, but it is used by the
+	// graph builder directly to change how much output to generate.
+	envGraphTrace = "TF_GRAPH_TRACE"
 )
 
 var (
@@ -44,6 +48,8 @@ var (
 		panics:   make(map[string][]string),
 		maxLines: 100,
 	}
+
+	GraphTrace = os.Getenv(envGraphTrace) != ""
 )
 
 func init() {
