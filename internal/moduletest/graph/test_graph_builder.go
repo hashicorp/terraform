@@ -55,6 +55,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		&TestProvidersTransformer{},
 		&CloseTestGraphTransformer{},
 		&EvalContextTransformer{File: b.File},
+		&ReferenceTransformer{},
 		&terraform.TransitiveReductionTransformer{},
 	}
 
