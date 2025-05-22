@@ -194,40 +194,6 @@ message Schema {
     Block block = 2;
 }
 
-// ServerCapabilities allows providers to communicate extra information
-// regarding supported protocol features. This is used to indicate
-// availability of certain forward-compatible changes which may be optional
-// in a major protocol version, but cannot be tested for directly.
-message ServerCapabilities {
-    // The plan_destroy capability signals that a provider expects a call
-    // to PlanResourceChange when a resource is going to be destroyed.
-    bool plan_destroy = 1;
-
-    // The get_provider_schema_optional capability indicates that this
-    // provider does not require calling GetProviderSchema to operate
-    // normally, and the caller can used a cached copy of the provider's
-    // schema.
-    bool get_provider_schema_optional = 2;
-
-    // The move_resource_state capability signals that a provider supports the
-    // MoveResourceState RPC.
-    bool move_resource_state = 3;
-}
-
-// ClientCapabilities allows Terraform to publish information regarding
-// supported protocol features. This is used to indicate availability of
-// certain forward-compatible changes which may be optional in a major
-// protocol version, but cannot be tested for directly.
-message ClientCapabilities {
-    // The deferral_allowed capability signals that the client is able to
-    // handle deferred responses from the provider.
-    bool deferral_allowed = 1;
-
-    // The write_only_attributes_allowed capability signals that the client
-    // is able to handle write_only attributes for managed resources.
-    bool write_only_attributes_allowed = 2;
-}
-
 message Function {
     // parameters is the ordered list of positional function parameters.
     repeated Parameter parameters = 1;
@@ -282,6 +248,40 @@ message Function {
         // type is the type constraint for the function result.
         bytes type = 1;
     }
+}
+
+// ServerCapabilities allows providers to communicate extra information
+// regarding supported protocol features. This is used to indicate
+// availability of certain forward-compatible changes which may be optional
+// in a major protocol version, but cannot be tested for directly.
+message ServerCapabilities {
+    // The plan_destroy capability signals that a provider expects a call
+    // to PlanResourceChange when a resource is going to be destroyed.
+    bool plan_destroy = 1;
+
+    // The get_provider_schema_optional capability indicates that this
+    // provider does not require calling GetProviderSchema to operate
+    // normally, and the caller can used a cached copy of the provider's
+    // schema.
+    bool get_provider_schema_optional = 2;
+
+    // The move_resource_state capability signals that a provider supports the
+    // MoveResourceState RPC.
+    bool move_resource_state = 3;
+}
+
+// ClientCapabilities allows Terraform to publish information regarding
+// supported protocol features. This is used to indicate availability of
+// certain forward-compatible changes which may be optional in a major
+// protocol version, but cannot be tested for directly.
+message ClientCapabilities {
+    // The deferral_allowed capability signals that the client is able to
+    // handle deferred responses from the provider.
+    bool deferral_allowed = 1;
+
+    // The write_only_attributes_allowed capability signals that the client
+    // is able to handle write_only attributes for managed resources.
+    bool write_only_attributes_allowed = 2;
 }
 
 // Deferred is a message that indicates that change is deferred for a reason.
