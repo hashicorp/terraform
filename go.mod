@@ -2,8 +2,6 @@ module github.com/hashicorp/terraform
 
 go 1.24.2
 
-godebug winsymlink=1
-
 require (
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/ProtonMail/go-crypto v1.1.3
