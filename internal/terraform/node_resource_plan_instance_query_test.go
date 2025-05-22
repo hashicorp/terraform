@@ -212,7 +212,6 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 
 			// Helper function to execute a resource node and validate results
 			executeResourceNode := func(addr addrs.AbsResourceInstance, shouldError bool) {
-				t.Helper()
 				nodeSchema := p.GetProviderSchemaResponse.SchemaForResourceAddr(addr.Resource.Resource)
 				// set the expansion information that is normally set during the resource expansion
 				ctx.InstanceExpanderValue.SetResourceSingle(addrs.RootModuleInstance, addr.Resource.Resource)

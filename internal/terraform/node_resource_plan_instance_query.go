@@ -14,6 +14,7 @@ import (
 )
 
 func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+	log.Printf("[TRACE] NodePlannableResourceInstance: listing resources for %s", n.Addr)
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -34,7 +35,6 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		keyData = EvalDataForInstanceKey(addr.Resource.Key, forEach)
 	}
 
-	// retrieve list schema? (already done in transformer)
 	// evaluate the list config block
 	var configDiags tfdiags.Diagnostics
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema.Body, nil, keyData)
