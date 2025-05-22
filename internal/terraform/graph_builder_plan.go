@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"log"
-	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -126,7 +125,7 @@ func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Dia
 // See GraphBuilder
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	switch b.Operation {
-	case walkPlan:
+	case walkPlan, walkPlanQuery:
 		b.initPlan()
 	case walkPlanDestroy:
 		b.initDestroy()
@@ -147,9 +146,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 			importTargets: b.ImportTargets,
 
-			// the validate walk also needs to include query-related nodes.
-			includeQuery: slices.Contains([]walkOperation{walkValidate, walkQuery, walkPlan}, b.Operation),
-			// We only want to generate config during a plan operation.
+			// During a query plan, we only want to add the list-type resources
+			// to the graph.
+			ModeFilter: b.Operation == walkPlanQuery,
+			Mode:       addrs.ListResourceMode,
+
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
 

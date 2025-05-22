@@ -12,9 +12,11 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -118,20 +120,26 @@ func testBuiltinEvalContext(t *testing.T, op walkOperation, cfg *configs.Config,
 	if valState == nil {
 		valState = namedvals.NewState()
 	}
+	ex := instances.NewExpander(nil)
+	eph := ephemeral.NewResources()
 	ev := &Evaluator{
-		Config:      cfg,
-		State:       state.SyncWrapper(),
-		Operation:   op,
-		NamedValues: valState,
+		Config:             cfg,
+		State:              state.SyncWrapper(),
+		Operation:          op,
+		NamedValues:        valState,
+		Instances:          ex,
+		EphemeralResources: eph,
 	}
 	return &BuiltinEvalContext{
-		Evaluator:         ev,
-		StateValue:        state.SyncWrapper(),
-		PrevRunStateValue: state.DeepCopy().SyncWrapper(),
-		RefreshStateValue: state.DeepCopy().SyncWrapper(),
-		NamedValuesValue:  valState,
-		ProviderLock:      &sync.Mutex{},
-		ProviderCache:     make(map[string]providers.Interface),
-		ProviderFuncCache: make(map[string]providers.Interface),
+		Evaluator:               ev,
+		StateValue:              state.SyncWrapper(),
+		PrevRunStateValue:       state.DeepCopy().SyncWrapper(),
+		RefreshStateValue:       state.DeepCopy().SyncWrapper(),
+		NamedValuesValue:        valState,
+		ProviderLock:            &sync.Mutex{},
+		ProviderCache:           make(map[string]providers.Interface),
+		ProviderFuncCache:       make(map[string]providers.Interface),
+		InstanceExpanderValue:   ex,
+		EphemeralResourcesValue: eph,
 	}
 }

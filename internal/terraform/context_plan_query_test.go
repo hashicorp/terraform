@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"fmt"
-	"maps"
 	"strings"
 	"testing"
 
@@ -56,12 +55,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 	cases := []struct {
 		name           string
 		mainConfig     string
-		extraConfig    map[string]string
 		queryConfig    string
 		diagCount      int
 		expectedErrMsg []string
 		assertState    func(*states.State)
-		InputVariables InputValues
 		listResourceFn func(request providers.ListResourceRequest) (providers.ListResourceResponse, error)
 	}{
 		{
@@ -98,11 +95,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			InputVariables: InputValues{
-				"input": &InputValue{
-					Value: cty.StringVal("foo"),
-				},
-			},
 			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
@@ -208,11 +200,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}, nil
 			},
-			InputVariables: InputValues{
-				"input": &InputValue{
-					Value: cty.StringVal("foo"),
-				},
-			},
 			assertState: func(state *states.State) {
 				// Check that the plan state contains the list resources
 				allLists := state.AllListResourceInstances()
@@ -286,136 +273,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 			expectedErrMsg: []string{
 				"Invalid list resource traversal",
 				"The first step in the traversal for a list resource must be an attribute \"data\"",
-			},
-			InputVariables: InputValues{
-				"input": &InputValue{
-					Value: cty.StringVal("foo"),
-				},
-			},
-		},
-		{
-			// We tried to reference a resource of type list without using the fully-qualified name.
-			// The error contains a hint to help the user.
-			name: "reference list block from resource",
-			mainConfig: `
-				terraform {
-					required_providers {
-						test = {
-							source = "hashicorp/test"
-							version = "1.0.0"
-						}
-					}
-				}
-
-				resource "list" "test_resource1" {
-					provider = test
-				}
-
-				resource "list" "test_resource2" {
-					provider = test
-					attr = list.test_resource1.attr
-				}
-				`,
-			queryConfig: `
-				variable "input" {
-					type = string
-					default = "foo"
-				}
-
-				list "test_resource" "test" {
-					provider = test
-
-					filter = {
-						attr = var.input
-					}
-				}
-				`,
-			diagCount: 1,
-			expectedErrMsg: []string{
-				"Reference to undeclared resource",
-				"A list resource \"test_resource1\" \"attr\" has not been declared in the root module.",
-				"Did you mean the managed resource list.test_resource1? If so, please use the fully qualified name of the resource, e.g. resource.list.test_resource1",
-			},
-			InputVariables: InputValues{
-				"input": &InputValue{
-					Value: cty.StringVal("foo"),
-				},
-			},
-		},
-		{
-			// We are referencing a managed resource
-			// of type list using the resource.<block>.<name> syntax. This should be allowed.
-			name: "reference managed resource of type list using resource.<block>.<name>",
-			mainConfig: `
-				terraform {
-					required_providers {
-						test = {
-							source = "hashicorp/test"
-							version = "1.0.0"
-						}
-					}
-				}
-
-				resource "list" "test_resource" {
-					provider = test
-					attr = "bar"
-				}
-
-				resource "list" "normal_resource" {
-					provider = test
-					attr = resource.list.test_resource.attr
-				}
-				`,
-			queryConfig: `
-				list "test_resource" "test" {
-					provider = test
-
-					filter = {
-						attr = resource.list.test_resource.attr
-					}
-				}
-				`,
-			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
-				madeUp := []cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
-				}
-
-				return func(yield func(providers.ListResourceEvent) bool) {
-					for i, v := range madeUp {
-						evt := providers.ListResourceEvent{
-							ResourceObject: v,
-							Identity: cty.ObjectVal(map[string]cty.Value{
-								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-							}),
-						}
-						if !yield(evt) {
-							return
-						}
-					}
-				}, nil
-			},
-			assertState: func(state *states.State) {
-				// Verify test list resource
-				testInst := state.GetListResource(addrs.RootModuleInstance.Resource(addrs.ListResourceMode, "test_resource", "test"))
-				if testInst.Len() == 0 {
-					t.Fatalf("Expected list resource test_resource.test to exist in state, but it doesn't")
-				}
-
-				// Verify instance types
-				expectedTypes := []string{"ami-123456"}
-				actualTypes := make([]string, 0)
-
-				for _, obj := range testInst.Elements() {
-					val := obj.Value
-					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
-						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
-						return false
-					})
-				}
-
-				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
-					t.Fatalf("Expected instance types to match, but they differ: %s", diff)
-				}
 			},
 		},
 		{
@@ -630,11 +487,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 					t.Fatalf("Expected instance types for test2 to match, but they differ: %s", diff)
 				}
 			},
-			InputVariables: InputValues{
-				"test_var": &InputValue{
-					Value: cty.StringVal("foo"),
-				},
-			},
 		},
 		{
 			// Test list reference with index but without data field
@@ -752,7 +604,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 			if tc.queryConfig != "" {
 				configs["main.tfquery.hcl"] = tc.queryConfig
 			}
-			maps.Copy(configs, tc.extraConfig)
 
 			m := testModuleInline(t, configs)
 
@@ -779,7 +630,8 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 			plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 				Mode:         plans.NormalMode,
-				SetVariables: tc.InputVariables,
+				SetVariables: testInputValuesUnset(m.Module.Variables),
+				Query:        true,
 			})
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
