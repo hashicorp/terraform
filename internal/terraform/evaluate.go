@@ -658,6 +658,16 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		instances[key] = value
 	}
 
+	// Proactively read out all the resource changes before iteration. Not only
+	// does GetResourceInstanceChange have to iterate over all instances
+	// internally causing an n^2 lookup, but Changes is also a major point of
+	// lock contention.
+	resChanges := d.Evaluator.Changes.GetChangesForConfigResource(addr.InModule(moduleConfig.Path))
+	instChanges := addrs.MakeMap[addrs.AbsResourceInstance, *plans.ResourceInstanceChange]()
+	for _, ch := range resChanges {
+		instChanges.Put(ch.Addr, ch)
+	}
+
 	// Decode all instances in the current state
 	pendingDestroy := d.Operation == walkDestroy
 	for key, is := range rs.Instances {
@@ -675,7 +685,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		instAddr := addr.Instance(key).Absolute(d.ModulePath)
-		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, addrs.NotDeposed)
+		change := instChanges.Get(instAddr)
 		if change != nil {
 			// Don't take any resources that are yet to be deleted into account.
 			// If the referenced resource is CreateBeforeDestroy, then orphaned
