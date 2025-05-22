@@ -59,19 +59,8 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
-				cache := ctx.GetCache(run)
-
-				value, valueDiags := cache.GetFileVariable(addr.Name)
-				diags = diags.Append(valueDiags)
-				if value != nil {
-					requiredValues[addr.Name] = value.Value
-					continue
-				}
-
-				// Otherwise, it might be a global variable.
-				value, valueDiags = cache.GetGlobalVariable(addr.Name)
-				diags = diags.Append(valueDiags)
-				if value != nil {
+				if value, valueDiags := ctx.VariableCache.GetVariableValue(addr.Name); value != nil {
+					diags = diags.Append(valueDiags)
 					requiredValues[addr.Name] = value.Value
 					continue
 				}
@@ -118,18 +107,14 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 			continue
 		}
 
-		// Otherwise, we'll get it from the cache as a file-level or global
-		// variable.
-		cache := ctx.GetCache(run)
-
-		value, valueDiags := cache.GetFileVariable(variable)
-		diags = diags.Append(valueDiags)
-		if value != nil {
-			values[variable] = value
+		if _, exists := run.ModuleConfig.Module.Variables[variable]; exists {
+			// We'll deal with this later.
 			continue
 		}
 
-		value, valueDiags = cache.GetGlobalVariable(variable)
+		// Otherwise, we'll get it from the cache as a file-level or global
+		// variable.
+		value, valueDiags := ctx.VariableCache.GetVariableValue(variable)
 		diags = diags.Append(valueDiags)
 		if value != nil {
 			values[variable] = value
@@ -143,11 +128,29 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 
 	for name, variable := range run.ModuleConfig.Module.Variables {
 		if _, exists := values[name]; exists {
-			// Then we've provided a variable for this. It's all good.
+			// Then we've provided a variable for this explicitly. It's all
+			// good.
 			continue
 		}
 
-		// Otherwise, we're going to give these variables a value. They'll be
+		// The user might have provided a value for this externally or at the
+		// file level, so we can also just pass it through.
+
+		if ctx.VariableCache.HasVariableDefinition(variable.Name) {
+			if value, valueDiags := ctx.VariableCache.GetVariableValue(variable.Name); value != nil {
+				diags = diags.Append(valueDiags)
+				values[name] = value
+				continue
+			}
+		} else {
+			if value, valueDiags := ctx.VariableCache.EvaluateExternalVariable(name, variable); value != nil {
+				diags = diags.Append(valueDiags)
+				values[name] = value
+				continue
+			}
+		}
+
+		// Finally, we're going to give these variables a value. They'll be
 		// processed by the Terraform graph and provided a default value later
 		// if they have one.
 

@@ -334,6 +334,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
+		"with-default-variables": {
+			args:        []string{"-var=input_two=universe"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
