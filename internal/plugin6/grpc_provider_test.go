@@ -124,6 +124,20 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 				},
 			},
 		},
+		ListResourceSchemas: map[string]*proto.Schema{
+			"list": &proto.Schema{
+				Version: 1,
+				Block: &proto.Schema_Block{
+					Attributes: []*proto.Schema_Attribute{
+						{
+							Name:     "attr",
+							Type:     []byte(`"string"`),
+							Required: true,
+						},
+					},
+				},
+			},
+		},
 		ServerCapabilities: &proto.ServerCapabilities{
 			GetProviderSchemaOptional: true,
 		},
@@ -400,6 +414,25 @@ func TestGRPCProvider_ValidateDataResourceConfig(t *testing.T) {
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
 	resp := p.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
 		TypeName: "data",
+		Config:   cfg,
+	})
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_ValidateListResourceConfig(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().ValidateListResourceConfig(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
+
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
+	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
+		TypeName: "list",
 		Config:   cfg,
 	})
 	checkDiags(t, resp.Diagnostics)

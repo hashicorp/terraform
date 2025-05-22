@@ -1,14 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 6.9
+// Terraform Plugin RPC protocol version 6.10
 //
-// This file defines version 6.9 of the RPC protocol. To implement a plugin
+// This file defines version 6.10 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
 // use protoc to generate stubs for your target language.
 //
 // Any minor versions of protocol 6 to follow should modify this file while
-// maintaining backwards compatibility. Breaking changes, if any are required, 
+// maintaining backwards compatibility. Breaking changes, if any are required,
 // will come in a subsequent major version with its own separate proto definition.
 //
 // Note that only the proto files included in a release tag of Terraform are
@@ -200,8 +200,8 @@ message Schema {
 
         // MinItems and MaxItems were never used in the protocol, and have no
         // effect on validation.
-        int64 min_items = 4 [deprecated = true];
-        int64 max_items = 5 [deprecated = true];
+        int64 min_items = 4 [ deprecated = true ];
+        int64 max_items = 5 [ deprecated = true ];
     }
 
     // The version of the schema.
@@ -306,21 +306,21 @@ message ClientCapabilities {
 // Deferred is a message that indicates that change is deferred for a reason.
 message Deferred {
     // Reason is the reason for deferring the change.
-  enum Reason {
-    // UNKNOWN is the default value, and should not be used.
-    UNKNOWN = 0;
-    // RESOURCE_CONFIG_UNKNOWN is used when the config is partially unknown and the real
-    // values need to be known before the change can be planned.
-    RESOURCE_CONFIG_UNKNOWN = 1;
-    // PROVIDER_CONFIG_UNKNOWN is used when parts of the provider configuration
-    // are unknown, e.g. the provider configuration is only known after the apply is done.
-    PROVIDER_CONFIG_UNKNOWN = 2;
-    // ABSENT_PREREQ is used when a hard dependency has not been satisfied.
-    ABSENT_PREREQ = 3;
-  }
+    enum Reason {
+        // UNKNOWN is the default value, and should not be used.
+        UNKNOWN = 0;
+        // RESOURCE_CONFIG_UNKNOWN is used when the config is partially unknown and the real
+        // values need to be known before the change can be planned.
+        RESOURCE_CONFIG_UNKNOWN = 1;
+        // PROVIDER_CONFIG_UNKNOWN is used when parts of the provider configuration
+        // are unknown, e.g. the provider configuration is only known after the apply is done.
+        PROVIDER_CONFIG_UNKNOWN = 2;
+        // ABSENT_PREREQ is used when a hard dependency has not been satisfied.
+        ABSENT_PREREQ = 3;
+    }
 
-  // reason is the reason for deferring the change.
-  Reason reason = 1;
+    // reason is the reason for deferring the change.
+    Reason reason = 1;
 }
 
 service Provider {
@@ -365,6 +365,10 @@ service Provider {
     rpc RenewEphemeralResource(RenewEphemeralResource.Request) returns (RenewEphemeralResource.Response);
     rpc CloseEphemeralResource(CloseEphemeralResource.Request) returns (CloseEphemeralResource.Response);
 
+    /////// List
+    rpc ListResource(ListResource.Request) returns (stream ListResource.Event);
+    rpc ValidateListResourceConfig(ValidateListResourceConfig.Request) returns (ValidateListResourceConfig.Response);
+
     // GetFunctions returns the definitions of all functions.
     rpc GetFunctions(GetFunctions.Request) returns (GetFunctions.Response);
 
@@ -387,6 +391,7 @@ message GetMetadata {
         // functions returns metadata for any functions.
         repeated FunctionMetadata functions = 5;
         repeated EphemeralMetadata ephemeral_resources = 6;
+        repeated ListResourceMetadata list_resources = 7;
     }
 
     message EphemeralMetadata {
@@ -405,6 +410,10 @@ message GetMetadata {
     message ResourceMetadata {
         string type_name = 1;
     }
+
+    message ListResourceMetadata {
+        string type_name = 1;
+    }
 }
 
 message GetProviderSchema {
@@ -416,6 +425,7 @@ message GetProviderSchema {
         map<string, Schema> data_source_schemas = 3;
         map<string, Function> functions = 7;
         map<string, Schema> ephemeral_resource_schemas = 8;
+        map<string, Schema> list_resource_schemas = 9;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
@@ -789,5 +799,43 @@ message CallFunction {
     message Response {
         DynamicValue result = 1;
         FunctionError error = 2;
+    }
+}
+
+message ListResource {
+    message Request {
+        // type_name is the list resource type name.
+        string type_name = 1;
+
+        // configuration is the list ConfigSchema-based configuration data.
+        DynamicValue config = 2;
+
+        // when include_resource_object is set to true, the provider should
+        // include the full resource object for each result
+        bool include_resource_object = 3;
+    }
+
+    message Event {
+        // identity is the resource identity data of the resource instance.
+        ResourceIdentityData identity = 1;
+
+        // display_name can be displayed in a UI to make it easier for humans to identify a resource
+        string display_name = 2;
+
+        // optional resource object which can be useful when combining list blocks in configuration
+        optional DynamicValue resource_object = 3;
+
+        // A warning or error diagnostics for this event
+        repeated Diagnostic diagnostic = 4;
+    }
+}
+
+message ValidateListResourceConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
     }
 }

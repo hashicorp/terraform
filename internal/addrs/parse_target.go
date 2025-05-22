@@ -231,6 +231,13 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, allowPartial bo
 				Detail:   "An ephemeral resource type name is required.",
 				Subject:  remain[0].SourceRange().Ptr(),
 			})
+		case ListResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address",
+				Detail:   "A list resource type name is required.",
+				Subject:  remain[0].SourceRange().Ptr(),
+			})
 		default:
 			panic("unknown mode")
 		}

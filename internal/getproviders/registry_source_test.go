@@ -34,6 +34,11 @@ func TestSourceAvailableVersions(t *testing.T) {
 			``,
 		},
 		{
+			"example.com/awesomesauce/invalidsemver",
+			[]string{"0.1.0", "1.0.0"},
+			``, // No error expected as invalid semvers are just logged and skipped
+		},
+		{
 			"example.com/weaksauce/no-versions",
 			nil,
 			``, // having no versions is not an error, it's just odd

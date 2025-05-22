@@ -6,16 +6,16 @@ standards periodically, and we aim to adopt those new versions in new
 minor releases of Terraform in order to support additional characters added
 in those new versions.
 
-Unfortunately due to those features being implemented by relying on a number
+Unfortunately, due to those features relying on multiple
 of external libraries, adopting a new version of Unicode is not as simple as
 just updating a version number somewhere. This document aims to describe the
 various steps required to adopt a new version of Unicode in Terraform.
 
 We typically aim to be consistent across all of these dependencies as to which
 major version of Unicode we currently conform to. The usual initial driver
-for a Unicode upgrade is switching to new version of the Go runtime library
+for a Unicode upgrade is switching to a new version of the Go runtime library
 which itself uses a new version of Unicode, because Go itself does not provide
-any way to select Unicode versions independently from Go versions. Therefore
+any way to select Unicode versions independently from Go versions. Therefore,
 we typically upgrade to a new Unicode version only in conjunction with
 upgrading to a new Go version.
 
