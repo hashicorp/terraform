@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Performance fix for evaluating high cardinality resources
+time: 2025-05-22T09:31:02.761383-04:00
+custom:
+    Issue: "26355"
