@@ -103,9 +103,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		for _, r := range module.DataResources {
 			allResources = append(allResources, r)
 		}
-	}
-
-	if t.includeQuery {
 		for _, r := range module.ListResources {
 			allResources = append(allResources, r)
 		}

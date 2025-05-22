@@ -200,7 +200,7 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 			valState.SetInputVariableValue(addrs.AbsInputVariableInstance{
 				Variable: addrs.InputVariable{Name: "input"},
 			}, cty.StringVal(tc.inputVar))
-			ctx := testBuiltinEvalContext(t, walkQuery, mod, state, valState)
+			ctx := testBuiltinEvalContext(t, walkPlan, mod, state, valState)
 			ctx = ctx.withScope(evalContextModuleInstance{Addr: addrs.RootModuleInstance}).(*BuiltinEvalContext)
 			providerAddr := `provider["registry.terraform.io/hashicorp/test"]`
 			ctx.ProviderCache[providerAddr] = p
@@ -214,6 +214,8 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 			executeResourceNode := func(addr addrs.AbsResourceInstance, shouldError bool) {
 				t.Helper()
 				nodeSchema := p.GetProviderSchemaResponse.SchemaForResourceAddr(addr.Resource.Resource)
+				// set the expansion information that is normally set during the resource expansion
+				ctx.InstanceExpanderValue.SetResourceSingle(addrs.RootModuleInstance, addr.Resource.Resource)
 				node := NodePlannableResourceInstance{
 					NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
 						Addr: addr,
@@ -225,7 +227,7 @@ func TestNodeResourcePlanInstanceQuery_Execute(t *testing.T) {
 					},
 				}
 
-				err := node.Execute(ctx, walkQuery)
+				err := node.Execute(ctx, walkPlan)
 				if shouldError {
 					if err == nil {
 						t.Fatalf("expected error for %s, got nil", addr)

@@ -135,6 +135,10 @@ type PlanOpts struct {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	Forget bool
+
+	// Query is a boolean that indicates whether the plan is being
+	// generated for a query operation.
+	Query bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -886,8 +890,12 @@ func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.D
 
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	walkOp := walkPlan
 	if opts != nil {
 		externalProviderConfigs = opts.ExternalProviders
+		if opts.Query {
+			walkOp = walkPlanQuery
+		}
 	}
 
 	switch mode := opts.Mode; mode {
@@ -896,7 +904,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		// in config so their targets can be added to the graph.
 		forgetResources, forgetModules, diags := c.findForgetTargets(config)
 		if diags.HasErrors() {
-			return nil, walkPlan, diags
+			return nil, walkOp, diags
 		}
 		graph, diags := (&PlanGraphBuilder{
 			Config:                  config,
@@ -908,7 +916,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ForceReplace:            opts.ForceReplace,
 			skipRefresh:             opts.SkipRefresh,
 			preDestroyRefresh:       opts.PreDestroyRefresh,
-			Operation:               walkPlan,
+			Operation:               walkOp,
 			ExternalReferences:      opts.ExternalReferences,
 			Overrides:               opts.Overrides,
 			ImportTargets:           c.findImportTargets(config),
@@ -917,7 +925,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			GenerateConfigPath:      opts.GenerateConfigPath,
 			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
-		return graph, walkPlan, diags
+		return graph, walkOp, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
 			Config:                  config,
