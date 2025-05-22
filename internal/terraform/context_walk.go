@@ -127,7 +127,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		refreshState = states.NewState().SyncWrapper()
 		prevRunState = states.NewState().SyncWrapper()
 
-	case walkPlan, walkPlanQuery, walkPlanDestroy, walkImport:
+	case walkPlan, walkPlanDestroy, walkImport:
 		state = inputState.DeepCopy().SyncWrapper()
 		refreshState = inputState.DeepCopy().SyncWrapper()
 		prevRunState = inputState.DeepCopy().SyncWrapper()

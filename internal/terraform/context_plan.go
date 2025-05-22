@@ -890,11 +890,13 @@ func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.D
 
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
-	walkOp := walkPlan
+	var modeFilter addrs.ResourceMode
 	if opts != nil {
 		externalProviderConfigs = opts.ExternalProviders
+		// During a query operation, we only want to add the list-type resources
+		// to the graph.
 		if opts.Query {
-			walkOp = walkPlanQuery
+			modeFilter = addrs.ListResourceMode
 		}
 	}
 
@@ -904,7 +906,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		// in config so their targets can be added to the graph.
 		forgetResources, forgetModules, diags := c.findForgetTargets(config)
 		if diags.HasErrors() {
-			return nil, walkOp, diags
+			return nil, walkPlan, diags
 		}
 		graph, diags := (&PlanGraphBuilder{
 			Config:                  config,
@@ -916,7 +918,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ForceReplace:            opts.ForceReplace,
 			skipRefresh:             opts.SkipRefresh,
 			preDestroyRefresh:       opts.PreDestroyRefresh,
-			Operation:               walkOp,
+			Operation:               walkPlan,
 			ExternalReferences:      opts.ExternalReferences,
 			Overrides:               opts.Overrides,
 			ImportTargets:           c.findImportTargets(config),
@@ -924,8 +926,9 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			forgetModules:           forgetModules,
 			GenerateConfigPath:      opts.GenerateConfigPath,
 			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			targetResourceMode:      modeFilter,
 		}).Build(addrs.RootModuleInstance)
-		return graph, walkOp, diags
+		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
 			Config:                  config,
