@@ -5,5 +5,5 @@ variable "v" {
 }
 
 module "child" {
-  source = "./modules/child"
+  source = "./modules/child_a"
 }
