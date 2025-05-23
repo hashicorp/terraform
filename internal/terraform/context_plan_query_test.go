@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 
@@ -50,6 +51,24 @@ func TestContext2Plan_queryList(t *testing.T) {
 			"test_resource":       getQueryTestSchema(),
 			"test_child_resource": getQueryTestSchema(),
 		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+			"test_child_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
 	})
 
 	cases := []struct {
@@ -59,6 +78,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 		diagCount      int
 		expectedErrMsg []string
 		assertState    func(*states.State)
+		assertChanges  func(providers.ProviderSchema, *plans.ChangesSrc)
 		listResourceFn func(request providers.ListResourceRequest) (providers.ListResourceResponse, error)
 	}{
 		{
@@ -116,32 +136,38 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}, nil
 			},
-			assertState: func(state *states.State) {
-				// Verify test list resource
-				testInst := state.GetListResource(addrs.RootModuleInstance.Resource(addrs.ListResourceMode, "test_resource", "test"))
-				if testInst.Len() == 0 {
-					t.Fatalf("Expected list resource test_resource.test to exist in state, but it doesn't")
-				}
+			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
+				expectedResources := []string{"list.test_resource.test", "list.test_resource.test2"}
+				actualResources := make([]string, 0)
+				for _, change := range changes.Resources {
+					actualResources = append(actualResources, change.Addr.String())
+					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					cs, err := change.Decode(schema)
+					if err != nil {
+						t.Fatalf("failed to decode change: %s", err)
+					}
 
-				// Verify test2 list resource
-				test2Inst := state.GetListResource(addrs.RootModuleInstance.Resource(addrs.ListResourceMode, "test_resource", "test2"))
-				if test2Inst.Len() == 0 {
-					t.Fatalf("Expected list resource test_child_resource.test2 to exist in state, but it doesn't")
-				}
+					if cs.Change.Action != plans.Read {
+						t.Fatalf("expected action to be Read, got %s", cs.Change.Action)
+					}
 
-				// Verify instance types
-				expectedTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
-				actualTypes := make([]string, 0)
-				for _, obj := range testInst.Elements() {
-					val := obj.Value
-					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+					// Verify instance types
+					expectedTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
+					actualTypes := make([]string, 0)
+					cs.After.ForEachElement(func(key cty.Value, val cty.Value) bool {
 						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
 						return false
 					})
+					sort.Strings(actualTypes)
+					sort.Strings(expectedTypes)
+					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+						t.Fatalf("Expected instance types to match, but they differ: %s", diff)
+					}
 				}
-
-				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
-					t.Fatalf("Expected instance types to match, but they differ: %s", diff)
+				sort.Strings(actualResources)
+				sort.Strings(expectedResources)
+				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
 				}
 			},
 		},
@@ -200,38 +226,38 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}, nil
 			},
-			assertState: func(state *states.State) {
-				// Check that the plan state contains the list resources
-				allLists := state.AllListResourceInstances()
+			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
+				expectedResources := []string{"list.test_resource.test[0]", "list.test_resource.test2"}
+				actualResources := make([]string, 0)
+				for _, change := range changes.Resources {
+					actualResources = append(actualResources, change.Addr.String())
+					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					cs, err := change.Decode(schema)
+					if err != nil {
+						t.Fatalf("failed to decode change: %s", err)
+					}
 
-				// Check for test_resource.test with count
-				testKey := "list.test_resource.test"
-				testInst, ok := allLists[testKey]
-				if !ok || testInst.Len() == 0 {
-					t.Fatalf("Expected list resource test_resource.test with count to exist in state, but it doesn't")
-				}
+					if cs.Change.Action != plans.Read {
+						t.Fatalf("expected action to be Read, got %s", cs.Change.Action)
+					}
 
-				// Check for test_resource.test2
-				test2Key := "list.test_resource.test2"
-				test2Inst, ok := allLists[test2Key]
-				if !ok || test2Inst.Len() == 0 {
-					t.Fatalf("Expected list resource test_resource.test2 to exist in state, but it doesn't")
-				}
-
-				// Verify instance types
-				expectedTypes := []string{"ami-123456", "ami-654321"}
-				actualTypes := make([]string, 0)
-
-				for _, obj := range testInst.Elements() {
-					val := obj.Value
-					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+					// Verify instance types
+					expectedTypes := []string{"ami-123456", "ami-654321"}
+					actualTypes := make([]string, 0)
+					cs.After.ForEachElement(func(key cty.Value, val cty.Value) bool {
 						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
 						return false
 					})
+					sort.Strings(actualTypes)
+					sort.Strings(expectedTypes)
+					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+						t.Fatalf("Expected instance types to match, but they differ: %s", diff)
+					}
 				}
-
-				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
-					t.Fatalf("Expected instance types to match, but they differ: %s", diff)
+				sort.Strings(actualResources)
+				sort.Strings(expectedResources)
+				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
 				}
 			},
 		},
@@ -444,47 +470,38 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}, nil
 			},
-			assertState: func(state *states.State) {
-				// Verify test1 list resource
-				test1Inst := state.GetListResource(addrs.RootModuleInstance.Resource(addrs.ListResourceMode, "test_resource", "test1"))
-				if test1Inst.Len() == 0 {
-					t.Fatalf("Expected list resource test_resource.test1 to exist in state, but it doesn't")
-				}
+			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
+				expectedResources := []string{"list.test_resource.test1", "list.test_resource.test2"}
+				actualResources := make([]string, 0)
+				for _, change := range changes.Resources {
+					actualResources = append(actualResources, change.Addr.String())
+					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					cs, err := change.Decode(schema)
+					if err != nil {
+						t.Fatalf("failed to decode change: %s", err)
+					}
 
-				// Verify test2 list resource
-				test2Inst := state.GetListResource(addrs.RootModuleInstance.Resource(addrs.ListResourceMode, "test_resource", "test2"))
-				if test2Inst.Len() == 0 {
-					t.Fatalf("Expected list resource test_resource.test2 to exist in state, but it doesn't")
-				}
+					if cs.Change.Action != plans.Read {
+						t.Fatalf("expected action to be Read, got %s", cs.Change.Action)
+					}
 
-				// Verify instance types for test1
-				expectedTypes := []string{"ami-123456"}
-				actualTypes := make([]string, 0)
-
-				for _, obj := range test1Inst.Elements() {
-					val := obj.Value
-					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+					// Verify instance types
+					expectedTypes := []string{"ami-123456"}
+					actualTypes := make([]string, 0)
+					cs.After.ForEachElement(func(key cty.Value, val cty.Value) bool {
 						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
 						return false
 					})
+					sort.Strings(actualTypes)
+					sort.Strings(expectedTypes)
+					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+						t.Fatalf("Expected instance types to match, but they differ: %s", diff)
+					}
 				}
-
-				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
-					t.Fatalf("Expected instance types for test1 to match, but they differ: %s", diff)
-				}
-
-				// Verify instance types for test2 (should be the same as test1)
-				actualTypes = make([]string, 0)
-				for _, obj := range test2Inst.Elements() {
-					val := obj.Value
-					val.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
-						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
-						return false
-					})
-				}
-
-				if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
-					t.Fatalf("Expected instance types for test2 to match, but they differ: %s", diff)
+				sort.Strings(actualResources)
+				sort.Strings(expectedResources)
+				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
 				}
 			},
 		},
@@ -539,60 +556,38 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}, nil
 			},
-			assertState: func(state *states.State) {
-				// Check that the plan state contains the list resources with for_each
-				allLists := state.AllListResourceInstances()
+			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
+				expectedResources := []string{"list.test_resource.test1[\"foo\"]", "list.test_resource.test1[\"bar\"]", "list.test_resource.test2[\"foo\"]", "list.test_resource.test2[\"bar\"]"}
+				actualResources := make([]string, 0)
+				for _, change := range changes.Resources {
+					actualResources = append(actualResources, change.Addr.String())
+					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					cs, err := change.Decode(schema)
+					if err != nil {
+						t.Fatalf("failed to decode change: %s", err)
+					}
 
-				// Check for test_resource.test1 with for_each - should have instances for "foo" and "bar"
-				test1Key := "list.test_resource.test1"
-				test1Inst, ok := allLists[test1Key]
-				if !ok {
-					t.Fatalf("Expected list resource test_resource.test1 with for_each to exist in state, but it doesn't")
-				}
+					if cs.Change.Action != plans.Read {
+						t.Fatalf("expected action to be Read, got %s", cs.Change.Action)
+					}
 
-				// We expect 2 instances of test1 (for "foo" and "bar")
-				if test1Inst.Len() < 2 {
-					t.Fatalf("Expected at least 2 instances of test_resource.test1 with for_each to exist in state, but found %d", test1Inst.Len())
-				}
-
-				// Check for test_resource.test2 with for_each from test1
-				test2Key := "list.test_resource.test2"
-				test2Inst, ok := allLists[test2Key]
-				if !ok || test2Inst.Len() == 0 {
-					t.Fatalf("Expected instances of test_resource.test2 with for_each to exist in state, but found none")
-				}
-
-				// Verify instance types in test1 resources
-				expectedTypes := []string{"ami-123456"}
-
-				// For each element in the test1Inst map, verify the instance types
-				for _, elem := range test1Inst.Elements() {
+					// Verify instance types
+					expectedTypes := []string{"ami-123456"}
 					actualTypes := make([]string, 0)
-					obj := elem.Value
-
-					obj.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
+					cs.After.ForEachElement(func(key cty.Value, val cty.Value) bool {
 						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
 						return false
 					})
-
+					sort.Strings(actualTypes)
+					sort.Strings(expectedTypes)
 					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
-						t.Fatalf("Expected instance types for test1 to match, but they differ: %s", diff)
+						t.Fatalf("Expected instance types to match, but they differ: %s", diff)
 					}
 				}
-
-				// Also verify instance types in test2 resources
-				for _, elem := range test2Inst.Elements() {
-					actualTypes := make([]string, 0)
-					obj := elem.Value
-
-					obj.Value.ForEachElement(func(key cty.Value, val cty.Value) bool {
-						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
-						return false
-					})
-
-					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
-						t.Fatalf("Expected instance types for test2 to match, but they differ: %s", diff)
-					}
+				sort.Strings(actualResources)
+				sort.Strings(expectedResources)
+				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
 				}
 			},
 		},
@@ -605,7 +600,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 				configs["main.tfquery.hcl"] = tc.queryConfig
 			}
 
-			m := testModuleInline(t, configs)
+			mod := testModuleInline(t, configs)
 
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
@@ -628,17 +623,21 @@ func TestContext2Plan_queryList(t *testing.T) {
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
 				Mode:         plans.NormalMode,
-				SetVariables: testInputValuesUnset(m.Module.Variables),
+				SetVariables: testInputValuesUnset(mod.Module.Variables),
 				Query:        true,
 			})
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
 			}
 
-			if tc.assertState != nil {
-				tc.assertState(plan.PostPlanState)
+			if tc.assertChanges != nil {
+				sch, err := ctx.Schemas(mod, states.NewState())
+				if err != nil {
+					t.Fatalf("failed to get schemas: %s", err)
+				}
+				tc.assertChanges(sch.Providers[providerAddr], plan.Changes)
 			}
 
 			if tc.diagCount > 0 {

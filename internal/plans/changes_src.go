@@ -114,11 +114,16 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 			schema = p.ResourceTypes[rcs.Addr.Resource.Resource.Type]
 		case addrs.DataResourceMode:
 			schema = p.DataSources[rcs.Addr.Resource.Resource.Type]
+		case addrs.ListResourceMode:
+			// The results of a list resource is a special tuple type which
+			// encapsulates the type of each resource. The change object creator should work
+			// out that type, and store it in the ChangeSpec field of the change
+			// object.
 		default:
 			panic(fmt.Sprintf("unexpected resource mode %s", rcs.Addr.Resource.Resource.Mode))
 		}
 
-		if schema.Body == nil {
+		if !(schema.Body == nil || rcs.ChangeSpec == nil) {
 			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", rcs.Addr)
 		}
 
@@ -396,6 +401,9 @@ type ChangeSrc struct {
 	// Action defines what kind of change is being made.
 	Action Action
 
+	// ChangeSpec contains the types related to the change.
+	*ChangeSpec
+
 	// Before and After correspond to the fields of the same name in Change,
 	// but have not yet been decoded from the serialized value used for
 	// storage.
@@ -444,6 +452,13 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		ty = schema.Body.ImpliedType()
 		identityType = schema.Identity.ImpliedType()
 	}
+	// If the change came with a ChangeSpec, use that instead of the
+	// schema type. This is used for list resources, where the schema
+	// type represents the list configuration, not its result type.
+	if cs.ChangeSpec != nil {
+		ty = cs.ChangeSpec.ObjectType
+		identityType = cs.ChangeSpec.IdentityType
+	}
 
 	before := cty.NullVal(ty)
 	beforeIdentity := cty.NullVal(identityType)
@@ -483,5 +498,6 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		AfterIdentity:   afterIdentity,
 		Importing:       cs.Importing.Decode(identityType),
 		GeneratedConfig: cs.GeneratedConfig,
+		ChangeSpec:      cs.ChangeSpec,
 	}, nil
 }

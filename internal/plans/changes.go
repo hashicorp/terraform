@@ -56,11 +56,16 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 			schema = p.ResourceTypes[rc.Addr.Resource.Resource.Type]
 		case addrs.DataResourceMode:
 			schema = p.DataSources[rc.Addr.Resource.Resource.Type]
+		case addrs.ListResourceMode:
+			// The results of a list resource is a special tuple type which
+			// encapsulates the type of each resource. The change object creator should work
+			// out that type, and store it in the ChangeSpec field of the change
+			// object.
 		default:
 			panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
 		}
 
-		if schema.Body == nil {
+		if !(schema.Body == nil || rc.ChangeSpec == nil) {
 			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", rc.Addr)
 		}
 		rcs, err := rc.Encode(schema)
@@ -580,10 +585,24 @@ func (i *Importing) Encode(identityTy cty.Type) *ImportingSrc {
 	}
 }
 
+// ChangeSpec describes the type of the object that is being
+// changed.
+type ChangeSpec struct {
+	// ObjectType is the type of the object that is being changed.
+	ObjectType cty.Type
+
+	// IdentityType is the type of the identity of the object that is being changed.
+	IdentityType cty.Type
+}
+
 // Change describes a single change with a given action.
 type Change struct {
 	// Action defines what kind of change is being made.
 	Action Action
+
+	// ChangeSpec describes the type of the object that is being changed.
+	// If present, it will override the type of the object in the schema.
+	*ChangeSpec
 
 	// Interpretation of Before and After depend on Action:
 	//
@@ -654,8 +673,18 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 	}
 
 	ty := cty.DynamicPseudoType
+	identityTy := cty.DynamicPseudoType
 	if schema != nil {
 		ty = schema.Body.ImpliedType()
+		identityTy = schema.Identity.ImpliedType()
+	}
+
+	// If the change came with a ChangeSpec, use that instead of the
+	// schema type. This is used for list resources, where the schema
+	// type represents the list configuration, not its result type.
+	if c.ChangeSpec != nil {
+		ty = c.ChangeSpec.ObjectType
+		identityTy = c.ChangeSpec.IdentityType
 	}
 
 	beforeDV, err := NewDynamicValue(unmarkedBefore, ty)
@@ -669,11 +698,6 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 
 	var beforeIdentityDV DynamicValue
 	var afterIdentityDV DynamicValue
-
-	identityTy := cty.DynamicPseudoType
-	if schema != nil {
-		identityTy = schema.Identity.ImpliedType()
-	}
 
 	if !c.BeforeIdentity.IsNull() {
 		beforeIdentityDV, err = NewDynamicValue(c.BeforeIdentity, identityTy)
@@ -698,5 +722,6 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 		AfterIdentity:        afterIdentityDV,
 		Importing:            c.Importing.Encode(identityTy),
 		GeneratedConfig:      c.GeneratedConfig,
+		ChangeSpec:           c.ChangeSpec,
 	}, nil
 }
