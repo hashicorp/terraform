@@ -77,7 +77,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	resources := make([]cty.Value, 0)
 	identities := make([]cty.Value, 0)
 
-	for evt := range resp {
+	for _, evt := range resp {
 		if evt.Diagnostics.HasErrors() {
 			return diags.Append(evt.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 		}
