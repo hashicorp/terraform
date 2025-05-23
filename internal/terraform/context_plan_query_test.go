@@ -121,20 +121,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-789012")}),
 				}
-
-				return func(yield func(providers.ListResourceEvent) bool) {
-					for i, v := range madeUp {
-						evt := providers.ListResourceEvent{
-							ResourceObject: v,
-							Identity: cty.ObjectVal(map[string]cty.Value{
-								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-							}),
-						}
-						if !yield(evt) {
-							return
-						}
+				resp := make([]providers.ListResourceEvent, 0)
+				for i, v := range madeUp {
+					evt := providers.ListResourceEvent{
+						ResourceObject: v,
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+						}),
 					}
-				}, nil
+					resp = append(resp, evt)
+				}
+				return resp, nil
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test", "list.test_resource.test2"}
@@ -212,19 +209,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent) bool) {
-					for i, v := range madeUp {
-						evt := providers.ListResourceEvent{
-							ResourceObject: v,
-							Identity: cty.ObjectVal(map[string]cty.Value{
-								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-							}),
-						}
-						if !yield(evt) {
-							return
-						}
+				resp := make([]providers.ListResourceEvent, 0)
+				for i, v := range madeUp {
+					evt := providers.ListResourceEvent{
+						ResourceObject: v,
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+						}),
 					}
-				}, nil
+					resp = append(resp, evt)
+				}
+				return resp, nil
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test[0]", "list.test_resource.test2"}
@@ -367,19 +362,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent) bool) {
-					for i, v := range madeUp {
-						evt := providers.ListResourceEvent{
-							ResourceObject: v,
-							Identity: cty.ObjectVal(map[string]cty.Value{
-								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-							}),
-						}
-						if !yield(evt) {
-							return
-						}
+				resp := make([]providers.ListResourceEvent, 0)
+				for i, v := range madeUp {
+					evt := providers.ListResourceEvent{
+						ResourceObject: v,
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+						}),
 					}
-				}, nil
+					resp = append(resp, evt)
+				}
+				return resp, nil
 			},
 		},
 		{
@@ -456,19 +449,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent) bool) {
-					for i, v := range madeUp {
-						evt := providers.ListResourceEvent{
-							ResourceObject: v,
-							Identity: cty.ObjectVal(map[string]cty.Value{
-								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-							}),
-						}
-						if !yield(evt) {
-							return
-						}
+				resp := make([]providers.ListResourceEvent, 0)
+				for i, v := range madeUp {
+					evt := providers.ListResourceEvent{
+						ResourceObject: v,
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+						}),
 					}
-				}, nil
+					resp = append(resp, evt)
+				}
+				return resp, nil
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1", "list.test_resource.test2"}
@@ -542,19 +533,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
 
-				return func(yield func(providers.ListResourceEvent) bool) {
-					for i, v := range madeUp {
-						evt := providers.ListResourceEvent{
-							ResourceObject: v,
-							Identity: cty.ObjectVal(map[string]cty.Value{
-								"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-							}),
-						}
-						if !yield(evt) {
-							return
-						}
+				resp := make([]providers.ListResourceEvent, 0)
+				for i, v := range madeUp {
+					evt := providers.ListResourceEvent{
+						ResourceObject: v,
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+						}),
 					}
-				}, nil
+					resp = append(resp, evt)
+				}
+				return resp, nil
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1[\"foo\"]", "list.test_resource.test1[\"bar\"]", "list.test_resource.test2[\"foo\"]", "list.test_resource.test2[\"bar\"]"}
@@ -611,7 +600,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 				requestConfigs[request.TypeName] = request.Config
 				fn := tc.listResourceFn
 				if fn == nil {
-					return func(yield func(providers.ListResourceEvent) bool) {}, nil
+					return provider.ListResourceResponse, nil
 				}
 				return fn(request)
 			}

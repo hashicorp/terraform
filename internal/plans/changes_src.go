@@ -251,10 +251,8 @@ func (rcs *ResourceInstanceChangeSrc) Decode(schema providers.Schema) (*Resource
 		}
 	} else {
 		spec = &ChangeSpec{
-			ObjectType: schema.Body.ImpliedType(),
-		}
-		if schema.Identity != nil {
-			spec.IdentityType = schema.Identity.ImpliedType()
+			ObjectType:   schema.Body.ImpliedType(),
+			IdentityType: schema.Identity.ImpliedType(),
 		}
 	}
 	change, err := rcs.ChangeSrc.Decode(spec)

@@ -298,10 +298,8 @@ func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInst
 		}
 	} else {
 		spec = &ChangeSpec{
-			ObjectType: schema.Body.ImpliedType(),
-		}
-		if schema.Identity != nil {
-			spec.IdentityType = schema.Identity.ImpliedType()
+			ObjectType:   schema.Body.ImpliedType(),
+			IdentityType: schema.Identity.ImpliedType(),
 		}
 	}
 	cs, err := rc.Change.Encode(spec)
