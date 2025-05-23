@@ -357,11 +357,17 @@ func TestConfigValidate(t *testing.T) {
 			},
 			1, // no more than one provider_installation block allowed
 		},
-		"plugin_cache_dir does not exist": {
+		"plugin_cache_dir absolute path does not exist": {
 			&Config{
-				PluginCacheDir: "fake",
+				PluginCacheDir: "/absolute/fake/path",
 			},
 			1, // The specified plugin cache dir %s cannot be opened
+		},
+		"plugin_cache_dir relative path": {
+			&Config{
+				PluginCacheDir: "../relative/fake/path",
+			},
+			0, // Relative paths are not validated in early validation phase
 		},
 	}
 
