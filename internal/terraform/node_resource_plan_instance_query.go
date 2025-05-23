@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -84,18 +85,27 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		identities = append(identities, evt.Identity)
 	}
 
-	var vals, ids cty.Value
-	if len(resources) > 0 {
-		vals = cty.ListVal(resources)
-		ids = cty.ListVal(identities)
-	} else {
-		vals = cty.ListValEmpty(cty.Object(map[string]cty.Type{}))
-		ids = cty.ListValEmpty(cty.Object(map[string]cty.Type{}))
+	vals := cty.TupleVal(resources)
+	ids := cty.TupleVal(identities)
+
+	// Create a ResourceInstanceChange for the list resource and store it in Changes
+	change := &plans.ResourceInstanceChange{
+		Addr:         n.Addr,
+		ProviderAddr: n.ResolvedProvider,
+		Change: plans.Change{
+			Action:         plans.Read,
+			Before:         cty.DynamicVal,
+			After:          vals,
+			BeforeIdentity: cty.DynamicVal,
+			AfterIdentity:  ids,
+			ChangeSpec: &plans.ChangeSpec{
+				ObjectType:   vals.Type(),
+				IdentityType: ids.Type(),
+			},
+		},
+		DeposedKey: states.NotDeposed,
 	}
 
-	ctx.State().SetListResourceInstance(n.Addr, &states.ResourceInstanceObject{
-		Value:    vals,
-		Identity: ids,
-	})
+	ctx.Changes().AppendResourceInstanceChange(change)
 	return diags
 }

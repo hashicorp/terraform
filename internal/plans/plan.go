@@ -71,9 +71,6 @@ type Plan struct {
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
 
-	// PostPlanState is the state of the system after applying this plan.
-	PostPlanState *states.State
-
 	// Complete is true if Terraform considers this to be a "complete" plan,
 	// which is to say that it includes a planned action (even if no-op)
 	// for every resource instance object that was mentioned across both
