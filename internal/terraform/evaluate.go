@@ -814,15 +814,6 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		})
 	}
 
-	// The provider result of a list resource is always a tuple, but
-	// we will wrap that tuple in an object with a single attribute "data",
-	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
-	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
-	wrappedVal := func(v cty.Value) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{
-			"data": v,
-		})
-	}
 	lAddr := config.Addr()
 	mAddr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -872,7 +863,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 			for _, inst := range changes {
 				key := inst.Addr.Resource.Key
 				if intKey, ok := key.(addrs.IntKey); ok {
-					vals[int(intKey)] = wrappedVal(inst.After)
+					vals[int(intKey)] = d.wrapListResourceValues(inst.AfterIdentity, inst.After)
 				}
 			}
 
@@ -891,7 +882,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		for _, inst := range changes {
 			key := inst.Addr.Resource.Key
 			if strKey, ok := key.(addrs.StringKey); ok {
-				vals[string(strKey)] = wrappedVal(inst.After)
+				vals[string(strKey)] = d.wrapListResourceValues(inst.AfterIdentity, inst.After)
 			}
 		}
 
@@ -907,13 +898,39 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 	default:
 		if len(changes) <= 0 {
 			// if the instance is missing, insert an unknown value
-			ret = wrappedVal(cty.UnknownVal(resourceType))
+			ret = d.wrapListResourceValues(cty.DynamicVal, cty.UnknownVal(resourceType))
 		} else {
-			ret = wrappedVal(changes[0].After)
+			ret = d.wrapListResourceValues(changes[0].AfterIdentity, changes[0].After)
 		}
 	}
 
 	return ret, diags
+}
+
+// wrapListResourceValues wraps a list resource's values into a specific structure.
+// The provider result of a list resource is always a tuple, but
+// we will wrap that tuple in an object with a single attribute "data",
+// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
+// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
+func (d *evaluationStateData) wrapListResourceValues(ident, obj cty.Value) cty.Value {
+	ret := make([]cty.Value, 0)
+	objIter := obj.ElementIterator()
+	identIter := ident.ElementIterator()
+	for objIter.Next() && identIter.Next() {
+		objKey, objVal := objIter.Element()
+		identKey, identVal := identIter.Element()
+		if objKey.Equals(identKey).False() {
+			panic(fmt.Sprintf("List resource has mismatched keys %s and %s", objKey, identKey))
+		}
+
+		ret = append(ret, cty.ObjectVal(map[string]cty.Value{
+			"state":    objVal,
+			"identity": identVal,
+		}))
+	}
+	return cty.ObjectVal(map[string]cty.Value{
+		"data": cty.TupleVal(ret),
+	})
 }
 
 func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {

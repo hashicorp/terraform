@@ -111,7 +111,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					provider = test
 
 					filter = {
-						attr = list.test_resource.test.data[0].instance_type
+						attr = list.test_resource.test.data[0].state.instance_type
 					}
 				}
 				`,
@@ -202,7 +202,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					provider = test
 
 					filter = {
-						attr = list.test_resource.test[0].data[0].instance_type
+						attr = list.test_resource.test[0].data[0].state.instance_type
 					}
 				}
 				`,
@@ -291,7 +291,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					provider = test
 
 					filter = {
-						attr = list.test_resource.test.instance_type
+						attr = list.test_resource.test.state.instance_type
 					}
 				}
 				`,
@@ -354,7 +354,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					provider = test
 
 					filter = {
-						attr = list.test_resource.test.data[0].invalid_attr
+						attr = list.test_resource.test.data[0].state.invalid_attr
 					}
 				}
 				`,
@@ -399,7 +399,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					provider = test
 
 					filter = {
-						attr = list.test_resource.test2.data[0].id
+						attr = list.test_resource.test2.data[0].state.id
 					}
 				}
 
@@ -407,7 +407,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					provider = test
 
 					filter = {
-						attr = list.test_resource.test1.data[0].id
+						attr = list.test_resource.test1.data[0].state.id
 					}
 				}
 				`,
@@ -447,7 +447,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					provider = test
 
 					filter = {
-						attr = length(list.test_resource.test1.data) > 0 ? list.test_resource.test1.data[0].instance_type : var.test_var
+						attr = length(list.test_resource.test1.data) > 0 ? list.test_resource.test1.data[0].state.instance_type : var.test_var
 					}
 				}
 				`,
@@ -533,7 +533,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					for_each = list.test_resource.test1
 
 					filter = {
-						attr = each.value.data[0].instance_type
+						attr = each.value.data[0].state.instance_type
 					}
 				}
 				`,
