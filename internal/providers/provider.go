@@ -104,6 +104,13 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
+	// ListResource queries the remote for a specific resource type and returns an iterator of items
+	//
+	// An error indicates that there was a problem before calling the provider,
+	// like a missing schema. Problems during a list operation are reported as
+	// diagnostics on the yielded events.
+	ListResource(ListResourceRequest) (ListResourceResponse, error)
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -709,6 +716,23 @@ type CallFunctionResponse struct {
 	// specific argument.
 	Err error
 }
+
+// ListResourceEvent represents a single resource from the list operation
+type ListResourceEvent struct {
+	// Identity contains the resource identity data
+	Identity cty.Value
+
+	// DisplayName is a human-readable name for the resource
+	DisplayName string
+
+	// ResourceObject contains the full resource object if requested
+	ResourceObject cty.Value
+
+	// Diagnostics contains any warnings or errors specific to this event
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ListResourceResponse []ListResourceEvent
 
 type ListResourceRequest struct {
 	// TypeName is the name of the resource type being read.

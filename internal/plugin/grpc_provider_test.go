@@ -6,6 +6,7 @@ package plugin
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"testing"
 	"time"
 
@@ -89,6 +90,18 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 					},
 				},
 			},
+			"list": {
+				Version: 1,
+				Block: &proto.Schema_Block{
+					Attributes: []*proto.Schema_Attribute{
+						{
+							Name:     "resource_attr",
+							Type:     []byte(`"string"`),
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 		DataSourceSchemas: map[string]*proto.Schema{
 			"data": &proto.Schema{
@@ -123,7 +136,7 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 				Block: &proto.Schema_Block{
 					Attributes: []*proto.Schema_Attribute{
 						{
-							Name:     "attr",
+							Name:     "filter_attr",
 							Type:     []byte(`"string"`),
 							Required: true,
 						},
@@ -141,6 +154,16 @@ func providerResourceIdentitySchemas() *proto.GetResourceIdentitySchemas_Respons
 	return &proto.GetResourceIdentitySchemas_Response{
 		IdentitySchemas: map[string]*proto.ResourceIdentitySchema{
 			"resource": {
+				Version: 1,
+				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
+					{
+						Name:              "id_attr",
+						Type:              []byte(`"string"`),
+						RequiredForImport: true,
+					},
+				},
+			},
+			"list": {
 				Version: 1,
 				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
 					{
@@ -423,7 +446,7 @@ func TestGRPCProvider_ValidateListResourceConfig(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"filter_attr": "value"})
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
 		Config:   cfg,
@@ -1330,4 +1353,199 @@ func TestGRPCProvider_closeEphemeralResource(t *testing.T) {
 	})
 
 	checkDiags(t, resp.Diagnostics)
+}
+
+// Mock implementation of the ListResource stream client
+type mockListResourceStreamClient struct {
+	events  []*proto.ListResource_Event
+	current int
+	proto.Provider_ListResourceClient
+}
+
+func (m *mockListResourceStreamClient) Recv() (*proto.ListResource_Event, error) {
+	if m.current >= len(m.events) {
+		return nil, io.EOF
+	}
+
+	event := m.events[m.current]
+	m.current++
+	return event, nil
+}
+
+func TestGRPCProvider_ListResource(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	// Create a mock stream client that will return resource events
+	mockStream := &mockListResourceStreamClient{
+		events: []*proto.ListResource_Event{
+			{
+				DisplayName: "Test Resource 1",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+					},
+				},
+			},
+			{
+				DisplayName: "Test Resource 2",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-2"),
+					},
+				},
+				ResourceObject: &proto.DynamicValue{
+					Msgpack: []byte("\x81\xadresource_attr\xa5value"),
+				},
+			},
+		},
+	}
+
+	client.EXPECT().ListResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(mockStream, nil)
+
+	// Create the request
+	configVal := cty.ObjectVal(map[string]cty.Value{
+		"filter_attr": cty.StringVal("filter-value"),
+	})
+	request := providers.ListResourceRequest{
+		TypeName:              "list",
+		Config:                configVal,
+		IncludeResourceObject: true,
+	}
+
+	// Call the function
+	events, err := p.ListResource(request)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Verify that we received both events
+	if len(events) != 2 {
+		t.Fatalf("Expected 2 events, got %d", len(events))
+	}
+
+	// Verify first event
+	if events[0].DisplayName != "Test Resource 1" {
+		t.Errorf("Expected DisplayName 'Test Resource 1', got '%s'", events[0].DisplayName)
+	}
+
+	expectedId1 := cty.ObjectVal(map[string]cty.Value{
+		"id_attr": cty.StringVal("id-1"),
+	})
+	if !events[0].Identity.RawEquals(expectedId1) {
+		t.Errorf("Expected Identity %#v, got %#v", expectedId1, events[0].Identity)
+	}
+
+	// ResourceObject should be null for the first event as it wasn't provided
+	if !events[0].ResourceObject.IsNull() {
+		t.Errorf("Expected ResourceObject to be null, got %#v", events[0].ResourceObject)
+	}
+
+	// Verify second event
+	if events[1].DisplayName != "Test Resource 2" {
+		t.Errorf("Expected DisplayName 'Test Resource 2', got '%s'", events[1].DisplayName)
+	}
+
+	expectedId2 := cty.ObjectVal(map[string]cty.Value{
+		"id_attr": cty.StringVal("id-2"),
+	})
+	if !events[1].Identity.RawEquals(expectedId2) {
+		t.Errorf("Expected Identity %#v, got %#v", expectedId2, events[1].Identity)
+	}
+
+	expectedResource := cty.ObjectVal(map[string]cty.Value{
+		"resource_attr": cty.StringVal("value"),
+	})
+	if !events[1].ResourceObject.RawEquals(expectedResource) {
+		t.Errorf("Expected ResourceObject %#v, got %#v", expectedResource, events[1].ResourceObject)
+	}
+}
+
+func TestGRPCProvider_ListResource_Error(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	// Test case where the provider returns an error
+	client.EXPECT().ListResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(nil, fmt.Errorf("provider error"))
+
+	configVal := cty.ObjectVal(map[string]cty.Value{
+		"filter_attr": cty.StringVal("filter-value"),
+	})
+	request := providers.ListResourceRequest{
+		TypeName: "list",
+		Config:   configVal,
+	}
+
+	// Call the function
+	_, err := p.ListResource(request)
+	if err == nil {
+		t.Fatal("Expected error, but got none")
+	}
+}
+
+func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	// Create a mock stream client that will return a resource event with diagnostics
+	mockStream := &mockListResourceStreamClient{
+		events: []*proto.ListResource_Event{
+			{
+				DisplayName: "Test Resource With Warning",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+					},
+				},
+				Diagnostic: []*proto.Diagnostic{
+					{
+						Severity: proto.Diagnostic_WARNING,
+						Summary:  "Test warning",
+						Detail:   "This is a test warning",
+					},
+				},
+			},
+		},
+	}
+
+	client.EXPECT().ListResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(mockStream, nil)
+
+	// Create the request
+	configVal := cty.ObjectVal(map[string]cty.Value{
+		"filter_attr": cty.StringVal("filter-value"),
+	})
+	request := providers.ListResourceRequest{
+		TypeName: "list",
+		Config:   configVal,
+	}
+
+	// Call the function
+	events, err := p.ListResource(request)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Verify that we received one event with diagnostics
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+
+	if !events[0].Diagnostics.HasWarnings() {
+		t.Fatal("Expected warning diagnostics, but got none")
+	}
 }
