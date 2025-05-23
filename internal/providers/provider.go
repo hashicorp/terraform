@@ -4,8 +4,6 @@
 package providers
 
 import (
-	"iter"
-
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -734,6 +732,8 @@ type ListResourceEvent struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
+type ListResourceResponse []ListResourceEvent
+
 type ListResourceRequest struct {
 	// TypeName is the name of the resource type being read.
 	TypeName string
@@ -745,6 +745,3 @@ type ListResourceRequest struct {
 	// the full resource object for each result
 	IncludeResourceObject bool
 }
-
-// ListResourceResponse is an iterator type that yields ListResourceEvents
-type ListResourceResponse iter.Seq[ListResourceEvent]

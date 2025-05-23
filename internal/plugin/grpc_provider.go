@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin/convert"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
@@ -1288,59 +1287,50 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) (providers.
 		return nil, err
 	}
 
-	return func(yield func(providers.ListResourceEvent) bool) {
-		// Process the stream
-		for {
-			event, err := client.Recv()
-			if err == io.EOF {
-				// End of stream, we're done
-				return
-			}
+	var results providers.ListResourceResponse
+	// Process the stream
+	for {
+		event, err := client.Recv()
+		if err == io.EOF {
+			// End of stream, we're done
+			return results, nil
+		}
 
+		if err != nil {
+			return results, err
+		}
+
+		// Process the event
+		resourceEvent := providers.ListResourceEvent{
+			DisplayName: event.DisplayName,
+			Diagnostics: convert.ProtoToDiagnostics(event.Diagnostic),
+		}
+
+		// Handle identity data - it must be present
+		if event.Identity == nil || event.Identity.IdentityData == nil {
+			resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(fmt.Errorf("missing identity data in ListResource event for %s", r.TypeName))
+		} else {
+			identityVal, err := decodeDynamicValue(event.Identity.IdentityData, resourceSchema.Identity.ImpliedType())
 			if err != nil {
-				var diags tfdiags.Diagnostics
-				yield(providers.ListResourceEvent{
-					Diagnostics: diags.Append(err),
-				})
-				return
-			}
-
-			// Process the event
-			resourceEvent := providers.ListResourceEvent{
-				DisplayName: event.DisplayName,
-				Diagnostics: convert.ProtoToDiagnostics(event.Diagnostic),
-			}
-
-			// Handle identity data - it must be present
-			if event.Identity == nil || event.Identity.IdentityData == nil {
-				resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(fmt.Errorf("missing identity data in ListResource event for %s", r.TypeName))
+				resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(err)
 			} else {
-				identityVal, err := decodeDynamicValue(event.Identity.IdentityData, resourceSchema.Identity.ImpliedType())
-				if err != nil {
-					resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(err)
-				} else {
-					resourceEvent.Identity = identityVal
-				}
-			}
-
-			// Handle resource object if present and requested
-			if event.ResourceObject != nil && r.IncludeResourceObject {
-				// Use the ResourceTypes schema for the resource object
-				resourceObj, err := decodeDynamicValue(event.ResourceObject, resourceSchema.Body.ImpliedType())
-				if err != nil {
-					resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(err)
-				} else {
-					resourceEvent.ResourceObject = resourceObj
-				}
-			}
-
-			// Yield the item and check if we should continue
-			if !yield(resourceEvent) {
-				// Consumer requested to stop
-				return
+				resourceEvent.Identity = identityVal
 			}
 		}
-	}, nil
+
+		// Handle resource object if present and requested
+		if event.ResourceObject != nil && r.IncludeResourceObject {
+			// Use the ResourceTypes schema for the resource object
+			resourceObj, err := decodeDynamicValue(event.ResourceObject, resourceSchema.Body.ImpliedType())
+			if err != nil {
+				resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(err)
+			} else {
+				resourceEvent.ResourceObject = resourceObj
+			}
+		}
+
+		results = append(results, resourceEvent)
+	}
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.

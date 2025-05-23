@@ -1419,15 +1419,9 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 	}
 
 	// Call the function
-	response, err := p.ListResource(request)
+	events, err := p.ListResource(request)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	// Validate the response by consuming the iterator
-	var events []providers.ListResourceEvent
-	for event := range response {
-		events = append(events, event)
 	}
 
 	// Verify that we received both events
@@ -1541,15 +1535,9 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 	}
 
 	// Call the function
-	response, err := p.ListResource(request)
+	events, err := p.ListResource(request)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	// Validate the response
-	var events []providers.ListResourceEvent
-	for event := range response {
-		events = append(events, event)
 	}
 
 	// Verify that we received one event with diagnostics
