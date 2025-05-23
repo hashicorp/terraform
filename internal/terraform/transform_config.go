@@ -38,9 +38,6 @@ type ConfigTransformer struct {
 	// some actions are skipped during the destroy process
 	destroy bool
 
-	// includeQuery is true if the graph should include query nodes.
-	includeQuery bool
-
 	// importTargets specifies a slice of addresses that will have state
 	// imported for them.
 	importTargets []*ImportTarget
@@ -103,9 +100,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		for _, r := range module.DataResources {
 			allResources = append(allResources, r)
 		}
-	}
-
-	if t.includeQuery {
 		for _, r := range module.ListResources {
 			allResources = append(allResources, r)
 		}
