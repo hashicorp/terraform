@@ -98,10 +98,10 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 			After:          vals,
 			BeforeIdentity: cty.DynamicVal,
 			AfterIdentity:  ids,
-			ChangeSpec: &plans.ChangeSpec{
-				ObjectType:   vals.Type(),
-				IdentityType: ids.Type(),
-			},
+		},
+		ChangeSpec: &plans.ChangeSpec{
+			ObjectType:   vals.Type(),
+			IdentityType: ids.Type(),
 		},
 		DeposedKey: states.NotDeposed,
 	}

@@ -251,6 +251,11 @@ type ResourceInstanceChange struct {
 	// Change is an embedded description of the change.
 	Change
 
+	// ChangeSpec contains the type definitions related to the change.
+	// If present, it will be used to encode the change values instead of the
+	// types in the schema.
+	*ChangeSpec
+
 	// ActionReason is an optional extra indication of why we chose the
 	// action recorded in Change.Action for this particular resource instance.
 	//
@@ -285,7 +290,21 @@ type ResourceInstanceChange struct {
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInstanceChangeSrc, error) {
-	cs, err := rc.Change.Encode(&schema)
+	var spec *ChangeSpec
+	if rc.ChangeSpec != nil {
+		spec = &ChangeSpec{
+			ObjectType:   rc.ChangeSpec.ObjectType,
+			IdentityType: rc.ChangeSpec.IdentityType,
+		}
+	} else {
+		spec = &ChangeSpec{
+			ObjectType: schema.Body.ImpliedType(),
+		}
+		if schema.Identity != nil {
+			spec.IdentityType = schema.Identity.ImpliedType()
+		}
+	}
+	cs, err := rc.Change.Encode(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -305,6 +324,7 @@ func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInst
 		ActionReason:    rc.ActionReason,
 		RequiredReplace: rc.RequiredReplace,
 		Private:         rc.Private,
+		ChangeSpec:      rc.ChangeSpec,
 	}, err
 }
 
@@ -585,24 +605,10 @@ func (i *Importing) Encode(identityTy cty.Type) *ImportingSrc {
 	}
 }
 
-// ChangeSpec describes the type of the object that is being
-// changed.
-type ChangeSpec struct {
-	// ObjectType is the type of the object that is being changed.
-	ObjectType cty.Type
-
-	// IdentityType is the type of the identity of the object that is being changed.
-	IdentityType cty.Type
-}
-
 // Change describes a single change with a given action.
 type Change struct {
 	// Action defines what kind of change is being made.
 	Action Action
-
-	// ChangeSpec describes the type of the object that is being changed.
-	// If present, it will override the type of the object in the schema.
-	*ChangeSpec
 
 	// Interpretation of Before and After depend on Action:
 	//
@@ -638,6 +644,15 @@ type Change struct {
 	GeneratedConfig string
 }
 
+// ChangeSpec describes the specification of the change's types.
+type ChangeSpec struct {
+	// ObjectType is the type of the object that is being changed.
+	ObjectType cty.Type
+
+	// IdentityType is the type of the identity of the object that is being changed.
+	IdentityType cty.Type
+}
+
 // Encode produces a variant of the reciever that has its change values
 // serialized so it can be written to a plan file. Pass the type constraint
 // that the values are expected to conform to; to properly decode the values
@@ -646,7 +661,13 @@ type Change struct {
 // Where a Change is embedded in some other struct, it's generally better
 // to call the corresponding Encode method of that struct rather than working
 // directly with its embedded Change.
-func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
+func (c *Change) Encode(spec *ChangeSpec) (*ChangeSrc, error) {
+	ty := cty.DynamicPseudoType
+	identityTy := cty.DynamicPseudoType
+	if spec != nil {
+		ty = spec.ObjectType
+		identityTy = spec.IdentityType
+	}
 	// We can't serialize value marks directly so we'll need to extract the
 	// sensitive marks and store them in a separate field.
 	//
@@ -670,21 +691,6 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 			tfdiags.FormatCtyPath(unsupportedMarksesAfter[0].Path),
 			unsupportedMarksesAfter[0].Marks,
 		)
-	}
-
-	ty := cty.DynamicPseudoType
-	identityTy := cty.DynamicPseudoType
-	if schema != nil {
-		ty = schema.Body.ImpliedType()
-		identityTy = schema.Identity.ImpliedType()
-	}
-
-	// If the change came with a ChangeSpec, use that instead of the
-	// schema type. This is used for list resources, where the schema
-	// type represents the list configuration, not its result type.
-	if c.ChangeSpec != nil {
-		ty = c.ChangeSpec.ObjectType
-		identityTy = c.ChangeSpec.IdentityType
 	}
 
 	beforeDV, err := NewDynamicValue(unmarkedBefore, ty)
@@ -722,6 +728,5 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 		AfterIdentity:        afterIdentityDV,
 		Importing:            c.Importing.Encode(identityTy),
 		GeneratedConfig:      c.GeneratedConfig,
-		ChangeSpec:           c.ChangeSpec,
 	}, nil
 }
