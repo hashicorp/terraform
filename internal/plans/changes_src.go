@@ -203,6 +203,11 @@ type ResourceInstanceChangeSrc struct {
 	// ChangeSrc is an embedded description of the not-yet-decoded change.
 	ChangeSrc
 
+	// ChangeSpec contains the type definitions related to the change.
+	// If present, it will be used to encode the change values instead of the
+	// types in the schema.
+	*ChangeSpec
+
 	// ActionReason is an optional extra indication of why we chose the
 	// action recorded in Change.Action for this particular resource instance.
 	//
@@ -238,7 +243,21 @@ func (rcs *ResourceInstanceChangeSrc) ObjectAddr() addrs.AbsResourceInstanceObje
 // changed. Pass the implied type of the corresponding resource type schema
 // for correct operation.
 func (rcs *ResourceInstanceChangeSrc) Decode(schema providers.Schema) (*ResourceInstanceChange, error) {
-	change, err := rcs.ChangeSrc.Decode(&schema)
+	var spec *ChangeSpec
+	if rcs.ChangeSpec != nil {
+		spec = &ChangeSpec{
+			ObjectType:   rcs.ChangeSpec.ObjectType,
+			IdentityType: rcs.ChangeSpec.IdentityType,
+		}
+	} else {
+		spec = &ChangeSpec{
+			ObjectType: schema.Body.ImpliedType(),
+		}
+		if schema.Identity != nil {
+			spec.IdentityType = schema.Identity.ImpliedType()
+		}
+	}
+	change, err := rcs.ChangeSrc.Decode(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -257,6 +276,7 @@ func (rcs *ResourceInstanceChangeSrc) Decode(schema providers.Schema) (*Resource
 		ActionReason:    rcs.ActionReason,
 		RequiredReplace: rcs.RequiredReplace,
 		Private:         rcs.Private,
+		ChangeSpec:      rcs.ChangeSpec,
 	}, nil
 }
 
@@ -401,9 +421,6 @@ type ChangeSrc struct {
 	// Action defines what kind of change is being made.
 	Action Action
 
-	// ChangeSpec contains the types related to the change.
-	*ChangeSpec
-
 	// Before and After correspond to the fields of the same name in Change,
 	// but have not yet been decoded from the serialized value used for
 	// storage.
@@ -443,21 +460,14 @@ type ChangeSrc struct {
 // Where a ChangeSrc is embedded in some other struct, it's generally better
 // to call the corresponding Decode method of that struct rather than working
 // directly with its embedded Change.
-func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
+func (cs *ChangeSrc) Decode(spec *ChangeSpec) (*Change, error) {
 	var err error
 
 	ty := cty.DynamicPseudoType
 	identityType := cty.DynamicPseudoType
-	if schema != nil {
-		ty = schema.Body.ImpliedType()
-		identityType = schema.Identity.ImpliedType()
-	}
-	// If the change came with a ChangeSpec, use that instead of the
-	// schema type. This is used for list resources, where the schema
-	// type represents the list configuration, not its result type.
-	if cs.ChangeSpec != nil {
-		ty = cs.ChangeSpec.ObjectType
-		identityType = cs.ChangeSpec.IdentityType
+	if spec != nil {
+		ty = spec.ObjectType
+		identityType = spec.IdentityType
 	}
 
 	before := cty.NullVal(ty)
@@ -498,6 +508,5 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		AfterIdentity:   afterIdentity,
 		Importing:       cs.Importing.Decode(identityType),
 		GeneratedConfig: cs.GeneratedConfig,
-		ChangeSpec:      cs.ChangeSpec,
 	}, nil
 }
