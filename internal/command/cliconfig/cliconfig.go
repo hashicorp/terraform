@@ -325,11 +325,17 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 	}
 
 	if c.PluginCacheDir != "" {
-		_, err := os.Stat(c.PluginCacheDir)
-		if err != nil {
-			diags = diags.Append(
-				fmt.Errorf("The specified plugin cache dir %s cannot be opened: %s", c.PluginCacheDir, err),
-			)
+		// Skip validation for relative paths here, as they may be intended
+		// to be resolved relative to a directory specified by -chdir, which
+		// is processed after config loading. Relative paths will be
+		// re-validated later in main.go after any -chdir option is processed.
+		if filepath.IsAbs(c.PluginCacheDir) {
+			_, err := os.Stat(c.PluginCacheDir)
+			if err != nil {
+				diags = diags.Append(
+					fmt.Errorf("The specified plugin cache dir %s cannot be opened: %s", c.PluginCacheDir, err),
+				)
+			}
 		}
 	}
 
