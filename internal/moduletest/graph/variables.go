@@ -7,13 +7,13 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // GetVariables builds the terraform.InputValues required for the provided run
@@ -202,38 +202,4 @@ func (n *NodeTestRun) FilterVariablesToModule(values terraform.InputValues) (mod
 		moduleVars[name] = value
 	}
 	return moduleVars, testOnlyVars, diags
-}
-
-// AddVariablesToConfig extends the provided config to ensure it has definitions
-// for all specified variables.
-//
-// This function is essentially the opposite of FilterVariablesToConfig which
-// makes the variables match the config rather than the config match the
-// variables.
-func (n *NodeTestRun) AddVariablesToConfig(variables terraform.InputValues) {
-	run := n.run
-	// If we have got variable values from the test file we need to make sure
-	// they have an equivalent entry in the configuration. We're going to do
-	// that dynamically here.
-
-	// First, take a backup of the existing configuration so we can easily
-	// restore it later.
-	currentVars := make(map[string]*configs.Variable)
-	for name, variable := range run.ModuleConfig.Module.Variables {
-		currentVars[name] = variable
-	}
-
-	for name, value := range variables {
-		if _, exists := run.ModuleConfig.Module.Variables[name]; exists {
-			continue
-		}
-
-		run.ModuleConfig.Module.Variables[name] = &configs.Variable{
-			Name:           name,
-			Type:           value.Value.Type(),
-			ConstraintType: value.Value.Type(),
-			DeclRange:      value.SourceRange.ToHCL(),
-		}
-	}
-
 }

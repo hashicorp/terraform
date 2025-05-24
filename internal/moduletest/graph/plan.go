@@ -40,8 +40,6 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 		return
 	}
 
-	n.AddVariablesToConfig(variables)
-
 	if ctx.Verbose() {
 		schemas, diags := tfCtx.Schemas(config, plan.PriorState)
 
