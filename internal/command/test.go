@@ -57,6 +57,11 @@ Options:
   -json                 If specified, machine readable output will be printed in
                         JSON format
 
+  -junit-xml=path       Saves a test report in JUnit XML format to the specified
+                        file. This is currently incompatible with remote test
+                        execution using the the -cloud-run option. The file path
+                        must be relative or absolute.
+
   -no-color             If specified, output won't contain any color.
 
   -parallelism=n        Limit the number of concurrent operations within the 
