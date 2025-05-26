@@ -133,6 +133,7 @@ func NewProvider(store *ResourceStore) *TestProvider {
 	provider.Provider.CallFunctionFn = provider.CallFunction
 	provider.Provider.OpenEphemeralResourceFn = provider.OpenEphemeralResource
 	provider.Provider.CloseEphemeralResourceFn = provider.CloseEphemeralResource
+	provider.Provider.NoLock = store.Nolock
 
 	return provider
 }
@@ -192,8 +193,7 @@ func (provider *TestProvider) DataSourceCount() int {
 }
 
 func (provider *TestProvider) count(prefix string) int {
-	provider.Store.mutex.RLock()
-	defer provider.Store.mutex.RUnlock()
+	defer provider.Store.beginRead()()
 
 	if len(prefix) == 0 {
 		return len(provider.Store.Data)
@@ -209,8 +209,7 @@ func (provider *TestProvider) count(prefix string) int {
 }
 
 func (provider *TestProvider) string(prefix string) string {
-	provider.Store.mutex.RLock()
-	defer provider.Store.mutex.RUnlock()
+	defer provider.Store.beginRead()()
 
 	var keys []string
 	for key := range provider.Store.Data {
@@ -393,14 +392,14 @@ func (provider *TestProvider) CloseEphemeralResource(providers.CloseEphemeralRes
 // For example, when the test provider gets a ReadResource request it will search
 // the store for a resource with a matching ID. See (*TestProvider).ReadResource.
 type ResourceStore struct {
-	mutex sync.RWMutex
+	mutex  sync.RWMutex
+	Nolock bool // nolock is used to disable locking
 
 	Data map[string]cty.Value
 }
 
 func (store *ResourceStore) Delete(key string) cty.Value {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
+	defer store.beginWrite()()
 
 	if resource, ok := store.Data[key]; ok {
 		delete(store.Data, key)
@@ -410,15 +409,13 @@ func (store *ResourceStore) Delete(key string) cty.Value {
 }
 
 func (store *ResourceStore) Get(key string) cty.Value {
-	store.mutex.RLock()
-	defer store.mutex.RUnlock()
+	defer store.beginRead()()
 
 	return store.get(key)
 }
 
 func (store *ResourceStore) Put(key string, resource cty.Value) cty.Value {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
+	defer store.beginWrite()()
 
 	old := store.get(key)
 	store.Data[key] = resource
@@ -430,4 +427,20 @@ func (store *ResourceStore) get(key string) cty.Value {
 		return resource
 	}
 	return cty.NilVal
+}
+
+func (store *ResourceStore) beginWrite() func() {
+	if store.Nolock {
+		return func() {}
+	}
+	store.mutex.Lock()
+	return store.mutex.Unlock
+
+}
+func (store *ResourceStore) beginRead() func() {
+	if store.Nolock {
+		return func() {}
+	}
+	store.mutex.RLock()
+	return store.mutex.RUnlock
 }

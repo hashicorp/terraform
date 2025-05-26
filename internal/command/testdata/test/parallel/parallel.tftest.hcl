@@ -515,10 +515,3 @@ run "test_30" {
     error_message = "error in test_30"
   }
 }
-
-// Expected order:
-//   - run [setup]
-//   - run [test_a, test_d]
-//   - run [test_b]
-//   - run [test_c]
-

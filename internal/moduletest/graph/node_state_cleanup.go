@@ -136,11 +136,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 		Overrides:    mocking.PackageOverrides(run.Config, file.Config, run.ModuleConfig),
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(n.opts.ContextOpts)
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		return state, diags
-	}
+	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
 
 	waiter.update(tfCtx, moduletest.TearDown, nil)
