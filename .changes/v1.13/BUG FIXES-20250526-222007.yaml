@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Add required providers aliases in graph to allow validation on standalone modules using aliases
+time: 2025-05-26T22:20:07.711709913+02:00
+custom:
+    Issue: "28490"

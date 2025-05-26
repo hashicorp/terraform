@@ -564,35 +564,38 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 	// access when passing around configuration and inheritance.
 	if path.IsRoot() && c.Module.ProviderRequirements != nil {
 		for name, p := range c.Module.ProviderRequirements.RequiredProviders {
-			if _, configured := mod.ProviderConfigs[name]; configured {
-				continue
-			}
+			for _, alias := range p.Aliases {
+				if _, configured := mod.ProviderConfigs[name]; configured {
+					continue
+				}
 
-			addr := addrs.AbsProviderConfig{
-				Provider: p.Type,
-				Module:   path,
-			}
+				addr := addrs.AbsProviderConfig{
+					Provider: p.Type,
+					Module:   path,
+					Alias:    alias.Alias,
+				}
 
-			if _, ok := t.providers[addr.String()]; ok {
-				// The config validation warns about this too, but we can't
-				// completely prevent it in v1.
-				log.Printf("[WARN] ProviderConfigTransformer: duplicate required_providers entry for %s", addr)
-				continue
-			}
+				if _, ok := t.providers[addr.String()]; ok {
+					// The config validation warns about this too, but we can't
+					// completely prevent it in v1.
+					log.Printf("[WARN] ProviderConfigTransformer: duplicate required_providers entry for %s", addr)
+					continue
+				}
 
-			abstract := &NodeAbstractProvider{
-				Addr: addr,
-			}
+				abstract := &NodeAbstractProvider{
+					Addr: addr,
+				}
 
-			var v dag.Vertex
-			if t.Concrete != nil {
-				v = t.Concrete(abstract)
-			} else {
-				v = abstract
-			}
+				var v dag.Vertex
+				if t.Concrete != nil {
+					v = t.Concrete(abstract)
+				} else {
+					v = abstract
+				}
 
-			g.Add(v)
-			t.providers[addr.String()] = v.(GraphNodeProvider)
+				g.Add(v)
+				t.providers[addr.String()] = v.(GraphNodeProvider)
+			}
 		}
 	}
 
