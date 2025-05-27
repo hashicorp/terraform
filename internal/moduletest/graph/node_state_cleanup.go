@@ -131,9 +131,10 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 	setVariables, _, _ := runNode.FilterVariablesToModule(variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:         plans.DestroyMode,
-		SetVariables: setVariables,
-		Overrides:    mocking.PackageOverrides(run.Config, file.Config, run.ModuleConfig),
+		Mode:              plans.DestroyMode,
+		SetVariables:      setVariables,
+		Overrides:         mocking.PackageOverrides(run.Config, file.Config, run.ModuleConfig),
+		ExternalProviders: runNode.ExternalProviders(),
 	}
 
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)

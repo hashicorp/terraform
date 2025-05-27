@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
@@ -811,6 +812,105 @@ func TestTest_Parallel(t *testing.T) {
 	// Ensure "test_d" appears after "test_setup", because they have the same state key
 	if testDIndex < testSetupIndex {
 		t.Errorf("test_d appears before test_setup in the log output")
+	}
+}
+
+func TestTest_ParallelJSON(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(&testing_command.ResourceStore{Data: make(map[string]cty.Value)})
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	configuredProv := func() providers.Interface {
+		prov := testing_command.NewProvider(nil)
+		req := providers.ConfigureProviderRequest{Config: cty.DynamicVal}
+		prov.ConfigureProvider(req)
+		prov.Provider.ConfigureProvider(req)
+		return prov.Provider
+	}
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+		externalProviders: map[addrs.RootProviderConfig]providers.Interface{
+			{Provider: addrs.MustParseProviderSourceString("test")}:                     configuredProv(),
+			{Provider: addrs.MustParseProviderSourceString("test"), Alias: "start"}:     configuredProv(),
+			{Provider: addrs.MustParseProviderSourceString("test"), Alias: "state_foo"}: configuredProv(),
+			{Provider: addrs.MustParseProviderSourceString("test"), Alias: "state_bar"}: configuredProv(),
+			{Provider: addrs.MustParseProviderSourceString("test"), Alias: "state_baz"}: configuredProv(),
+			{Provider: addrs.MustParseProviderSourceString("test"), Alias: "state_qux"}: configuredProv(),
+		},
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
+
+	c := &TestCommand{Meta: meta}
+	c.Run([]string{"-json", "-no-color"})
+	output := done(t).All()
+
+	if !strings.Contains(output, "40 passed, 0 failed") {
+		fmt.Printf("output:\n\n%s\n", output)
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the start of the teardown and complete timestamps
+	// The difference is the approximate duration of the test teardown operation.
+	// This test is running in parallel, so we expect the teardown to also run in parallel.
+	// We sleep for 3 seconds in the test teardown to simulate a long-running destroy.
+	// There are 6 unique state keys in the parallel test, so we expect the teardown to take less than 3*6 (18) seconds.
+	var startTimestamp, completeTimestamp string
+	for _, line := range lines {
+		if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"teardown"`) {
+			var obj map[string]interface{}
+			if err := json.Unmarshal([]byte(line), &obj); err == nil {
+				if ts, ok := obj["@timestamp"].(string); ok {
+					startTimestamp = ts
+				}
+			}
+		} else if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"complete"`) {
+			var obj map[string]interface{}
+			if err := json.Unmarshal([]byte(line), &obj); err == nil {
+				if ts, ok := obj["@timestamp"].(string); ok {
+					completeTimestamp = ts
+				}
+			}
+		}
+	}
+
+	if startTimestamp == "" || completeTimestamp == "" {
+		t.Fatalf("could not find start or complete timestamp in log output")
+	}
+
+	startTime, err := time.Parse(time.RFC3339Nano, startTimestamp)
+	if err != nil {
+		t.Fatalf("failed to parse start timestamp: %v", err)
+	}
+	completeTime, err := time.Parse(time.RFC3339Nano, completeTimestamp)
+	if err != nil {
+		t.Fatalf("failed to parse complete timestamp: %v", err)
+	}
+	dur := completeTime.Sub(startTime)
+	if dur > 10*time.Second {
+		t.Fatalf("parallel.tftest.hcl duration took too long: %0.2f seconds", dur.Seconds())
 	}
 }
 

@@ -10,11 +10,39 @@ variables {
   foo = "foo"
 }
 
+provider "test" {
+}
+provider "test" {
+  alias = "start"
+}
+provider "test" {
+  alias = "state_foo"
+}
+provider "test" {
+  alias = "state_bar"
+}
+provider "test" {
+  alias = "state_baz"
+}
+provider "test" {
+  alias = "state_qux"
+}
+
+override_resource {
+  target = test_resource.foo
+  values = {
+    id = "bbbb"
+  }
+}
+
 
 run "setup" {
   state_key = "start"
   module {
     source = "./setup"
+  }
+  providers = {
+    test.start = test.start
   }
 
   variables {
@@ -22,7 +50,7 @@ run "setup" {
   }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "bad"
   }
 }
@@ -35,13 +63,17 @@ run "test_a" {
     input = run.setup.value
   }
 
+  providers = {
+    test = test
+  }
+
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "double bad"
   }
 
   assert {
-    condition = run.setup.value == var.foo
+    condition     = run.setup.value == var.foo
     error_message = "triple bad"
   }
 }
@@ -54,13 +86,17 @@ run "test_b" {
     input = run.test_a.value
   }
 
+  providers = {
+    test = test
+  }
+
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "double bad"
   }
 
   assert {
-    condition = run.setup.value == var.foo
+    condition     = run.setup.value == var.foo
     error_message = "triple bad"
   }
 }
@@ -73,8 +109,12 @@ run "test_c" {
     input = "foo"
   }
 
+  providers = {
+    test = test
+  }
+
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "double bad"
   }
 }
@@ -89,9 +129,12 @@ run "test_d" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "double bad"
   }
 }
@@ -103,9 +146,12 @@ run "test_1" {
   variables {
     input = "foo"
   }
+  providers = {
+    test.state_foo = test.state_foo
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_1"
   }
 }
@@ -117,9 +163,12 @@ run "test_2" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test.state_bar = test.state_bar
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_2"
   }
 }
@@ -131,9 +180,12 @@ run "test_3" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_3"
   }
 }
@@ -145,9 +197,12 @@ run "test_4" {
   variables {
     input = run.test_2.value
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_4"
   }
 }
@@ -159,9 +214,12 @@ run "test_5" {
   variables {
     input = "foo"
   }
+  providers = {
+    test.state_baz = test.state_baz
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_5"
   }
 }
@@ -173,9 +231,12 @@ run "test_6" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test.state_qux = test.state_qux
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_6"
   }
 }
@@ -187,9 +248,12 @@ run "test_7" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_7"
   }
 }
@@ -201,9 +265,12 @@ run "test_8" {
   variables {
     input = run.test_6.value
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_8"
   }
 }
@@ -215,9 +282,12 @@ run "test_9" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.state_foo
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_9"
   }
 }
@@ -229,9 +299,12 @@ run "test_10" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test = test.state_bar
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_10"
   }
 }
@@ -243,9 +316,12 @@ run "test_11" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.state_foo
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_11"
   }
 }
@@ -257,9 +333,12 @@ run "test_12" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test = test.state_bar
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_12"
   }
 }
@@ -271,9 +350,12 @@ run "test_13" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_13"
   }
 }
@@ -285,9 +367,12 @@ run "test_14" {
   variables {
     input = run.test_12.value
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_14"
   }
 }
@@ -299,9 +384,12 @@ run "test_15" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.state_baz
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_15"
   }
 }
@@ -313,9 +401,12 @@ run "test_16" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test = test.state_qux
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_16"
   }
 }
@@ -327,9 +418,12 @@ run "test_17" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_17"
   }
 }
@@ -341,9 +435,12 @@ run "test_18" {
   variables {
     input = run.test_16.value
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_18"
   }
 }
@@ -355,9 +452,12 @@ run "test_19" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.state_foo
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_19"
   }
 }
@@ -369,9 +469,12 @@ run "test_20" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test = test.state_bar
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_20"
   }
 }
@@ -383,9 +486,12 @@ run "test_21" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.state_foo
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_21"
   }
 }
@@ -397,9 +503,12 @@ run "test_22" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test = test.state_bar
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_22"
   }
 }
@@ -411,9 +520,12 @@ run "test_23" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_23"
   }
 }
@@ -425,9 +537,12 @@ run "test_24" {
   variables {
     input = run.test_22.value
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_24"
   }
 }
@@ -439,9 +554,12 @@ run "test_25" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.state_baz
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_25"
   }
 }
@@ -453,9 +571,12 @@ run "test_26" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test = test.state_qux
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_26"
   }
 }
@@ -467,9 +588,12 @@ run "test_27" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_27"
   }
 }
@@ -481,9 +605,12 @@ run "test_28" {
   variables {
     input = run.test_26.value
   }
+  providers = {
+    test = test.start
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_28"
   }
 }
@@ -495,9 +622,12 @@ run "test_29" {
   variables {
     input = "foo"
   }
+  providers = {
+    test = test.state_foo
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_29"
   }
 }
@@ -509,9 +639,12 @@ run "test_30" {
   variables {
     input = run.setup.value
   }
+  providers = {
+    test = test.state_bar
+  }
 
   assert {
-    condition = output.value == var.foo
+    condition     = output.value == var.foo
     error_message = "error in test_30"
   }
 }

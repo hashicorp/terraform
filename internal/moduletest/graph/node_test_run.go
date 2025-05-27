@@ -146,7 +146,9 @@ func (n *NodeTestRun) testValidate(ctx *EvalContext, waiter *operationWaiter) {
 		return
 	}
 	waiter.update(tfCtx, moduletest.Running, nil)
-	validateDiags := tfCtx.Validate(config, nil)
+	validateDiags := tfCtx.Validate(config, &terraform.ValidateOpts{
+		ExternalProviders: n.ExternalProviders(),
+	})
 	run.Diagnostics = run.Diagnostics.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		run.Status = moduletest.Error

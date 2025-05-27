@@ -222,6 +222,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			CancelledCtx:        cancelCtx,
 			Filter:              args.Filter,
 			Verbose:             args.Verbose,
+			ExternalProviders:   c.externalProviders,
 		}
 
 		// JUnit output is only compatible with local test execution
