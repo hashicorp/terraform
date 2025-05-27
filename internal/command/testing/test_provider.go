@@ -133,7 +133,6 @@ func NewProvider(store *ResourceStore) *TestProvider {
 	provider.Provider.CallFunctionFn = provider.CallFunction
 	provider.Provider.OpenEphemeralResourceFn = provider.OpenEphemeralResource
 	provider.Provider.CloseEphemeralResourceFn = provider.CloseEphemeralResource
-	provider.Provider.NoLock = store.Nolock
 
 	return provider
 }
@@ -392,8 +391,7 @@ func (provider *TestProvider) CloseEphemeralResource(providers.CloseEphemeralRes
 // For example, when the test provider gets a ReadResource request it will search
 // the store for a resource with a matching ID. See (*TestProvider).ReadResource.
 type ResourceStore struct {
-	mutex  sync.RWMutex
-	Nolock bool // nolock is used to disable locking
+	mutex sync.RWMutex
 
 	Data map[string]cty.Value
 }
@@ -430,17 +428,11 @@ func (store *ResourceStore) get(key string) cty.Value {
 }
 
 func (store *ResourceStore) beginWrite() func() {
-	if store.Nolock {
-		return func() {}
-	}
 	store.mutex.Lock()
 	return store.mutex.Unlock
 
 }
 func (store *ResourceStore) beginRead() func() {
-	if store.Nolock {
-		return func() {}
-	}
 	store.mutex.RLock()
 	return store.mutex.RUnlock
 }

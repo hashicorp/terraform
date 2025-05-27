@@ -26,9 +26,6 @@ var _ providers.Interface = (*MockProvider)(nil)
 type MockProvider struct {
 	sync.Mutex
 
-	// NoLock is used to disable locking in the mock provider.
-	NoLock bool
-
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
@@ -818,10 +815,6 @@ func (p *MockProvider) Close() error {
 }
 
 func (p *MockProvider) beginWrite() func() {
-	if p.NoLock {
-		return func() {}
-	}
-
 	p.Lock()
 	return func() {
 		p.Unlock()

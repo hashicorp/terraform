@@ -582,7 +582,6 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", cleanupErr, err, diff)
 	}
 	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
-		fmt.Printf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
 		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
 	}
 
@@ -865,7 +864,6 @@ func TestTest_ParallelJSON(t *testing.T) {
 	output := done(t).All()
 
 	if !strings.Contains(output, "40 passed, 0 failed") {
-		fmt.Printf("output:\n\n%s\n", output)
 		t.Errorf("output didn't produce the right output:\n\n%s", output)
 	}
 
