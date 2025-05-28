@@ -154,6 +154,9 @@ type Operation struct {
 	// for unmatched import targets and where any generated config should be
 	// written to.
 	GenerateConfigOut string
+
+	// Query is true if the operation should be a query operation
+	Query bool
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value

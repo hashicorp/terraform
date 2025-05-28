@@ -201,7 +201,11 @@ func (b *Local) opPlan(
 		return
 	}
 
-	op.View.Plan(plan, schemas)
+	if op.Query {
+
+	} else {
+		op.View.Plan(plan, schemas)
+	}
 
 	// If we've accumulated any diagnostics along the way then we'll show them
 	// here just before we show the summary and next steps. This can potentially
