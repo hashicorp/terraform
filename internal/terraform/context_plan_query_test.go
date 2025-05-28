@@ -79,7 +79,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 		expectedErrMsg []string
 		assertState    func(*states.State)
 		assertChanges  func(providers.ProviderSchema, *plans.ChangesSrc)
-		listResourceFn func(request providers.ListResourceRequest) (providers.ListResourceResponse, error)
+		listResourceFn func(request providers.ListResourceRequest) providers.ListResourceResponse
 	}{
 		{
 			name: "valid list reference",
@@ -115,7 +115,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
@@ -131,7 +131,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 					resp = append(resp, evt)
 				}
-				return resp, nil
+				return providers.ListResourceResponse{Results: resp}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test", "list.test_resource.test2"}
@@ -203,7 +203,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
@@ -219,7 +219,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 					resp = append(resp, evt)
 				}
-				return resp, nil
+				return providers.ListResourceResponse{Results: resp}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test[0]", "list.test_resource.test2"}
@@ -357,7 +357,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			expectedErrMsg: []string{
 				"Unsupported attribute: This object has no argument, nested block, or exported attribute named \"invalid_attr\".",
 			},
-			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
@@ -372,7 +372,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 					resp = append(resp, evt)
 				}
-				return resp, nil
+				return providers.ListResourceResponse{Results: resp}
 			},
 		},
 		{
@@ -444,7 +444,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
@@ -459,7 +459,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 					resp = append(resp, evt)
 				}
-				return resp, nil
+				return providers.ListResourceResponse{Results: resp}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1", "list.test_resource.test2"}
@@ -528,7 +528,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
 				}
@@ -543,7 +543,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 					resp = append(resp, evt)
 				}
-				return resp, nil
+				return providers.ListResourceResponse{Results: resp}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1[\"foo\"]", "list.test_resource.test1[\"bar\"]", "list.test_resource.test2[\"foo\"]", "list.test_resource.test2[\"bar\"]"}
@@ -596,11 +596,11 @@ func TestContext2Plan_queryList(t *testing.T) {
 			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
 			provider.GetProviderSchemaResponse = schemaResp
 			var requestConfigs = make(map[string]cty.Value)
-			provider.ListResourceFn = func(request providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				requestConfigs[request.TypeName] = request.Config
 				fn := tc.listResourceFn
 				if fn == nil {
-					return provider.ListResourceResponse, nil
+					return provider.ListResourceResponse
 				}
 				return fn(request)
 			}
