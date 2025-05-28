@@ -315,7 +315,8 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 	}
 }
 
-func TestModule_backend_override(t *testing.T) {
+// Test overriding a backend block to another backend block
+func TestModule_backend_overrides_a_backend(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/valid-modules/override-backend")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
@@ -342,9 +343,11 @@ func TestModule_backend_override(t *testing.T) {
 	}
 }
 
+// Test adding a backend block via an override
+//
 // Unlike most other overrides, backend blocks do not require a base configuration in a primary
 // configuration file, as an omitted backend there implies the local backend.
-func TestModule_backend_override_no_base(t *testing.T) {
+func TestModule_backend_overrides_no_base(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/valid-modules/override-backend-no-base")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
@@ -355,7 +358,8 @@ func TestModule_backend_override_no_base(t *testing.T) {
 	}
 }
 
-func TestModule_cloud_override_backend(t *testing.T) {
+// Test overriding a backend block with a cloud block
+func TestModule_cloud_overrides_a_backend(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/valid-modules/override-backend-with-cloud")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
@@ -370,21 +374,8 @@ func TestModule_cloud_override_backend(t *testing.T) {
 	}
 }
 
-// Unlike most other overrides, cloud blocks do not require a base configuration in a primary
-// configuration file, as an omitted backend there implies the local backend and cloud blocks
-// override backends.
-func TestModule_cloud_override_no_base(t *testing.T) {
-	mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud-no-base")
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
-	}
-
-	if mod.CloudConfig == nil {
-		t.Errorf("expected module CloudConfig not to be nil")
-	}
-}
-
-func TestModule_cloud_override(t *testing.T) {
+// Test overriding a cloud block with a different cloud block.
+func TestModule_cloud_overrides_cloud(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
@@ -409,6 +400,22 @@ func TestModule_cloud_override(t *testing.T) {
 	}
 }
 
+// Test adding a cloud block via an override
+//
+// Unlike most other overrides, cloud blocks do not require a base configuration in a primary
+// configuration file, as an omitted backend there implies the local backend and cloud blocks
+// override backends.
+func TestModule_cloud_overrides_no_base(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud-no-base")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	if mod.CloudConfig == nil {
+		t.Errorf("expected module CloudConfig not to be nil")
+	}
+}
+// An override file containing multiple cloud blocks causes an error
 func TestModule_cloud_duplicate_overrides(t *testing.T) {
 	_, diags := testModuleFromDir("testdata/invalid-modules/override-cloud-duplicates")
 	want := `Duplicate HCP Terraform configurations`
