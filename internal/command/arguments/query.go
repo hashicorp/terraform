@@ -9,43 +9,61 @@ import (
 
 // Query represents the command-line arguments for the query command.
 type Query struct {
+	// State, Operation, and Vars are the common extended flags
+	State     *State
+	Operation *Operation
+	Vars      *Vars
+
 	// ViewType specifies which output format to use: human or JSON.
 	ViewType ViewType
-
-	// You can specify common variables for all tests from the command line.
-	Vars *Vars
-
-	// Verbose tells the test command to print out the plan either in
-	// human-readable format or JSON for each run step depending on the
-	// ViewType.
-	Verbose bool
 }
 
 func ParseQuery(args []string) (*Query, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	query := Query{
-		Vars: new(Vars),
+	query := &Query{
+		State:     &State{},
+		Operation: &Operation{},
+		Vars:      &Vars{},
 	}
 
-	var jsonOutput bool
-	cmdFlags := extendedFlagSet("query", nil, nil, query.Vars)
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
-	cmdFlags.BoolVar(&query.Verbose, "verbose", false, "verbose")
+	cmdFlags := defaultFlagSet("query")
+
+	varsFlags := NewFlagNameValueSlice("-var")
+	varFilesFlags := varsFlags.Alias("-var-file")
+	query.Vars.vars = &varsFlags
+	query.Vars.varFiles = &varFilesFlags
+	cmdFlags.Var(query.Vars.vars, "var", "var")
+	cmdFlags.Var(query.Vars.varFiles, "var-file", "var-file")
+
+	var json bool
+	cmdFlags.BoolVar(&json, "json", false, "json")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to parse command-line flags",
-			err.Error()))
+			err.Error(),
+		))
 	}
 
+	args = cmdFlags.Args()
+
+	if len(args) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Too many command line arguments",
+			"To specify a working directory for the plan, use the global -chdir flag.",
+		))
+	}
+
+	diags = diags.Append(query.Operation.Parse())
+
 	switch {
-	case jsonOutput:
+	case json:
 		query.ViewType = ViewJSON
 	default:
 		query.ViewType = ViewHuman
 	}
 
-	return &query, diags
+	return query, diags
 }

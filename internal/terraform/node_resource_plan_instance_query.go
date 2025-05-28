@@ -94,9 +94,9 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		ProviderAddr: n.ResolvedProvider,
 		Change: plans.Change{
 			Action:         plans.Read,
-			Before:         cty.DynamicVal,
+			Before:         cty.NilVal,
 			After:          vals,
-			BeforeIdentity: cty.DynamicVal,
+			BeforeIdentity: cty.NilVal,
 			AfterIdentity:  ids,
 		},
 		ChangeSpec: &plans.ChangeSpec{
