@@ -415,6 +415,35 @@ func TestModule_cloud_overrides_no_base(t *testing.T) {
 		t.Errorf("expected module CloudConfig not to be nil")
 	}
 }
+
+// Test overriding a cloud block with a backend block
+func TestModule_backend_overrides_cloud(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud-with-backend")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	gotType := mod.Backend.Type
+	wantType := "override"
+
+	if gotType != wantType {
+		t.Errorf("wrong result for backend type: got %#v, want %#v\n", gotType, wantType)
+	}
+
+	attrs, _ := mod.Backend.Config.JustAttributes()
+
+	gotAttr, diags := attrs["path"].Expr.Value(nil)
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	wantAttr := cty.StringVal("value from override")
+
+	if !gotAttr.RawEquals(wantAttr) {
+		t.Errorf("wrong result for backend 'path': got %#v, want %#v\n", gotAttr, wantAttr)
+	}
+}
+
 // An override file containing multiple cloud blocks causes an error
 func TestModule_cloud_duplicate_overrides(t *testing.T) {
 	_, diags := testModuleFromDir("testdata/invalid-modules/override-cloud-duplicates")
