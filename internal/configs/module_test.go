@@ -495,4 +495,16 @@ func TestModule_conflicting_backend_cloud(t *testing.T) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})
+
+	t.Run("it detects when both cloud and backend blocks are present within the same module in separate files", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-backend-separate-files")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Both a backend and cloud configuration are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
 }
