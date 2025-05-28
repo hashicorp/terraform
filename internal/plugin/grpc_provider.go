@@ -1284,6 +1284,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		TypeName:              r.TypeName,
 		Config:                &proto.DynamicValue{Msgpack: mp},
 		IncludeResourceObject: r.IncludeResourceObject,
+		Limit:                 r.Limit,
 	}
 
 	// Start the streaming RPC
@@ -1296,6 +1297,12 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	var results []providers.ListResourceEvent
 	// Process the stream
 	for {
+		if int64(len(results)) >= r.Limit {
+			// If we have reached the limit, we stop receiving events
+			resp.Results = results
+			return resp
+		}
+
 		event, err := client.Recv()
 		if err == io.EOF {
 			// End of stream, we're done

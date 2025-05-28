@@ -748,4 +748,7 @@ type ListResourceRequest struct {
 	// IncludeResourceObject can be set to true when a provider should include
 	// the full resource object for each result
 	IncludeResourceObject bool
+
+	// Limit is the maximum number of results to return
+	Limit int64
 }

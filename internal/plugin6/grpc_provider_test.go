@@ -1423,6 +1423,7 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 		TypeName:              "list",
 		Config:                configVal,
 		IncludeResourceObject: true,
+		Limit:                 100,
 	}
 
 	resp := p.ListResource(request)
@@ -1535,6 +1536,7 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 	request := providers.ListResourceRequest{
 		TypeName: "list",
 		Config:   configVal,
+		Limit:    100,
 	}
 
 	resp := p.ListResource(request)
@@ -1547,5 +1549,67 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 
 	if !resp.Results[0].Diagnostics.HasWarnings() {
 		t.Fatal("Expected warning diagnostics, but got none")
+	}
+}
+
+func TestGRPCProvider_ListResource_Limit(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	// Create a mock stream client that will return resource events
+	mockStream := &mockListResourceStreamClient{
+		events: []*proto.ListResource_Event{
+			{
+				DisplayName: "Test Resource 1",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+					},
+				},
+			},
+			{
+				DisplayName: "Test Resource 2",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-2"),
+					},
+				},
+			},
+			{
+				DisplayName: "Test Resource 3",
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa4id-3"),
+					},
+				},
+			},
+		},
+	}
+
+	client.EXPECT().ListResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(mockStream, nil)
+
+	// Create the request
+	configVal := cty.ObjectVal(map[string]cty.Value{
+		"filter_attr": cty.StringVal("filter-value"),
+	})
+	request := providers.ListResourceRequest{
+		TypeName: "list",
+		Config:   configVal,
+		Limit:    2,
+	}
+
+	resp := p.ListResource(request)
+	checkDiags(t, resp.Diagnostics)
+
+	results := resp.Results
+
+	// Verify that we received both events
+	if len(results) != 2 {
+		t.Fatalf("Expected 2 events, got %d", len(results))
 	}
 }
