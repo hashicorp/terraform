@@ -121,6 +121,12 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 						file.Backends = append(file.Backends, backendCfg)
 					}
 
+				case "state_store":
+					stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
+					diags = append(diags, cfgDiags...)
+					if stateStoreCfg != nil {
+						file.StateStores = append(file.StateStores, stateStoreCfg)
+					}
 				case "cloud":
 					cloudCfg, cfgDiags := decodeCloudBlock(innerBlock)
 					diags = append(diags, cfgDiags...)
@@ -383,6 +389,10 @@ var terraformBlockSchema = &hcl.BodySchema{
 		{
 			Type:       "provider_meta",
 			LabelNames: []string{"provider"},
+		},
+		{
+			Type:       "state_store",
+			LabelNames: []string{"type"},
 		},
 	},
 }
