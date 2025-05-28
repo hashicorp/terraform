@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
@@ -90,9 +91,19 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	// If a path is specified, generate the config for the resource
+	var generated string
+	if n.generateConfigPath != "" {
+		var gDiags tfdiags.Diagnostics
+		generated, gDiags = n.generateListConfig(resp.Result, providerSchema.ResourceTypes[n.Config.Type])
+		diags = diags.Append(gDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
-		PrevRunAddr:  n.Addr,
 		ProviderAddr: n.ResolvedProvider,
 		Results: plans.QueryResults{
 			Value: resp.Result,
@@ -103,9 +114,13 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) generateListConfig(obj, identity cty.Value) (generated string, diags tfdiags.Diagnostics) {
-	schema := n.Schema.Body
-	filteredSchema := schema.Filter(
+func (n *NodePlannableResourceInstance) generateListConfig(obj cty.Value, resourceSchema providers.Schema) (generated string, diags tfdiags.Diagnostics) {
+	providerAddr := addrs.LocalProviderConfig{
+		LocalName: n.ResolvedProvider.Provider.Type,
+		Alias:     n.ResolvedProvider.Alias,
+	}
+
+	stateSchema := resourceSchema.Body.Filter(
 		configschema.FilterOr(
 			configschema.FilterReadOnlyAttribute,
 			configschema.FilterDeprecatedAttribute,
@@ -124,11 +139,8 @@ func (n *NodePlannableResourceInstance) generateListConfig(obj, identity cty.Val
 		),
 		configschema.FilterDeprecatedBlock,
 	)
+	identitySchema := resourceSchema.Identity
 
-	providerAddr := addrs.LocalProviderConfig{
-		LocalName: n.ResolvedProvider.Provider.Type,
-		Alias:     n.ResolvedProvider.Alias,
-	}
-
-	return genconfig.GenerateListResourceContents(n.Addr, filteredSchema, n.Schema.Identity, providerAddr, obj, identity)
+	data := obj.GetAttr("data")
+	return genconfig.GenerateListResourceContents(n.Addr, stateSchema, identitySchema, providerAddr, data)
 }

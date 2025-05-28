@@ -45,7 +45,7 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocks(addr, &buf, schema.BlockTypes, 2))
 	} else {
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2, optionalOrRequiredProcessor))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, stateVal, schema.BlockTypes, 2))
 	}
 
@@ -71,7 +71,6 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 	idSchema *configschema.Object,
 	pc addrs.LocalProviderConfig,
 	stateVal cty.Value,
-	id cty.Value,
 ) (string, tfdiags.Diagnostics) {
 	var buf strings.Builder
 	var diags tfdiags.Diagnostics
@@ -84,19 +83,9 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 			})
 		return "", diags
 	}
-	if !id.CanIterateElements() {
-		diags = diags.Append(
-			hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid resource instance identity value",
-				Detail:   fmt.Sprintf("Resource instance %s has nil or non-iterable identity value", addr),
-			})
-		return "", diags
-	}
 
 	iter := stateVal.ElementIterator()
-	idIter := id.ElementIterator()
-	for idx := 0; iter.Next() && idIter.Next(); idx++ {
+	for idx := 0; iter.Next(); idx++ {
 		// Generate a unique resource name for each instance in the list.
 		resAddr := addrs.AbsResourceInstance{
 			Module: addr.Module,
@@ -110,7 +99,8 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 			},
 		}
 		_, val := iter.Element()
-		content, gDiags := GenerateResourceContents(resAddr, schema, pc, val)
+		stateVal := val.GetAttr("state")
+		content, gDiags := GenerateResourceContents(resAddr, schema, pc, stateVal)
 		if gDiags.HasErrors() {
 			diags = diags.Append(gDiags)
 			continue
@@ -119,7 +109,7 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 		buf.WriteString(content)
 		buf.WriteString("\n")
 
-		_, idVal := idIter.Element()
+		idVal := val.GetAttr("identity")
 		importContent, gDiags := generateImportBlock(resAddr, idSchema, pc, idVal)
 		if gDiags.HasErrors() {
 			diags = diags.Append(gDiags)
@@ -143,8 +133,8 @@ func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.
 	buf.WriteString("import {\n")
 	buf.WriteString(fmt.Sprintf("  to = %s\n", addr.String()))
 	buf.WriteString(fmt.Sprintf("  provider = %s\n", pc.StringCompact()))
-	buf.WriteString(fmt.Sprintf("  identity = {\n"))
-	diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, identity, idSchema.Attributes, 3))
+	buf.WriteString("  identity = {\n")
+	diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, identity, idSchema.Attributes, 2, allowAllAttributesProcessor))
 	buf.WriteString(strings.Repeat(" ", 2))
 	buf.WriteString("}\n}\n")
 
@@ -199,7 +189,16 @@ func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder,
 	return diags
 }
 
-func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
+func optionalOrRequiredProcessor(attr *configschema.Attribute) bool {
+	// Exclude computed-only attributes
+	return attr.Optional || attr.Required
+}
+
+func allowAllAttributesProcessor(attr *configschema.Attribute) bool {
+	return true
+}
+
+func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int, processAttr func(*configschema.Attribute) bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if len(attrs) == 0 {
 		return diags
@@ -213,8 +212,7 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 			continue
 		}
 
-		// Exclude computed-only attributes
-		if attrS.Required || attrS.Optional {
+		if processAttr != nil && processAttr(attrS) {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = ", name))
 
@@ -414,6 +412,7 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 
 func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	processor := optionalOrRequiredProcessor
 
 	switch schema.NestedType.Nesting {
 	case configschema.NestingSingle:
@@ -441,7 +440,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2, processor))
 		buf.WriteString("}\n")
 		return diags
 
@@ -473,7 +472,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			}
 
 			buf.WriteString("{\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4, processor))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("},\n")
 		}
@@ -511,7 +510,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			}
 
 			buf.WriteString("\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4, processor))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("}\n")
 		}
@@ -527,6 +526,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.NestedBlock, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	processAttr := optionalOrRequiredProcessor
 
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
@@ -542,7 +542,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 			return diags
 		}
 		buf.WriteString("\n")
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2, processAttr))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, stateVal, schema.BlockTypes, indent+2))
 		buf.WriteString("}\n")
 		return diags
@@ -556,7 +556,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s {\n", name))
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2, processAttr))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, listVals[i], schema.BlockTypes, indent+2))
 			buf.WriteString("}\n")
 		}
@@ -578,7 +578,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 				return diags
 			}
 			buf.WriteString("\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2, processAttr))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, vals[key], schema.BlockTypes, indent+2))
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString("}\n")

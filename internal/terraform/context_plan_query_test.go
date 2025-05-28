@@ -22,10 +22,65 @@ import (
 )
 
 func TestContext2Plan_queryList(t *testing.T) {
+	schemaResp := getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"list": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"instance_type": {
+						Type:     cty.String,
+						Computed: true,
+						Optional: true,
+					},
+				},
+			},
+			"test_child_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"instance_type": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		ListResourceTypes: map[string]*configschema.Block{
+			"test_resource":       getQueryTestSchema(),
+			"test_child_resource": getQueryTestSchema(),
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+			"test_child_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	})
+
 	cases := []struct {
 		name           string
 		mainConfig     string
 		queryConfig    string
+		generatedPath  string
 		diagCount      int
 		expectedErrMsg []string
 		assertState    func(*states.State)
@@ -33,7 +88,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 		listResourceFn func(request providers.ListResourceRequest) providers.ListResourceResponse
 	}{
 		{
-			name: "valid list reference",
+			name: "valid list reference - generates config",
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -71,6 +126,9 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
+			generatedPath: func() string {
+				return t.TempDir()
+			}(),
 			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
@@ -107,12 +165,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
-				expectedResources := map[string][]string{
-					"list.test_resource.test":  {"ami-123456", "ami-654321", "ami-789012"},
-					"list.test_resource.test2": {},
-				}
-				actualResources := map[string][]string{}
+				expectedResources := []string{"list.test_resource.test", "list.test_resource.test2"}
+				actualResources := make([]string, 0)
+				generatedCfgs := make([]string, 0)
 				for _, change := range changes.Queries {
+					actualResources = append(actualResources, change.Addr.String())
+					generatedCfgs = append(generatedCfgs, strings.ReplaceAll(change.GeneratedConfig, "\n", "\n"))
 					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
 					cs, err := change.Decode(schema)
 					if err != nil {
@@ -146,6 +204,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
 					t.Fatalf("Expected resources to match, but they differ: %s", diff)
+				}
+
+				if diff := cmp.Diff([]string{testResourceCfg, testResourceCfg2}, generatedCfgs); diff != "" {
+					t.Fatalf("Expected generated configs to match, but they differ: %s", diff)
 				}
 			},
 		},
@@ -709,9 +771,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
-				Mode:         plans.NormalMode,
-				SetVariables: testInputValuesUnset(mod.Module.Variables),
-				Query:        true,
+				Mode:               plans.NormalMode,
+				SetVariables:       testInputValuesUnset(mod.Module.Variables),
+				Query:              true,
+				GenerateConfigPath: tc.generatedPath,
 			})
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
@@ -962,3 +1025,81 @@ func getListProviderSchemaResp() *providers.GetProviderSchemaResponse {
 		},
 	})
 }
+
+var (
+	testResourceCfg = `resource "test_resource" "test_0" {
+  instance_type = "ami-123456"
+}
+
+import {
+  to       = test_resource.test_0
+  provider = test
+  identity = {
+    id = "i-v1"
+  }
+}
+
+
+resource "test_resource" "test_1" {
+  instance_type = "ami-654321"
+}
+
+import {
+  to       = test_resource.test_1
+  provider = test
+  identity = {
+    id = "i-v2"
+  }
+}
+
+
+resource "test_resource" "test_2" {
+  instance_type = "ami-789012"
+}
+
+import {
+  to       = test_resource.test_2
+  provider = test
+  identity = {
+    id = "i-v3"
+  }
+}`
+
+	testResourceCfg2 = `resource "test_resource" "test2_0" {
+  instance_type = "ami-123456"
+}
+
+import {
+  to       = test_resource.test2_0
+  provider = test
+  identity = {
+    id = "i-v1"
+  }
+}
+
+
+resource "test_resource" "test2_1" {
+  instance_type = "ami-654321"
+}
+
+import {
+  to       = test_resource.test2_1
+  provider = test
+  identity = {
+    id = "i-v2"
+  }
+}
+
+
+resource "test_resource" "test2_2" {
+  instance_type = "ami-789012"
+}
+
+import {
+  to       = test_resource.test2_2
+  provider = test
+  identity = {
+    id = "i-v3"
+  }
+}`
+)

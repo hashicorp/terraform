@@ -848,7 +848,6 @@ func sensitiveAttribute(t cty.Type) *configschema.Attribute {
 }
 
 func TestGenerateResourceAndIDContents(t *testing.T) {
-	// Define a simple schema with some attributes
 	schema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"name": {
@@ -895,44 +894,44 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
 	}
 
 	// Create mock resource instance values
-	resourceVal := cty.ListVal([]cty.Value{
+	value := cty.TupleVal([]cty.Value{
 		cty.ObjectVal(map[string]cty.Value{
-			"name": cty.StringVal("instance-1"),
-			"id":   cty.StringVal("i-abcdef"),
-			"tags": cty.MapVal(map[string]cty.Value{
-				"Environment": cty.StringVal("Dev"),
-				"Owner":       cty.StringVal("Team1"),
-			}),
-			"network_interface": cty.ListVal([]cty.Value{
-				cty.ObjectVal(map[string]cty.Value{
-					"subnet_id":  cty.StringVal("subnet-123"),
-					"ip_address": cty.StringVal("10.0.0.1"),
+			"state": cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("instance-1"),
+				"id":   cty.StringVal("i-abcdef"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"Environment": cty.StringVal("Dev"),
+					"Owner":       cty.StringVal("Team1"),
+				}),
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"subnet_id":  cty.StringVal("subnet-123"),
+						"ip_address": cty.StringVal("10.0.0.1"),
+					}),
 				}),
 			}),
+			"identity": cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-abcdef"),
+			}),
 		}),
 		cty.ObjectVal(map[string]cty.Value{
-			"name": cty.StringVal("instance-2"),
-			"id":   cty.StringVal("i-123456"),
-			"tags": cty.MapVal(map[string]cty.Value{
-				"Environment": cty.StringVal("Prod"),
-				"Owner":       cty.StringVal("Team2"),
-			}),
-			"network_interface": cty.ListVal([]cty.Value{
-				cty.ObjectVal(map[string]cty.Value{
-					"subnet_id":  cty.StringVal("subnet-456"),
-					"ip_address": cty.StringVal("10.0.0.2"),
+			"state": cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("instance-2"),
+				"id":   cty.StringVal("i-123456"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"Environment": cty.StringVal("Prod"),
+					"Owner":       cty.StringVal("Team2"),
+				}),
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"subnet_id":  cty.StringVal("subnet-456"),
+						"ip_address": cty.StringVal("10.0.0.2"),
+					}),
 				}),
 			}),
-		}),
-	})
-
-	// Create mock identity values
-	identityVal := cty.ListVal([]cty.Value{
-		cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("i-abcdef"),
-		}),
-		cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("i-123456"),
+			"identity": cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-123456"),
+			}),
 		}),
 	})
 
@@ -955,7 +954,7 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
 	}
 
 	// Generate content
-	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, resourceVal, identityVal)
+	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, value)
 	// Check for diagnostics
 	if diags.HasErrors() {
 		t.Fatalf("unexpected diagnostics: %s", diags.Err())
