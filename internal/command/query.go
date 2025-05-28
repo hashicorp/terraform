@@ -4,15 +4,12 @@
 package command
 
 import (
-	"context"
+	"fmt"
 	"strings"
-	"time"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -44,122 +41,152 @@ func (c *QueryCommand) Synopsis() string {
 }
 
 func (c *QueryCommand) Run(rawArgs []string) int {
-	var diags tfdiags.Diagnostics
-
+	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
 
-	args, diags := arguments.ParseQuery(rawArgs)
+	// Propagate -no-color for legacy use of Ui.  The remote backend and
+	// cloud package use this; it should be removed when/if they are
+	// migrated to views.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
+
+	// Parse and validate flags
+	args, diags := arguments.ParsePlan(rawArgs)
+
+	// Instantiate the view, even if there are flag errors, so that we render
+	// diagnostics according to the desired view
+	view := views.NewPlan(args.ViewType, c.View)
+
 	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
-		c.View.HelpPrompt("query")
+		view.Diagnostics(diags)
+		view.HelpPrompt()
 		return 1
 	}
 
-	view := views.NewQuery(args.ViewType, c.View)
-
-	_, configDiags := c.loadConfig(".", configs.MatchQueryFiles())
-	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		view.Diagnostics(nil, diags)
+	// Check for user-supplied plugin path
+	var err error
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	// Users can also specify variables via the command line, so we'll parse
-	// all that here.
-	var items []arguments.FlagNameValue
-	for _, variable := range args.Vars.All() {
-		items = append(items, arguments.FlagNameValue{
-			Name:  variable.Name,
-			Value: variable.Value,
-		})
+	// Prepare the backend with the backend-specific arguments
+	be, beDiags := c.PrepareBackend(args.State, args.ViewType)
+	b, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
+	if isRemoteBackend && !b.IsLocalOperations() {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarningsRemoteExecution())
+	} else {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 	}
-	c.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-
-	_, variableDiags := c.collectVariableValues() // TODO: collect query variables?
-	diags = diags.Append(variableDiags)
-	if variableDiags.HasErrors() {
-		view.Diagnostics(nil, diags)
+	diags = diags.Append(beDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	_, err := c.contextOpts()
+	// Build the operation request
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType)
+	diags = diags.Append(opDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Collect variable value and add them to the operation request
+	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Before we delegate to the backend, we'll print any warning diagnostics
+	// we've accumulated here, since the backend will start fresh with its own
+	// diagnostics.
+	view.Diagnostics(diags)
+	diags = nil
+
+	// Perform the operation
+	op, err := c.RunOperation(be, opReq)
 	if err != nil {
 		diags = diags.Append(err)
-		view.Diagnostics(nil, diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	view.Diagnostics(nil, diags)
-
-	runningCtx, done := context.WithCancel(context.Background())
-	_, stop := context.WithCancel(runningCtx)
-	_, cancel := context.WithCancel(context.Background())
-
-	hasCloudBackend := false // TODO fetch from config
-	if hasCloudBackend {
-		var renderer *jsonformat.Renderer
-		if args.ViewType == arguments.ViewHuman {
-			// We only set the renderer if we want Human-readable output.
-			// Otherwise, we just let the runner echo whatever data it receives
-			// back from the agent anyway.
-			renderer = &jsonformat.Renderer{
-				Streams:             c.Streams,
-				Colorize:            c.Colorize(),
-				RunningInAutomation: c.RunningInAutomation,
-			}
-		}
-
-		// TODO: run cloud query
-		_ = renderer
-	} else {
-		// TODO: run local query
+	if op.Result != backendrun.OperationSuccess {
+		return op.Result.ExitStatus()
+	}
+	if args.DetailedExitCode && !op.PlanEmpty {
+		return 2
 	}
 
-	var queryDiags tfdiags.Diagnostics
+	return op.Result.ExitStatus()
+}
 
-	go func() {
-		defer logging.PanicHandler()
-		defer done()
-		defer stop()
-		defer cancel()
-
-		// TODO: RUN
-	}()
-
-	// Wait for the operation to complete, or for an interrupt to occur.
-	select {
-	case <-c.ShutdownCh:
-		// Nice request to be cancelled.
-
-		view.Interrupted()
-		// runner.Stop()
-		stop()
-
-		select {
-		case <-c.ShutdownCh:
-			// The user pressed it again, now we have to get it to stop as
-			// fast as possible.
-
-			view.FatalInterrupt()
-			// runner.Cancel()
-			cancel()
-
-			// We'll wait 5 seconds for this operation to finish now, regardless
-			// of whether it finishes successfully or not.
-			select {
-			case <-runningCtx.Done():
-			case <-time.After(5 * time.Second):
-			}
-
-		case <-runningCtx.Done():
-			// The application finished nicely after the request was stopped.
-		}
-	case <-runningCtx.Done():
-		// query finished normally with no interrupts.
+func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+	backendConfig, diags := c.loadBackendConfig(".")
+	if diags.HasErrors() {
+		return nil, diags
 	}
 
-	view.Diagnostics(nil, queryDiags)
+	// Load the backend
+	be, beDiags := c.Backend(&BackendOpts{
+		Config:   backendConfig,
+		ViewType: viewType,
+	})
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		return nil, diags
+	}
 
-	return 0
+	return be, diags
+}
+
+func (c *QueryCommand) OperationRequest(
+	be backendrun.OperationsBackend,
+	view views.Plan,
+	viewType arguments.ViewType,
+) (*backendrun.Operation, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Build the operation
+	opReq := c.Operation(be, viewType)
+	opReq.ConfigDir = "."
+	opReq.Hooks = view.Hooks()
+	opReq.Type = backendrun.OperationTypePlan
+	opReq.View = view.Operation()
+	opReq.Query = true
+
+	var err error
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
+		return nil, diags
+	}
+
+	return opReq, diags
+}
+
+func (c *QueryCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// FIXME the arguments package currently trivially gathers variable related
+	// arguments in a heterogenous slice, in order to minimize the number of
+	// code paths gathering variables during the transition to this structure.
+	// Once all commands that gather variables have been converted to this
+	// structure, we could move the variable gathering code to the arguments
+	// package directly, removing this shim layer.
+
+	varArgs := args.All()
+	items := make([]arguments.FlagNameValue, len(varArgs))
+	for i := range varArgs {
+		items[i].Name = varArgs[i].Name
+		items[i].Value = varArgs[i].Value
+	}
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
+	opReq.Variables, diags = c.collectVariableValues()
+
+	return diags
 }
