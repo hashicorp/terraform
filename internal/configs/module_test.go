@@ -480,3 +480,19 @@ func TestModule_cloud_multiple(t *testing.T) {
 		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 	}
 }
+
+// Cannot combine use of backend, cloud blocks.
+func TestModule_conflicting_backend_cloud(t *testing.T) {
+
+	t.Run("it detects when both cloud and backend blocks are in the same terraform block", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-backend")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Both a backend and cloud configuration are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+}
