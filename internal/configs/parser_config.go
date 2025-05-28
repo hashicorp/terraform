@@ -121,11 +121,11 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 						file.Backends = append(file.Backends, backendCfg)
 					}
 
-				case "state_storage":
-					stateStorageCfg, cfgDiags := decodeStateStorageBlock(innerBlock)
+				case "state_store":
+					stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
 					diags = append(diags, cfgDiags...)
-					if stateStorageCfg != nil {
-						file.StateStorages = append(file.StateStorages, stateStorageCfg)
+					if stateStoreCfg != nil {
+						file.StateStores = append(file.StateStores, stateStoreCfg)
 					}
 				case "cloud":
 					cloudCfg, cfgDiags := decodeCloudBlock(innerBlock)

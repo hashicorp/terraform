@@ -31,7 +31,6 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/statestorage"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -184,8 +183,8 @@ func (c *InitCommand) Run(args []string) int {
 	switch {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
-	case initArgs.StateStorage:
-		back, backendOutput, backDiags = c.initStateStorage(ctx, rootModEarly, initArgs.ViewType, view)
+	// case initArgs.StateStorage:
+	// 	back, backendOutput, backDiags = c.initStateStorage(ctx, rootModEarly, initArgs.ViewType, view)
 	case initArgs.Backend:
 		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	default:
@@ -420,40 +419,40 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initStateStorage(ctx context.Context, root *configs.Module, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
-	ctx, span := tracer.Start(ctx, "initialize state storage")
-	defer span.End()
+// func (c *InitCommand) initStateStorage(ctx context.Context, root *configs.Module, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+// 	ctx, span := tracer.Start(ctx, "initialize state storage")
+// 	defer span.End()
 
-	view.Output(views.InitializingStateStorageMessage)
+// 	view.Output(views.InitializingStateStorageMessage)
 
-	var stateStorageConfig *configs.StateStorage
+// 	var stateStorageConfig *configs.StateStorage
 
-	if root.StateStorage != nil {
-		sf, diags := statestorage.Storage(root.StateStorage.Type)
+// 	if root.StateStorage != nil {
+// 		sf, diags := statestorage.Storage(root.StateStorage.Type)
 
-		storage := sf()
-		// storageSchema := storage.ConfigSchema()
-		stateStorageConfig = root.StateStorage
+// 		storage := sf()
+// 		// storageSchema := storage.ConfigSchema()
+// 		stateStorageConfig = root.StateStorage
 
-		// var overrideDiags tfdiags.Diagnostics
-		// stateStorageConfigOverride, overrideDiags = c.stateStorageConfigOverrideBody(extraConfig, storageSchema)
-		// diags = diags.Append(overrideDiags)
-		// if overrideDiags.HasErrors() {
-		// 	return nil, true, diags
-		// }
-	}
+// 		// var overrideDiags tfdiags.Diagnostics
+// 		// stateStorageConfigOverride, overrideDiags = c.stateStorageConfigOverrideBody(extraConfig, storageSchema)
+// 		// diags = diags.Append(overrideDiags)
+// 		// if overrideDiags.HasErrors() {
+// 		// 	return nil, true, diags
+// 		// }
+// 	}
 
-	opts := &BackendOpts{
-		Config: stateStorageConfig,
-		// ConfigOverride: backendConfigOverride,
-		Init:     true,
-		ViewType: viewType,
-	}
+// 	opts := &BackendOpts{
+// 		Config: stateStorageConfig,
+// 		// ConfigOverride: backendConfigOverride,
+// 		Init:     true,
+// 		ViewType: viewType,
+// 	}
 
-	back, backDiags := c.Backend(opts)
-	diags = diags.Append(backDiags)
-	return back, true, diags
-}
+// 	back, backDiags := c.Backend(opts)
+// 	diags = diags.Append(backDiags)
+// 	return back, true, diags
+// }
 
 func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
@@ -464,7 +463,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 
 	var backendConfig *configs.Backend
 	var backendConfigOverride hcl.Body
-	if root.Backend != nil {
+
+	// TODO: expected mutual exclusive validation to have happened by now
+	if root.StateStore != nil {
+		// TODO
+	} else if root.Backend != nil {
 		backendType := root.Backend.Type
 		if backendType == "cloud" {
 			diags = diags.Append(&hcl.Diagnostic{

@@ -5,23 +5,25 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-// StateStorage represents a "state_store" block inside a "terraform" block
+// StateStore represents a "state_store" block inside a "terraform" block
 // in a module or file.
-type StateStorage struct {
+type StateStore struct {
 	Type   string
 	Config hcl.Body
 
+	Provider          addrs.Provider
 	ProviderConfigRef *ProviderConfigRef
 
 	TypeRange hcl.Range
 	DeclRange hcl.Range
 }
 
-func decodeStateStorageBlock(block *hcl.Block) (*StateStorage, hcl.Diagnostics) {
+func decodeStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	ss := &StateStorage{
+	ss := &StateStore{
 		Type:      block.Labels[0],
 		TypeRange: block.LabelRanges[0],
 		Config:    block.Body,

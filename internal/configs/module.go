@@ -34,7 +34,7 @@ type Module struct {
 	ActiveExperiments experiments.Set
 
 	Backend              *Backend
-	StateStorage         *StateStorage
+	StateStore           *StateStore
 	CloudConfig          *CloudConfig
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements *RequiredProviders
@@ -79,7 +79,7 @@ type File struct {
 	ActiveExperiments experiments.Set
 
 	Backends          []*Backend
-	StateStorages     []*StateStorage
+	StateStores       []*StateStore
 	CloudConfigs      []*CloudConfig
 	ProviderConfigs   []*Provider
 	ProviderMetas     []*ProviderMeta
@@ -220,6 +220,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 	m.ActiveExperiments = experiments.SetUnion(m.ActiveExperiments, file.ActiveExperiments)
 
+	conflictCount := 0
 	for _, b := range file.Backends {
 		if m.Backend != nil {
 			diags = append(diags, &hcl.Diagnostic{
@@ -230,20 +231,23 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
+		conflictCount++
 		m.Backend = b
 	}
 
-	for _, ss := range file.StateStorages {
-		if m.StateStorage != nil {
+	for _, ss := range file.StateStores {
+		if m.StateStore != nil {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Duplicate state storage configuration",
-				Detail:   fmt.Sprintf("A module may have only one state storage configuration. The state storage was previously configured at %s.", m.StateStorage.DeclRange),
+				Summary:  "Duplicate state store configuration",
+				Detail:   fmt.Sprintf("A module may have only one state store configuration. The state store was previously configured at %s.", m.StateStore.DeclRange),
 				Subject:  &ss.DeclRange,
 			})
 			continue
 		}
-		m.StateStorage = ss
+
+		conflictCount++
+		m.StateStore = ss
 	}
 
 	for _, c := range file.CloudConfigs {
@@ -256,16 +260,50 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-
+		conflictCount++
 		m.CloudConfig = c
 	}
 
-	if m.Backend != nil && m.CloudConfig != nil {
+	switch conflictCount {
+	case 2:
+		if m.StateStore != nil && m.CloudConfig != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Only one of state_store or cloud configuration are allowed",
+				Detail: fmt.Sprintf("A module may declare either one 'cloud' block OR one 'state_store' block configuring a state backend. "+
+					"The 'cloud' block is configured at %s; a 'state_store' is configured at %s. Remove the 'state_store' block to configure HCP Terraform or Terraform Enteprise.",
+					m.CloudConfig.DeclRange, m.StateStore.DeclRange),
+				Subject: &m.StateStore.DeclRange,
+			})
+		}
+		if m.Backend != nil && m.StateStore != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Only one of state_store or backend configuration are allowed",
+				Detail: fmt.Sprintf("A module may declare either one 'backend' block OR one 'state_store' block configuring a state backend. "+
+					"The 'backend' block is configured at %s; a 'state_store' is configured at %s. Remove one of these blocks.",
+					m.Backend.DeclRange, m.StateStore.DeclRange),
+				Subject: &m.StateStore.DeclRange,
+			})
+		}
+		if m.CloudConfig != nil && m.Backend != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Only one of backend or cloud configuration are allowed",
+				Detail: fmt.Sprintf("A module may declare either one 'cloud' block OR one 'backend' block configuring a state backend. "+
+					"The 'cloud' block is configured at %s; a 'backend' is configured at %s. Remove the 'backend' block to configure HCP Terraform or Terraform Enteprise.",
+					m.CloudConfig.DeclRange, m.Backend.DeclRange),
+				Subject: &m.Backend.DeclRange,
+			})
+		}
+	case 3:
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Both a backend and cloud configuration are present",
-			Detail:   fmt.Sprintf("A module may declare either one 'cloud' block OR one 'backend' block configuring a state backend. The 'cloud' block is configured at %s; a backend is configured at %s. Remove the backend block to configure HCP Terraform or Terraform Enteprise.", m.CloudConfig.DeclRange, m.Backend.DeclRange),
-			Subject:  &m.Backend.DeclRange,
+			Summary:  "Only one of state_store, backend or cloud configuration are allowed",
+			Detail: fmt.Sprintf("A module may declare either one 'cloud' block, 'state_store' OR one 'backend' block configuring a state backend. "+
+				"The 'cloud' block is configured at %s; state_store is configured at %s; a backend is configured at %s. Remove two of these blocks.",
+				m.CloudConfig.DeclRange, m.StateStore.DeclRange, m.Backend.DeclRange),
+			Subject: &m.Backend.DeclRange,
 		})
 	}
 
@@ -303,6 +341,18 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			})
 		}
 		m.ProviderMetas[provider] = pm
+	}
+
+	if m.StateStore != nil {
+		// find FQN based on local ref
+		// TODO: avoid implied association based on type alone
+		provider := m.ProviderForLocalConfig(addrs.LocalProviderConfig{
+			LocalName: m.StateStore.ProviderConfigRef.Name,
+			Alias:     m.StateStore.ProviderConfigRef.Alias,
+		})
+		// if provider, exists := m.ProviderRequirements.RequiredProviders[pType]; exists {
+		// 	return provider.Type
+		// }
 	}
 
 	for _, v := range file.Variables {
@@ -629,6 +679,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		switch len(file.Backends) {
 		case 1:
 			m.CloudConfig = nil // A backend block is mutually exclusive with a cloud one, and overwrites any cloud config
+			m.StateStore = nil
 			m.Backend = file.Backends[0]
 		default:
 			// An override file with multiple backends is still invalid, even
@@ -642,19 +693,20 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	if len(file.StateStorages) != 0 {
-		switch len(file.StateStorages) {
+	if len(file.StateStores) != 0 {
+		switch len(file.StateStores) {
 		case 1:
+			m.Backend = nil
 			m.CloudConfig = nil // A state_storage block is mutually exclusive with a cloud one, and overwrites any cloud config
-			m.StateStorage = file.StateStorages[0]
+			m.StateStore = file.StateStores[0]
 		default:
 			// An override file with multiple state storages is still invalid, even
 			// though it can override state storages from _other_ files.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate state storage configuration",
-				Detail:   fmt.Sprintf("Each override file may have only one state storage configuration. A state storage was previously configured at %s.", file.StateStorages[0].DeclRange),
-				Subject:  &file.StateStorages[1].DeclRange,
+				Detail:   fmt.Sprintf("Each override file may have only one state storage configuration. A state storage was previously configured at %s.", file.StateStores[0].DeclRange),
+				Subject:  &file.StateStores[1].DeclRange,
 			})
 		}
 	}
@@ -663,6 +715,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		switch len(file.CloudConfigs) {
 		case 1:
 			m.Backend = nil // A cloud block is mutually exclusive with a backend one, and overwrites any backend
+			m.StateStore = nil
 			m.CloudConfig = file.CloudConfigs[0]
 		default:
 			// An override file with multiple cloud blocks is still invalid, even
