@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -88,16 +91,29 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	vals := cty.TupleVal(resources)
 	ids := cty.TupleVal(identities)
 
+	// If a path is specified, generate the config for the resource
+	var generated string
+	if n.generateConfigPath != "" {
+		var gDiags tfdiags.Diagnostics
+		generated, gDiags = n.generateListConfig(vals, ids)
+		diags = diags.Append(gDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
 	// Create a ResourceInstanceChange for the list resource and store it in Changes
 	change := &plans.ResourceInstanceChange{
 		Addr:         n.Addr,
+		PrevRunAddr:  n.Addr,
 		ProviderAddr: n.ResolvedProvider,
 		Change: plans.Change{
-			Action:         plans.Read,
-			Before:         cty.DynamicVal,
-			After:          vals,
-			BeforeIdentity: cty.DynamicVal,
-			AfterIdentity:  ids,
+			Action:          plans.Read,
+			Before:          cty.DynamicVal,
+			After:           vals,
+			BeforeIdentity:  cty.DynamicVal,
+			AfterIdentity:   ids,
+			GeneratedConfig: generated,
 		},
 		ChangeSpec: &plans.ChangeSpec{
 			ObjectType:   vals.Type(),
@@ -108,4 +124,34 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 
 	ctx.Changes().AppendResourceInstanceChange(change)
 	return diags
+}
+
+func (n *NodePlannableResourceInstance) generateListConfig(obj, identity cty.Value) (generated string, diags tfdiags.Diagnostics) {
+	schema := n.Schema.Body
+	filteredSchema := schema.Filter(
+		configschema.FilterOr(
+			configschema.FilterReadOnlyAttribute,
+			configschema.FilterDeprecatedAttribute,
+
+			// The legacy SDK adds an Optional+Computed "id" attribute to the
+			// resource schema even if not defined in provider code.
+			// During validation, however, the presence of an extraneous "id"
+			// attribute in config will cause an error.
+			// Remove this attribute so we do not generate an "id" attribute
+			// where there is a risk that it is not in the real resource schema.
+			//
+			// TRADEOFF: Resources in which there actually is an
+			// Optional+Computed "id" attribute in the schema will have that
+			// attribute missing from generated config.
+			configschema.FilterHelperSchemaIdAttribute,
+		),
+		configschema.FilterDeprecatedBlock,
+	)
+
+	providerAddr := addrs.LocalProviderConfig{
+		LocalName: n.ResolvedProvider.Provider.Type,
+		Alias:     n.ResolvedProvider.Alias,
+	}
+
+	return genconfig.GenerateListResourceContents(n.Addr, filteredSchema, n.Schema.Identity, providerAddr, obj, identity)
 }
