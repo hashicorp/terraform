@@ -452,3 +452,31 @@ func TestModule_cloud_duplicate_overrides(t *testing.T) {
 		t.Fatalf("expected module error to contain %q\nerror was:\n%s", want, got)
 	}
 }
+
+// At most one backend block per module is permitted.
+func TestModule_backend_multiple(t *testing.T) {
+	// Multiple backends across multiple files
+	_, diags := testModuleFromDir("testdata/invalid-modules/multiple-backends")
+	if !diags.HasErrors() {
+		t.Fatal("module should have error diags, but does not")
+	}
+
+	want := `Duplicate backend configuration`
+	if got := diags.Error(); !strings.Contains(got, want) {
+		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+	}
+}
+
+// At most one cloud block per module is permitted.
+func TestModule_cloud_multiple(t *testing.T) {
+	// Multiple cloud blocks across multiple files
+	_, diags := testModuleFromDir("testdata/invalid-modules/multiple-cloud")
+	if !diags.HasErrors() {
+		t.Fatal("module should have error diags, but does not")
+	}
+
+	want := `Duplicate HCP Terraform configurations`
+	if got := diags.Error(); !strings.Contains(got, want) {
+		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+	}
+}
