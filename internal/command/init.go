@@ -173,6 +173,35 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	if initArgs.Get {
+		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
+		diags = diags.Append(modsDiags)
+		if modsAbort || modsDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+		if modsOutput {
+			header = true
+		}
+	}
+
+	// With all of the modules (hopefully) installed, we can now try to load the
+	// whole configuration tree.
+	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
+	// configDiags will be handled after the version constraint check, since an
+	// incorrect version of terraform may be producing errors for configuration
+	// constructs added in later versions.
+
+	// Before we go further, we'll check to make sure none of the modules in
+	// the configuration declare that they don't support this Terraform
+	// version, so we can produce a version-related error message rather than
+	// potentially-confusing downstream errors.
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
+	if versionDiags.HasErrors() {
+		view.Diagnostics(versionDiags)
+		return 1
+	}
+
 	var back backend.Backend
 
 	// There may be config errors or backend init errors but these will be shown later _after_
@@ -186,7 +215,7 @@ func (c *InitCommand) Run(args []string) int {
 	// case initArgs.StateStorage:
 	// 	back, backendOutput, backDiags = c.initStateStorage(ctx, rootModEarly, initArgs.ViewType, view)
 	case initArgs.Backend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, view, config)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
@@ -222,35 +251,6 @@ func (c *InitCommand) Run(args []string) int {
 		}
 
 		state = sMgr.State()
-	}
-
-	if initArgs.Get {
-		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
-		diags = diags.Append(modsDiags)
-		if modsAbort || modsDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-		if modsOutput {
-			header = true
-		}
-	}
-
-	// With all of the modules (hopefully) installed, we can now try to load the
-	// whole configuration tree.
-	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
-	// configDiags will be handled after the version constraint check, since an
-	// incorrect version of terraform may be producing errors for configuration
-	// constructs added in later versions.
-
-	// Before we go further, we'll check to make sure none of the modules in
-	// the configuration declare that they don't support this Terraform
-	// version, so we can produce a version-related error message rather than
-	// potentially-confusing downstream errors.
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	if versionDiags.HasErrors() {
-		view.Diagnostics(versionDiags)
-		return 1
 	}
 
 	// We've passed the core version check, now we can show errors from the
@@ -454,10 +454,14 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 // 	return back, true, diags
 // }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, view views.Init, config *configs.Config) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
+
+	// Vars to account for changed method parameter names
+	extraConfig := initArgs.BackendConfig
+	viewType := initArgs.ViewType
 
 	view.Output(views.InitializingBackendMessage)
 
@@ -467,6 +471,57 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 	// TODO: expected mutual exclusive validation to have happened by now
 	if root.StateStore != nil {
 		// TODO
+
+		// 1) Download provider
+		providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, nil, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		diags = diags.Append(providerDiags)
+		if providersAbort || providerDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return nil, providersOutput, diags
+		}
+
+		// 2) Get provider as var
+		opts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, true, diags
+		}
+
+		factory, exists := opts.Providers[root.StateStore.Provider]
+		if !exists {
+			panic("oh no")
+		}
+
+		provider, err := factory()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, true, diags
+		}
+
+		fmt.Println(provider)
+
+		// 3) Check provider can do PSS
+		// TODO - investigate using GetMetadata here to check provider contains a state store with the correct name
+
+		// 4) Configure provider
+
+		// Schema needed to convert 'provider' body to cty.Value
+		resp := provider.GetProviderSchema()
+
+		// req := providers.ValidateProviderConfigRequest{
+		// 	Config: unmarkedConfigVal,
+		// }
+		provider.ValidateProviderConfig()
+
+		// 5) Check provider includes state store named in config
+
+		// 6) Call RPC ValidateStoreConfig
+
+		// 7) Call RPC ConfigureStateStore
+
+		// 8) Save backend state file
+
+		// 9) Convert provider into backend.Backend
 	} else if root.Backend != nil {
 		backendType := root.Backend.Type
 		if backendType == "cloud" {

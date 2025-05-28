@@ -190,6 +190,18 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	// Generate the FQN -> LocalProviderName map
 	mod.gatherProviderLocalNames()
 
+	// Check state_store (if used) references an existing alias
+	if mod.StateStore != nil && mod.StateStore.ProviderConfigRef.Alias != "" {
+		if _, exists := mod.ProviderConfigs[mod.StateStore.ProviderConfigRef.String()]; !exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Unknown provider alias",
+				Detail:   fmt.Sprintf("The state storage block defined at %s references aliased provider %s. There is no matching 'provider' configuration block that defines that alias.", mod.StateStore.DeclRange, mod.StateStore.ProviderConfigRef.NameRange),
+				Subject:  mod.StateStore.ProviderConfigRef.AliasRange,
+			})
+		}
+	}
+
 	return mod, diags
 }
 
@@ -345,14 +357,26 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 	if m.StateStore != nil {
 		// find FQN based on local ref
-		// TODO: avoid implied association based on type alone
-		provider := m.ProviderForLocalConfig(addrs.LocalProviderConfig{
-			LocalName: m.StateStore.ProviderConfigRef.Name,
-			Alias:     m.StateStore.ProviderConfigRef.Alias,
-		})
-		// if provider, exists := m.ProviderRequirements.RequiredProviders[pType]; exists {
-		// 	return provider.Type
-		// }
+		// TODO: At this point we could validate the type label on the state_store block; does the prefix exist?
+		//    > There will be validation of this later, when TF checks the names of the state stores implemented in the provider.
+		// TODO: Handling state stores that are built into core and won't have a required_provider entry.
+
+		// Check there is a matching entry in required_providers
+		match, exists := m.ProviderRequirements.RequiredProviders[m.StateStore.ProviderConfigRef.Name]
+		if exists {
+			// Capture the addrs.Provider to use later when launching the provider
+			m.StateStore.Provider = match.Type
+		} else {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unknown state storage provider",
+				Detail:   fmt.Sprintf("The state storage block defined at %s references provider %s. There is no matching entry for that provider in the required_providers block.", m.StateStore.DeclRange, m.StateStore.ProviderConfigRef.NameRange),
+				Subject:  m.StateStore.ProviderConfigRef.NameRange.Ptr(),
+				// TODO: Do we include Context here - i.e. m.StateStore.DeclRange?
+			})
+		}
+
+		// If an alias is in use, we check for a matching provider block is later - once all files are processed to make the final Module struct.
 	}
 
 	for _, v := range file.Variables {

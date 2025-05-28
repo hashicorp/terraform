@@ -34,11 +34,19 @@ func decodeStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
 	diags = append(diags, moreDiags...)
 	ss.Config = remain
 
-	if attr, exists := content.Attributes["provider"]; exists {
-		var providerDiags hcl.Diagnostics
-		ss.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
-		diags = append(diags, providerDiags...)
+	attr, exists := content.Attributes["provider"]
+	if !exists {
+		return nil, append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing provider attribute",
+			Detail:   "A 'provider' attribute is required in 'state_store' blocks",
+			Subject:  block.Body.MissingItemRange().Ptr(),
+		})
 	}
+
+	var providerDiags hcl.Diagnostics
+	ss.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
+	diags = append(diags, providerDiags...)
 
 	return ss, diags
 }
