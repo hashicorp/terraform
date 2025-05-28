@@ -4,6 +4,7 @@
 package genconfig
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -63,6 +64,92 @@ func WrapResourceContents(addr addrs.AbsResourceInstance, config string) string 
 	// The output better be valid HCL which can be parsed and formatted.
 	formatted := hclwrite.Format([]byte(buf.String()))
 	return string(formatted)
+}
+
+func GenerateListResourceContents(addr addrs.AbsResourceInstance,
+	schema *configschema.Block,
+	idSchema *configschema.Object,
+	pc addrs.LocalProviderConfig,
+	stateVal cty.Value,
+	id cty.Value,
+) (string, tfdiags.Diagnostics) {
+	var buf strings.Builder
+	var diags tfdiags.Diagnostics
+	if !stateVal.CanIterateElements() {
+		diags = diags.Append(
+			hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid resource instance value",
+				Detail:   fmt.Sprintf("Resource instance %s has nil or non-iterable value", addr),
+			})
+		return "", diags
+	}
+	if !id.CanIterateElements() {
+		diags = diags.Append(
+			hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid resource instance identity value",
+				Detail:   fmt.Sprintf("Resource instance %s has nil or non-iterable identity value", addr),
+			})
+		return "", diags
+	}
+
+	iter := stateVal.ElementIterator()
+	idIter := id.ElementIterator()
+	for idx := 0; iter.Next() && idIter.Next(); idx++ {
+		// Generate a unique resource name for each instance in the list.
+		resAddr := addrs.AbsResourceInstance{
+			Module: addr.Module,
+			Resource: addrs.ResourceInstance{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: addr.Resource.Resource.Type,
+					Name: fmt.Sprintf("%s_%d", addr.Resource.Resource.Name, idx),
+				},
+				Key: addr.Resource.Key,
+			},
+		}
+		_, val := iter.Element()
+		content, gDiags := GenerateResourceContents(resAddr, schema, pc, val)
+		if gDiags.HasErrors() {
+			diags = diags.Append(gDiags)
+			continue
+		}
+		content = WrapResourceContents(resAddr, content)
+		buf.WriteString(content)
+		buf.WriteString("\n")
+
+		_, idVal := idIter.Element()
+		importContent, gDiags := generateImportBlock(resAddr, idSchema, pc, idVal)
+		if gDiags.HasErrors() {
+			diags = diags.Append(gDiags)
+			continue
+		}
+
+		buf.WriteString(importContent)
+		buf.WriteString("\n\n")
+
+	}
+
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(bytes.TrimSpace(formatted)), diags
+}
+
+func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.Object, pc addrs.LocalProviderConfig, identity cty.Value) (string, tfdiags.Diagnostics) {
+	var buf strings.Builder
+	var diags tfdiags.Diagnostics
+
+	buf.WriteString("\n")
+	buf.WriteString("import {\n")
+	buf.WriteString(fmt.Sprintf("  to = %s\n", addr.String()))
+	buf.WriteString(fmt.Sprintf("  provider = %s\n", pc.StringCompact()))
+	buf.WriteString(fmt.Sprintf("  identity = {\n"))
+	diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, identity, idSchema.Attributes, 3))
+	buf.WriteString(strings.Repeat(" ", 2))
+	buf.WriteString("}\n}\n")
+
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(formatted), diags
 }
 
 func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
