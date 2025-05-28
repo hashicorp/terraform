@@ -109,7 +109,7 @@ type Interface interface {
 	// An error indicates that there was a problem before calling the provider,
 	// like a missing schema. Problems during a list operation are reported as
 	// diagnostics on the yielded events.
-	ListResource(ListResourceRequest) (ListResourceResponse, error)
+	ListResource(ListResourceRequest) ListResourceResponse
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
@@ -732,7 +732,11 @@ type ListResourceEvent struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-type ListResourceResponse []ListResourceEvent
+type ListResourceResponse struct {
+	Results []ListResourceEvent
+
+	Diagnostics tfdiags.Diagnostics
+}
 
 type ListResourceRequest struct {
 	// TypeName is the name of the resource type being read.

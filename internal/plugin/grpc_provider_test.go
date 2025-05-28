@@ -1418,51 +1418,50 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 		IncludeResourceObject: true,
 	}
 
-	// Call the function
-	events, err := p.ListResource(request)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	resp := p.ListResource(request)
+	checkDiags(t, resp.Diagnostics)
+
+	results := resp.Results
 
 	// Verify that we received both events
-	if len(events) != 2 {
-		t.Fatalf("Expected 2 events, got %d", len(events))
+	if len(results) != 2 {
+		t.Fatalf("Expected 2 events, got %d", len(results))
 	}
 
 	// Verify first event
-	if events[0].DisplayName != "Test Resource 1" {
-		t.Errorf("Expected DisplayName 'Test Resource 1', got '%s'", events[0].DisplayName)
+	if results[0].DisplayName != "Test Resource 1" {
+		t.Errorf("Expected DisplayName 'Test Resource 1', got '%s'", results[0].DisplayName)
 	}
 
 	expectedId1 := cty.ObjectVal(map[string]cty.Value{
 		"id_attr": cty.StringVal("id-1"),
 	})
-	if !events[0].Identity.RawEquals(expectedId1) {
-		t.Errorf("Expected Identity %#v, got %#v", expectedId1, events[0].Identity)
+	if !results[0].Identity.RawEquals(expectedId1) {
+		t.Errorf("Expected Identity %#v, got %#v", expectedId1, results[0].Identity)
 	}
 
 	// ResourceObject should be null for the first event as it wasn't provided
-	if !events[0].ResourceObject.IsNull() {
-		t.Errorf("Expected ResourceObject to be null, got %#v", events[0].ResourceObject)
+	if !results[0].ResourceObject.IsNull() {
+		t.Errorf("Expected ResourceObject to be null, got %#v", results[0].ResourceObject)
 	}
 
 	// Verify second event
-	if events[1].DisplayName != "Test Resource 2" {
-		t.Errorf("Expected DisplayName 'Test Resource 2', got '%s'", events[1].DisplayName)
+	if results[1].DisplayName != "Test Resource 2" {
+		t.Errorf("Expected DisplayName 'Test Resource 2', got '%s'", results[1].DisplayName)
 	}
 
 	expectedId2 := cty.ObjectVal(map[string]cty.Value{
 		"id_attr": cty.StringVal("id-2"),
 	})
-	if !events[1].Identity.RawEquals(expectedId2) {
-		t.Errorf("Expected Identity %#v, got %#v", expectedId2, events[1].Identity)
+	if !results[1].Identity.RawEquals(expectedId2) {
+		t.Errorf("Expected Identity %#v, got %#v", expectedId2, results[1].Identity)
 	}
 
 	expectedResource := cty.ObjectVal(map[string]cty.Value{
 		"resource_attr": cty.StringVal("value"),
 	})
-	if !events[1].ResourceObject.RawEquals(expectedResource) {
-		t.Errorf("Expected ResourceObject %#v, got %#v", expectedResource, events[1].ResourceObject)
+	if !results[1].ResourceObject.RawEquals(expectedResource) {
+		t.Errorf("Expected ResourceObject %#v, got %#v", expectedResource, results[1].ResourceObject)
 	}
 }
 
@@ -1486,11 +1485,8 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 		Config:   configVal,
 	}
 
-	// Call the function
-	_, err := p.ListResource(request)
-	if err == nil {
-		t.Fatal("Expected error, but got none")
-	}
+	resp := p.ListResource(request)
+	checkDiagsHasError(t, resp.Diagnostics)
 }
 
 func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
@@ -1534,18 +1530,15 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 		Config:   configVal,
 	}
 
-	// Call the function
-	events, err := p.ListResource(request)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	resp := p.ListResource(request)
+	checkDiags(t, resp.Diagnostics)
 
 	// Verify that we received one event with diagnostics
-	if len(events) != 1 {
-		t.Fatalf("Expected 1 event, got %d", len(events))
+	if len(resp.Results) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(resp.Results))
 	}
 
-	if !events[0].Diagnostics.HasWarnings() {
+	if !resp.Results[0].Diagnostics.HasWarnings() {
 		t.Fatal("Expected warning diagnostics, but got none")
 	}
 }

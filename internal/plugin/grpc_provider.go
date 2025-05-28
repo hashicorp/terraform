@@ -1252,27 +1252,32 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	return resp
 }
 
-func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.ListResourceResponse {
 	logger.Trace("GRPCProvider: ListResource")
+	var resp providers.ListResourceResponse
 
 	schema := p.GetProviderSchema()
 	if schema.Diagnostics.HasErrors() {
-		return nil, schema.Diagnostics.Err()
+		resp.Diagnostics = schema.Diagnostics
+		return resp
 	}
 
 	listResourceSchema, ok := schema.ListResourceTypes[r.TypeName]
 	if !ok {
-		return nil, fmt.Errorf("unknown list resource type %q", r.TypeName)
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
+		return resp
 	}
 
 	resourceSchema, ok := schema.ResourceTypes[r.TypeName]
 	if !ok || resourceSchema.Identity == nil {
-		return nil, fmt.Errorf("identity schema not found for resource type %s", r.TypeName)
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity schema not found for resource type %s", r.TypeName))
+		return resp
 	}
 
 	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
 	if err != nil {
-		return nil, err
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 
 	protoReq := &proto.ListResource_Request{
@@ -1284,20 +1289,24 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) (providers.
 	// Start the streaming RPC
 	client, err := p.client.ListResource(p.ctx, protoReq)
 	if err != nil {
-		return nil, err
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 
-	var results providers.ListResourceResponse
+	var results []providers.ListResourceEvent
 	// Process the stream
 	for {
 		event, err := client.Recv()
 		if err == io.EOF {
 			// End of stream, we're done
-			return results, nil
+			resp.Results = results
+			return resp
 		}
 
 		if err != nil {
-			return results, err
+			resp.Results = results
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
 		}
 
 		// Process the event

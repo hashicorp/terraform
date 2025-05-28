@@ -118,7 +118,7 @@ func (provider *mockProvider) CallFunction(providers.CallFunctionRequest) provid
 	panic("not implemented in mock")
 }
 
-func (provider *mockProvider) ListResource(providers.ListResourceRequest) (providers.ListResourceResponse, error) {
+func (provider *mockProvider) ListResource(providers.ListResourceRequest) providers.ListResourceResponse {
 	panic("not implemented in mock")
 }
 
