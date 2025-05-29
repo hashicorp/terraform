@@ -21,7 +21,7 @@ require (
 	github.com/apparentlymart/go-versions v1.0.2 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bmatcuk/doublestar v1.1.5 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -44,13 +44,13 @@ require (
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/zclconf/go-cty v1.16.2 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
-	golang.org/x/tools v0.31.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/tools v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
