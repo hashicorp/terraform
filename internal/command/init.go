@@ -8,11 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
@@ -28,8 +31,10 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -499,25 +504,79 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		fmt.Println(provider)
-
-		// 3) Check provider can do PSS
 		// TODO - investigate using GetMetadata here to check provider contains a state store with the correct name
-
-		// 4) Configure provider
 
 		// Schema needed to convert 'provider' body to cty.Value
 		resp := provider.GetProviderSchema()
 
-		// req := providers.ValidateProviderConfigRequest{
-		// 	Config: unmarkedConfigVal,
-		// }
-		provider.ValidateProviderConfig()
+		// Check provider can do PSS
+		if len(resp.StateStores) == 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider does not support pluggable state storage",
+				Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+					root.StateStore.ProviderConfigRef.String(),
+					root.StateStore.Provider),
+				Subject: &root.StateStore.DeclRange,
+			})
+			return nil, true, diags
+		}
+		// Check provider includes state store named in config
+		storeSchema, exists := resp.StateStores[root.StateStore.Type]
+		if !exists {
+			suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+			suggestion := didyoumean.NameSuggestion(root.StateStore.Type, suggestions)
+			if suggestion != "" {
+				suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+			}
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "State store not implemented by the provider",
+				Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+					root.StateStore.Type, root.StateStore.ProviderConfigRef.String(),
+					root.StateStore.Provider, suggestion),
+				Subject: &root.StateStore.DeclRange,
+			})
+			return nil, true, diags
+		}
 
-		// 5) Check provider includes state store named in config
+		spec := resp.Provider.Body.DecoderSpec()
+		cfg := root.ProviderConfigs[root.StateStore.ProviderConfigRef.String()].Config
+		providerConfigVal, decDiags := hcldec.Decode(cfg, spec, nil)
+		diags = diags.Append(decDiags)
 
-		// 6) Call RPC ValidateStoreConfig
+		// Validate provider
+		// TODO: deal with marks
+		validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+			Config: providerConfigVal,
+		})
+		diags = diags.Append(validateResp.Diagnostics)
 
-		// 7) Call RPC ConfigureStateStore
+		// Configure provider
+		configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
+			// TODO TerraformVersion: ,
+			Config: validateResp.PreparedConfig,
+			// TODO ClientCapabilities: ,
+		})
+		diags = diags.Append(configureResp.Diagnostics)
+
+		// Validate Store Config
+		storeSpec := storeSchema.Body.DecoderSpec()
+		storeCfg := root.StateStore.Config
+		storeConfig, decDiags := hcldec.Decode(storeCfg, storeSpec, nil)
+		// TODO: deal with marks
+		validateStoreResp := provider.ValidateStorageConfig(providers.ValidateStorageConfigRequest{
+			TypeName: root.StateStore.Type,
+			Config:   storeConfig,
+		})
+		diags = diags.Append(validateStoreResp.Diagnostics)
+
+		// Configure State Store
+		cfgStoreResp := provider.ConfigureStorageConfig(providers.ConfigureStorageConfigRequest{
+			TypeName: root.StateStore.Type,
+			Config:   validateStoreResp.PreparedConfig,
+		})
+		diags = diags.Append(cfgStoreResp.Diagnostics)
 
 		// 8) Save backend state file
 
