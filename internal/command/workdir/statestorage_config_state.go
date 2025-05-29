@@ -12,17 +12,17 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
-var _ ConfigState[StateStorageConfigState] = &StateStorageConfigState{}
+var _ ConfigState[StateStoreConfigState] = &StateStoreConfigState{}
 
-// StateStorageConfigState... is a dumb name
-type StateStorageConfigState struct {
+// StateStoreConfigState... is a dumb name
+type StateStoreConfigState struct {
 	Type      string          `json:"type"`     // State storage type name
 	Provider  *Provider       `json:"provider"` // Details about the state-storage provider
 	ConfigRaw json.RawMessage `json:"config"`   // state_storage block raw config, barring provider details
 	Hash      uint64          `json:"hash"`     // Hash of portion of configuration from config files
 }
 
-// Provider is used in the StateStorageConfigState struct to describe the provider that's used for pluggable
+// Provider is used in the StateStoreConfigState struct to describe the provider that's used for pluggable
 // state storage. The data inside should mirror an entry in the dependency lock file.
 type Provider struct {
 	Version string `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
@@ -30,7 +30,7 @@ type Provider struct {
 }
 
 // Empty returns true if there is no active state store.
-func (s *StateStorageConfigState) Empty() bool {
+func (s *StateStoreConfigState) Empty() bool {
 	return s == nil || s.Type == ""
 }
 
@@ -39,7 +39,7 @@ func (s *StateStorageConfigState) Empty() bool {
 //
 // An error is returned if the stored configuration does not conform to the
 // given schema, or is otherwise invalid.
-func (s *StateStorageConfigState) Config(schema *configschema.Block) (cty.Value, error) {
+func (s *StateStoreConfigState) Config(schema *configschema.Block) (cty.Value, error) {
 	ty := schema.ImpliedType()
 	if s == nil {
 		return cty.NullVal(ty), nil
@@ -52,7 +52,7 @@ func (s *StateStorageConfigState) Config(schema *configschema.Block) (cty.Value,
 //
 // An error is returned if the given value does not conform to the implied
 // type of the schema.
-func (s *StateStorageConfigState) SetConfig(val cty.Value, schema *configschema.Block) error {
+func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Block) error {
 	ty := schema.ImpliedType()
 	buf, err := ctyjson.Marshal(val, ty)
 	if err != nil {
@@ -68,7 +68,7 @@ func (s *StateStorageConfigState) SetConfig(val cty.Value, schema *configschema.
 //
 // The state_storage configuration schema is required in order to properly
 // encode the state store-specific configuration settings.
-func (s *StateStorageConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+func (s *StateStoreConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
 	if s == nil {
 		return nil, nil
 	}
@@ -77,7 +77,7 @@ func (s *StateStorageConfigState) ForPlan(schema *configschema.Block, workspaceN
 	return nil, nil
 }
 
-func (s *StateStorageConfigState) DeepCopy() *StateStorageConfigState {
+func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
 	if s == nil {
 		return nil
 	}
@@ -85,7 +85,7 @@ func (s *StateStorageConfigState) DeepCopy() *StateStorageConfigState {
 		Version: s.Provider.Version,
 		Source:  s.Provider.Source,
 	}
-	ret := &StateStorageConfigState{
+	ret := &StateStoreConfigState{
 		Type:     s.Type,
 		Provider: provider,
 		Hash:     s.Hash,
