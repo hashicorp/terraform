@@ -488,9 +488,10 @@ func TestModule_cloud_multiple(t *testing.T) {
 	})
 }
 
-// Cannot combine use of backend, cloud blocks.
+// Cannot combine use of backend, cloud, state_store blocks.
 func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 
+	// Cloud + Backend
 	t.Run("it detects when both cloud and backend blocks are in the same terraform block", func(t *testing.T) {
 		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-backend")
 		if !diags.HasErrors() {
@@ -502,8 +503,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})
-
-	t.Run("it detects when both cloud and backend blocks are present within the same module in separate files", func(t *testing.T) {
+	t.Run("it detects when both cloud and backend blocks are present in the same module in separate files", func(t *testing.T) {
 		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-backend-separate-files")
 		if !diags.HasErrors() {
 			t.Fatal("module should have error diags, but does not")
@@ -515,6 +515,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 		}
 	})
 
+	// Cloud + State Store
 	t.Run("it detects when both cloud and state_store blocks are in the same terraform block", func(t *testing.T) {
 		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-statestore")
 		if !diags.HasErrors() {
@@ -526,7 +527,19 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})
+	t.Run("it detects when both cloud and state_store blocks are present in the same module in separate files", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-statestore-separate-files")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
 
+		want := `Both a 'cloud' and 'state_store' configuration block are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+
+	// State Store + Backend
 	t.Run("it detects when both state_store and backend blocks are in the same terraform block", func(t *testing.T) {
 		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-statestore-backend")
 		if !diags.HasErrors() {
@@ -538,7 +551,22 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})
+	t.Run("it detects when both state_store and backend blocks are present in the same module in separate files", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-statestore-backend-separate-files")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
 
+		want := `Both a 'state_store' and 'backend' configuration block are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+
+	// All 3 block types : Cloud + State Store + Backend
+	//
+	// Note: there isn't a 'separate files' variation of this test, as Terraform will return validation once the
+	// second block is encountered, and never reaches the third. This is covered in scenarios tested above.
 	t.Run("it detects all 3 of cloud, state_storage and backend blocks are in the same terraform block", func(t *testing.T) {
 		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-backend-statestore")
 		if !diags.HasErrors() {
