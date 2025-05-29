@@ -98,6 +98,28 @@ func TestParseBackendStateFile(t *testing.T) {
 				},
 			},
 		},
+		"detection of malformed state: conflicting 'backend' and 'state_store' sections": {
+			Input: `{
+				"version": 3,
+				"terraform_version": "9.9.9",
+				"backend": {
+					"type": "treasure_chest_buried_on_a_remote_island",
+					"config": {}
+				},
+				"state_store": {
+					"type": "foobar_baz",
+					"config": {
+						"provider": "foobar",
+						"bucket": "my-bucket"
+					},
+					"provider": {
+						"version": "1.2.3",
+						"source": "registry.terraform.io/my-org/foobar"
+					}
+				}
+			}`,
+			WantErr: `this working directory has a malformed backend state file; it contains state for both a 'backend' and a 'state_storage' block`,
+		},
 	}
 
 	for name, test := range tests {
