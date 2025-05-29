@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -20,12 +21,15 @@ type TestGraphBuilder struct {
 	File        *moduletest.File
 	GlobalVars  map[string]backendrun.UnparsedVariableValue
 	ContextOpts *terraform.ContextOpts
+	Providers   map[addrs.RootProviderConfig]providers.Interface // providers defined in the test file
 }
 
 type graphOptions struct {
 	File        *moduletest.File
 	GlobalVars  map[string]backendrun.UnparsedVariableValue
 	ContextOpts *terraform.ContextOpts
+
+	Providers map[addrs.RootProviderConfig]providers.Interface // providers defined in the test file
 }
 
 // See GraphBuilder
@@ -43,6 +47,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		File:        b.File,
 		GlobalVars:  b.GlobalVars,
 		ContextOpts: b.ContextOpts,
+		Providers:   b.Providers,
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},

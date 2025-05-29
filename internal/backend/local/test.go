@@ -14,6 +14,7 @@ import (
 
 	"maps"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -66,6 +68,9 @@ type TestSuiteRunner struct {
 
 	Concurrency int
 	semaphore   terraform.Semaphore
+
+	// ExternalProviders is a map of pre-configured external providers
+	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -259,6 +264,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		File:        file,
 		GlobalVars:  runner.EvalContext.VariableCaches.GlobalVariables,
 		ContextOpts: runner.Suite.Opts,
+		Providers:   runner.Suite.ExternalProviders,
 	}
 	g, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)

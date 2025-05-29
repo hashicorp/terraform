@@ -8,11 +8,13 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -110,6 +112,7 @@ func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables
 		SetVariables:       variables,
 		ExternalReferences: n.References(),
 		Overrides:          mocking.PackageOverrides(run.Config, file.Config, config),
+		ExternalProviders:  n.ExternalProviders(),
 	}
 
 	waiter.update(tfCtx, moduletest.Running, nil)
@@ -120,4 +123,27 @@ func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables
 	diags = diags.Append(planDiags)
 
 	return planScope, plan, diags
+}
+
+// ExternalProviders returns the external providers that are available for this test run's module configuration.
+// Such providers are expected to already be pre-configured. The test framework does not currently
+// configure providers, rather it monkey-patches the module configuration with the providers
+// in the test file (see TransformConfigForRun). In future, we may want to
+// configure providers in the test framework, but for now we only do this within go tests.
+func (n *NodeTestRun) ExternalProviders() map[addrs.RootProviderConfig]providers.Interface {
+	ret := make(map[addrs.RootProviderConfig]providers.Interface)
+	// Copy the external providers that are actually used in the test run's config.
+	for _, provider := range n.Run().ModuleConfig.EffectiveRequiredProviderConfigs().Elements() {
+		prov := provider.Value.Local
+		addr := addrs.RootProviderConfig{
+			Provider: addrs.NewDefaultProvider(prov.LocalName),
+			Alias:    prov.Alias,
+		}
+		if prov, ok := n.opts.Providers[addr]; ok {
+			ret[addr] = prov
+		}
+
+	}
+	return ret
+
 }

@@ -192,6 +192,9 @@ type Meta struct {
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
 
+	// Only used in tests for now
+	externalProviders map[addrs.RootProviderConfig]providers.Interface
+
 	//----------------------------------------------------------
 	// Private: do not set these
 	//----------------------------------------------------------

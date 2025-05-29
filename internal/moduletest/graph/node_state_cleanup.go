@@ -24,6 +24,7 @@ var (
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
+	parallel bool
 }
 
 func (n *NodeStateCleanup) Name() string {
@@ -130,16 +131,13 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 	setVariables, _, _ := runNode.FilterVariablesToModule(variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:         plans.DestroyMode,
-		SetVariables: setVariables,
-		Overrides:    mocking.PackageOverrides(run.Config, file.Config, run.ModuleConfig),
+		Mode:              plans.DestroyMode,
+		SetVariables:      setVariables,
+		Overrides:         mocking.PackageOverrides(run.Config, file.Config, run.ModuleConfig),
+		ExternalProviders: runNode.ExternalProviders(),
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(n.opts.ContextOpts)
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		return state, diags
-	}
+	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
 
 	waiter.update(tfCtx, moduletest.TearDown, nil)

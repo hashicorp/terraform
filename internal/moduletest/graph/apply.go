@@ -158,7 +158,8 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 	}
 
 	applyOpts := &terraform.ApplyOpts{
-		SetVariables: ephemeralVariables,
+		SetVariables:      ephemeralVariables,
+		ExternalProviders: n.ExternalProviders(),
 	}
 
 	waiter.update(tfCtx, progress, created)
