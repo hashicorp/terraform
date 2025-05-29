@@ -16,7 +16,7 @@ The Terraform CLI integration with HCP Terraform lets you use HCP Terraform and 
 
 Using HCP Terraform through the command line is called the [CLI-driven run workflow](/terraform/cloud-docs/run/cli). When you use the CLI workflow, operations like `terraform plan` or `terraform apply` are remotely executed in HCP Terraform's run environment by default, with log output streaming to the local terminal. This lets you use HCP Terraform features within the familiar Terraform CLI workflow, including variables encrypted at rest in an HCP Terraform workspace, cost estimates, and policy checking.
 
-> **Hands On:** Try the [Migrate State to HCP Terraform](/terraform/tutorials/cloud/cloud-migrate) tutorial.
+> **Hands On:** Try the [Migrate State to HCP Terraform](/terraform/tutorials/cloud/cloud-migrate) tutorial. To learn how to migrate multiple state files to HCP Terraform at once, try the [Migrate to HCP Terraform in bulk](/terraform/tutorials/cloud/bulk-migrate-hcp) tutorial and refer to the [Terraform migrate documentation](/terraform/cloud-docs/migrate/tf-migrate).
 
 Workspaces can also be configured for local execution, in which case HCP Terraform only stores state. In this mode, HCP Terraform behaves just like a standard state backend.
 
