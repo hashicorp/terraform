@@ -831,6 +831,10 @@ message ListResource {
         // when include_resource_object is set to true, the provider should
         // include the full resource object for each result
         bool include_resource_object = 3;
+
+        // The maximum number of results that Terraform is expecting.
+        // The stream will stop, once this limit is reached.
+        int64 limit = 4;
     }
 
     message Event {
