@@ -498,7 +498,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Both a 'cloud' and 'backend' configuration block are present`
+		want := `Conflicting 'cloud' and 'backend' configuration blocks are present`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
@@ -509,7 +509,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Both a 'cloud' and 'backend' configuration block are present`
+		want := `Conflicting 'cloud' and 'backend' configuration blocks are present`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
@@ -522,7 +522,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Both a 'cloud' and 'state_store' configuration block are present`
+		want := `Conflicting 'cloud' and 'state_store' configuration blocks are present`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
@@ -533,7 +533,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Both a 'cloud' and 'state_store' configuration block are present`
+		want := `Conflicting 'cloud' and 'state_store' configuration blocks are present`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
@@ -546,7 +546,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Both a 'state_store' and 'backend' configuration block are present`
+		want := `Conflicting 'state_store' and 'backend' configuration blocks are present`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
@@ -557,7 +557,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Both a 'state_store' and 'backend' configuration block are present`
+		want := `Conflicting 'state_store' and 'backend' configuration blocks are present`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}

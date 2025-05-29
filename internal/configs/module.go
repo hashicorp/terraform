@@ -276,7 +276,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	case m.CloudConfig != nil && m.Backend != nil:
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Both a 'cloud' and 'backend' configuration block are present",
+			Summary:  "Conflicting 'cloud' and 'backend' configuration blocks are present",
 			Detail: fmt.Sprintf("A module may declare either one 'cloud' block OR one 'backend' block for configuring state storage. "+
 				"The 'cloud' block is configured at %s; a 'backend' is configured at %s. Remove the 'backend' block to configure HCP Terraform or Terraform Enterprise.",
 				m.CloudConfig.DeclRange, m.Backend.DeclRange),
@@ -285,7 +285,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	case m.CloudConfig != nil && m.StateStore != nil:
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Both a 'cloud' and 'state_store' configuration block are present",
+			Summary:  "Conflicting 'cloud' and 'state_store' configuration blocks are present",
 			Detail: fmt.Sprintf("A module may declare either one 'cloud' block OR one 'state_store' block for configuring state storage. "+
 				"A 'cloud' block is configured at %s; a 'state_store' is configured at %s. Remove the 'state_store' block to configure HCP Terraform or Terraform Enterprise.",
 				m.CloudConfig.DeclRange, m.StateStore.DeclRange),
@@ -294,7 +294,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	case m.StateStore != nil && m.Backend != nil:
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Both a 'state_store' and 'backend' configuration block are present",
+			Summary:  "Conflicting 'state_store' and 'backend' configuration blocks are present",
 			Detail: fmt.Sprintf("A module may declare either one 'state_store' block OR one 'backend' block when configuring state storage. "+
 				"A 'state_store' block is configured at %s; a 'backend' is configured at %s. Remove one of these blocks.",
 				m.StateStore.DeclRange, m.Backend.DeclRange),
