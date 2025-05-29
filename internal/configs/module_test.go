@@ -315,7 +315,7 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 	}
 }
 
-// Test overriding a backend block to another backend block
+// Test overriding a backend block with a different backend block
 func TestModule_backend_overrides_a_backend(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/valid-modules/override-backend")
 	if diags.HasErrors() {
@@ -455,30 +455,33 @@ func TestModule_cloud_duplicate_overrides(t *testing.T) {
 
 // At most one backend block per module is permitted.
 func TestModule_backend_multiple(t *testing.T) {
-	// Multiple backends across multiple files
-	_, diags := testModuleFromDir("testdata/invalid-modules/multiple-backends")
-	if !diags.HasErrors() {
-		t.Fatal("module should have error diags, but does not")
-	}
+	t.Run("it detects when two backend blocks are present within the same module in separate files", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/multiple-backends")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
 
-	want := `Duplicate backend configuration`
-	if got := diags.Error(); !strings.Contains(got, want) {
-		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
-	}
+		want := `Duplicate backend configuration`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
 }
 
 // At most one cloud block per module is permitted.
 func TestModule_cloud_multiple(t *testing.T) {
-	// Multiple cloud blocks across multiple files
-	_, diags := testModuleFromDir("testdata/invalid-modules/multiple-cloud")
-	if !diags.HasErrors() {
-		t.Fatal("module should have error diags, but does not")
-	}
+	t.Run("it detects when two cloud blocks are present within the same module in separate files", func(t *testing.T) {
 
-	want := `Duplicate HCP Terraform configurations`
-	if got := diags.Error(); !strings.Contains(got, want) {
-		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
-	}
+		_, diags := testModuleFromDir("testdata/invalid-modules/multiple-cloud")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Duplicate HCP Terraform configurations`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
 }
 
 // Cannot combine use of backend, cloud blocks.
