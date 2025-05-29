@@ -32,12 +32,11 @@ type BackendStateFile struct {
 	// Note: this also used to tracking changes in the `cloud` block
 	Backend *BackendConfigState `json:"backend,omitempty"`
 
-	// StateStorage tracks the configuration for a state store in use
+	// StateStore tracks the configuration for a state store in use
 	// with this state. This is used to track any changes in the `state_storage`
 	// block's configuration or associated data about the provider facilitating
 	// state storage
-	StateStorage *StateStorageConfigState `json:"state_storage,omitempty"`
-
+	StateStore *StateStoreConfigState `json:"state_storage,omitempty"`
 
 	// This is here just so we can sniff for the unlikely-but-possible
 	// situation that someone is trying to use modern Terraform with a
