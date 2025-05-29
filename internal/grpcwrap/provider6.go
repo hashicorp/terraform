@@ -48,6 +48,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 		EphemeralResourceSchemas: make(map[string]*tfplugin6.Schema),
 		Functions:                make(map[string]*tfplugin6.Function),
 		ListResourceSchemas:      make(map[string]*tfplugin6.Schema),
+		StateStoreSchemas:        make(map[string]*tfplugin6.Schema),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
@@ -84,6 +85,13 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 	}
 	for typ, dat := range p.schema.ListResourceTypes {
 		resp.ListResourceSchemas[typ] = &tfplugin6.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
+
+	for typ, dat := range p.schema.StateStores {
+		resp.StateStoreSchemas[typ] = &tfplugin6.Schema{
 			Version: int64(dat.Version),
 			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
@@ -812,6 +820,46 @@ func (p *provider6) UpgradeResourceIdentity(_ context.Context, req *tfplugin6.Up
 
 func (p *provider6) ListResource(*tfplugin6.ListResource_Request, tfplugin6.Provider_ListResourceServer) error {
 	panic("not implemented")
+}
+
+func (p *provider6) ValidateStorageConfig(ctx context.Context, req *tfplugin6.ValidateStorage_Request) (*tfplugin6.ValidateStorage_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider6) ConfigureStorage(ctx context.Context, req *tfplugin6.ConfigureStorage_Request) (*tfplugin6.ConfigureStorage_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider6) ReadState(req *tfplugin6.ReadState_Request, srv tfplugin6.Provider_ReadStateServer) error {
+	// TODO
+	return nil
+}
+
+func (p *provider6) WriteState(srv tfplugin6.Provider_WriteStateServer) error {
+	// TODO
+	return nil
+}
+
+func (p *provider6) LockState(ctx context.Context, req *tfplugin6.LockState_Request) (*tfplugin6.LockState_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider6) UnlockState(ctx context.Context, req *tfplugin6.UnlockState_Request) (*tfplugin6.UnlockState_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider6) GetStates(ctx context.Context, req *tfplugin6.GetStates_Request) (*tfplugin6.GetStates_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider6) DeleteState(ctx context.Context, req *tfplugin6.DeleteState_Request) (*tfplugin6.DeleteState_Response, error) {
+	// TODO
+	return nil, nil
 }
 
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {

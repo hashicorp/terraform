@@ -73,6 +73,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				ReturnType: cty.String,
 			},
 		},
+		StateStores: map[string]providers.Schema{},
 	}
 	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
 	return resp
@@ -274,4 +275,10 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 // Close is a noop for this provider, since it's run in-process.
 func (p *Provider) Close() error {
 	return nil
+}
+
+func (p *Provider) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
+	var resp providers.ValidateStorageConfigResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported storage type %q", req.TypeName))
+	return resp
 }
