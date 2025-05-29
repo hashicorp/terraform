@@ -21,6 +21,8 @@ type simple struct {
 	schema providers.GetProviderSchemaResponse
 }
 
+var _ providers.Interface = simple{}
+
 func Provider() providers.Interface {
 	simpleResource := providers.Schema{
 		Body: &configschema.Block{
@@ -249,6 +251,11 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 
 	resp.Result = req.Arguments[0]
 	return resp
+}
+
+func (s simple) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
+	// TODO
+	return providers.ValidateStorageConfigResponse{}
 }
 
 func (s simple) Close() error {

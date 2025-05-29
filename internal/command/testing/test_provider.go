@@ -90,6 +90,7 @@ var (
 				ReturnType: cty.Bool,
 			},
 		},
+		// TODO - add a State Stores map here?
 	}
 )
 
