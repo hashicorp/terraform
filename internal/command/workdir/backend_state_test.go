@@ -66,6 +66,38 @@ func TestParseBackendStateFile(t *testing.T) {
 				},
 			},
 		},
+		"active state_store": {
+			Input: `{
+				"version": 3,
+				"terraform_version": "9.9.9",
+				"state_store": {
+					"type": "foobar_baz",
+					"config": {
+						"provider": "foobar",
+						"bucket": "my-bucket"
+					},
+					"provider": {
+						"version": "1.2.3",
+						"source": "registry.terraform.io/my-org/foobar"
+					}
+				}
+			}`,
+			Want: &BackendStateFile{
+				Version:   3,
+				TFVersion: "9.9.9",
+				StateStore: &StateStoreConfigState{
+					Type: "foobar_baz",
+					Provider: &Provider{
+						Version: "1.2.3",
+						Source:  "registry.terraform.io/my-org/foobar",
+					},
+					ConfigRaw: json.RawMessage(`{
+						"provider": "foobar",
+						"bucket": "my-bucket"
+					}`),
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
