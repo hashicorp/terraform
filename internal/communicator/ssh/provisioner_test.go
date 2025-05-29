@@ -186,6 +186,32 @@ func TestProvisioner_connInfoProxy(t *testing.T) {
 	}
 }
 
+func TestProvisioner_connInfoProxyCommand(t *testing.T) {
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":          cty.StringVal("ssh"),
+		"user":          cty.StringVal("root"),
+		"password":      cty.StringVal("supersecret"),
+		"private_key":   cty.StringVal("someprivatekeycontents"),
+		"host":          cty.StringVal("example.com"),
+		"port":          cty.StringVal("22"),
+		"timeout":       cty.StringVal("30s"),
+		"proxy_command": cty.StringVal("ssh -W example.com:2222 bastion-host.example.com"),
+	})
+
+	conf, err := parseConnectionInfo(v)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if conf.Host != "example.com" {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.ProxyCommand != "ssh -W example.com:2222 bastion-host.example.com" {
+		t.Fatalf("bad: %v", conf)
+	}
+}
+
 func TestProvisioner_stringBastionPort(t *testing.T) {
 	v := cty.ObjectVal(map[string]cty.Value{
 		"type":         cty.StringVal("ssh"),
@@ -225,5 +251,36 @@ func TestProvisioner_invalidPortNumber(t *testing.T) {
 	}
 	if got, want := err.Error(), "value must be a whole number, between 0 and 65535 inclusive"; got != want {
 		t.Errorf("unexpected error\n got: %s\nwant: %s", got, want)
+	}
+}
+
+func TestProvisioner_multipleConnectionMethods(t *testing.T) {
+	// Create a connection info with all three connection methods specified
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":          cty.StringVal("ssh"),
+		"user":          cty.StringVal("root"),
+		"password":      cty.StringVal("supersecret"),
+		"private_key":   cty.StringVal("someprivatekeycontents"),
+		"host":          cty.StringVal("example.com"),
+		"port":          cty.StringVal("22"),
+		"proxy_command": cty.StringVal("ssh -W example.com:2222 bastion-host.example.com"),
+		"proxy_host":    cty.StringVal("proxy.example.com"),
+		"bastion_host":  cty.StringVal("bastion.example.com"),
+	})
+
+	conf, err := parseConnectionInfo(v)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify all three connection methods are parsed correctly
+	if conf.ProxyCommand != "ssh -W example.com:2222 bastion-host.example.com" {
+		t.Fatalf("bad proxy_command: %v", conf.ProxyCommand)
+	}
+	if conf.ProxyHost != "proxy.example.com" {
+		t.Fatalf("bad proxy_host: %v", conf.ProxyHost)
+	}
+	if conf.BastionHost != "bastion.example.com" {
+		t.Fatalf("bad bastion_host: %v", conf.BastionHost)
 	}
 }
