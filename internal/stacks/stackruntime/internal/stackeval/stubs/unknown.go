@@ -297,6 +297,12 @@ func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) provider
 	}
 }
 
+func (u *unknownProvider) ValidateStorageConfig(request providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
+	// This is offline functionality, so we can hand it off to the unconfigured
+	// client.
+	return u.unconfiguredClient.ValidateStorageConfig(request)
+}
+
 func (u *unknownProvider) Close() error {
 	// the underlying unconfiguredClient is managed elsewhere.
 	return nil
