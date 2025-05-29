@@ -214,6 +214,15 @@ func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config,
 		})
 	}
 
+	if mod.StateStore != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State store configuration ignored",
+			Detail:   "Any selected state store applies to the entire configuration, so Terraform expects 'state_store' blocks to only be in the root module.\n\nThis is a warning rather than an error because it's sometimes convenient to temporarily call a root module as a child module for testing purposes, but this backend configuration block will have no effect.",
+			Subject:  mod.StateStore.DeclRange.Ptr(),
+		})
+	}
+
 	if len(mod.Import) > 0 {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
