@@ -13,7 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestParseBackendStateConfig(t *testing.T) {
+func TestParseBackendConfigState_Config_SetConfig(t *testing.T) {
 	// This test only really covers the happy path because Config/SetConfig is
 	// largely just a thin wrapper around configschema's "ImpliedType" and
 	// cty's json unmarshal/marshal and both of those are well-tested elsewhere.
@@ -33,6 +33,7 @@ func TestParseBackendStateConfig(t *testing.T) {
 			},
 		},
 	}
+	// Test Config method
 	got, err := s.Config(schema)
 	want := cty.ObjectVal(map[string]cty.Value{
 		"foo": cty.StringVal("bar"),
@@ -44,6 +45,7 @@ func TestParseBackendStateConfig(t *testing.T) {
 		t.Errorf("wrong result\n%s", diff)
 	}
 
+	// Test SetConfig method
 	err = s.SetConfig(cty.ObjectVal(map[string]cty.Value{
 		"foo": cty.StringVal("baz"),
 	}), schema)
