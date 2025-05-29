@@ -552,6 +552,109 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 	})
 }
 
+func TestModule_stateStore_overrides_stateStore(t *testing.T) {
+	t.Run("it can override a state_store block with a different state_store block", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-state-store")
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		// Check type override
+		gotType := mod.StateStore.Type
+		wantType := "foo_override"
+
+		if gotType != wantType {
+			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
+		}
+
+		// Check custom attribute override
+		attrs, _ := mod.StateStore.Config.JustAttributes()
+
+		gotAttr, diags := attrs["custom_attr"].Expr.Value(nil)
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		wantAttr := cty.StringVal("override")
+		if !gotAttr.RawEquals(wantAttr) {
+			t.Errorf("wrong result for state_store 'custom_attr': got %#v, want %#v\n", gotAttr, wantAttr)
+		}
+
+		// Check provider reference override
+		wantLocalName := "bar"
+		if mod.StateStore.ProviderConfigRef.Name != wantLocalName {
+			t.Errorf("wrong result for state_store 'provider' value's local name: got %#v, want %#v\n", mod.StateStore.ProviderConfigRef.Name, wantLocalName)
+		}
+		wantAlias := "override"
+		if mod.StateStore.ProviderConfigRef.Alias != wantAlias {
+			t.Errorf("wrong result for state_store 'provider' value's alias: got %#v, want %#v\n", mod.StateStore.ProviderConfigRef.Alias, wantAlias)
+		}
+	})
+}
+
+// Unlike most other overrides, state_store blocks do not require a base configuration in a primary
+// configuration file, as an omitted backend there implies the local backend.
+func TestModule_stateStore_override_no_base(t *testing.T) {
+	t.Run("it can introduce a state_store block via overrides when the base config has has no cloud, backend, or state_store blocks", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-state-store-no-base")
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		if mod.StateStore == nil {
+			t.Errorf("expected module StateStore not to be nil")
+		}
+	})
+}
+
+func TestModule_stateStore_overrides_backend(t *testing.T) {
+	t.Run("it can override a backend block with a state_store block", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-backend-with-state-store")
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		// Backend not set
+		if mod.Backend != nil {
+			t.Errorf("backend should not be set: got %#v\n", mod.Backend)
+		}
+
+		// Check state_store type override
+		gotType := mod.StateStore.Type
+		wantType := "foo_override"
+
+		if gotType != wantType {
+			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
+		}
+
+		// Not necessary to assert all values in state_store
+	})
+}
+
+func TestModule_stateStore_overrides_cloud(t *testing.T) {
+	t.Run("it can override a cloud block with a state_store block", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud-with-state-store")
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		// CloudConfig not set
+		if mod.CloudConfig != nil {
+			t.Errorf("backend should not be set: got %#v\n", mod.Backend)
+		}
+
+		// Check state_store type override
+		gotType := mod.StateStore.Type
+		wantType := "foo_override"
+
+		if gotType != wantType {
+			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
+		}
+
+		// Not necessary to assert all values in state_store
+	})
+}
+
 func TestModule_state_store_multiple(t *testing.T) {
 	t.Run("it detects when two state_store blocks are present within the same module in separate files", func(t *testing.T) {
 
