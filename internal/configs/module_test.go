@@ -587,22 +587,23 @@ func TestModule_stateStore_overrides_stateStore(t *testing.T) {
 			t.Fatal(diags.Error())
 		}
 
+		if mod.StateStore == nil {
+			t.Fatal("expected parsed module to include a state store, found none")
+		}
+
 		// Check type override
 		gotType := mod.StateStore.Type
 		wantType := "foo_override"
-
 		if gotType != wantType {
 			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
 		}
 
 		// Check custom attribute override
 		attrs, _ := mod.StateStore.Config.JustAttributes()
-
 		gotAttr, diags := attrs["custom_attr"].Expr.Value(nil)
 		if diags.HasErrors() {
 			t.Fatal(diags.Error())
 		}
-
 		wantAttr := cty.StringVal("override")
 		if !gotAttr.RawEquals(wantAttr) {
 			t.Errorf("wrong result for state_store 'custom_attr': got %#v, want %#v\n", gotAttr, wantAttr)
@@ -647,10 +648,13 @@ func TestModule_stateStore_overrides_backend(t *testing.T) {
 			t.Errorf("backend should not be set: got %#v\n", mod.Backend)
 		}
 
-		// Check state_store type override
+		// Check state_store
+		if mod.StateStore == nil {
+			t.Fatal("expected parsed module to include a state store, found none")
+		}
+
 		gotType := mod.StateStore.Type
 		wantType := "foo_override"
-
 		if gotType != wantType {
 			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
 		}
@@ -671,10 +675,12 @@ func TestModule_stateStore_overrides_cloud(t *testing.T) {
 			t.Errorf("backend should not be set: got %#v\n", mod.Backend)
 		}
 
-		// Check state_store type override
+		// Check state_store
+		if mod.StateStore == nil {
+			t.Fatal("expected parsed module to include a state store, found none")
+		}
 		gotType := mod.StateStore.Type
 		wantType := "foo_override"
-
 		if gotType != wantType {
 			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
 		}
