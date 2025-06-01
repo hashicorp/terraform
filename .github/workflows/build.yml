@@ -141,7 +141,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Build Docker images
-        uses: hashicorp/actions-docker-build@11d43ef520c65f58683d048ce9b47d6617893c9a # v2
+        uses: hashicorp/actions-docker-build@d870481d95d6ae353822c87e568cb1803b5fe7eb # v2
         with:
           pkg_name: "terraform_${{env.version}}"
           version: ${{env.version}}
