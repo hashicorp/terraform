@@ -118,7 +118,7 @@ func TestParseBackendStateFile(t *testing.T) {
 					}
 				}
 			}`,
-			WantErr: `this working directory has a malformed backend state file; it contains state for both a 'backend' and a 'state_storage' block`,
+			WantErr: `this working directory has a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block`,
 		},
 	}
 
@@ -174,7 +174,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			WantErr: `attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_storage' block`,
+			WantErr: `attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block`,
 		},
 	}
 

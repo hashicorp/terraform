@@ -18,7 +18,7 @@ var _ ConfigState[StateStoreConfigState] = &StateStoreConfigState{}
 type StateStoreConfigState struct {
 	Type      string          `json:"type"`     // State storage type name
 	Provider  *Provider       `json:"provider"` // Details about the state-storage provider
-	ConfigRaw json.RawMessage `json:"config"`   // state_storage block raw config, barring provider details
+	ConfigRaw json.RawMessage `json:"config"`   // state_store block raw config, barring provider details
 	Hash      uint64          `json:"hash"`     // Hash of portion of configuration from config files
 }
 
@@ -66,7 +66,7 @@ func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Bl
 // suitable for storing in a plan. The current workspace must additionally
 // be provided, to be stored alongside the state store configuration.
 //
-// The state_storage configuration schema is required in order to properly
+// The state_store configuration schema is required in order to properly
 // encode the state store-specific configuration settings.
 func (s *StateStoreConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
 	if s == nil {
