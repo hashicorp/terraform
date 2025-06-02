@@ -73,9 +73,9 @@ func validateRunConfigs(g *terraform.Graph) error {
 // dynamicNode is a helper node which can be added to the graph to execute
 // a dynamic function at some desired point in the graph.
 type dynamicNode struct {
-	eval func(*EvalContext) tfdiags.Diagnostics
+	eval func(*EvalContext)
 }
 
-func (n *dynamicNode) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	return n.eval(evalCtx)
+func (n *dynamicNode) Execute(evalCtx *EvalContext) {
+	n.eval(evalCtx)
 }

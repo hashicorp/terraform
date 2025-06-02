@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
@@ -75,10 +74,8 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 
 func (t *TestStateCleanupTransformer) addRootCleanupNode(g *terraform.Graph) *dynamicNode {
 	rootCleanupNode := &dynamicNode{
-		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
-			var diags tfdiags.Diagnostics
+		eval: func(ctx *EvalContext) {
 			ctx.Renderer().File(t.opts.File, moduletest.TearDown)
-			return diags
 		},
 	}
 	g.Add(rootCleanupNode)

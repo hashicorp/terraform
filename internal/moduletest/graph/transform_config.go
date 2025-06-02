@@ -7,17 +7,17 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type GraphNodeExecutable interface {
-	Execute(ctx *EvalContext) tfdiags.Diagnostics
+	Execute(ctx *EvalContext)
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -65,10 +65,8 @@ func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
 
 func (t *TestConfigTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
 	rootConfigNode := &dynamicNode{
-		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
-			var diags tfdiags.Diagnostics
+		eval: func(ctx *EvalContext) {
 			ctx.FileStates = statesMap
-			return diags
 		},
 	}
 	g.Add(rootConfigNode)

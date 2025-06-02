@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestProvidersTransformer is a GraphTransformer that gathers all the providers
@@ -88,11 +87,10 @@ func (t *TestProvidersTransformer) transformSingleConfig(config *configs.Config)
 
 func (t *TestProvidersTransformer) createRootNode(g *terraform.Graph, providerMap map[*NodeTestRun]map[string]bool) *dynamicNode {
 	node := &dynamicNode{
-		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
+		eval: func(ctx *EvalContext) {
 			for node, providers := range providerMap {
 				ctx.SetProviders(node.run, providers)
 			}
-			return nil
 		},
 	}
 	g.Add(node)
