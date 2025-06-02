@@ -117,6 +117,11 @@ func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 func EncodeBackendStateFile(f *BackendStateFile) ([]byte, error) {
 	f.Version = 3 // we only support version 3
 	f.TFVersion = version.SemVer.String()
+
+	if f.Backend != nil && f.StateStore != nil {
+		return nil, fmt.Errorf("attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_storage' block")
+	}
+
 	return json.MarshalIndent(f, "", "  ")
 }
 
