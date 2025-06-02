@@ -145,3 +145,60 @@ func TestParseBackendStateFile(t *testing.T) {
 		})
 	}
 }
+
+func TestEncodeBackendStateFile(t *testing.T) {
+
+	tests := map[string]struct {
+		Input   *BackendStateFile
+		Want    []uint8
+		WantErr string
+	}{
+		"it encodes an empty state": {
+			Input: &BackendStateFile{},
+			Want:  []uint8("{\n  \"version\": 3,\n  \"terraform_version\": \"1.13.0\"\n}"),
+		},
+		"it returns an error when both backend and state_store config state are present": {
+			Input: &BackendStateFile{
+				Backend: &BackendConfigState{
+					Type:      "foobar",
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+				StateStore: &StateStoreConfigState{
+					Type: "foobar_baz",
+					Provider: &Provider{
+						Version: "1.2.3",
+						Source:  "registry.terraform.io/my-org/foobar",
+					},
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			WantErr: `attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_storage' block`,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := EncodeBackendStateFile(test.Input)
+
+			if test.WantErr != "" {
+				if err == nil {
+					t.Fatalf("unexpected success\nwant error: %s", test.WantErr)
+				}
+				if got, want := err.Error(), test.WantErr; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if diff := cmp.Diff(test.Want, got); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+
+	}
+}
