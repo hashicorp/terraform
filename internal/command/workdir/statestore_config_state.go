@@ -16,7 +16,7 @@ var _ ConfigState[StateStoreConfigState] = &StateStoreConfigState{}
 
 // StateStoreConfigState... is a dumb name
 type StateStoreConfigState struct {
-	Type      string          `json:"type"`     // State storage type name
+	Type      string          `json:"type"`     // State store type name
 	Provider  *Provider       `json:"provider"` // Details about the state-storage provider
 	ConfigRaw json.RawMessage `json:"config"`   // state_store block raw config, barring provider details
 	Hash      uint64          `json:"hash"`     // Hash of portion of configuration from config files
