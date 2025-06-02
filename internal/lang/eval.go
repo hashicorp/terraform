@@ -275,14 +275,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		return ctx, diags
 	}
 
-	// The reference set we are given has not been de-duped, and so there can
-	// be redundant requests in it for two reasons:
-	//  - The same item is referenced multiple times
-	//  - Both an item and that item's container are separately referenced.
-	// We will still visit every reference here and ask our data source for
-	// it, since that allows us to gather a full set of any errors and
-	// warnings, but once we've gathered all the data we'll then skip anything
-	// that's redundant in the process of populating our values map.
 	dataResources := map[string]map[string]cty.Value{}
 	managedResources := map[string]map[string]cty.Value{}
 	ephemeralResources := map[string]map[string]cty.Value{}
