@@ -33,7 +33,7 @@ type BackendStateFile struct {
 	Backend *BackendConfigState `json:"backend,omitempty"`
 
 	// StateStore tracks the configuration for a state store in use
-	// with this state. This is used to track any changes in the `state_storage`
+	// with this state. This is used to track any changes in the `state_store`
 	// block's configuration or associated data about the provider facilitating
 	// state storage
 	StateStore *StateStoreConfigState `json:"state_store,omitempty"`
@@ -108,7 +108,7 @@ func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 		return nil, fmt.Errorf("this working directory uses legacy remote state and so must first be upgraded using Terraform v0.9")
 	}
 	if stateFile.Backend != nil && stateFile.StateStore != nil {
-		return nil, fmt.Errorf("this working directory has a malformed backend state file; it contains state for both a 'backend' and a 'state_storage' block")
+		return nil, fmt.Errorf("this working directory has a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block")
 	}
 
 	return &stateFile, nil
@@ -119,7 +119,7 @@ func EncodeBackendStateFile(f *BackendStateFile) ([]byte, error) {
 	f.TFVersion = version.SemVer.String()
 
 	if f.Backend != nil && f.StateStore != nil {
-		return nil, fmt.Errorf("attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_storage' block")
+		return nil, fmt.Errorf("attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block")
 	}
 
 	return json.MarshalIndent(f, "", "  ")
