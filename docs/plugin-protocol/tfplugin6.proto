@@ -380,6 +380,14 @@ service Provider {
     // ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
     rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
 
+    rpc ReadState(ReadState.Request) returns (stream ReadState.ResponseChunk);
+    rpc WriteState(stream WriteState.RequestChunk) returns (stream WriteState.Response);
+
+    rpc LockState(LockState.Request) returns (LockState.Response);
+    rpc UnlockState(UnlockState.Request) returns (UnlockState.Response);
+    rpc GetStates(GetStates.Request) returns (GetStates.Response);
+    rpc DeleteState(DeleteState.Request) returns (DeleteState.Response);
+
     //////// Graceful Shutdown
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
 }
@@ -872,6 +880,77 @@ message ConfigureStateStore {
         DynamicValue config = 2;
     }
     message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ReadState {
+    message Request {
+        string type_name = 1;
+        string state_id = 2;
+    }
+    message ResponseChunk {
+        bytes data = 1;
+        // supplied with the first chunk
+        optional StateMeta meta = 2;
+    }
+}
+
+message WriteState {
+    message RequestChunk {
+        bytes data = 1;
+        string state_id = 2;
+        // supplied with the first chunk
+        optional StateMeta meta = 3;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message StateMeta {
+	bytes checksum = 1;
+    int64 number_of_chunks = 2;
+}
+
+message LockState {
+    message Request {
+        string type_name = 1;
+        string state_id = 2;
+        string operation = 3;
+    }
+    message Response {
+        string id = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message UnlockState {
+    message Request {
+        string type_name = 1;
+        string state_id = 2;
+        string lock_id = 3;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message GetStates {
+	message Request {
+		string type_name = 1;
+    }
+    message Response {
+        repeated string state_id = 1;
+    }
+}
+
+message DeleteState {
+	message Request {
+		string type_name = 1;
+		string state_id = 2;
+    }
+	message Response {
         repeated Diagnostic diagnostics = 1;
     }
 }

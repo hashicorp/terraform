@@ -829,6 +829,30 @@ func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.Conf
 	panic("not implemented")
 }
 
+func (p *provider6) ReadState(req *tfplugin6.ReadState_Request, srv tfplugin6.Provider_ReadStateServer) error {
+	panic("not implemented")
+}
+
+func (p *provider6) WriteState(srv tfplugin6.Provider_WriteStateServer) error {
+	panic("not implemented")
+}
+
+func (p *provider6) LockState(ctx context.Context, req *tfplugin6.LockState_Request) (*tfplugin6.LockState_Response, error) {
+	panic("not implemented")
+}
+
+func (p *provider6) UnlockState(ctx context.Context, req *tfplugin6.UnlockState_Request) (*tfplugin6.UnlockState_Response, error) {
+	panic("not implemented")
+}
+
+func (p *provider6) GetStates(ctx context.Context, req *tfplugin6.GetStates_Request) (*tfplugin6.GetStates_Response, error) {
+	panic("not implemented")
+}
+
+func (p *provider6) DeleteState(ctx context.Context, req *tfplugin6.DeleteState_Request) (*tfplugin6.DeleteState_Response, error) {
+	panic("not implemented")
+}
+
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {
 	resp := &tfplugin6.StopProvider_Response{}
 	err := p.provider.Stop()
