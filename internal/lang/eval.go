@@ -299,6 +299,10 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	runBlocks := map[string]cty.Value{}
 	var self cty.Value
 
+	// memoize addresses that we've already encountered so that we can
+	// avoid redundant mutex-protected lookups for the same reference
+	// within the block requesting this evaluation context.
+	memo := make(map[addrs.Referenceable]struct{})
 	for _, ref := range refs {
 		rng := ref.SourceRange
 
@@ -360,6 +364,13 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		case addrs.ModuleCallInstanceOutput:
 			rawSubj = addr.Call.Call
 		}
+
+		// if we already encountered and evaluated this reference, skip it,
+		// as the value will already be in the context.
+		if _, ok := memo[rawSubj]; ok {
+			continue
+		}
+		memo[rawSubj] = struct{}{}
 
 		switch subj := rawSubj.(type) {
 		case addrs.Resource:
