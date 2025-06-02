@@ -34,7 +34,7 @@ func (n *NodeStateCleanup) Name() string {
 // This function should never return non-fatal error diagnostics, as that would
 // prevent further cleanup from happening. Instead, the diagnostics
 // will be rendered directly.
-func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
+func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
@@ -42,7 +42,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	if evalCtx.Cancelled() {
 		// Don't try and clean anything up if the execution has been cancelled.
 		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
-		return nil
+		return
 	}
 
 	empty := true
@@ -61,7 +61,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		// The state can be empty for a run block that just executed a plan
 		// command, or a run block that only read data sources. We'll just
 		// skip empty run blocks.
-		return nil
+		return
 	}
 
 	if state.Run == nil {
@@ -78,7 +78,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
 
 		// intentionally return nil to allow further cleanup
-		return nil
+		return
 	}
 	TransformConfigForRun(evalCtx, state.Run, file)
 
@@ -100,7 +100,6 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		file.UpdateStatus(moduletest.Error)
 	}
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
-	return nil
 }
 
 func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {

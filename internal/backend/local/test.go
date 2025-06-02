@@ -7,12 +7,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"path/filepath"
 	"slices"
 
 	"github.com/zclconf/go-cty/cty"
-
-	"maps"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
@@ -267,7 +266,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// walk and execute the graph
-	diags = runner.walkGraph(g)
+	diags = diags.Append(runner.walkGraph(g))
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:
@@ -287,7 +286,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 	sem := runner.Suite.semaphore
 
 	// Walk the graph.
-	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+	walkFn := func(v dag.Vertex) tfdiags.Diagnostics {
 		if runner.EvalContext.Cancelled() {
 			// If the graph walk has been cancelled, the node should just return immediately.
 			// For now, this means a hard stop has been requested, in this case we don't
@@ -295,7 +294,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			// just show up as pending in the printed summary. We will quickly
 			// just mark the overall file status has having errored to indicate
 			// it was interrupted.
-			return
+			return nil
 		}
 
 		// the walkFn is called asynchronously, and needs to be recovered
@@ -312,18 +311,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
 				panic(r) // re-panic
 			}
-
-			if diags.HasErrors() {
-				for _, diag := range diags {
-					if diag.Severity() == tfdiags.Error {
-						desc := diag.Description()
-						log.Printf("[ERROR] vertex %q error: %s", dag.VertexName(v), desc.Summary)
-					}
-				}
-				log.Printf("[TRACE] vertex %q: visit complete, with errors", dag.VertexName(v))
-			} else {
-				log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
-			}
+			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
 		}()
 
 		// Acquire a lock on the semaphore
@@ -331,9 +319,9 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		defer sem.Release()
 
 		if executable, ok := v.(graph.GraphNodeExecutable); ok {
-			diags = executable.Execute(runner.EvalContext)
+			executable.Execute(runner.EvalContext)
 		}
-		return
+		return nil
 	}
 
 	return g.AcyclicGraph.Walk(walkFn)
