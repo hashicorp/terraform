@@ -251,6 +251,14 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	return resp
 }
 
+func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented")
+}
+
+func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	panic("not implemented")
+}
+
 func (s simple) Close() error {
 	return nil
 }

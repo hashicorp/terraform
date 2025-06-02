@@ -375,6 +375,11 @@ service Provider {
     //////// Provider-contributed Functions
     rpc CallFunction(CallFunction.Request) returns (CallFunction.Response);
 
+    // ValidateStateStoreConfig performs configuration validation
+    rpc ValidateStateStoreConfig(ValidateStateStore.Request) returns (ValidateStateStore.Response);
+    // ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
+    rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
+
     //////// Graceful Shutdown
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
 }
@@ -392,6 +397,7 @@ message GetMetadata {
         repeated FunctionMetadata functions = 5;
         repeated EphemeralMetadata ephemeral_resources = 6;
         repeated ListResourceMetadata list_resources = 7;
+        repeated StateStoreMetadata state_stores = 8;
     }
 
     message EphemeralMetadata {
@@ -414,6 +420,10 @@ message GetMetadata {
     message ListResourceMetadata {
         string type_name = 1;
     }
+
+    message StateStoreMetadata {
+        string type_name = 1;
+    }
 }
 
 message GetProviderSchema {
@@ -426,6 +436,7 @@ message GetProviderSchema {
         map<string, Function> functions = 7;
         map<string, Schema> ephemeral_resource_schemas = 8;
         map<string, Schema> list_resource_schemas = 9;
+        map<string, Schema> state_store_schemas = 10;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
@@ -831,6 +842,27 @@ message ListResource {
 }
 
 message ValidateListResourceConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+
+message ValidateStateStore {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ConfigureStateStore {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;

@@ -104,6 +104,11 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
+	// ValidateStateStoreConfig performs configuration validation
+	ValidateStateStoreConfig(ValidateStateStoreConfigRequest) ValidateStateStoreConfigResponse
+	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
+	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -137,6 +142,9 @@ type GetProviderSchemaResponse struct {
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
+
+	// StateStores maps the backend type name to that type's schema.
+	StateStores map[string]Schema
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
@@ -720,4 +728,30 @@ type ListResourceRequest struct {
 	// IncludeResourceObject can be set to true when a provider should include
 	// the full resource object for each result
 	IncludeResourceObject bool
+}
+
+type ValidateStateStoreConfigRequest struct {
+	// TypeName is the name of the state store to validate.
+	TypeName string
+
+	// Config is the configuration value to validate.
+	Config cty.Value
+}
+
+type ValidateStateStoreConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ConfigureStateStoreRequest struct {
+	// TypeName is the name of the state store to configure
+	TypeName string
+
+	// Config is the configuration value to configure the store with.
+	Config cty.Value
+}
+
+type ConfigureStateStoreResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
 }

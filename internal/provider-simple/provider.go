@@ -211,6 +211,14 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	panic("CallFunction on provider that didn't declare any functions")
 }
 
+func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented")
+}
+
+func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	panic("not implemented")
+}
+
 func (s simple) Close() error {
 	return nil
 }

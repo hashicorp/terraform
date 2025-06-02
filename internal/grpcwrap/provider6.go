@@ -48,6 +48,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 		EphemeralResourceSchemas: make(map[string]*tfplugin6.Schema),
 		Functions:                make(map[string]*tfplugin6.Function),
 		ListResourceSchemas:      make(map[string]*tfplugin6.Schema),
+		StateStoreSchemas:        make(map[string]*tfplugin6.Schema),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
@@ -84,6 +85,12 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 	}
 	for typ, dat := range p.schema.ListResourceTypes {
 		resp.ListResourceSchemas[typ] = &tfplugin6.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
+	for typ, dat := range p.schema.StateStores {
+		resp.StateStoreSchemas[typ] = &tfplugin6.Schema{
 			Version: int64(dat.Version),
 			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
@@ -811,6 +818,14 @@ func (p *provider6) UpgradeResourceIdentity(_ context.Context, req *tfplugin6.Up
 }
 
 func (p *provider6) ListResource(*tfplugin6.ListResource_Request, tfplugin6.Provider_ListResourceServer) error {
+	panic("not implemented")
+}
+
+func (p *provider6) ValidateStateStoreConfig(ctx context.Context, req *tfplugin6.ValidateStateStore_Request) (*tfplugin6.ValidateStateStore_Response, error) {
+	panic("not implemented")
+}
+
+func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.ConfigureStateStore_Request) (*tfplugin6.ConfigureStateStore_Response, error) {
 	panic("not implemented")
 }
 
