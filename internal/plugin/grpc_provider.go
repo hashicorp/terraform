@@ -47,6 +47,8 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 	return nil
 }
 
+var _ providers.Interface = &GRPCProvider{}
+
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
 // terraform providers types and the grpc proto types, directly converting
@@ -103,6 +105,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp.DataSources = make(map[string]providers.Schema)
 	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
 	resp.ListResourceTypes = make(map[string]providers.Schema)
+	// TODO: resp.StateStores = make(map[string]providers.Schema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -1406,4 +1409,9 @@ func clientCapabilitiesToProto(c providers.ClientCapabilities) *proto.ClientCapa
 		DeferralAllowed:            c.DeferralAllowed,
 		WriteOnlyAttributesAllowed: c.WriteOnlyAttributesAllowed,
 	}
+}
+
+func (p *GRPCProvider) ValidateStorageConfig(r providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
+	// TODO
+	return providers.ValidateStorageConfigResponse{}
 }

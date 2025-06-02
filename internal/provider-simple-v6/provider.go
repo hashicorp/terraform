@@ -21,6 +21,8 @@ type simple struct {
 	schema providers.GetProviderSchemaResponse
 }
 
+var _ providers.Interface = simple{}
+
 func Provider() providers.Interface {
 	simpleResource := providers.Schema{
 		Body: &configschema.Block{
