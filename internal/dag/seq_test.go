@@ -23,11 +23,11 @@ type MockVertex2 struct {
 func TestSelectSeq(t *testing.T) {
 	v1 := MockVertex{id: 1}
 	v11 := MockVertex{id: 11}
-	v2 := MockVertex2{id: 1}
+	v2 := MockVertex2{id: 2}
 	vertices := Set{v1: v1, v11: v11, v2: v2}
 
 	graph := &Graph{vertices: vertices}
-	seq := SelectSeq(graph.VerticesSeq(), func(MockVertex) {})
+	seq := SelectSeq[MockVertex](graph.VerticesSeq())
 	t.Run("Select objects of given type", func(t *testing.T) {
 		count := len(seq.Collect())
 		if count != 2 {
@@ -36,7 +36,7 @@ func TestSelectSeq(t *testing.T) {
 	})
 
 	t.Run("Returns empty when looking for incompatible types", func(t *testing.T) {
-		seq := SelectSeq(seq, func(MockVertex2) {})
+		seq := SelectSeq[MockVertex2](seq.AsGeneric())
 		count := len(seq.Collect())
 		if count != 0 {
 			t.Errorf("Expected empty, got %d", count)
@@ -44,7 +44,7 @@ func TestSelectSeq(t *testing.T) {
 	})
 
 	t.Run("Select objects of given interface", func(t *testing.T) {
-		seq := SelectSeq(graph.VerticesSeq(), func(interface{ ZeroValue() any }) {})
+		seq := SelectSeq[interface{ ZeroValue() any }](graph.VerticesSeq())
 		count := len(seq.Collect())
 		if count != 2 {
 			t.Errorf("Expected 1, got %d", count)
@@ -55,11 +55,11 @@ func TestSelectSeq(t *testing.T) {
 func TestExcludeSeq(t *testing.T) {
 	v1 := MockVertex{id: 1}
 	v11 := MockVertex{id: 11}
-	v2 := MockVertex2{id: 1}
+	v2 := MockVertex2{id: 2}
 	vertices := Set{v1: v1, v11: v11, v2: v2}
 
 	graph := &Graph{vertices: vertices}
-	seq := ExcludeSeq(graph.VerticesSeq(), func(MockVertex) {})
+	seq := ExcludeSeq[MockVertex](graph.VerticesSeq())
 	t.Run("Exclude objects of given type", func(t *testing.T) {
 		count := len(seq.Collect())
 		if count != 1 {
@@ -68,7 +68,7 @@ func TestExcludeSeq(t *testing.T) {
 	})
 
 	t.Run("Returns empty when looking for incompatible types", func(t *testing.T) {
-		seq := ExcludeSeq(seq, func(MockVertex2) {})
+		seq := ExcludeSeq[MockVertex2](seq)
 		count := len(seq.Collect())
 		if count != 0 {
 			t.Errorf("Expected empty, got %d", count)
@@ -76,7 +76,7 @@ func TestExcludeSeq(t *testing.T) {
 	})
 
 	t.Run("Exclude objects of given interface", func(t *testing.T) {
-		seq := ExcludeSeq(graph.VerticesSeq(), func(interface{ ZeroValue() any }) {})
+		seq := ExcludeSeq[interface{ ZeroValue() any }](graph.VerticesSeq())
 		count := len(seq.Collect())
 		if count != 1 {
 			t.Errorf("Expected 1, got %d", count)

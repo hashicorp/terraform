@@ -20,7 +20,7 @@ type TestStateCleanupTransformer struct {
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
 
-	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
+	for node := range dag.SelectSeq[*NodeTestRun](g.VerticesSeq()) {
 		key := node.run.GetStateKey()
 		if _, exists := cleanupMap[key]; !exists {
 			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts}

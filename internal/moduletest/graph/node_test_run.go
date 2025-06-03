@@ -18,9 +18,6 @@ import (
 
 var (
 	_ GraphNodeExecutable = (*NodeTestRun)(nil)
-
-	// When given to a graph sequence, the sequence will filter and return a typed NodeTestRun
-	runFilter = func(*NodeTestRun) {}
 )
 
 type NodeTestRun struct {

@@ -21,7 +21,7 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 	// a root provider node that will add the providers to the context
 	rootProviderNode := t.createRootNode(g, runProviderMap)
 
-	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
+	for node := range dag.SelectSeq[*NodeTestRun](g.VerticesSeq()) {
 		// Get the providers that the test run depends on
 		configKey := node.run.GetModuleConfigID()
 		if _, ok := configsProviderMap[configKey]; !ok {

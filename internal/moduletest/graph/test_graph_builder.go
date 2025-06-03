@@ -63,7 +63,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 }
 
 func validateRunConfigs(g *terraform.Graph) error {
-	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
+	for node := range dag.SelectSeq[*NodeTestRun](g.VerticesSeq()) {
 		diags := node.run.Config.Validate(node.run.ModuleConfig)
 		node.run.Diagnostics = node.run.Diagnostics.Append(diags)
 		if diags.HasErrors() {
