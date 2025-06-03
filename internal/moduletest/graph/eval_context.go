@@ -42,7 +42,7 @@ type TestFileState struct {
 // within the suite.
 // The struct provides concurrency-safe access to the various maps it contains.
 type EvalContext struct {
-	VariableCaches *hcltest.VariableCaches
+	VariableCache *hcltest.VariableCache
 
 	// runOutputs is a mapping from run addresses to cty object values
 	// representing the collected output values from the module under test.
@@ -84,10 +84,11 @@ type EvalContext struct {
 }
 
 type EvalContextOpts struct {
-	Verbose   bool
-	Render    views.Test
-	CancelCtx context.Context
-	StopCtx   context.Context
+	Verbose       bool
+	Render        views.Test
+	CancelCtx     context.Context
+	StopCtx       context.Context
+	VariableCache *hcltest.VariableCache
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -104,7 +105,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		providersLock:   sync.Mutex{},
 		FileStates:      make(map[string]*TestFileState),
 		stateLock:       sync.Mutex{},
-		VariableCaches:  hcltest.NewVariableCaches(),
+		VariableCache:   opts.VariableCache,
 		cancelContext:   cancelCtx,
 		cancelFunc:      cancel,
 		stopContext:     stopCtx,
@@ -324,10 +325,6 @@ func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runOutputs))
 	maps.Copy(outputCopy, ec.runOutputs) // don't use clone here, so we can return a non-nil map
 	return outputCopy
-}
-
-func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
-	return ec.VariableCaches.GetCache(run.Name, run.ModuleConfig)
 }
 
 // ProviderExists returns true if the provider exists for the run inside the context.

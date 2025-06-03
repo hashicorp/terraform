@@ -110,15 +110,6 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		file := suite.Files[name]
-		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
-			CancelCtx: runner.CancelledCtx,
-			StopCtx:   runner.StoppedCtx,
-			Verbose:   runner.Verbose,
-			Render:    runner.View,
-		})
-
-		// TODO(liamcervante): Do the variables in the EvalContextTransformer
-		// as well as the run blocks.
 
 		currentGlobalVariables := runner.GlobalVariables
 		if filepath.Dir(file.Name) == runner.TestingDirectory {
@@ -126,10 +117,23 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			// global variables and the global test variables.
 			currentGlobalVariables = testDirectoryGlobalVariables
 		}
-		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
-			maps.Copy(vc.GlobalVariables, currentGlobalVariables)
-			vc.FileVariables = file.Config.Variables
+
+		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
+			CancelCtx: runner.CancelledCtx,
+			StopCtx:   runner.StoppedCtx,
+			Verbose:   runner.Verbose,
+			Render:    runner.View,
+			VariableCache: &hcltest.VariableCache{
+
+				// TODO(liamcervante): Do the variables in the EvalContextTransformer
+				// as well as the run blocks.
+
+				ExternalVariableValues:      currentGlobalVariables,
+				TestFileVariableDefinitions: file.Config.VariableDefinitions,
+				TestFileVariableExpressions: file.Config.Variables,
+			},
 		})
+
 		fileRunner := &TestFileRunner{
 			Suite:       runner,
 			EvalContext: evalCtx,
@@ -248,7 +252,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// Build the graph for the file.
 	b := graph.TestGraphBuilder{
 		File:        file,
-		GlobalVars:  runner.EvalContext.VariableCaches.GlobalVariables,
+		GlobalVars:  runner.EvalContext.VariableCache.ExternalVariableValues,
 		ContextOpts: runner.Suite.Opts,
 	}
 	g, diags := b.Build()

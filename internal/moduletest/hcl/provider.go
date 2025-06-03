@@ -81,7 +81,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, original.Expr)
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
-				value, valueDiags := p.VariableCache.GetFileVariable(addr.Name)
+				value, valueDiags := p.VariableCache.GetVariableValue(addr.Name)
 				diags = append(diags, valueDiags.ToHCL()...)
 				if value != nil {
 					availableVariables[addr.Name] = value.Value
@@ -89,7 +89,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 				}
 
 				// If the variable wasn't a file variable, it might be a global.
-				value, valueDiags = p.VariableCache.GetGlobalVariable(addr.Name)
+				value, valueDiags = p.VariableCache.GetVariableValue(addr.Name)
 				diags = append(diags, valueDiags.ToHCL()...)
 				if value != nil {
 					availableVariables[addr.Name] = value.Value
