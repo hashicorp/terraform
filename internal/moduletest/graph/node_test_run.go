@@ -19,7 +19,7 @@ import (
 var (
 	_ GraphNodeExecutable    = (*NodeTestRun)(nil)
 	_ GraphNodeReferenceable = (*NodeTestRun)(nil)
-	_ GraphNodeReferences    = (*NodeTestRun)(nil)
+	_ GraphNodeReferencer    = (*NodeTestRun)(nil)
 )
 
 type NodeTestRun struct {

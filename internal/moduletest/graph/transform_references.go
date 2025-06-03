@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package graph
 
 import (
@@ -10,7 +13,7 @@ type GraphNodeReferenceable interface {
 	Referenceable() addrs.Referenceable
 }
 
-type GraphNodeReferences interface {
+type GraphNodeReferencer interface {
 	References() []*addrs.Reference
 }
 
@@ -20,18 +23,14 @@ type ReferenceTransformer struct{}
 
 func (r *ReferenceTransformer) Transform(graph *terraform.Graph) error {
 	nodes := addrs.MakeMap[addrs.Referenceable, dag.Vertex]()
-	for _, v := range graph.Vertices() {
-		if referenceable, ok := v.(GraphNodeReferenceable); ok {
-			nodes.Put(referenceable.Referenceable(), v)
-		}
+	for referenceable := range dag.SelectSeq[GraphNodeReferenceable](graph.VerticesSeq()) {
+		nodes.Put(referenceable.Referenceable(), referenceable)
 	}
 
-	for _, v := range graph.Vertices() {
-		if references, ok := v.(GraphNodeReferences); ok {
-			for _, reference := range references.References() {
-				if target, ok := nodes.GetOk(reference.Subject); ok {
-					graph.Connect(dag.BasicEdge(v, target))
-				}
+	for referencer := range dag.SelectSeq[GraphNodeReferencer](graph.VerticesSeq()) {
+		for _, reference := range referencer.References() {
+			if target, ok := nodes.GetOk(reference.Subject); ok {
+				graph.Connect(dag.BasicEdge(referencer, target))
 			}
 		}
 	}
