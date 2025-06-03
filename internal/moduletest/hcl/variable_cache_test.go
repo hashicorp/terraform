@@ -21,16 +21,16 @@ import (
 func TestFileVariables(t *testing.T) {
 
 	tcs := map[string]struct {
-		Values       map[string]string
-		GlobalValues map[string]string
-		Variables    map[string]configs.VariableParsingMode
-		Want         map[string]cty.Value
+		TestFileVariableExpressions map[string]string
+		ExternalVariableValues      map[string]string
+		TestFileVariableDefinitions map[string]*configs.Variable
+		Want                        map[string]cty.Value
 	}{
 		"no_variables": {
 			Want: make(map[string]cty.Value),
 		},
 		"string": {
-			Values: map[string]string{
+			TestFileVariableExpressions: map[string]string{
 				"foo": `"bar"`,
 			},
 			Want: map[string]cty.Value{
@@ -38,7 +38,7 @@ func TestFileVariables(t *testing.T) {
 			},
 		},
 		"boolean": {
-			Values: map[string]string{
+			TestFileVariableExpressions: map[string]string{
 				"foo": "true",
 			},
 			Want: map[string]cty.Value{
@@ -46,14 +46,43 @@ func TestFileVariables(t *testing.T) {
 			},
 		},
 		"reference": {
-			Values: map[string]string{
+			TestFileVariableExpressions: map[string]string{
 				"foo": "var.bar",
 			},
-			GlobalValues: map[string]string{
+			ExternalVariableValues: map[string]string{
 				"bar": `"baz"`,
 			},
-			Variables: map[string]configs.VariableParsingMode{
-				"foo": configs.VariableParseLiteral,
+			TestFileVariableDefinitions: map[string]*configs.Variable{
+				"bar": {
+					ParsingMode:    configs.VariableParseHCL,
+					ConstraintType: cty.String,
+				},
+			},
+			Want: map[string]cty.Value{
+				"foo": cty.StringVal("baz"),
+			},
+		},
+		"reference to missing external": {
+			TestFileVariableExpressions: map[string]string{
+				"foo": "var.bar",
+			},
+			ExternalVariableValues: map[string]string{
+				"bar": `"baz"`,
+			},
+			Want: map[string]cty.Value{
+				"foo": cty.StringVal("baz"),
+			},
+		},
+		"reference with default": {
+			TestFileVariableExpressions: map[string]string{
+				"foo": "var.bar",
+			},
+			TestFileVariableDefinitions: map[string]*configs.Variable{
+				"bar": {
+					ParsingMode:    configs.VariableParseLiteral,
+					ConstraintType: cty.String,
+					Default:        cty.StringVal("baz"),
+				},
 			},
 			Want: map[string]cty.Value{
 				"foo": cty.StringVal("baz"),
@@ -64,10 +93,10 @@ func TestFileVariables(t *testing.T) {
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
 
-			caches := NewVariableCaches(func(vc *VariableCaches) {
-				vc.FileVariables = func() map[string]hcl.Expression {
+			cache := &VariableCache{
+				TestFileVariableExpressions: func() map[string]hcl.Expression {
 					vars := make(map[string]hcl.Expression)
-					for name, value := range tc.Values {
+					for name, value := range tc.TestFileVariableExpressions {
 						expr, diags := hclsyntax.ParseExpression([]byte(value), "test.tf", hcl.Pos{Line: 0, Column: 0, Byte: 0})
 						if len(diags) > 0 {
 							t.Fatalf("unexpected errors: %v", diags)
@@ -75,21 +104,20 @@ func TestFileVariables(t *testing.T) {
 						vars[name] = expr
 					}
 					return vars
-				}()
-				vc.GlobalVariables = func() map[string]backendrun.UnparsedVariableValue {
+				}(),
+				ExternalVariableValues: func() map[string]backendrun.UnparsedVariableValue {
 					vars := make(map[string]backendrun.UnparsedVariableValue)
-					for name, value := range tc.GlobalValues {
+					for name, value := range tc.ExternalVariableValues {
 						vars[name] = &variable{name, value}
 					}
 					return vars
-				}()
-			})
-			config := makeConfigWithVariables(tc.Variables)
+				}(),
+				TestFileVariableDefinitions: tc.TestFileVariableDefinitions,
+			}
 
-			cache := caches.GetCache("test", config)
 			got := make(map[string]cty.Value)
 			for name := range tc.Want {
-				value, diags := cache.GetFileVariable(name)
+				value, diags := cache.GetVariableValue(name)
 				if diags.HasErrors() {
 					t.Fatalf("unexpected errors: %v", diags)
 				}
@@ -100,119 +128,6 @@ func TestFileVariables(t *testing.T) {
 				t.Fatalf("unexpected result\n%s", diff)
 			}
 		})
-	}
-}
-
-func TestGlobalVariables(t *testing.T) {
-
-	tcs := map[string]struct {
-		Values    map[string]string
-		Variables map[string]configs.VariableParsingMode
-		Want      map[string]cty.Value
-	}{
-		"no_variables": {
-			Want: make(map[string]cty.Value),
-		},
-		"string": {
-			Values: map[string]string{
-				"foo": "bar",
-			},
-			Variables: map[string]configs.VariableParsingMode{
-				"foo": configs.VariableParseLiteral,
-			},
-			Want: map[string]cty.Value{
-				"foo": cty.StringVal("bar"),
-			},
-		},
-		"boolean_string": {
-			Values: map[string]string{
-				"foo": "true",
-			},
-			Variables: map[string]configs.VariableParsingMode{
-				"foo": configs.VariableParseLiteral,
-			},
-			Want: map[string]cty.Value{
-				"foo": cty.StringVal("true"),
-			},
-		},
-		"boolean": {
-			Values: map[string]string{
-				"foo": "true",
-			},
-			Variables: map[string]configs.VariableParsingMode{
-				"foo": configs.VariableParseHCL,
-			},
-			Want: map[string]cty.Value{
-				"foo": cty.BoolVal(true),
-			},
-		},
-		"string_hcl": {
-			Values: map[string]string{
-				"foo": `"bar"`,
-			},
-			Variables: map[string]configs.VariableParsingMode{
-				"foo": configs.VariableParseHCL,
-			},
-			Want: map[string]cty.Value{
-				"foo": cty.StringVal("bar"),
-			},
-		},
-		"missing_config": {
-			Values: map[string]string{
-				"foo": `"bar"`,
-			},
-			Want: map[string]cty.Value{
-				"foo": cty.StringVal("bar"),
-			},
-		},
-	}
-
-	for name, tc := range tcs {
-		t.Run(name, func(t *testing.T) {
-
-			caches := NewVariableCaches(func(vc *VariableCaches) {
-				vc.GlobalVariables = func() map[string]backendrun.UnparsedVariableValue {
-					vars := make(map[string]backendrun.UnparsedVariableValue)
-					for name, value := range tc.Values {
-						vars[name] = &variable{name, value}
-					}
-					return vars
-				}()
-			})
-
-			config := makeConfigWithVariables(tc.Variables)
-
-			cache := caches.GetCache("test", config)
-			got := make(map[string]cty.Value)
-			for name := range tc.Want {
-				value, diags := cache.GetGlobalVariable(name)
-				if diags.HasErrors() {
-					t.Fatalf("unexpected errors: %v", diags)
-				}
-				got[name] = value.Value
-			}
-
-			if diff := cmp.Diff(tc.Want, got, ctydebug.CmpOptions); len(diff) > 0 {
-				t.Fatalf("unexpected result\n%s", diff)
-			}
-		})
-	}
-
-}
-
-func makeConfigWithVariables(modes map[string]configs.VariableParsingMode) *configs.Config {
-	return &configs.Config{
-		Module: &configs.Module{
-			Variables: func() map[string]*configs.Variable {
-				vars := make(map[string]*configs.Variable)
-				for name, mode := range modes {
-					vars[name] = &configs.Variable{
-						ParsingMode: mode,
-					}
-				}
-				return vars
-			}(),
-		},
 	}
 }
 

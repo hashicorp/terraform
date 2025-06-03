@@ -103,6 +103,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp.DataSources = make(map[string]providers.Schema)
 	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
 	resp.ListResourceTypes = make(map[string]providers.Schema)
+	resp.StateStores = make(map[string]providers.Schema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -171,6 +172,10 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	for name, list := range protoResp.ListResourceSchemas {
 		resp.ListResourceTypes[name] = convert.ProtoToProviderSchema(list, nil)
+	}
+
+	for name, store := range protoResp.StateStoreSchemas {
+		resp.StateStores[name] = convert.ProtoToProviderSchema(store, nil)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -1338,6 +1343,14 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 
 		results = append(results, resourceEvent)
 	}
+}
+
+func (p *GRPCProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented")
+}
+
+func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	panic("not implemented")
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.

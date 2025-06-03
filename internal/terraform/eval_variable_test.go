@@ -862,7 +862,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				SourceType: ValueFromCaller,
 			}
 
-			got, diags := prepareFinalInputVariableValue(
+			got, diags := PrepareFinalInputVariableValue(
 				varAddr, rawVal, varCfg,
 			)
 
@@ -976,7 +976,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 						SourceRange: test.SourceRange,
 					}
 
-					_, diags := prepareFinalInputVariableValue(
+					_, diags := PrepareFinalInputVariableValue(
 						varAddr, rawVal, varCfg,
 					)
 					if !diags.HasErrors() {
@@ -994,7 +994,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 						SourceRange: test.SourceRange,
 					}
 
-					_, diags := prepareFinalInputVariableValue(
+					_, diags := PrepareFinalInputVariableValue(
 						varAddr, rawVal, varCfg,
 					)
 					if !diags.HasErrors() {
@@ -1045,7 +1045,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 						SourceRange: test.SourceRange,
 					}
 
-					_, diags := prepareFinalInputVariableValue(
+					_, diags := PrepareFinalInputVariableValue(
 						varAddr, rawVal, varCfg,
 					)
 					if !diags.HasErrors() {

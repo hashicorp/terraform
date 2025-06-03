@@ -257,6 +257,14 @@ func (s simple) ListResource(req providers.ListResourceRequest) providers.ListRe
 	panic("ListResource on provider that didn't declare any list resource types")
 }
 
+func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented")
+}
+
+func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	panic("not implemented")
+}
+
 func (s simple) Close() error {
 	return nil
 }

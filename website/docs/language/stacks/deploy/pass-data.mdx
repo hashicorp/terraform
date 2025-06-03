@@ -3,6 +3,12 @@ page_title: Pass data from one Stack to another
 description: Learn how to link Stacks together to pass data from one Stack to another using `publish_output` blocks to export data and `upstream_input` blocks to consume that data. 
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Pass data from one Stack to another
 
 If you have multiple Stacks that do not share a provisioning lifecycle, you can link Stacks together to export data from one Stack for another to consume. If the output value of a Stack changes after a run, HCP Terraform automatically triggers runs for any Stacks that depend on those outputs.

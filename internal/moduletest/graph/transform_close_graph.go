@@ -15,11 +15,7 @@ func (t *CloseTestGraphTransformer) Transform(g *terraform.Graph) error {
 	closeRoot := &nodeCloseTest{}
 	g.Add(closeRoot)
 
-	for _, v := range g.Vertices() {
-		if v == closeRoot {
-			continue
-		}
-
+	for v := range dag.ExcludeSeq[*nodeCloseTest](g.VerticesSeq()) {
 		// since this is closing the graph, make it depend on everything in
 		// the graph that does not have a parent. Such nodes are the real roots
 		// of the graph, and since they are now siblings of the closing root node,

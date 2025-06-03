@@ -8,10 +8,15 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+type GraphNodeExecutable interface {
+	Execute(ctx *EvalContext)
+}
 
 // TestGraphBuilder is a GraphBuilder implementation that builds a graph for
 // a terraform test file. The file may contain multiple runs, and each run may have
@@ -46,11 +51,12 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
-		&TestConfigTransformer{File: b.File},
 		&TestStateCleanupTransformer{opts},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
 		&CloseTestGraphTransformer{},
+		&EvalContextTransformer{File: b.File},
+		&ReferenceTransformer{},
 		&terraform.TransitiveReductionTransformer{},
 	}
 
@@ -58,13 +64,11 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 }
 
 func validateRunConfigs(g *terraform.Graph) error {
-	for _, v := range g.Vertices() {
-		if node, ok := v.(*NodeTestRun); ok {
-			diags := node.run.Config.Validate(node.run.ModuleConfig)
-			node.run.Diagnostics = node.run.Diagnostics.Append(diags)
-			if diags.HasErrors() {
-				node.run.Status = moduletest.Error
-			}
+	for node := range dag.SelectSeq[*NodeTestRun](g.VerticesSeq()) {
+		diags := node.run.Config.Validate(node.run.ModuleConfig)
+		node.run.Diagnostics = node.run.Diagnostics.Append(diags)
+		if diags.HasErrors() {
+			node.run.Status = moduletest.Error
 		}
 	}
 	return nil
@@ -73,9 +77,9 @@ func validateRunConfigs(g *terraform.Graph) error {
 // dynamicNode is a helper node which can be added to the graph to execute
 // a dynamic function at some desired point in the graph.
 type dynamicNode struct {
-	eval func(*EvalContext) tfdiags.Diagnostics
+	eval func(*EvalContext)
 }
 
-func (n *dynamicNode) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	return n.eval(evalCtx)
+func (n *dynamicNode) Execute(evalCtx *EvalContext) {
+	n.eval(evalCtx)
 }

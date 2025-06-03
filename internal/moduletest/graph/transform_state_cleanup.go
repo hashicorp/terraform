@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
@@ -21,11 +20,7 @@ type TestStateCleanupTransformer struct {
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
 
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
-			continue
-		}
+	for node := range dag.SelectSeq[*NodeTestRun](g.VerticesSeq()) {
 		key := node.run.GetStateKey()
 		if _, exists := cleanupMap[key]; !exists {
 			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts}
@@ -41,7 +36,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// existing CLI output.
 	rootCleanupNode := t.addRootCleanupNode(g)
 
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		switch node := v.(type) {
 		case *NodeTestRun:
 			// All the runs that share the same state, must share the same cleanup node,
@@ -75,10 +70,8 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 
 func (t *TestStateCleanupTransformer) addRootCleanupNode(g *terraform.Graph) *dynamicNode {
 	rootCleanupNode := &dynamicNode{
-		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
-			var diags tfdiags.Diagnostics
+		eval: func(ctx *EvalContext) {
 			ctx.Renderer().File(t.opts.File, moduletest.TearDown)
-			return diags
 		},
 	}
 	g.Add(rootCleanupNode)

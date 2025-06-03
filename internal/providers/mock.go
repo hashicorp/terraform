@@ -417,6 +417,14 @@ func (m *Mock) ListResource(request ListResourceRequest) ListResourceResponse {
 	return m.Provider.ListResource(request)
 }
 
+func (m *Mock) ValidateStateStoreConfig(req ValidateStateStoreConfigRequest) ValidateStateStoreConfigResponse {
+	return m.Provider.ValidateStateStoreConfig(req)
+}
+
+func (m *Mock) ConfigureStateStore(req ConfigureStateStoreRequest) ConfigureStateStoreResponse {
+	return m.Provider.ConfigureStateStore(req)
+}
+
 func (m *Mock) Close() error {
 	return m.Provider.Close()
 }

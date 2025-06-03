@@ -256,3 +256,17 @@ func (p *erroredProvider) ListResource(req providers.ListResourceRequest) provid
 	))
 	return resp
 }
+
+// ValidateStateStoreConfig implements providers.Interface.
+func (p *erroredProvider) ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	return providers.ValidateStateStoreConfigResponse{
+		Diagnostics: nil,
+	}
+}
+
+// ConfigureStateStore implements providers.Interface.
+func (p *erroredProvider) ConfigureStateStore(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	return providers.ConfigureStateStoreResponse{
+		Diagnostics: nil,
+	}
+}

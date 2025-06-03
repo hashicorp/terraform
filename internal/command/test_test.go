@@ -334,6 +334,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
+		"with-default-variables": {
+			args:        []string{"-var=input_two=universe"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -2279,6 +2284,9 @@ func TestTest_BadReferences(t *testing.T) {
 	}
 
 	expectedOut := `main.tftest.hcl... in progress
+  run "setup"... pass
+  run "test"... fail
+  run "finalise"... skip
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 providers.tftest.hcl... in progress
@@ -2286,7 +2294,7 @@ providers.tftest.hcl... in progress
 providers.tftest.hcl... tearing down
 providers.tftest.hcl... fail
 
-Failure! 0 passed, 1 failed.
+Failure! 1 passed, 2 failed, 1 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -2302,19 +2310,10 @@ Error: Reference to unavailable variable
 The input variable "notreal" is not available to the current run block. You
 can only reference variables defined at the file or global levels.
 
-Error: Reference to unavailable run block
-
-  on main.tftest.hcl line 16, in run "test":
-  16:     input_two = run.finalise.response
-
-The run block "finalise" has not executed yet. You can only reference run
-blocks that are in the same test file and will execute before the current run
-block.
-
 Error: Reference to unknown run block
 
-  on main.tftest.hcl line 17, in run "test":
-  17:     input_three = run.madeup.response
+  on main.tftest.hcl line 16, in run "test":
+  16:     input_two = run.madeup.response
 
 The run block "madeup" does not exist within this test file. You can only
 reference run blocks that are in the same test file and will execute before
