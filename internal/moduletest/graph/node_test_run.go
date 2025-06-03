@@ -17,7 +17,9 @@ import (
 )
 
 var (
-	_ GraphNodeExecutable = (*NodeTestRun)(nil)
+	_ GraphNodeExecutable    = (*NodeTestRun)(nil)
+	_ GraphNodeReferenceable = (*NodeTestRun)(nil)
+	_ GraphNodeReferencer    = (*NodeTestRun)(nil)
 )
 
 type NodeTestRun struct {
@@ -34,7 +36,11 @@ func (n *NodeTestRun) File() *moduletest.File {
 }
 
 func (n *NodeTestRun) Name() string {
-	return fmt.Sprintf("%s.%s", n.opts.File.Name, n.run.Name)
+	return fmt.Sprintf("%s.%s", n.opts.File.Name, n.run.Addr().String())
+}
+
+func (n *NodeTestRun) Referenceable() addrs.Referenceable {
+	return n.run.Addr()
 }
 
 func (n *NodeTestRun) References() []*addrs.Reference {
