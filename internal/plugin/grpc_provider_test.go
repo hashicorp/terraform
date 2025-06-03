@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -1376,6 +1377,7 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
+		ctx:    context.Background(),
 	}
 
 	// Create a mock stream client that will return resource events
@@ -1470,6 +1472,7 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
+		ctx:    context.Background(),
 	}
 
 	// Test case where the provider returns an error
@@ -1494,6 +1497,7 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
+		ctx:    context.Background(),
 	}
 
 	// Create a mock stream client that will return a resource event with diagnostics
@@ -1549,6 +1553,7 @@ func TestGRPCProvider_ListResource_Limit(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
+		ctx:    context.Background(),
 	}
 
 	// Create a mock stream client that will return resource events

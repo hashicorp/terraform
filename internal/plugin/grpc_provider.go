@@ -1287,8 +1287,12 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		Limit:                 r.Limit,
 	}
 
-	// Start the streaming RPC
-	client, err := p.client.ListResource(p.ctx, protoReq)
+	// Start the streaming RPC with a context. The context will be cancelled
+	// when this function returns, which will stop the stream if it is still
+	// running.
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+	client, err := p.client.ListResource(ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp

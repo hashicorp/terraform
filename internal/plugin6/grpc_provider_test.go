@@ -5,6 +5,7 @@ package plugin6
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -1383,6 +1384,7 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
+		ctx:    context.Background(),
 	}
 
 	// Create a mock stream client that will return resource events
