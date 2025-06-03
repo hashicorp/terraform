@@ -5,7 +5,6 @@ package graph
 
 import (
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -70,22 +69,4 @@ func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*N
 			g.Connect(dag.BasicEdge(runs[i], runs[i-1]))
 		}
 	}
-}
-
-func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) map[string]struct{} {
-	set := make(map[string]struct{})
-	for name := range t.opts.GlobalVars {
-		set[name] = struct{}{}
-	}
-	for name := range run.Config.Variables {
-		set[name] = struct{}{}
-	}
-
-	for name := range t.opts.File.Config.Variables {
-		set[name] = struct{}{}
-	}
-	for name := range run.ModuleConfig.Module.Variables {
-		set[name] = struct{}{}
-	}
-	return set
 }
