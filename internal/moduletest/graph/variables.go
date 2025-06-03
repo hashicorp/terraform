@@ -150,9 +150,10 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 			}
 		}
 
-		// Finally, we're going to give these variables a value. They'll be
-		// processed by the Terraform graph and provided a default value later
-		// if they have one.
+		// If all else fails, these variables may have default values set within
+		// the to-be-executed Terraform config. We'll put in placeholder values
+		// if that is the case, otherwise add a diagnostic early to avoid
+		// executing something we know will fail.
 
 		if variable.Required() {
 			diags = diags.Append(&hcl.Diagnostic{
