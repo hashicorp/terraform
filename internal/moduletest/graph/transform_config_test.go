@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 )
@@ -219,7 +220,7 @@ func TestTransformForTest(t *testing.T) {
 				availableProviders[provider] = true
 			}
 
-			ctx := NewEvalContext(&EvalContextOpts{
+			ctx := NewEvalContext(EvalContextOpts{
 				CancelCtx: context.Background(),
 				StopCtx:   context.Background(),
 			})

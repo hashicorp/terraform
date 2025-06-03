@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -112,20 +110,15 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		file := suite.Files[name]
-		evalCtx := graph.NewEvalContext(&graph.EvalContextOpts{
+		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
 			CancelCtx: runner.CancelledCtx,
 			StopCtx:   runner.StoppedCtx,
 			Verbose:   runner.Verbose,
 			Render:    runner.View,
 		})
 
-		for _, run := range file.Runs {
-			// Pre-initialise the prior outputs, so we can easily tell between
-			// a run block that doesn't exist and a run block that hasn't been
-			// executed yet.
-			// (moduletest.EvalContext treats cty.NilVal as "not visited yet")
-			evalCtx.SetOutput(run, cty.NilVal)
-		}
+		// TODO(liamcervante): Do the variables in the EvalContextTransformer
+		// as well as the run blocks.
 
 		currentGlobalVariables := runner.GlobalVariables
 		if filepath.Dir(file.Name) == runner.TestingDirectory {
@@ -133,7 +126,6 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			// global variables and the global test variables.
 			currentGlobalVariables = testDirectoryGlobalVariables
 		}
-
 		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
 			maps.Copy(vc.GlobalVariables, currentGlobalVariables)
 			vc.FileVariables = file.Config.Variables

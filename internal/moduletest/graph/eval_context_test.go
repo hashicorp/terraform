@@ -735,7 +735,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				priorOutputs[addrs.Run{Name: name}] = val
 			}
 
-			testCtx := NewEvalContext(&EvalContextOpts{
+			testCtx := NewEvalContext(EvalContextOpts{
 				CancelCtx: context.Background(),
 				StopCtx:   context.Background(),
 			})
