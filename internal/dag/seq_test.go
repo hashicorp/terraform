@@ -27,7 +27,7 @@ func TestSelectSeq(t *testing.T) {
 	vertices := Set{v1: v1, v11: v11, v2: v2}
 
 	graph := &Graph{vertices: vertices}
-	seq := SelectSeq(graph.VerticesSeq(), MockVertex{})
+	seq := SelectSeq(graph.VerticesSeq(), func(MockVertex) {})
 	t.Run("Select objects of given type", func(t *testing.T) {
 		count := len(seq.Collect())
 		if count != 2 {
@@ -36,7 +36,7 @@ func TestSelectSeq(t *testing.T) {
 	})
 
 	t.Run("Returns empty when looking for incompatible types", func(t *testing.T) {
-		seq := SelectSeq(seq, MockVertex2{})
+		seq := SelectSeq(seq, func(MockVertex2) {})
 		count := len(seq.Collect())
 		if count != 0 {
 			t.Errorf("Expected empty, got %d", count)
@@ -44,7 +44,7 @@ func TestSelectSeq(t *testing.T) {
 	})
 
 	t.Run("Select objects of given interface", func(t *testing.T) {
-		seq := SelectSeq(graph.VerticesSeq(), interface{ ZeroValue() any }(nil))
+		seq := SelectSeq(graph.VerticesSeq(), func(interface{ ZeroValue() any }) {})
 		count := len(seq.Collect())
 		if count != 2 {
 			t.Errorf("Expected 1, got %d", count)
@@ -59,7 +59,7 @@ func TestExcludeSeq(t *testing.T) {
 	vertices := Set{v1: v1, v11: v11, v2: v2}
 
 	graph := &Graph{vertices: vertices}
-	seq := ExcludeSeq(graph.VerticesSeq(), MockVertex{})
+	seq := ExcludeSeq(graph.VerticesSeq(), func(MockVertex) {})
 	t.Run("Exclude objects of given type", func(t *testing.T) {
 		count := len(seq.Collect())
 		if count != 1 {
@@ -68,7 +68,7 @@ func TestExcludeSeq(t *testing.T) {
 	})
 
 	t.Run("Returns empty when looking for incompatible types", func(t *testing.T) {
-		seq := ExcludeSeq(seq, MockVertex2{})
+		seq := ExcludeSeq(seq, func(MockVertex2) {})
 		count := len(seq.Collect())
 		if count != 0 {
 			t.Errorf("Expected empty, got %d", count)
@@ -76,7 +76,7 @@ func TestExcludeSeq(t *testing.T) {
 	})
 
 	t.Run("Exclude objects of given interface", func(t *testing.T) {
-		seq := ExcludeSeq(graph.VerticesSeq(), interface{ ZeroValue() any }(nil))
+		seq := ExcludeSeq(graph.VerticesSeq(), func(interface{ ZeroValue() any }) {})
 		count := len(seq.Collect())
 		if count != 1 {
 			t.Errorf("Expected 1, got %d", count)
