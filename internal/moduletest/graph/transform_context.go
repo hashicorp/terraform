@@ -49,7 +49,7 @@ func (e *EvalContextTransformer) Transform(graph *terraform.Graph) error {
 	}
 
 	graph.Add(node)
-	for _, v := range graph.Vertices() {
+	for v := range graph.VerticesSeq() {
 		if v == node {
 			continue
 		}
