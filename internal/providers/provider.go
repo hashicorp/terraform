@@ -143,7 +143,7 @@ type GetProviderSchemaResponse struct {
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
 
-	// StateStores maps the backend type name to that type's schema.
+	// StateStores maps the state store type name to that type's schema.
 	StateStores map[string]Schema
 
 	// Diagnostics contains any warnings or errors from the method call.

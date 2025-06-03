@@ -845,12 +845,21 @@ func (p *MockProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreCo
 	p.ValidateStateStoreConfigCalled = true
 	p.ValidateStateStoreConfigRequest = r
 
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ValidateStateStoreConfig %q", r.TypeName))
+		return resp
+	}
+
 	// Marshall the value to replicate behavior by the GRPC protocol,
 	// and return any relevant errors
 	storeSchema, ok := p.getProviderSchema().StateStores[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for state store %q", r.TypeName))
 		return resp
+	}
+
+	if p.ValidateStateStoreConfigResponse != nil {
+		return *p.ValidateStateStoreConfigResponse
 	}
 
 	_, err := msgpack.Marshal(r.Config, storeSchema.Body.ImpliedType())
@@ -863,10 +872,6 @@ func (p *MockProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreCo
 		return p.ValidateStateStoreConfigFn(r)
 	}
 
-	if p.ValidateStateStoreConfigResponse != nil {
-		return *p.ValidateStateStoreConfigResponse
-	}
-
 	return resp
 }
 
@@ -877,12 +882,21 @@ func (p *MockProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 	p.ConfigureStateStoreCalled = true
 	p.ConfigureStateStoreRequest = r
 
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ConfigureStateStore %q", r.TypeName))
+		return resp
+	}
+
 	// Marshall the value to replicate behavior by the GRPC protocol,
 	// and return any relevant errors
 	storeSchema, ok := p.getProviderSchema().StateStores[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for state store %q", r.TypeName))
 		return resp
+	}
+
+	if p.ConfigureStateStoreResponse != nil {
+		return *p.ConfigureStateStoreResponse
 	}
 
 	_, err := msgpack.Marshal(r.Config, storeSchema.Body.ImpliedType())
@@ -893,10 +907,6 @@ func (p *MockProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 
 	if p.ConfigureStateStoreFn != nil {
 		return p.ConfigureStateStoreFn(r)
-	}
-
-	if p.ConfigureStateStoreResponse != nil {
-		return *p.ConfigureStateStoreResponse
 	}
 
 	return resp
