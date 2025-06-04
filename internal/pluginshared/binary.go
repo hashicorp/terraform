@@ -128,7 +128,7 @@ func (v BinaryManager) resolveRelease() (*Binary, error) {
 
 	// Unarchive
 	unzip := getter.ZipDecompressor{
-		FilesLimit:    1,
+		FilesLimit:    3, // plugin binary, .version file, and LICENSE.txt
 		FileSizeLimit: 500 * MB,
 	}
 	targetPath := v.binaryLocation()

@@ -32,7 +32,7 @@ func NewStacksBinaryManager(ctx context.Context, stacksPluginDataDir, overridePa
 			overridePath:  overridePath,
 			host:          svchost.Hostname(serviceURL.Host),
 			client:        client,
-			binaryName:    "terraform-stacksplugin",
+			binaryName:    "tfstacks",
 			pluginName:    "stacksplugin",
 			goos:          goos,
 			arch:          arch,
