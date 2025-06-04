@@ -142,7 +142,7 @@ type GetProviderSchemaResponse struct {
 	// to its schema.
 	EphemeralResourceTypes map[string]Schema
 
-	// ListResourceTypes maps the name of an ephemeral resource type to its
+	// ListResourceTypes maps the name of a list resource type to its
 	// schema.
 	ListResourceTypes map[string]Schema
 

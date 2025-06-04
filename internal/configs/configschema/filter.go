@@ -26,6 +26,25 @@ var (
 	FilterDeprecatedBlock = func(path cty.Path, block *NestedBlock) bool {
 		return block.Deprecated
 	}
+
+	// FilterBlockByName returns a negative filter, meaning it excludes blocks with the given name.
+	FilterBlockByName = func(name string) FilterT[*NestedBlock] {
+		return func(path cty.Path, block *NestedBlock) bool {
+			if len(path) == 0 {
+				// Impossible to have no steps in the path,
+				// so this is not a match.
+				return true
+			}
+			step, ok := path[0].(cty.GetAttrStep)
+			if !ok {
+				return true
+			}
+			if step.Name == name {
+				return true
+			}
+			return false
+		}
+	}
 )
 
 func FilterOr[T any](filters ...FilterT[T]) FilterT[T] {
