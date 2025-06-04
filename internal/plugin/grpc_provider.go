@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -170,7 +171,27 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, list := range protoResp.ListResourceSchemas {
-		resp.ListResourceTypes[name] = convert.ProtoToProviderSchema(list, nil)
+		managed := resp.ResourceTypes[name]
+		ret := convert.ProtoToProviderSchema(list, nil)
+		// the managed resource schema is used to define the body of the
+		// "data" block type in the list resource schema.
+		ret.Body.BlockTypes["data"] = &configschema.NestedBlock{
+			Nesting: configschema.NestingList,
+			Block: configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"state": {
+						Nesting: configschema.NestingSingle,
+						Block:   *managed.Body,
+					},
+				},
+				Attributes: map[string]*configschema.Attribute{
+					"identity": {
+						NestedType: managed.Identity,
+					},
+				},
+			},
+		}
+		resp.ListResourceTypes[name] = ret
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -357,7 +378,8 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
+	configSchema := listResourceSchema.Body.Filter(nil, configschema.FilterBlockByName("data"))
+	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -1274,7 +1296,9 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
+	configSchema := listResourceSchema.Body.Filter(nil, configschema.FilterBlockByName("data"))
+
+	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
