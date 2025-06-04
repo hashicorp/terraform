@@ -104,10 +104,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, applyScope, testOnlyVariables)
 	run.Status = newStatus
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
-
-	// Now we've successfully validated this run block, lets add it into
-	// our prior run outputs so future run blocks can access it.
-	ctx.SetOutput(run, outputVals)
+	run.Outputs = outputVals
 
 	// Only update the most recent run and state if the state was
 	// actually updated by this change. We want to use the run that

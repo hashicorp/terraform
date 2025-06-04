@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"maps"
 	"sort"
 	"sync"
 
@@ -44,14 +43,8 @@ type TestFileState struct {
 type EvalContext struct {
 	VariableCache *hcltest.VariableCache
 
-	// runOutputs is a mapping from run addresses to cty object values
-	// representing the collected output values from the module under test.
-	//
-	// This is used to allow run blocks to refer back to the output values of
-	// previous run blocks. It is passed into the Evaluate functions that
-	// validate the test assertions, and used when calculating values for
-	// variables within run blocks.
-	runOutputs  map[addrs.Run]cty.Value
+	// runBlocks caches all the known run blocks that this EvalContext manages.
+	runBlocks   map[addrs.Run]*moduletest.Run
 	outputsLock sync.Mutex
 
 	// configProviders is a cache of config keys mapped to all the providers
@@ -99,7 +92,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 	cancelCtx, cancel := context.WithCancel(opts.CancelCtx)
 	stopCtx, stop := context.WithCancel(opts.StopCtx)
 	return &EvalContext{
-		runOutputs:      make(map[addrs.Run]cty.Value),
+		runBlocks:       make(map[addrs.Run]*moduletest.Run),
 		outputsLock:     sync.Mutex{},
 		configProviders: make(map[string]map[string]bool),
 		providersLock:   sync.Mutex{},
@@ -313,17 +306,28 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 	return status, cty.ObjectVal(outputVals), diags
 }
 
-func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
+func (ec *EvalContext) AddRunBlock(run *moduletest.Run) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	ec.runOutputs[run.Addr()] = output
+	ec.runBlocks[run.Addr()] = run
 }
 
 func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runOutputs))
-	maps.Copy(outputCopy, ec.runOutputs) // don't use clone here, so we can return a non-nil map
+	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runBlocks))
+	for addr, run := range ec.runBlocks {
+		// Normally, we should check the run.Status before reading the outputs
+		// to make sure they are actually valid. But, for now we are tracking
+		// a difference between run blocks not yet executed and run blocks that
+		// do not exist by setting cty.NilVal for run blocks that haven't
+		// executed yet so we do actually just want to include all run blocks
+		// here.
+		// TODO(liamcervante): Validate run status before adding to this map
+		// once providers and variables are in the graph and we don't need to
+		// rely on this hack.
+		outputCopy[addr] = run.Outputs
+	}
 	return outputCopy
 }
 
@@ -376,6 +380,60 @@ func (ec *EvalContext) GetFileState(key string) *TestFileState {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
 	return ec.FileStates[key]
+}
+
+// ReferencesCompleted returns true if all the listed references were actually
+// executed successfully. This allows nodes in the graph to decide if they
+// should execute or not based on the
+//
+// TODO(liamcervante): Expand this with providers and variables once we've added
+// them to the graph.
+func (ec *EvalContext) ReferencesCompleted(refs []*addrs.Reference) bool {
+	for _, ref := range refs {
+		switch ref := ref.Subject.(type) {
+		case addrs.Run:
+			ec.outputsLock.Lock()
+			if run, ok := ec.runBlocks[ref]; ok {
+				if run.Status != moduletest.Pass && run.Status != moduletest.Fail {
+					ec.outputsLock.Unlock()
+
+					// see also prior runs completed
+
+					return false
+				}
+			}
+			ec.outputsLock.Unlock()
+		}
+	}
+	return true
+}
+
+// PriorRunsCompleted checks a list of run blocks against our internal log of
+// completed run blocks and makes sure that any that do exist successfully
+// executed to completion.
+//
+// Note that run blocks that are not in the list indicate a bad reference,
+// which we ignore here. This is actually the problem of the caller to identify
+// and error.
+func (ec *EvalContext) PriorRunsCompleted(runs map[addrs.Run]*moduletest.Run) bool {
+	ec.outputsLock.Lock()
+	defer ec.outputsLock.Unlock()
+
+	for addr := range runs {
+		if run, ok := ec.runBlocks[addr]; ok {
+			if run.Status != moduletest.Pass && run.Status != moduletest.Fail {
+
+				// pass and fail indicate the run block still executed the plan
+				// or apply operate and wrote outputs. fail means the
+				// post-execution checks failed, but we still had data to check.
+				// this is in contrast to pending, skip, or error which indicate
+				// that we never even wrote data for this run block.
+
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // evaluationData augments an underlying lang.Data -- presumably resulting

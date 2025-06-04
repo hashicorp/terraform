@@ -72,10 +72,7 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, planScope, testOnlyVariables)
 	run.Status = newStatus
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
-
-	// Now we've successfully validated this run block, lets add it into
-	// our prior run outputs so future run blocks can access it.
-	ctx.SetOutput(run, outputVals)
+	run.Outputs = outputVals
 }
 
 func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {

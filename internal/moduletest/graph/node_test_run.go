@@ -23,8 +23,9 @@ var (
 )
 
 type NodeTestRun struct {
-	run  *moduletest.Run
-	opts *graphOptions
+	run       *moduletest.Run
+	priorRuns map[addrs.Run]*moduletest.Run
+	opts      *graphOptions
 }
 
 func (n *NodeTestRun) Run() *moduletest.Run {
@@ -62,10 +63,9 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 		file.UpdateStatus(run.Status)
 	}()
 
-	if file.GetStatus() == moduletest.Error {
-		// If the overall test file has errored, we don't keep trying to
-		// execute tests. Instead, we mark all remaining run blocks as
-		// skipped, print the status, and move on.
+	if !evalCtx.PriorRunsCompleted(n.priorRuns) || !evalCtx.ReferencesCompleted(n.References()) {
+		// If any of our prior runs or references weren't completed successfully
+		// then we will just skip this run block.
 		run.Status = moduletest.Skip
 		return
 	}
