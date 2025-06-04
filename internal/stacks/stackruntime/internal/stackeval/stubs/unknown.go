@@ -297,6 +297,17 @@ func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) provider
 	}
 }
 
+func (u *unknownProvider) ListResource(providers.ListResourceRequest) providers.ListResourceResponse {
+	var resp providers.ListResourceResponse
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ListResource on an unknown provider",
+		"Terraform called ListResource on an unknown provider. This is a bug in Terraform - please report this error.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return resp
+}
+
 // ValidateStateStoreConfig implements providers.Interface.
 func (u *unknownProvider) ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
 	var diags tfdiags.Diagnostics

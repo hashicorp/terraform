@@ -249,6 +249,17 @@ func (o *offlineProvider) CallFunction(request providers.CallFunctionRequest) pr
 	return o.unconfiguredClient.CallFunction(request)
 }
 
+func (o *offlineProvider) ListResource(providers.ListResourceRequest) providers.ListResourceResponse {
+	var resp providers.ListResourceResponse
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ListResource on an unconfigured provider",
+		"Cannot list this resource because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return resp
+}
+
 // ValidateStateStoreConfig implements providers.Interface.
 func (o *offlineProvider) ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
 	var diags tfdiags.Diagnostics

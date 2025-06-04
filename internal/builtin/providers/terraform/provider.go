@@ -272,6 +272,12 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 	}
 }
 
+func (p *Provider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+	var resp providers.ListResourceResponse
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported list resource type %q", req.TypeName))
+	return resp
+}
+
 func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
 	var resp providers.ValidateStateStoreConfigResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))

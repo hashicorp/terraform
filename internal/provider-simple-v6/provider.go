@@ -251,6 +251,12 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	return resp
 }
 
+func (s simple) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+	// Our schema doesn't include any list resource types, so it should be
+	// impossible to get in here.
+	panic("ListResource on provider that didn't declare any list resource types")
+}
+
 func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
 	panic("not implemented")
 }

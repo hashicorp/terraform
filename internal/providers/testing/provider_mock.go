@@ -126,6 +126,11 @@ type MockProvider struct {
 	CallFunctionRequest  providers.CallFunctionRequest
 	CallFunctionFn       func(providers.CallFunctionRequest) providers.CallFunctionResponse
 
+	ListResourceCalled   bool
+	ListResourceResponse providers.ListResourceResponse
+	ListResourceRequest  providers.ListResourceRequest
+	ListResourceFn       func(providers.ListResourceRequest) providers.ListResourceResponse
+
 	ValidateStateStoreConfigCalled   bool
 	ValidateStateStoreConfigResponse *providers.ValidateStateStoreConfigResponse
 	ValidateStateStoreConfigRequest  providers.ValidateStateStoreConfigRequest
@@ -836,6 +841,19 @@ func (p *MockProvider) CallFunction(r providers.CallFunctionRequest) providers.C
 	}
 
 	return p.CallFunctionResponse
+}
+
+func (p *MockProvider) ListResource(r providers.ListResourceRequest) providers.ListResourceResponse {
+	p.Lock()
+	defer p.Unlock()
+	p.ListResourceCalled = true
+	p.ListResourceRequest = r
+
+	if p.ListResourceFn != nil {
+		return p.ListResourceFn(r)
+	}
+
+	return p.ListResourceResponse
 }
 
 func (p *MockProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreConfigRequest) (resp providers.ValidateStateStoreConfigResponse) {
