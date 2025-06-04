@@ -88,7 +88,7 @@ func TransformConfigForRun(ctx *EvalContext, run *moduletest.Run, file *modulete
 				AliasRange: ref.InChild.AliasRange,
 				Config: &hcltest.ProviderConfig{
 					Original:            testProvider.Config,
-					VariableCache:       ctx.VariableCache,
+					AvailableVariables:  ctx.Variables(),
 					AvailableRunOutputs: runOutputs,
 				},
 				Mock:      testProvider.Mock,
@@ -114,7 +114,7 @@ func TransformConfigForRun(ctx *EvalContext, run *moduletest.Run, file *modulete
 				AliasRange: provider.AliasRange,
 				Config: &hcltest.ProviderConfig{
 					Original:            provider.Config,
-					VariableCache:       ctx.VariableCache,
+					AvailableVariables:  ctx.Variables(),
 					AvailableRunOutputs: runOutputs,
 				},
 				Mock:      provider.Mock,

@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -23,13 +22,11 @@ type GraphNodeExecutable interface {
 // dependencies on other runs.
 type TestGraphBuilder struct {
 	File        *moduletest.File
-	GlobalVars  map[string]backendrun.UnparsedVariableValue
 	ContextOpts *terraform.ContextOpts
 }
 
 type graphOptions struct {
 	File        *moduletest.File
-	GlobalVars  map[string]backendrun.UnparsedVariableValue
 	ContextOpts *terraform.ContextOpts
 }
 
@@ -46,17 +43,17 @@ func (b *TestGraphBuilder) Build() (*terraform.Graph, tfdiags.Diagnostics) {
 func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	opts := &graphOptions{
 		File:        b.File,
-		GlobalVars:  b.GlobalVars,
 		ContextOpts: b.ContextOpts,
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
 		&TestStateCleanupTransformer{opts},
+		&TestVariablesTransformer{File: b.File},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
-		&CloseTestGraphTransformer{},
 		&EvalContextTransformer{File: b.File},
 		&ReferenceTransformer{},
+		&CloseTestGraphTransformer{},
 		&terraform.TransitiveReductionTransformer{},
 	}
 

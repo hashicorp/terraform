@@ -64,26 +64,12 @@ func EvalContext(target EvalContextTarget, expressions map[string]hcl.Expression
 
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.Run); ok {
-				if target == TargetFileVariable {
-					// You can't reference run blocks from within the file
-					// variables block.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid reference",
-						Detail:   "You can not reference run blocks from within the file variables block.",
-						Subject:  ref.SourceRange.ToHCL().Ptr(),
-					})
-					continue
-				}
-
 				objVal, exists := availableRunOutputs[addr]
 
 				var diagPrefix string
 				switch target {
-				case TargetRunBlock:
-					diagPrefix = "You can only reference run blocks that are in the same test file and will execute before the current run block."
 				case TargetProvider:
-					diagPrefix = "You can only reference run blocks that are in the same test file and will execute before the provider is required."
+					diagPrefix = " You can only reference run blocks that are in the same test file and will execute before the provider is required."
 				}
 
 				if !exists {
@@ -91,7 +77,7 @@ func EvalContext(target EvalContextTarget, expressions map[string]hcl.Expression
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unknown run block",
-						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", addr.Name, diagPrefix),
+						Detail:   fmt.Sprintf("The run block %q does not exist within this test file.%s", addr.Name, diagPrefix),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 
@@ -103,7 +89,7 @@ func EvalContext(target EvalContextTarget, expressions map[string]hcl.Expression
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unavailable run block",
-						Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", addr.Name, diagPrefix),
+						Detail:   fmt.Sprintf("The run block %q has not executed yet.%s", addr.Name, diagPrefix),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 
@@ -148,12 +134,10 @@ func EvalContext(target EvalContextTarget, expressions map[string]hcl.Expression
 
 					var detail string
 					switch target {
-					case TargetRunBlock:
-						detail = fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels.", addr.Name)
 					case TargetProvider:
 						detail = fmt.Sprintf("The input variable %q is not available to the current provider configuration. You can only reference variables defined at the file or global levels.", addr.Name)
-					case TargetFileVariable:
-						detail = fmt.Sprintf("The input variable %q is not available to the current context. You can only reference global variables.", addr.Name)
+					default:
+						detail = fmt.Sprintf("The input variable %q does not exist within this test file.", addr.Name)
 					}
 
 					diags = diags.Append(&hcl.Diagnostic{
@@ -177,7 +161,7 @@ func EvalContext(target EvalContextTarget, expressions map[string]hcl.Expression
 			case TargetProvider:
 				detail = "You can only reference run blocks, file level, and global variables while defining variables from inside provider configurations."
 			case TargetFileVariable:
-				detail = "You can only reference global variables within the test file variables block."
+				detail = "You can only reference global variables and run blocks within the test file variables block."
 			}
 
 			// You can only reference run blocks and variables from the run

@@ -53,13 +53,18 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 
 	// First, let's step through the expressions within the run block and work
 	// them out.
+
 	for name, expr := range run.Config.Variables {
 		requiredValues := make(map[string]cty.Value)
 
 		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
-				if value, valueDiags := ctx.VariableCache.GetVariableValue(addr.Name); value != nil {
+				if value := ctx.GetVariable(addr.Name); value != nil {
+					requiredValues[addr.Name] = value.Value
+					continue
+				}
+				if value, valueDiags := ctx.EvaluateUnparsedVariable(addr.Name, run.ModuleConfig.Module.Variables[addr.Name]); value != nil {
 					diags = diags.Append(valueDiags)
 					requiredValues[addr.Name] = value.Value
 					continue
@@ -101,30 +106,11 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 		}
 	}
 
-	for variable := range relevantVariables {
-		if _, exists := values[variable]; exists {
-			// Then we've already got a value for this variable.
-			continue
-		}
-
-		if _, exists := run.ModuleConfig.Module.Variables[variable]; exists {
-			// We'll deal with this later.
-			continue
-		}
-
-		// Otherwise, we'll get it from the cache as a file-level or global
-		// variable.
-		value, valueDiags := ctx.VariableCache.GetVariableValue(variable)
-		diags = diags.Append(valueDiags)
-		if value != nil {
-			values[variable] = value
-			continue
-		}
-	}
-
-	// Finally, we check the configuration again. This is where we'll discover
-	// if there's any missing variables and fill in any optional variables that
-	// don't have a value already.
+	// Second, let's see if we have any variables defined with the configuration
+	// we're about to test. We'll check if we have matching variable values
+	// defined within the test file or globally that can match them and, if not,
+	// use a default fallback value to let Terraform attempt to apply defaults
+	// if they exist.
 
 	for name, variable := range run.ModuleConfig.Module.Variables {
 		if _, exists := values[name]; exists {
@@ -136,18 +122,14 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 		// The user might have provided a value for this externally or at the
 		// file level, so we can also just pass it through.
 
-		if ctx.VariableCache.HasVariableDefinition(variable.Name) {
-			if value, valueDiags := ctx.VariableCache.GetVariableValue(variable.Name); value != nil {
-				diags = diags.Append(valueDiags)
-				values[name] = value
-				continue
-			}
-		} else {
-			if value, valueDiags := ctx.VariableCache.EvaluateExternalVariable(name, variable); value != nil {
-				diags = diags.Append(valueDiags)
-				values[name] = value
-				continue
-			}
+		if value := ctx.GetVariable(variable.Name); value != nil {
+			values[name] = value
+			continue
+		}
+		if value, valueDiags := ctx.EvaluateUnparsedVariable(name, variable); value != nil {
+			diags = diags.Append(valueDiags)
+			values[name] = value
+			continue
 		}
 
 		// If all else fails, these variables may have default values set within
@@ -175,6 +157,29 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 				SourceType:  terraform.ValueFromConfig,
 				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
 			}
+		}
+	}
+
+	// Finally, in this whole thing we might have other variables that are
+	// just referenced by parts of this run block. These must have been defined
+	// elsewhere, but we need to include them.
+
+	for variable := range relevantVariables {
+		if _, exists := values[variable]; exists {
+			// Then we've already got a value for this variable.
+			continue
+		}
+
+		// Otherwise, we'll get it from the cache as a file-level or global
+		// variable.
+
+		if value := ctx.GetVariable(variable); value != nil {
+			values[variable] = value
+			continue
+		}
+		if value, valueDiags := ctx.EvaluateUnparsedVariable(variable, nil); value != nil {
+			values[variable] = value
+			diags = diags.Append(valueDiags)
 		}
 	}
 

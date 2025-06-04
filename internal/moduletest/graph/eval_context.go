@@ -15,13 +15,13 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -41,7 +41,14 @@ type TestFileState struct {
 // within the suite.
 // The struct provides concurrency-safe access to the various maps it contains.
 type EvalContext struct {
-	VariableCache *hcltest.VariableCache
+	// unparsedVariables and parsedVariables are the values for the variables
+	// required by this test file. The parsedVariables will be populated as the
+	// test graph is executed, while the unparsedVariables will be lazily
+	// evaluated by each run block that needs them.
+	unparsedVariables map[string]backendrun.UnparsedVariableValue
+	parsedVariables   terraform.InputValues
+	variableStatus    map[string]moduletest.Status
+	variablesLock     sync.Mutex
 
 	// runBlocks caches all the known run blocks that this EvalContext manages.
 	runBlocks   map[addrs.Run]*moduletest.Run
@@ -77,11 +84,11 @@ type EvalContext struct {
 }
 
 type EvalContextOpts struct {
-	Verbose       bool
-	Render        views.Test
-	CancelCtx     context.Context
-	StopCtx       context.Context
-	VariableCache *hcltest.VariableCache
+	Verbose           bool
+	Render            views.Test
+	CancelCtx         context.Context
+	StopCtx           context.Context
+	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -92,19 +99,22 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 	cancelCtx, cancel := context.WithCancel(opts.CancelCtx)
 	stopCtx, stop := context.WithCancel(opts.StopCtx)
 	return &EvalContext{
-		runBlocks:       make(map[addrs.Run]*moduletest.Run),
-		outputsLock:     sync.Mutex{},
-		configProviders: make(map[string]map[string]bool),
-		providersLock:   sync.Mutex{},
-		FileStates:      make(map[string]*TestFileState),
-		stateLock:       sync.Mutex{},
-		VariableCache:   opts.VariableCache,
-		cancelContext:   cancelCtx,
-		cancelFunc:      cancel,
-		stopContext:     stopCtx,
-		stopFunc:        stop,
-		verbose:         opts.Verbose,
-		renderer:        opts.Render,
+		unparsedVariables: opts.UnparsedVariables,
+		parsedVariables:   make(terraform.InputValues),
+		variableStatus:    make(map[string]moduletest.Status),
+		variablesLock:     sync.Mutex{},
+		runBlocks:         make(map[addrs.Run]*moduletest.Run),
+		outputsLock:       sync.Mutex{},
+		configProviders:   make(map[string]map[string]bool),
+		providersLock:     sync.Mutex{},
+		FileStates:        make(map[string]*TestFileState),
+		stateLock:         sync.Mutex{},
+		cancelContext:     cancelCtx,
+		cancelFunc:        cancel,
+		stopContext:       stopCtx,
+		stopFunc:          stop,
+		verbose:           opts.Verbose,
+		renderer:          opts.Render,
 	}
 }
 
@@ -306,6 +316,90 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 	return status, cty.ObjectVal(outputVals), diags
 }
 
+func (ec *EvalContext) EvaluateUnparsedVariable(name string, config *configs.Variable) (*terraform.InputValue, tfdiags.Diagnostics) {
+	variable, exists := ec.unparsedVariables[name]
+	if !exists {
+		return nil, nil
+	}
+
+	if config != nil {
+
+		// If we have a configuration, then we'll using the parsing mode from
+		// that.
+
+		value, diags := variable.ParseVariableValue(config.ParsingMode)
+		if diags.HasErrors() {
+			value = &terraform.InputValue{
+				Value: cty.DynamicVal,
+			}
+		}
+		return value, diags
+	}
+
+	// For backwards-compatibility reasons we do also have to support trying
+	// to parse the global variables without a configuration. We introduced the
+	// file-level variable definitions later, and users were already using
+	// global variables so we do need to keep supporting this use case.
+
+	// Otherwise, we have no configuration so we're going to try both parsing
+	// modes.
+
+	value, diags := variable.ParseVariableValue(configs.VariableParseHCL)
+	if !diags.HasErrors() {
+		// then good! we can just return these values directly.
+		return value, diags
+	}
+
+	// otherwise, we'll try the other one.
+
+	value, diags = variable.ParseVariableValue(configs.VariableParseLiteral)
+	if diags.HasErrors() {
+
+		// we'll add a warning diagnostic here, just telling the users they
+		// can avoid this by adding a variable definition.
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Missing variable definition",
+			fmt.Sprintf("The variable %q could not be parsed. Terraform had no definition block for this variable, this error could be avoided in future by including a definition block for this variable within the Terraform test file.", name)))
+
+		// as usual make sure we still provide something for this value.
+
+		value = &terraform.InputValue{
+			Value: cty.DynamicVal,
+		}
+	}
+	return value, diags
+}
+
+func (ec *EvalContext) SetVariable(name string, val *terraform.InputValue) {
+	ec.variablesLock.Lock()
+	defer ec.variablesLock.Unlock()
+	ec.parsedVariables[name] = val
+}
+
+func (ec *EvalContext) GetVariable(name string) *terraform.InputValue {
+	ec.variablesLock.Lock()
+	defer ec.variablesLock.Unlock()
+	return ec.parsedVariables[name]
+}
+
+func (ec *EvalContext) Variables() map[string]cty.Value {
+	ec.variablesLock.Lock()
+	defer ec.variablesLock.Unlock()
+	output := make(map[string]cty.Value, len(ec.parsedVariables))
+	for k, v := range ec.parsedVariables {
+		output[k] = v.Value
+	}
+	return output
+}
+
+func (ec *EvalContext) SetVariableStatus(address string, status moduletest.Status) {
+	ec.variablesLock.Lock()
+	defer ec.variablesLock.Unlock()
+	ec.variableStatus[address] = status
+}
+
 func (ec *EvalContext) AddRunBlock(run *moduletest.Run) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
@@ -386,8 +480,8 @@ func (ec *EvalContext) GetFileState(key string) *TestFileState {
 // executed successfully. This allows nodes in the graph to decide if they
 // should execute or not based on the status of their references.
 //
-// TODO(liamcervante): Expand this with providers and variables once we've added
-// them to the graph.
+// TODO(liamcervante): Expand this with providers once we've added them to the
+// graph.
 func (ec *EvalContext) ReferencesCompleted(refs []*addrs.Reference) bool {
 	for _, ref := range refs {
 		switch ref := ref.Subject.(type) {
@@ -403,6 +497,13 @@ func (ec *EvalContext) ReferencesCompleted(refs []*addrs.Reference) bool {
 				}
 			}
 			ec.outputsLock.Unlock()
+		case addrs.InputVariable:
+			ec.variablesLock.Lock()
+			if vStatus, ok := ec.variableStatus[ref.Name]; ok && (vStatus == moduletest.Skip || vStatus == moduletest.Error) {
+				ec.variablesLock.Unlock()
+				return false
+			}
+			ec.variablesLock.Unlock()
 		}
 	}
 	return true
