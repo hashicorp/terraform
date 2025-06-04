@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Nested module outputs could lose sensitivity, even when marked as such in the configuration
+time: 2025-06-04T14:40:21.12567-04:00
+custom:
+    Issue: "37212"
