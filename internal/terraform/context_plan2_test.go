@@ -6847,3 +6847,68 @@ data "test_data_source" "foo" {
 
 	}
 }
+
+func TestContext2Plan_sensitiveOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+output "is_secret" {
+  // not only must the plan store the output as sensitive, it must also be
+  // evaluated as such
+  value = issensitive(module.child.secret)
+}
+`,
+		"./child/main.tf": `
+output "secret" {
+  sensitive = true
+  value = "test"
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	expectedChanges := &plans.Changes{
+		Outputs: []*plans.OutputChange{
+			{
+				Addr: mustAbsOutputValue("module.child.output.secret"),
+				Change: plans.Change{
+					Action:         plans.Create,
+					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
+					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
+					Before:         cty.NullVal(cty.DynamicPseudoType),
+					After:          cty.StringVal("test"),
+				},
+				Sensitive: true,
+			},
+			{
+				Addr: mustAbsOutputValue("output.is_secret"),
+				Change: plans.Change{
+					Action:         plans.Create,
+					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
+					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
+					Before:         cty.NullVal(cty.DynamicPseudoType),
+					After:          cty.True,
+				},
+			},
+		},
+	}
+	changes, err := plan.Changes.Decode(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sort.SliceStable(changes.Outputs, func(i, j int) bool {
+		return changes.Outputs[i].Addr.String() < changes.Outputs[j].Addr.String()
+	})
+
+	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
+		t.Fatalf("unexpected changes: %s", diff)
+	}
+}

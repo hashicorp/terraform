@@ -430,7 +430,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		namedVals := d.Evaluator.NamedValues
 		moduleInstAddr := absAddr.Instance(instKey)
 		attrs := make(map[string]cty.Value, len(outputConfigs))
-		for name := range outputConfigs {
+		for name, cfg := range outputConfigs {
 			outputAddr := moduleInstAddr.OutputValue(name)
 
 			// Although we do typically expect the graph dependencies to
@@ -446,6 +446,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 				continue
 			}
 			outputVal := namedVals.GetOutputValue(outputAddr)
+			if cfg.Sensitive {
+				outputVal = outputVal.Mark(marks.Sensitive)
+			}
 			attrs[name] = outputVal
 		}
 
