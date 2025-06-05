@@ -384,7 +384,7 @@ func (ec *EvalContext) GetFileState(key string) *TestFileState {
 
 // ReferencesCompleted returns true if all the listed references were actually
 // executed successfully. This allows nodes in the graph to decide if they
-// should execute or not based on the
+// should execute or not based on the status of their references.
 //
 // TODO(liamcervante): Expand this with providers and variables once we've added
 // them to the graph.
