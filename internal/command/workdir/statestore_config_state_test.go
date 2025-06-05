@@ -73,8 +73,7 @@ func TestParseStateStoreConfigState_Config_SetConfig(t *testing.T) {
 	}
 }
 
-func TestParseStateStoreConfiState_Empty(t *testing.T) {
-
+func TestParseStateStoreConfigState_Empty(t *testing.T) {
 	// Populated StateStoreConfigState isn't empty
 	s := &StateStoreConfigState{
 		Type: "whatever",
