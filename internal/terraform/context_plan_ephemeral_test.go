@@ -678,6 +678,47 @@ resource "ephem_write_only" "test" {
 				},
 			},
 		},
+
+		"ad-hoc-ephemeral-output": {
+			module: map[string]string{
+				"child/main.tf": `
+output "value" {
+    value = {
+        applying = terraform.applying
+        static = "test"
+    }
+
+	// It's valid to assign any partially ephemeral value, the output will always be
+	// entirely ephemeral.
+    ephemeral = true
+}
+`,
+				"main.tf": `
+module "child" {
+    source = "./child"
+}
+
+output "root" {
+    // We expect a diagnostic here indicating that this value is ephemeral. This
+    // ensures that the module output was valid and the ephemeral marks were
+    // correctly re-applied during evaluation.
+    value = module.child.value
+}
+`,
+			},
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 13, Byte: 277},
+						End:      hcl.Pos{Line: 10, Column: 31, Byte: 295},
+					},
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testModuleInline(t, tc.module)

@@ -493,18 +493,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	// "flagWarnOutputErrors", because they relate to features that were added
 	// more recently than the historical change to treat invalid output values
 	// as errors rather than warnings.
-	if n.Config.Ephemeral && !marks.Has(val, marks.Ephemeral) {
-		// An ephemeral output value must always be ephemeral
-		// This is to prevent accidental persistence upstream
-		// from here.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Value not allowed in ephemeral output",
-			Detail:   "This output value is declared as returning an ephemeral value, so it can only be set to an ephemeral value.",
-			Subject:  n.Config.Expr.Range().Ptr(),
-		})
-		return diags
-	} else if !n.Config.Ephemeral && marks.Contains(val, marks.Ephemeral) {
+	if !n.Config.Ephemeral && marks.Contains(val, marks.Ephemeral) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Ephemeral value not allowed",
