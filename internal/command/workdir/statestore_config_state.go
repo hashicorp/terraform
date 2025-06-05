@@ -4,8 +4,13 @@
 package workdir
 
 import (
+	"encoding"
 	"encoding/json"
+	"fmt"
 
+	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
@@ -24,9 +29,35 @@ type StateStoreConfigState struct {
 
 // Provider is used in the StateStoreConfigState struct to describe the provider that's used for pluggable
 // state storage. The data inside should mirror an entry in the dependency lock file.
+// This is NOT state of a `provider` configuration block, or an entry in `required_providers`.
 type Provider struct {
-	Version string `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
-	Source  string `json:"source"`  // The FQN/fully-qualified name of the provider.
+	Version *version.Version `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
+	Source  *Source          `json:"source"`  // The FQN/fully-qualified name of the provider.
+}
+
+type Source struct {
+	Provider tfaddr.Provider `json:"-"` // For un/marshaling purposes this needs to be exported, but it's omitted from JSON
+}
+
+var _ encoding.TextMarshaler = &Source{}
+var _ encoding.TextUnmarshaler = &Source{}
+
+// MarshalText defers to the internal terraform-registry-address Provider's String method
+func (p *Source) MarshalText() ([]byte, error) {
+	fqn := p.Provider.String()
+	return []byte(fqn), nil
+}
+
+// UnmarshalText uses existing methods for parsing `source` values from `required_providers` config to
+// convert a source string into a terraform-registry-address Provider
+func (p *Source) UnmarshalText(text []byte) error {
+	input := string(text)
+	provider, diag := addrs.ParseProviderSourceString(input)
+	if diag != nil {
+		return fmt.Errorf("error unmarshaling provider source from backend state file: %s", diag.ErrWithWarnings())
+	}
+	p.Provider = provider
+	return nil
 }
 
 // Empty returns true if there is no active state store.

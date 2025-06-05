@@ -86,11 +86,8 @@ func TestParseBackendStateFile(t *testing.T) {
 				Version:   3,
 				TFVersion: "9.9.9",
 				StateStore: &StateStoreConfigState{
-					Type: "foobar_baz",
-					Provider: &Provider{
-						Version: "1.2.3",
-						Source:  "registry.terraform.io/my-org/foobar",
-					},
+					Type:     "foobar_baz",
+					Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io/my-org/foobar"),
 					ConfigRaw: json.RawMessage(`{
 						"provider": "foobar",
 						"bucket": "my-bucket"
@@ -165,11 +162,8 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 				StateStore: &StateStoreConfigState{
-					Type: "foobar_baz",
-					Provider: &Provider{
-						Version: "1.2.3",
-						Source:  "registry.terraform.io/my-org/foobar",
-					},
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "registry.terraform.io/my-org/foobar"),
 					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:      123,
 				},
