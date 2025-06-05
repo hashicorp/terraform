@@ -14,15 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-// ConfigState describes a configuration block, and is used to make that config block stateful.
-type ConfigState[T any] interface {
-	Empty() bool
-	Config(*configschema.Block) (cty.Value, error)
-	SetConfig(cty.Value, *configschema.Block) error
-	ForPlan(*configschema.Block, string) (*plans.Backend, error)
-	DeepCopy() *T
-}
-
 var _ ConfigState[BackendConfigState] = &BackendConfigState{}
 
 // BackendConfigState describes the physical storage format for the backend state
