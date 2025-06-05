@@ -14,7 +14,7 @@ import (
 
 var _ ConfigState[StateStoreConfigState] = &StateStoreConfigState{}
 
-// StateStoreConfigState... is a dumb name
+// StateStoreConfigState describes the physical storage format for the state store
 type StateStoreConfigState struct {
 	Type      string          `json:"type"`     // State store type name
 	Provider  *Provider       `json:"provider"` // Details about the state-storage provider
