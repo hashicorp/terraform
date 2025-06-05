@@ -4,8 +4,6 @@
 package graph
 
 import (
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/states"
@@ -31,7 +29,7 @@ func (e *EvalContextTransformer) Transform(graph *terraform.Graph) error {
 				// TODO(liamcervante): Once providers are embedded in the graph
 				// we don't need to track run blocks in this way anymore.
 
-				ctx.SetOutput(run, cty.NilVal)
+				ctx.AddRunBlock(run)
 
 				// We also want to set an empty state file for every state key
 				// we're going to be executing within the graph.

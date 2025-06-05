@@ -105,9 +105,14 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	run.Status = newStatus
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
 
-	// Now we've successfully validated this run block, lets add it into
-	// our prior run outputs so future run blocks can access it.
-	ctx.SetOutput(run, outputVals)
+	// TODO(liamcervante): Temporarily lock the eval context here, while we
+	// still support dynamic provider evaluations. We won't need to lock this
+	// anymore once we don't have to keep all run blocks in the context all the
+	// time.
+
+	ctx.outputsLock.Lock()
+	run.Outputs = outputVals
+	ctx.outputsLock.Unlock()
 
 	// Only update the most recent run and state if the state was
 	// actually updated by this change. We want to use the run that
