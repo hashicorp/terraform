@@ -118,7 +118,7 @@ func TestParseBackendStateFile(t *testing.T) {
 					}
 				}
 			}`,
-			WantErr: `this working directory has a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block`,
+			WantErr: `encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block`,
 		},
 	}
 

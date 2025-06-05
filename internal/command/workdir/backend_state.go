@@ -108,7 +108,7 @@ func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 		return nil, fmt.Errorf("this working directory uses legacy remote state and so must first be upgraded using Terraform v0.9")
 	}
 	if stateFile.Backend != nil && stateFile.StateStore != nil {
-		return nil, fmt.Errorf("this working directory has a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block")
+		return nil, fmt.Errorf("encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block")
 	}
 
 	return &stateFile, nil
