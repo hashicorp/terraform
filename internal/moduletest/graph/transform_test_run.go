@@ -4,7 +4,9 @@
 package graph
 
 import (
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -18,7 +20,7 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 	// Create and add nodes for each run
 	var nodes []*NodeTestRun
 	for _, run := range t.opts.File.Runs {
-		node := &NodeTestRun{run: run, opts: t.opts}
+		node := &NodeTestRun{run: run, opts: t.opts, priorRuns: make(map[addrs.Run]*moduletest.Run)}
 		g.Add(node)
 		nodes = append(nodes, node)
 	}
@@ -49,6 +51,7 @@ func (t *TestRunTransformer) controlParallelism(g *terraform.Graph, nodes []*Nod
 		// Connect to all previous runs
 		for j := 0; j < i; j++ {
 			g.Connect(dag.BasicEdge(node, nodes[j]))
+			node.priorRuns[nodes[j].run.Addr()] = nodes[j].run
 		}
 
 		// Connect to all subsequent runs
@@ -66,6 +69,7 @@ func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*N
 	}
 	for _, runs := range stateRuns {
 		for i := 1; i < len(runs); i++ {
+			runs[i].priorRuns[runs[i-1].run.Addr()] = runs[i-1].run
 			g.Connect(dag.BasicEdge(runs[i], runs[i-1]))
 		}
 	}

@@ -339,6 +339,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
+		"parallel-errors": {
+			expectedOut: []string{"1 passed, 1 failed, 1 skipped."},
+			expectedErr: []string{"Invalid condition run"},
+			code:        1,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

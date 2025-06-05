@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -39,6 +40,12 @@ type Run struct {
 	Index  int
 	Status Status
 
+	// Outputs are set by the Terraform Test graph once this run block is
+	// executed. Callers should only access this if the Status field is set to
+	// Pass or Fail as both of these cases indicate the run block was executed
+	// successfully, and actually had values to write.
+	Outputs cty.Value
+
 	Diagnostics tfdiags.Diagnostics
 
 	// ExecutionMeta captures metadata about how the test run was executed.
@@ -57,6 +64,8 @@ type Run struct {
 func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {
 	// Make a copy the module configuration variables and provider configuration maps
 	// so that the run can modify the map safely.
+	// TODO(liamcervante): We won't need to do this once variables and providers
+	// are executed within the graph.
 	newModuleConfig := *moduleConfig
 	if moduleConfig.Module != nil {
 		newModule := *moduleConfig.Module
