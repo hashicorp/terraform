@@ -4,8 +4,6 @@
 package mocking
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 )
@@ -187,11 +185,6 @@ func (overrides *Overrides) ProviderMatch(provider addrs.AbsProviderConfig) (add
 	if !provider.Module.IsRoot() {
 		// We can only set mock providers within the root module.
 		return addrs.Map[addrs.Targetable, *configs.Override]{}, false
-	}
-
-	name := provider.Provider.Type
-	if len(provider.Alias) > 0 {
-		name = fmt.Sprintf("%s.%s", name, provider.Alias)
 	}
 
 	data, exists := overrides.providerOverrides[addrs.RootProviderConfig{
