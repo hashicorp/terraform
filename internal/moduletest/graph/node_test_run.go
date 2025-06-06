@@ -189,7 +189,6 @@ func (n *NodeTestRun) getProviders(ctx *EvalContext) (map[addrs.RootProviderConf
 
 		for _, ref := range run.Config.Providers {
 
-			n.File()
 
 			testAddr := addrs.RootProviderConfig{
 				Provider: ctx.ProviderForConfigAddr(ref.InParent.Addr()),
