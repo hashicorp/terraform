@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	testhcl "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -120,26 +119,15 @@ func (n *NodeVariableExpression) Execute(ctx *EvalContext) {
 		return // don't evaluate anything when stopped or cancelled
 	}
 
-	availableVariables := make(map[string]cty.Value)
-	for _, ref := range refs {
-		if input, ok := ref.Subject.(addrs.InputVariable); ok {
-			if variable := ctx.GetVariable(input.Name); variable != nil {
-				availableVariables[input.Name] = variable.Value
-			} else if variable, variableDiags := ctx.EvaluateUnparsedVariableDeprecated(input.Name, ref); variable != nil {
-				refDiags = refDiags.Append(variableDiags)
-				availableVariables[input.Name] = variable.Value
-			}
-		}
-	}
 	n.File.AppendDiagnostics(refDiags)
 	if refDiags.HasErrors() {
 		ctx.SetVariableStatus(n.Address, moduletest.Error)
 		return
 	}
 
-	evalContext, ctxDiags := testhcl.EvalContext(testhcl.TargetFileVariable, map[string]hcl.Expression{n.Address: n.Expr}, availableVariables, ctx.GetOutputs())
-	n.File.AppendDiagnostics(ctxDiags)
-	if ctxDiags.HasErrors() {
+	evalContext, moreDiags := ctx.HclContext(refs, nil)
+	n.File.AppendDiagnostics(moreDiags)
+	if moreDiags.HasErrors() {
 		ctx.SetVariableStatus(n.Address, moduletest.Error)
 		return
 	}

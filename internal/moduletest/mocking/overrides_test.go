@@ -52,58 +52,44 @@ func TestPackageOverrides(t *testing.T) {
 		},
 	})
 
-	// Add all data from the file and run block are duplicating here, and then
-	// a unique one.
-	config := &configs.Config{
-		Module: &configs.Module{
-			ProviderConfigs: map[string]*configs.Provider{
-				"mock": {
-					Mock: true,
-					MockData: &configs.MockData{
-						Overrides: addrs.MakeMap[addrs.Targetable, *configs.Override](),
+	mocks := map[addrs.RootProviderConfig]*configs.MockData{
+		addrs.RootProviderConfig{
+			Provider: addrs.NewDefaultProvider("mock"),
+		}: {
+			Overrides: addrs.MakeMap[addrs.Targetable, *configs.Override](
+				addrs.MakeMapElem[addrs.Targetable, *configs.Override](primary, &configs.Override{
+					Target: &addrs.Target{
+						Subject: provider,
 					},
-				},
-				"real": {},
-			},
+				}),
+				addrs.MakeMapElem[addrs.Targetable, *configs.Override](secondary, &configs.Override{
+					Target: &addrs.Target{
+						Subject: provider,
+					},
+				}),
+				addrs.MakeMapElem[addrs.Targetable, *configs.Override](tertiary, &configs.Override{
+					Target: &addrs.Target{
+						Subject: provider,
+					},
+				})),
 		},
 	}
-	config.Module.ProviderConfigs["mock"].MockData.Overrides.Put(primary, &configs.Override{
-		Target: &addrs.Target{
-			Subject: provider,
-		},
-	})
-	config.Module.ProviderConfigs["mock"].MockData.Overrides.Put(secondary, &configs.Override{
-		Target: &addrs.Target{
-			Subject: provider,
-		},
-	})
-	config.Module.ProviderConfigs["mock"].MockData.Overrides.Put(tertiary, &configs.Override{
-		Target: &addrs.Target{
-			Subject: provider,
-		},
-	})
 
-	overrides := PackageOverrides(run, file, config)
+	overrides := PackageOverrides(run, file, mocks)
 
 	// We now expect that the run and file overrides took precedence.
-	first, pOk := overrides.GetResourceOverride(primary, addrs.AbsProviderConfig{
-		Provider: addrs.Provider{
-			Type: "mock",
-		},
+	first, fOk := overrides.GetResourceOverride(primary, addrs.AbsProviderConfig{
+		Provider: addrs.NewDefaultProvider("mock"),
 	})
 	second, sOk := overrides.GetResourceOverride(secondary, addrs.AbsProviderConfig{
-		Provider: addrs.Provider{
-			Type: "mock",
-		},
+		Provider: addrs.NewDefaultProvider("mock"),
 	})
 	third, tOk := overrides.GetResourceOverride(tertiary, addrs.AbsProviderConfig{
-		Provider: addrs.Provider{
-			Type: "mock",
-		},
+		Provider: addrs.NewDefaultProvider("mock"),
 	})
 
-	if !pOk || !sOk || !tOk {
-		t.Fatalf("expected to find all overrides, but got %t %t %t", pOk, sOk, tOk)
+	if !fOk || !sOk || !tOk {
+		t.Errorf("expected to find all overrides, but got %t %t %t", fOk, sOk, tOk)
 	}
 
 	if !first.Target.Subject.(addrs.AbsResourceInstance).Equal(testrun) {
@@ -116,12 +102,6 @@ func TestPackageOverrides(t *testing.T) {
 
 	if !third.Target.Subject.(addrs.AbsResourceInstance).Equal(provider) {
 		t.Errorf("expected %s but got %s for primary", provider, third.Target.Subject)
-	}
-
-	// Also, final sanity check.
-	_, ok := overrides.providerOverrides["real"]
-	if ok {
-		t.Errorf("shouldn't have stored the real provider but did")
 	}
 
 }
