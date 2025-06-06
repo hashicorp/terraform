@@ -7,11 +7,13 @@ import (
 	"testing"
 
 	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
+	svchost "github.com/hashicorp/terraform-svchost"
 )
 
 // getTestProviderState is a test helper that returns a state representation
 // of a provider used for managing state via pluggable state storage.
-func getTestProviderState(t *testing.T, semVer, fqn string) *Provider {
+func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName string) *Provider {
 	t.Helper()
 
 	ver, err := version.NewSemver(semVer)
@@ -19,10 +21,14 @@ func getTestProviderState(t *testing.T, semVer, fqn string) *Provider {
 		t.Fatalf("test setup failed when creating version.Version: %s", err)
 	}
 
-	source := &Source{}
-	err = source.UnmarshalText([]byte(fqn))
-	if err != nil {
-		t.Fatalf("test setup failed when creating ProviderSource: %s", err)
+	source := &Source{
+		// Avoid using constructor functions here, as they might provide validation
+		// that wouldn't exist outside of the test
+		Provider: tfaddr.Provider{
+			Hostname:  svchost.Hostname(hostname),
+			Namespace: namespace,
+			Type:      typeName,
+		},
 	}
 
 	return &Provider{

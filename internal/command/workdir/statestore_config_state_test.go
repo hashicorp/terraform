@@ -27,7 +27,7 @@ func TestParseStateStoreConfigState_Config_SetConfig(t *testing.T) {
 			"provider": "foobar",
 			"foo": "bar"
 		}`),
-		Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io/my-org/foobar"),
+		Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar"),
 		Hash:     12345,
 	}
 
@@ -81,7 +81,7 @@ func TestParseStateStoreConfigState_Empty(t *testing.T) {
 			"provider": "foobar",
 			"foo": "bar"
 		}`),
-		Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io/my-org/foobar"),
+		Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar"),
 		Hash:     12345,
 	}
 
