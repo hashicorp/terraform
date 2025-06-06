@@ -30,6 +30,7 @@ func TestMarshalProvider(t *testing.T) {
 				ResourceSchemas:          map[string]*Schema{},
 				DataSourceSchemas:        map[string]*Schema{},
 				EphemeralResourceSchemas: map[string]*Schema{},
+				ListResourceSchemas:      map[string]*Schema{},
 				ResourceIdentitySchemas:  map[string]*IdentitySchema{},
 			},
 		},
@@ -208,6 +209,26 @@ func TestMarshalProvider(t *testing.T) {
 						},
 					},
 				},
+				ListResourceSchemas: map[string]*Schema{
+					"test_list_resource": {
+						Version: 1,
+						Block: &Block{
+							Attributes: map[string]*Attribute{
+								"filter": {
+									AttributeType:   json.RawMessage(`"string"`),
+									Optional:        true,
+									DescriptionKind: "plain",
+								},
+								"items": {
+									AttributeType:   json.RawMessage(`["list","string"]`),
+									Required:        true,
+									DescriptionKind: "plain",
+								},
+							},
+							DescriptionKind: "plain",
+						},
+					},
+				},
 				ResourceIdentitySchemas: map[string]*IdentitySchema{},
 			},
 		},
@@ -313,6 +334,17 @@ func testProvider() providers.ProviderSchema {
 								},
 							},
 						},
+					},
+				},
+			},
+		},
+		ListResourceTypes: map[string]providers.Schema{
+			"test_list_resource": {
+				Version: 1,
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"filter": {Type: cty.String, Optional: true},
+						"items":  {Type: cty.List(cty.String), Required: true},
 					},
 				},
 			},
