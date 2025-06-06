@@ -3554,6 +3554,10 @@ func getQueryTestSchema() *configschema.Block {
 					},
 				},
 			},
+			"data": {
+				Computed: true,
+				Type:     cty.DynamicPseudoType,
+			},
 		},
 	}
 }

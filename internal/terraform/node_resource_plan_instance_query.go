@@ -74,36 +74,13 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	}
 
-	results := make([]cty.Value, 0)
-
-	for _, evt := range resp.Results {
-		if evt.Diagnostics.HasErrors() {
-			return diags.Append(evt.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-		}
-		results = append(results, cty.ObjectVal(map[string]cty.Value{
-			"state":    evt.ResourceObject,
-			"identity": evt.Identity,
-		}))
-	}
-
-	// The provider result of a list resource is always a tuple, but
-	// we will wrap that tuple in an object with a single attribute "data",
-	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
-	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
-	ret := cty.ObjectVal(map[string]cty.Value{
-		"data": cty.TupleVal(results),
-	})
-
 	change := &plans.ResourceInstanceChange{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
 		Change: plans.Change{
 			Action: plans.Read,
 			Before: cty.DynamicVal,
-			After:  ret,
-		},
-		ChangeSpec: &plans.ChangeSpec{
-			ObjectType: ret.Type(),
+			After:  resp.Result,
 		},
 		DeposedKey: states.NotDeposed,
 	}
