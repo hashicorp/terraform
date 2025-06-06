@@ -116,6 +116,14 @@ type Interface interface {
 	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
 	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
 
+	// ReadState(ReadStateRequest, srv ProviderReadStateServer)
+	// WriteState(srv ProviderWriteStateServer)
+
+	// LockState(LockStateRequest) LockStateResponse
+	// UnlockState(UnlockStateRequest) UnlockStateResponse
+	// GetStates(GetStatesRequest) GetStatesResponse
+	// DeleteState(DeleteStateRequest) DeleteStateResponse
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -783,6 +791,19 @@ type ConfigureStateStoreRequest struct {
 }
 
 type ConfigureStateStoreResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ValidateStorageConfigRequest struct {
+	// TypeName is the name of the storage type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate.
+	Config cty.Value
+}
+
+type ValidateStorageConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
