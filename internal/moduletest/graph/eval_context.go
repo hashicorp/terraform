@@ -151,7 +151,7 @@ func (ec *EvalContext) Verbose() bool {
 	return ec.verbose
 }
 
-func (ec *EvalContext) HclContext(references []*addrs.Reference, variableConfigs map[string]*configs.Variable) (*hcl.EvalContext, tfdiags.Diagnostics) {
+func (ec *EvalContext) HclContext(references []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	runs := make(map[string]cty.Value)
@@ -205,7 +205,7 @@ func (ec *EvalContext) HclContext(references []*addrs.Reference, variableConfigs
 				continue
 			}
 
-			if variable, moreDiags := ec.EvaluateUnparsedVariable(subject.Name, variableConfigs[subject.Name]); variable != nil {
+			if variable, moreDiags := ec.EvaluateUnparsedVariableDeprecated(subject.Name, reference); variable != nil {
 				diags = diags.Append(moreDiags)
 				vars[subject.Name] = variable.Value
 				continue

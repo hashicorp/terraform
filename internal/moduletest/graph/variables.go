@@ -60,7 +60,7 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 			continue
 		}
 
-		ctx, ctxDiags := ctx.HclContext(refs, run.ModuleConfig.Module.Variables)
+		ctx, ctxDiags := ctx.HclContext(refs)
 		diags = diags.Append(ctxDiags)
 
 		value := cty.DynamicVal

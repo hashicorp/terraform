@@ -125,7 +125,7 @@ func (n *NodeVariableExpression) Execute(ctx *EvalContext) {
 		return
 	}
 
-	evalContext, moreDiags := ctx.HclContext(refs, nil)
+	evalContext, moreDiags := ctx.HclContext(refs)
 	n.File.AppendDiagnostics(moreDiags)
 	if moreDiags.HasErrors() {
 		ctx.SetVariableStatus(n.Address, moduletest.Error)

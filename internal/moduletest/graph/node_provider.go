@@ -71,7 +71,7 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 		return
 	}
 
-	hclContext, moreDiags := ctx.HclContext(references, nil)
+	hclContext, moreDiags := ctx.HclContext(references)
 	n.File.AppendDiagnostics(moreDiags)
 	if moreDiags.HasErrors() {
 		ctx.SetProviderStatus(n.Addr, moduletest.Error)
