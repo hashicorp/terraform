@@ -71,15 +71,13 @@ func TestChangeEncodeSensitive(t *testing.T) {
 				Before: cty.NullVal(v.val.Type()),
 				After:  v.val,
 			}
-			spec := &ChangeSpec{
-				ObjectType: v.val.Type(),
-			}
-			encoded, err := change.Encode(spec)
+
+			encoded, err := change.Encode(&v.schema)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			decoded, err := encoded.Decode(spec)
+			decoded, err := encoded.Decode(&v.schema)
 			if err != nil {
 				t.Fatal(err)
 			}
