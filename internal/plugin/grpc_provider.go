@@ -367,7 +367,7 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.Filter(configschema.FilterAttrByName("data"), nil)
+	configSchema := listResourceSchema.Body.Filter(configschema.FilterReadOnlyAttribute, nil)
 	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -1285,7 +1285,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.Filter(configschema.FilterAttrByName("data"), nil)
+	configSchema := listResourceSchema.Body.Filter(configschema.FilterReadOnlyAttribute, nil)
 	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)

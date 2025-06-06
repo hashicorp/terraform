@@ -364,7 +364,7 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
-	configSchema := listResourceSchema.Body.Filter(configschema.FilterAttrByName("data"), nil)
+	configSchema := listResourceSchema.Body.Filter(configschema.FilterReadOnlyAttribute, nil)
 
 	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
@@ -1281,7 +1281,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.Filter(configschema.FilterAttrByName("data"), nil)
+	configSchema := listResourceSchema.Body.Filter(configschema.FilterReadOnlyAttribute, nil)
 
 	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
