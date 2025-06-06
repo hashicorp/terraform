@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -171,7 +172,16 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, list := range protoResp.ListResourceSchemas {
-		resp.ListResourceTypes[name] = convert.ProtoToProviderSchema(list, nil)
+		ret := convert.ProtoToProviderSchema(list, nil)
+		if _, ok := ret.Body.Attributes["data"]; ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("The 'data' attribute is reserved for the resource's results and cannot be used in a list resource schema: %s", name))
+			continue
+		}
+		ret.Body.Attributes["data"] = &configschema.Attribute{
+			Type:     cty.DynamicPseudoType,
+			Computed: true,
+		}
+		resp.ListResourceTypes[name] = ret
 	}
 
 	for name, store := range protoResp.StateStoreSchemas {
@@ -354,8 +364,9 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
+	configSchema := listResourceSchema.Body.Filter(configschema.FilterAttrByName("data"), nil)
 
-	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -1270,7 +1281,9 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
+	configSchema := listResourceSchema.Body.Filter(configschema.FilterAttrByName("data"), nil)
+
+	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp

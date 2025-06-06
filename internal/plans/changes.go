@@ -56,6 +56,8 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 			schema = p.ResourceTypes[rc.Addr.Resource.Resource.Type]
 		case addrs.DataResourceMode:
 			schema = p.DataSources[rc.Addr.Resource.Resource.Type]
+		case addrs.ListResourceMode:
+			schema = p.ListResourceTypes[rc.Addr.Resource.Resource.Type]
 		default:
 			panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
 		}
