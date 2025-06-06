@@ -27,9 +27,9 @@ var (
 		return block.Deprecated
 	}
 
-	// FilterBlockByName returns a negative filter, meaning it excludes blocks with the given name.
-	FilterBlockByName = func(name string) FilterT[*NestedBlock] {
-		return func(path cty.Path, block *NestedBlock) bool {
+	// FilterAttrByName returns a negative filter, meaning it excludes attributes with the given name.
+	FilterAttrByName = func(name string) FilterT[*Attribute] {
+		return func(path cty.Path, block *Attribute) bool {
 			if len(path) == 0 {
 				// Impossible to have no steps in the path,
 				// so this is not a match.

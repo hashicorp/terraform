@@ -1384,38 +1384,9 @@ func TestGRPCProvider_GetSchema_ListResourceTypes(t *testing.T) {
 						Type:     cty.String,
 						Required: true,
 					},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
 					"data": {
-						Nesting: configschema.NestingList,
-						Block: configschema.Block{
-							BlockTypes: map[string]*configschema.NestedBlock{
-								"state": {
-									Nesting: configschema.NestingSingle,
-									Block: configschema.Block{
-										Attributes: map[string]*configschema.Attribute{
-											"resource_attr": {
-												Type:     cty.String,
-												Required: true,
-											},
-										},
-									},
-								},
-							},
-							Attributes: map[string]*configschema.Attribute{
-								"identity": {
-									NestedType: &configschema.Object{
-										Attributes: map[string]*configschema.Attribute{
-											"id_attr": {
-												Type:     cty.String,
-												Required: true,
-											},
-										},
-										Nesting: configschema.NestingSingle,
-									},
-								},
-							},
-						},
+						Type:     cty.DynamicPseudoType,
+						Computed: true,
 					},
 				},
 			},

@@ -171,25 +171,14 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, list := range protoResp.ListResourceSchemas {
-		managed := resp.ResourceTypes[name]
 		ret := convert.ProtoToProviderSchema(list, nil)
-		// the managed resource schema is used to define the body of the
-		// "data" block type in the list resource schema.
-		ret.Body.BlockTypes["data"] = &configschema.NestedBlock{
-			Nesting: configschema.NestingList,
-			Block: configschema.Block{
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"state": {
-						Nesting: configschema.NestingSingle,
-						Block:   *managed.Body,
-					},
-				},
-				Attributes: map[string]*configschema.Attribute{
-					"identity": {
-						NestedType: managed.Identity,
-					},
-				},
-			},
+		if _, ok := ret.Body.Attributes["data"]; ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("The 'data' attribute is reserved for the resource's results and cannot be used in a list resource schema: %s", name))
+			continue
+		}
+		ret.Body.Attributes["data"] = &configschema.Attribute{
+			Type:     cty.DynamicPseudoType,
+			Computed: true,
 		}
 		resp.ListResourceTypes[name] = ret
 	}
@@ -378,7 +367,7 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.Filter(nil, configschema.FilterBlockByName("data"))
+	configSchema := listResourceSchema.Body.Filter(configschema.FilterAttrByName("data"), nil)
 	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -1296,8 +1285,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.Filter(nil, configschema.FilterBlockByName("data"))
-
+	configSchema := listResourceSchema.Body.Filter(configschema.FilterAttrByName("data"), nil)
 	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
