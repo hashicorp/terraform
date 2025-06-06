@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
@@ -828,6 +829,94 @@ func TestTest_Parallel(t *testing.T) {
 	// Ensure "test_d" appears after "test_setup", because they have the same state key
 	if testDIndex < testSetupIndex {
 		t.Errorf("test_d appears before test_setup in the log output")
+	}
+}
+
+func TestTest_ParallelTeardown(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel_teardown")), td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	// create a new provider instance for each test run, so that we can
+	// ensure that the test provider locks do not interfere between runs.
+	pInst := func() providers.Interface {
+		return testing_command.NewProvider(nil).Provider
+	}
+	meta := Meta{
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+					return pInst(), nil
+				},
+			}},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
+
+	c := &TestCommand{Meta: meta}
+	c.Run([]string{"-json", "-no-color"})
+	output := done(t).All()
+
+	if !strings.Contains(output, "2 passed, 0 failed") {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the start of the teardown and complete timestamps
+	var startTimestamp, completeTimestamp string
+	for _, line := range lines {
+		if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"teardown"`) {
+			var obj map[string]interface{}
+			if err := json.Unmarshal([]byte(line), &obj); err == nil {
+				if ts, ok := obj["@timestamp"].(string); ok {
+					startTimestamp = ts
+				}
+			}
+		} else if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"complete"`) {
+			var obj map[string]interface{}
+			if err := json.Unmarshal([]byte(line), &obj); err == nil {
+				if ts, ok := obj["@timestamp"].(string); ok {
+					completeTimestamp = ts
+				}
+			}
+		}
+	}
+
+	if startTimestamp == "" || completeTimestamp == "" {
+		t.Fatalf("could not find start or complete timestamp in log output")
+	}
+
+	startTime, err := time.Parse(time.RFC3339Nano, startTimestamp)
+	if err != nil {
+		t.Fatalf("failed to parse start timestamp: %v", err)
+	}
+	completeTime, err := time.Parse(time.RFC3339Nano, completeTimestamp)
+	if err != nil {
+		t.Fatalf("failed to parse complete timestamp: %v", err)
+	}
+	dur := completeTime.Sub(startTime)
+	// Each teardown sleeps for 5 seconds, but they should run in parallel, so we expect the total duration to be less than 10 seconds.
+	if dur >= 10*time.Second {
+		t.Fatalf("parallel.tftest.hcl duration took too long: %0.2f seconds", dur.Seconds())
 	}
 }
 

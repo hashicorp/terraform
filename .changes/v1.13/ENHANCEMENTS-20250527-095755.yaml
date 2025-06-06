@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: ' TF Test: Allow parallel execution of teardown operations'
+time: 2025-05-27T09:57:55.267277+02:00
+custom:
+    Issue: "37169"
