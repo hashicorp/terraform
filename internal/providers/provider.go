@@ -725,23 +725,8 @@ type CallFunctionResponse struct {
 	Err error
 }
 
-// ListResourceEvent represents a single resource from the list operation
-type ListResourceEvent struct {
-	// Identity contains the resource identity data
-	Identity cty.Value
-
-	// DisplayName is a human-readable name for the resource
-	DisplayName string
-
-	// ResourceObject contains the full resource object if requested
-	ResourceObject cty.Value
-
-	// Diagnostics contains any warnings or errors specific to this event
-	Diagnostics tfdiags.Diagnostics
-}
-
 type ListResourceResponse struct {
-	Results []ListResourceEvent
+	Result cty.Value
 
 	Diagnostics tfdiags.Diagnostics
 }
