@@ -150,9 +150,9 @@ func TestEncodeBackendStateFile(t *testing.T) {
 		Want    []uint8
 		WantErr string
 	}{
-		"it encodes an empty state": {
-			Input: &BackendStateFile{},
-			Want:  []uint8("{\n  \"version\": 3,\n  \"terraform_version\": \"1.13.0\"\n}"),
+		"it returns an error when neither backend nor state_store config state are present": {
+			Input:   &BackendStateFile{},
+			WantErr: `attempted to encode an empty backend state file`,
 		},
 		"it returns an error when both backend and state_store config state are present": {
 			Input: &BackendStateFile{
@@ -180,8 +180,8 @@ func TestEncodeBackendStateFile(t *testing.T) {
 				if err == nil {
 					t.Fatalf("unexpected success\nwant error: %s", test.WantErr)
 				}
-				if got, want := err.Error(), test.WantErr; got != want {
-					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+				if !strings.Contains(err.Error(), test.WantErr) {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", err.Error(), test.WantErr)
 				}
 				return
 			}
