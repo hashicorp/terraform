@@ -59,14 +59,14 @@ func (n *NodeVariableDefinition) Execute(ctx *EvalContext) {
 		}
 	}
 
-	value, moreDiags := terraform.PrepareFinalInputVariableValue(addrs.AbsInputVariableInstance{
+	value, diags := terraform.PrepareFinalInputVariableValue(addrs.AbsInputVariableInstance{
 		Module: addrs.RootModuleInstance,
 		Variable: addrs.InputVariable{
 			Name: n.Address,
 		},
 	}, input, n.Config)
-	n.File.AppendDiagnostics(moreDiags)
-	if moreDiags.HasErrors() {
+	n.File.AppendDiagnostics(diags)
+	if diags.HasErrors() {
 		ctx.SetVariableStatus(n.Address, moduletest.Error)
 		return
 	}
@@ -125,7 +125,7 @@ func (n *NodeVariableExpression) Execute(ctx *EvalContext) {
 		if input, ok := ref.Subject.(addrs.InputVariable); ok {
 			if variable := ctx.GetVariable(input.Name); variable != nil {
 				availableVariables[input.Name] = variable.Value
-			} else if variable, variableDiags := ctx.EvaluateUnparsedVariable(input.Name, nil); variable != nil {
+			} else if variable, variableDiags := ctx.EvaluateUnparsedVariableDeprecated(input.Name, ref); variable != nil {
 				refDiags = refDiags.Append(variableDiags)
 				availableVariables[input.Name] = variable.Value
 			}

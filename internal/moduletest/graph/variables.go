@@ -33,19 +33,19 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 	// run block. This is a combination of the variables declared within the
 	// configuration for this run block, and the variables referenced by the
 	// run block assertions.
-	relevantVariables := make(map[string]bool)
+	relevantVariables := make(map[string]*addrs.Reference)
 
 	// First, we'll check to see which variables the run block assertions
 	// reference.
 	for _, reference := range n.References() {
 		if addr, ok := reference.Subject.(addrs.InputVariable); ok {
-			relevantVariables[addr.Name] = true
+			relevantVariables[addr.Name] = reference
 		}
 	}
 
 	// And check to see which variables the run block configuration references.
 	for name := range run.ModuleConfig.Module.Variables {
-		relevantVariables[name] = true
+		relevantVariables[name] = nil
 	}
 
 	// We'll put the parsed values into this map.
@@ -64,7 +64,7 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 					requiredValues[addr.Name] = value.Value
 					continue
 				}
-				if value, valueDiags := ctx.EvaluateUnparsedVariable(addr.Name, run.ModuleConfig.Module.Variables[addr.Name]); value != nil {
+				if value, valueDiags := ctx.EvaluateUnparsedVariableDeprecated(addr.Name, ref); value != nil {
 					diags = diags.Append(valueDiags)
 					requiredValues[addr.Name] = value.Value
 					continue
@@ -164,7 +164,7 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 	// just referenced by parts of this run block. These must have been defined
 	// elsewhere, but we need to include them.
 
-	for variable := range relevantVariables {
+	for variable, reference := range relevantVariables {
 		if _, exists := values[variable]; exists {
 			// Then we've already got a value for this variable.
 			continue
@@ -177,7 +177,20 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 			values[variable] = value
 			continue
 		}
-		if value, valueDiags := ctx.EvaluateUnparsedVariable(variable, nil); value != nil {
+
+		if reference == nil {
+			// this shouldn't happen, we only put nil references into the
+			// relevantVariables map for values derived from the configuration
+			// and all of these should have been set in previous for loop.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing reference",
+				Detail:   fmt.Sprintf("The variable %q had no point of reference, which should not be possible. This is a bug in Terraform; please report it!", variable),
+			})
+			continue
+		}
+
+		if value, valueDiags := ctx.EvaluateUnparsedVariableDeprecated(variable, reference); value != nil {
 			values[variable] = value
 			diags = diags.Append(valueDiags)
 		}

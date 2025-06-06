@@ -316,25 +316,46 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 	return status, cty.ObjectVal(outputVals), diags
 }
 
+// EvaluateUnparsedVariable accepts a variable name and a variable definition
+// and checks if we have external unparsed variables that match the given
+// configuration. If no variable was provided, we'll return a nil
+// input value.
 func (ec *EvalContext) EvaluateUnparsedVariable(name string, config *configs.Variable) (*terraform.InputValue, tfdiags.Diagnostics) {
 	variable, exists := ec.unparsedVariables[name]
 	if !exists {
 		return nil, nil
 	}
 
-	if config != nil {
-
-		// If we have a configuration, then we'll using the parsing mode from
-		// that.
-
-		value, diags := variable.ParseVariableValue(config.ParsingMode)
-		if diags.HasErrors() {
-			value = &terraform.InputValue{
-				Value: cty.DynamicVal,
-			}
+	value, diags := variable.ParseVariableValue(config.ParsingMode)
+	if diags.HasErrors() {
+		value = &terraform.InputValue{
+			Value: cty.DynamicVal,
 		}
-		return value, diags
 	}
+
+	return value, diags
+}
+
+// EvaluateUnparsedVariableDeprecated accepts a variable name without a variable
+// definition and attempts to parse it.
+//
+// This function represents deprecated functionality within the testing
+// framework. It is no longer valid to reference external variables without a
+// definition, but we do our best here and provide a warning that this will
+// become completely unsupported in the future.
+func (ec *EvalContext) EvaluateUnparsedVariableDeprecated(name string, ref *addrs.Reference) (*terraform.InputValue, tfdiags.Diagnostics) {
+	variable, exists := ec.unparsedVariables[name]
+	if !exists {
+		return nil, nil
+	}
+
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Variable referenced without definition",
+		Detail:   fmt.Sprintf("Variable %q was referenced without providing a definition. Referencing undefined variables within Terraform Test files is deprecated, please add a `variable` block into the relevant test file to provide a definition for the variable. This will become required in future versions of Terraform.", name),
+		Subject:  ref.SourceRange.ToHCL().Ptr(),
+	})
 
 	// For backwards-compatibility reasons we do also have to support trying
 	// to parse the global variables without a configuration. We introduced the
@@ -344,27 +365,19 @@ func (ec *EvalContext) EvaluateUnparsedVariable(name string, config *configs.Var
 	// Otherwise, we have no configuration so we're going to try both parsing
 	// modes.
 
-	value, diags := variable.ParseVariableValue(configs.VariableParseHCL)
-	if !diags.HasErrors() {
+	value, moreDiags := variable.ParseVariableValue(configs.VariableParseHCL)
+	diags = diags.Append(moreDiags)
+	if !moreDiags.HasErrors() {
 		// then good! we can just return these values directly.
 		return value, diags
 	}
 
 	// otherwise, we'll try the other one.
 
-	value, diags = variable.ParseVariableValue(configs.VariableParseLiteral)
-	if diags.HasErrors() {
-
-		// we'll add a warning diagnostic here, just telling the users they
-		// can avoid this by adding a variable definition.
-
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Missing variable definition",
-			fmt.Sprintf("The variable %q could not be parsed. Terraform had no definition block for this variable, this error could be avoided in future by including a definition block for this variable within the Terraform test file.", name)))
-
+	value, moreDiags = variable.ParseVariableValue(configs.VariableParseLiteral)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
 		// as usual make sure we still provide something for this value.
-
 		value = &terraform.InputValue{
 			Value: cty.DynamicVal,
 		}
