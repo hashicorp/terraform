@@ -64,6 +64,7 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 			File:     t.File,
 			Config:   config,
 			Provider: impl,
+			Schema:   impl.GetProviderSchema(),
 		}
 		g.Add(configure)
 

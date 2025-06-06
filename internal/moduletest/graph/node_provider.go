@@ -30,6 +30,7 @@ type NodeProviderConfigure struct {
 	File     *moduletest.File
 	Config   *configs.Provider
 	Provider providers.Interface
+	Schema   providers.GetProviderSchemaResponse
 }
 
 func (n *NodeProviderConfigure) Name() string {
@@ -48,7 +49,7 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 	// first, set the provider so everything else can use it
 	ctx.SetProvider(n.Addr, n.Provider)
 
-	spec := n.Provider.GetProviderSchema().Provider.Body.DecoderSpec()
+	spec := n.Schema.Provider.Body.DecoderSpec()
 
 	var references []*addrs.Reference
 	var referenceDiags tfdiags.Diagnostics
@@ -59,15 +60,14 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 			references = append(references, ref)
 		}
 	}
-
-	if !ctx.ReferencesCompleted(references) {
-		ctx.SetProviderStatus(n.Addr, moduletest.Skip)
-		return
-	}
-
 	n.File.AppendDiagnostics(referenceDiags)
 	if referenceDiags.HasErrors() {
 		ctx.SetProviderStatus(n.Addr, moduletest.Error)
+		return
+	}
+
+	if !ctx.ReferencesCompleted(references) {
+		ctx.SetProviderStatus(n.Addr, moduletest.Skip)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 
 func (n *NodeProviderConfigure) References() []*addrs.Reference {
 	var refs []*addrs.Reference
-	for _, variable := range hcldec.Variables(n.Config.Config, n.Provider.GetProviderSchema().Provider.Body.DecoderSpec()) {
+	for _, variable := range hcldec.Variables(n.Config.Config, n.Schema.Provider.Body.DecoderSpec()) {
 		ref, _ := addrs.ParseRefFromTestingScope(variable)
 		if ref != nil {
 			refs = append(refs, ref)
