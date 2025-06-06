@@ -3378,9 +3378,6 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
   run "main"... skip
 missing_run_block.tftest.hcl... tearing down
 missing_run_block.tftest.hcl... fail
-unavailable_run_block.tftest.hcl... in progress
-unavailable_run_block.tftest.hcl... tearing down
-unavailable_run_block.tftest.hcl... fail
 unused_provider.tftest.hcl... in progress
   run "main"... pass
 unused_provider.tftest.hcl... tearing down
@@ -3400,9 +3397,6 @@ Error: Reference to unknown run block
    2:   resource_prefix = run.missing.resource_directory
 
 The run block "missing" does not exist within this test file.
-
-Error: Cycle: provider.test, unavailable_run_block.tftest.hcl.run.main
-
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
