@@ -734,7 +734,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				CancelCtx: context.Background(),
 				StopCtx:   context.Background(),
 			})
-			testCtx.runBlocks = make(map[addrs.Run]*moduletest.Run)
+			testCtx.runBlocks = make(map[string]*moduletest.Run)
 			for ix, block := range file.Runs[:len(file.Runs)-1] {
 
 				// all prior run blocks we just mark as having passed, and with
@@ -743,7 +743,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				run := moduletest.NewRun(block, config, ix)
 				run.Status = moduletest.Pass
 				run.Outputs = test.priorOutputs[run.Name]
-				testCtx.runBlocks[run.Addr()] = run
+				testCtx.runBlocks[run.Name] = run
 			}
 			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run, planScope, test.testOnlyVars)
 

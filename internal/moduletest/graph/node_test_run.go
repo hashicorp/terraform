@@ -8,10 +8,13 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -24,7 +27,7 @@ var (
 
 type NodeTestRun struct {
 	run       *moduletest.Run
-	priorRuns map[addrs.Run]*moduletest.Run
+	priorRuns map[string]*moduletest.Run
 	opts      *graphOptions
 }
 
@@ -61,6 +64,7 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 	defer func() {
 		evalCtx.Renderer().Run(run, file, moduletest.Complete, 0)
 		file.UpdateStatus(run.Status)
+		evalCtx.AddRunBlock(run)
 	}()
 
 	if !evalCtx.PriorRunsCompleted(n.priorRuns) || !evalCtx.ReferencesCompleted(n.References()) {
@@ -118,7 +122,19 @@ func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 		panic(fmt.Sprintf("TestFileRunner: custom module %s has the same key as main state", file.Name))
 	}
 
-	n.testValidate(ctx, waiter)
+	providers, mocks, providerDiags := n.getProviders(ctx)
+	if !ctx.ProvidersCompleted(providers) {
+		run.Status = moduletest.Skip
+		return
+	}
+
+	run.Diagnostics = run.Diagnostics.Append(providerDiags)
+	if providerDiags.HasErrors() {
+		run.Status = moduletest.Error
+		return
+	}
+
+	n.testValidate(providers, waiter)
 	if run.Diagnostics.HasErrors() {
 		return
 	}
@@ -131,29 +147,172 @@ func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 	}
 
 	if run.Config.Command == configs.PlanTestCommand {
-		n.testPlan(ctx, variables, waiter)
+		n.testPlan(ctx, variables, providers, mocks, waiter)
 	} else {
-		n.testApply(ctx, variables, waiter)
+		n.testApply(ctx, variables, providers, mocks, waiter)
 	}
 }
 
 // Validating the module config which the run acts on
-func (n *NodeTestRun) testValidate(ctx *EvalContext, waiter *operationWaiter) {
+func (n *NodeTestRun) testValidate(providers map[addrs.RootProviderConfig]providers.Interface, waiter *operationWaiter) {
 	run := n.run
 	file := n.File()
 	config := run.ModuleConfig
 
 	log.Printf("[TRACE] TestFileRunner: called validate for %s/%s", file.Name, run.Name)
-	TransformConfigForRun(ctx, run, file)
 	tfCtx, ctxDiags := terraform.NewContext(n.opts.ContextOpts)
 	if ctxDiags.HasErrors() {
 		return
 	}
 	waiter.update(tfCtx, moduletest.Running, nil)
-	validateDiags := tfCtx.Validate(config, nil)
+	validateDiags := tfCtx.Validate(config, &terraform.ValidateOpts{
+		ExternalProviders: providers,
+	})
 	run.Diagnostics = run.Diagnostics.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		run.Status = moduletest.Error
 		return
 	}
+}
+
+func (n *NodeTestRun) getProviders(ctx *EvalContext) (map[addrs.RootProviderConfig]providers.Interface, map[addrs.RootProviderConfig]*configs.MockData, tfdiags.Diagnostics) {
+	run := n.run
+
+	var diags tfdiags.Diagnostics
+
+	if len(run.Config.Providers) > 0 {
+		// Then we'll only provide the specific providers asked for by the run
+		// block.
+
+		providers := make(map[addrs.RootProviderConfig]providers.Interface, len(run.Config.Providers))
+		mocks := make(map[addrs.RootProviderConfig]*configs.MockData)
+
+		for _, ref := range run.Config.Providers {
+
+			testAddr := addrs.RootProviderConfig{
+				Provider: ctx.ProviderForConfigAddr(ref.InParent.Addr()),
+				Alias:    ref.InParent.Alias,
+			}
+
+			moduleAddr := addrs.RootProviderConfig{
+				Provider: run.ModuleConfig.ProviderForConfigAddr(ref.InChild.Addr()),
+				Alias:    ref.InChild.Alias,
+			}
+
+			if !testAddr.Provider.Equals(moduleAddr.Provider) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Mismatched provider configuration",
+					Detail:   fmt.Sprintf("Expected %q but was %q.", moduleAddr.Provider, testAddr.Provider),
+					Subject:  ref.InChild.NameRange.Ptr(),
+				})
+				continue
+			}
+
+			if provider, ok := ctx.GetProvider(testAddr); ok {
+				providers[moduleAddr] = provider
+
+				config := n.File().Config.Providers[ref.InParent.String()]
+				if config.Mock {
+					mocks[moduleAddr] = config.MockData
+				}
+
+			} else {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing provider",
+					Detail:   fmt.Sprintf("Provider %q was not defined within the test file.", ref.InParent.String()),
+					Subject:  ref.InParent.NameRange.Ptr(),
+				})
+			}
+
+		}
+		return providers, mocks, diags
+
+	} else {
+		// Otherwise, let's copy over all the relevant providers.
+
+		providers := make(map[addrs.RootProviderConfig]providers.Interface)
+		mocks := make(map[addrs.RootProviderConfig]*configs.MockData)
+
+		for addr := range requiredProviders(run.ModuleConfig) {
+			if provider, ok := ctx.GetProvider(addr); ok {
+				providers[addr] = provider
+
+				local := ctx.LocalNameForProvider(addr)
+				if len(addr.Alias) > 0 {
+					local = fmt.Sprintf("%s.%s", local, addr.Alias)
+				}
+				config := n.File().Config.Providers[local]
+				if config.Mock {
+					mocks[addr] = config.MockData
+				}
+			}
+		}
+		return providers, mocks, diags
+	}
+}
+
+func requiredProviders(config *configs.Config) map[addrs.RootProviderConfig]bool {
+	providers := make(map[addrs.RootProviderConfig]bool)
+
+	// First, let's look at the required providers first.
+	for _, provider := range config.Module.ProviderRequirements.RequiredProviders {
+		providers[addrs.RootProviderConfig{
+			Provider: provider.Type,
+		}] = true
+		for _, alias := range provider.Aliases {
+			providers[addrs.RootProviderConfig{
+				Provider: provider.Type,
+				Alias:    alias.Alias,
+			}] = true
+		}
+	}
+
+	// Second, we look at the defined provider configs.
+	for _, provider := range config.Module.ProviderConfigs {
+		providers[addrs.RootProviderConfig{
+			Provider: config.ProviderForConfigAddr(provider.Addr()),
+			Alias:    provider.Alias,
+		}] = true
+	}
+
+	// Third, we look at the resources and data sources.
+	for _, resource := range config.Module.ManagedResources {
+		if resource.ProviderConfigRef != nil {
+			providers[addrs.RootProviderConfig{
+				Provider: config.ProviderForConfigAddr(resource.ProviderConfigRef.Addr()),
+				Alias:    resource.ProviderConfigRef.Alias,
+			}] = true
+			continue
+		}
+		providers[addrs.RootProviderConfig{
+			Provider: resource.Provider,
+		}] = true
+	}
+	for _, datasource := range config.Module.DataResources {
+		if datasource.ProviderConfigRef != nil {
+			providers[addrs.RootProviderConfig{
+				Provider: config.ProviderForConfigAddr(datasource.ProviderConfigRef.Addr()),
+				Alias:    datasource.ProviderConfigRef.Alias,
+			}] = true
+			continue
+		}
+		providers[addrs.RootProviderConfig{
+			Provider: datasource.Provider,
+		}] = true
+	}
+
+	// Finally, we look at any module calls to see if any providers are used
+	// in there.
+	for _, module := range config.Module.ModuleCalls {
+		for _, provider := range module.Providers {
+			providers[addrs.RootProviderConfig{
+				Provider: config.ProviderForConfigAddr(provider.InParent.Addr()),
+				Alias:    provider.InParent.Alias,
+			}] = true
+		}
+	}
+
+	return providers
 }

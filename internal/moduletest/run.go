@@ -27,11 +27,7 @@ const (
 type Run struct {
 	Config *configs.TestRun
 
-	// ModuleConfig is a copy of the module configuration that the run is testing.
-	// The variables and provider configurations are copied so that the run can
-	// modify them safely without affecting the original configuration.
-	// However, any other fields in the module configuration are still shared between
-	// all runs that use the same module configuration.
+	// ModuleConfig is the config that this run block is executing against.
 	ModuleConfig *configs.Config
 
 	Verbose *Verbose
@@ -62,27 +58,9 @@ type Run struct {
 }
 
 func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {
-	// Make a copy the module configuration variables and provider configuration maps
-	// so that the run can modify the map safely.
-	// TODO(liamcervante): We won't need to do this once variables and providers
-	// are executed within the graph.
-	newModuleConfig := *moduleConfig
-	if moduleConfig.Module != nil {
-		newModule := *moduleConfig.Module
-		newModule.Variables = make(map[string]*configs.Variable, len(moduleConfig.Module.Variables))
-		for name, variable := range moduleConfig.Module.Variables {
-			newModule.Variables[name] = variable
-		}
-		newModule.ProviderConfigs = make(map[string]*configs.Provider, len(moduleConfig.Module.ProviderConfigs))
-		for name, provider := range moduleConfig.Module.ProviderConfigs {
-			newModule.ProviderConfigs[name] = provider
-		}
-		newModuleConfig.Module = &newModule
-	}
-
 	return &Run{
 		Config:       config,
-		ModuleConfig: &newModuleConfig,
+		ModuleConfig: moduleConfig,
 		Name:         config.Name,
 		Index:        index,
 	}

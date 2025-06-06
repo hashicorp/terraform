@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -55,25 +54,13 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 	// them out.
 
 	for name, expr := range run.Config.Variables {
-		requiredValues := make(map[string]cty.Value)
-
 		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
-		for _, ref := range refs {
-			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
-				if value := ctx.GetVariable(addr.Name); value != nil {
-					requiredValues[addr.Name] = value.Value
-					continue
-				}
-				if value, valueDiags := ctx.EvaluateUnparsedVariable(addr.Name, run.ModuleConfig.Module.Variables[addr.Name]); value != nil {
-					diags = diags.Append(valueDiags)
-					requiredValues[addr.Name] = value.Value
-					continue
-				}
-			}
+		diags = append(diags, refDiags...)
+		if refDiags.HasErrors() {
+			continue
 		}
-		diags = diags.Append(refDiags)
 
-		ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, map[string]hcl.Expression{name: expr}, requiredValues, ctx.GetOutputs())
+		ctx, ctxDiags := ctx.HclContext(refs, run.ModuleConfig.Module.Variables)
 		diags = diags.Append(ctxDiags)
 
 		value := cty.DynamicVal
@@ -122,7 +109,7 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 		// The user might have provided a value for this externally or at the
 		// file level, so we can also just pass it through.
 
-		if value := ctx.GetVariable(variable.Name); value != nil {
+		if value, ok := ctx.GetVariable(variable.Name); ok {
 			values[name] = value
 			continue
 		}
@@ -173,7 +160,7 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 		// Otherwise, we'll get it from the cache as a file-level or global
 		// variable.
 
-		if value := ctx.GetVariable(variable); value != nil {
+		if value, ok := ctx.GetVariable(variable); ok {
 			values[variable] = value
 			continue
 		}
