@@ -4,15 +4,10 @@
 package workdir
 
 import (
-	"bytes"
 	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
 func TestParseBackendStateFile(t *testing.T) {
@@ -65,11 +60,62 @@ func TestParseBackendStateFile(t *testing.T) {
 			Want: &BackendStateFile{
 				Version:   3,
 				TFVersion: "0.8.0",
-				Backend: &BackendState{
+				Backend: &BackendConfigState{
 					Type:      "treasure_chest_buried_on_a_remote_island",
 					ConfigRaw: json.RawMessage("{}"),
 				},
 			},
+		},
+		"active state_store": {
+			Input: `{
+				"version": 3,
+				"terraform_version": "9.9.9",
+				"state_store": {
+					"type": "foobar_baz",
+					"config": {
+						"provider": "foobar",
+						"bucket": "my-bucket"
+					},
+					"provider": {
+						"version": "1.2.3",
+						"source": "registry.terraform.io/my-org/foobar"
+					}
+				}
+			}`,
+			Want: &BackendStateFile{
+				Version:   3,
+				TFVersion: "9.9.9",
+				StateStore: &StateStoreConfigState{
+					Type:     "foobar_baz",
+					Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io/my-org/foobar"),
+					ConfigRaw: json.RawMessage(`{
+						"provider": "foobar",
+						"bucket": "my-bucket"
+					}`),
+				},
+			},
+		},
+		"detection of malformed state: conflicting 'backend' and 'state_store' sections": {
+			Input: `{
+				"version": 3,
+				"terraform_version": "9.9.9",
+				"backend": {
+					"type": "treasure_chest_buried_on_a_remote_island",
+					"config": {}
+				},
+				"state_store": {
+					"type": "foobar_baz",
+					"config": {
+						"provider": "foobar",
+						"bucket": "my-bucket"
+					},
+					"provider": {
+						"version": "1.2.3",
+						"source": "registry.terraform.io/my-org/foobar"
+					}
+				}
+			}`,
+			WantErr: `encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block`,
 		},
 	}
 
@@ -97,47 +143,56 @@ func TestParseBackendStateFile(t *testing.T) {
 	}
 }
 
-func ParseBackendStateConfig(t *testing.T) {
-	// This test only really covers the happy path because Config/SetConfig is
-	// largely just a thin wrapper around configschema's "ImpliedType" and
-	// cty's json unmarshal/marshal and both of those are well-tested elsewhere.
+func TestEncodeBackendStateFile(t *testing.T) {
 
-	s := &BackendState{
-		Type: "whatever",
-		ConfigRaw: []byte(`{
-			"foo": "bar"
-		}`),
-	}
-
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"foo": {
-				Type:     cty.String,
-				Optional: true,
+	tests := map[string]struct {
+		Input   *BackendStateFile
+		Want    []uint8
+		WantErr string
+	}{
+		"it encodes an empty state": {
+			Input: &BackendStateFile{},
+			Want:  []uint8("{\n  \"version\": 3,\n  \"terraform_version\": \"1.13.0\"\n}"),
+		},
+		"it returns an error when both backend and state_store config state are present": {
+			Input: &BackendStateFile{
+				Backend: &BackendConfigState{
+					Type:      "foobar",
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "registry.terraform.io/my-org/foobar"),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
 			},
+			WantErr: `attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block`,
 		},
 	}
-	got, err := s.Config(schema)
-	want := cty.ObjectVal(map[string]cty.Value{
-		"foo": cty.StringVal("bar"),
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
-		t.Errorf("wrong result\n%s", diff)
-	}
 
-	err = s.SetConfig(cty.ObjectVal(map[string]cty.Value{
-		"foo": cty.StringVal("baz"),
-	}), schema)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := EncodeBackendStateFile(test.Input)
 
-	gotRaw := s.ConfigRaw
-	wantRaw := []byte(`{"foo":"baz"}`)
-	if !bytes.Equal(wantRaw, gotRaw) {
-		t.Errorf("wrong raw config after encode\ngot:  %s\nwant: %s", gotRaw, wantRaw)
+			if test.WantErr != "" {
+				if err == nil {
+					t.Fatalf("unexpected success\nwant error: %s", test.WantErr)
+				}
+				if got, want := err.Error(), test.WantErr; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if diff := cmp.Diff(test.Want, got); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+
 	}
 }

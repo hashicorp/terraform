@@ -101,10 +101,10 @@ func TestDetectConfigChangeType(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			var state *workdir.BackendState
+			var state *workdir.BackendConfigState
 			var config *configs.Backend
 			if test.stateType != "" {
-				state = &workdir.BackendState{
+				state = &workdir.BackendConfigState{
 					Type: test.stateType,
 					// everything else is irrelevant for our purposes here
 				}
