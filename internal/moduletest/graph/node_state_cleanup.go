@@ -114,10 +114,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 		return state, nil
 	}
 
-	var diags tfdiags.Diagnostics
-	variables, variableDiags := runNode.GetVariables(ctx, false)
-	diags = diags.Append(variableDiags)
-
+	variables, diags := runNode.GetVariables(ctx, false)
 	if diags.HasErrors() {
 		return state, diags
 	}

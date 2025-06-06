@@ -10,3 +10,7 @@ variable "input_two" {
 resource "test_resource" "resource" {
   value = "${var.input_one} - ${var.input_two}"
 }
+
+output "value" {
+  value = test_resource.resource.value
+}

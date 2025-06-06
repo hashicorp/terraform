@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
-	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -103,7 +102,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	// collisions, as the test directory variables should take precedence.
 	maps.Copy(testDirectoryGlobalVariables, runner.GlobalTestVariables)
 
-	suite.Status = moduletest.Pass
+	suite.Status = moduletest.Pending
 	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
 		if runner.Cancelled {
 			return suite.Status, diags
@@ -119,19 +118,11 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
-			CancelCtx: runner.CancelledCtx,
-			StopCtx:   runner.StoppedCtx,
-			Verbose:   runner.Verbose,
-			Render:    runner.View,
-			VariableCache: &hcltest.VariableCache{
-
-				// TODO(liamcervante): Do the variables in the EvalContextTransformer
-				// as well as the run blocks.
-
-				ExternalVariableValues:      currentGlobalVariables,
-				TestFileVariableDefinitions: file.Config.VariableDefinitions,
-				TestFileVariableExpressions: file.Config.Variables,
-			},
+			CancelCtx:         runner.CancelledCtx,
+			StopCtx:           runner.StoppedCtx,
+			Verbose:           runner.Verbose,
+			Render:            runner.View,
+			UnparsedVariables: currentGlobalVariables,
 		})
 
 		fileRunner := &TestFileRunner{
@@ -252,7 +243,6 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// Build the graph for the file.
 	b := graph.TestGraphBuilder{
 		File:        file,
-		GlobalVars:  runner.EvalContext.VariableCache.ExternalVariableValues,
 		ContextOpts: runner.Suite.Opts,
 	}
 	g, diags := b.Build()

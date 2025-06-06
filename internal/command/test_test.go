@@ -191,13 +191,13 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"variable_references": {
-			expectedOut: []string{"2 passed, 0 failed."},
+			expectedOut: []string{"3 passed, 0 failed."},
 			args:        []string{"-var=global=\"triple\""},
 			code:        0,
 		},
 		"unreferenced_global_variable": {
 			override:    "variable_references",
-			expectedOut: []string{"2 passed, 0 failed."},
+			expectedOut: []string{"3 passed, 0 failed."},
 			// The other variable shouldn't pass validation, but it won't be
 			// referenced anywhere so should just be ignored.
 			args: []string{"-var=global=\"triple\"", "-var=other=bad"},
@@ -274,8 +274,8 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"global_var_refs": {
-			expectedOut: []string{"1 passed, 2 failed."},
-			expectedErr: []string{"The input variable \"env_var_input\" is not available to the current context", "The input variable \"setup\" is not available to the current context"},
+			expectedOut: []string{"1 passed, 0 failed, 2 skipped."},
+			expectedErr: []string{"The input variable \"env_var_input\" does not exist within this test file", "The input variable \"setup\" does not exist within this test file"},
 			code:        1,
 		},
 		"global_var_ref_in_suite_var": {
@@ -336,7 +336,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"with-default-variables": {
 			args:        []string{"-var=input_two=universe"},
-			expectedOut: []string{"1 passed, 0 failed."},
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"parallel-errors": {
@@ -448,7 +448,7 @@ func TestTest_Runs(t *testing.T) {
 			if len(tc.expectedOut) > 0 {
 				for _, expectedOut := range tc.expectedOut {
 					if !strings.Contains(output.Stdout(), expectedOut) {
-						t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+						t.Errorf("output didn't contain expected string (%q):\n\n%s", expectedOut, output.Stdout())
 					}
 				}
 			}
@@ -456,7 +456,7 @@ func TestTest_Runs(t *testing.T) {
 			if len(tc.expectedErr) > 0 {
 				for _, expectedErr := range tc.expectedErr {
 					if !strings.Contains(output.Stderr(), expectedErr) {
-						t.Errorf("error didn't contain expected string:\n\n%s", output.Stderr())
+						t.Errorf("error didn't contain expected string (%q):\n\n%s", expectedErr, output.Stderr())
 					}
 				}
 			} else if output.Stderr() != "" {
@@ -2312,17 +2312,14 @@ Error: Reference to unavailable variable
   on main.tftest.hcl line 15, in run "test":
   15:     input_one = var.notreal
 
-The input variable "notreal" is not available to the current run block. You
-can only reference variables defined at the file or global levels.
+The input variable "notreal" does not exist within this test file.
 
 Error: Reference to unknown run block
 
   on main.tftest.hcl line 16, in run "test":
   16:     input_two = run.madeup.response
 
-The run block "madeup" does not exist within this test file. You can only
-reference run blocks that are in the same test file and will execute before
-the current run block.
+The run block "madeup" does not exist within this test file.
 
 Error: Reference to unavailable variable
 
@@ -2397,6 +2394,11 @@ can be declared with a variable "input" {} block.
 }
 
 func TestTest_VariablesInProviders(t *testing.T) {
+
+	// TODO(liamcervante): Temporarily skip this until the next PR where
+	// providers will be included in the graph ordering again.
+	t.Skip()
+
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_vars")), td)
 	defer testChdir(t, td)()

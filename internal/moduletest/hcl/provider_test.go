@@ -184,19 +184,9 @@ func TestProviderConfig(t *testing.T) {
 				outputs[addr] = cty.ObjectVal(attrs)
 			}
 
-			variableCache := &VariableCache{
-				TestFileVariableExpressions: func() map[string]hcl.Expression {
-					variables := make(map[string]hcl.Expression)
-					for name, value := range tc.variables {
-						variables[name] = hcl.StaticExpr(value, hcl.Range{})
-					}
-					return variables
-				}(),
-			}
-
 			config := ProviderConfig{
 				Original:            file.Body,
-				VariableCache:       variableCache,
+				AvailableVariables:  tc.variables,
 				AvailableRunOutputs: outputs,
 			}
 

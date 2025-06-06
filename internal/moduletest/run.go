@@ -189,6 +189,27 @@ func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
 		references = append(references, moreRefs...)
 	}
 
+	for name, variable := range run.ModuleConfig.Module.Variables {
+
+		// because we also draw implicit references back to any variables
+		// defined in the test file with the same name as actual variables, then
+		// we'll count these as references as well.
+
+		if _, ok := run.Config.Variables[name]; ok {
+
+			// BUT, if the variable is defined within the list of variables
+			// within the run block then we don't want to draw an implicit
+			// reference as the data comes from that expression.
+
+			continue
+		}
+
+		references = append(references, &addrs.Reference{
+			Subject:     addrs.InputVariable{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
+		})
+	}
+
 	return references, diagnostics
 }
 
