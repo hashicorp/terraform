@@ -121,6 +121,9 @@ func EncodeBackendStateFile(f *BackendStateFile) ([]byte, error) {
 	if f.Backend != nil && f.StateStore != nil {
 		return nil, fmt.Errorf("attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block")
 	}
+	if f.Backend == nil && f.StateStore == nil {
+		return nil, fmt.Errorf("attempted to encode an empty backend state file; it doesn't contain state for either 'backend' or 'state_store' blocks")
+	}
 
 	return json.MarshalIndent(f, "", "  ")
 }
