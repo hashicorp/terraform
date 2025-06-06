@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -21,6 +22,7 @@ type GraphNodeExecutable interface {
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
 type TestGraphBuilder struct {
+	Config      *configs.Config
 	File        *moduletest.File
 	ContextOpts *terraform.ContextOpts
 }
@@ -50,7 +52,11 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		&TestStateCleanupTransformer{opts},
 		&TestVariablesTransformer{File: b.File},
 		terraform.DynamicTransformer(validateRunConfigs),
-		&TestProvidersTransformer{},
+		&TestProvidersTransformer{
+			Config:    b.Config,
+			File:      b.File,
+			Providers: opts.ContextOpts.Providers,
+		},
 		&EvalContextTransformer{File: b.File},
 		&ReferenceTransformer{},
 		&CloseTestGraphTransformer{},

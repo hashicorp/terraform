@@ -74,7 +74,6 @@ func checkExternalProviders(rootCfg *configs.Config, plan *plans.Plan, state *st
 			))
 		}
 	}
-
 	// The caller _must_ pass external provider configurations for any address
 	// that's been explicitly declared as required in the required_providers
 	// block.

@@ -16,13 +16,13 @@ import (
 // This requires us to deduplicate between run blocks and test files, and mock
 // providers.
 type Overrides struct {
-	providerOverrides map[string]addrs.Map[addrs.Targetable, *configs.Override]
+	providerOverrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]
 	localOverrides    addrs.Map[addrs.Targetable, *configs.Override]
 }
 
-func PackageOverrides(run *configs.TestRun, file *configs.TestFile, config *configs.Config) *Overrides {
+func PackageOverrides(run *configs.TestRun, file *configs.TestFile, mocks map[addrs.RootProviderConfig]*configs.MockData) *Overrides {
 	overrides := &Overrides{
-		providerOverrides: make(map[string]addrs.Map[addrs.Targetable, *configs.Override]),
+		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]),
 		localOverrides:    addrs.MakeMap[addrs.Targetable, *configs.Override](),
 	}
 
@@ -47,13 +47,8 @@ func PackageOverrides(run *configs.TestRun, file *configs.TestFile, config *conf
 	}
 
 	// Finally, we want to include the overrides for any mock providers we have.
-	for key, provider := range config.Module.ProviderConfigs {
-		if !provider.Mock {
-			// Only mock providers can supply overrides.
-			continue
-		}
-
-		for _, elem := range provider.MockData.Overrides.Elems {
+	for key, data := range mocks {
+		for _, elem := range data.Overrides.Elems {
 			target := elem.Key
 
 			if overrides.localOverrides.Has(target) {
@@ -199,7 +194,10 @@ func (overrides *Overrides) ProviderMatch(provider addrs.AbsProviderConfig) (add
 		name = fmt.Sprintf("%s.%s", name, provider.Alias)
 	}
 
-	data, exists := overrides.providerOverrides[name]
+	data, exists := overrides.providerOverrides[addrs.RootProviderConfig{
+		Provider: provider.Provider,
+		Alias:    provider.Alias,
+	}]
 	return data, exists
 }
 

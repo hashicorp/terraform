@@ -369,7 +369,9 @@ func TestTest_Runs(t *testing.T) {
 			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
 			defer testChdir(t, td)()
 
-			provider := testing_command.NewProvider(nil)
+			store := &testing_command.ResourceStore{
+				Data: make(map[string]cty.Value),
+			}
 			providerSource, close := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
@@ -380,11 +382,17 @@ func TestTest_Runs(t *testing.T) {
 			ui := new(cli.MockUi)
 
 			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+							return testing_command.NewProvider(store).Provider, nil
+						},
+					},
+				},
+				Ui:             ui,
+				View:           view,
+				Streams:        streams,
+				ProviderSource: providerSource,
 			}
 
 			init := &InitCommand{
@@ -463,8 +471,8 @@ func TestTest_Runs(t *testing.T) {
 				t.Errorf("unexpected stderr output\n%s", output.Stderr())
 			}
 
-			if provider.ResourceCount() != tc.expectedResourceCount {
-				t.Errorf("should have left %d resources on completion but left %v", tc.expectedResourceCount, provider.ResourceString())
+			if len(store.Data) != tc.expectedResourceCount {
+				t.Errorf("should have left %d resources on completion but left %v", tc.expectedResourceCount, len(store.Data))
 			}
 		})
 	}
@@ -909,7 +917,9 @@ func TestTest_ProviderAlias(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "with_provider_alias")), td)
 	defer testChdir(t, td)()
 
-	provider := testing_command.NewProvider(nil)
+	store := &testing_command.ResourceStore{
+		Data: make(map[string]cty.Value),
+	}
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
@@ -921,11 +931,17 @@ func TestTest_ProviderAlias(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+					return testing_command.NewProvider(store).Provider, nil
+				},
+			},
+		},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
 	}
 
 	init := &InitCommand{
@@ -957,11 +973,11 @@ func TestTest_ProviderAlias(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
-	if provider.ResourceCount() > 0 {
+	if len(store.Data) > 0 {
 		if !printedOutput {
-			t.Errorf("should have deleted all resources on completion but left %s\n\n%s", provider.ResourceString(), output.All())
+			t.Errorf("should have deleted all resources on completion but left %d\n\n%s", len(store.Data), output.All())
 		} else {
-			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
+			t.Errorf("should have deleted all resources on completion but left %d", len(store.Data))
 		}
 	}
 }
@@ -2295,11 +2311,11 @@ func TestTest_BadReferences(t *testing.T) {
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 providers.tftest.hcl... in progress
-  run "test"... fail
+  run "test"... skip
 providers.tftest.hcl... tearing down
 providers.tftest.hcl... fail
 
-Failure! 1 passed, 2 failed, 1 skipped.
+Failure! 1 passed, 1 failed, 2 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -2326,9 +2342,7 @@ Error: Reference to unavailable variable
   on providers.tftest.hcl line 3, in provider "test":
    3:   resource_prefix = var.default
 
-The input variable "default" is not available to the current provider
-configuration. You can only reference variables defined at the file or global
-levels.
+The input variable "default" does not exist within this test file.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -2394,11 +2408,6 @@ can be declared with a variable "input" {} block.
 }
 
 func TestTest_VariablesInProviders(t *testing.T) {
-
-	// TODO(liamcervante): Temporarily skip this until the next PR where
-	// providers will be included in the graph ordering again.
-	t.Skip()
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_vars")), td)
 	defer testChdir(t, td)()
@@ -3313,7 +3322,9 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs_invalid")), td)
 	defer testChdir(t, td)()
 
-	provider := testing_command.NewProvider(nil)
+	store := &testing_command.ResourceStore{
+		Data: make(map[string]cty.Value),
+	}
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
@@ -3325,11 +3336,17 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+					return testing_command.NewProvider(store).Provider, nil
+				},
+			},
+		},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
 	}
 
 	init := &InitCommand{
@@ -3358,11 +3375,10 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	}
 
 	expectedOut := `missing_run_block.tftest.hcl... in progress
-  run "main"... fail
+  run "main"... skip
 missing_run_block.tftest.hcl... tearing down
 missing_run_block.tftest.hcl... fail
 unavailable_run_block.tftest.hcl... in progress
-  run "main"... fail
 unavailable_run_block.tftest.hcl... tearing down
 unavailable_run_block.tftest.hcl... fail
 unused_provider.tftest.hcl... in progress
@@ -3370,7 +3386,7 @@ unused_provider.tftest.hcl... in progress
 unused_provider.tftest.hcl... tearing down
 unused_provider.tftest.hcl... pass
 
-Failure! 1 passed, 2 failed.
+Failure! 1 passed, 0 failed, 1 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -3383,26 +3399,18 @@ Error: Reference to unknown run block
   on missing_run_block.tftest.hcl line 2, in provider "test":
    2:   resource_prefix = run.missing.resource_directory
 
-The run block "missing" does not exist within this test file. You can only
-reference run blocks that are in the same test file and will execute before
-the provider is required.
+The run block "missing" does not exist within this test file.
 
-Error: Reference to unavailable run block
+Error: Cycle: provider.test, unavailable_run_block.tftest.hcl.run.main
 
-  on unavailable_run_block.tftest.hcl line 2, in provider "test":
-   2:   resource_prefix = run.main.resource_directory
-
-The run block "main" has not executed yet. You can only reference run blocks
-that are in the same test file and will execute before the provider is
-required.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
 	}
 
-	if provider.ResourceCount() > 0 {
-		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	if len(store.Data) > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", len(store.Data))
 	}
 }
 

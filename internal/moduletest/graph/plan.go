@@ -8,16 +8,18 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues, waiter *operationWaiter) {
+func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
 
@@ -30,7 +32,7 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
-	planScope, plan, planDiags := n.plan(ctx, tfCtx, setVariables, waiter)
+	planScope, plan, planDiags := n.plan(ctx, tfCtx, setVariables, providers, mocks, waiter)
 	// We exclude the diagnostics that are expected to fail from the plan
 	// diagnostics, and if an expected failure is not found, we add a new error diagnostic.
 	planDiags = run.ValidateExpectedFailures(planDiags)
@@ -72,18 +74,10 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, planScope, testOnlyVariables)
 	run.Status = newStatus
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
-
-	// TODO(liamcervante): Temporarily lock the eval context here, while we
-	// still support dynamic provider evaluations. We won't need to lock this
-	// anymore once we don't have to keep all run blocks in the context all the
-	// time.
-
-	ctx.outputsLock.Lock()
 	run.Outputs = outputVals
-	ctx.outputsLock.Unlock()
 }
 
-func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
+func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
 	log.Printf("[TRACE] TestFileRunner: called plan for %s/%s", file.Name, run.Name)
@@ -114,7 +108,8 @@ func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables
 		SkipRefresh:        !run.Config.Options.Refresh,
 		SetVariables:       variables,
 		ExternalReferences: n.References(),
-		Overrides:          mocking.PackageOverrides(run.Config, file.Config, config),
+		ExternalProviders:  providers,
+		Overrides:          mocking.PackageOverrides(run.Config, file.Config, mocks),
 	}
 
 	waiter.update(tfCtx, moduletest.Running, nil)

@@ -118,6 +118,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
+			Config:            runner.Config,
 			CancelCtx:         runner.CancelledCtx,
 			StopCtx:           runner.StoppedCtx,
 			Verbose:           runner.Verbose,
@@ -242,6 +243,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// Build the graph for the file.
 	b := graph.TestGraphBuilder{
+		Config:      runner.Suite.Config,
 		File:        file,
 		ContextOpts: runner.Suite.Opts,
 	}

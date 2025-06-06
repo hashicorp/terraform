@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -51,16 +52,12 @@ type EvalContext struct {
 	variablesLock     sync.Mutex
 
 	// runBlocks caches all the known run blocks that this EvalContext manages.
-	runBlocks   map[addrs.Run]*moduletest.Run
+	runBlocks   map[string]*moduletest.Run
 	outputsLock sync.Mutex
 
-	// configProviders is a cache of config keys mapped to all the providers
-	// referenced by the given config.
-	//
-	// The config keys are globally unique across an entire test suite, so we
-	// store this at the suite runner level to get maximum efficiency.
-	configProviders map[string]map[string]bool
-	providersLock   sync.Mutex
+	providers      map[addrs.RootProviderConfig]providers.Interface
+	providerStatus map[addrs.RootProviderConfig]moduletest.Status
+	providersLock  sync.Mutex
 
 	// FileStates is a mapping of module keys to it's last applied state
 	// file.
@@ -79,6 +76,7 @@ type EvalContext struct {
 	stopContext   context.Context
 	stopFunc      context.CancelFunc
 
+	config   *configs.Config
 	renderer views.Test
 	verbose  bool
 }
@@ -89,6 +87,7 @@ type EvalContextOpts struct {
 	CancelCtx         context.Context
 	StopCtx           context.Context
 	UnparsedVariables map[string]backendrun.UnparsedVariableValue
+	Config            *configs.Config
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -103,9 +102,10 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		parsedVariables:   make(terraform.InputValues),
 		variableStatus:    make(map[string]moduletest.Status),
 		variablesLock:     sync.Mutex{},
-		runBlocks:         make(map[addrs.Run]*moduletest.Run),
+		runBlocks:         make(map[string]*moduletest.Run),
 		outputsLock:       sync.Mutex{},
-		configProviders:   make(map[string]map[string]bool),
+		providers:         make(map[addrs.RootProviderConfig]providers.Interface),
+		providerStatus:    make(map[addrs.RootProviderConfig]moduletest.Status),
 		providersLock:     sync.Mutex{},
 		FileStates:        make(map[string]*TestFileState),
 		stateLock:         sync.Mutex{},
@@ -115,6 +115,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		stopFunc:          stop,
 		verbose:           opts.Verbose,
 		renderer:          opts.Render,
+		config:            opts.Config,
 	}
 }
 
@@ -148,6 +149,93 @@ func (ec *EvalContext) Stopped() bool {
 // Verbose returns true if the context is in verbose mode.
 func (ec *EvalContext) Verbose() bool {
 	return ec.verbose
+}
+
+func (ec *EvalContext) HclContext(references []*addrs.Reference, variableConfigs map[string]*configs.Variable) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	runs := make(map[string]cty.Value)
+	vars := make(map[string]cty.Value)
+
+	for _, reference := range references {
+		switch subject := reference.Subject.(type) {
+		case addrs.Run:
+			run, ok := ec.GetOutput(subject.Name)
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to unknown run block",
+					Detail:   fmt.Sprintf("The run block %q does not exist within this test file.", subject.Name),
+					Subject:  reference.SourceRange.ToHCL().Ptr(),
+				})
+				continue
+			}
+			runs[subject.Name] = run
+
+			value, valueDiags := reference.Remaining.TraverseRel(run)
+			diags = diags.Append(valueDiags)
+			if valueDiags.HasErrors() {
+				continue
+			}
+
+			if !value.IsWhollyKnown() {
+				// This is not valid, we cannot allow users to pass unknown
+				// values into references within the test file. There's just
+				// going to be difficult and confusing errors later if this
+				// happens.
+				//
+				// When reporting this we assume that it's happened because
+				// the prior run was a plan-only run and that some of its
+				// output values were not known. If this arises for a
+				// run that performed a full apply then this is a bug in
+				// Terraform's modules runtime, because unknown output
+				// values should not be possible in that case.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to unknown value",
+					Detail:   fmt.Sprintf("The value for %s is unknown. Run block %q is executing a \"plan\" operation, and the specified output value is only known after apply.", reference.DisplayString(), subject.Name),
+					Subject:  reference.SourceRange.ToHCL().Ptr(),
+				})
+				continue
+			}
+
+		case addrs.InputVariable:
+			if variable, ok := ec.GetVariable(subject.Name); ok {
+				vars[subject.Name] = variable.Value
+				continue
+			}
+
+			if variable, moreDiags := ec.EvaluateUnparsedVariable(subject.Name, variableConfigs[subject.Name]); variable != nil {
+				diags = diags.Append(moreDiags)
+				vars[subject.Name] = variable.Value
+				continue
+			}
+
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to unavailable variable",
+				Detail:   fmt.Sprintf("The input variable %q does not exist within this test file.", subject.Name),
+				Subject:  reference.SourceRange.ToHCL().Ptr(),
+			})
+			continue
+
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   "You can only reference run blocks and variables from within Terraform Test files.",
+				Subject:  reference.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
+	return &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"run": cty.ObjectVal(runs),
+			"var": cty.ObjectVal(vars),
+		},
+		Functions: lang.TestingFunctions(),
+	}, diags
 }
 
 // EvaluateRun processes the assertions inside the provided configs.TestRun against
@@ -375,23 +463,16 @@ func (ec *EvalContext) EvaluateUnparsedVariable(name string, config *configs.Var
 func (ec *EvalContext) SetVariable(name string, val *terraform.InputValue) {
 	ec.variablesLock.Lock()
 	defer ec.variablesLock.Unlock()
+
 	ec.parsedVariables[name] = val
 }
 
-func (ec *EvalContext) GetVariable(name string) *terraform.InputValue {
+func (ec *EvalContext) GetVariable(name string) (*terraform.InputValue, bool) {
 	ec.variablesLock.Lock()
 	defer ec.variablesLock.Unlock()
-	return ec.parsedVariables[name]
-}
 
-func (ec *EvalContext) Variables() map[string]cty.Value {
-	ec.variablesLock.Lock()
-	defer ec.variablesLock.Unlock()
-	output := make(map[string]cty.Value, len(ec.parsedVariables))
-	for k, v := range ec.parsedVariables {
-		output[k] = v.Value
-	}
-	return output
+	variable, ok := ec.parsedVariables[name]
+	return variable, ok
 }
 
 func (ec *EvalContext) SetVariableStatus(address string, status moduletest.Status) {
@@ -403,45 +484,44 @@ func (ec *EvalContext) SetVariableStatus(address string, status moduletest.Statu
 func (ec *EvalContext) AddRunBlock(run *moduletest.Run) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	ec.runBlocks[run.Addr()] = run
+	ec.runBlocks[run.Name] = run
 }
 
-func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
+func (ec *EvalContext) GetOutput(name string) (cty.Value, bool) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runBlocks))
-	for addr, run := range ec.runBlocks {
-		// Normally, we should check the run.Status before reading the outputs
-		// to make sure they are actually valid. But, for now we are tracking
-		// a difference between run blocks not yet executed and run blocks that
-		// do not exist by setting cty.NilVal for run blocks that haven't
-		// executed yet so we do actually just want to include all run blocks
-		// here.
-		// TODO(liamcervante): Validate run status before adding to this map
-		// once providers and variables are in the graph and we don't need to
-		// rely on this hack.
-		outputCopy[addr] = run.Outputs
-	}
-	return outputCopy
-}
-
-// ProviderExists returns true if the provider exists for the run inside the context.
-func (ec *EvalContext) ProviderExists(run *moduletest.Run, key string) bool {
-	ec.providersLock.Lock()
-	defer ec.providersLock.Unlock()
-	runProviders, ok := ec.configProviders[run.GetModuleConfigID()]
+	output, ok := ec.runBlocks[name]
 	if !ok {
-		return false
+		return cty.NilVal, false
 	}
-
-	found, ok := runProviders[key]
-	return ok && found
+	return output.Outputs, true
 }
 
-func (ec *EvalContext) SetProviders(run *moduletest.Run, providers map[string]bool) {
+func (ec *EvalContext) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
+	return ec.config.ProviderForConfigAddr(addr)
+}
+
+func (ec *EvalContext) LocalNameForProvider(addr addrs.RootProviderConfig) string {
+	return ec.config.Module.LocalNameForProvider(addr.Provider)
+}
+
+func (ec *EvalContext) GetProvider(addr addrs.RootProviderConfig) (providers.Interface, bool) {
 	ec.providersLock.Lock()
 	defer ec.providersLock.Unlock()
-	ec.configProviders[run.GetModuleConfigID()] = providers
+	provider, ok := ec.providers[addr]
+	return provider, ok
+}
+
+func (ec *EvalContext) SetProvider(addr addrs.RootProviderConfig, provider providers.Interface) {
+	ec.providersLock.Lock()
+	defer ec.providersLock.Unlock()
+	ec.providers[addr] = provider
+}
+
+func (ec *EvalContext) SetProviderStatus(addr addrs.RootProviderConfig, status moduletest.Status) {
+	ec.providersLock.Lock()
+	defer ec.providersLock.Unlock()
+	ec.providerStatus[addr] = status
 }
 
 func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnostics) {
@@ -479,15 +559,12 @@ func (ec *EvalContext) GetFileState(key string) *TestFileState {
 // ReferencesCompleted returns true if all the listed references were actually
 // executed successfully. This allows nodes in the graph to decide if they
 // should execute or not based on the status of their references.
-//
-// TODO(liamcervante): Expand this with providers once we've added them to the
-// graph.
 func (ec *EvalContext) ReferencesCompleted(refs []*addrs.Reference) bool {
 	for _, ref := range refs {
 		switch ref := ref.Subject.(type) {
 		case addrs.Run:
 			ec.outputsLock.Lock()
-			if run, ok := ec.runBlocks[ref]; ok {
+			if run, ok := ec.runBlocks[ref.Name]; ok {
 				if run.Status != moduletest.Pass && run.Status != moduletest.Fail {
 					ec.outputsLock.Unlock()
 
@@ -509,6 +586,22 @@ func (ec *EvalContext) ReferencesCompleted(refs []*addrs.Reference) bool {
 	return true
 }
 
+// ProvidersCompleted ensures that all required providers were properly
+// initialised.
+func (ec *EvalContext) ProvidersCompleted(providers map[addrs.RootProviderConfig]providers.Interface) bool {
+	ec.providersLock.Lock()
+	defer ec.providersLock.Unlock()
+
+	for provider := range providers {
+		if status, ok := ec.providerStatus[provider]; ok {
+			if status == moduletest.Skip || status == moduletest.Error {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // PriorRunsCompleted checks a list of run blocks against our internal log of
 // completed run blocks and makes sure that any that do exist successfully
 // executed to completion.
@@ -516,12 +609,12 @@ func (ec *EvalContext) ReferencesCompleted(refs []*addrs.Reference) bool {
 // Note that run blocks that are not in the list indicate a bad reference,
 // which we ignore here. This is actually the problem of the caller to identify
 // and error.
-func (ec *EvalContext) PriorRunsCompleted(runs map[addrs.Run]*moduletest.Run) bool {
+func (ec *EvalContext) PriorRunsCompleted(runs map[string]*moduletest.Run) bool {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
 
-	for addr := range runs {
-		if run, ok := ec.runBlocks[addr]; ok {
+	for name := range runs {
+		if run, ok := ec.runBlocks[name]; ok {
 			if run.Status != moduletest.Pass && run.Status != moduletest.Fail {
 
 				// pass and fail indicate the run block still executed the plan
@@ -601,7 +694,7 @@ func (d *evaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRang
 // GetRunBlock implements lang.Data.
 func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret, exists := d.ctx.GetOutputs()[addr]
+	ret, exists := d.ctx.GetOutput(addr.Name)
 	if !exists {
 		ret = cty.DynamicVal
 		diags = diags.Append(&hcl.Diagnostic{
@@ -647,15 +740,17 @@ func (d *evaluationData) StaticValidateReferences(refs []*addrs.Reference, self 
 }
 
 func (d *evaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.Diagnostics {
+	d.ctx.outputsLock.Lock()
+	defer d.ctx.outputsLock.Unlock()
+
 	var diags tfdiags.Diagnostics
 
 	addr := ref.Subject.(addrs.Run)
-	outputs := d.ctx.GetOutputs()
-	_, exists := outputs[addr]
-	if !exists {
+
+	if _, exists := d.ctx.runBlocks[addr.Name]; !exists {
 		var suggestions []string
-		for altAddr := range outputs {
-			suggestions = append(suggestions, altAddr.Name)
+		for altAddr := range d.ctx.runBlocks {
+			suggestions = append(suggestions, altAddr)
 		}
 		sort.Strings(suggestions)
 		suggestion := didyoumean.NameSuggestion(addr.Name, suggestions)

@@ -14,7 +14,6 @@ var _ terraform.GraphTransformer = (*EvalContextTransformer)(nil)
 
 // EvalContextTransformer should be the first node to execute in the graph, and
 // it initialises the run blocks and state files in the evaluation context.
-// TODO(liamcervante): Also initialise the variables in here when needed.
 type EvalContextTransformer struct {
 	File *moduletest.File
 }
@@ -23,17 +22,8 @@ func (e *EvalContextTransformer) Transform(graph *terraform.Graph) error {
 	node := &dynamicNode{
 		eval: func(ctx *EvalContext) {
 			for _, run := range e.File.Runs {
-
-				// Within the run outputs a nil but present entry means the
-				// run block exists but hasn't executed yet.
-				// TODO(liamcervante): Once providers are embedded in the graph
-				// we don't need to track run blocks in this way anymore.
-
-				ctx.AddRunBlock(run)
-
-				// We also want to set an empty state file for every state key
-				// we're going to be executing within the graph.
-
+				// initialise all the state keys before the graph starts
+				// properly
 				key := run.GetStateKey()
 				if state := ctx.GetFileState(key); state == nil {
 					ctx.SetFileState(key, &TestFileState{
@@ -41,7 +31,6 @@ func (e *EvalContextTransformer) Transform(graph *terraform.Graph) error {
 						State: states.NewState(),
 					})
 				}
-
 			}
 		},
 	}
