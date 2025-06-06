@@ -62,15 +62,9 @@ func (ms *Module) DeepCopy() *Module {
 		resources[k] = r.DeepCopy()
 	}
 
-	listResources := make(map[string]addrs.Map[addrs.AbsResourceInstance, *ResourceInstanceObject], len(ms.ListResources))
-	for k, r := range ms.ListResources {
-		listResources[k] = r
-	}
-
 	return &Module{
-		Addr:          ms.Addr, // technically mutable, but immutable by convention
-		Resources:     resources,
-		ListResources: listResources,
+		Addr:      ms.Addr, // technically mutable, but immutable by convention
+		Resources: resources,
 	}
 }
 
