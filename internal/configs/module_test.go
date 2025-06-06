@@ -466,7 +466,7 @@ func TestModule_backend_multiple(t *testing.T) {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Duplicate backend configuration`
+		want := `Duplicate 'backend' configuration block`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
@@ -488,28 +488,216 @@ func TestModule_cloud_multiple(t *testing.T) {
 	})
 }
 
-// Cannot combine use of backend, cloud blocks.
-func TestModule_conflicting_backend_cloud(t *testing.T) {
+// Cannot combine use of backend, cloud, state_store blocks.
+func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 
+	// Cloud + Backend
 	t.Run("it detects when both cloud and backend blocks are in the same terraform block", func(t *testing.T) {
 		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-backend")
 		if !diags.HasErrors() {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Both a backend and cloud configuration are present`
+		want := `Conflicting 'cloud' and 'backend' configuration blocks are present`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})
-
-	t.Run("it detects when both cloud and backend blocks are present within the same module in separate files", func(t *testing.T) {
+	t.Run("it detects when both cloud and backend blocks are present in the same module in separate files", func(t *testing.T) {
 		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-backend-separate-files")
 		if !diags.HasErrors() {
 			t.Fatal("module should have error diags, but does not")
 		}
 
-		want := `Both a backend and cloud configuration are present`
+		want := `Conflicting 'cloud' and 'backend' configuration blocks are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+
+	// Cloud + State Store
+	t.Run("it detects when both cloud and state_store blocks are in the same terraform block", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-statestore")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Conflicting 'cloud' and 'state_store' configuration blocks are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+	t.Run("it detects when both cloud and state_store blocks are present in the same module in separate files", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-statestore-separate-files")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Conflicting 'cloud' and 'state_store' configuration blocks are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+
+	// State Store + Backend
+	t.Run("it detects when both state_store and backend blocks are in the same terraform block", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-statestore-backend")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Conflicting 'state_store' and 'backend' configuration blocks are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+	t.Run("it detects when both state_store and backend blocks are present in the same module in separate files", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-statestore-backend-separate-files")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Conflicting 'state_store' and 'backend' configuration blocks are present`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+
+	// All 3 block types : Cloud + State Store + Backend
+	//
+	// Note: there isn't a 'separate files' variation of this test, as Terraform will return validation once the
+	// second block is encountered, and never reaches the third. This is covered in scenarios tested above.
+	t.Run("it detects all 3 of cloud, state_storage and backend blocks are in the same terraform block", func(t *testing.T) {
+		_, diags := testModuleFromDir("testdata/invalid-modules/conflict-cloud-backend-statestore")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Only one of 'cloud', 'state_store', or 'backend' configuration blocks are allowed`
+		if got := diags.Error(); !strings.Contains(got, want) {
+			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+		}
+	})
+}
+
+func TestModule_stateStore_overrides_stateStore(t *testing.T) {
+	t.Run("it can override a state_store block with a different state_store block", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-state-store")
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		if mod.StateStore == nil {
+			t.Fatal("expected parsed module to include a state store, found none")
+		}
+
+		// Check type override
+		gotType := mod.StateStore.Type
+		wantType := "foo_override"
+		if gotType != wantType {
+			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
+		}
+
+		// Check custom attribute override
+		attrs, _ := mod.StateStore.Config.JustAttributes()
+		gotAttr, diags := attrs["custom_attr"].Expr.Value(nil)
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+		wantAttr := cty.StringVal("override")
+		if !gotAttr.RawEquals(wantAttr) {
+			t.Errorf("wrong result for state_store 'custom_attr': got %#v, want %#v\n", gotAttr, wantAttr)
+		}
+
+		// Check provider reference override
+		wantLocalName := "bar"
+		if mod.StateStore.ProviderConfigRef.Name != wantLocalName {
+			t.Errorf("wrong result for state_store 'provider' value's local name: got %#v, want %#v\n", mod.StateStore.ProviderConfigRef.Name, wantLocalName)
+		}
+		wantAlias := "override"
+		if mod.StateStore.ProviderConfigRef.Alias != wantAlias {
+			t.Errorf("wrong result for state_store 'provider' value's alias: got %#v, want %#v\n", mod.StateStore.ProviderConfigRef.Alias, wantAlias)
+		}
+	})
+}
+
+// Unlike most other overrides, state_store blocks do not require a base configuration in a primary
+// configuration file, as an omitted backend there implies the local backend.
+func TestModule_stateStore_override_no_base(t *testing.T) {
+	t.Run("it can introduce a state_store block via overrides when the base config has has no cloud, backend, or state_store blocks", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-state-store-no-base")
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		if mod.StateStore == nil {
+			t.Errorf("expected module StateStore not to be nil")
+		}
+	})
+}
+
+func TestModule_stateStore_overrides_backend(t *testing.T) {
+	t.Run("it can override a backend block with a state_store block", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-backend-with-state-store")
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		// Backend not set
+		if mod.Backend != nil {
+			t.Errorf("backend should not be set: got %#v\n", mod.Backend)
+		}
+
+		// Check state_store
+		if mod.StateStore == nil {
+			t.Fatal("expected parsed module to include a state store, found none")
+		}
+
+		gotType := mod.StateStore.Type
+		wantType := "foo_override"
+		if gotType != wantType {
+			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
+		}
+
+		// Not necessary to assert all values in state_store
+	})
+}
+
+func TestModule_stateStore_overrides_cloud(t *testing.T) {
+	t.Run("it can override a cloud block with a state_store block", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud-with-state-store")
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+
+		// CloudConfig not set
+		if mod.CloudConfig != nil {
+			t.Errorf("backend should not be set: got %#v\n", mod.Backend)
+		}
+
+		// Check state_store
+		if mod.StateStore == nil {
+			t.Fatal("expected parsed module to include a state store, found none")
+		}
+		gotType := mod.StateStore.Type
+		wantType := "foo_override"
+		if gotType != wantType {
+			t.Errorf("wrong result for state_store type: got %#v, want %#v\n", gotType, wantType)
+		}
+
+		// Not necessary to assert all values in state_store
+	})
+}
+
+func TestModule_state_store_multiple(t *testing.T) {
+	t.Run("it detects when two state_store blocks are present within the same module in separate files", func(t *testing.T) {
+
+		_, diags := testModuleFromDir("testdata/invalid-modules/multiple-state-store")
+		if !diags.HasErrors() {
+			t.Fatal("module should have error diags, but does not")
+		}
+
+		want := `Duplicate 'state_store' configuration block`
 		if got := diags.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
