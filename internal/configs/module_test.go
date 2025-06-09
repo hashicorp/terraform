@@ -611,12 +611,8 @@ func TestModule_stateStore_overrides_stateStore(t *testing.T) {
 
 		// Check provider reference override
 		wantLocalName := "bar"
-		if mod.StateStore.ProviderConfigRef.Name != wantLocalName {
-			t.Errorf("wrong result for state_store 'provider' value's local name: got %#v, want %#v\n", mod.StateStore.ProviderConfigRef.Name, wantLocalName)
-		}
-		wantAlias := "override"
-		if mod.StateStore.ProviderConfigRef.Alias != wantAlias {
-			t.Errorf("wrong result for state_store 'provider' value's alias: got %#v, want %#v\n", mod.StateStore.ProviderConfigRef.Alias, wantAlias)
+		if mod.StateStore.Provider.Name != wantLocalName {
+			t.Errorf("wrong result for state_store 'provider' value's local name: got %#v, want %#v\n", mod.StateStore.Provider.Name, wantLocalName)
 		}
 	})
 }

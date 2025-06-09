@@ -1,6 +1,6 @@
 terraform {
   state_store "foo_bar" {
-    provider = foo
+    provider "foo" {}
 
     custom_attr = "override"
   }
