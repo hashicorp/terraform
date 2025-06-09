@@ -59,6 +59,12 @@ func testModuleFromDir(path string) (*Module, hcl.Diagnostics) {
 	return parser.LoadConfigDir(path)
 }
 
+func testModuleFromDirWithExperiment(path string) (*Module, hcl.Diagnostics) {
+	parser := NewParser(nil)
+	parser.allowExperiments = true
+	return parser.LoadConfigDir(path)
+}
+
 // testModuleFromDirWithExperiments reads configuration from the given directory
 // path as a module and returns it. The parser is configured to allow language
 // experiments. This is a helper for use in unit tests.
