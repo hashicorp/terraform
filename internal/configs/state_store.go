@@ -5,7 +5,6 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // StateStore represents a "state_store" block inside a "terraform" block
@@ -14,8 +13,7 @@ type StateStore struct {
 	Type   string
 	Config hcl.Body
 
-	Provider          addrs.Provider
-	ProviderConfigRef *ProviderConfigRef
+	Provider *Provider
 
 	TypeRange hcl.Range
 	DeclRange hcl.Range
@@ -30,31 +28,53 @@ func decodeStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
 		DeclRange: block.DefRange,
 	}
 
-	content, remain, moreDiags := block.Body.PartialContent(ResourceBlockSchema)
+	content, remain, moreDiags := block.Body.PartialContent(StateStorageBlockSchema)
 	diags = append(diags, moreDiags...)
 	ss.Config = remain
 
-	attr, exists := content.Attributes["provider"]
-	if !exists {
+	if len(content.Blocks) == 0 {
 		return nil, append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Missing provider attribute",
-			Detail:   "A 'provider' attribute is required in 'state_store' blocks",
+			Summary:  "Missing provider block",
+			Detail:   "A 'provider' block is required in 'state_store' blocks",
 			Subject:  block.Body.MissingItemRange().Ptr(),
 		})
 	}
+	if len(content.Blocks) > 1 {
+		return nil, append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Duplicate provider block",
+			Detail:   "Only one 'provider' block should be present in a 'state_store' block",
+			Subject:  &content.Blocks[1].DefRange,
+		})
+	}
 
-	var providerDiags hcl.Diagnostics
-	ss.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
-	diags = append(diags, providerDiags...)
+	providerBlock := content.Blocks[0]
+
+	provider, providerDiags := decodeProviderBlock(providerBlock, false)
+	if providerDiags.HasErrors() {
+		return nil, append(diags, providerDiags...)
+	}
+	if provider.AliasRange != nil {
+		// This block is in its own namespace in the state_store block; aliases are irrelevant
+		return nil, append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unexpected provider alias",
+			Detail:   "Aliases are disallowed in the 'provider' block in the 'state_store' block",
+			Subject:  provider.AliasRange,
+		})
+	}
+
+	ss.Provider = provider
 
 	return ss, diags
 }
 
 var StateStorageBlockSchema = &hcl.BodySchema{
-	Attributes: []hcl.AttributeSchema{
+	Blocks: []hcl.BlockHeaderSchema{
 		{
-			Name: "provider",
+			Type:       "provider",
+			LabelNames: []string{"type"},
 		},
 	},
 }
