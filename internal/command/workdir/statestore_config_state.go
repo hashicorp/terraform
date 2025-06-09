@@ -149,13 +149,16 @@ func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Bl
 //
 // The state_store configuration schema is required in order to properly
 // encode the state store-specific configuration settings.
-func (s *StateStoreConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+func (s *StateStoreConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
 	if s == nil {
 		return nil, nil
 	}
-	// TODO
-	// What should a pluggable state store look like in a plan?
-	return nil, nil
+
+	configVal, err := s.Config(schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode state_store config: %w", err)
+	}
+	return plans.NewStateStore(s.Type, s.Provider.Version, &s.Provider.Source.Provider, configVal, schema, workspaceName)
 }
 
 func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
