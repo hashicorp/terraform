@@ -258,8 +258,12 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 						expr, shimDiags := shimTraversalInString(expr, false)
 						diags = append(diags, shimDiags...)
 
-						traversal, travDiags := hcl.RelTraversalForExpr(expr)
-						diags = append(diags, travDiags...)
+						traversal, parseDiags := parseSplatTraversal(expr)
+						diags = append(diags, parseDiags...)
+						if diags.HasErrors() {
+							continue
+						}
+
 						if len(traversal) != 0 {
 							r.Managed.IgnoreChanges = append(r.Managed.IgnoreChanges, traversal)
 						}
@@ -379,6 +383,59 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 	}
 
 	return r, diags
+}
+
+// parseSplatTraversal extracts the a relative splat traversal from an
+// hcl.Expression for the special ignore_changes splat references. We can't use
+// ParseTraversalPartial because we don't have the raw config and need to handle
+// he already parsed expression. Because HCL expects this to be a real splat
+// expression, the AST is structured such that walking the nodes does not return
+// the lexical order of the traversal in the configuration, and we must walk it
+// manually.
+func parseSplatTraversal(expr hcl.Expression) (hcl.Traversal, hcl.Diagnostics) {
+	var traversal hcl.Traversal
+	switch c := expr.(type) {
+	case *hclsyntax.SplatExpr:
+		// Source isn't expected to be a splat expression itself, but call this
+		// recursively to enter the other cases for the appropriate types.
+		sourceTrav, diags := parseSplatTraversal(c.Source)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+		traversal = append(traversal, sourceTrav...)
+
+		// add the splat traversal before we descend into the splat elements
+		traversal = append(traversal, hcl.TraverseSplat{})
+
+		// and there may be nested splat expressions, so we recurse at each level
+		eachTrav, diags := parseSplatTraversal(c.Each)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+		traversal = append(traversal, eachTrav...)
+
+	case *hclsyntax.RelativeTraversalExpr:
+		// this needs to be handled separately because even though
+		// RelTraversalForExpr creates relative traversals, it relies on
+		// AsTraversal which must be absolute.
+		traversal = append(traversal, c.Traversal...)
+	default:
+		relTrav, diags := hcl.RelTraversalForExpr(c)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		traversal = append(traversal, relTrav...)
+	}
+
+	if !traversal.IsRelative() {
+		root := traversal[0].(hcl.TraverseRoot)
+		traversal[0] = hcl.TraverseAttr{
+			Name:     root.Name,
+			SrcRange: root.SrcRange,
+		}
+	}
+	return traversal, nil
 }
 
 func decodeEphemeralBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
