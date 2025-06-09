@@ -67,7 +67,7 @@ func New() backend.Backend {
 					},
 					"metadata_host": {
 						Type:        cty.String,
-						Optional:    true,
+						Required:    true,
 						Description: "The Hostname which should be used for the Azure Metadata Service.",
 					},
 					"access_key": {
@@ -98,6 +98,7 @@ func New() backend.Backend {
 					"endpoint": {
 						Type:        cty.String,
 						Optional:    true,
+						Deprecated:  true,
 						Description: "`endpoint` is deprecated in favor of `msi_endpoint`, it will be removed in a future version of Terraform",
 					},
 
@@ -280,10 +281,12 @@ func New() backend.Backend {
 					// no fallback
 				},
 				"oidc_token": {
-					EnvVars: []string{"ARM_OIDC_TOKEN"},
+					EnvVars:  []string{"ARM_OIDC_TOKEN"},
+					Fallback: "",
 				},
 				"oidc_token_file_path": {
-					EnvVars: []string{"ARM_OIDC_TOKEN_FILE_PATH"},
+					EnvVars:  []string{"ARM_OIDC_TOKEN_FILE_PATH"},
+					Fallback: "",
 				},
 
 				// Managed Identity specific fields
