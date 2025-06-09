@@ -507,7 +507,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 			wantMsg: `Conflicting 'cloud' and 'backend' configuration blocks are present`,
 		},
 		"cloud state store conflict": {
-			// TODO
+			// detects when both cloud and state_store blocks are in the same terraform block
 			dir:              "testdata/invalid-modules/conflict-cloud-statestore",
 			wantMsg:          `Conflicting 'cloud' and 'state_store' configuration blocks are present`,
 			allowExperiments: true,
