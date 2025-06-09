@@ -118,11 +118,21 @@ func EncodeBackendStateFile(f *BackendStateFile) ([]byte, error) {
 	f.Version = 3 // we only support version 3
 	f.TFVersion = version.SemVer.String()
 
-	if f.Backend != nil && f.StateStore != nil {
-		return nil, fmt.Errorf("attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block")
-	}
-	if f.Backend == nil && f.StateStore == nil {
-		return nil, fmt.Errorf("attempted to encode an empty backend state file; it doesn't contain state for either 'backend' or 'state_store' blocks")
+	switch {
+	case f.Backend != nil && f.StateStore != nil:
+		return nil, fmt.Errorf("attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block. This is a bug in Terraform and should be reported.")
+	case f.Backend == nil && f.StateStore == nil:
+		// This is valid - if the user has a backend state file and an implied local backend in use
+		// the backend state file exists but has no Backend data.
+	case f.Backend != nil:
+		// Not implementing anything here - risk of breaking changes
+	case f.StateStore != nil:
+		err := f.StateStore.Validate()
+		if err != nil {
+			return nil, err
+		}
+	default:
+		panic("error when determining whether backend state file was valid. This is a bug in Terraform and should be reported.")
 	}
 
 	return json.MarshalIndent(f, "", "  ")

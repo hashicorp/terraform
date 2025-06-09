@@ -6,6 +6,7 @@ package workdir
 import (
 	"encoding"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	version "github.com/hashicorp/go-version"
@@ -39,6 +40,7 @@ type Source struct {
 	Provider tfaddr.Provider `json:"-"` // For un/marshaling purposes this needs to be exported, but it's omitted from JSON
 }
 
+// TODO - move this upstream
 var _ encoding.TextMarshaler = &Source{}
 var _ encoding.TextUnmarshaler = &Source{}
 
@@ -63,6 +65,54 @@ func (p *Source) UnmarshalText(text []byte) error {
 // Empty returns true if there is no active state store.
 func (s *StateStoreConfigState) Empty() bool {
 	return s == nil || s.Type == ""
+}
+
+// Validate returns true if there are no missing expected values, and
+// important values have been validated, e.g. FQNs. When the config is
+// invalid an error will be returned.
+func (s *StateStoreConfigState) Validate() error {
+
+	// TODO - refactor once upstreaming of parsing logic complete
+
+	// Are any bits of data totally missing?
+	if s.Empty() {
+		return fmt.Errorf("state store is not valid: data is empty")
+	}
+	if s.Provider == nil {
+		return fmt.Errorf("state store is not valid: provider data is missing")
+	}
+	if s.Provider.Source == nil {
+		return fmt.Errorf("state store is not valid: source data is missing")
+	}
+	if s.Provider.Version == nil {
+		return fmt.Errorf("state store is not valid: version data is missing")
+	}
+	if s.ConfigRaw == nil {
+		return fmt.Errorf("attempted to encode a malformed backend state file; state_store configuration data is missing")
+	}
+
+	// Is the source data incomplete?
+	// TODO - upstream this to registry library
+	switch {
+	case s.Provider.Source.Provider.Hostname == "" &&
+		s.Provider.Source.Provider.Namespace == "" &&
+		s.Provider.Source.Provider.Type == "":
+		return errors.New("state store is not valid: source data's FQN data is empty")
+	case s.Provider.Source.Provider.Hostname == "":
+		return errors.New("state store is not valid: source data's FQN data is missing a hostname")
+	case s.Provider.Source.Provider.Namespace == "":
+		return errors.New("state store is not valid: source data's FQN data is missing a namespace")
+	case s.Provider.Source.Provider.Type == "":
+		return errors.New("state store is not valid: source data's FQN data is missing a type name")
+	}
+
+	// Is the source data bad?
+	_, providerDiags := addrs.ParseProviderSourceString(s.Provider.Source.Provider.String())
+	if providerDiags.HasErrors() {
+		return fmt.Errorf("attempted to encode a malformed backend state file; state_store configuration's provider source %q is not valid: %s", s.Provider.Source.Provider.String(), providerDiags.ErrWithWarnings())
+	}
+
+	return nil
 }
 
 // Config decodes the type-specific configuration object using the provided

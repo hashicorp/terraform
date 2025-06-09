@@ -5,6 +5,7 @@ package workdir
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -147,12 +148,45 @@ func TestEncodeBackendStateFile(t *testing.T) {
 
 	tests := map[string]struct {
 		Input   *BackendStateFile
-		Want    []uint8
+		Want    []byte
 		WantErr string
 	}{
 		"it returns an error when neither backend nor state_store config state are present": {
-			Input:   &BackendStateFile{},
-			WantErr: `attempted to encode an empty backend state file`,
+			Input: &BackendStateFile{},
+			Want:  []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"1.13.0\"\n}"),
+		},
+		"it returns an error when the provider source's hostname is missing": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "", "my-org", "foobar"),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			WantErr: `state store is not valid: source data's FQN data is missing a hostname`,
+		},
+		"it returns an error when the provider source's hostname and namespace are missing ": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "", "", "foobar"),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			WantErr: `state store is not valid: source data's FQN data is missing a hostname`,
+		},
+		"it returns an error when the provider source is completely missing ": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "", "", ""),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			WantErr: `state store is not valid: source data's FQN data is empty`,
 		},
 		"it returns an error when both backend and state_store config state are present": {
 			Input: &BackendStateFile{
