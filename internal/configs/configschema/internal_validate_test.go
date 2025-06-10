@@ -333,7 +333,7 @@ func TestObjectInternalValidate(t *testing.T) {
 		Errs   []string
 	}{
 		"empty": {
-			&Object{},
+			&Object{Nesting: NestingSingle},
 			[]string{},
 		},
 		"valid": {

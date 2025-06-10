@@ -1404,8 +1404,8 @@ func TestGRPCProvider_GetSchema_ListResourceTypes(t *testing.T) {
 
 	actualBody := convert.ConfigSchemaToProto(listResourceSchema["list"].Body).String()
 	expectedBody := convert.ConfigSchemaToProto(expected["list"].Body).String()
-	if actualBody != expectedBody {
-		t.Fatalf("expected %v, got %v", expectedBody, actualBody)
+	if diff := cmp.Diff(expectedBody, actualBody); diff != "" {
+		t.Fatalf("unexpected body (-want +got):\n%s", diff)
 	}
 }
 
@@ -1548,47 +1548,57 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 	resp := p.ListResource(request)
 	checkDiags(t, resp.Diagnostics)
 
-	results := resp.Results
-
-	// Verify that we received both events
-	if len(results) != 2 {
-		t.Fatalf("Expected 2 events, got %d", len(results))
+	data := resp.Result.AsValueMap()
+	if _, ok := data["data"]; !ok {
+		t.Fatal("Expected 'data' key in result")
 	}
+	// Verify that we received both events
+	if len(data["data"].AsValueSlice()) != 2 {
+		t.Fatalf("Expected 2 resources, got %d", len(data["data"].AsValueSlice()))
+	}
+	results := data["data"].AsValueSlice()
 
 	// Verify first event
-	if results[0].DisplayName != "Test Resource 1" {
-		t.Errorf("Expected DisplayName 'Test Resource 1', got '%s'", results[0].DisplayName)
+	displayName := results[0].GetAttr("display_name")
+	if displayName.AsString() != "Test Resource 1" {
+		t.Errorf("Expected DisplayName 'Test Resource 1', got '%s'", displayName.AsString())
 	}
 
 	expectedId1 := cty.ObjectVal(map[string]cty.Value{
 		"id_attr": cty.StringVal("id-1"),
 	})
-	if !results[0].Identity.RawEquals(expectedId1) {
-		t.Errorf("Expected Identity %#v, got %#v", expectedId1, results[0].Identity)
+
+	identity := results[0].GetAttr("identity")
+	if !identity.RawEquals(expectedId1) {
+		t.Errorf("Expected Identity %#v, got %#v", expectedId1, identity)
 	}
 
 	// ResourceObject should be null for the first event as it wasn't provided
-	if !results[0].ResourceObject.IsNull() {
-		t.Errorf("Expected ResourceObject to be null, got %#v", results[0].ResourceObject)
+	resourceObject := results[0].GetAttr("state")
+	if !resourceObject.IsNull() {
+		t.Errorf("Expected ResourceObject to be null, got %#v", resourceObject)
 	}
 
 	// Verify second event
-	if results[1].DisplayName != "Test Resource 2" {
-		t.Errorf("Expected DisplayName 'Test Resource 2', got '%s'", results[1].DisplayName)
+	displayName = results[1].GetAttr("display_name")
+	if displayName.AsString() != "Test Resource 2" {
+		t.Errorf("Expected DisplayName 'Test Resource 2', got '%s'", displayName.AsString())
 	}
 
 	expectedId2 := cty.ObjectVal(map[string]cty.Value{
 		"id_attr": cty.StringVal("id-2"),
 	})
-	if !results[1].Identity.RawEquals(expectedId2) {
-		t.Errorf("Expected Identity %#v, got %#v", expectedId2, results[1].Identity)
+	identity = results[1].GetAttr("identity")
+	if !identity.RawEquals(expectedId2) {
+		t.Errorf("Expected Identity %#v, got %#v", expectedId2, identity)
 	}
 
 	expectedResource := cty.ObjectVal(map[string]cty.Value{
 		"resource_attr": cty.StringVal("value"),
 	})
-	if !results[1].ResourceObject.RawEquals(expectedResource) {
-		t.Errorf("Expected ResourceObject %#v, got %#v", expectedResource, results[1].ResourceObject)
+	resourceObject = results[1].GetAttr("state")
+	if !resourceObject.RawEquals(expectedResource) {
+		t.Errorf("Expected ResourceObject %#v, got %#v", expectedResource, resourceObject)
 	}
 }
 
@@ -1596,6 +1606,7 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
+		ctx:    context.Background(),
 	}
 
 	// Test case where the provider returns an error
@@ -1620,6 +1631,7 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
+		ctx:    context.Background(),
 	}
 
 	// Create a mock stream client that will return a resource event with diagnostics
@@ -1661,12 +1673,12 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 	resp := p.ListResource(request)
 	checkDiags(t, resp.Diagnostics)
 
-	// Verify that we received one event with diagnostics
-	if len(resp.Results) != 1 {
-		t.Fatalf("Expected 1 event, got %d", len(resp.Results))
+	data := resp.Result.AsValueMap()
+	if _, ok := data["data"]; !ok {
+		t.Fatal("Expected 'data' key in result")
 	}
 
-	if !resp.Results[0].Diagnostics.HasWarnings() {
+	if !resp.Diagnostics.HasWarnings() {
 		t.Fatal("Expected warning diagnostics, but got none")
 	}
 }
@@ -1675,6 +1687,7 @@ func TestGRPCProvider_ListResource_Limit(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
+		ctx:    context.Background(),
 	}
 
 	// Create a mock stream client that will return resource events
@@ -1725,7 +1738,15 @@ func TestGRPCProvider_ListResource_Limit(t *testing.T) {
 	resp := p.ListResource(request)
 	checkDiags(t, resp.Diagnostics)
 
-	results := resp.Results
+	data := resp.Result.AsValueMap()
+	if _, ok := data["data"]; !ok {
+		t.Fatal("Expected 'data' key in result")
+	}
+	// Verify that we received both events
+	if len(data["data"].AsValueSlice()) != 2 {
+		t.Fatalf("Expected 2 resources, got %d", len(data["data"].AsValueSlice()))
+	}
+	results := data["data"].AsValueSlice()
 
 	// Verify that we received both events
 	if len(results) != 2 {

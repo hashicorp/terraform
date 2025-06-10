@@ -1318,43 +1318,42 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		return resp
 	}
 
-	var results []providers.ListResourceEvent
+	resp.Result = cty.DynamicVal
+	results := make([]cty.Value, 0)
 	// Process the stream
 	for {
 		if int64(len(results)) >= r.Limit {
 			// If we have reached the limit, we stop receiving events
-			resp.Results = results
-			return resp
+			break
 		}
 
 		event, err := client.Recv()
 		if err == io.EOF {
 			// End of stream, we're done
-			resp.Results = results
-			return resp
+			break
 		}
 
 		if err != nil {
-			resp.Results = results
 			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
+			break
 		}
 
-		// Process the event
-		resourceEvent := providers.ListResourceEvent{
-			DisplayName: event.DisplayName,
-			Diagnostics: convert.ProtoToDiagnostics(event.Diagnostic),
+		obj := map[string]cty.Value{
+			"display_name": cty.StringVal(event.DisplayName),
+			"state":        cty.NullVal(resourceSchema.Body.ImpliedType()),
+			"identity":     cty.NullVal(resourceSchema.Identity.ImpliedType()),
 		}
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
 
 		// Handle identity data - it must be present
 		if event.Identity == nil || event.Identity.IdentityData == nil {
-			resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(fmt.Errorf("missing identity data in ListResource event for %s", r.TypeName))
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing identity data in ListResource event for %s", r.TypeName))
 		} else {
 			identityVal, err := decodeDynamicValue(event.Identity.IdentityData, resourceSchema.Identity.ImpliedType())
 			if err != nil {
-				resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(err)
+				resp.Diagnostics = resp.Diagnostics.Append(err)
 			} else {
-				resourceEvent.Identity = identityVal
+				obj["identity"] = identityVal
 			}
 		}
 
@@ -1363,14 +1362,26 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 			// Use the ResourceTypes schema for the resource object
 			resourceObj, err := decodeDynamicValue(event.ResourceObject, resourceSchema.Body.ImpliedType())
 			if err != nil {
-				resourceEvent.Diagnostics = resourceEvent.Diagnostics.Append(err)
+				resp.Diagnostics = resp.Diagnostics.Append(err)
 			} else {
-				resourceEvent.ResourceObject = resourceObj
+				obj["state"] = resourceObj
 			}
 		}
 
-		results = append(results, resourceEvent)
+		if resp.Diagnostics.HasErrors() {
+			break
+		}
+
+		results = append(results, cty.ObjectVal(obj))
+
 	}
+
+	// The provider result of a list resource is always a list, but
+	// we will wrap that list in an object with a single attribute "data",
+	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
+	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
+	resp.Result = cty.ObjectVal(map[string]cty.Value{"data": cty.TupleVal(results)})
+	return resp
 }
 
 func (p *GRPCProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
