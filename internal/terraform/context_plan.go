@@ -135,6 +135,10 @@ type PlanOpts struct {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	Forget bool
+
+	// Query is a boolean that indicates whether the plan is being
+	// generated for a query operation.
+	Query bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -885,8 +889,14 @@ func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.D
 
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	var modeFilter addrs.ResourceMode
 	if opts != nil {
 		externalProviderConfigs = opts.ExternalProviders
+		// During a query operation, we only want to add the list-type resources
+		// to the graph.
+		if opts.Query {
+			modeFilter = addrs.ListResourceMode
+		}
 	}
 
 	switch mode := opts.Mode; mode {
@@ -915,6 +925,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			forgetModules:           forgetModules,
 			GenerateConfigPath:      opts.GenerateConfigPath,
 			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			targetResourceMode:      modeFilter,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:

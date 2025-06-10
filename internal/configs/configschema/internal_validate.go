@@ -175,6 +175,10 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 func (o *Object) InternalValidate() error {
 	var err error
 
+	if o.Nesting == nestingModeInvalid {
+		return fmt.Errorf("object schema nesting mode is invalid")
+	}
+
 	for name, attrS := range o.Attributes {
 		if attrS == nil {
 			err = errors.Join(err, fmt.Errorf("%s: attribute schema is nil", name))

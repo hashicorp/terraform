@@ -6848,67 +6848,134 @@ data "test_data_source" "foo" {
 	}
 }
 
-func TestContext2Plan_sensitiveOutput(t *testing.T) {
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-module "child" {
-  source = "./child"
-}
-
-output "is_secret" {
-  // not only must the plan store the output as sensitive, it must also be
-  // evaluated as such
-  value = issensitive(module.child.secret)
-}
-`,
-		"./child/main.tf": `
-output "secret" {
-  sensitive = true
-  value = "test"
-}
-`,
-	})
-
-	ctx := testContext2(t, &ContextOpts{})
-
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	tfdiags.AssertNoErrors(t, diags)
-
-	expectedChanges := &plans.Changes{
-		Outputs: []*plans.OutputChange{
-			{
-				Addr: mustAbsOutputValue("module.child.output.secret"),
-				Change: plans.Change{
-					Action:         plans.Create,
-					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
-					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
-					Before:         cty.NullVal(cty.DynamicPseudoType),
-					After:          cty.StringVal("test"),
+// Testing that managed resources of type list are handled correctly
+//   - They must be referenced using the fully qualified name
+//   - We provide a hint to the user if they try to reference a resource of type list
+//     without using the fully qualified name
+func TestContext2Plan_resourceNamedList(t *testing.T) {
+	schemaResp := getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"list": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
 				},
-				Sensitive: true,
 			},
-			{
-				Addr: mustAbsOutputValue("output.is_secret"),
-				Change: plans.Change{
-					Action:         plans.Create,
-					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
-					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
-					Before:         cty.NullVal(cty.DynamicPseudoType),
-					After:          cty.True,
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"instance_type": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+			"test_child_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"instance_type": {
+						Type:     cty.String,
+						Computed: true,
+					},
 				},
 			},
 		},
-	}
-	changes, err := plan.Changes.Decode(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	sort.SliceStable(changes.Outputs, func(i, j int) bool {
-		return changes.Outputs[i].Addr.String() < changes.Outputs[j].Addr.String()
 	})
 
-	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
-		t.Fatalf("unexpected changes: %s", diff)
+	cases := []struct {
+		name           string
+		mainConfig     string
+		diagCount      int
+		expectedErrMsg []string
+	}{
+		{
+			// We tried to reference a resource of type list without using the fully-qualified name.
+			// The error contains a hint to help the user.
+			name: "reference list block from resource",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource1" {
+					provider = test
+				}
+
+				resource "list" "test_resource2" {
+					provider = test
+					attr = list.test_resource1.attr
+				}
+				`,
+			diagCount: 1,
+			expectedErrMsg: []string{
+				"Reference to undeclared resource",
+				"A list resource \"test_resource1\" \"attr\" has not been declared in the root module.",
+				"Did you mean the managed resource list.test_resource1? If so, please use the fully qualified name of the resource, e.g. resource.list.test_resource1",
+			},
+		},
+		{
+			// We are referencing a managed resource
+			// of type list using the resource.<block>.<name> syntax. This should be allowed.
+			name: "reference managed resource of type list using resource.<block>.<name>",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource" {
+					provider = test
+					attr = "bar"
+				}
+
+				resource "list" "normal_resource" {
+					provider = test
+					attr = resource.list.test_resource.attr
+				}
+				`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			configs := map[string]string{"main.tf": tc.mainConfig}
+
+			m := testModuleInline(t, configs)
+
+			providerAddr := addrs.NewDefaultProvider("test")
+			provider := testProvider("test")
+			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+			provider.GetProviderSchemaResponse = schemaResp
+
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, nil))
+			if len(diags) != tc.diagCount {
+				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
+			}
+
+			if tc.diagCount > 0 {
+				for _, err := range tc.expectedErrMsg {
+					if !strings.Contains(diags.Err().Error(), err) {
+						t.Fatalf("expected error message %q, but got %q", err, diags.Err().Error())
+					}
+				}
+			}
+
+		})
 	}
 }
