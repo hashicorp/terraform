@@ -173,10 +173,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	for name, list := range protoResp.ListResourceSchemas {
 		ret := convert.ProtoToProviderSchema(list, nil)
-		if _, ok := ret.Body.Attributes["data"]; ok {
-			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("The 'data' attribute is reserved for the resource's results and cannot be used in a list resource schema: %s", name))
-			continue
-		}
 		resp.ListResourceTypes[name] = providers.Schema{
 			Version: ret.Version,
 			Body: &configschema.Block{
