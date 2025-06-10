@@ -176,11 +176,23 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("The 'data' attribute is reserved for the resource's results and cannot be used in a list resource schema: %s", name))
 			continue
 		}
-		ret.Body.Attributes["data"] = &configschema.Attribute{
-			Type:     cty.DynamicPseudoType,
-			Computed: true,
+		resp.ListResourceTypes[name] = providers.Schema{
+			Version: ret.Version,
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"data": {
+						Type:     cty.DynamicPseudoType,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"config": {
+						Block:   *ret.Body,
+						Nesting: configschema.NestingSingle,
+					},
+				},
+			},
 		}
-		resp.ListResourceTypes[name] = ret
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -367,7 +379,7 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.Filter(configschema.FilterReadOnlyAttribute, nil)
+	configSchema := listResourceSchema.Body.BlockTypes["config"]
 	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -1285,7 +1297,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.Filter(configschema.FilterReadOnlyAttribute, nil)
+	configSchema := listResourceSchema.Body.BlockTypes["config"]
 	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)

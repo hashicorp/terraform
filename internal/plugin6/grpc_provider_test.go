@@ -1366,7 +1366,6 @@ func TestGRPCProvider_closeEphemeralResource(t *testing.T) {
 
 	checkDiags(t, resp.Diagnostics)
 }
-
 func TestGRPCProvider_GetSchema_ListResourceTypes(t *testing.T) {
 	p := &GRPCProvider{
 		client: mockProviderClient(t),
@@ -1380,13 +1379,22 @@ func TestGRPCProvider_GetSchema_ListResourceTypes(t *testing.T) {
 			Version: 1,
 			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
-					"filter_attr": {
-						Type:     cty.String,
-						Required: true,
-					},
 					"data": {
 						Type:     cty.DynamicPseudoType,
 						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"config": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"filter_attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Nesting: configschema.NestingSingle,
 					},
 				},
 			},
@@ -1430,7 +1438,9 @@ func TestGRPCProvider_Encode(t *testing.T) {
 		},
 		Change: plans.Change{
 			Before: cty.NullVal(cty.Object(map[string]cty.Type{
-				"filter_attr": cty.String,
+				"config": cty.Object(map[string]cty.Type{
+					"filter_attr": cty.String,
+				}),
 				"data": cty.List(cty.Object(map[string]cty.Type{
 					"state": cty.Object(map[string]cty.Type{
 						"resource_attr": cty.String,
@@ -1441,7 +1451,9 @@ func TestGRPCProvider_Encode(t *testing.T) {
 				})),
 			})),
 			After: cty.ObjectVal(map[string]cty.Value{
-				"filter_attr": cty.StringVal("value"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"filter_attr": cty.StringVal("value"),
+				}),
 				"data": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"state": cty.ObjectVal(map[string]cty.Value{
