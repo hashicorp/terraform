@@ -64,11 +64,25 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	limit, limitDiags := evaluateLimitExpression(config.List.Limit, ctx)
+	diags = diags.Append(limitDiags)
+	if limitDiags.HasErrors() {
+		return diags
+	}
+
+	includeResource, includeDiags := evaluateIncludeResourceExpression(config.List.IncludeResource, ctx)
+	diags = diags.Append(includeDiags)
+	if includeDiags.HasErrors() {
+		return diags
+	}
+
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
 	resp := provider.ListResource(providers.ListResourceRequest{
-		TypeName: n.Config.Type,
-		Config:   unmarkedBlockVal,
+		TypeName:              n.Config.Type,
+		Config:                unmarkedBlockVal,
+		Limit:                 limit,
+		IncludeResourceObject: includeResource,
 	})
 	if resp.Diagnostics != nil {
 		return diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
