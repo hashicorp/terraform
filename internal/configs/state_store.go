@@ -5,6 +5,7 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 )
 
 // StateStore represents a "state_store" block inside a "terraform" block
@@ -13,7 +14,8 @@ type StateStore struct {
 	Type   string
 	Config hcl.Body
 
-	Provider *Provider
+	Provider     *Provider
+	ProviderAddr tfaddr.Provider
 
 	TypeRange hcl.Range
 	DeclRange hcl.Range
@@ -66,6 +68,7 @@ func decodeStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
 	}
 
 	ss.Provider = provider
+	ss.ProviderAddr = provider.providerType
 
 	return ss, diags
 }
