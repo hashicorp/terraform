@@ -164,7 +164,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			WantErr: `state store is not valid: source data's FQN data is missing a hostname`,
+			WantErr: `state store is not valid: Unknown hostname: Expected hostname in the provider address to be set`,
 		},
 		"it returns an error when the provider source's hostname and namespace are missing ": {
 			Input: &BackendStateFile{
@@ -175,7 +175,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			WantErr: `state store is not valid: source data's FQN data is missing a hostname`,
+			WantErr: `state store is not valid: Unknown hostname: Expected hostname in the provider address to be set`,
 		},
 		"it returns an error when the provider source is completely missing ": {
 			Input: &BackendStateFile{
@@ -186,7 +186,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			WantErr: `state store is not valid: source data's FQN data is empty`,
+			WantErr: `state store is not valid: Empty provider address: Expected address composed of hostname, provider namespace and name`,
 		},
 		"it returns an error when both backend and state_store config state are present": {
 			Input: &BackendStateFile{
