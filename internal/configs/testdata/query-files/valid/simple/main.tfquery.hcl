@@ -17,3 +17,6 @@ list "aws_instance" "test2" {
     }
   }
 }
+list "aws_instance" "test3" {
+  provider = aws
+}

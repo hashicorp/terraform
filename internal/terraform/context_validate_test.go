@@ -3106,6 +3106,29 @@ func TestContext2Validate_queryList(t *testing.T) {
 		expectedErrMsg []string
 	}{
 		{
+			name: "valid simple block",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				variable "input" {
+					type = string
+					default = "foo"
+				}
+
+				list "test_resource" "test" {
+					provider = test
+				}
+				`,
+		},
+		{
 			name: "valid list reference",
 			mainConfig: `
 				terraform {	
