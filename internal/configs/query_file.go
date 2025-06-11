@@ -150,6 +150,34 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		r.List.IncludeResource = attr.Expr
 	}
 
+	// verify that the list block has a config block
+	content, _, contentDiags = block.Body.PartialContent(&hcl.BodySchema{
+		Blocks: []hcl.BlockHeaderSchema{
+			{Type: "config"},
+		},
+	})
+	diags = append(diags, contentDiags...)
+
+	if len(content.Blocks) == 1 {
+		// We have a config block, so we can set it on the resource.
+		block := content.Blocks[0]
+		if block.Type != "config" {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid block type",
+				Detail:   fmt.Sprintf("Expected a \"config\" block, but found a block of type %s.", block.Type),
+				Subject:  block.DefRange.Ptr(),
+			})
+		}
+	} else {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid list block",
+			Detail:   "A list block can only have one \"config\" block.",
+			Subject:  block.DefRange.Ptr(),
+		})
+	}
+
 	return &r, diags
 }
 

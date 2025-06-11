@@ -3126,16 +3126,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = var.input
+					config {
+						filter = {
+							attr = var.input
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 					
-					filter = {
-						attr = list.test_resource.test.data[0].state.instance_type
+					config {
+						filter = {
+							attr = list.test_resource.test.data[0].state.instance_type
+						}
 					}
 				}
 				`,
@@ -3162,16 +3166,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				    count = 1
 					provider = test
 
-					filter = {
-						attr = var.input
+					config {
+						filter = {
+							attr = var.input
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 					
-					filter = {
-						attr = list.test_resource.test[0].data[0].state.instance_type
+					config {
+						filter = {
+							attr = list.test_resource.test[0].data[0].state.instance_type
+						}
 					}
 				}
 				`,
@@ -3197,16 +3205,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = var.input
+					config {
+						filter = {
+							attr = var.input
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 					
-					filter = {
-						attr = list.test_resource.test.state.instance_type
+					config {
+						filter = {
+							attr = list.test_resource.test.state.instance_type
+						}
 					}
 				}
 				`,
@@ -3248,8 +3260,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = var.input
+					config {
+						filter = {
+							attr = var.input
+						}
 					}
 				}
 				`,
@@ -3288,8 +3302,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = resource.list.test_resource.attr
+					config {
+						filter = {
+							attr = resource.list.test_resource.attr
+						}
 					}
 				}
 				`,
@@ -3311,8 +3327,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = list.non_existent.attr
+					config {
+						filter = {
+							attr = list.non_existent.attr
+						}
 					}
 				}
 				`,
@@ -3338,16 +3356,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = "valid"
+					config {
+						filter = {
+							attr = "valid"
+						}
 					}
 				}
 
 				list "test_resource" "another" {
 					provider = test
 
-					filter = {
-						attr = list.test_resource.test.data[0].state.invalid_attr
+					config {
+						filter = {
+							attr = list.test_resource.test.data[0].state.invalid_attr
+						}
 					}
 				}
 				`,
@@ -3372,16 +3394,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test1" {
 					provider = test
 
-					filter = {
-						attr = list.test_resource.test2.data[0].state.id
+					config {
+						filter = {
+							attr = list.test_resource.test2.data[0].state.id
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 
-					filter = {
-						attr = list.test_resource.test1.data[0].state.id
+					config {
+						filter = {
+							attr = list.test_resource.test1.data[0].state.id
+						}
 					}
 				}
 				`,
@@ -3412,16 +3438,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test1" {
 					provider = test
 
-					filter = {
-						attr = var.test_var
+					config {
+						filter = {
+							attr = var.test_var
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 
-					filter = {
-						attr = length(list.test_resource.test1.data) > 0 ? list.test_resource.test1.data[0].state.instance_type : var.test_var
+					config {
+						filter = {
+							attr = length(list.test_resource.test1.data) > 0 ? list.test_resource.test1.data[0].state.instance_type : var.test_var
+						}
 					}
 				}
 				`,
@@ -3444,8 +3474,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 					for_each = toset(["foo", "bar"])
 					provider = test
 
-					filter = {
-						attr = each.value
+					config {
+						filter = {
+							attr = each.value
+						}
 					}
 				}
 
@@ -3453,8 +3485,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 					provider = test
 					for_each = list.test_resource.test1
 
-					filter = {
-						attr = each.value.data[0].instance_type
+					config {
+						filter = {
+							attr = each.value.data[0].instance_type
+						}
 					}
 				}
 				`,
@@ -3480,6 +3514,7 @@ func TestContext2Validate_queryList(t *testing.T) {
 				PreloadedProviderSchemas: map[addrs.Provider]providers.ProviderSchema{
 					providerAddr: *provider.GetProviderSchemaResponse,
 				},
+				Parallelism: 1,
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -3540,24 +3575,34 @@ func getTestProvider() *testing_provider.MockProvider {
 
 // getQueryTestSchema returns a schema for query tests with a filter attribute
 func getQueryTestSchema() *configschema.Block {
-	return &configschema.Block{
+	body := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
-			"filter": {
-				Required: true,
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingSingle,
+			"data": {
+				Type:     cty.DynamicPseudoType,
+				Computed: true,
+			},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"config": {
+				Block: configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"attr": {
-							Type:     cty.String,
+						"filter": {
 							Required: true,
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingSingle,
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
+							},
 						},
 					},
 				},
-			},
-			"data": {
-				Computed: true,
-				Type:     cty.DynamicPseudoType,
+				Nesting: configschema.NestingSingle,
 			},
 		},
 	}
+	return body
 }
