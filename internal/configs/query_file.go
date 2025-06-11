@@ -159,24 +159,25 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	})
 	diags = append(diags, contentDiags...)
 
-	if len(content.Blocks) == 1 {
-		// We have a config block, so we can set it on the resource.
-		block := content.Blocks[0]
-		if block.Type != "config" {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid block type",
-				Detail:   fmt.Sprintf("Expected a \"config\" block, but found a block of type %s.", block.Type),
-				Subject:  block.DefRange.Ptr(),
-			})
+	var configBlock hcl.Body
+	for _, block := range content.Blocks {
+		switch block.Type {
+		case "config":
+			if configBlock != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate config block",
+					Detail:   "A list block must contain only one nested \"config\" block.",
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+			configBlock = block.Body
+		default:
+			// Should not get here because the above should cover all
+			// block types declared in the schema.
+			panic(fmt.Sprintf("unhandled block type %q", block.Type))
 		}
-	} else if len(content.Blocks) > 1 {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Duplicate \"config\" blocks",
-			Detail:   "Expected only one \"config\" block, but found multiple.",
-			Subject:  content.Blocks[1].DefRange.Ptr(),
-		})
 	}
 
 	return &r, diags
