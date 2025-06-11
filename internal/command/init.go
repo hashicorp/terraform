@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"sort"
@@ -28,6 +29,7 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -547,7 +549,15 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		})
 		diags = diags.Append(cfgStoreResp.Diagnostics)
 
-		// 8) Save backend state file
+		// Save backend state file
+		localB, localBDiags := c.Meta.Backend(&BackendOpts{ForceLocal: true, Init: true})
+		if localBDiags.HasErrors() {
+			diags = diags.Append(localBDiags)
+			return nil, true, diags
+		}
+
+		statePath := filepath.Join(c.Meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
 
 		// 9) Convert provider into backend.Backend
 	} else if root.Backend != nil {
