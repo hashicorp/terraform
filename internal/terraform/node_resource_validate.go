@@ -482,16 +482,16 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
+		blockVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return diags
 		}
 		// Use unmarked value for validate request
-		unmarkedConfigVal, _ := configVal.UnmarkDeep()
+		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
 		req := providers.ValidateListResourceConfigRequest{
 			TypeName: n.Config.Type,
-			Config:   unmarkedConfigVal,
+			Config:   unmarkedBlockVal,
 		}
 
 		resp := provider.ValidateListResourceConfig(req)

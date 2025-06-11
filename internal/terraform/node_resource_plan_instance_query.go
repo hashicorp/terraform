@@ -38,15 +38,15 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 
 	// evaluate the list config block
 	var configDiags tfdiags.Diagnostics
-	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema.Body, nil, keyData)
+	blockVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema.Body, nil, keyData)
 	diags = diags.Append(configDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
 	// Unmark before sending to provider
-	unmarkedConfigVal, _ := configVal.UnmarkDeepWithPaths()
-	configKnown := configVal.IsWhollyKnown()
+	unmarkedBlockVal, _ := blockVal.UnmarkDeepWithPaths()
+	configKnown := blockVal.IsWhollyKnown()
 	if !configKnown {
 		diags = diags.Append(fmt.Errorf("config is not known"))
 		return diags
@@ -56,7 +56,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	validateResp := provider.ValidateListResourceConfig(
 		providers.ValidateListResourceConfigRequest{
 			TypeName: n.Config.Type,
-			Config:   unmarkedConfigVal,
+			Config:   unmarkedBlockVal,
 		},
 	)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
@@ -68,7 +68,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	// to actually call the provider to list the data.
 	resp := provider.ListResource(providers.ListResourceRequest{
 		TypeName: n.Config.Type,
-		Config:   unmarkedConfigVal,
+		Config:   unmarkedBlockVal,
 	})
 	if resp.Diagnostics != nil {
 		return diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))

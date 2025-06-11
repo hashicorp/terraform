@@ -451,7 +451,43 @@ func TestGRPCProvider_ValidateListResourceConfig(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"filter_attr": "value"})
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"config": map[string]interface{}{"filter_attr": "value"}})
+	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
+		TypeName: "list",
+		Config:   cfg,
+	})
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_ValidateListResourceConfig_OptionalCfg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+	sch := providerProtoSchema()
+	sch.ListResourceSchemas["list"].Block.Attributes[0].Optional = true
+	sch.ListResourceSchemas["list"].Block.Attributes[0].Required = false
+	// we always need a GetSchema method
+	client.EXPECT().GetSchema(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(sch, nil)
+
+	// GetResourceIdentitySchemas is called as part of GetSchema
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerResourceIdentitySchemas(), nil)
+
+	p := &GRPCProvider{
+		client: client,
+	}
+	client.EXPECT().ValidateListResourceConfig(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
+
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{})
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
 		Config:   cfg,

@@ -151,7 +151,8 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	}
 
 	// verify that the list block has a config block
-	content, _, contentDiags = block.Body.PartialContent(&hcl.BodySchema{
+	content, contentDiags = block.Body.Content(&hcl.BodySchema{
+		Attributes: QueryListResourceBlockSchema.Attributes,
 		Blocks: []hcl.BlockHeaderSchema{
 			{Type: "config"},
 		},
@@ -169,12 +170,12 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				Subject:  block.DefRange.Ptr(),
 			})
 		}
-	} else {
+	} else if len(content.Blocks) > 1 {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid list block",
-			Detail:   "A list block can only have one \"config\" block.",
-			Subject:  block.DefRange.Ptr(),
+			Summary:  "Duplicate \"config\" blocks",
+			Detail:   "Expected only one \"config\" block, but found multiple.",
+			Subject:  content.Blocks[1].DefRange.Ptr(),
 		})
 	}
 
