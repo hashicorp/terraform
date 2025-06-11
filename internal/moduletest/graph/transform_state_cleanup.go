@@ -4,7 +4,7 @@
 package graph
 
 import (
-	"slices"
+	"sort"
 
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -19,17 +19,20 @@ type TestStateCleanupTransformer struct {
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
+	arr := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
 
 	for node := range dag.SelectSeq[*NodeTestRun](g.VerticesSeq()) {
 		key := node.run.GetStateKey()
 		if _, exists := cleanupMap[key]; !exists {
 			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts, parallel: node.run.Config.Parallel}
+			arr = append(arr, cleanupMap[key])
 			g.Add(cleanupMap[key])
 		}
 
 		// if one of the runs for this state key is not parallel, then
 		// the cleanup node should not be parallel either.
 		cleanupMap[key].parallel = cleanupMap[key].parallel && node.run.Config.Parallel
+		cleanupMap[key].run = node
 
 		// Connect the cleanup node to the test run node.
 		g.Connect(dag.BasicEdge(cleanupMap[key], node))
@@ -52,23 +55,36 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		}
 	}
 
-	// connect all cleanup nodes in reverse-sequential order of run index to
-	// preserve existing behavior, starting from the root cleanup node.
-	added := make(map[string]bool)
-	var prev dag.Vertex
-	for _, v := range slices.Backward(t.opts.File.Runs) {
-		key := v.GetStateKey()
-		if _, exists := added[key]; !exists {
-			node := cleanupMap[key]
-			if prev != nil && !node.parallel {
-				g.Connect(dag.BasicEdge(node, prev))
-			}
-			prev = node
-			added[key] = true
+	t.controlParallelism(g, arr)
+	return nil
+}
+
+func (t *TestStateCleanupTransformer) controlParallelism(g *terraform.Graph, nodes []*NodeStateCleanup) {
+	// Sort in reverse order of the run index
+	sort.Slice(nodes, func(i, j int) bool {
+		if nodes[i].run == nil || nodes[j].run == nil {
+			return false
+		}
+		return nodes[i].run.run.Index > nodes[j].run.run.Index
+	})
+
+	// If there is a state that has opted out of parallelism, we will connect it
+	// sequentially to all previous and subsequent runs.
+	for i, node := range nodes {
+		if node.parallel {
+			continue
+		}
+
+		// Connect to all previous runs
+		for j := 0; j < i; j++ {
+			g.Connect(dag.BasicEdge(node, nodes[j]))
+		}
+
+		// Connect to all subsequent runs
+		for j := i + 1; j < len(nodes); j++ {
+			g.Connect(dag.BasicEdge(nodes[j], node))
 		}
 	}
-
-	return nil
 }
 
 func (t *TestStateCleanupTransformer) addRootCleanupNode(g *terraform.Graph) *dynamicNode {

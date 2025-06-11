@@ -25,6 +25,7 @@ type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
 	parallel bool
+	run      *NodeTestRun
 }
 
 func (n *NodeStateCleanup) Name() string {
