@@ -4,12 +4,44 @@
 package graph
 
 import (
-	"sort"
+	"slices"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
+
+var _ GraphNodeExecutable = &TeardownSubgraph{}
+
+// TeardownSubgraph is a subgraph for cleaning up the state of
+// resources defined in the state files created by the test runs.
+type TeardownSubgraph struct {
+	opts *graphOptions
+}
+
+func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
+	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
+
+	// Create a new graph for the cleanup nodes
+	g, diags := (&terraform.BasicGraphBuilder{
+		Steps: []terraform.GraphTransformer{
+			&TestStateCleanupTransformer{opts: b.opts},
+			&ReferenceTransformer{},
+			&CloseTestGraphTransformer{},
+			&terraform.TransitiveReductionTransformer{},
+		},
+		Name: "TeardownSubgraph",
+	}).Build(addrs.RootModuleInstance)
+	b.opts.File.Diagnostics = b.opts.File.Diagnostics.Append(diags)
+
+	if diags.HasErrors() {
+		return
+	}
+
+	diags = Walk(g, ctx)
+	b.opts.File.Diagnostics = b.opts.File.Diagnostics.Append(diags)
+}
 
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
@@ -21,38 +53,26 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
 	arr := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
 
-	for node := range dag.SelectSeq[*NodeTestRun](g.VerticesSeq()) {
-		key := node.run.GetStateKey()
+	// Sort in reverse order of the run index, so that the last run for each state key
+	// is attached to the cleanup node.
+	for _, run := range slices.Backward(t.opts.File.Runs) {
+		key := run.GetStateKey()
 		if _, exists := cleanupMap[key]; !exists {
-			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts, parallel: node.run.Config.Parallel}
+			refs, _ := run.GetReferences()
+			cleanupMap[key] = &NodeStateCleanup{
+				stateKey:   key,
+				opts:       t.opts,
+				parallel:   run.Config.Parallel,
+				references: refs,
+				addr:       run.Addr(),
+			}
 			arr = append(arr, cleanupMap[key])
 			g.Add(cleanupMap[key])
 		}
 
 		// if one of the runs for this state key is not parallel, then
 		// the cleanup node should not be parallel either.
-		cleanupMap[key].parallel = cleanupMap[key].parallel && node.run.Config.Parallel
-		cleanupMap[key].run = node
-
-		// Connect the cleanup node to the test run node.
-		g.Connect(dag.BasicEdge(cleanupMap[key], node))
-	}
-
-	// Add a root cleanup node that runs before cleanup nodes for each state.
-	// Right now it just simply renders a teardown summary, so as to maintain
-	// existing CLI output.
-	rootCleanupNode := t.addRootCleanupNode(g)
-
-	for v := range g.VerticesSeq() {
-		switch node := v.(type) {
-		case *NodeTestRun:
-			// All the runs that share the same state, must share the same cleanup node,
-			// which only executes once after all the dependent runs have completed.
-			g.Connect(dag.BasicEdge(rootCleanupNode, node))
-		case *NodeStateCleanup:
-			// Connect the cleanup node to the root cleanup node.
-			g.Connect(dag.BasicEdge(node, rootCleanupNode))
-		}
+		cleanupMap[key].parallel = cleanupMap[key].parallel && run.Config.Parallel
 	}
 
 	t.controlParallelism(g, arr)
@@ -60,14 +80,6 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 }
 
 func (t *TestStateCleanupTransformer) controlParallelism(g *terraform.Graph, nodes []*NodeStateCleanup) {
-	// Sort in reverse order of the run index
-	sort.Slice(nodes, func(i, j int) bool {
-		if nodes[i].run == nil || nodes[j].run == nil {
-			return false
-		}
-		return nodes[i].run.run.Index > nodes[j].run.run.Index
-	})
-
 	// If there is a state that has opted out of parallelism, we will connect it
 	// sequentially to all previous and subsequent runs.
 	for i, node := range nodes {
@@ -85,14 +97,4 @@ func (t *TestStateCleanupTransformer) controlParallelism(g *terraform.Graph, nod
 			g.Connect(dag.BasicEdge(nodes[j], node))
 		}
 	}
-}
-
-func (t *TestStateCleanupTransformer) addRootCleanupNode(g *terraform.Graph) *dynamicNode {
-	rootCleanupNode := &dynamicNode{
-		eval: func(ctx *EvalContext) {
-			ctx.Renderer().File(t.opts.File, moduletest.TearDown)
-		},
-	}
-	g.Add(rootCleanupNode)
-	return rootCleanupNode
 }

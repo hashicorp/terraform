@@ -354,9 +354,6 @@ func TestTest_Runs(t *testing.T) {
 		},
 	}
 	for name, tc := range tcs {
-		// if name != "skip_destroy_on_empty" {
-		// 	continue
-		// }
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				t.Skip()
@@ -844,10 +841,9 @@ func TestTest_Parallel(t *testing.T) {
 
 func TestTest_ParallelTeardown(t *testing.T) {
 	tests := []struct {
-		name           string
-		sources        map[string]string
-		expectedResult string
-		assertFunc     func(t *testing.T, output string, dur time.Duration)
+		name       string
+		sources    map[string]string
+		assertFunc func(t *testing.T, output string, dur time.Duration)
 	}{
 		{
 			name: "parallel teardown",
@@ -859,7 +855,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 
 					resource "test_resource" "foo" {
 					value = var.input
-					destroy_wait_seconds = 5
+					destroy_wait_seconds = 3
 					}
 
 					output "value" {
@@ -914,13 +910,12 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					}
 					`,
 			},
-			expectedResult: "2 passed, 0 failed",
 			assertFunc: func(t *testing.T, output string, dur time.Duration) {
 				if !strings.Contains(output, "2 passed, 0 failed") {
 					t.Errorf("output didn't produce the right output:\n\n%s", output)
 				}
-				// Each teardown sleeps for 5 seconds, so we expect the total duration to be less than 10 seconds.
-				if dur >= 10*time.Second {
+				// Each teardown sleeps for 3 seconds, so we expect the total duration to be less than 6 seconds.
+				if dur >= 6*time.Second {
 					t.Fatalf("parallel.tftest.hcl duration took too long: %0.2f seconds", dur.Seconds())
 				}
 			},
@@ -930,67 +925,66 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			sources: map[string]string{
 				"main.tf": `
 					variable "input" {
-					type = string
+						type = string
 					}
 
 					resource "test_resource" "foo" {
-					value = var.input
-					destroy_wait_seconds = 5
+						value = var.input
+						destroy_wait_seconds = 5
 					}
 
 					output "value" {
-					value = test_resource.foo.value
+						value = test_resource.foo.value
 					}
 					`,
 				"parallel.tftest.hcl": `
 					test {
-					parallel = true
+						parallel = true
 					}
 
 					variables {
-					foo = "foo"
+						foo = "foo"
 					}
 
 					provider "test" {
 					}
 
 					provider "test" {
-					alias = "start"
+						alias = "start"
 					}
 
 					run "test_a" {
-					state_key = "state_foo"
-					variables {
-						input = "foo"
-					}
-					providers = {
-						test = test
-					}
+						state_key = "state_foo"
+						variables {
+							input = "foo"
+						}
+						providers = {
+							test = test
+						}
 
-					assert {
-						condition     = output.value == var.foo
-						error_message = "error in test_a"
-					}
+						assert {
+							condition     = output.value == var.foo
+							error_message = "error in test_a"
+						}
 					}
 
 					run "test_b" {
-					state_key = "state_bar"
-					variables {
-						input = "bar"
-					}
+						state_key = "state_bar"
+						variables {
+							input = "bar"
+						}
 
-					providers = {
-						test = test.start
-					}
+						providers = {
+							test = test.start
+						}
 
-					assert {
-						condition     = output.value != run.test_a.value
-						error_message = "error in test_b"
-					}
+						assert {
+							condition     = output.value != run.test_a.value
+							error_message = "error in test_b"
+						}
 					}
 					`,
 			},
-			expectedResult: "2 passed, 0 failed",
 			assertFunc: func(t *testing.T, output string, dur time.Duration) {
 				if !strings.Contains(output, "2 passed, 0 failed") {
 					t.Errorf("output didn't produce the right output:\n\n%s", output)
@@ -1045,10 +1039,6 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			c := &TestCommand{Meta: meta}
 			c.Run([]string{"-json", "-no-color"})
 			output := done(t).All()
-
-			if !strings.Contains(output, tt.expectedResult) {
-				t.Errorf("output didn't produce the right output:\n\n%s", output)
-			}
 
 			// Split the log into lines
 			lines := strings.Split(output, "\n")

@@ -32,10 +32,9 @@ func (r *ReferenceTransformer) Transform(graph *terraform.Graph) error {
 
 		destroyer, ok := referenceable.(*NodeStateCleanup)
 		if ok {
-			destroyers.Put(destroyer.run.Referenceable(), destroyer)
+			destroyers.Put(destroyer.addr, destroyer)
 			continue
 		}
-
 	}
 
 	for node := range graph.VerticesSeq() {
@@ -46,8 +45,9 @@ func (r *ReferenceTransformer) Transform(graph *terraform.Graph) error {
 				}
 			}
 		}
+
 		if node, ok := node.(*NodeStateCleanup); ok {
-			for _, reference := range node.run.References() {
+			for _, reference := range node.references {
 				if target, ok := destroyers.GetOk(reference.Subject); ok {
 					graph.Connect(dag.BasicEdge(target, node))
 				}

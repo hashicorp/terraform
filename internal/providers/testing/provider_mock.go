@@ -919,7 +919,5 @@ func (p *MockProvider) Close() error {
 
 func (p *MockProvider) beginWrite() func() {
 	p.Lock()
-	return func() {
-		p.Unlock()
-	}
+	return p.Unlock
 }
