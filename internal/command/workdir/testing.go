@@ -21,18 +21,12 @@ func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName st
 		t.Fatalf("test setup failed when creating version.Version: %s", err)
 	}
 
-	source := &Source{
-		// Avoid using constructor functions here, as they might provide validation
-		// that wouldn't exist outside of the test
-		Provider: tfaddr.Provider{
+	return &Provider{
+		Version: ver,
+		Source: tfaddr.Provider{
 			Hostname:  svchost.Hostname(hostname),
 			Namespace: namespace,
 			Type:      typeName,
 		},
-	}
-
-	return &Provider{
-		Version: ver,
-		Source:  source,
 	}
 }

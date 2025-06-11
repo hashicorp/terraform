@@ -4,14 +4,11 @@
 package workdir
 
 import (
-	"encoding"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
@@ -33,33 +30,7 @@ type StateStoreConfigState struct {
 // This is NOT state of a `provider` configuration block, or an entry in `required_providers`.
 type Provider struct {
 	Version *version.Version `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
-	Source  *Source          `json:"source"`  // The FQN/fully-qualified name of the provider.
-}
-
-type Source struct {
-	Provider tfaddr.Provider `json:"-"` // For un/marshaling purposes this needs to be exported, but it's omitted from JSON
-}
-
-// TODO - move this upstream
-var _ encoding.TextMarshaler = &Source{}
-var _ encoding.TextUnmarshaler = &Source{}
-
-// MarshalText defers to the internal terraform-registry-address Provider's String method
-func (p *Source) MarshalText() ([]byte, error) {
-	fqn := p.Provider.String()
-	return []byte(fqn), nil
-}
-
-// UnmarshalText uses existing methods for parsing `source` values from `required_providers` config to
-// convert a source string into a terraform-registry-address Provider
-func (p *Source) UnmarshalText(text []byte) error {
-	input := string(text)
-	provider, diag := addrs.ParseProviderSourceString(input)
-	if diag != nil {
-		return fmt.Errorf("error unmarshaling provider source from backend state file: %s", diag.ErrWithWarnings())
-	}
-	p.Provider = provider
-	return nil
+	Source  tfaddr.Provider  `json:"source"`  // The FQN/fully-qualified name of the provider.
 }
 
 // Empty returns true if there is no active state store.
@@ -72,17 +43,12 @@ func (s *StateStoreConfigState) Empty() bool {
 // invalid an error will be returned.
 func (s *StateStoreConfigState) Validate() error {
 
-	// TODO - refactor once upstreaming of parsing logic complete
-
 	// Are any bits of data totally missing?
 	if s.Empty() {
 		return fmt.Errorf("state store is not valid: data is empty")
 	}
 	if s.Provider == nil {
 		return fmt.Errorf("state store is not valid: provider data is missing")
-	}
-	if s.Provider.Source == nil {
-		return fmt.Errorf("state store is not valid: source data is missing")
 	}
 	if s.Provider.Version == nil {
 		return fmt.Errorf("state store is not valid: version data is missing")
@@ -91,25 +57,10 @@ func (s *StateStoreConfigState) Validate() error {
 		return fmt.Errorf("attempted to encode a malformed backend state file; state_store configuration data is missing")
 	}
 
-	// Is the source data incomplete?
-	// TODO - upstream this to registry library
-	switch {
-	case s.Provider.Source.Provider.Hostname == "" &&
-		s.Provider.Source.Provider.Namespace == "" &&
-		s.Provider.Source.Provider.Type == "":
-		return errors.New("state store is not valid: source data's FQN data is empty")
-	case s.Provider.Source.Provider.Hostname == "":
-		return errors.New("state store is not valid: source data's FQN data is missing a hostname")
-	case s.Provider.Source.Provider.Namespace == "":
-		return errors.New("state store is not valid: source data's FQN data is missing a namespace")
-	case s.Provider.Source.Provider.Type == "":
-		return errors.New("state store is not valid: source data's FQN data is missing a type name")
-	}
-
-	// Is the source data bad?
-	_, providerDiags := addrs.ParseProviderSourceString(s.Provider.Source.Provider.String())
-	if providerDiags.HasErrors() {
-		return fmt.Errorf("attempted to encode a malformed backend state file; state_store configuration's provider source %q is not valid: %s", s.Provider.Source.Provider.String(), providerDiags.ErrWithWarnings())
+	// Validity of data that is there
+	err := s.Provider.Source.Validate()
+	if err != nil {
+		return fmt.Errorf("state store is not valid: %w", err)
 	}
 
 	return nil
