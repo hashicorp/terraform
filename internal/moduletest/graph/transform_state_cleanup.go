@@ -44,14 +44,14 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 		},
 		Name: "TeardownSubgraph",
 	}).Build(addrs.RootModuleInstance)
-	b.opts.File.Diagnostics = b.opts.File.Diagnostics.Append(diags)
+	b.opts.File.AppendDiagnostics(diags)
 
 	if diags.HasErrors() {
 		return
 	}
 
 	diags = Walk(g, ctx)
-	b.opts.File.Diagnostics = b.opts.File.Diagnostics.Append(diags)
+	b.opts.File.AppendDiagnostics(diags)
 }
 
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
