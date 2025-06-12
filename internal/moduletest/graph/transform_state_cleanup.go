@@ -29,10 +29,8 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
 		refs := b.parent.Ancestors(runNode)
 		for _, ref := range refs {
-			if ref, ok := ref.(*NodeTestRun); ok {
-				if ref.run.GetStateKey() != runNode.run.GetStateKey() {
-					runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.GetStateKey())
-				}
+			if ref, ok := ref.(*NodeTestRun); ok && ref.run.GetStateKey() != runNode.run.GetStateKey() {
+				runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.GetStateKey())
 			}
 		}
 	}
@@ -40,9 +38,7 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	// Create a new graph for the cleanup nodes
 	g, diags := (&terraform.BasicGraphBuilder{
 		Steps: []terraform.GraphTransformer{
-			&TestVariablesTransformer{File: b.opts.File},
-			&TestStateCleanupTransformer{opts: b.opts, runRefs: runRefMap},
-			&ReferenceTransformer{},
+			&TestStateCleanupTransformer{opts: b.opts, runStateRefs: runRefMap},
 			&CloseTestGraphTransformer{},
 			&terraform.TransitiveReductionTransformer{},
 		},
@@ -61,8 +57,8 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
 type TestStateCleanupTransformer struct {
-	opts    *graphOptions
-	runRefs map[addrs.Run][]string
+	opts         *graphOptions
+	runStateRefs map[addrs.Run][]string
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
@@ -88,12 +84,8 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			arr = append(arr, node)
 			g.Add(node)
 
-			// Build the dependency map for this state key.
-			refStateKeys := t.runRefs[run.Addr()]
-			depStateKeys[key] = make([]string, 0, len(refStateKeys))
-			for _, refKey := range refStateKeys {
-				depStateKeys[key] = append(depStateKeys[key], refKey)
-			}
+			// The dependency map for the current run will be used for the cleanup node.
+			depStateKeys[key] = t.runStateRefs[run.Addr()]
 			continue
 		}
 
@@ -121,6 +113,7 @@ func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, nod
 
 	for _, refStateKey := range depStateKeys[node.stateKey] {
 		refNode, exists := cleanupNodes[refStateKey]
+		// If the reference node has already been visited, skip it.
 		if !exists || visited[refNode.stateKey] {
 			continue
 		}

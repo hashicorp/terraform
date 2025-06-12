@@ -1044,7 +1044,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					run "b1" {
 						state_key = "b"
 						variables {
-							foo = run.a1.value
+							foo = run.a1.value // no destroy edge here, because b2 owns the destroy node.
 						}
 
 						providers = {
@@ -1093,6 +1093,26 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			assertFunc: func(t *testing.T, output string, dur time.Duration) {
 				if !strings.Contains(output, "6 passed, 0 failed") {
 					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+
+				lines := strings.Split(output, "\n")
+				aIdx, bIdx, cIdx := -1, -1, -1
+				for idx, line := range lines {
+					if strings.Contains(line, "tearing down") {
+						if strings.Contains(line, "a2") {
+							aIdx = idx
+						}
+						if strings.Contains(line, "b2") {
+							bIdx = idx
+						}
+						if strings.Contains(line, "c2") {
+							cIdx = idx
+						}
+					}
+				}
+
+				if cIdx > aIdx || aIdx > bIdx { // c => a => b
+					t.Errorf("teardown order is incorrect: c2 (%d), a2 (%d), b2 (%d)", cIdx, aIdx, bIdx)
 				}
 			},
 		},
