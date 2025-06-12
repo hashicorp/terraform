@@ -52,16 +52,11 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		&TestRunTransformer{opts},
 		&TestVariablesTransformer{File: b.File},
 		terraform.DynamicTransformer(validateRunConfigs),
-		&TestProvidersTransformer{
-			Config:    b.Config,
-			File:      b.File,
-			Providers: opts.ContextOpts.Providers,
-		},
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
 			cleanup := &TeardownSubgraph{opts: opts, parent: g}
 			g.Add(cleanup)
 
-			// ensure that the teardown node runs after all the other nodes
+			// ensure that the teardown node runs after all the run nodes
 			for v := range dag.ExcludeSeq[*TeardownSubgraph](g.VerticesSeq()) {
 				if g.UpEdges(v).Len() == 0 {
 					g.Connect(dag.BasicEdge(cleanup, v))
@@ -70,6 +65,11 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 
 			return nil
 		}),
+		&TestProvidersTransformer{
+			Config:    b.Config,
+			File:      b.File,
+			Providers: opts.ContextOpts.Providers,
+		},
 		&EvalContextTransformer{File: b.File},
 		&ReferenceTransformer{},
 		&CloseTestGraphTransformer{},

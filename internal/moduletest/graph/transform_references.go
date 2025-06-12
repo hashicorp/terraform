@@ -23,19 +23,14 @@ type ReferenceTransformer struct{}
 
 func (r *ReferenceTransformer) Transform(graph *terraform.Graph) error {
 	nodes := addrs.MakeMap[addrs.Referenceable, dag.Vertex]()
-	for referenceable := range graph.VerticesSeq() {
-		if referenceable, ok := referenceable.(GraphNodeReferenceable); ok {
-			nodes.Put(referenceable.Referenceable(), referenceable)
-			continue
-		}
+	for referenceable := range dag.SelectSeq[GraphNodeReferenceable](graph.VerticesSeq()) {
+		nodes.Put(referenceable.Referenceable(), referenceable)
 	}
 
-	for node := range graph.VerticesSeq() {
-		if referencer, ok := node.(GraphNodeReferencer); ok {
-			for _, reference := range referencer.References() {
-				if target, ok := nodes.GetOk(reference.Subject); ok {
-					graph.Connect(dag.BasicEdge(referencer, target))
-				}
+	for referencer := range dag.SelectSeq[GraphNodeReferencer](graph.VerticesSeq()) {
+		for _, reference := range referencer.References() {
+			if target, ok := nodes.GetOk(reference.Subject); ok {
+				graph.Connect(dag.BasicEdge(referencer, target))
 			}
 		}
 	}
