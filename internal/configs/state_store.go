@@ -68,7 +68,7 @@ func decodeStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
 	}
 
 	ss.Provider = provider
-	ss.ProviderAddr = provider.providerType
+	ss.ProviderAddr = provider.providerType // currently this has zero values for all parts of the FQN
 
 	return ss, diags
 }
