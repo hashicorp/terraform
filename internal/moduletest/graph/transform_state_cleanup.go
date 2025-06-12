@@ -106,18 +106,22 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 }
 
 func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
-	if node == nil || visited[node.stateKey] {
+	if visited[node.stateKey] {
 		return
 	}
 	visited[node.stateKey] = true
 
 	for _, refStateKey := range depStateKeys[node.stateKey] {
-		refNode, exists := cleanupNodes[refStateKey]
 		// If the reference node has already been visited, skip it.
-		if !exists || visited[refNode.stateKey] {
+		if visited[refStateKey] {
 			continue
 		}
-		g.Connect(dag.BasicEdge(refNode, node))
+		refNode := cleanupNodes[refStateKey]
+		// leave non-parallel nodes out of this. Their sequential connections
+		// will be handled later.
+		if node.parallel && refNode.parallel {
+			g.Connect(dag.BasicEdge(refNode, node))
+		}
 		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
 	}
 }
