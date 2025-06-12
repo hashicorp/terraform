@@ -995,6 +995,107 @@ func TestTest_ParallelTeardown(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "possible cyclic state key reference: skip edge that would cause cycle",
+			sources: map[string]string{
+				"main.tf": `
+					variable "foo" {
+						type = string
+					}
+
+					resource "test_resource" "foo" {
+						value = var.foo
+						// destroy_wait_seconds = 5
+					}
+
+					output "value" {
+						value = test_resource.foo.value
+					}
+					`,
+				// c2 => a1, b1 => a1, a2 => b1, b2 => c1
+				"parallel.tftest.hcl": `
+					test {
+						parallel = true
+					}
+
+					variables {
+						foo = "foo"
+						indirect = run.c1.value
+					}
+
+					provider "test" {
+					}
+
+					provider "test" {
+						alias = "start"
+					}
+
+					run "a1" {
+						state_key = "a"
+						variables {
+							foo = "foo"
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "b1" {
+						state_key = "b"
+						variables {
+							foo = run.a1.value
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "a2" {
+						state_key = "a"
+						variables {
+							foo = run.b1.value
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "b2" {
+						state_key = "b"
+						variables {
+							foo = var.indirect # This is an indirect reference to run.c1.value
+							unused = run.b1.value
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "c1" {
+						state_key = "c"
+						variables {
+							foo = "foo"
+						}
+					}
+
+					run "c2" {
+						state_key = "c"
+						variables {
+							foo = run.a1.value
+						}
+					}
+					`,
+			},
+			assertFunc: func(t *testing.T, output string, dur time.Duration) {
+				if !strings.Contains(output, "6 passed, 0 failed") {
+					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

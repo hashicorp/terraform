@@ -23,16 +23,9 @@ type ReferenceTransformer struct{}
 
 func (r *ReferenceTransformer) Transform(graph *terraform.Graph) error {
 	nodes := addrs.MakeMap[addrs.Referenceable, dag.Vertex]()
-	destroyers := addrs.MakeMap[addrs.Referenceable, dag.Vertex]()
 	for referenceable := range graph.VerticesSeq() {
 		if referenceable, ok := referenceable.(GraphNodeReferenceable); ok {
 			nodes.Put(referenceable.Referenceable(), referenceable)
-			continue
-		}
-
-		destroyer, ok := referenceable.(*NodeStateCleanup)
-		if ok {
-			destroyers.Put(destroyer.addr, destroyer)
 			continue
 		}
 	}
@@ -42,14 +35,6 @@ func (r *ReferenceTransformer) Transform(graph *terraform.Graph) error {
 			for _, reference := range referencer.References() {
 				if target, ok := nodes.GetOk(reference.Subject); ok {
 					graph.Connect(dag.BasicEdge(referencer, target))
-				}
-			}
-		}
-
-		if node, ok := node.(*NodeStateCleanup); ok {
-			for _, reference := range node.references {
-				if target, ok := destroyers.GetOk(reference.Subject); ok {
-					graph.Connect(dag.BasicEdge(target, node))
 				}
 			}
 		}

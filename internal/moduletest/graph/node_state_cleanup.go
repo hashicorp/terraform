@@ -25,9 +25,6 @@ type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
 	parallel bool
-
-	references []*addrs.Reference
-	addr       addrs.Run
 }
 
 func (n *NodeStateCleanup) Name() string {

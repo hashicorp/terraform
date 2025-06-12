@@ -58,7 +58,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 			Providers: opts.ContextOpts.Providers,
 		},
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
-			cleanup := &TeardownSubgraph{opts: opts}
+			cleanup := &TeardownSubgraph{opts: opts, parent: g}
 			g.Add(cleanup)
 
 			// ensure that the teardown node runs after all the other nodes
