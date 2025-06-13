@@ -79,6 +79,8 @@ type EvalContext struct {
 	config   *configs.Config
 	renderer views.Test
 	verbose  bool
+
+	evalSem terraform.Semaphore
 }
 
 type EvalContextOpts struct {
@@ -88,6 +90,7 @@ type EvalContextOpts struct {
 	StopCtx           context.Context
 	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 	Config            *configs.Config
+	Concurrency       int
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -116,6 +119,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		verbose:           opts.Verbose,
 		renderer:          opts.Render,
 		config:            opts.Config,
+		evalSem:           terraform.NewSemaphore(opts.Concurrency),
 	}
 }
 

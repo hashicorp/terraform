@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -49,9 +50,21 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
-		&TestStateCleanupTransformer{opts},
 		&TestVariablesTransformer{File: b.File},
 		terraform.DynamicTransformer(validateRunConfigs),
+		terraform.DynamicTransformer(func(g *terraform.Graph) error {
+			cleanup := &TeardownSubgraph{opts: opts, parent: g}
+			g.Add(cleanup)
+
+			// ensure that the teardown node runs after all the run nodes
+			for v := range dag.ExcludeSeq[*TeardownSubgraph](g.VerticesSeq()) {
+				if g.UpEdges(v).Len() == 0 {
+					g.Connect(dag.BasicEdge(cleanup, v))
+				}
+			}
+
+			return nil
+		}),
 		&TestProvidersTransformer{
 			Config:    b.Config,
 			File:      b.File,
@@ -85,4 +98,45 @@ type dynamicNode struct {
 
 func (n *dynamicNode) Execute(evalCtx *EvalContext) {
 	n.eval(evalCtx)
+}
+
+func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
+	walkFn := func(v dag.Vertex) tfdiags.Diagnostics {
+		if ctx.Cancelled() {
+			// If the graph walk has been cancelled, the node should just return immediately.
+			// For now, this means a hard stop has been requested, in this case we don't
+			// even stop to mark future test runs as having been skipped. They'll
+			// just show up as pending in the printed summary. We will quickly
+			// just mark the overall file status has having errored to indicate
+			// it was interrupted.
+			return nil
+		}
+
+		// the walkFn is called asynchronously, and needs to be recovered
+		// separately in the case of a panic.
+		defer logging.PanicHandler()
+
+		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
+
+		defer func() {
+			if r := recover(); r != nil {
+				// If the walkFn panics, we get confusing logs about how the
+				// visit was complete. To stop this, we'll catch the panic log
+				// that the vertex panicked without finishing and re-panic.
+				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
+				panic(r) // re-panic
+			}
+			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
+		}()
+
+		ctx.evalSem.Acquire()
+		defer ctx.evalSem.Release()
+
+		if executable, ok := v.(GraphNodeExecutable); ok {
+			executable.Execute(ctx)
+		}
+		return nil
+	}
+
+	return g.AcyclicGraph.Walk(walkFn)
 }

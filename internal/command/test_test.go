@@ -5,14 +5,18 @@ package command
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
@@ -21,7 +25,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -828,6 +836,371 @@ func TestTest_Parallel(t *testing.T) {
 	// Ensure "test_d" appears after "test_setup", because they have the same state key
 	if testDIndex < testSetupIndex {
 		t.Errorf("test_d appears before test_setup in the log output")
+	}
+}
+
+func TestTest_ParallelTeardown(t *testing.T) {
+	tests := []struct {
+		name       string
+		sources    map[string]string
+		assertFunc func(t *testing.T, output string, dur time.Duration)
+	}{
+		{
+			name: "parallel teardown",
+			sources: map[string]string{
+				"main.tf": `
+					variable "input" {
+					type = string
+					}
+
+					resource "test_resource" "foo" {
+					value = var.input
+					destroy_wait_seconds = 3
+					}
+
+					output "value" {
+					value = test_resource.foo.value
+					}
+					`,
+				"parallel.tftest.hcl": `
+					test {
+					parallel = true
+					}
+
+					variables {
+					foo = "foo"
+					}
+
+					provider "test" {
+					}
+
+					provider "test" {
+					alias = "start"
+					}
+
+					run "test_a" {
+					state_key = "state_foo"
+					variables {
+						input = "foo"
+					}
+					providers = {
+						test = test
+					}
+
+					assert {
+						condition     = output.value == var.foo
+						error_message = "error in test_a"
+					}
+					}
+
+					run "test_b" {
+					state_key = "state_bar"
+					variables {
+						input = "bar"
+					}
+
+					providers = {
+						test = test.start
+					}
+
+					assert {
+						condition     = output.value == "bar"
+						error_message = "error in test_b"
+					}
+					}
+					`,
+			},
+			assertFunc: func(t *testing.T, output string, dur time.Duration) {
+				if !strings.Contains(output, "2 passed, 0 failed") {
+					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+				// Each teardown sleeps for 3 seconds, so we expect the total duration to be less than 6 seconds.
+				if dur >= 6*time.Second {
+					t.Fatalf("parallel.tftest.hcl duration took too long: %0.2f seconds", dur.Seconds())
+				}
+			},
+		},
+		{
+			name: "reference prevents parallel teardown",
+			sources: map[string]string{
+				"main.tf": `
+					variable "input" {
+						type = string
+					}
+
+					resource "test_resource" "foo" {
+						value = var.input
+						destroy_wait_seconds = 5
+					}
+
+					output "value" {
+						value = test_resource.foo.value
+					}
+					`,
+				"parallel.tftest.hcl": `
+					test {
+						parallel = true
+					}
+
+					variables {
+						foo = "foo"
+					}
+
+					provider "test" {
+					}
+
+					provider "test" {
+						alias = "start"
+					}
+
+					run "test_a" {
+						state_key = "state_foo"
+						variables {
+							input = "foo"
+						}
+						providers = {
+							test = test
+						}
+
+						assert {
+							condition     = output.value == var.foo
+							error_message = "error in test_a"
+						}
+					}
+
+					run "test_b" {
+						state_key = "state_bar"
+						variables {
+							input = "bar"
+						}
+
+						providers = {
+							test = test.start
+						}
+
+						assert {
+							condition     = output.value != run.test_a.value
+							error_message = "error in test_b"
+						}
+					}
+					`,
+			},
+			assertFunc: func(t *testing.T, output string, dur time.Duration) {
+				if !strings.Contains(output, "2 passed, 0 failed") {
+					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+				// Each teardown sleeps for 5 seconds, so we expect the total duration to be at least 10 seconds.
+				if dur < 10*time.Second {
+					t.Fatalf("parallel.tftest.hcl duration took too short: %0.2f seconds", dur.Seconds())
+				}
+			},
+		},
+		{
+			name: "possible cyclic state key reference: skip edge that would cause cycle",
+			sources: map[string]string{
+				"main.tf": `
+					variable "foo" {
+						type = string
+					}
+
+					resource "test_resource" "foo" {
+						value = var.foo
+						// destroy_wait_seconds = 5
+					}
+
+					output "value" {
+						value = test_resource.foo.value
+					}
+					`,
+				// c2 => a1, b1 => a1, a2 => b1, b2 => c1
+				"parallel.tftest.hcl": `
+					test {
+						parallel = true
+					}
+
+					variables {
+						foo = "foo"
+						indirect = run.c1.value
+					}
+
+					provider "test" {
+					}
+
+					provider "test" {
+						alias = "start"
+					}
+
+					run "a1" {
+						state_key = "a"
+						variables {
+							foo = "foo"
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "b1" {
+						state_key = "b"
+						variables {
+							foo = run.a1.value // no destroy edge here, because b2 owns the destroy node.
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "a2" {
+						state_key = "a"
+						variables {
+							foo = run.b1.value
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "b2" {
+						state_key = "b"
+						variables {
+							foo = var.indirect # This is an indirect reference to run.c1.value
+							unused = run.b1.value
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "c1" {
+						state_key = "c"
+						variables {
+							foo = "foo"
+						}
+					}
+
+					run "c2" {
+						state_key = "c"
+						variables {
+							foo = run.a1.value
+						}
+					}
+					`,
+			},
+			assertFunc: func(t *testing.T, output string, dur time.Duration) {
+				if !strings.Contains(output, "6 passed, 0 failed") {
+					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+
+				lines := strings.Split(output, "\n")
+				aIdx, bIdx, cIdx := -1, -1, -1
+				for idx, line := range lines {
+					if strings.Contains(line, "tearing down") {
+						if strings.Contains(line, "a2") {
+							aIdx = idx
+						}
+						if strings.Contains(line, "b2") {
+							bIdx = idx
+						}
+						if strings.Contains(line, "c2") {
+							cIdx = idx
+						}
+					}
+				}
+
+				if cIdx > aIdx || aIdx > bIdx { // c => a => b
+					t.Errorf("teardown order is incorrect: c2 (%d), a2 (%d), b2 (%d)", cIdx, aIdx, bIdx)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, td, closer := testModuleInline(t, tt.sources)
+			defer closer()
+			defer testChdir(t, td)()
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			// create a new provider instance for each test run, so that we can
+			// ensure that the test provider locks do not interfere between runs.
+			pInst := func() providers.Interface {
+				return testing_command.NewProvider(nil).Provider
+			}
+			meta := Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+							return pInst(), nil
+						},
+					}},
+				Ui:             ui,
+				View:           view,
+				Streams:        streams,
+				ProviderSource: providerSource,
+			}
+
+			init := &InitCommand{Meta: meta}
+			if code := init.Run(nil); code != 0 {
+				output := done(t)
+				t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+			}
+
+			c := &TestCommand{Meta: meta}
+			c.Run([]string{"-json", "-no-color"})
+			output := done(t).All()
+
+			// Split the log into lines
+			lines := strings.Split(output, "\n")
+
+			// Find the start of the teardown and complete timestamps
+			var startTimestamp, completeTimestamp string
+			for _, line := range lines {
+				if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"teardown"`) {
+					var obj map[string]interface{}
+					if err := json.Unmarshal([]byte(line), &obj); err == nil {
+						if ts, ok := obj["@timestamp"].(string); ok {
+							startTimestamp = ts
+						}
+					}
+				} else if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"complete"`) {
+					var obj map[string]interface{}
+					if err := json.Unmarshal([]byte(line), &obj); err == nil {
+						if ts, ok := obj["@timestamp"].(string); ok {
+							completeTimestamp = ts
+						}
+					}
+				}
+			}
+
+			if startTimestamp == "" || completeTimestamp == "" {
+				t.Fatalf("could not find start or complete timestamp in log output")
+			}
+
+			startTime, err := time.Parse(time.RFC3339Nano, startTimestamp)
+			if err != nil {
+				t.Fatalf("failed to parse start timestamp: %v", err)
+			}
+			completeTime, err := time.Parse(time.RFC3339Nano, completeTimestamp)
+			if err != nil {
+				t.Fatalf("failed to parse complete timestamp: %v", err)
+			}
+			dur := completeTime.Sub(startTime)
+			if tt.assertFunc != nil {
+				tt.assertFunc(t, output, dur)
+			}
+		})
 	}
 }
 
@@ -3484,5 +3857,60 @@ func TestTest_JUnitOutput(t *testing.T) {
 				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 			}
 		})
+	}
+}
+
+// testModuleInline takes a map of path -> config strings and yields a config
+// structure with those files loaded from disk
+func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config, string, func()) {
+	t.Helper()
+
+	cfgPath := t.TempDir()
+
+	for path, configStr := range sources {
+		dir := filepath.Dir(path)
+		if dir != "." {
+			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
+			if err != nil {
+				t.Fatalf("Error creating subdir: %s", err)
+			}
+		}
+		// Write the configuration
+		cfgF, err := os.Create(filepath.Join(cfgPath, path))
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+
+		_, err = io.Copy(cfgF, strings.NewReader(configStr))
+		cfgF.Close()
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+	}
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+
+	// Test modules usually do not refer to remote sources, and for local
+	// sources only this ultimately just records all of the module paths
+	// in a JSON file so that we can load them below.
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
+	}
+
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	return config, cfgPath, func() {
+		cleanup()
 	}
 }

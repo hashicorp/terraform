@@ -731,8 +731,9 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			}
 
 			testCtx := NewEvalContext(EvalContextOpts{
-				CancelCtx: context.Background(),
-				StopCtx:   context.Background(),
+				CancelCtx:   context.Background(),
+				StopCtx:     context.Background(),
+				Concurrency: 10,
 			})
 			testCtx.runBlocks = make(map[string]*moduletest.Run)
 			for ix, block := range file.Runs[:len(file.Runs)-1] {
