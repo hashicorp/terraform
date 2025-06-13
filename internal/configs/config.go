@@ -673,6 +673,28 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 	return providers
 }
 
+func (c *Config) resolveStateStoreProviderType() hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	// We intentionally don't look for entries in required_providers under different local names and match them
+	// Users should use the same local name in the nested provider block as in required_providers.
+	addr, ok := c.Root.Module.ProviderRequirements.RequiredProviders[c.Root.Module.StateStore.Provider.Name]
+	if !ok {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing entry in required_providers",
+			Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for %s (%q)",
+				c.Root.Module.StateStore.Provider.Name,
+				c.Root.Module.StateStore.ProviderAddr),
+			Subject: &c.Root.Module.StateStore.DeclRange,
+		})
+		return diags
+	}
+	c.Root.Module.StateStore.ProviderAddr = addr.Type
+	c.Module.StateStore.ProviderAddr = addr.Type
+	return nil
+}
+
 // resolveProviderTypesForTests matches resolveProviderTypes except it uses
 // the information from resolveProviderTypes to resolve the provider types for
 // providers defined within the configs test files.
