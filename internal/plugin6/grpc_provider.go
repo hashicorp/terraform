@@ -1383,7 +1383,10 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	// we will wrap that list in an object with a single attribute "data",
 	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
 	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
-	resp.Result = cty.ObjectVal(map[string]cty.Value{"data": cty.TupleVal(results), "config": config})
+	resp.Result = cty.ObjectVal(map[string]cty.Value{
+		"data":   cty.TupleVal(results),
+		"config": config,
+	})
 	return resp
 }
 
