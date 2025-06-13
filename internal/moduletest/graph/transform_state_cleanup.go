@@ -24,7 +24,7 @@ type TeardownSubgraph struct {
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
-	// work out the transitive run references for each run node in the parent graph
+	// work out the transitive state dependencies for each run node in the parent graph
 	runRefMap := make(map[addrs.Run][]string)
 	for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
 		refs := b.parent.Ancestors(runNode)
@@ -69,7 +69,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// the cleanup nodes in a depth-first manner.
 	depStateKeys := make(map[string][]string)
 
-	// Sort in reverse order of the run index, so that the last run for each state key
+	// iterate in reverse order of the run index, so that the last run for each state key
 	// is attached to the cleanup node.
 	for _, run := range slices.Backward(t.opts.File.Runs) {
 		key := run.GetStateKey()
@@ -84,7 +84,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			arr = append(arr, node)
 			g.Add(node)
 
-			// The dependency map for the current run will be used for the cleanup node.
+			// The dependency map for the state's last run will be used for the cleanup node.
 			depStateKeys[key] = t.runStateRefs[run.Addr()]
 			continue
 		}
@@ -101,7 +101,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
 	}
 
-	t.controlParallelism(g, arr)
+	ControlParallelism(g, arr)
 	return nil
 }
 
@@ -123,25 +123,5 @@ func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, nod
 			g.Connect(dag.BasicEdge(refNode, node))
 		}
 		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
-	}
-}
-
-func (t *TestStateCleanupTransformer) controlParallelism(g *terraform.Graph, nodes []*NodeStateCleanup) {
-	// If there is a state that has opted out of parallelism, we will connect it
-	// sequentially to all previous and subsequent runs.
-	for i, node := range nodes {
-		if node.parallel {
-			continue
-		}
-
-		// Connect to all previous runs
-		for j := 0; j < i; j++ {
-			g.Connect(dag.BasicEdge(node, nodes[j]))
-		}
-
-		// Connect to all subsequent runs
-		for j := i + 1; j < len(nodes); j++ {
-			g.Connect(dag.BasicEdge(nodes[j], node))
-		}
 	}
 }
