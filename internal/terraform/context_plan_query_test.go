@@ -12,7 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/grpcwrap"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -22,59 +22,6 @@ import (
 )
 
 func TestContext2Plan_queryList(t *testing.T) {
-	schemaResp := getProviderSchemaResponseFromProviderSchema(&providerSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"list": {
-				Attributes: map[string]*configschema.Attribute{
-					"attr": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-			"test_child_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-		},
-		ListResourceTypes: map[string]*configschema.Block{
-			"test_resource":       getQueryTestSchema(),
-			"test_child_resource": getQueryTestSchema(),
-		},
-		IdentityTypes: map[string]*configschema.Object{
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-				Nesting: configschema.NestingSingle,
-			},
-			"test_child_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-				Nesting: configschema.NestingSingle,
-			},
-		},
-	})
-
 	cases := []struct {
 		name           string
 		mainConfig     string
@@ -105,6 +52,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "test" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -157,10 +105,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
-				expectedResources := []string{"list.test_resource.test", "list.test_resource.test2"}
-				actualResources := make([]string, 0)
+				expectedResources := map[string][]string{
+					"list.test_resource.test":  {"ami-123456", "ami-654321", "ami-789012"},
+					"list.test_resource.test2": {},
+				}
+				actualResources := map[string][]string{}
 				for _, change := range changes.Resources {
-					actualResources = append(actualResources, change.Addr.String())
 					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
 					cs, err := change.Decode(schema)
 					if err != nil {
@@ -172,31 +122,30 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 
 					// Verify instance types
-					expectedTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
 					actualTypes := make([]string, 0)
 					obj := cs.After.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}
 					obj.ForEachElement(func(key cty.Value, val cty.Value) bool {
+						if !val.Type().HasAttribute("state") {
+							t.Fatalf("Expected 'state' attribute to be present, but it is missing")
+						}
+
 						val = val.GetAttr("state")
-						if val.IsNull() {
-							t.Fatalf("Expected 'state' attribute to be present, but it is null")
+						if !val.IsNull() {
+							if val.GetAttr("instance_type").IsNull() {
+								t.Fatalf("Expected 'instance_type' attribute to be present, but it is missing")
+							}
+							actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
 						}
-						if val.GetAttr("instance_type").IsNull() {
-							t.Fatalf("Expected 'instance_type' attribute to be present, but it is missing")
-						}
-						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+
 						return false
 					})
 					sort.Strings(actualTypes)
-					sort.Strings(expectedTypes)
-					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
-						t.Fatalf("Expected instance types to match, but they differ: %s", diff)
-					}
+					actualResources[change.Addr.String()] = actualTypes
 				}
-				sort.Strings(actualResources)
-				sort.Strings(expectedResources)
+
 				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
 					t.Fatalf("Expected resources to match, but they differ: %s", diff)
 				}
@@ -223,6 +172,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 				list "test_resource" "test" {
 				    count = 1
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -233,6 +183,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "test2" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -339,6 +290,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "test" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -349,6 +301,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "test2" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -379,6 +332,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			queryConfig: `
 				list "test_resource" "test" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -408,6 +362,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			queryConfig: `
 				list "test_resource" "test" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -418,6 +373,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "another" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -477,6 +433,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			queryConfig: `
 				list "test_resource" "test1" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -487,6 +444,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "test2" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -521,6 +479,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "test1" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -531,6 +490,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "test2" {
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -633,6 +593,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 				list "test_resource" "test1" {
 					for_each = toset(["foo", "bar"])
 					provider = test
+					include_resource = true
 
 					config {
 						filter = {
@@ -643,6 +604,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				list "test_resource" "test2" {
 					provider = test
+					include_resource = true
 					for_each = list.test_resource.test1
 
 					config {
@@ -742,21 +704,30 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
-			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
-			provider.GetProviderSchemaResponse = schemaResp
+			provider.GetProviderSchemaResponse = getTestProviderResponse()
 			var requestConfigs = make(map[string]cty.Value)
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				requestConfigs[request.TypeName] = request.Config
 				fn := tc.listResourceFn
-				if fn == nil {
-					return provider.ListResourceResponse
+				if fn != nil {
+					return fn(request)
 				}
-				return fn(request)
+
+				return providers.ListResourceResponse{
+					Result: cty.ObjectVal(map[string]cty.Value{
+						"data":   cty.TupleVal([]cty.Value{}),
+						"config": request.Config,
+					}),
+				}
 			}
+
+			// Create a mock gRPC provider
+			grpcProvider, close := grpcwrap.NewGRPCProvider(t, provider)
+			defer close()
 
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					providerAddr: testProviderFuncFixed(provider),
+					providerAddr: testProviderFuncFixed(grpcProvider),
 				},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
@@ -791,33 +762,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 }
 
 func TestContext2Plan_queryListArgs(t *testing.T) {
-	schemaResp := getProviderSchemaResponseFromProviderSchema(&providerSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-		},
-		ListResourceTypes: map[string]*configschema.Block{
-			"test_resource": getQueryTestSchema(),
-		},
-		IdentityTypes: map[string]*configschema.Object{
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-				Nesting: configschema.NestingSingle,
-			},
-		},
-	})
-
 	mainConfig := `
 	terraform {
 		required_providers {
@@ -916,16 +860,25 @@ func TestContext2Plan_queryListArgs(t *testing.T) {
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
 			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
-			provider.GetProviderSchemaResponse = schemaResp
+			provider.GetProviderSchemaResponse = getTestProviderResponse()
 			var recordedRequest providers.ListResourceRequest
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				recordedRequest = request
-				return provider.ListResourceResponse
+				return providers.ListResourceResponse{
+					Result: cty.ObjectVal(map[string]cty.Value{
+						"data":   cty.TupleVal([]cty.Value{}),
+						"config": request.Config,
+					}),
+				}
 			}
+
+			// Create a mock gRPC provider
+			grpcProvider, close := grpcwrap.NewGRPCProvider(t, provider)
+			defer close()
 
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					providerAddr: testProviderFuncFixed(provider),
+					providerAddr: testProviderFuncFixed(grpcProvider),
 				},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
