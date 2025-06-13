@@ -879,6 +879,7 @@ func (p *provider6) ListResource(req *tfplugin6.ListResource_Request, res tfplug
 			DisplayName:    displayName,
 		})
 	}
+
 	return nil
 }
 

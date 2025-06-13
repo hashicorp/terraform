@@ -762,8 +762,70 @@ func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.Upg
 	return resp, nil
 }
 
-func (p *provider) ListResource(*tfplugin5.ListResource_Request, tfplugin5.Provider_ListResourceServer) error {
-	panic("not implemented")
+func (p *provider) ListResource(req *tfplugin5.ListResource_Request, res tfplugin5.Provider_ListResourceServer) error {
+	resourceSchema, ok := p.schema.ResourceTypes[req.TypeName]
+	if !ok {
+		return fmt.Errorf("resource schema not found for type %q", req.TypeName)
+	}
+	listSchema, ok := p.schema.ListResourceTypes[req.TypeName]
+	if !ok {
+		return fmt.Errorf("list resource schema not found for type %q", req.TypeName)
+	}
+	cfg, err := decodeDynamicValue(req.Config, listSchema.Body.ImpliedType())
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to decode config: %v", err)
+	}
+	resp := p.provider.ListResource(providers.ListResourceRequest{
+		TypeName:              req.TypeName,
+		Config:                cfg,
+		Limit:                 req.Limit,
+		IncludeResourceObject: req.IncludeResourceObject,
+	})
+	if resp.Diagnostics.HasErrors() {
+		return resp.Diagnostics.Err()
+	}
+	if !resp.Result.Type().HasAttribute("data") {
+		return status.Errorf(codes.Internal, "list resource response missing 'data' attribute")
+	}
+	data := resp.Result.GetAttr("data")
+	if data.IsNull() || !data.CanIterateElements() {
+		return status.Errorf(codes.Internal, "list resource response 'data' attribute is invalid or null")
+	}
+
+	for iter := data.ElementIterator(); iter.Next(); {
+		_, item := iter.Element()
+		state := item.GetAttr("state")
+		var stateVal *tfplugin5.DynamicValue
+		var err error
+		if !state.IsNull() {
+			stateVal, err = encodeDynamicValue(state, resourceSchema.Body.ImpliedType())
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to encode list resource item state: %v", err)
+			}
+		}
+		if !item.Type().HasAttribute("identity") {
+			return status.Errorf(codes.Internal, "list resource item missing 'identity' attribute")
+		}
+		identity := item.GetAttr("identity")
+		var identityVal *tfplugin5.DynamicValue
+		identityVal, err = encodeDynamicValue(identity, resourceSchema.Identity.ImpliedType())
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to encode list resource item identity: %v", err)
+		}
+
+		var displayName string
+		if item.Type().HasAttribute("display_name") {
+			displayName = item.GetAttr("display_name").AsString()
+		}
+
+		res.Send(&tfplugin5.ListResource_Event{
+			Identity:       &tfplugin5.ResourceIdentityData{IdentityData: identityVal},
+			ResourceObject: stateVal,
+			DisplayName:    displayName,
+		})
+	}
+
+	return nil
 }
 
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
