@@ -10,6 +10,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/jsonlist"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -201,7 +202,11 @@ func (b *Local) opPlan(
 		return
 	}
 
-	op.View.Plan(plan, schemas)
+	if op.Query {
+		jsonlist.MarshalListFromResourceChanges(plan.Changes.Resources, schemas)
+	} else {
+		op.View.Plan(plan, schemas)
+	}
 
 	// If we've accumulated any diagnostics along the way then we'll show them
 	// here just before we show the summary and next steps. This can potentially
