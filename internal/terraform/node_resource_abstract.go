@@ -217,6 +217,17 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			}
 		}
 
+		if c.List != nil {
+			if c.List.IncludeResource != nil {
+				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.List.IncludeResource)
+				result = append(result, refs...)
+			}
+			if c.List.Limit != nil {
+				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.List.Limit)
+				result = append(result, refs...)
+			}
+		}
+
 		for _, check := range c.Preconditions {
 			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
 			result = append(result, refs...)
