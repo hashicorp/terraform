@@ -84,8 +84,9 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		Limit:                 limit,
 		IncludeResourceObject: includeResource,
 	})
-	if resp.Diagnostics != nil {
-		return diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	change := &plans.ResourceInstanceChange{
