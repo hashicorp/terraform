@@ -1298,7 +1298,11 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	}
 
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
+	config := cty.NullVal(configSchema.ImpliedType())
+	if r.Config.Type().HasAttribute("config") {
+		config = r.Config.GetAttr("config")
+	}
+	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
