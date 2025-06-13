@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/addrs"
+	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -200,14 +201,35 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 }
 
 func (pr *ProviderRequirements) ProviderForLocalName(localName string) (addrs.Provider, bool) {
+	var provider addrs.Provider
+	var success bool
+
 	if pr == nil {
-		return addrs.Provider{}, false
+		provider = addrs.Provider{}
+		success = false
+	} else {
+		obj, ok := pr.Requirements[localName]
+		if !ok {
+			provider = addrs.Provider{}
+			success = false
+		} else {
+			provider = obj.Provider
+			success = true
+		}
 	}
-	obj, ok := pr.Requirements[localName]
-	if !ok {
-		return addrs.Provider{}, false
+
+	// Check whether the provider *might be* built-in.
+	// There might be special occasions where localName corresponds to a
+	// built-in provider names. In that case, customers will see an error
+	// occurring later in the process.
+	if !success {
+		if _, ok := builtinProviders.BuiltInProviders()[localName]; ok {
+			provider = addrs.NewDefaultProvider(localName)
+			success = true
+		}
 	}
-	return obj.Provider, true
+
+	return provider, success
 }
 
 func (pr *ProviderRequirements) LocalNameForProvider(providerAddr addrs.Provider) (string, bool) {

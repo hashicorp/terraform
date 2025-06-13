@@ -12,10 +12,10 @@ import (
 	"os/exec"
 	"strings"
 
-	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/go-plugin"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
+	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/internal/plugin"
@@ -365,11 +365,7 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 }
 
 func (m *Meta) internalProviders() map[string]providers.Factory {
-	return map[string]providers.Factory{
-		"terraform": func() (providers.Interface, error) {
-			return terraformProvider.NewProvider(), nil
-		},
-	}
+	return builtinProviders.BuiltInProviders()
 }
 
 // providerFactory produces a provider factory that runs up the executable

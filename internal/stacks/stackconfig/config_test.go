@@ -291,3 +291,41 @@ func TestLoadConfigDirBasics(t *testing.T) {
 	})
 	// TODO: More thorough testing!
 }
+
+func TestOmittingBuiltInProviders(t *testing.T) {
+	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/builtin.git").(sourceaddrs.RemoteSource)
+	config, diags := LoadConfigDir(rootAddr, bundle)
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics:\n%s", diags.NonFatalErr().Error())
+	}
+
+	t.Run("built-in providers do NOT have to be listed in required providers", func(t *testing.T) {
+		if got, want := len(config.Root.Stack.OutputValues), 1; got != want {
+			t.Errorf("wrong number of output values %d; want %d", got, want)
+		}
+
+		t.Run("greeting", func(t *testing.T) {
+			cfg, ok := config.Root.Stack.OutputValues["greeting"]
+			if !ok {
+				t.Fatal("Root stack config has no output value named \"greeting\".")
+			}
+			if got, want := cfg.Name, "greeting"; got != want {
+				t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := cfg.Type.Constraint, cty.String; got != want {
+				t.Errorf("wrong name\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Sensitive, false; got != want {
+				t.Errorf("wrong sensitive\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Ephemeral, false; got != want {
+				t.Errorf("wrong ephemeral\ngot:  %#v\nwant: %#v", got, want)
+			}
+		})
+	})
+}
