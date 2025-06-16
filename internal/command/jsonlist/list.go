@@ -11,12 +11,11 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func MarshalListFromResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]string, error) {
+func MarshalQueryInstances(resources []*plans.QueryInstanceSrc, schemas *terraform.Schemas) ([]string, error) {
 	var ret []string
 
 	for _, rc := range resources {
-
-		r, err := marshalListFromResourceChange(rc, schemas)
+		r, err := marshalQueryInstance(rc, schemas)
 		if err != nil {
 			return nil, err
 		}
@@ -26,7 +25,7 @@ func MarshalListFromResourceChanges(resources []*plans.ResourceInstanceChangeSrc
 	return ret, nil
 }
 
-func marshalListFromResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) (string, error) {
+func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas) (string, error) {
 	var r string
 	addr := rc.Addr
 
@@ -39,12 +38,12 @@ func marshalListFromResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas 
 		return r, fmt.Errorf("no schema found for %s (in provider %s)", addr.String(), rc.ProviderAddr.Provider)
 	}
 
-	changeV, err := rc.Decode(schema)
+	query, err := rc.Decode(schema)
 	if err != nil {
 		return r, err
 	}
 
-	data := changeV.After.GetAttr("data")
+	data := query.Results.GetAttr("data")
 	for it := data.ElementIterator(); it.Next(); {
 		_, value := it.Element()
 

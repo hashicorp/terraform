@@ -22,6 +22,8 @@ type Changes struct {
 	// Resources tracks planned changes to resource instance objects.
 	Resources []*ResourceInstanceChange
 
+	Queries []*QueryInstance
+
 	// Outputs tracks planned changes output values.
 	//
 	// Note that although an in-memory plan contains planned changes for
@@ -71,6 +73,24 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 		}
 
 		changesSrc.Resources = append(changesSrc.Resources, rcs)
+	}
+
+	for _, qi := range c.Queries {
+		p, ok := schemas.Providers[qi.ProviderAddr.Provider]
+		if !ok {
+			return changesSrc, fmt.Errorf("Changes.Encode: missing provider %s for %s", qi.ProviderAddr, qi.Addr)
+		}
+
+		schema := p.ListResourceTypes[qi.Addr.Resource.Resource.Type]
+		if schema.Body == nil {
+			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", qi.Addr)
+		}
+		rcs, err := qi.Encode(schema)
+		if err != nil {
+			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
+		}
+
+		changesSrc.Queries = append(changesSrc.Queries, rcs)
 	}
 
 	for _, ocs := range c.Outputs {
@@ -210,6 +230,36 @@ func (c *Changes) SyncWrapper() *ChangesSync {
 	}
 }
 
+type QueryInstance struct {
+	Addr addrs.AbsResourceInstance
+
+	ProviderAddr addrs.AbsProviderConfig
+
+	Results cty.Value
+}
+
+func (qi *QueryInstance) DeepCopy() *QueryInstance {
+	if qi == nil {
+		return qi
+	}
+
+	ret := *qi
+	return &ret
+}
+
+func (rc *QueryInstance) Encode(schema providers.Schema) (*QueryInstanceSrc, error) {
+	results, err := NewDynamicValue(rc.Results, schema.Body.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return &QueryInstanceSrc{
+		Addr:         rc.Addr,
+		Results:      results,
+		ProviderAddr: rc.ProviderAddr,
+	}, nil
+}
+
 // ResourceInstanceChange describes a change to a particular resource instance
 // object.
 type ResourceInstanceChange struct {
@@ -293,7 +343,6 @@ func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInst
 		prevRunAddr = rc.Addr
 	}
 	return &ResourceInstanceChangeSrc{
-
 		Addr:            rc.Addr,
 		PrevRunAddr:     prevRunAddr,
 		DeposedKey:      rc.DeposedKey,

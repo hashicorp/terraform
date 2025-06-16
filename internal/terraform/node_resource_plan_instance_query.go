@@ -9,9 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
@@ -89,17 +87,12 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	change := &plans.ResourceInstanceChange{
+	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
-		Change: plans.Change{
-			Action: plans.Read,
-			Before: cty.DynamicVal,
-			After:  resp.Result,
-		},
-		DeposedKey: states.NotDeposed,
+		Results:      resp.Result,
 	}
 
-	ctx.Changes().AppendResourceInstanceChange(change)
+	ctx.Changes().AppendQueryInstance(query)
 	return diags
 }
