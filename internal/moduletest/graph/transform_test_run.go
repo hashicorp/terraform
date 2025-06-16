@@ -25,39 +25,13 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 	}
 
 	// Connect nodes based on dependencies
-	t.controlParallelism(g, nodes)
+	ControlParallelism(g, nodes)
 
 	// Runs with the same state key inherently depend on each other, so we
 	// connect them sequentially.
 	t.connectSameStateRuns(g, nodes)
 
 	return nil
-}
-
-func (t *TestRunTransformer) controlParallelism(g *terraform.Graph, nodes []*NodeTestRun) {
-
-	// If there is a run that has opted out of parallelism, we will connect it
-	// sequentially to all previous and subsequent runs. This effectively
-	// divides the parallelizable runs into separate groups, ensuring that
-	// non-parallelizable runs are executed in sequence with respect to all
-	// other runs.
-
-	for i, node := range nodes {
-		if node.run.Config.Parallel {
-			continue
-		}
-
-		// Connect to all previous runs
-		for j := 0; j < i; j++ {
-			g.Connect(dag.BasicEdge(node, nodes[j]))
-			node.priorRuns[nodes[j].run.Name] = nodes[j].run
-		}
-
-		// Connect to all subsequent runs
-		for j := i + 1; j < len(nodes); j++ {
-			g.Connect(dag.BasicEdge(nodes[j], node))
-		}
-	}
 }
 
 func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*NodeTestRun) {
@@ -68,8 +42,46 @@ func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*N
 	}
 	for _, runs := range stateRuns {
 		for i := 1; i < len(runs); i++ {
-			runs[i].priorRuns[runs[i-1].run.Name] = runs[i-1].run
-			g.Connect(dag.BasicEdge(runs[i], runs[i-1]))
+			curr, prev := runs[i], runs[i-1]
+			curr.priorRuns[prev.run.Name] = prev.run
+			g.Connect(dag.BasicEdge(curr, prev))
+		}
+	}
+}
+
+// ControlParallelism connects nodes in the graph based on their parallelism
+// settings. If a node opts out of parallelism, it will be connected sequentially
+// to all previous and subsequent nodes that are also part of the parallelism
+// control flow.
+func ControlParallelism[T any](g *terraform.Graph, nodes []T) {
+	for i, node := range nodes {
+		switch node := any(node).(type) {
+		case *NodeTestRun:
+			if node.run.Config.Parallel {
+				continue
+			}
+
+			for j := range i {
+				refNode := any(nodes[j]).(*NodeTestRun)
+				node.priorRuns[refNode.run.Name] = refNode.run
+			}
+		case *NodeStateCleanup:
+			if node.parallel {
+				continue
+			}
+		default:
+			// If the node type does not support parallelism, skip it.
+			continue
+		}
+
+		// Connect to all previous runs
+		for j := range i {
+			g.Connect(dag.BasicEdge(node, nodes[j]))
+		}
+
+		// Connect to all subsequent runs
+		for j := i + 1; j < len(nodes); j++ {
+			g.Connect(dag.BasicEdge(nodes[j], node))
 		}
 	}
 }

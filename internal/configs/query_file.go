@@ -150,6 +150,10 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		r.List.IncludeResource = attr.Expr
 	}
 
+	if attr, exists := content.Attributes["limit"]; exists {
+		r.List.Limit = attr.Expr
+	}
+
 	// verify that the list block has a config block
 	content, contentDiags = block.Body.Content(&hcl.BodySchema{
 		Attributes: QueryListResourceBlockSchema.Attributes,
@@ -186,9 +190,15 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 // QueryListResourceBlockSchema is the schema for a list resource type within
 // a terraform query file.
 var QueryListResourceBlockSchema = &hcl.BodySchema{
-	Attributes: append(commonResourceAttributes, hcl.AttributeSchema{
-		Name: "include_resource",
-	}),
+	Attributes: append(
+		commonResourceAttributes,
+		hcl.AttributeSchema{
+			Name: "include_resource",
+		},
+		hcl.AttributeSchema{
+			Name: "limit",
+		},
+	),
 }
 
 // queryFileSchema is the schema for a terraform query file. It defines the

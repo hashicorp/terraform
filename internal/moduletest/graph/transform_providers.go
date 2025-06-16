@@ -87,7 +87,7 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 		}
 	}
 
-	for _, vertex := range g.Vertices() {
+	for vertex := range g.VerticesSeq() {
 		if vertex, ok := vertex.(*NodeTestRun); ok {
 			// providers aren't referenceable so the automatic reference
 			// transformer won't do this.
@@ -108,7 +108,7 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 			}
 		}
 
-		if vertex, ok := vertex.(*NodeStateCleanup); ok {
+		if vertex, ok := vertex.(*TeardownSubgraph); ok {
 			for _, node := range nodes {
 				for _, node := range node {
 					// close all the providers after the states have been

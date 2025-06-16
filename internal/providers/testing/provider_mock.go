@@ -146,8 +146,7 @@ type MockProvider struct {
 }
 
 func (p *MockProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 	p.GetProviderSchemaCalled = true
 	return p.getProviderSchema()
 }
@@ -169,8 +168,7 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 }
 
 func (p *MockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 	p.GetResourceIdentitySchemasCalled = true
 
 	return p.getResourceIdentitySchemas()
@@ -187,8 +185,7 @@ func (p *MockProvider) getResourceIdentitySchemas() providers.GetResourceIdentit
 }
 
 func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.ValidateProviderConfigCalled = true
 	p.ValidateProviderConfigRequest = r
@@ -205,8 +202,7 @@ func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfig
 }
 
 func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfigRequest) (resp providers.ValidateResourceConfigResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.ValidateResourceConfigCalled = true
 	p.ValidateResourceConfigRequest = r
@@ -237,8 +233,7 @@ func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 }
 
 func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.ValidateDataResourceConfigCalled = true
 	p.ValidateDataResourceConfigRequest = r
@@ -267,8 +262,7 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 }
 
 func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.ValidateEphemeralResourceConfigCalled = true
 	p.ValidateEphemeralResourceConfigRequest = r
@@ -297,8 +291,7 @@ func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphem
 }
 
 func (p *MockProvider) ValidateListResourceConfig(r providers.ValidateListResourceConfigRequest) (resp providers.ValidateListResourceConfigResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.ValidateListResourceConfigCalled = true
 	p.ValidateListResourceConfigRequest = r
@@ -332,8 +325,7 @@ func (p *MockProvider) ValidateListResourceConfig(r providers.ValidateListResour
 // When using this mock you may need to provide custom logic if the plugin-framework alters values in state,
 // e.g. when handling write-only attributes.
 func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before UpgradeResourceState %q", r.TypeName))
@@ -381,8 +373,7 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 }
 
 func (p *MockProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before UpgradeResourceIdentity %q", r.TypeName))
@@ -420,8 +411,7 @@ func (p *MockProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdenti
 }
 
 func (p *MockProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.ConfigureProviderCalled = true
 	p.ConfigureProviderRequest = r
@@ -452,8 +442,7 @@ func (p *MockProvider) Stop() error {
 }
 
 func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.ReadResourceCalled = true
 	p.ReadResourceRequest = r
@@ -528,8 +517,7 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 }
 
 func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before PlanResourceChange %q", r.TypeName))
@@ -618,8 +606,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 }
 
 func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.ApplyResourceChangeCalled = true
 	p.ApplyResourceChangeRequest = r
@@ -676,8 +663,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 }
 
 func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ImportResourceState %q", r.TypeName))
@@ -721,8 +707,7 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 }
 
 func (p *MockProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.MoveResourceStateCalled = true
 	p.MoveResourceStateRequest = r
@@ -738,8 +723,7 @@ func (p *MockProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 }
 
 func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ReadDataSource %q", r.TypeName))
@@ -761,8 +745,7 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 }
 
 func (p *MockProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before OpenEphemeralResource %q", r.TypeName))
@@ -784,8 +767,7 @@ func (p *MockProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRe
 }
 
 func (p *MockProvider) RenewEphemeralResource(r providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before RenewEphemeralResource %q", r.TypeName))
@@ -807,8 +789,7 @@ func (p *MockProvider) RenewEphemeralResource(r providers.RenewEphemeralResource
 }
 
 func (p *MockProvider) CloseEphemeralResource(r providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before CloseEphemeralResource %q", r.TypeName))
@@ -830,8 +811,7 @@ func (p *MockProvider) CloseEphemeralResource(r providers.CloseEphemeralResource
 }
 
 func (p *MockProvider) CallFunction(r providers.CallFunctionRequest) providers.CallFunctionResponse {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.CallFunctionCalled = true
 	p.CallFunctionRequest = r
@@ -931,9 +911,13 @@ func (p *MockProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 }
 
 func (p *MockProvider) Close() error {
-	p.Lock()
-	defer p.Unlock()
+	defer p.beginWrite()()
 
 	p.CloseCalled = true
 	return p.CloseError
+}
+
+func (p *MockProvider) beginWrite() func() {
+	p.Lock()
+	return p.Unlock
 }

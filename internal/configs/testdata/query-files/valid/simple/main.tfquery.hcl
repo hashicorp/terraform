@@ -2,6 +2,7 @@ list "aws_instance" "test" {
   provider = aws
   count = 1
   include_resource = true
+  limit = 5
   config {
     tags = {
       Name = "test"

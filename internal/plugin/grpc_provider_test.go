@@ -1566,7 +1566,9 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 
 	// Create the request
 	configVal := cty.ObjectVal(map[string]cty.Value{
-		"filter_attr": cty.StringVal("filter-value"),
+		"config": cty.ObjectVal(map[string]cty.Value{
+			"filter_attr": cty.StringVal("filter-value"),
+		}),
 	})
 	request := providers.ListResourceRequest{
 		TypeName:              "list",
@@ -1646,7 +1648,9 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 	).Return(nil, fmt.Errorf("provider error"))
 
 	configVal := cty.ObjectVal(map[string]cty.Value{
-		"filter_attr": cty.StringVal("filter-value"),
+		"config": cty.ObjectVal(map[string]cty.Value{
+			"filter_attr": cty.StringVal("filter-value"),
+		}),
 	})
 	request := providers.ListResourceRequest{
 		TypeName: "list",
@@ -1692,7 +1696,9 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 
 	// Create the request
 	configVal := cty.ObjectVal(map[string]cty.Value{
-		"filter_attr": cty.StringVal("filter-value"),
+		"config": cty.ObjectVal(map[string]cty.Value{
+			"filter_attr": cty.StringVal("filter-value"),
+		}),
 	})
 	request := providers.ListResourceRequest{
 		TypeName: "list",
@@ -1757,7 +1763,9 @@ func TestGRPCProvider_ListResource_Limit(t *testing.T) {
 
 	// Create the request
 	configVal := cty.ObjectVal(map[string]cty.Value{
-		"filter_attr": cty.StringVal("filter-value"),
+		"config": cty.ObjectVal(map[string]cty.Value{
+			"filter_attr": cty.StringVal("filter-value"),
+		}),
 	})
 	request := providers.ListResourceRequest{
 		TypeName: "list",
