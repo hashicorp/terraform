@@ -1298,7 +1298,11 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	}
 
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	mp, err := msgpack.Marshal(r.Config, configSchema.ImpliedType())
+	config := cty.NullVal(configSchema.ImpliedType())
+	if r.Config.Type().HasAttribute("config") {
+		config = r.Config.GetAttr("config")
+	}
+	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -1384,7 +1388,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	// we will wrap that list in an object with a single attribute "data",
 	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
 	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
-	resp.Result = cty.ObjectVal(map[string]cty.Value{"data": cty.TupleVal(results)})
+	resp.Result = cty.ObjectVal(map[string]cty.Value{"data": cty.TupleVal(results), "config": config})
 	return resp
 }
 

@@ -10,12 +10,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -774,6 +776,171 @@ func TestContext2Plan_queryList(t *testing.T) {
 					t.Fatalf("failed to get schemas: %s", err)
 				}
 				tc.assertChanges(sch.Providers[providerAddr], plan.Changes)
+			}
+
+			if tc.diagCount > 0 {
+				for _, err := range tc.expectedErrMsg {
+					if !strings.Contains(diags.Err().Error(), err) {
+						t.Fatalf("expected error message %q, but got %q", err, diags.Err().Error())
+					}
+				}
+			}
+
+		})
+	}
+}
+
+func TestContext2Plan_queryListArgs(t *testing.T) {
+	schemaResp := getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"instance_type": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		ListResourceTypes: map[string]*configschema.Block{
+			"test_resource": getQueryTestSchema(),
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	})
+
+	mainConfig := `
+	terraform {
+		required_providers {
+			test = {
+				source = "hashicorp/test"
+				version = "1.0.0"
+			}
+		}
+	}`
+
+	cases := []struct {
+		name           string
+		queryConfig    string
+		diagCount      int
+		expectedErrMsg []string
+		assertRequest  providers.ListResourceRequest
+	}{
+		{
+			name: "simple list, no args",
+			queryConfig: `
+				list "test_resource" "test1" {
+					provider = test
+				}
+			`,
+			assertRequest: providers.ListResourceRequest{
+				TypeName: "test_resource",
+				Limit:    100,
+			},
+		},
+		{
+			name: "simple list, with args",
+			queryConfig: `
+				list "test_resource" "test1" {
+					provider = test
+					limit = 1000
+					include_resource = true
+				}
+			`,
+			assertRequest: providers.ListResourceRequest{
+				TypeName:              "test_resource",
+				Limit:                 1000,
+				IncludeResourceObject: true,
+			},
+		},
+		{
+			name: "args with local references",
+			queryConfig: `
+				list "test_resource" "test1" {
+					provider = test
+					limit = local.test_limit
+					include_resource = local.test_include
+				}
+				locals {
+					test_limit = 500
+					test_include = true
+				}
+			`,
+			assertRequest: providers.ListResourceRequest{
+				TypeName:              "test_resource",
+				Limit:                 500,
+				IncludeResourceObject: true,
+			},
+		},
+		{
+			name: "args with variable references",
+			queryConfig: `
+				list "test_resource" "test1" {
+					provider = test
+					limit = var.test_limit
+					include_resource = var.test_include
+				}
+				variable "test_limit" {
+					default = 500
+					type = number
+				}
+				variable "test_include" {
+					default = true
+					type = bool
+				}
+			`,
+			assertRequest: providers.ListResourceRequest{
+				TypeName:              "test_resource",
+				Limit:                 500,
+				IncludeResourceObject: true,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			configs := map[string]string{"main.tf": mainConfig}
+			configs["main.tfquery.hcl"] = tc.queryConfig
+
+			mod := testModuleInline(t, configs)
+
+			providerAddr := addrs.NewDefaultProvider("test")
+			provider := testProvider("test")
+			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+			provider.GetProviderSchemaResponse = schemaResp
+			var recordedRequest providers.ListResourceRequest
+			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+				recordedRequest = request
+				return provider.ListResourceResponse
+			}
+
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
+				Mode:         plans.NormalMode,
+				SetVariables: testInputValuesUnset(mod.Module.Variables),
+				Query:        true,
+			})
+			if len(diags) != tc.diagCount {
+				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
+			}
+
+			if diff := cmp.Diff(tc.assertRequest, recordedRequest, ctydebug.CmpOptions, cmpopts.IgnoreFields(providers.ListResourceRequest{}, "Config")); diff != "" {
+				t.Fatalf("unexpected request: %s", diff)
 			}
 
 			if tc.diagCount > 0 {
