@@ -35,6 +35,7 @@ import (
 
 const (
 	// EnvCLI is the environment variable name to set additional CLI args.
+	// another comment
 	EnvCLI = "TF_CLI_ARGS"
 
 	// The parent process will create a file to collect crash logs
