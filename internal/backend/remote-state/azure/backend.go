@@ -67,7 +67,7 @@ func New() backend.Backend {
 					},
 					"metadata_host": {
 						Type:        cty.String,
-						Required:    true,
+						Optional:    true,
 						Description: "The Hostname which should be used for the Azure Metadata Service.",
 					},
 					"access_key": {
