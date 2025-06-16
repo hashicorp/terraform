@@ -5,7 +5,6 @@ package workdir
 
 import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -14,6 +13,9 @@ type ConfigState[T any] interface {
 	Empty() bool
 	Config(*configschema.Block) (cty.Value, error)
 	SetConfig(cty.Value, *configschema.Block) error
-	ForPlan(*configschema.Block, string) (*plans.Backend, error)
 	DeepCopy() *T
+}
+
+type Planner[T any] interface {
+	ForPlan(*configschema.Block, string) (*T, error)
 }

@@ -15,6 +15,7 @@ import (
 )
 
 var _ ConfigState[BackendConfigState] = &BackendConfigState{}
+var _ Planner[plans.Backend] = &BackendConfigState{}
 
 // BackendConfigState describes the physical storage format for the backend state
 // in a working directory, and provides the lowest-level API for decoding it.
