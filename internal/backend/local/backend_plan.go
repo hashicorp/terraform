@@ -203,7 +203,8 @@ func (b *Local) opPlan(
 	}
 
 	if op.Query {
-		jsonlist.MarshalListFromResourceChanges(plan.Changes.Resources, schemas)
+		// TODO! move
+		jsonlist.MarshalQueryInstances(plan.Changes.Queries, schemas)
 	} else {
 		op.View.Plan(plan, schemas)
 	}
