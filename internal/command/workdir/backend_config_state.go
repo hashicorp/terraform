@@ -61,13 +61,13 @@ func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block
 	return nil
 }
 
-// ForPlan produces an alternative representation of the receiver that is
+// Plan produces an alternative representation of the receiver that is
 // suitable for storing in a plan. The current workspace must additionally
 // be provided, to be stored alongside the backend configuration.
 //
 // The backend configuration schema is required in order to properly
 // encode the backend-specific configuration settings.
-func (s *BackendConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+func (s *BackendConfigState) Plan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
 	if s == nil {
 		return nil, nil
 	}

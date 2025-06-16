@@ -17,5 +17,5 @@ type ConfigState[T any] interface {
 }
 
 type Planner[T any] interface {
-	ForPlan(*configschema.Block, string) (*T, error)
+	Plan(*configschema.Block, string) (*T, error)
 }

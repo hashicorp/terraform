@@ -95,13 +95,13 @@ func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Bl
 	return nil
 }
 
-// ForPlan produces an alternative representation of the receiver that is
+// Plan produces an alternative representation of the receiver that is
 // suitable for storing in a plan. The current workspace must additionally
 // be provided, to be stored alongside the state store configuration.
 //
 // The state_store configuration schema is required in order to properly
 // encode the state store-specific configuration settings.
-func (s *StateStoreConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
+func (s *StateStoreConfigState) Plan(schema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
 	if s == nil {
 		return nil, nil
 	}
