@@ -15,7 +15,8 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
-var _ ConfigState[StateStoreConfigState] = &StateStoreConfigState{}
+var _ ConfigState = &StateStoreConfigState{}
+var _ DeepCopier[StateStoreConfigState] = &StateStoreConfigState{}
 var _ Planner[plans.StateStore] = &StateStoreConfigState{}
 
 // StateStoreConfigState describes the physical storage format for the state store
