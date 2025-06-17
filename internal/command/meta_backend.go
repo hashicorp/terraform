@@ -37,6 +37,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -230,13 +231,13 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 	// the user, since the local backend should only be used when learning or
 	// in exceptional cases and so it's better to help the user learn that
 	// by introducing it as a concept.
-	if m.backendState == nil {
+	if m.backendConfigState == nil {
 		// NOTE: This synthetic object is intentionally _not_ retained in the
 		// on-disk record of the backend configuration, which was already dealt
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &workdir.BackendConfigState{
+		m.backendConfigState = &workdir.BackendConfigState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -449,13 +450,35 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		// here first is a bug, so panic.
 		panic(fmt.Sprintf("invalid workspace: %s", err))
 	}
-	planOutBackend, err := m.backendState.PlanData(schema, nil, workspace)
-	if err != nil {
-		// Always indicates an implementation error in practice, because
-		// errors here indicate invalid encoding of the backend configuration
-		// in memory, and we should always have validated that by the time
-		// we get here.
-		panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
+
+	var planOutBackend *plans.Backend
+	var planOutStateStore *plans.StateStore
+	switch {
+	case m.backendConfigState == nil && m.stateStoreConfigState == nil:
+		// Neither set
+		panic("failed to encode backend configuration for plan: neither backend nor state_store data present")
+	case m.backendConfigState != nil && m.stateStoreConfigState != nil:
+		// Both set
+		panic("failed to encode backend configuration for plan: both backend and state_store data present but they are mutually exclusive")
+	case m.backendConfigState != nil:
+		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace)
+		if err != nil {
+			// Always indicates an implementation error in practice, because
+			// errors here indicate invalid encoding of the backend configuration
+			// in memory, and we should always have validated that by the time
+			// we get here.
+			panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
+		}
+	case m.stateStoreConfigState != nil:
+		var providerSchema *configschema.Block = nil // TODO
+		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace)
+		if err != nil {
+			// Always indicates an implementation error in practice, because
+			// errors here indicate invalid encoding of the state_store configuration
+			// in memory, and we should always have validated that by the time
+			// we get here.
+			panic(fmt.Sprintf("failed to encode state_store configuration for plan: %s", err))
+		}
 	}
 
 	stateLocker := clistate.NewNoopLocker()
@@ -475,7 +498,11 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 	}
 
 	return &backendrun.Operation{
-		PlanOutBackend:  planOutBackend,
+
+		// These two fields are mutually exclusive; one is being assigned a nil value below.
+		PlanOutBackend:    planOutBackend,
+		PlanOutStateStore: planOutStateStore,
+
 		Targets:         m.targets,
 		UIIn:            m.UIInput(),
 		UIOut:           m.Ui,
@@ -739,10 +766,10 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Upon return, we want to set the state we're using in-memory so that
 	// we can access it for commands.
-	m.backendState = nil
+	m.backendConfigState = nil
 	defer func() {
 		if s := sMgr.State(); s != nil && !s.Backend.Empty() {
-			m.backendState = s.Backend
+			m.backendConfigState = s.Backend
 		}
 	}()
 

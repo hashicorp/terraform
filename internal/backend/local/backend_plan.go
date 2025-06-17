@@ -158,7 +158,14 @@ func (b *Local) opPlan(
 			op.ReportResult(runningOp, diags)
 			return
 		}
-		plan.Backend = *op.PlanOutBackend
+		switch {
+		case op.PlanOutBackend != nil:
+			plan.Backend = *op.PlanOutBackend
+		case op.PlanOutStateStore != nil:
+			plan.StateStore = *op.PlanOutStateStore
+		default:
+			panic("backend and state_store configuration data missing from Operation")
+		}
 
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and
