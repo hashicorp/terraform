@@ -277,3 +277,32 @@ func NewStateStore(typeName string, ver *version.Version, source *tfaddr.Provide
 		Workspace: workspaceName,
 	}, nil
 }
+
+// SetVersion includes logic for parsing a string representation of a version,
+// for example data read from a plan file.
+// If an error occurs it is returned and the receiver's Version field is unchanged.
+// If there are no errors then the receiver's Version field is updated.
+func (p *Provider) SetVersion(input string) error {
+	ver := version.Version{}
+	err := ver.UnmarshalText([]byte(input))
+	if err != nil {
+		return err
+	}
+
+	p.Version = &ver
+	return nil
+}
+
+// SetSource includes logic for parsing a string representation of a provider source,
+// for example data read from a plan file.
+// If an error occurs it is returned and the receiver's Source field is unchanged.
+// If there are no errors then the receiver's Source field is updated.
+func (p *Provider) SetSource(input string) error {
+	source, diags := addrs.ParseProviderSourceString(input)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
+	}
+
+	p.Source = &source
+	return nil
+}
