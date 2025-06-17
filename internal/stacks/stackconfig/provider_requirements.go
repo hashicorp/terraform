@@ -224,7 +224,7 @@ func (pr *ProviderRequirements) ProviderForLocalName(localName string) (addrs.Pr
 	// occurring later in the process.
 	if !success {
 		if _, ok := builtinProviders.BuiltInProviders()[localName]; ok {
-			provider = addrs.NewDefaultProvider(localName)
+			provider = addrs.NewBuiltInProvider(localName)
 			success = true
 		}
 	}
@@ -233,6 +233,9 @@ func (pr *ProviderRequirements) ProviderForLocalName(localName string) (addrs.Pr
 }
 
 func (pr *ProviderRequirements) LocalNameForProvider(providerAddr addrs.Provider) (string, bool) {
+	if _, ok := builtinProviders.BuiltInProviders()[providerAddr.Type]; ok {
+		return providerAddr.Type, true
+	}
 	if pr == nil {
 		return "", false
 	}
