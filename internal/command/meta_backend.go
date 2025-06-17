@@ -340,19 +340,28 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 // The current workspace name is also stored as part of the plan, and so this
 // method will check that it matches the currently-selected workspace name
 // and produce error diagnostics if not.
-func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	f := backendInit.Backend(settings.Type)
-	if f == nil {
-		diags = diags.Append(errBackendSavedUnknown{settings.Type})
-		return nil, diags
+	var b backend.Backend
+	var config plans.DynamicValue
+	if plan.StateStore.Config != nil {
+		// TODO - code for state_store
+	} else if plan.Backend.Config != nil {
+		settings := plan.Backend
+		config = plan.Backend.Config
+
+		f := backendInit.Backend(settings.Type)
+		if f == nil {
+			diags = diags.Append(errBackendSavedUnknown{settings.Type})
+			return nil, diags
+		}
+		b = f()
+		log.Printf("[TRACE] Meta.BackendForLocalPlan: instantiated backend of type %T", b)
 	}
-	b := f()
-	log.Printf("[TRACE] Meta.BackendForLocalPlan: instantiated backend of type %T", b)
 
 	schema := b.ConfigSchema()
-	configVal, err := settings.Config.Decode(schema.ImpliedType())
+	configVal, err := config.Decode(schema.ImpliedType())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("saved backend configuration is invalid: %w", err))
 		return nil, diags
