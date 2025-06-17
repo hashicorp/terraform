@@ -20,14 +20,63 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
+// TestTFPlanRoundTrip writes a plan to a planfile, reads the contents of the planfile,
+// and asserts that the read data matches the written data.
 func TestTFPlanRoundTrip(t *testing.T) {
+
+	cases := map[string]struct {
+		plan *plans.Plan
+	}{
+		"round trip with backend": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				return rawPlan
+			}(),
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := writeTfplan(tc.plan, &buf)
+			if err != nil {
+				t.Fatalf("unexpected err: %s", err)
+			}
+
+			newPlan, err := readTfplan(&buf)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			{
+				oldDepth := deep.MaxDepth
+				oldCompare := deep.CompareUnexportedFields
+				deep.MaxDepth = 20
+				deep.CompareUnexportedFields = true
+				defer func() {
+					deep.MaxDepth = oldDepth
+					deep.CompareUnexportedFields = oldCompare
+				}()
+			}
+			for _, problem := range deep.Equal(newPlan, tc.plan) {
+				t.Error(problem)
+			}
+		})
+	}
+}
+
+// examplePlanForTest returns a plans.Plan struct pointer that can be used
+// when setting up tests. The returned plan can be mutated depending on the
+// test case.
+func examplePlanForTest(t *testing.T) *plans.Plan {
+	t.Helper()
 	objTy := cty.Object(map[string]cty.Type{
 		"id": cty.String,
 	})
 	applyTimeVariables := collections.NewSetCmp[string]()
 	applyTimeVariables.Add("bar")
 
-	plan := &plans.Plan{
+	return &plans.Plan{
 		Applyable: true,
 		Complete:  true,
 		VariableValues: map[string]plans.DynamicValue{
@@ -322,31 +371,6 @@ func TestTFPlanRoundTrip(t *testing.T) {
 			),
 			Workspace: "default",
 		},
-	}
-
-	var buf bytes.Buffer
-	err := writeTfplan(plan, &buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	newPlan, err := readTfplan(&buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	{
-		oldDepth := deep.MaxDepth
-		oldCompare := deep.CompareUnexportedFields
-		deep.MaxDepth = 20
-		deep.CompareUnexportedFields = true
-		defer func() {
-			deep.MaxDepth = oldDepth
-			deep.CompareUnexportedFields = oldCompare
-		}()
-	}
-	for _, problem := range deep.Equal(newPlan, plan) {
-		t.Error(problem)
 	}
 }
 
