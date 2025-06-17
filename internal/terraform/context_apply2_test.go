@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/grpcwrap"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -4010,5 +4011,79 @@ resource "test_object" "x" {
 	msg := diags.ErrWithWarnings().Error()
 	if len(diags) != 1 && !strings.Contains(msg, "provider oops") {
 		t.Fatalf("expected only 'provider oops', but got: %s", msg)
+	}
+}
+
+func TestContext2Apply_excludeListResources(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			resource "test_resource" "test1" {
+				provider = test
+				instance_type = "t2.micro"
+			}
+		`,
+		"main.tfquery.hcl": `
+			list "test_resource" "test2" {
+				provider = test
+			}
+		`,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+	provider.GetProviderSchemaResponse = getTestProviderResponse()
+	var listExecuted bool
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		listExecuted = true
+		return providers.ListResourceResponse{
+			Result: cty.ObjectVal(map[string]cty.Value{
+				"data":   cty.EmptyTupleVal,
+				"config": request.Config,
+			}),
+		}
+	}
+
+	// Create a mock gRPC provider
+	grpcProvider, close := grpcwrap.NewGRPCProvider(t, provider)
+	defer close()
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(grpcProvider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.ErrWithWarnings())
+	}
+
+	// Check that the plan does not include the list resource
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatalf("expected 1 resource in the plan, got %d", len(plan.Changes.Resources))
+	}
+
+	// Check that the list resource was not executed
+	if listExecuted {
+		t.Fatal("expected list resource to not be executed, but it was")
+	}
+
+	_, diags = ctx.Apply(plan, mod, nil)
+	if diags.HasErrors() {
+		t.Fatal("expected error")
 	}
 }
