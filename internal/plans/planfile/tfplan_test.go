@@ -65,6 +65,38 @@ func TestTFPlanRoundTrip(t *testing.T) {
 	}
 }
 
+func Test_writeTfplan_validation(t *testing.T) {
+
+	cases := map[string]struct {
+		plan            *plans.Plan
+		wantWriteErrMsg string
+	}{
+		"error when missing backend data": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// remove backend from example plan
+				rawPlan.Backend.Type = ""
+				rawPlan.Backend.Config = nil
+				return rawPlan
+			}(),
+			wantWriteErrMsg: "plan does not have a backend configuration",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := writeTfplan(tc.plan, &buf)
+			if err == nil {
+				t.Fatal("this test expects an error but got none")
+			}
+			if err.Error() != tc.wantWriteErrMsg {
+				t.Fatalf("unexpected error message: wanted %q, got %q", tc.wantWriteErrMsg, err)
+			}
+		})
+	}
+}
+
 // examplePlanForTest returns a plans.Plan struct pointer that can be used
 // when setting up tests. The returned plan can be mutated depending on the
 // test case.
