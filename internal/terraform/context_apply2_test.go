@@ -4072,11 +4072,6 @@ func TestContext2Apply_excludeListResources(t *testing.T) {
 		t.Fatalf("unexpected diagnostics: %s", diags.ErrWithWarnings())
 	}
 
-	_, diags = ctx.Apply(plan, mod, nil)
-	if diags.HasErrors() {
-		t.Fatal("expected error")
-	}
-
 	// Check that the plan does not include the list resource
 	if len(plan.Changes.Resources) != 1 {
 		t.Fatalf("expected 1 resource in the plan, got %d", len(plan.Changes.Resources))
@@ -4085,5 +4080,10 @@ func TestContext2Apply_excludeListResources(t *testing.T) {
 	// Check that the list resource was not executed
 	if listExecuted {
 		t.Fatal("expected list resource to not be executed, but it was")
+	}
+
+	_, diags = ctx.Apply(plan, mod, nil)
+	if diags.HasErrors() {
+		t.Fatal("expected error")
 	}
 }
