@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
-	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -253,12 +252,7 @@ func (s *StackConfig) Provider(addr stackaddrs.ProviderConfig) *ProviderConfig {
 	if !ok {
 		localName, ok := s.config.Stack.RequiredProviders.LocalNameForProvider(addr.Provider)
 		if !ok {
-			// Check if the provider *might* be a built-in provider
-			if _, ok := builtinProviders.BuiltInProviders()[addr.Provider.Type]; ok {
-				localName = addr.Provider.Type
-			} else {
-				return nil
-			}
+			return nil
 		}
 		// FIXME: stackconfig package currently uses addrs.LocalProviderConfig
 		// instead of stackaddrs.ProviderConfigRef.

@@ -32,15 +32,39 @@ type ProviderRequirement struct {
 
 func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	var ret *ProviderRequirements
 	attrs, hclDiags := block.Body.JustAttributes()
 	diags = diags.Append(hclDiags)
+
+	// Include built-in providers, if not present
+	includeBuiltInProviders := func(pr *ProviderRequirements) *ProviderRequirements {
+		if pr == nil {
+			pr = &ProviderRequirements{
+				Requirements: make(map[string]ProviderRequirement, len(attrs)),
+				DeclRange:    tfdiags.SourceRangeFromHCL(hcl.Range{}),
+			}
+		}
+
+		for providerName, _ := range builtinProviders.BuiltInProviders() {
+			if _, ok := pr.Requirements[providerName]; !ok {
+				pr.Requirements[providerName] = ProviderRequirement{
+					LocalName: providerName,
+					Provider:  addrs.NewBuiltInProvider(providerName),
+				}
+			}
+		}
+
+		return pr
+	}
+
 	if len(attrs) == 0 {
-		return nil, diags
+		ret = includeBuiltInProviders(ret)
+		return ret, diags
 	}
 
 	reverseMap := make(map[addrs.Provider]string)
 
-	ret := &ProviderRequirements{
+	ret = &ProviderRequirements{
 		Requirements: make(map[string]ProviderRequirement, len(attrs)),
 		DeclRange:    tfdiags.SourceRangeFromHCL(block.DefRange),
 	}
@@ -197,45 +221,23 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 		}
 		reverseMap[providerAddr] = name
 	}
+	ret = includeBuiltInProviders(ret)
+
 	return ret, diags
 }
 
 func (pr *ProviderRequirements) ProviderForLocalName(localName string) (addrs.Provider, bool) {
-	var provider addrs.Provider
-	var success bool
-
 	if pr == nil {
-		provider = addrs.Provider{}
-		success = false
-	} else {
-		obj, ok := pr.Requirements[localName]
-		if !ok {
-			provider = addrs.Provider{}
-			success = false
-		} else {
-			provider = obj.Provider
-			success = true
-		}
+		return addrs.Provider{}, false
 	}
-
-	// Check whether the provider *might be* built-in.
-	// There might be special occasions where localName corresponds to a
-	// built-in provider names. In that case, customers will see an error
-	// occurring later in the process.
-	if !success {
-		if _, ok := builtinProviders.BuiltInProviders()[localName]; ok {
-			provider = addrs.NewBuiltInProvider(localName)
-			success = true
-		}
+	obj, ok := pr.Requirements[localName]
+	if !ok {
+		return addrs.Provider{}, false
 	}
-
-	return provider, success
+	return obj.Provider, true
 }
 
 func (pr *ProviderRequirements) LocalNameForProvider(providerAddr addrs.Provider) (string, bool) {
-	if _, ok := builtinProviders.BuiltInProviders()[providerAddr.Type]; ok {
-		return providerAddr.Type, true
-	}
 	if pr == nil {
 		return "", false
 	}

@@ -74,6 +74,12 @@ func TestApply(t *testing.T) {
 				{}, // plan, apply -> no diags
 			},
 		},
+		"built-in provider used and explicitly defined in required providers": {
+			path: "with-built-in-provider-explicitly-defined",
+			cycles: []TestCycle{
+				{}, // plan, apply -> no diags
+			},
+		},
 		"creating inputs and outputs": {
 			path: "component-input-output",
 			cycles: []TestCycle{
