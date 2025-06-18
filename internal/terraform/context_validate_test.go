@@ -3529,15 +3529,24 @@ func TestContext2Validate_queryList(t *testing.T) {
 			m := testModuleInline(t, configs)
 
 			providerAddr := addrs.NewDefaultProvider("test")
-			providerConfigAddr := addrs.RootProviderConfig{Provider: providerAddr}
+			provider := testProvider("test")
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+			var requestConfigs = make(map[string]cty.Value)
+			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+				requestConfigs[request.TypeName] = request.Config
 
-			provider := getTestProvider()
+				return providers.ListResourceResponse{
+					Result: cty.ObjectVal(map[string]cty.Value{
+						"data":   cty.TupleVal([]cty.Value{}),
+						"config": request.Config,
+					}),
+				}
+			}
 
 			ctx, diags := NewContext(&ContextOpts{
-				PreloadedProviderSchemas: map[addrs.Provider]providers.ProviderSchema{
-					providerAddr: *provider.GetProviderSchemaResponse,
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
 				},
-				Parallelism: 1,
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -3545,11 +3554,7 @@ func TestContext2Validate_queryList(t *testing.T) {
 			// true externally.
 			provider.ConfigureProviderCalled = true
 
-			diags = ctx.Validate(m, &ValidateOpts{
-				ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
-					providerConfigAddr: provider,
-				},
-			})
+			diags = ctx.Validate(m, nil)
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
 			}
@@ -3564,68 +3569,4 @@ func TestContext2Validate_queryList(t *testing.T) {
 
 		})
 	}
-}
-
-func getTestProvider() *testing_provider.MockProvider {
-	p := simpleMockProvider()
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-			"list": {
-				Attributes: map[string]*configschema.Attribute{
-					"attr": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-		},
-		ListResourceTypes: map[string]*configschema.Block{
-			"test_resource":       getQueryTestSchema(),
-			"test_child_resource": getQueryTestSchema(),
-		},
-	})
-
-	return p
-}
-
-// getQueryTestSchema returns a schema for query tests with a filter attribute
-func getQueryTestSchema() *configschema.Block {
-	body := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"data": {
-				Type:     cty.DynamicPseudoType,
-				Computed: true,
-			},
-		},
-		BlockTypes: map[string]*configschema.NestedBlock{
-			"config": {
-				Block: configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"filter": {
-							Required: true,
-							NestedType: &configschema.Object{
-								Nesting: configschema.NestingSingle,
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Required: true,
-									},
-								},
-							},
-						},
-					},
-				},
-				Nesting: configschema.NestingSingle,
-			},
-		},
-	}
-	return body
 }
