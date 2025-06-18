@@ -46,4 +46,7 @@ const (
 	MessageTestInterrupt MessageType = "test_interrupt"
 	MessageTestStatus    MessageType = "test_status"
 	MessageTestRetry     MessageType = "test_retry"
+
+	// List messages
+	MessageListResourceFound MessageType = "list_resource_found"
 )
