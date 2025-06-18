@@ -27,6 +27,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	pluggable_state "github.com/hashicorp/terraform/internal/backend/pluggable-state"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -603,6 +605,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		// 9) Convert provider into backend.Backend
+		stateStorage := pluggable_state.NewPluggable(provider, root.StateStore.Type)
+		back := backendLocal.NewWithBackend(stateStorage)
+
+		return back, true, diags
+
 	} else if root.Backend != nil {
 		backendType := root.Backend.Type
 		if backendType == "cloud" {
