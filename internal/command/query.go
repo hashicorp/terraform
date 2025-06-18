@@ -52,11 +52,11 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	c.Meta.Color = c.Meta.color
 
 	// Parse and validate flags
-	args, diags := arguments.ParsePlan(rawArgs)
+	args, diags := arguments.ParseQuery(rawArgs)
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
-	view := views.NewPlan(args.ViewType, c.View)
+	view := views.NewQuery(args.ViewType, c.View)
 
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -118,9 +118,6 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	if op.Result != backendrun.OperationSuccess {
 		return op.Result.ExitStatus()
 	}
-	if args.DetailedExitCode && !op.PlanEmpty {
-		return 2
-	}
 
 	return op.Result.ExitStatus()
 }
@@ -146,7 +143,7 @@ func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.
 
 func (c *QueryCommand) OperationRequest(
 	be backendrun.OperationsBackend,
-	view views.Plan,
+	view views.Query,
 	viewType arguments.ViewType,
 ) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -154,7 +151,6 @@ func (c *QueryCommand) OperationRequest(
 	// Build the operation
 	opReq := c.Operation(be, viewType)
 	opReq.ConfigDir = "."
-	opReq.Hooks = view.Hooks()
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
 	opReq.Query = true

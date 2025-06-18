@@ -4,29 +4,46 @@
 package jsonlist
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func MarshalQueryInstances(resources []*plans.QueryInstanceSrc, schemas *terraform.Schemas) ([]string, error) {
-	var ret []string
+type QueryResult struct {
+	Address string `json:"address,omitempty"`
+
+	Identity json.RawMessage `json:"identity,omitempty"`
+
+	Resource json.RawMessage `json:"resource,omitempty"`
+
+	DisplayName string `json:"display_name,omitempty"`
+}
+
+func MarshalForRenderer(
+	p *plans.Plan,
+	schemas *terraform.Schemas,
+) ([]QueryResult, error) {
+	return MarshalQueryInstances(p.Changes.Queries, schemas)
+}
+
+func MarshalQueryInstances(resources []*plans.QueryInstanceSrc, schemas *terraform.Schemas) ([]QueryResult, error) {
+	var ret []QueryResult
 
 	for _, rc := range resources {
 		r, err := marshalQueryInstance(rc, schemas)
 		if err != nil {
 			return nil, err
 		}
-		ret = append(ret, r)
+		ret = append(ret, r...)
 	}
 
 	return ret, nil
 }
 
-func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas) (string, error) {
-	var r string
+func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas) ([]QueryResult, error) {
+	var ret []QueryResult
 	addr := rc.Addr
 
 	schema := schemas.ResourceTypeConfig(
@@ -35,23 +52,25 @@ func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas
 		addr.Resource.Resource.Type,
 	)
 	if schema.Body == nil {
-		return r, fmt.Errorf("no schema found for %s (in provider %s)", addr.String(), rc.ProviderAddr.Provider)
+		return ret, fmt.Errorf("no schema found for %s (in provider %s)", addr.String(), rc.ProviderAddr.Provider)
 	}
 
 	query, err := rc.Decode(schema)
 	if err != nil {
-		return r, err
+		return ret, err
 	}
 
 	data := query.Results.GetAttr("data")
 	for it := data.ElementIterator(); it.Next(); {
+		var r QueryResult
+		r.Address = addr.String()
+
 		_, value := it.Element()
 
-		name := value.GetAttr("display_name").AsString()
-		identity := value.GetAttr("identity")
-
-		fmt.Printf("%s.%s\t%s\t%s\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name, tfdiags.ObjectToString(identity), name)
+		r.DisplayName = value.GetAttr("display_name").AsString()
+		// identity
+		// resource object
 	}
 
-	return r, nil
+	return ret, nil
 }
