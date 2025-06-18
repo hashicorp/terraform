@@ -294,3 +294,9 @@ func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest)
 func (p *Provider) Close() error {
 	return nil
 }
+
+func (p *Provider) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
+	var resp providers.ValidateStorageConfigResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported storage type %q", req.TypeName))
+	return resp
+}
