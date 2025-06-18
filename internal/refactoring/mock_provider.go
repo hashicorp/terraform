@@ -118,6 +118,18 @@ func (provider *mockProvider) CallFunction(providers.CallFunctionRequest) provid
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) ListResource(providers.ListResourceRequest) providers.ListResourceResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) Close() error {
 	return nil // do nothing
 }

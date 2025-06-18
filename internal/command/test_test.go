@@ -5,14 +5,18 @@ package command
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
@@ -21,7 +25,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -191,13 +199,13 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"variable_references": {
-			expectedOut: []string{"2 passed, 0 failed."},
+			expectedOut: []string{"3 passed, 0 failed."},
 			args:        []string{"-var=global=\"triple\""},
 			code:        0,
 		},
 		"unreferenced_global_variable": {
 			override:    "variable_references",
-			expectedOut: []string{"2 passed, 0 failed."},
+			expectedOut: []string{"3 passed, 0 failed."},
 			// The other variable shouldn't pass validation, but it won't be
 			// referenced anywhere so should just be ignored.
 			args: []string{"-var=global=\"triple\"", "-var=other=bad"},
@@ -274,8 +282,8 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"global_var_refs": {
-			expectedOut: []string{"1 passed, 2 failed."},
-			expectedErr: []string{"The input variable \"env_var_input\" is not available to the current context", "The input variable \"setup\" is not available to the current context"},
+			expectedOut: []string{"1 passed, 0 failed, 2 skipped."},
+			expectedErr: []string{"The input variable \"env_var_input\" does not exist within this test file", "The input variable \"setup\" does not exist within this test file"},
 			code:        1,
 		},
 		"global_var_ref_in_suite_var": {
@@ -334,6 +342,16 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
+		"with-default-variables": {
+			args:        []string{"-var=input_two=universe"},
+			expectedOut: []string{"2 passed, 0 failed."},
+			code:        0,
+		},
+		"parallel-errors": {
+			expectedOut: []string{"1 passed, 1 failed, 1 skipped."},
+			expectedErr: []string{"Invalid condition run"},
+			code:        1,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -359,7 +377,9 @@ func TestTest_Runs(t *testing.T) {
 			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
 			defer testChdir(t, td)()
 
-			provider := testing_command.NewProvider(nil)
+			store := &testing_command.ResourceStore{
+				Data: make(map[string]cty.Value),
+			}
 			providerSource, close := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
@@ -370,11 +390,17 @@ func TestTest_Runs(t *testing.T) {
 			ui := new(cli.MockUi)
 
 			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+							return testing_command.NewProvider(store).Provider, nil
+						},
+					},
+				},
+				Ui:             ui,
+				View:           view,
+				Streams:        streams,
+				ProviderSource: providerSource,
 			}
 
 			init := &InitCommand{
@@ -438,7 +464,7 @@ func TestTest_Runs(t *testing.T) {
 			if len(tc.expectedOut) > 0 {
 				for _, expectedOut := range tc.expectedOut {
 					if !strings.Contains(output.Stdout(), expectedOut) {
-						t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+						t.Errorf("output didn't contain expected string (%q):\n\n%s", expectedOut, output.Stdout())
 					}
 				}
 			}
@@ -446,15 +472,15 @@ func TestTest_Runs(t *testing.T) {
 			if len(tc.expectedErr) > 0 {
 				for _, expectedErr := range tc.expectedErr {
 					if !strings.Contains(output.Stderr(), expectedErr) {
-						t.Errorf("error didn't contain expected string:\n\n%s", output.Stderr())
+						t.Errorf("error didn't contain expected string (%q):\n\n%s", expectedErr, output.Stderr())
 					}
 				}
 			} else if output.Stderr() != "" {
 				t.Errorf("unexpected stderr output\n%s", output.Stderr())
 			}
 
-			if provider.ResourceCount() != tc.expectedResourceCount {
-				t.Errorf("should have left %d resources on completion but left %v", tc.expectedResourceCount, provider.ResourceString())
+			if len(store.Data) != tc.expectedResourceCount {
+				t.Errorf("should have left %d resources on completion but left %v", tc.expectedResourceCount, len(store.Data))
 			}
 		})
 	}
@@ -813,6 +839,371 @@ func TestTest_Parallel(t *testing.T) {
 	}
 }
 
+func TestTest_ParallelTeardown(t *testing.T) {
+	tests := []struct {
+		name       string
+		sources    map[string]string
+		assertFunc func(t *testing.T, output string, dur time.Duration)
+	}{
+		{
+			name: "parallel teardown",
+			sources: map[string]string{
+				"main.tf": `
+					variable "input" {
+					type = string
+					}
+
+					resource "test_resource" "foo" {
+					value = var.input
+					destroy_wait_seconds = 3
+					}
+
+					output "value" {
+					value = test_resource.foo.value
+					}
+					`,
+				"parallel.tftest.hcl": `
+					test {
+					parallel = true
+					}
+
+					variables {
+					foo = "foo"
+					}
+
+					provider "test" {
+					}
+
+					provider "test" {
+					alias = "start"
+					}
+
+					run "test_a" {
+					state_key = "state_foo"
+					variables {
+						input = "foo"
+					}
+					providers = {
+						test = test
+					}
+
+					assert {
+						condition     = output.value == var.foo
+						error_message = "error in test_a"
+					}
+					}
+
+					run "test_b" {
+					state_key = "state_bar"
+					variables {
+						input = "bar"
+					}
+
+					providers = {
+						test = test.start
+					}
+
+					assert {
+						condition     = output.value == "bar"
+						error_message = "error in test_b"
+					}
+					}
+					`,
+			},
+			assertFunc: func(t *testing.T, output string, dur time.Duration) {
+				if !strings.Contains(output, "2 passed, 0 failed") {
+					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+				// Each teardown sleeps for 3 seconds, so we expect the total duration to be less than 6 seconds.
+				if dur >= 6*time.Second {
+					t.Fatalf("parallel.tftest.hcl duration took too long: %0.2f seconds", dur.Seconds())
+				}
+			},
+		},
+		{
+			name: "reference prevents parallel teardown",
+			sources: map[string]string{
+				"main.tf": `
+					variable "input" {
+						type = string
+					}
+
+					resource "test_resource" "foo" {
+						value = var.input
+						destroy_wait_seconds = 5
+					}
+
+					output "value" {
+						value = test_resource.foo.value
+					}
+					`,
+				"parallel.tftest.hcl": `
+					test {
+						parallel = true
+					}
+
+					variables {
+						foo = "foo"
+					}
+
+					provider "test" {
+					}
+
+					provider "test" {
+						alias = "start"
+					}
+
+					run "test_a" {
+						state_key = "state_foo"
+						variables {
+							input = "foo"
+						}
+						providers = {
+							test = test
+						}
+
+						assert {
+							condition     = output.value == var.foo
+							error_message = "error in test_a"
+						}
+					}
+
+					run "test_b" {
+						state_key = "state_bar"
+						variables {
+							input = "bar"
+						}
+
+						providers = {
+							test = test.start
+						}
+
+						assert {
+							condition     = output.value != run.test_a.value
+							error_message = "error in test_b"
+						}
+					}
+					`,
+			},
+			assertFunc: func(t *testing.T, output string, dur time.Duration) {
+				if !strings.Contains(output, "2 passed, 0 failed") {
+					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+				// Each teardown sleeps for 5 seconds, so we expect the total duration to be at least 10 seconds.
+				if dur < 10*time.Second {
+					t.Fatalf("parallel.tftest.hcl duration took too short: %0.2f seconds", dur.Seconds())
+				}
+			},
+		},
+		{
+			name: "possible cyclic state key reference: skip edge that would cause cycle",
+			sources: map[string]string{
+				"main.tf": `
+					variable "foo" {
+						type = string
+					}
+
+					resource "test_resource" "foo" {
+						value = var.foo
+						// destroy_wait_seconds = 5
+					}
+
+					output "value" {
+						value = test_resource.foo.value
+					}
+					`,
+				// c2 => a1, b1 => a1, a2 => b1, b2 => c1
+				"parallel.tftest.hcl": `
+					test {
+						parallel = true
+					}
+
+					variables {
+						foo = "foo"
+						indirect = run.c1.value
+					}
+
+					provider "test" {
+					}
+
+					provider "test" {
+						alias = "start"
+					}
+
+					run "a1" {
+						state_key = "a"
+						variables {
+							foo = "foo"
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "b1" {
+						state_key = "b"
+						variables {
+							foo = run.a1.value // no destroy edge here, because b2 owns the destroy node.
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "a2" {
+						state_key = "a"
+						variables {
+							foo = run.b1.value
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "b2" {
+						state_key = "b"
+						variables {
+							foo = var.indirect # This is an indirect reference to run.c1.value
+							unused = run.b1.value
+						}
+
+						providers = {
+							test = test
+						}
+					}
+
+					run "c1" {
+						state_key = "c"
+						variables {
+							foo = "foo"
+						}
+					}
+
+					run "c2" {
+						state_key = "c"
+						variables {
+							foo = run.a1.value
+						}
+					}
+					`,
+			},
+			assertFunc: func(t *testing.T, output string, dur time.Duration) {
+				if !strings.Contains(output, "6 passed, 0 failed") {
+					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+
+				lines := strings.Split(output, "\n")
+				aIdx, bIdx, cIdx := -1, -1, -1
+				for idx, line := range lines {
+					if strings.Contains(line, "tearing down") {
+						if strings.Contains(line, "a2") {
+							aIdx = idx
+						}
+						if strings.Contains(line, "b2") {
+							bIdx = idx
+						}
+						if strings.Contains(line, "c2") {
+							cIdx = idx
+						}
+					}
+				}
+
+				if cIdx > aIdx || aIdx > bIdx { // c => a => b
+					t.Errorf("teardown order is incorrect: c2 (%d), a2 (%d), b2 (%d)", cIdx, aIdx, bIdx)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, td, closer := testModuleInline(t, tt.sources)
+			defer closer()
+			defer testChdir(t, td)()
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			// create a new provider instance for each test run, so that we can
+			// ensure that the test provider locks do not interfere between runs.
+			pInst := func() providers.Interface {
+				return testing_command.NewProvider(nil).Provider
+			}
+			meta := Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+							return pInst(), nil
+						},
+					}},
+				Ui:             ui,
+				View:           view,
+				Streams:        streams,
+				ProviderSource: providerSource,
+			}
+
+			init := &InitCommand{Meta: meta}
+			if code := init.Run(nil); code != 0 {
+				output := done(t)
+				t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+			}
+
+			c := &TestCommand{Meta: meta}
+			c.Run([]string{"-json", "-no-color"})
+			output := done(t).All()
+
+			// Split the log into lines
+			lines := strings.Split(output, "\n")
+
+			// Find the start of the teardown and complete timestamps
+			var startTimestamp, completeTimestamp string
+			for _, line := range lines {
+				if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"teardown"`) {
+					var obj map[string]interface{}
+					if err := json.Unmarshal([]byte(line), &obj); err == nil {
+						if ts, ok := obj["@timestamp"].(string); ok {
+							startTimestamp = ts
+						}
+					}
+				} else if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"complete"`) {
+					var obj map[string]interface{}
+					if err := json.Unmarshal([]byte(line), &obj); err == nil {
+						if ts, ok := obj["@timestamp"].(string); ok {
+							completeTimestamp = ts
+						}
+					}
+				}
+			}
+
+			if startTimestamp == "" || completeTimestamp == "" {
+				t.Fatalf("could not find start or complete timestamp in log output")
+			}
+
+			startTime, err := time.Parse(time.RFC3339Nano, startTimestamp)
+			if err != nil {
+				t.Fatalf("failed to parse start timestamp: %v", err)
+			}
+			completeTime, err := time.Parse(time.RFC3339Nano, completeTimestamp)
+			if err != nil {
+				t.Fatalf("failed to parse complete timestamp: %v", err)
+			}
+			dur := completeTime.Sub(startTime)
+			if tt.assertFunc != nil {
+				tt.assertFunc(t, output, dur)
+			}
+		})
+	}
+}
+
 func TestTest_InterruptSkipsRemaining(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_interrupt_and_additional_file")), td)
@@ -899,7 +1290,9 @@ func TestTest_ProviderAlias(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "with_provider_alias")), td)
 	defer testChdir(t, td)()
 
-	provider := testing_command.NewProvider(nil)
+	store := &testing_command.ResourceStore{
+		Data: make(map[string]cty.Value),
+	}
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
@@ -911,11 +1304,17 @@ func TestTest_ProviderAlias(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+					return testing_command.NewProvider(store).Provider, nil
+				},
+			},
+		},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
 	}
 
 	init := &InitCommand{
@@ -947,11 +1346,11 @@ func TestTest_ProviderAlias(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
-	if provider.ResourceCount() > 0 {
+	if len(store.Data) > 0 {
 		if !printedOutput {
-			t.Errorf("should have deleted all resources on completion but left %s\n\n%s", provider.ResourceString(), output.All())
+			t.Errorf("should have deleted all resources on completion but left %d\n\n%s", len(store.Data), output.All())
 		} else {
-			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
+			t.Errorf("should have deleted all resources on completion but left %d", len(store.Data))
 		}
 	}
 }
@@ -2279,14 +2678,17 @@ func TestTest_BadReferences(t *testing.T) {
 	}
 
 	expectedOut := `main.tftest.hcl... in progress
+  run "setup"... pass
+  run "test"... fail
+  run "finalise"... skip
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 providers.tftest.hcl... in progress
-  run "test"... fail
+  run "test"... skip
 providers.tftest.hcl... tearing down
 providers.tftest.hcl... fail
 
-Failure! 0 passed, 1 failed.
+Failure! 1 passed, 1 failed, 2 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -2299,35 +2701,21 @@ Error: Reference to unavailable variable
   on main.tftest.hcl line 15, in run "test":
   15:     input_one = var.notreal
 
-The input variable "notreal" is not available to the current run block. You
-can only reference variables defined at the file or global levels.
-
-Error: Reference to unavailable run block
-
-  on main.tftest.hcl line 16, in run "test":
-  16:     input_two = run.finalise.response
-
-The run block "finalise" has not executed yet. You can only reference run
-blocks that are in the same test file and will execute before the current run
-block.
+The input variable "notreal" does not exist within this test file.
 
 Error: Reference to unknown run block
 
-  on main.tftest.hcl line 17, in run "test":
-  17:     input_three = run.madeup.response
+  on main.tftest.hcl line 16, in run "test":
+  16:     input_two = run.madeup.response
 
-The run block "madeup" does not exist within this test file. You can only
-reference run blocks that are in the same test file and will execute before
-the current run block.
+The run block "madeup" does not exist within this test file.
 
 Error: Reference to unavailable variable
 
   on providers.tftest.hcl line 3, in provider "test":
    3:   resource_prefix = var.default
 
-The input variable "default" is not available to the current provider
-configuration. You can only reference variables defined at the file or global
-levels.
+The input variable "default" does not exist within this test file.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -3307,7 +3695,9 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs_invalid")), td)
 	defer testChdir(t, td)()
 
-	provider := testing_command.NewProvider(nil)
+	store := &testing_command.ResourceStore{
+		Data: make(map[string]cty.Value),
+	}
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
@@ -3319,11 +3709,17 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+					return testing_command.NewProvider(store).Provider, nil
+				},
+			},
+		},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
 	}
 
 	init := &InitCommand{
@@ -3352,19 +3748,15 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	}
 
 	expectedOut := `missing_run_block.tftest.hcl... in progress
-  run "main"... fail
+  run "main"... skip
 missing_run_block.tftest.hcl... tearing down
 missing_run_block.tftest.hcl... fail
-unavailable_run_block.tftest.hcl... in progress
-  run "main"... fail
-unavailable_run_block.tftest.hcl... tearing down
-unavailable_run_block.tftest.hcl... fail
 unused_provider.tftest.hcl... in progress
   run "main"... pass
 unused_provider.tftest.hcl... tearing down
 unused_provider.tftest.hcl... pass
 
-Failure! 1 passed, 2 failed.
+Failure! 1 passed, 0 failed, 1 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -3377,26 +3769,15 @@ Error: Reference to unknown run block
   on missing_run_block.tftest.hcl line 2, in provider "test":
    2:   resource_prefix = run.missing.resource_directory
 
-The run block "missing" does not exist within this test file. You can only
-reference run blocks that are in the same test file and will execute before
-the provider is required.
-
-Error: Reference to unavailable run block
-
-  on unavailable_run_block.tftest.hcl line 2, in provider "test":
-   2:   resource_prefix = run.main.resource_directory
-
-The run block "main" has not executed yet. You can only reference run blocks
-that are in the same test file and will execute before the provider is
-required.
+The run block "missing" does not exist within this test file.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
 	}
 
-	if provider.ResourceCount() > 0 {
-		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	if len(store.Data) > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", len(store.Data))
 	}
 }
 
@@ -3476,5 +3857,60 @@ func TestTest_JUnitOutput(t *testing.T) {
 				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 			}
 		})
+	}
+}
+
+// testModuleInline takes a map of path -> config strings and yields a config
+// structure with those files loaded from disk
+func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config, string, func()) {
+	t.Helper()
+
+	cfgPath := t.TempDir()
+
+	for path, configStr := range sources {
+		dir := filepath.Dir(path)
+		if dir != "." {
+			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
+			if err != nil {
+				t.Fatalf("Error creating subdir: %s", err)
+			}
+		}
+		// Write the configuration
+		cfgF, err := os.Create(filepath.Join(cfgPath, path))
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+
+		_, err = io.Copy(cfgF, strings.NewReader(configStr))
+		cfgF.Close()
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+	}
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+
+	// Test modules usually do not refer to remote sources, and for local
+	// sources only this ultimately just records all of the module paths
+	// in a JSON file so that we can load them below.
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
+	}
+
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	return config, cfgPath, func() {
+		cleanup()
 	}
 }

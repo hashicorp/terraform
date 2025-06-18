@@ -249,6 +249,45 @@ func (o *offlineProvider) CallFunction(request providers.CallFunctionRequest) pr
 	return o.unconfiguredClient.CallFunction(request)
 }
 
+func (o *offlineProvider) ListResource(providers.ListResourceRequest) providers.ListResourceResponse {
+	var resp providers.ListResourceResponse
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ListResource on an unconfigured provider",
+		"Cannot list this resource because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return resp
+}
+
+// ValidateStateStoreConfig implements providers.Interface.
+func (o *offlineProvider) ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ValidateStateStoreConfig on an unconfigured provider",
+		"Cannot validate state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateStateStoreConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
+// ConfigureStateStore implements providers.Interface.
+func (o *offlineProvider) ConfigureStateStore(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ConfigureStateStore on an unconfigured provider",
+		"Cannot configure state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ConfigureStateStoreResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (o *offlineProvider) Close() error {
 	// pass the close call to the underlying unconfigured client
 	return o.unconfiguredClient.Close()

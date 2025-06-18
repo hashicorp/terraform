@@ -430,7 +430,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		namedVals := d.Evaluator.NamedValues
 		moduleInstAddr := absAddr.Instance(instKey)
 		attrs := make(map[string]cty.Value, len(outputConfigs))
-		for name := range outputConfigs {
+		for name, cfg := range outputConfigs {
 			outputAddr := moduleInstAddr.OutputValue(name)
 
 			// Although we do typically expect the graph dependencies to
@@ -446,6 +446,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 				continue
 			}
 			outputVal := namedVals.GetOutputValue(outputAddr)
+			if cfg.Sensitive {
+				outputVal = outputVal.Mark(marks.Sensitive)
+			}
 			attrs[name] = outputVal
 		}
 
@@ -813,7 +816,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 	switch d.Operation {
 	case walkValidate:
 		return cty.DynamicVal, diags
-	case walkQuery:
+	case walkPlan:
 		// continue
 	default:
 		return cty.DynamicVal, diags.Append(&hcl.Diagnostic{
@@ -824,16 +827,6 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		})
 	}
 
-	// The provider result of a list resource is always a tuple, but
-	// we will wrap that tuple in an object with a single attribute "data",
-	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
-	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
-	wrappedVal := func(v *states.ResourceInstanceObject) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{
-			"data":     v.Value,
-			"identity": v.Identity,
-		})
-	}
 	lAddr := config.Addr()
 	mAddr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -853,9 +846,9 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		return cty.DynamicVal, diags
 	}
 	resourceType := resourceSchema.Body.ImpliedType()
-	instances := d.Evaluator.State.GetListResource(lAddr.Absolute(d.ModulePath))
+	changes := d.Evaluator.Changes.GetChangesForAbsResource(lAddr.Absolute(d.ModulePath))
 
-	if len(instances.Values()) == 0 {
+	if len(changes) == 0 {
 		// Since we know there are no instances, return an empty container of the expected type.
 		switch {
 		case config.Count != nil:
@@ -872,18 +865,18 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 	case config.Count != nil:
 		// figure out what the last index we have is
 		length := -1
-		for _, inst := range instances.Elems {
-			if intKey, ok := inst.Key.Resource.Key.(addrs.IntKey); ok {
+		for _, inst := range changes {
+			if intKey, ok := inst.Addr.Resource.Key.(addrs.IntKey); ok {
 				length = max(int(intKey)+1, length)
 			}
 		}
 
 		if length > 0 {
 			vals := make([]cty.Value, length)
-			for _, inst := range instances.Elems {
-				key := inst.Key.Resource.Key
+			for _, inst := range changes {
+				key := inst.Addr.Resource.Key
 				if intKey, ok := key.(addrs.IntKey); ok {
-					vals[int(intKey)] = wrappedVal(inst.Value)
+					vals[int(intKey)] = inst.After
 				}
 			}
 
@@ -899,10 +892,10 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		}
 	case config.ForEach != nil:
 		vals := make(map[string]cty.Value)
-		for _, inst := range instances.Elems {
-			key := inst.Key.Resource.Key
+		for _, inst := range changes {
+			key := inst.Addr.Resource.Key
 			if strKey, ok := key.(addrs.StringKey); ok {
-				vals[string(strKey)] = wrappedVal(inst.Value)
+				vals[string(strKey)] = inst.After
 			}
 		}
 
@@ -915,18 +908,15 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		} else {
 			ret = cty.EmptyObjectVal
 		}
-
-		return ret, diags
 	default:
-		inst, ok := instances.GetOk(lAddr.Absolute(d.ModulePath).Instance(addrs.NoKey))
-		if !ok {
-			// if the instance is missing, insert an unknown value
-			inst = &states.ResourceInstanceObject{
-				Value: cty.UnknownVal(resourceType),
-			}
+		if len(changes) <= 0 {
+			// if the instance is missing, insert an empty tuple
+			ret = cty.ObjectVal(map[string]cty.Value{
+				"data": cty.EmptyTupleVal,
+			})
+		} else {
+			ret = changes[0].After
 		}
-
-		ret = wrappedVal(inst)
 	}
 
 	return ret, diags

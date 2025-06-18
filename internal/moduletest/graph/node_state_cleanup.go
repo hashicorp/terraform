@@ -24,6 +24,7 @@ var (
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
+	parallel bool
 }
 
 func (n *NodeStateCleanup) Name() string {
@@ -34,7 +35,7 @@ func (n *NodeStateCleanup) Name() string {
 // This function should never return non-fatal error diagnostics, as that would
 // prevent further cleanup from happening. Instead, the diagnostics
 // will be rendered directly.
-func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
+func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
@@ -42,7 +43,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	if evalCtx.Cancelled() {
 		// Don't try and clean anything up if the execution has been cancelled.
 		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
-		return nil
+		return
 	}
 
 	empty := true
@@ -61,7 +62,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		// The state can be empty for a run block that just executed a plan
 		// command, or a run block that only read data sources. We'll just
 		// skip empty run blocks.
-		return nil
+		return
 	}
 
 	if state.Run == nil {
@@ -78,9 +79,8 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
 
 		// intentionally return nil to allow further cleanup
-		return nil
+		return
 	}
-	TransformConfigForRun(evalCtx, state.Run, file)
 
 	runNode := &NodeTestRun{run: state.Run, opts: n.opts}
 	updated := state.State
@@ -100,7 +100,6 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		file.UpdateStatus(moduletest.Error)
 	}
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
-	return nil
 }
 
 func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
@@ -115,13 +114,15 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 		return state, nil
 	}
 
-	var diags tfdiags.Diagnostics
-	variables, variableDiags := runNode.GetVariables(ctx, false)
-	diags = diags.Append(variableDiags)
-
+	variables, diags := runNode.GetVariables(ctx, false)
 	if diags.HasErrors() {
 		return state, diags
 	}
+
+	// we ignore the diagnostics from here, because we will have reported them
+	// during the initial execution of the run block and we would not have
+	// executed the run block if there were any errors.
+	providers, mocks, _ := runNode.getProviders(ctx)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
@@ -130,16 +131,13 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 	setVariables, _, _ := runNode.FilterVariablesToModule(variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:         plans.DestroyMode,
-		SetVariables: setVariables,
-		Overrides:    mocking.PackageOverrides(run.Config, file.Config, run.ModuleConfig),
+		Mode:              plans.DestroyMode,
+		SetVariables:      setVariables,
+		Overrides:         mocking.PackageOverrides(run.Config, file.Config, mocks),
+		ExternalProviders: providers,
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(n.opts.ContextOpts)
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		return state, diags
-	}
+	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
 
 	waiter.update(tfCtx, moduletest.TearDown, nil)
@@ -149,7 +147,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 		return state, diags
 	}
 
-	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, waiter)
+	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, providers, waiter)
 	diags = diags.Append(applyDiags)
 	return updated, diags
 }

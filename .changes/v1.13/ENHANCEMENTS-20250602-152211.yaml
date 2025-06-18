@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`terraform test`: Test authors can now specify definitions for external variables that are referenced within test files directly within the test file itself.'
+time: 2025-06-02T15:22:11.453413+02:00
+custom:
+    Issue: "37195"

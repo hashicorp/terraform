@@ -303,7 +303,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		SourceRange: errSourceRange,
 	}
 
-	finalVal, moreDiags := prepareFinalInputVariableValue(n.Addr, rawVal, n.Config)
+	finalVal, moreDiags := PrepareFinalInputVariableValue(n.Addr, rawVal, n.Config)
 	diags = diags.Append(moreDiags)
 
 	return finalVal, diags.ErrWithWarnings()

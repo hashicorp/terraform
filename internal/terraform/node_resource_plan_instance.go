@@ -79,6 +79,8 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		return n.dataResourceExecute(ctx)
 	case addrs.EphemeralResourceMode:
 		return n.ephemeralResourceExecute(ctx)
+	case addrs.ListResourceMode:
+		return n.listResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}

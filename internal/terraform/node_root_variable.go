@@ -100,7 +100,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		}
 	}
 
-	finalVal, moreDiags := prepareFinalInputVariableValue(
+	finalVal, moreDiags := PrepareFinalInputVariableValue(
 		addr,
 		givenVal,
 		n.Config,

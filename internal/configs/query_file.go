@@ -150,15 +150,55 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		r.List.IncludeResource = attr.Expr
 	}
 
+	if attr, exists := content.Attributes["limit"]; exists {
+		r.List.Limit = attr.Expr
+	}
+
+	// verify that the list block has a config block
+	content, contentDiags = block.Body.Content(&hcl.BodySchema{
+		Attributes: QueryListResourceBlockSchema.Attributes,
+		Blocks: []hcl.BlockHeaderSchema{
+			{Type: "config"},
+		},
+	})
+	diags = append(diags, contentDiags...)
+
+	var configBlock hcl.Body
+	for _, block := range content.Blocks {
+		switch block.Type {
+		case "config":
+			if configBlock != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate config block",
+					Detail:   "A list block must contain only one nested \"config\" block.",
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+			configBlock = block.Body
+		default:
+			// Should not get here because the above should cover all
+			// block types declared in the schema.
+			panic(fmt.Sprintf("unhandled block type %q", block.Type))
+		}
+	}
+
 	return &r, diags
 }
 
 // QueryListResourceBlockSchema is the schema for a list resource type within
 // a terraform query file.
 var QueryListResourceBlockSchema = &hcl.BodySchema{
-	Attributes: append(commonResourceAttributes, hcl.AttributeSchema{
-		Name: "include_resource",
-	}),
+	Attributes: append(
+		commonResourceAttributes,
+		hcl.AttributeSchema{
+			Name: "include_resource",
+		},
+		hcl.AttributeSchema{
+			Name: "limit",
+		},
+	),
 }
 
 // queryFileSchema is the schema for a terraform query file. It defines the

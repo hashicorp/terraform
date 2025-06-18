@@ -5,8 +5,6 @@ NEW FEATURES:
 
 * The new command `terraform stacks` exposes some stack operations through the cli. The available subcommands depend on the stacks plugin implementation. Use `terraform stacks -help` to see available commands. ([#36931](https://github.com/hashicorp/terraform/issues/36931))
 
-* Deferred actions: The `plan`, `apply`, and `refresh` commands now support the `-allow-deferral` flag. The flag enables Terraform and Terraform Providers to defer changes with unresolvable unknown values to future plans instead of failing the entire plan. ([#37067](https://github.com/hashicorp/terraform/issues/37067))
-
 
 ENHANCEMENTS:
 
@@ -14,12 +12,31 @@ ENHANCEMENTS:
 
 * Allow successful init when provider constraint matches at least one valid version ([#37137](https://github.com/hashicorp/terraform/issues/37137))
 
+* Performance fix for evaluating high cardinality resources ([#26355](https://github.com/hashicorp/terraform/issues/26355))
+
+* `terraform test`: Test authors can now specify definitions for external variables that are referenced within test files directly within the test file itself. ([#37195](https://github.com/hashicorp/terraform/issues/37195))
+
+
+BUG FIXES:
+
+* Added a missing warning diagnostic that alerts users when child module contains an ignored `cloud` block. ([#37180](https://github.com/hashicorp/terraform/issues/37180))
+
 
 NOTES:
 
 * The command `terraform rpcapi` is now generally available. It is not intended for public consumption, but exposes certain Terraform operations through an RPC interface compatible with [go-plugin](https://github.com/hashicorp/go-plugin). ([#37067](https://github.com/hashicorp/terraform/issues/37067))
 
 
+UPGRADE NOTES:
+
+* `terraform test`: External variables referenced within test files should now be accompanied by a `variable` definition block within the test file. This is optional, but users with complex external variables may see error diagnostics without the additional variable definition. ([#37195](https://github.com/hashicorp/terraform/issues/37195))
+
+
+EXPERIMENTS:
+
+Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
+
+- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
 
 ## Previous Releases
 

@@ -730,16 +730,22 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				ModuleConfig: config,
 			}
 
-			priorOutputs := make(map[addrs.Run]cty.Value, len(test.priorOutputs))
-			for name, val := range test.priorOutputs {
-				priorOutputs[addrs.Run{Name: name}] = val
-			}
-
-			testCtx := NewEvalContext(&EvalContextOpts{
-				CancelCtx: context.Background(),
-				StopCtx:   context.Background(),
+			testCtx := NewEvalContext(EvalContextOpts{
+				CancelCtx:   context.Background(),
+				StopCtx:     context.Background(),
+				Concurrency: 10,
 			})
-			testCtx.runOutputs = priorOutputs
+			testCtx.runBlocks = make(map[string]*moduletest.Run)
+			for ix, block := range file.Runs[:len(file.Runs)-1] {
+
+				// all prior run blocks we just mark as having passed, and with
+				// the output data specified by the test
+
+				run := moduletest.NewRun(block, config, ix)
+				run.Status = moduletest.Pass
+				run.Outputs = test.priorOutputs[run.Name]
+				testCtx.runBlocks[run.Name] = run
+			}
 			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run, planScope, test.testOnlyVars)
 
 			if got, want := gotStatus, test.expectedStatus; got != want {

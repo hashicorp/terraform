@@ -202,7 +202,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &workdir.BackendState{
+		m.backendState = &workdir.BackendConfigState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -1057,7 +1057,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
-	s.Backend = &workdir.BackendState{
+	s.Backend = &workdir.BackendConfigState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -1202,7 +1202,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
-	s.Backend = &workdir.BackendState{
+	s.Backend = &workdir.BackendConfigState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -1325,7 +1325,7 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 // this function will conservatively assume that migration is required,
 // expecting that the migration code will subsequently deal with the same
 // errors.
-func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.BackendState) bool {
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.BackendConfigState) bool {
 	if s == nil || s.Empty() {
 		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
 		return true

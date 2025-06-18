@@ -73,6 +73,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				ReturnType: cty.String,
 			},
 		},
+		StateStores: map[string]providers.Schema{},
 	}
 	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
 	return resp
@@ -269,6 +270,24 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 	return providers.CallFunctionResponse{
 		Result: result,
 	}
+}
+
+func (p *Provider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+	var resp providers.ListResourceResponse
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported list resource type %q", req.TypeName))
+	return resp
+}
+
+func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	var resp providers.ValidateStateStoreConfigResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
+}
+
+func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	var resp providers.ConfigureStateStoreResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 // Close is a noop for this provider, since it's run in-process.

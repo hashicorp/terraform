@@ -441,21 +441,6 @@ func (s *SyncState) RecordCheckResults(checkState *checks.State) {
 	s.state.CheckResults = newResults
 }
 
-func (s *SyncState) SetListResourceInstance(addr addrs.AbsResourceInstance, val *ResourceInstanceObject) {
-	defer s.beginWrite()()
-	s.state.SetListResourceInstance(addr, val)
-}
-
-func (s *SyncState) GetListResource(addr addrs.AbsResource) addrs.Map[addrs.AbsResourceInstance, *ResourceInstanceObject] {
-	defer s.beginWrite()()
-	return s.state.GetListResource(addr)
-}
-
-func (s *SyncState) AllListResourceInstances() map[string]addrs.Map[addrs.AbsResourceInstance, *ResourceInstanceObject] {
-	defer s.beginWrite()()
-	return s.state.AllListResourceInstances()
-}
-
 // Lock acquires an explicit lock on the state, allowing direct read and write
 // access to the returned state object. The caller must call Unlock once
 // access is no longer needed, and then immediately discard the state pointer

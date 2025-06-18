@@ -6847,3 +6847,106 @@ data "test_data_source" "foo" {
 
 	}
 }
+
+// Testing that managed resources of type list are handled correctly
+//   - They must be referenced using the fully qualified name
+//   - We provide a hint to the user if they try to reference a resource of type list
+//     without using the fully qualified name
+func TestContext2Plan_resourceNamedList(t *testing.T) {
+	cases := []struct {
+		name           string
+		mainConfig     string
+		diagCount      int
+		expectedErrMsg []string
+	}{
+		{
+			// We tried to reference a resource of type list without using the fully-qualified name.
+			// The error contains a hint to help the user.
+			name: "reference list block from resource",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource1" {
+					provider = test
+				}
+
+				resource "list" "test_resource2" {
+					provider = test
+					attr = list.test_resource1.attr
+				}
+				`,
+			diagCount: 1,
+			expectedErrMsg: []string{
+				"Reference to undeclared resource",
+				"A list resource \"test_resource1\" \"attr\" has not been declared in the root module.",
+				"Did you mean the managed resource list.test_resource1? If so, please use the fully qualified name of the resource, e.g. resource.list.test_resource1",
+			},
+		},
+		{
+			// We are referencing a managed resource
+			// of type list using the resource.<block>.<name> syntax. This should be allowed.
+			name: "reference managed resource of type list using resource.<block>.<name>",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource" {
+					provider = test
+					attr = "bar"
+				}
+
+				resource "list" "normal_resource" {
+					provider = test
+					attr = resource.list.test_resource.attr
+				}
+				`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			configs := map[string]string{"main.tf": tc.mainConfig}
+
+			m := testModuleInline(t, configs)
+
+			providerAddr := addrs.NewDefaultProvider("test")
+			provider := testProvider("test")
+			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, nil))
+			if len(diags) != tc.diagCount {
+				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
+			}
+
+			if tc.diagCount > 0 {
+				for _, err := range tc.expectedErrMsg {
+					if !strings.Contains(diags.Err().Error(), err) {
+						t.Fatalf("expected error message %q, but got %q", err, diags.Err().Error())
+					}
+				}
+			}
+
+		})
+	}
+}

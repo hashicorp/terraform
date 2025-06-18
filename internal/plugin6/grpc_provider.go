@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -20,6 +21,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -102,6 +104,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp.DataSources = make(map[string]providers.Schema)
 	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
 	resp.ListResourceTypes = make(map[string]providers.Schema)
+	resp.StateStores = make(map[string]providers.Schema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -169,7 +172,28 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, list := range protoResp.ListResourceSchemas {
-		resp.ListResourceTypes[name] = convert.ProtoToProviderSchema(list, nil)
+		ret := convert.ProtoToProviderSchema(list, nil)
+		resp.ListResourceTypes[name] = providers.Schema{
+			Version: ret.Version,
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"data": {
+						Type:     cty.DynamicPseudoType,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"config": {
+						Block:   *ret.Body,
+						Nesting: configschema.NestingSingle,
+					},
+				},
+			},
+		}
+	}
+
+	for name, store := range protoResp.StateStoreSchemas {
+		resp.StateStores[name] = convert.ProtoToProviderSchema(store, nil)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -348,8 +372,12 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
-
-	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
+	configSchema := listResourceSchema.Body.BlockTypes["config"]
+	config := cty.NullVal(configSchema.ImpliedType())
+	if r.Config.Type().HasAttribute("config") {
+		config = r.Config.GetAttr("config")
+	}
+	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -1242,7 +1270,131 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	return resp
 }
 
-func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) error {
+func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.ListResourceResponse {
+	logger.Trace("GRPCProvider.v6: ListResource")
+	var resp providers.ListResourceResponse
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	listResourceSchema, ok := schema.ListResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
+		return resp
+	}
+
+	resourceSchema, ok := schema.ResourceTypes[r.TypeName]
+	if !ok || resourceSchema.Identity == nil {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity schema not found for resource type %s", r.TypeName))
+		return resp
+	}
+
+	configSchema := listResourceSchema.Body.BlockTypes["config"]
+	config := cty.NullVal(configSchema.ImpliedType())
+	if r.Config.Type().HasAttribute("config") {
+		config = r.Config.GetAttr("config")
+	}
+	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.ListResource_Request{
+		TypeName:              r.TypeName,
+		Config:                &proto6.DynamicValue{Msgpack: mp},
+		IncludeResourceObject: r.IncludeResourceObject,
+		Limit:                 r.Limit,
+	}
+
+	// Start the streaming RPC with a context. The context will be cancelled
+	// when this function returns, which will stop the stream if it is still
+	// running.
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+	client, err := p.client.ListResource(ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	resp.Result = cty.DynamicVal
+	results := make([]cty.Value, 0)
+	// Process the stream
+	for {
+		if int64(len(results)) >= r.Limit {
+			// If we have reached the limit, we stop receiving events
+			break
+		}
+
+		event, err := client.Recv()
+		if err == io.EOF {
+			// End of stream, we're done
+			break
+		}
+
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			break
+		}
+
+		obj := map[string]cty.Value{
+			"display_name": cty.StringVal(event.DisplayName),
+			"state":        cty.NullVal(resourceSchema.Body.ImpliedType()),
+			"identity":     cty.NullVal(resourceSchema.Identity.ImpliedType()),
+		}
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
+
+		// Handle identity data - it must be present
+		if event.Identity == nil || event.Identity.IdentityData == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing identity data in ListResource event for %s", r.TypeName))
+		} else {
+			identityVal, err := decodeDynamicValue(event.Identity.IdentityData, resourceSchema.Identity.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+			} else {
+				obj["identity"] = identityVal
+			}
+		}
+
+		// Handle resource object if present and requested
+		if event.ResourceObject != nil && r.IncludeResourceObject {
+			// Use the ResourceTypes schema for the resource object
+			resourceObj, err := decodeDynamicValue(event.ResourceObject, resourceSchema.Body.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+			} else {
+				obj["state"] = resourceObj
+			}
+		}
+
+		if resp.Diagnostics.HasErrors() {
+			break
+		}
+
+		results = append(results, cty.ObjectVal(obj))
+
+	}
+
+	// The provider result of a list resource is always a list, but
+	// we will wrap that list in an object with a single attribute "data",
+	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
+	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
+	resp.Result = cty.ObjectVal(map[string]cty.Value{
+		"data":   cty.TupleVal(results),
+		"config": config,
+	})
+	return resp
+}
+
+func (p *GRPCProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented")
+}
+
+func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	panic("not implemented")
 }
 

@@ -135,6 +135,10 @@ type PlanOpts struct {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	Forget bool
+
+	// Query is a boolean that indicates whether the plan is being
+	// generated for a query operation.
+	Query bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -915,6 +919,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			forgetModules:           forgetModules,
 			GenerateConfigPath:      opts.GenerateConfigPath,
 			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			queryPlan:               opts.Query,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:

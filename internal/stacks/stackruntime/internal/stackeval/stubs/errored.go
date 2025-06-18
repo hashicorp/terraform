@@ -244,3 +244,29 @@ func (p *erroredProvider) ValidateListResourceConfig(providers.ValidateListResou
 		Diagnostics: nil,
 	}
 }
+
+// ListResource implements providers.Interface.
+func (p *erroredProvider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+	var resp providers.ListResourceResponse
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot list this resource because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return resp
+}
+
+// ValidateStateStoreConfig implements providers.Interface.
+func (p *erroredProvider) ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	return providers.ValidateStateStoreConfigResponse{
+		Diagnostics: nil,
+	}
+}
+
+// ConfigureStateStore implements providers.Interface.
+func (p *erroredProvider) ConfigureStateStore(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	return providers.ConfigureStateStoreResponse{
+		Diagnostics: nil,
+	}
+}

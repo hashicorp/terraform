@@ -104,6 +104,14 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 		switch block.Type {
 
 		case "terraform":
+			// TODO: Update once pluggable state store is out of experimental phase
+			if allowExperiments {
+				terraformBlockSchema.Blocks = append(terraformBlockSchema.Blocks,
+					hcl.BlockHeaderSchema{
+						Type:       "state_store",
+						LabelNames: []string{"type"},
+					})
+			}
 			content, contentDiags := block.Body.Content(terraformBlockSchema)
 			diags = append(diags, contentDiags...)
 
@@ -121,6 +129,12 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 						file.Backends = append(file.Backends, backendCfg)
 					}
 
+				case "state_store":
+					stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
+					diags = append(diags, cfgDiags...)
+					if stateStoreCfg != nil {
+						file.StateStores = append(file.StateStores, stateStoreCfg)
+					}
 				case "cloud":
 					cloudCfg, cfgDiags := decodeCloudBlock(innerBlock)
 					diags = append(diags, cfgDiags...)
