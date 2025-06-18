@@ -160,10 +160,11 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	return providers.GetProviderSchemaResponse{
-		Provider:      providers.Schema{},
-		DataSources:   map[string]providers.Schema{},
-		ResourceTypes: map[string]providers.Schema{},
-		StateStores:   map[string]providers.Schema{},
+		Provider:          providers.Schema{},
+		DataSources:       map[string]providers.Schema{},
+		ResourceTypes:     map[string]providers.Schema{},
+		ListResourceTypes: map[string]providers.Schema{},
+		StateStores:       map[string]providers.Schema{},
 	}
 }
 
@@ -179,9 +180,21 @@ func (p *MockProvider) getResourceIdentitySchemas() providers.GetResourceIdentit
 		return *p.GetResourceIdentitySchemasResponse
 	}
 
-	return providers.GetResourceIdentitySchemasResponse{
-		IdentityTypes: map[string]providers.IdentitySchema{},
+	resp := providers.GetResourceIdentitySchemasResponse{IdentityTypes: make(map[string]providers.IdentitySchema)}
+	if p.GetProviderSchemaResponse != nil {
+
+		for typeName, schema := range p.GetProviderSchemaResponse.ResourceTypes {
+			if schema.Identity != nil {
+				resp.IdentityTypes[typeName] = providers.IdentitySchema{
+					Version: schema.IdentityVersion,
+					Body:    schema.Identity,
+				}
+			}
+		}
+
 	}
+
+	return resp
 }
 
 func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {

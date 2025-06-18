@@ -111,10 +111,9 @@ type PlanGraphBuilder struct {
 	// validation of the graph.
 	SkipGraphValidation bool
 
-	// targetResourceMode is the resource mode to select for the graph.
-	// If set, this is used to filter out resources that are not of the given mode.
-	// Otherwise, all resources are included.
-	targetResourceMode addrs.ResourceMode
+	// If true, the graph builder will generate a query plan instead of a
+	// normal plan. This is used for the "terraform query" command.
+	queryPlan bool
 }
 
 // See GraphBuilder
@@ -148,10 +147,16 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Concrete: b.ConcreteResource,
 			Config:   b.Config,
 			destroy:  b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			resourceMatcher: func(mode addrs.ResourceMode) bool {
+				// all resources are included during validation.
+				if b.Operation == walkValidate {
+					return true
+				}
+
+				return b.queryPlan == (mode == addrs.ListResourceMode)
+			},
 
 			importTargets: b.ImportTargets,
-			ModeFilter:    b.Operation == walkPlan && b.targetResourceMode != addrs.InvalidResourceMode,
-			Mode:          b.targetResourceMode,
 
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
