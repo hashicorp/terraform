@@ -31,10 +31,13 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -302,7 +305,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	providersOutput, providersAbort, _, providerDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(providerDiags)
 	if providersAbort || providerDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -446,7 +449,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		// TODO
 
 		// 1) Download provider
-		providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, nil, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		providersOutput, providersAbort, locks, providerDiags := c.getProviders(ctx, config, nil, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(providerDiags)
 		if providersAbort || providerDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -458,6 +461,12 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		if err != nil {
 			diags = diags.Append(err)
 			return nil, true, diags
+		}
+
+		if root.StateStore.ProviderAddr.IsZero() {
+			// this should never happen
+			// TODO: handle implied builtin provider address
+			panic("unknown provider for state store")
 		}
 
 		factory, exists := opts.Providers[root.StateStore.ProviderAddr]
@@ -550,14 +559,48 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		diags = diags.Append(cfgStoreResp.Diagnostics)
 
 		// Save backend state file
-		localB, localBDiags := c.Meta.Backend(&BackendOpts{ForceLocal: true, Init: true})
-		if localBDiags.HasErrors() {
-			diags = diags.Append(localBDiags)
+		statePath := filepath.Join(c.Meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+
+		if err := sMgr.RefreshState(); err != nil {
+			diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
 			return nil, true, diags
 		}
 
-		statePath := filepath.Join(c.Meta.DataDir(), DefaultStateFilename)
-		sMgr := &clistate.LocalState{Path: statePath}
+		// Load the state, it must be non-nil for the tests below but can be empty
+		s := sMgr.State()
+		if s == nil {
+			log.Printf("[TRACE] state store has not previously been initialized in this working directory")
+			s = workdir.NewBackendStateFile()
+			s.StateStore = &workdir.StateStoreConfigState{
+				Type: root.StateStore.Type,
+				Hash: 12345678,
+			}
+			err = s.StateStore.SetConfig(storeConfig, storeSchema.Body)
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to set state store config: %s", err))
+				return nil, true, diags
+			}
+			pLock := locks.Provider(root.StateStore.ProviderAddr)
+			v, err := providerreqs.GoVersionFromVersion(pLock.Version())
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to set state store config: %s", err))
+				return nil, true, diags
+			}
+			s.StateStore.Provider = &workdir.Provider{
+				Source:  root.StateStore.ProviderAddr,
+				Version: v,
+			}
+
+			if err = sMgr.WriteState(s); err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to write state store config: %s", err))
+				return nil, true, diags
+			}
+			if err = sMgr.PersistState(); err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to persist state store config: %s", err))
+				return nil, true, diags
+			}
+		}
 
 		// 9) Convert provider into backend.Backend
 	} else if root.Backend != nil {
@@ -637,7 +680,9 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (
+	output, abort bool, locks *depsfile.Locks, diags tfdiags.Diagnostics) {
+
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -652,7 +697,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return false, true, diags
+		return false, true, nil, diags
 	}
 	if state != nil {
 		stateReqs := state.ProviderRequirements()
@@ -676,7 +721,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	diags = diags.Append(moreDiags)
 
 	if diags.HasErrors() {
-		return false, true, diags
+		return false, true, nil, diags
 	}
 
 	var inst *providercache.Installer
@@ -998,7 +1043,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		if flagLockfile == "readonly" {
 			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 			view.Diagnostics(diags)
-			return true, true, diags
+			return true, true, nil, diags
 		}
 
 		mode = providercache.InstallUpgrades
@@ -1007,7 +1052,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, true, diags
+		return true, true, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -1017,7 +1062,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 			diags = diags.Append(err)
 		}
 
-		return true, true, diags
+		return true, true, nil, diags
 	}
 
 	// If the provider dependencies have changed since the last run then we'll
@@ -1037,7 +1082,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 					`Provider dependency changes detected`,
 					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
 				))
-				return true, true, diags
+				return true, true, nil, diags
 			}
 
 			// suppress updating the file to record any new information it learned,
@@ -1047,7 +1092,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				`Provider lock file not updated`,
 				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
 			))
-			return true, false, diags
+			return true, false, nil, diags
 		}
 
 		// Jump in here and add a warning if any of the providers are incomplete.
@@ -1082,7 +1127,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		diags = diags.Append(moreDiags)
 	}
 
-	return true, false, diags
+	return true, false, newLocks, diags
 }
 
 // backendConfigOverrideBody interprets the raw values of -backend-config
