@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/grpcwrap"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -3531,7 +3530,7 @@ func TestContext2Validate_queryList(t *testing.T) {
 
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
-			provider.GetProviderSchemaResponse = getTestProviderResponse()
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
 			var requestConfigs = make(map[string]cty.Value)
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				requestConfigs[request.TypeName] = request.Config
@@ -3544,13 +3543,9 @@ func TestContext2Validate_queryList(t *testing.T) {
 				}
 			}
 
-			// Create a mock gRPC provider
-			grpcProvider, close := grpcwrap.NewGRPCProvider(t, provider)
-			defer close()
-
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					providerAddr: testProviderFuncFixed(grpcProvider),
+					providerAddr: testProviderFuncFixed(provider),
 				},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
@@ -3574,76 +3569,4 @@ func TestContext2Validate_queryList(t *testing.T) {
 
 		})
 	}
-}
-
-func getTestProviderResponse() *providers.GetProviderSchemaResponse {
-	listConfigSchema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"filter": {
-				Required: true,
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingSingle,
-					Attributes: map[string]*configschema.Attribute{
-						"attr": {
-							Type:     cty.String,
-							Required: true,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	return getProviderSchemaResponseFromProviderSchema(&providerSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"list": {
-				Attributes: map[string]*configschema.Attribute{
-					"attr": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-			"test_child_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-		},
-		ListResourceTypes: map[string]*configschema.Block{
-			"test_resource":       listConfigSchema,
-			"test_child_resource": listConfigSchema,
-		},
-		IdentityTypes: map[string]*configschema.Object{
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {
-						Type:     cty.String,
-						Required: true,
-					},
-				},
-				Nesting: configschema.NestingSingle,
-			},
-			"test_child_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {
-						Type:     cty.String,
-						Required: true,
-					},
-				},
-				Nesting: configschema.NestingSingle,
-			},
-		},
-	})
 }

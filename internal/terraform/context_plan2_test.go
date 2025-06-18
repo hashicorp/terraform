@@ -6853,35 +6853,6 @@ data "test_data_source" "foo" {
 //   - We provide a hint to the user if they try to reference a resource of type list
 //     without using the fully qualified name
 func TestContext2Plan_resourceNamedList(t *testing.T) {
-	schemaResp := getProviderSchemaResponseFromProviderSchema(&providerSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"list": {
-				Attributes: map[string]*configschema.Attribute{
-					"attr": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-			"test_child_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-		},
-	})
-
 	cases := []struct {
 		name           string
 		mainConfig     string
@@ -6954,7 +6925,7 @@ func TestContext2Plan_resourceNamedList(t *testing.T) {
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
 			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
-			provider.GetProviderSchemaResponse = schemaResp
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
 
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{

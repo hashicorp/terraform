@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/grpcwrap"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -4041,7 +4040,7 @@ func TestContext2Apply_excludeListResources(t *testing.T) {
 	providerAddr := addrs.NewDefaultProvider("test")
 	provider := testProvider("test")
 	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
-	provider.GetProviderSchemaResponse = getTestProviderResponse()
+	provider.GetProviderSchemaResponse = getListProviderSchemaResp()
 	var listExecuted bool
 	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 		listExecuted = true
@@ -4053,13 +4052,9 @@ func TestContext2Apply_excludeListResources(t *testing.T) {
 		}
 	}
 
-	// Create a mock gRPC provider
-	grpcProvider, close := grpcwrap.NewGRPCProvider(t, provider)
-	defer close()
-
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			providerAddr: testProviderFuncFixed(grpcProvider),
+			providerAddr: testProviderFuncFixed(provider),
 		},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)

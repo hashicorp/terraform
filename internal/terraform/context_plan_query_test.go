@@ -12,7 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/grpcwrap"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -85,12 +85,14 @@ func TestContext2Plan_queryList(t *testing.T) {
 				}
 
 				resp := []cty.Value{}
-				for i, v := range madeUp {
-					resp = append(resp, cty.ObjectVal(map[string]cty.Value{
-						"state":        v,
-						"identity":     ids[i],
-						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
-					}))
+				if request.IncludeResourceObject {
+					for i, v := range madeUp {
+						resp = append(resp, cty.ObjectVal(map[string]cty.Value{
+							"state":        v,
+							"identity":     ids[i],
+							"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
+						}))
+					}
 				}
 
 				ret := map[string]cty.Value{
@@ -701,33 +703,23 @@ func TestContext2Plan_queryList(t *testing.T) {
 			}
 
 			mod := testModuleInline(t, configs)
-
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
-			provider.GetProviderSchemaResponse = getTestProviderResponse()
+			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
 			var requestConfigs = make(map[string]cty.Value)
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				requestConfigs[request.TypeName] = request.Config
 				fn := tc.listResourceFn
-				if fn != nil {
-					return fn(request)
+				if fn == nil {
+					return provider.ListResourceResponse
 				}
-
-				return providers.ListResourceResponse{
-					Result: cty.ObjectVal(map[string]cty.Value{
-						"data":   cty.TupleVal([]cty.Value{}),
-						"config": request.Config,
-					}),
-				}
+				return fn(request)
 			}
-
-			// Create a mock gRPC provider
-			grpcProvider, close := grpcwrap.NewGRPCProvider(t, provider)
-			defer close()
 
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					providerAddr: testProviderFuncFixed(grpcProvider),
+					providerAddr: testProviderFuncFixed(provider),
 				},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
@@ -860,25 +852,16 @@ func TestContext2Plan_queryListArgs(t *testing.T) {
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
 			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
-			provider.GetProviderSchemaResponse = getTestProviderResponse()
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
 			var recordedRequest providers.ListResourceRequest
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				recordedRequest = request
-				return providers.ListResourceResponse{
-					Result: cty.ObjectVal(map[string]cty.Value{
-						"data":   cty.TupleVal([]cty.Value{}),
-						"config": request.Config,
-					}),
-				}
+				return provider.ListResourceResponse
 			}
-
-			// Create a mock gRPC provider
-			grpcProvider, close := grpcwrap.NewGRPCProvider(t, provider)
-			defer close()
 
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					providerAddr: testProviderFuncFixed(grpcProvider),
+					providerAddr: testProviderFuncFixed(provider),
 				},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
@@ -906,4 +889,92 @@ func TestContext2Plan_queryListArgs(t *testing.T) {
 
 		})
 	}
+}
+
+// getListProviderSchemaResp returns a mock provider schema response for testing list resources.
+// THe schema returned here is a mock of what the internal protobuf layer would return
+// for a provider that supports list resources.
+func getListProviderSchemaResp() *providers.GetProviderSchemaResponse {
+	listSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"data": {
+				Type:     cty.DynamicPseudoType,
+				Computed: true,
+			},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"config": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"filter": {
+							Required: true,
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingSingle,
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	}
+
+	return getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"list": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"instance_type": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+			"test_child_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"instance_type": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		ListResourceTypes: map[string]*configschema.Block{
+			"test_resource":       listSchema,
+			"test_child_resource": listSchema,
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+			"test_child_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	})
 }
