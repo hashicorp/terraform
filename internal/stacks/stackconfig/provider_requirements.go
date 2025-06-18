@@ -45,7 +45,7 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 			}
 		}
 
-		for providerName, _ := range builtinProviders.BuiltInProviders() {
+		for providerName := range builtinProviders.BuiltInProviders() {
 			if _, ok := pr.Requirements[providerName]; !ok {
 				pr.Requirements[providerName] = ProviderRequirement{
 					LocalName: providerName,
@@ -58,8 +58,7 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 	}
 
 	if len(attrs) == 0 {
-		ret = includeBuiltInProviders(ret)
-		return ret, diags
+		return includeBuiltInProviders(ret), diags
 	}
 
 	reverseMap := make(map[addrs.Provider]string)
@@ -221,9 +220,8 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 		}
 		reverseMap[providerAddr] = name
 	}
-	ret = includeBuiltInProviders(ret)
 
-	return ret, diags
+	return includeBuiltInProviders(ret), diags
 }
 
 func (pr *ProviderRequirements) ProviderForLocalName(localName string) (addrs.Provider, bool) {
