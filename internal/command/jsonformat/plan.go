@@ -10,9 +10,12 @@ import (
 	"sort"
 	"strings"
 
+	"slices"
+
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonlist"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
@@ -31,6 +34,7 @@ type Plan struct {
 	ResourceDrift      []jsonplan.ResourceChange         `json:"resource_drift,omitempty"`
 	RelevantAttributes []jsonplan.ResourceAttr           `json:"relevant_attributes,omitempty"`
 	DeferredChanges    []jsonplan.DeferredResourceChange `json:"deferred_changes,omitempty"`
+	QueryResults       []jsonlist.QueryResult            `json:"query_results,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
@@ -49,12 +53,7 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 
 func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
 	checkOpts := func(target plans.Quality) bool {
-		for _, opt := range opts {
-			if opt == target {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(opts, target)
 	}
 
 	diffs := precomputeDiffs(plan, mode)

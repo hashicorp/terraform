@@ -7,14 +7,12 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Query renders outputs for query executions.
 type Query interface {
 	Operation() Operation
-	Hooks() []terraform.Hook
 
 	Diagnostics(diags tfdiags.Diagnostics)
 	HelpPrompt()
@@ -45,13 +43,7 @@ type QueryHuman struct {
 var _ Query = (*QueryHuman)(nil)
 
 func (v *QueryHuman) Operation() Operation {
-	return NewOperation(arguments.ViewHuman, v.inAutomation, v.view)
-}
-
-func (v *QueryHuman) Hooks() []terraform.Hook {
-	return []terraform.Hook{
-		NewUiHook(v.view),
-	}
+	return NewQueryOperation(arguments.ViewHuman, v.inAutomation, v.view)
 }
 
 func (v *QueryHuman) Diagnostics(diags tfdiags.Diagnostics) {
@@ -69,13 +61,7 @@ type QueryJSON struct {
 var _ Query = (*QueryJSON)(nil)
 
 func (v *QueryJSON) Operation() Operation {
-	return &OperationJSON{view: v.view}
-}
-
-func (v *QueryJSON) Hooks() []terraform.Hook {
-	return []terraform.Hook{
-		newJSONHook(v.view),
-	}
+	return &QueryOperationJSON{view: v.view}
 }
 
 func (v *QueryJSON) Diagnostics(diags tfdiags.Diagnostics) {
