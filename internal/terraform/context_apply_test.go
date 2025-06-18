@@ -750,7 +750,158 @@ func TestContext2Apply_refCount(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyRefCountStr)
 	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s\n\ndiff:%s\n", actual, expected, cmp.Diff(expected, actual))
+	}
+}
+
+func TestContext2Apply_controlConcurrencyCountResources(t *testing.T) {
+	m := testModule(t, "apply-ref-count-concurrency")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		if req.PlannedState.IsNull() {
+			resp.NewState = cty.NullVal(req.PriorState.Type())
+			return
+		}
+
+		planned := req.PlannedState.AsValueMap()
+		if planned == nil {
+			planned = map[string]cty.Value{}
+		}
+
+		id, ok := planned["id"]
+		if !ok || id.IsNull() || !id.IsKnown() {
+			time.Sleep(1 * time.Second) // mimic a slow resource creation
+			planned["id"] = cty.StringVal(time.Now().Format(time.RFC3339))
+		}
+
+		// our default schema has a computed "type" attr
+		if ty, ok := planned["type"]; ok && !ty.IsNull() {
+			planned["type"] = cty.StringVal(req.TypeName)
+		}
+
+		if cmp, ok := planned["compute"]; ok && !cmp.IsNull() {
+			computed := cmp.AsString()
+			if val, ok := planned[computed]; ok && !val.IsKnown() {
+				planned[computed] = cty.StringVal("computed_value")
+			}
+		}
+
+		for k, v := range planned {
+			if k == "unknown" {
+				// "unknown" should cause an error
+				continue
+			}
+
+			if !v.IsKnown() {
+				switch k {
+				case "type":
+					planned[k] = cty.StringVal(req.TypeName)
+				default:
+					planned[k] = cty.NullVal(v.Type())
+				}
+			}
+		}
+
+		resp.NewState = cty.ObjectVal(planned)
+		return
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		time.Sleep(1 * time.Second) // mimic a slow data source read
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal(time.Now().Format(time.RFC3339)),
+				"foo": cty.StringVal("bar"),
+			}),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) < 2 {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+
+	// Testing that the resource instances respect the concurrency limit of 1,
+	// and that the resources are therefore created in order, with a delay of at
+	// least 1 second between each resource creation.
+	foo, ok := mod.Resources["aws_instance.foo"]
+	if !ok {
+		t.Fatalf("missing resource aws_instance.foo")
+	}
+
+	var times []time.Time
+	// collect the id attribute, which is a timestamp when the resource was created
+	for _, instance := range foo.Instances {
+		curr, err := instance.Current.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		timestamp, err := time.Parse(time.RFC3339, curr.Value.GetAttr("id").AsString())
+		if err != nil {
+			t.Fatalf("time parse error: %v", err)
+		}
+		times = append(times, timestamp)
+	}
+
+	// Sort the times
+	sort.Slice(times, func(i, j int) bool {
+		return times[i].Before(times[j])
+	})
+
+	// Check that the time that the resources were created are at least 1 second apart
+	for i := range len(times) - 1 {
+		if times[i+1].Sub(times[i]) < time.Second {
+			t.Fatalf("resources not created at least 1 second apart: %v", times)
+		}
+	}
+
+	// Testing that the data source instances respect the concurrency limit of 1,
+	// and that the resources are therefore created in order, with a delay of at
+	// least 1 second between each resource creation.
+	baz, ok := mod.Resources["data.aws_data_source.baz"]
+	if !ok {
+		t.Fatalf("missing resource data.aws_data_source.baz")
+	}
+
+	times = []time.Time{}
+	// collect the id attribute, which is a timestamp when the resource was created
+	for _, instance := range baz.Instances {
+		curr, err := instance.Current.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		timestamp, err := time.Parse(time.RFC3339, curr.Value.GetAttr("id").AsString())
+		if err != nil {
+			t.Fatalf("time parse error: %v", err)
+		}
+		times = append(times, timestamp)
+	}
+
+	// Sort the times
+	sort.Slice(times, func(i, j int) bool {
+		return times[i].Before(times[j])
+	})
+
+	// Check that the time that the resources were read are at least 1 second apart
+	for i := range len(times) - 1 {
+		if times[i+1].Sub(times[i]) < time.Second {
+			t.Fatalf("resources not read at least 1 second apart: %v", times)
+		}
 	}
 }
 
@@ -2821,6 +2972,176 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	want.CheckResults = &states.CheckResults{}
 	if !cmp.Equal(state, want) {
 		t.Fatalf("wrong state after step 2\ngot: %swant: %s", spew.Sdump(state), spew.Sdump(want))
+	}
+
+}
+
+func TestContext2Apply_orphanResourceConcurrency(t *testing.T) {
+	// This is a two-step test:
+	// 1. Apply a configuration with resources that have count set.
+	//    This should place the empty resource object in the state to record
+	//    that each exists, and record any instances.
+	// 2. Apply an empty configuration against the same state, which should
+	//    then clean up both the instances and the containing resource objects.
+	p := testProvider("test")
+	p.PlanResourceChangeFn = testDiffFn
+	destroyTimes := []time.Time{}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		if req.PlannedState.IsNull() {
+			// mimic a slow resource destruction
+			time.Sleep(1 * time.Second)
+			destroyTimes = append(destroyTimes, time.Now())
+			resp.NewState = cty.NullVal(req.PriorState.Type())
+			return
+		}
+
+		planned := req.PlannedState.AsValueMap()
+		if planned == nil {
+			planned = map[string]cty.Value{}
+		}
+
+		id, ok := planned["id"]
+		if !ok || id.IsNull() || !id.IsKnown() {
+			time.Sleep(1 * time.Second) // mimic a slow resource creation
+			planned["id"] = cty.StringVal(time.Now().Format(time.RFC3339))
+		}
+
+		// our default schema has a computed "type" attr
+		if ty, ok := planned["type"]; ok && !ty.IsNull() {
+			planned["type"] = cty.StringVal(req.TypeName)
+		}
+
+		if cmp, ok := planned["compute"]; ok && !cmp.IsNull() {
+			computed := cmp.AsString()
+			if val, ok := planned[computed]; ok && !val.IsKnown() {
+				planned[computed] = cty.StringVal("computed_value")
+			}
+		}
+
+		for k, v := range planned {
+			if k == "unknown" {
+				// "unknown" should cause an error
+				continue
+			}
+
+			if !v.IsKnown() {
+				switch k {
+				case "type":
+					planned[k] = cty.StringVal(req.TypeName)
+				default:
+					planned[k] = cty.NullVal(v.Type())
+				}
+			}
+		}
+
+		resp.NewState = cty.ObjectVal(planned)
+		return
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		time.Sleep(1 * time.Second) // mimic a slow data source read
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal(time.Now().Format(time.RFC3339)),
+				"foo": cty.StringVal("bar"),
+			}),
+		}
+	}
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+
+	// Step 1: create the resources and instances
+	m := testModule(t, "apply-orphan-resource-concurrency")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+
+	if state.Empty() {
+		t.Fatalf("state is empty")
+	}
+
+	var found bool
+	for _, m := range state.Modules {
+		for name, r := range m.Resources {
+			if name == "test_thing.one" {
+				found = true
+				if len(r.Instances) != 2 {
+					t.Fatalf("wrong number of instances: %d", len(r.Instances))
+				}
+			}
+		}
+	}
+
+	if !found {
+		t.Fatalf("resource not found")
+	}
+
+	// Step 2: update with a config to destroy everything. It contains
+	// a removed block so that we can respect the "concurrency" lifecycle
+	// setting when destroying the instances.
+	m = testModuleInline(t, map[string]string{
+		"main.tf": `
+			removed {
+				from = test_thing.one
+
+				lifecycle {
+					concurrency = 1
+				}
+			}
+		`,
+	})
+	ctx = testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags = ctx.Plan(m, state, DefaultPlanOpts)
+	assertNoErrors(t, diags)
+	{
+		addr := mustResourceInstanceAddr("test_thing.one[0]")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseNoResourceConfig; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+	}
+
+	state, diags = ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+
+	// The state should now be _totally_ empty, with just an empty root module
+	// (since that always exists) and no resources at all.
+	want := states.NewState()
+	want.CheckResults = &states.CheckResults{}
+	if !cmp.Equal(state, want) {
+		t.Fatalf("wrong state after step 2\ngot: %swant: %s", spew.Sdump(state), spew.Sdump(want))
+	}
+
+	prev := time.Unix(0, 0)
+	for _, destroyTime := range destroyTimes {
+		if destroyTime.Sub(prev) < time.Second {
+			t.Fatalf("destroyed resources concurrently")
+		}
+		prev = destroyTime
 	}
 
 }

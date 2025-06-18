@@ -36,6 +36,8 @@ type NodeApplyableResourceInstance struct {
 	// it might contain addresses that have nothing to do with the resource
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
+
+	semaphore Semaphore
 }
 
 var (
@@ -46,6 +48,7 @@ var (
 	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeLockable           = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
