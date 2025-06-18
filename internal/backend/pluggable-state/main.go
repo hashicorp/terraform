@@ -40,17 +40,23 @@ func (p *Pluggable) ConfigSchema() *configschema.Block {
 	return val.Body
 }
 
+// TODO - comment here about prepare vs validate - ned to follow backend.Backend interface
 func (p *Pluggable) PrepareConfig(config cty.Value) (cty.Value, tfdiags.Diagnostics) {
-	req := providers.ValidateStorageConfigRequest{
+	req := providers.ValidateStateStoreConfigRequest{
 		TypeName: p.typeName,
 		Config:   config,
 	}
-	resp := p.provider.ValidateStorageConfig(req)
+	resp := p.provider.ValidateStateStoreConfig(req)
 	return config, resp.Diagnostics
 }
 
 func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
-	return nil
+	req := providers.ConfigureStateStoreRequest{
+		TypeName: p.typeName,
+		Config:   config,
+	}
+	resp := p.provider.ConfigureStateStore(req)
+	return resp.Diagnostics
 }
 
 func (p *Pluggable) Workspaces() ([]string, error) {
