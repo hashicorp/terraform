@@ -68,6 +68,18 @@ func TestApply(t *testing.T) {
 		store  *stacks_testing_provider.ResourceStore
 		cycles []TestCycle
 	}{
+		"built-in provider used not present in required": {
+			path: "with-built-in-provider",
+			cycles: []TestCycle{
+				{}, // plan, apply -> no diags
+			},
+		},
+		"built-in provider used and explicitly defined in required providers": {
+			path: "with-built-in-provider-explicitly-defined",
+			cycles: []TestCycle{
+				{}, // plan, apply -> no diags
+			},
+		},
 		"creating inputs and outputs": {
 			path: "component-input-output",
 			cycles: []TestCycle{
