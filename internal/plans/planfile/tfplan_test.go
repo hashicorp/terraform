@@ -155,12 +155,8 @@ func Test_writeTfplan_validation(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			var buf bytes.Buffer
 			err := writeTfplan(tc.plan, &buf)
-
-			if err != nil && tc.wantWriteErrMsg == "" {
-				t.Fatalf("unexpected err: %s", err)
-			}
-			if err == nil && tc.wantWriteErrMsg != "" {
-				t.Fatal("expected error but got none")
+			if err == nil {
+				t.Fatal("this test expects an error but got none")
 			}
 			if err.Error() != tc.wantWriteErrMsg {
 				t.Fatalf("unexpected error message: wanted %q, got %q", tc.wantWriteErrMsg, err)
