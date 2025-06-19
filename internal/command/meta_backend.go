@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -1046,21 +1045,19 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		defer stateLocker.Unlock()
 	}
 
-	configJSON, err := ctyjson.Marshal(configVal, b.ConfigSchema().ImpliedType())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
-		return nil, diags
-	}
-
 	// Store the metadata in our saved state location
 	s := sMgr.State()
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
 	s.Backend = &workdir.BackendConfigState{
-		Type:      c.Type,
-		ConfigRaw: json.RawMessage(configJSON),
-		Hash:      uint64(cHash),
+		Type: c.Type,
+		Hash: uint64(cHash),
+	}
+	err = s.Backend.SetConfig(configVal, b.ConfigSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
+		return nil, diags
 	}
 
 	// Verify that selected workspace exists in the backend.
@@ -1191,21 +1188,19 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		}
 	}
 
-	configJSON, err := ctyjson.Marshal(configVal, b.ConfigSchema().ImpliedType())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
-		return nil, diags
-	}
-
 	// Update the backend state
 	s = sMgr.State()
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
 	s.Backend = &workdir.BackendConfigState{
-		Type:      c.Type,
-		ConfigRaw: json.RawMessage(configJSON),
-		Hash:      uint64(cHash),
+		Type: c.Type,
+		Hash: uint64(cHash),
+	}
+	err := s.Backend.SetConfig(configVal, b.ConfigSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
+		return nil, diags
 	}
 
 	// Verify that selected workspace exist. Otherwise prompt user to create one
