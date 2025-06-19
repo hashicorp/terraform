@@ -39,6 +39,17 @@ func (cs *ChangesSync) AppendResourceInstanceChange(change *ResourceInstanceChan
 	cs.changes.Resources = append(cs.changes.Resources, s)
 }
 
+func (cs *ChangesSync) AppendQueryInstance(query *QueryInstance) {
+	if cs == nil {
+		panic("AppendQueryInstance on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	s := query.DeepCopy() // TODO do we need to deep copy here?
+	cs.changes.Queries = append(cs.changes.Queries, s)
+}
+
 // GetResourceInstanceChange searches the set of resource instance changes for
 // one matching the given address and deposed key, returning it if it exists.
 // Use [addrs.NotDeposed] as the deposed key to represent the "current"
@@ -104,6 +115,19 @@ func (cs *ChangesSync) GetChangesForAbsResource(addr addrs.AbsResource) []*Resou
 		changes = append(changes, c.DeepCopy())
 	}
 	return changes
+}
+
+func (cs *ChangesSync) GetQueryInstancesForAbsResource(addr addrs.AbsResource) []*QueryInstance {
+	if cs == nil {
+		panic("GetQueryInstancesForAbsResource on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+	var queries []*QueryInstance
+	for _, q := range cs.changes.QueriesForAbsResource(addr) {
+		queries = append(queries, q.DeepCopy())
+	}
+	return queries
 }
 
 // RemoveResourceInstanceChange searches the set of resource instance changes
