@@ -84,7 +84,7 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 	}
 
-	renderer.RenderHumanPlan(jplan, plan.UIMode)
+	renderer.RenderHumanList(jplan)
 }
 
 func (v *QueryOperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -124,12 +124,12 @@ func (v *QueryOperationJSON) EmergencyDumpState(stateFile *statefile.File) error
 }
 
 func (v *QueryOperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
+	// TODO: log operation updates as structured logging
 	for _, query := range plan.Changes.Queries {
-		results := json.NewQueryResults(query)
-		for _, result := range results {
-			v.view.QueryResult(result)
-		}
+		v.view.QueryResult(json.NewQueryResults(query))
 	}
+
+	// TODO: show the plan as json with only list results
 }
 
 func (v *QueryOperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {

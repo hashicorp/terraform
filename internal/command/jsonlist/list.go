@@ -7,44 +7,54 @@ import (
 	"encoding/json"
 	"fmt"
 
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
-type QueryResult struct {
+type Query struct {
 	Address string `json:"address,omitempty"`
 
-	Identity json.RawMessage `json:"identity,omitempty"`
+	Results []QueryResult `json:"results"`
+}
 
-	Resource json.RawMessage `json:"resource,omitempty"`
+type QueryResult struct {
+	DisplayName string                     `json:"display_name"`
+	Identity    map[string]json.RawMessage `json:"identity"`
+	Resource    map[string]json.RawMessage `json:"resource,omitempty"`
 
-	DisplayName string `json:"display_name,omitempty"`
+	// TODO
+	// Address string `json:"address,omitempty"`
+	// Config string `json:"config,omitempty"`
 }
 
 func MarshalForRenderer(
 	p *plans.Plan,
 	schemas *terraform.Schemas,
-) ([]QueryResult, error) {
+) ([]Query, error) {
 	return MarshalQueryInstances(p.Changes.Queries, schemas)
 }
 
-func MarshalQueryInstances(resources []*plans.QueryInstanceSrc, schemas *terraform.Schemas) ([]QueryResult, error) {
-	var ret []QueryResult
+func MarshalQueryInstances(resources []*plans.QueryInstanceSrc, schemas *terraform.Schemas) ([]Query, error) {
+	var ret []Query
 
 	for _, rc := range resources {
 		r, err := marshalQueryInstance(rc, schemas)
 		if err != nil {
 			return nil, err
 		}
-		ret = append(ret, r...)
+		ret = append(ret, r)
 	}
 
 	return ret, nil
 }
 
-func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas) ([]QueryResult, error) {
-	var ret []QueryResult
+func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas) (Query, error) {
+	var ret Query
 	addr := rc.Addr
+	ret.Address = addr.String()
 
 	schema := schemas.ResourceTypeConfig(
 		rc.ProviderAddr.Provider,
@@ -52,7 +62,7 @@ func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas
 		addr.Resource.Resource.Type,
 	)
 	if schema.Body == nil {
-		return ret, fmt.Errorf("no schema found for %s (in provider %s)", addr.String(), rc.ProviderAddr.Provider)
+		return ret, fmt.Errorf("no schema found for %s (in provider %s)", ret.Address, rc.ProviderAddr.Provider)
 	}
 
 	query, err := rc.Decode(schema)
@@ -62,15 +72,31 @@ func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas
 
 	data := query.Results.GetAttr("data")
 	for it := data.ElementIterator(); it.Next(); {
-		var r QueryResult
-		r.Address = addr.String()
-
 		_, value := it.Element()
 
-		r.DisplayName = value.GetAttr("display_name").AsString()
-		// identity
-		// resource object
+		result := QueryResult{
+			DisplayName: value.GetAttr("display_name").AsString(),
+			Identity:    marshalValues(value.GetAttr("identity")),
+			Resource:    marshalValues(value.GetAttr("state")),
+		}
+
+		ret.Results = append(ret.Results, result)
 	}
 
 	return ret, nil
+}
+
+func marshalValues(value cty.Value) map[string]json.RawMessage {
+	if value == cty.NilVal || value.IsNull() {
+		return nil
+	}
+
+	ret := make(map[string]json.RawMessage)
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		vJSON, _ := ctyjson.Marshal(v, v.Type())
+		ret[k.AsString()] = json.RawMessage(vJSON)
+	}
+	return ret
 }

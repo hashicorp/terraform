@@ -122,6 +122,10 @@ func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...pla
 	plan.renderHuman(renderer, mode, opts...)
 }
 
+func (renderer Renderer) RenderHumanList(plan Plan) {
+	plan.renderHuman(renderer, plans.NormalMode)
+}
+
 func (renderer Renderer) RenderHumanState(state State) {
 	if incompatibleVersions(jsonstate.FormatVersion, state.StateFormatVersion) || incompatibleVersions(jsonprovider.FormatVersion, state.ProviderFormatVersion) {
 		renderer.Streams.Println(format.WordWrap(
