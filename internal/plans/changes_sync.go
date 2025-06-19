@@ -117,6 +117,19 @@ func (cs *ChangesSync) GetChangesForAbsResource(addr addrs.AbsResource) []*Resou
 	return changes
 }
 
+func (cs *ChangesSync) GetQueryInstancesForAbsResource(addr addrs.AbsResource) []*QueryInstance {
+	if cs == nil {
+		panic("GetQueryInstancesForAbsResource on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+	var queries []*QueryInstance
+	for _, q := range cs.changes.QueriesForAbsResource(addr) {
+		queries = append(queries, q.DeepCopy())
+	}
+	return queries
+}
+
 // RemoveResourceInstanceChange searches the set of resource instance changes
 // for one matching the given address and deposed key, and removes it from the
 // set if it exists.

@@ -133,6 +133,18 @@ func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceIns
 	return changes
 }
 
+func (c *Changes) QueriesForAbsResource(addr addrs.AbsResource) []*QueryInstance {
+	var queries []*QueryInstance
+	for _, q := range c.Queries {
+		qAddr := q.Addr.ContainingResource()
+		if qAddr.Equal(addr) {
+			queries = append(queries, q)
+		}
+	}
+
+	return queries
+}
+
 // InstancesForConfigResource returns the planned change for the current objects
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
