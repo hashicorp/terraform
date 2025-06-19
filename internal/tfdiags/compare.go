@@ -8,16 +8,32 @@ import "github.com/google/go-cmp/cmp"
 // the package github.com/google/go-cmp/cmp.
 //
 // The comparer relies on the underlying Diagnostic implementing
-// [ComparableDiagnostic].
+// [ComparableDiagnostic] and compares all possible fields.
 //
 // Example usage:
 //
 //	cmp.Diff(diag1, diag2, tfdiags.DiagnosticComparer)
-var DiagnosticComparer cmp.Option = cmp.Comparer(diagnosticComparerSimple)
+var DiagnosticComparer cmp.Option = cmp.Comparer(diagnosticComparerStringent)
 
-// diagnosticComparerSimple returns false when a difference is identified between
+// DiagnosticComparerRelaxed returns a cmp.Option that can be used with
+// the package github.com/google/go-cmp/cmp.
+//
+
+// The comparer checks these match between the diagnostics:
+// 1) Severity
+// 2) Description
+// 3) Attribute cty.Path, if present
+//
+// # The comparer ignores source Subject and Context data, for easier test assertions.
+//
+// Example usage:
+//
+//	cmp.Diff(diag1, diag2, tfdiags.DiagnosticComparer)
+var DiagnosticComparerRelaxed cmp.Option = cmp.Comparer(diagnosticComparerRelaxed)
+
+// diagnosticComparerStringent returns false when a difference is identified between
 // the two Diagnostic arguments.
-func diagnosticComparerSimple(l, r Diagnostic) bool {
+func diagnosticComparerStringent(l, r Diagnostic) bool {
 	ld, ok := l.(ComparableDiagnostic)
 	if !ok {
 		return false
@@ -29,4 +45,22 @@ func diagnosticComparerSimple(l, r Diagnostic) bool {
 	}
 
 	return ld.Equals(rd)
+}
+
+// diagnosticComparerRelaxed returns false when a difference is identified between
+// the two Diagnostic arguments. This comparer
+func diagnosticComparerRelaxed(l, r Diagnostic) bool {
+	if l.Severity() != r.Severity() {
+		return false
+	}
+	if l.Description() != r.Description() {
+		return false
+	}
+
+	lp := GetAttribute(l)
+	rp := GetAttribute(r)
+	if len(lp) != len(rp) {
+		return false
+	}
+	return lp.Equals(rp)
 }
