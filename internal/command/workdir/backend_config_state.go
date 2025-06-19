@@ -5,6 +5,7 @@ package workdir
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
@@ -51,6 +52,9 @@ func (s *BackendConfigState) Config(schema *configschema.Block) (cty.Value, erro
 // An error is returned if the given value does not conform to the implied
 // type of the schema.
 func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block) error {
+	if s == nil {
+		return errors.New("SetConfig called on nil BackendConfigState receiver")
+	}
 	ty := schema.ImpliedType()
 	buf, err := ctyjson.Marshal(val, ty)
 	if err != nil {
