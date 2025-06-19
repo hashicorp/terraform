@@ -478,7 +478,7 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 	// Select the non-default "test" workspace
 	selectCmd := &WorkspaceSelectCommand{}
 	args := []string{"test"}
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	view, _ := testView(t)
 	selectCmd.Meta = Meta{Ui: ui, View: view}
 	if code := selectCmd.Run(args); code != 0 {
@@ -487,8 +487,7 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 
 	// Assert there is a default and "test" workspace, and "test" is selected
 	listCmd := &WorkspaceListCommand{}
-	ui = new(cli.MockUi)
-	view, _ = testView(t)
+	ui = cli.NewMockUi()
 	listCmd.Meta = Meta{Ui: ui, View: view}
 
 	if code := listCmd.Run(nil); code != 0 {
@@ -504,7 +503,6 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 
 	// Attempt to delete the default workspace (not forced)
 	ui = cli.NewMockUi()
-	view, _ = testView(t)
 	delCmd := &WorkspaceDeleteCommand{
 		Meta: Meta{Ui: ui, View: view},
 	}
@@ -523,7 +521,6 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 
 	// Attempt to force delete the default workspace
 	ui = cli.NewMockUi()
-	view, _ = testView(t)
 	delCmd = &WorkspaceDeleteCommand{
 		Meta: Meta{Ui: ui, View: view},
 	}
