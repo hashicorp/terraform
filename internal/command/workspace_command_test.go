@@ -449,6 +449,96 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	}
 }
 
+func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	// Create an empty default state, i.e. create default workspace.
+	originalStateFile := &statefile.File{
+		Serial:  1,
+		Lineage: "whatever",
+		State:   states.NewState(),
+	}
+
+	f, err := os.Create(filepath.Join(local.DefaultStateFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := statefile.Write(originalStateFile, f); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a non-default workspace
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, "test"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Select the non-default "test" workspace
+	selectCmd := &WorkspaceSelectCommand{}
+	args := []string{"test"}
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	selectCmd.Meta = Meta{Ui: ui, View: view}
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	// Assert there is a default and "test" workspace, and "test" is selected
+	listCmd := &WorkspaceListCommand{}
+	ui = new(cli.MockUi)
+	view, _ = testView(t)
+	listCmd.Meta = Meta{Ui: ui, View: view}
+
+	if code := listCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "default\n* test"
+
+	if actual != expected {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
+	}
+
+	// Attempt to delete the default workspace (not forced)
+	ui = cli.NewMockUi()
+	view, _ = testView(t)
+	delCmd := &WorkspaceDeleteCommand{
+		Meta: Meta{Ui: ui, View: view},
+	}
+	args = []string{"default"}
+	if code := delCmd.Run(args); code != 1 {
+		t.Fatalf("expected failure when trying to delete the default workspace.\noutput: %s", ui.OutputWriter)
+	}
+
+	// User should be prevented from deleting the default workspace despite:
+	// * the state being empty
+	// * default not being the selected workspace
+	gotStderr := ui.ErrorWriter.String()
+	if want, got := `cannot delete default state`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+
+	// Attempt to force delete the default workspace
+	ui = cli.NewMockUi()
+	view, _ = testView(t)
+	delCmd = &WorkspaceDeleteCommand{
+		Meta: Meta{Ui: ui, View: view},
+	}
+	args = []string{"-force", "default"}
+	if code := delCmd.Run(args); code != 1 {
+		t.Fatalf("expected failure when trying to delete the default workspace.\noutput: %s", ui.OutputWriter)
+	}
+
+	// Outcome should be the same even when forcing
+	gotStderr = ui.ErrorWriter.String()
+	if want, got := `cannot delete default state`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+}
+
 func TestWorkspace_selectWithOrCreate(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
