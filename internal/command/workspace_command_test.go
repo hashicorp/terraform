@@ -517,7 +517,7 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 	// * the state being empty
 	// * default not being the selected workspace
 	gotStderr := ui.ErrorWriter.String()
-	if want, got := `cannot delete default state`, gotStderr; !strings.Contains(got, want) {
+	if want, got := `Cannot delete the default workspace`, gotStderr; !strings.Contains(got, want) {
 		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
 	}
 
@@ -534,7 +534,7 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 
 	// Outcome should be the same even when forcing
 	gotStderr = ui.ErrorWriter.String()
-	if want, got := `cannot delete default state`, gotStderr; !strings.Contains(got, want) {
+	if want, got := `Cannot delete the default workspace`, gotStderr; !strings.Contains(got, want) {
 		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
 	}
 }
