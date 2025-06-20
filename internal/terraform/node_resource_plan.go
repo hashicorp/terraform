@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -206,9 +207,12 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 				return knownImports, unknownImports, diags
 			}
 
-			knownImports.Put(to, importID)
-
-			log.Printf("[TRACE] expandResourceImports: found single import target %s", to)
+			// Handle create_when_missing logic
+			_, handleDiags := n.handleCreateWhenMissing(imp, ctx, EvalDataForNoInstanceKey, importID, to, knownImports)
+			diags = diags.Append(handleDiags)
+			if diags.HasErrors() {
+				return knownImports, unknownImports, diags
+			}
 			continue
 		}
 
@@ -282,8 +286,12 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 				return knownImports, unknownImports, diags
 			}
 
-			knownImports.Put(res, importID)
-			log.Printf("[TRACE] expandResourceImports: expanded import target %s", res)
+			// Handle create_when_missing logic
+			_, handleDiags := n.handleCreateWhenMissing(imp, ctx, keyData, importID, res, knownImports)
+			diags = diags.Append(handleDiags)
+			if diags.HasErrors() {
+				return knownImports, unknownImports, diags
+			}
 		}
 	}
 
@@ -680,4 +688,63 @@ func (n *nodeExpandPlannableResource) validForceReplaceTargets(instanceAddrs []a
 	}
 
 	return diags
+}
+
+// handleCreateWhenMissing evaluates create_when_missing and determines whether to proceed with import
+// Returns true if the import should be added to knownImports, false if it should be skipped
+func (n *nodeExpandPlannableResource) handleCreateWhenMissing(
+	imp *ImportTarget,
+	ctx EvalContext,
+	keyData InstanceKeyEvalData,
+	importID cty.Value,
+	targetAddr addrs.AbsResourceInstance,
+	knownImports addrs.Map[addrs.AbsResourceInstance, cty.Value],
+) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Evaluate create_when_missing expression
+	createWhenMissing, createDiags := evaluateCreateWhenMissingExpression(imp.Config.CreateWhenMissing, ctx, keyData)
+	diags = diags.Append(createDiags)
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	if !createWhenMissing {
+		// Normal import behavior - always proceed with import
+		knownImports.Put(targetAddr, importID)
+		log.Printf("[TRACE] expandResourceImports: import target %s (normal import)", targetAddr)
+		return true, diags
+	}
+
+	// create_when_missing = true: test if the resource exists
+	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		diags = diags.Append(err)
+		return false, diags
+	}
+
+	// For identity-based imports, we can't easily check existence
+	// so we'll proceed with the import and let it fail normally
+	if imp.Config.Identity != nil {
+		knownImports.Put(targetAddr, importID)
+		log.Printf("[TRACE] expandResourceImports: import target %s (identity-based, will check existence during import)", targetAddr)
+		return true, diags
+	}
+
+	// Test import to check if resource exists
+	importResp := provider.ImportResourceState(providers.ImportResourceStateRequest{
+		TypeName: targetAddr.Resource.Resource.Type,
+		ID:       importID.AsString(),
+	})
+
+	// If import succeeds or has no errors, the resource exists - proceed with import
+	if !importResp.Diagnostics.HasErrors() && len(importResp.ImportedResources) > 0 {
+		knownImports.Put(targetAddr, importID)
+		log.Printf("[TRACE] expandResourceImports: import target %s (resource exists)", targetAddr)
+		return true, diags
+	} else {
+		// Resource doesn't exist - skip import, allowing it to be created
+		log.Printf("[TRACE] expandResourceImports: skipping import for %s as resource with ID %s does not exist and create_when_missing=true", targetAddr, importID.AsString())
+		return false, diags
+	}
 }

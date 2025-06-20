@@ -105,6 +105,35 @@ func TestImportBlock_decode(t *testing.T) {
 			},
 			``,
 		},
+		"with create_when_missing": {
+			&hcl.Block{
+				Type: "import",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"id": {
+							Name: "id",
+							Expr: foo_str_expr,
+						},
+						"to": {
+							Name: "to",
+							Expr: bar_expr,
+						},
+						"create_when_missing": {
+							Name: "create_when_missing",
+							Expr: hcltest.MockExprLiteral(cty.BoolVal(true)),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Import{
+				ToResource:        mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
+				ID:                foo_str_expr,
+				CreateWhenMissing: hcltest.MockExprLiteral(cty.BoolVal(true)),
+				DeclRange:         blockRange,
+			},
+			``,
+		},
 		"indexed resources": {
 			&hcl.Block{
 				Type: "import",
