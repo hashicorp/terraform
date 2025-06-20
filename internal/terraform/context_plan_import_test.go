@@ -2136,6 +2136,7 @@ import {
 		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
 			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
 		}
+		// Import directive should be ignored since resource is already in state
 		if instPlan.Importing != nil {
 			t.Errorf("expected non-import change, got import change %#v", instPlan.Importing)
 		}
@@ -2278,5 +2279,497 @@ func TestContext2Plan_importIdentityMissingResponse(t *testing.T) {
 	}
 	if got, want := diags.Err().Error(), `import of aws_lb.foo didn't return an identity`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Plan_importCreateWhenMissingTrue_ResourceExists(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "123"
+  create_when_missing = true
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addr.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+
+		if got, want := instPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if instPlan.Importing.ID != "123" {
+			t.Errorf("expected import change from \"123\", got non-import change")
+		}
+	})
+}
+
+func TestContext2Plan_importCreateWhenMissingTrue_ResourceNotExists(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "nonexistent123"
+  create_when_missing = true
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	// Simulate resource not existing - ImportResourceState returns empty result
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{},
+		Diagnostics: tfdiags.Diagnostics{
+			tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Resource not found",
+				"The resource with ID \"nonexistent123\" was not found.",
+			),
+		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addr.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+
+		if got, want := instPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		// Should create the resource since it doesn't exist and create_when_missing=true
+		if got, want := instPlan.Action, plans.Create; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		// Should not have import info since import was skipped
+		if instPlan.Importing != nil {
+			t.Errorf("expected non-import change, got import change %#v", instPlan.Importing)
+		}
+	})
+}
+
+func TestContext2Plan_importCreateWhenMissingFalse_ResourceNotExists(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "nonexistent123"
+  create_when_missing = false
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	// Simulate resource not existing - ImportResourceState returns error
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{},
+		Diagnostics: tfdiags.Diagnostics{
+			tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Resource not found",
+				"The resource with ID \"nonexistent123\" was not found.",
+			),
+		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// With create_when_missing=false, should still attempt import and get error
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatalf("expected errors from failed import, but got none")
+	}
+
+	// Verify the error is from the import attempt
+	if !strings.Contains(diags.Err().Error(), "Resource not found") {
+		t.Errorf("expected import error, got: %s", diags.Err().Error())
+	}
+}
+
+func TestContext2Plan_importCreateWhenMissingTrue_ResourceAlreadyInState(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "123"
+  create_when_missing = true
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	// Create state with resource already present
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addr.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+
+		if got, want := instPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		// Import directive should be ignored since resource is already in state
+		if instPlan.Importing != nil {
+			t.Errorf("expected non-import change, got import change %#v", instPlan.Importing)
+		}
+	})
+}
+
+func TestContext2Plan_importCreateWhenMissingDefaultFalse(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "123"
+  # create_when_missing defaults to false when not specified
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addr.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+
+		if got, want := instPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		// Should have import info since create_when_missing defaults to false (normal import)
+		if instPlan.Importing.ID != "123" {
+			t.Errorf("expected import change from \"123\", got non-import change")
+		}
+	})
+}
+
+func TestContext2Plan_importCreateWhenMissingExpression(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "nonexistent123"
+  create_when_missing = true && true  # Simple boolean expression
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	// Simulate resource not existing
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{},
+		Diagnostics: tfdiags.Diagnostics{
+			tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Resource not found",
+				"The resource with ID \"nonexistent123\" was not found.",
+			),
+		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addr.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+
+		if got, want := instPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		// Should create the resource since it doesn't exist and expression evaluates to true
+		if got, want := instPlan.Action, plans.Create; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		// Should not have import info since import was skipped
+		if instPlan.Importing != nil {
+			t.Errorf("expected non-import change, got import change %#v", instPlan.Importing)
+		}
+	})
+}
+
+func TestContext2Plan_importCreateWhenMissingInvalidValue(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "invalid_value" {
+  type    = string
+  default = "not_a_boolean"
+}
+
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "123"
+  create_when_missing = var.invalid_value
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
+		SetVariables: InputValues{
+			"invalid_value": &InputValue{
+				Value: cty.StringVal("not_a_boolean"),
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("expected errors from invalid create_when_missing value, but got none")
+	}
+
+	// Verify the error is about invalid create_when_missing argument
+	if !strings.Contains(diags.Err().Error(), "Invalid create_when_missing argument") {
+		t.Errorf("expected create_when_missing validation error, got: %s", diags.Err().Error())
+	}
+}
+
+func TestContext2Plan_importCreateWhenMissingNull(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "123"
+  create_when_missing = null
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatalf("expected errors from null create_when_missing value, but got none")
+	}
+
+	// Verify the error is about create_when_missing being null
+	if !strings.Contains(diags.Err().Error(), "create_when_missing cannot be null") {
+		t.Errorf("expected create_when_missing null validation error, got: %s", diags.Err().Error())
 	}
 }
