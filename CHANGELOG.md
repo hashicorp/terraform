@@ -1,4 +1,4 @@
-## 1.13.0 (Unreleased)
+## 1.13.0-alpha20250623 (June 23, 2025)
 
 
 NEW FEATURES:
@@ -14,12 +14,18 @@ ENHANCEMENTS:
 
 * Performance fix for evaluating high cardinality resources ([#26355](https://github.com/hashicorp/terraform/issues/26355))
 
+*  TF Test: Allow parallel execution of teardown operations ([#37169](https://github.com/hashicorp/terraform/issues/37169))
+
 * `terraform test`: Test authors can now specify definitions for external variables that are referenced within test files directly within the test file itself. ([#37195](https://github.com/hashicorp/terraform/issues/37195))
+
+* `terraform test`: File-level variable blocks can now reference run outputs and other variables." ([#37205](https://github.com/hashicorp/terraform/issues/37205))
 
 
 BUG FIXES:
 
 * Added a missing warning diagnostic that alerts users when child module contains an ignored `cloud` block. ([#37180](https://github.com/hashicorp/terraform/issues/37180))
+
+* Nested module outputs could lose sensitivity, even when marked as such in the configuration ([#37212](https://github.com/hashicorp/terraform/issues/37212))
 
 
 NOTES:
