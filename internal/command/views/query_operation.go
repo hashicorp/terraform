@@ -124,11 +124,37 @@ func (v *QueryOperationJSON) EmergencyDumpState(stateFile *statefile.File) error
 }
 
 func (v *QueryOperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	// TODO: log operation updates as structured logging
 	for _, query := range plan.Changes.Queries {
-		v.view.QueryResult(json.NewQueryResults(query))
-	}
+		addr := query.Addr
+		schema := schemas.ResourceTypeConfig(
+			query.ProviderAddr.Provider,
+			addr.Resource.Resource.Mode,
+			addr.Resource.Resource.Type,
+		)
+		if schema.Body == nil {
+			// TODO: log a warning or error
+			continue
+		}
 
+		queryInstance, err := query.Decode(schema)
+		if err != nil {
+			// TODO: log an error
+			continue
+		}
+
+		data := queryInstance.Results.Value.GetAttr("data")
+		for it := data.ElementIterator(); it.Next(); {
+			_, value := it.Element()
+
+			result := json.NewQueryResult(addr, value)
+
+			v.view.log.Info(
+				fmt.Sprintf("%s: Result found", addr.String()),
+				"type", json.MessageListResourceFound,
+				json.MessageListResourceFound, result,
+			)
+		}
+	}
 }
 
 func (v *QueryOperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
