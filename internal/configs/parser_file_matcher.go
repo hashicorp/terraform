@@ -142,13 +142,6 @@ func MatchTestFiles(dir string) Option {
 	}
 }
 
-// MatchQueryFiles adds a matcher for Terraform query files (.tfquery.hcl and .tfquery.json)
-func MatchQueryFiles() Option {
-	return func(o *parserConfig) {
-		o.matchers = append(o.matchers, &queryFiles{})
-	}
-}
-
 // moduleFiles matches regular Terraform configuration files (.tf and .tf.json)
 type moduleFiles struct{}
 
