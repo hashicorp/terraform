@@ -147,7 +147,7 @@ func Test_writeTfplan_validation(t *testing.T) {
 				}
 				return rawPlan
 			}(),
-			wantWriteErrMsg: "plan contains conflicting backend and state_store configurations",
+			wantWriteErrMsg: "plan contains both backend and state_store configurations, only one is expected",
 		},
 	}
 
