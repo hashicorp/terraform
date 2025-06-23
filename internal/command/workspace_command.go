@@ -45,6 +45,9 @@ func (c *WorkspaceCommand) Synopsis() string {
 // Since most named states are accessed via a filesystem path or URL, check if
 // escaping the name would be required.
 func validWorkspaceName(name string) bool {
+	if name == "" {
+		return false
+	}
 	return name == url.PathEscape(name)
 }
 

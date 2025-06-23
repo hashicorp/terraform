@@ -494,6 +494,11 @@ func TestValidWorkspaceName(t *testing.T) {
 			input: "two words",
 			valid: false,
 		},
+		"empty string": {
+			input: "",
+			valid: false,
+		},
+	}
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
