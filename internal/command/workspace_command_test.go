@@ -62,6 +62,49 @@ func TestWorkspace_createAndChange(t *testing.T) {
 
 }
 
+func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	newCmd := &WorkspaceNewCommand{}
+
+	current, _ := newCmd.Workspace()
+	if current != backend.DefaultStateName {
+		t.Fatal("current workspace should be 'default'")
+	}
+
+	args := []string{""}
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	newCmd.Meta = Meta{Ui: ui, View: view}
+	if code := newCmd.Run(args); code != 1 {
+		t.Fatalf("expected failure when trying to create the \"\" workspace.\noutput: %s", ui.OutputWriter)
+	}
+
+	gotStderr := ui.ErrorWriter.String()
+	if want, got := `The workspace name "" is not allowed`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+
+	ui = cli.NewMockUi()
+	selectCmd := &WorkspaceSelectCommand{
+		Meta: Meta{
+			Ui:   ui,
+			View: view,
+		},
+	}
+	if code := selectCmd.Run(args); code != 1 {
+		t.Fatalf("expected failure when trying to select the the \"\" workspace.\noutput: %s", ui.OutputWriter)
+	}
+
+	gotStderr = ui.ErrorWriter.String()
+	if want, got := `The workspace name "" is not allowed`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+}
+
 // Create some workspaces and test the list output.
 // This also ensures we switch to the correct env after each call
 func TestWorkspace_createAndList(t *testing.T) {
