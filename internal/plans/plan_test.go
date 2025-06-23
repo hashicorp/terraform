@@ -12,7 +12,74 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-func TestProviderAddrs(t *testing.T) {
+// TestProviderAddrs_basic tests sourcing providers from a plan file that only uses providers
+// for resource management only.
+func TestProviderAddrs_basic(t *testing.T) {
+
+	// Prepare plan
+	plan := &Plan{
+		VariableValues: map[string]DynamicValue{},
+		Changes: &ChangesSrc{
+			Resources: []*ResourceInstanceChangeSrc{
+				{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					},
+				},
+				{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					DeposedKey: "foodface",
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					},
+				},
+				{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "what",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule.Child("foo"),
+						Provider: addrs.NewDefaultProvider("test"),
+					},
+				},
+			},
+		},
+	}
+
+	got := plan.ProviderAddrs()
+	want := []addrs.AbsProviderConfig{
+		// Providers used for managed resources
+		{
+			Module:   addrs.RootModule.Child("foo"),
+			Provider: addrs.NewDefaultProvider("test"),
+		},
+		{
+			Module:   addrs.RootModule,
+			Provider: addrs.NewDefaultProvider("test"),
+		},
+	}
+
+	for _, problem := range deep.Equal(got, want) {
+		t.Error(problem)
+	}
+}
+
+// TestProviderAddrs_withStateStore tests sourcing providers from a plan file that uses providers
+// both for resource management and state storage.
+func TestProviderAddrs_withStateStore(t *testing.T) {
 	// Inputs for plan
 	provider := &Provider{}
 	err := provider.SetSource("registry.terraform.io/hashicorp/pluggable")
