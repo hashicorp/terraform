@@ -412,7 +412,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		// here first is a bug, so panic.
 		panic(fmt.Sprintf("invalid workspace: %s", err))
 	}
-	planOutBackend, err := m.backendState.Plan(schema, workspace)
+	planOutBackend, err := m.backendState.PlanData(schema, workspace)
 	if err != nil {
 		// Always indicates an implementation error in practice, because
 		// errors here indicate invalid encoding of the backend configuration
