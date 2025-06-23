@@ -126,11 +126,3 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 		"outputs", outputs,
 	)
 }
-
-func (v *JSONView) QueryResult(r *json.QueryResult) {
-	v.log.Info(
-		r.String(),
-		"type", json.MessageListResourceFound,
-		"result", r,
-	)
-}
