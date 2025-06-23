@@ -90,7 +90,9 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
-		Results:      resp.Result,
+		Results: plans.QueryResults{
+			Value: resp.Result,
+		},
 	}
 
 	ctx.Changes().AppendQueryInstance(query)

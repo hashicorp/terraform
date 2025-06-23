@@ -129,7 +129,6 @@ func (v *QueryOperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) 
 		v.view.QueryResult(json.NewQueryResults(query))
 	}
 
-	// TODO: show the plan as json with only list results
 }
 
 func (v *QueryOperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
