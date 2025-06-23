@@ -292,13 +292,12 @@ func NewStateStore(typeName string, ver *version.Version, source *tfaddr.Provide
 // If an error occurs it is returned and the receiver's Version field is unchanged.
 // If there are no errors then the receiver's Version field is updated.
 func (p *Provider) SetVersion(input string) error {
-	ver := version.Version{}
-	err := ver.UnmarshalText([]byte(input))
+	ver, err := version.NewVersion(input)
 	if err != nil {
 		return err
 	}
 
-	p.Version = &ver
+	p.Version = ver
 	return nil
 }
 
