@@ -121,7 +121,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 					// Verify instance types
 					actualTypes := make([]string, 0)
-					obj := cs.Results.GetAttr("data")
+					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}
@@ -236,7 +236,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					// Verify instance types
 					expectedTypes := []string{"ami-123456", "ami-654321"}
 					actualTypes := make([]string, 0)
-					obj := cs.Results.GetAttr("data")
+					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}
@@ -538,7 +538,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					// Verify instance types
 					expectedTypes := []string{"ami-123456"}
 					actualTypes := make([]string, 0)
-					obj := cs.Results.GetAttr("data")
+					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}
@@ -649,7 +649,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					// Verify instance types
 					expectedTypes := []string{"ami-123456"}
 					actualTypes := make([]string, 0)
-					obj := cs.Results.GetAttr("data")
+					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}

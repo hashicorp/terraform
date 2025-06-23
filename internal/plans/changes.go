@@ -247,7 +247,11 @@ type QueryInstance struct {
 
 	ProviderAddr addrs.AbsProviderConfig
 
-	Results cty.Value
+	Results QueryResults
+}
+
+type QueryResults struct {
+	Value cty.Value
 }
 
 func (qi *QueryInstance) DeepCopy() *QueryInstance {
@@ -260,7 +264,7 @@ func (qi *QueryInstance) DeepCopy() *QueryInstance {
 }
 
 func (rc *QueryInstance) Encode(schema providers.Schema) (*QueryInstanceSrc, error) {
-	results, err := NewDynamicValue(rc.Results, schema.Body.ImpliedType())
+	results, err := NewDynamicValue(rc.Results.Value, schema.Body.ImpliedType())
 	if err != nil {
 		return nil, err
 	}

@@ -190,8 +190,10 @@ func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, er
 	}
 
 	return &QueryInstance{
-		Addr:         qis.Addr,
-		Results:      query,
+		Addr: qis.Addr,
+		Results: QueryResults{
+			Value: query,
+		},
 		ProviderAddr: qis.ProviderAddr,
 	}, nil
 }
