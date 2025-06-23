@@ -16,7 +16,7 @@ import (
 
 var _ ConfigState = &BackendConfigState{}
 var _ DeepCopier[BackendConfigState] = &BackendConfigState{}
-var _ Planner[plans.Backend] = &BackendConfigState{}
+var _ PlanDataProvider[plans.Backend] = &BackendConfigState{}
 
 // BackendConfigState describes the physical storage format for the backend state
 // in a working directory, and provides the lowest-level API for decoding it.
@@ -62,13 +62,13 @@ func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block
 	return nil
 }
 
-// Plan produces an alternative representation of the receiver that is
+// PlanData produces an alternative representation of the receiver that is
 // suitable for storing in a plan. The current workspace must additionally
 // be provided, to be stored alongside the backend configuration.
 //
 // The backend configuration schema is required in order to properly
 // encode the backend-specific configuration settings.
-func (s *BackendConfigState) Plan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+func (s *BackendConfigState) PlanData(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
 	if s == nil {
 		return nil, nil
 	}

@@ -11,8 +11,8 @@ import (
 // ConfigState describes a configuration block, and is used to make that config block stateful.
 type ConfigState interface {
 	Empty() bool
-	Config(*configschema.Block) (cty.Value, error)
-	SetConfig(cty.Value, *configschema.Block) error
+	Config(schema *configschema.Block) (cty.Value, error)
+	SetConfig(val cty.Value, schema *configschema.Block) error
 }
 
 // DeepCopier implementations can return deep copies of themselves for use elsewhere
@@ -21,8 +21,8 @@ type DeepCopier[T any] interface {
 	DeepCopy() *T
 }
 
-// Planner implementations can return a representation of their data that's
+// PlanDataProvider implementations can return a representation of their data that's
 // appropriate for storing in a plan file.
-type Planner[T any] interface {
-	Plan(*configschema.Block, string) (*T, error)
+type PlanDataProvider[T any] interface {
+	PlanData(schema *configschema.Block, workspaceName string) (*T, error)
 }

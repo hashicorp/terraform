@@ -678,7 +678,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	case backendInUse && stateStoreInUse:
 		// This suggests a bug in the code that created the plan, since it
 		// should never have both a backend and state_store populated.
-		return fmt.Errorf("plan contains conflicting backend and state_store configurations")
+		return fmt.Errorf("plan contains both backend and state_store configurations, only one is expected")
 	case backendInUse:
 		rawPlan.Backend = &planproto.Backend{
 			Type:      plan.Backend.Type,

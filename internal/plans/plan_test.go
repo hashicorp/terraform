@@ -17,11 +17,11 @@ func TestProviderAddrs(t *testing.T) {
 	provider := &Provider{}
 	err := provider.SetSource("registry.terraform.io/hashicorp/pluggable")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	err = provider.SetVersion("9.9.9")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	config, err := NewDynamicValue(cty.ObjectVal(map[string]cty.Value{
 		"foo": cty.StringVal("bar"),
@@ -29,7 +29,7 @@ func TestProviderAddrs(t *testing.T) {
 		"foo": cty.String,
 	}))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// Prepare plan
