@@ -70,7 +70,7 @@ func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas
 		return ret, err
 	}
 
-	data := query.Results.GetAttr("data")
+	data := query.Results.Value.GetAttr("data")
 	for it := data.ElementIterator(); it.Next(); {
 		_, value := it.Element()
 

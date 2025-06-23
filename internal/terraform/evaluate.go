@@ -876,7 +876,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 			for _, inst := range queries {
 				key := inst.Addr.Resource.Key
 				if intKey, ok := key.(addrs.IntKey); ok {
-					vals[int(intKey)] = inst.Results
+					vals[int(intKey)] = inst.Results.Value
 				}
 			}
 
@@ -895,7 +895,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		for _, inst := range queries {
 			key := inst.Addr.Resource.Key
 			if strKey, ok := key.(addrs.StringKey); ok {
-				vals[string(strKey)] = inst.Results
+				vals[string(strKey)] = inst.Results.Value
 			}
 		}
 
@@ -915,7 +915,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 				"data": cty.EmptyTupleVal,
 			})
 		} else {
-			ret = queries[0].Results
+			ret = queries[0].Results.Value
 		}
 	}
 
