@@ -186,15 +186,6 @@ func (p *Plan) ProviderAddrs() []addrs.AbsProviderConfig {
 		return nil
 	}
 
-	// TODO: Is this needed? Are there issues if the same provider is used for PSS and resource management also?
-	if p.StateStore.Provider != nil {
-		m[p.StateStore.Provider.Source.String()] = addrs.AbsProviderConfig{
-			Module:   addrs.RootModule, // state_store block is only in Root
-			Provider: *p.StateStore.Provider.Source,
-			// No aliases used for PSS provider.
-		}
-	}
-
 	// This is mainly just so we'll get stable results for testing purposes.
 	keys := make([]string, 0, len(m))
 	for k := range m {
