@@ -31,7 +31,9 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -39,9 +41,13 @@ import (
 
 // BackendOpts are the options used to initialize a backend.Backend.
 type BackendOpts struct {
-	// Config is a representation of the backend configuration block given in
+	// BackendConfig is a representation of the backend configuration block given in
 	// the root module, or nil if no such block is present.
-	Config *configs.Backend
+	BackendConfig    *configs.Backend
+	StateStoreConfig *configs.StateStore
+
+	ProvidersFactory providers.Factory
+	Locks            *depsfile.Locks
 
 	// ConfigOverride is an hcl.Body that, if non-nil, will be used with
 	// configs.MergeBodies to override the type-specific backend configuration
@@ -451,7 +457,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if opts.Config == nil {
+	if opts.BackendConfig == nil {
 		// check if the config was missing, or just not required
 		conf, moreDiags := m.loadBackendConfig(".")
 		diags = diags.Append(moreDiags)
@@ -465,50 +471,85 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 		}
 
 		log.Printf("[TRACE] Meta.Backend: BackendOpts.Config not set, so using settings loaded from %s", conf.DeclRange)
-		opts.Config = conf
+		opts.BackendConfig = conf
 	}
 
-	c := opts.Config
+	backendInUse := opts.BackendConfig != nil
+	stateStoreInUse := opts.StateStoreConfig != nil
+	switch {
+	case backendInUse:
+		c := opts.BackendConfig
 
-	if c == nil {
-		log.Println("[TRACE] Meta.Backend: no explicit backend config, so returning nil config")
-		return nil, 0, nil
-	}
+		bf := backendInit.Backend(c.Type)
+		if bf == nil {
+			detail := fmt.Sprintf("There is no backend type named %q.", c.Type)
+			if msg, removed := backendInit.RemovedBackends[c.Type]; removed {
+				detail = msg
+			}
 
-	bf := backendInit.Backend(c.Type)
-	if bf == nil {
-		detail := fmt.Sprintf("There is no backend type named %q.", c.Type)
-		if msg, removed := backendInit.RemovedBackends[c.Type]; removed {
-			detail = msg
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid backend type",
+				Detail:   detail,
+				Subject:  &c.TypeRange,
+			})
+			return nil, 0, diags
+		}
+		b := bf()
+
+		configSchema := b.ConfigSchema()
+		configBody := c.Config
+		configHash := c.Hash(configSchema)
+
+		// If we have an override configuration body then we must apply it now.
+		if opts.ConfigOverride != nil {
+			log.Println("[TRACE] Meta.Backend: merging -backend-config=... CLI overrides into backend configuration")
+			configBody = configs.MergeBodies(configBody, opts.ConfigOverride)
 		}
 
+		log.Printf("[TRACE] Meta.Backend: built configuration for %q backend with hash value %d", c.Type, configHash)
+
+		// We'll shallow-copy configs.Backend here so that we can replace the
+		// body without affecting others that hold this reference.
+		configCopy := *c
+		configCopy.Config = configBody
+		return &configCopy, configHash, diags
+	case stateStoreInUse:
+		provider, err := opts.ProvidersFactory()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, 0, diags
+		}
+
+		// Schema needed to convert 'provider' body to cty.Value
+		resp := provider.GetProviderSchema()
+		// Check provider can do PSS
+
+		if len(resp.StateStores) == 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider does not support pluggable state storage",
+				Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+					opts.StateStoreConfig.Provider.Name,
+					opts.StateStoreConfig.ProviderAddr),
+				Subject: &opts.StateStoreConfig.DeclRange,
+			})
+			return nil, true, diags
+		}
+	case !backendInUse && !stateStoreInUse:
+		log.Println("[TRACE] Meta.Backend: no explicit backend config, so returning nil config")
+		return nil, 0, nil
+	case backendInUse && stateStoreInUse:
+		log.Println("[TRACE] Meta.Backend: no explicit backend config, so returning nil config")
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid backend type",
-			Detail:   detail,
-			Subject:  &c.TypeRange,
+			Summary:  "Both backend and state_store configuration present",
+			Detail:   "Both backend and state_store configuration were present when initializing the backend. This is an error in Terraform and should be reported",
 		})
 		return nil, 0, diags
 	}
-	b := bf()
 
-	configSchema := b.ConfigSchema()
-	configBody := c.Config
-	configHash := c.Hash(configSchema)
-
-	// If we have an override configuration body then we must apply it now.
-	if opts.ConfigOverride != nil {
-		log.Println("[TRACE] Meta.Backend: merging -backend-config=... CLI overrides into backend configuration")
-		configBody = configs.MergeBodies(configBody, opts.ConfigOverride)
-	}
-
-	log.Printf("[TRACE] Meta.Backend: built configuration for %q backend with hash value %d", c.Type, configHash)
-
-	// We'll shallow-copy configs.Backend here so that we can replace the
-	// body without affecting others that hold this reference.
-	configCopy := *c
-	configCopy.Config = configBody
-	return &configCopy, configHash, diags
+	return nil, 0, nil
 }
 
 // backendFromConfig returns the initialized (not configured) backend
@@ -529,6 +570,8 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	// TODO: do we have the backend/PSS split here, instead of inside the backendConfig method?
 
 	// ------------------------------------------------------------------------
 	// For historical reasons, current backend configuration for a working
