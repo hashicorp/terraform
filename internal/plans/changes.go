@@ -252,9 +252,8 @@ type QueryInstance struct {
 }
 
 type QueryResults struct {
-	Value           cty.Value
-	Results         cty.Value
-	GeneratedConfig map[string]genconfig.QueryResult
+	Value     cty.Value
+	Generated *genconfig.Resource
 }
 
 func (qi *QueryInstance) DeepCopy() *QueryInstance {
@@ -273,10 +272,10 @@ func (rc *QueryInstance) Encode(schema providers.Schema) (*QueryInstanceSrc, err
 	}
 
 	return &QueryInstanceSrc{
-		Addr:            rc.Addr,
-		Results:         results,
-		ProviderAddr:    rc.ProviderAddr,
-		GeneratedConfig: rc.Results.GeneratedConfig,
+		Addr:         rc.Addr,
+		Results:      results,
+		ProviderAddr: rc.ProviderAddr,
+		Generated:    rc.Results.Generated,
 	}, nil
 }
 

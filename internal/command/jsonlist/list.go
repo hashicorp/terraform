@@ -82,8 +82,8 @@ func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas
 			Identity:    marshalValues(value.GetAttr("identity")),
 			Resource:    marshalValues(value.GetAttr("state")),
 		}
-		config := query.Results.GeneratedConfig[result.Address]
-		result.ResourceConfig = string(config.Resource)
+		config := query.Results.Generated.Results[result.Address]
+		result.ResourceConfig = string(config.Body)
 		result.ImportConfig = string(config.Import)
 
 		ret.Results = append(ret.Results, result)

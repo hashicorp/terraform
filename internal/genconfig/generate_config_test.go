@@ -827,12 +827,12 @@ resource "tfcoremock_sensitive_values" "values" {
 			if err != nil {
 				t.Fatalf("schema failed InternalValidate: %s", err)
 			}
-			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value)
+			content, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value)
 			if len(diags) > 0 {
 				t.Errorf("expected no diagnostics but found %s", diags)
 			}
 
-			got := WrapResourceContents(tc.addr, contents)
+			got := content.String()
 			want := strings.TrimSpace(tc.expected)
 			if diff := cmp.Diff(got, want); len(diff) > 0 {
 				t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
@@ -941,7 +941,7 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
 	addr := addrs.AbsResource{
 		Module: addrs.RootModuleInstance,
 		Resource: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
+			Mode: addrs.ListResourceMode,
 			Type: "aws_instance",
 			Name: "example",
 		},
@@ -981,6 +981,7 @@ import {
     id = "i-abcdef"
   }
 }
+
 resource "aws_instance" "example_1" {
   name = "instance-2"
   tags = {
@@ -1013,12 +1014,13 @@ import {
 	normalizedExpected := normalizeString(expectedContent)
 
 	var merged string
-	for _, addr := range slices.Sorted(maps.Keys(content)) {
-		merged += content[addr].String()
+	res := content.Results
+	for _, addr := range slices.Sorted(maps.Keys(res)) {
+		merged += res[addr].String()
 	}
-	normalizedActual := normalizeString(merged)
+	normalizedActual := normalizeString(content.String())
 
 	if diff := cmp.Diff(normalizedExpected, normalizedActual); diff != "" {
-		t.Errorf("Generated content doesn't match expected (-want +got):\n%s", diff)
+		t.Errorf("Generated content doesn't match expected. want:\n%s\ngot:\n%s\ndiff:\n%s", normalizedExpected, normalizedActual, diff)
 	}
 }

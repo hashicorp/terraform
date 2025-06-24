@@ -6,7 +6,6 @@ package terraform
 import (
 	"fmt"
 	"maps"
-	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -136,12 +135,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 						return false
 					})
-					var config string
-					for _, addr := range slices.Sorted(maps.Keys(change.GeneratedConfig)) {
-						curr := change.GeneratedConfig[addr]
-						config += curr.String()
-					}
-					generatedCfgs = append(generatedCfgs, config)
+					generatedCfgs = append(generatedCfgs, change.Generated.String())
 				}
 
 				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
@@ -980,6 +974,7 @@ import {
     id = "i-v1"
   }
 }
+
 resource "test_resource" "test_1" {
   instance_type = "ami-654321"
 }
@@ -990,6 +985,7 @@ import {
     id = "i-v2"
   }
 }
+
 resource "test_resource" "test_2" {
   instance_type = "ami-789012"
 }
@@ -1012,6 +1008,7 @@ import {
     id = "i-v1"
   }
 }
+
 resource "test_resource" "test2_1" {
   instance_type = null # OPTIONAL string
 }
@@ -1022,6 +1019,7 @@ import {
     id = "i-v2"
   }
 }
+
 resource "test_resource" "test2_2" {
   instance_type = null # OPTIONAL string
 }

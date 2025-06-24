@@ -22,22 +22,49 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-type QueryResult struct {
-	Resource []byte
-	Import   []byte
+type Resource struct {
+	// HCL Body of the resource, which is the attributes and blocks
+	// that are part of the resource.
+	Body []byte
+
+	// Import is the HCL code for the import block. This is only
+	// generated for list resource results.
+	Import  []byte
+	Addr    addrs.AbsResourceInstance
+	Results map[string]*Resource
 }
 
-func (l QueryResult) String() string {
+func (r *Resource) String() string {
 	var buf strings.Builder
-	if len(l.Resource) > 0 {
-		buf.WriteString(string(l.Resource))
-		buf.WriteString("\n")
+	switch r.Addr.Resource.Resource.Mode {
+	case addrs.ListResourceMode:
+		last := len(r.Results) - 1
+		// sort the results by their keys so the output is consistent
+		for idx, key := range slices.Sorted(maps.Keys(r.Results)) {
+			managed := r.Results[key]
+			if managed.Body != nil {
+				buf.WriteString(managed.String())
+				buf.WriteString("\n")
+			}
+			if managed.Import != nil {
+				buf.WriteString(string(managed.Import))
+				buf.WriteString("\n")
+			}
+			if idx != last {
+				buf.WriteString("\n")
+			}
+		}
+	case addrs.ManagedResourceMode:
+		buf.WriteString(fmt.Sprintf("resource %q %q {\n", r.Addr.Resource.Resource.Type, r.Addr.Resource.Resource.Name))
+		buf.Write(r.Body)
+		buf.WriteString("}")
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", r.Addr.Resource.Resource.Mode))
 	}
-	if len(l.Import) > 0 {
-		buf.WriteString(string(l.Import))
-		buf.WriteString("\n")
-	}
-	return buf.String()
+
+	// The output better be valid HCL which can be parsed and formatted.
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(formatted)
 }
 
 // GenerateResourceContents generates HCL configuration code for the provided
@@ -49,7 +76,7 @@ func (l QueryResult) String() string {
 func GenerateResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
 	pc addrs.LocalProviderConfig,
-	stateVal cty.Value) (string, tfdiags.Diagnostics) {
+	stateVal cty.Value) (*Resource, tfdiags.Diagnostics) {
 	var buf strings.Builder
 
 	var diags tfdiags.Diagnostics
@@ -69,19 +96,10 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 
 	// The output better be valid HCL which can be parsed and formatted.
 	formatted := hclwrite.Format([]byte(buf.String()))
-	return string(formatted), diags
-}
-
-func WrapResourceContents(addr addrs.AbsResourceInstance, config string) string {
-	var buf strings.Builder
-
-	buf.WriteString(fmt.Sprintf("resource %q %q {\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name))
-	buf.WriteString(config)
-	buf.WriteString("}")
-
-	// The output better be valid HCL which can be parsed and formatted.
-	formatted := hclwrite.Format([]byte(buf.String()))
-	return string(formatted)
+	return &Resource{
+		Body: formatted,
+		Addr: addr,
+	}, diags
 }
 
 func GenerateListResourceContents(addr addrs.AbsResourceInstance,
@@ -89,11 +107,11 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 	idSchema *configschema.Object,
 	pc addrs.LocalProviderConfig,
 	stateVal cty.Value,
-) (map[string]QueryResult, tfdiags.Diagnostics) {
+) (*Resource, tfdiags.Diagnostics) {
 	hclFmt := func(s []byte) []byte {
 		return bytes.TrimSpace(hclwrite.Format(s))
 	}
-	ret := make(map[string]QueryResult)
+	ret := make(map[string]*Resource)
 	var diags tfdiags.Diagnostics
 	if !stateVal.CanIterateElements() {
 		diags = diags.Append(
@@ -102,12 +120,11 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 				Summary:  "Invalid resource instance value",
 				Detail:   fmt.Sprintf("Resource instance %s has nil or non-iterable value", addr),
 			})
-		return ret, diags
+		return nil, diags
 	}
 
 	iter := stateVal.ElementIterator()
 	for idx := 0; iter.Next(); idx++ {
-		ls := QueryResult{}
 		// Generate a unique resource name for each instance in the list.
 		resAddr := addrs.AbsResourceInstance{
 			Module: addr.Module,
@@ -120,7 +137,11 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 				Key: addr.Resource.Key,
 			},
 		}
+		ls := &Resource{Addr: resAddr}
+
 		_, val := iter.Element()
+		// we still need to generate the resource block even if the state is not given,
+		// so that the import block can reference it.
 		stateVal := cty.NilVal
 		if val.Type().HasAttribute("state") {
 			stateVal = val.GetAttr("state")
@@ -130,8 +151,7 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 			diags = diags.Append(gDiags)
 			continue
 		}
-		content = WrapResourceContents(resAddr, content)
-		ls.Resource = hclFmt([]byte(content))
+		ls.Body = content.Body
 
 		idVal := val.GetAttr("identity")
 		importContent, gDiags := generateImportBlock(resAddr, idSchema, pc, idVal)
@@ -144,7 +164,10 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 		ret[resAddr.String()] = ls
 	}
 
-	return ret, diags
+	return &Resource{
+		Results: ret,
+		Addr:    addr,
+	}, diags
 }
 
 func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.Object, pc addrs.LocalProviderConfig, identity cty.Value) (string, tfdiags.Diagnostics) {

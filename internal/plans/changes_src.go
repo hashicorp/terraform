@@ -181,8 +181,8 @@ type QueryInstanceSrc struct {
 
 	ProviderAddr addrs.AbsProviderConfig
 
-	Results         DynamicValue
-	GeneratedConfig map[string]genconfig.QueryResult
+	Results   DynamicValue
+	Generated *genconfig.Resource
 }
 
 func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, error) {
@@ -194,8 +194,8 @@ func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, er
 	return &QueryInstance{
 		Addr: qis.Addr,
 		Results: QueryResults{
-			Value:           query,
-			GeneratedConfig: qis.GeneratedConfig,
+			Value:     query,
+			Generated: qis.Generated,
 		},
 		ProviderAddr: qis.ProviderAddr,
 	}, nil

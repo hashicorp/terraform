@@ -7,13 +7,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
@@ -92,10 +89,10 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 
 	// If a path is specified, generate the config for the resource
-	var generated map[string]genconfig.QueryResult
+	var generated *genconfig.Resource
 	if n.generateConfigPath != "" {
 		var gDiags tfdiags.Diagnostics
-		generated, gDiags = n.generateListConfig(resp.Result.GetAttr("data"), providerSchema.ResourceTypes[n.Config.Type])
+		generated, gDiags = n.generateHCLResourceDef(addr, resp.Result.GetAttr("data"), providerSchema.ResourceTypes[n.Config.Type])
 		diags = diags.Append(gDiags)
 		if diags.HasErrors() {
 			return diags
@@ -106,40 +103,11 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
 		Results: plans.QueryResults{
-			Value:           resp.Result,
-			GeneratedConfig: generated,
+			Value:     resp.Result,
+			Generated: generated,
 		},
 	}
 
 	ctx.Changes().AppendQueryInstance(query)
 	return diags
-}
-
-func (n *NodePlannableResourceInstance) generateListConfig(data cty.Value, resourceSchema providers.Schema) (generated map[string]genconfig.QueryResult, diags tfdiags.Diagnostics) {
-	providerAddr := addrs.LocalProviderConfig{
-		LocalName: n.ResolvedProvider.Provider.Type,
-		Alias:     n.ResolvedProvider.Alias,
-	}
-
-	stateSchema := resourceSchema.Body.Filter(
-		configschema.FilterOr(
-			configschema.FilterReadOnlyAttribute,
-			configschema.FilterDeprecatedAttribute,
-
-			// The legacy SDK adds an Optional+Computed "id" attribute to the
-			// resource schema even if not defined in provider code.
-			// During validation, however, the presence of an extraneous "id"
-			// attribute in config will cause an error.
-			// Remove this attribute so we do not generate an "id" attribute
-			// where there is a risk that it is not in the real resource schema.
-			//
-			// TRADEOFF: Resources in which there actually is an
-			// Optional+Computed "id" attribute in the schema will have that
-			// attribute missing from generated config.
-			configschema.FilterHelperSchemaIdAttribute,
-		),
-		configschema.FilterDeprecatedBlock,
-	)
-	identitySchema := resourceSchema.Identity
-	return genconfig.GenerateListResourceContents(n.Addr, stateSchema, identitySchema, providerAddr, data)
 }
