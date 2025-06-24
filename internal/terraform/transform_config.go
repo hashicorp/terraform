@@ -181,6 +181,10 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			importTargets: imports,
 		}
 
+		if r.List != nil {
+			abstract.generateConfigPath = t.generateConfigPathForImportTargets
+		}
+
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)

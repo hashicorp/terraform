@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -87,11 +88,23 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	// If a path is specified, generate the config for the resource
+	var generated *genconfig.Resource
+	if n.generateConfigPath != "" {
+		var gDiags tfdiags.Diagnostics
+		generated, gDiags = n.generateHCLResourceDef(addr, resp.Result.GetAttr("data"), providerSchema.ResourceTypes[n.Config.Type])
+		diags = diags.Append(gDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
 		Results: plans.QueryResults{
-			Value: resp.Result,
+			Value:     resp.Result,
+			Generated: generated,
 		},
 	}
 

@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -180,7 +181,8 @@ type QueryInstanceSrc struct {
 
 	ProviderAddr addrs.AbsProviderConfig
 
-	Results DynamicValue
+	Results   DynamicValue
+	Generated *genconfig.Resource
 }
 
 func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, error) {
@@ -192,7 +194,8 @@ func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, er
 	return &QueryInstance{
 		Addr: qis.Addr,
 		Results: QueryResults{
-			Value: query,
+			Value:     query,
+			Generated: qis.Generated,
 		},
 		ProviderAddr: qis.ProviderAddr,
 	}, nil
