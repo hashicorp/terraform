@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -251,7 +252,9 @@ type QueryInstance struct {
 }
 
 type QueryResults struct {
-	Value cty.Value
+	Value           cty.Value
+	Results         cty.Value
+	GeneratedConfig map[string]genconfig.QueryResult
 }
 
 func (qi *QueryInstance) DeepCopy() *QueryInstance {
@@ -270,9 +273,10 @@ func (rc *QueryInstance) Encode(schema providers.Schema) (*QueryInstanceSrc, err
 	}
 
 	return &QueryInstanceSrc{
-		Addr:         rc.Addr,
-		Results:      results,
-		ProviderAddr: rc.ProviderAddr,
+		Addr:            rc.Addr,
+		Results:         results,
+		ProviderAddr:    rc.ProviderAddr,
+		GeneratedConfig: rc.Results.GeneratedConfig,
 	}, nil
 }
 

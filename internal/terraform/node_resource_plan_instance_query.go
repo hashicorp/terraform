@@ -92,10 +92,10 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 
 	// If a path is specified, generate the config for the resource
-	var generated string
+	var generated map[string]genconfig.QueryResult
 	if n.generateConfigPath != "" {
 		var gDiags tfdiags.Diagnostics
-		generated, gDiags = n.generateListConfig(resp.Result, providerSchema.ResourceTypes[n.Config.Type])
+		generated, gDiags = n.generateListConfig(resp.Result.GetAttr("data"), providerSchema.ResourceTypes[n.Config.Type])
 		diags = diags.Append(gDiags)
 		if diags.HasErrors() {
 			return diags
@@ -106,7 +106,8 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
 		Results: plans.QueryResults{
-			Value: resp.Result,
+			Value:           resp.Result,
+			GeneratedConfig: generated,
 		},
 	}
 
@@ -114,7 +115,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) generateListConfig(obj cty.Value, resourceSchema providers.Schema) (generated string, diags tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) generateListConfig(data cty.Value, resourceSchema providers.Schema) (generated map[string]genconfig.QueryResult, diags tfdiags.Diagnostics) {
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
@@ -140,7 +141,5 @@ func (n *NodePlannableResourceInstance) generateListConfig(obj cty.Value, resour
 		configschema.FilterDeprecatedBlock,
 	)
 	identitySchema := resourceSchema.Identity
-
-	data := obj.GetAttr("data")
 	return genconfig.GenerateListResourceContents(n.Addr, stateSchema, identitySchema, providerAddr, data)
 }

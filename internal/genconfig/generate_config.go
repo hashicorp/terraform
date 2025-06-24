@@ -22,6 +22,24 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type QueryResult struct {
+	Resource []byte
+	Import   []byte
+}
+
+func (l QueryResult) String() string {
+	var buf strings.Builder
+	if len(l.Resource) > 0 {
+		buf.WriteString(string(l.Resource))
+		buf.WriteString("\n")
+	}
+	if len(l.Import) > 0 {
+		buf.WriteString(string(l.Import))
+		buf.WriteString("\n")
+	}
+	return buf.String()
+}
+
 // GenerateResourceContents generates HCL configuration code for the provided
 // resource and state value.
 //
@@ -71,8 +89,11 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 	idSchema *configschema.Object,
 	pc addrs.LocalProviderConfig,
 	stateVal cty.Value,
-) (string, tfdiags.Diagnostics) {
-	var buf strings.Builder
+) (map[string]QueryResult, tfdiags.Diagnostics) {
+	hclFmt := func(s []byte) []byte {
+		return bytes.TrimSpace(hclwrite.Format(s))
+	}
+	ret := make(map[string]QueryResult)
 	var diags tfdiags.Diagnostics
 	if !stateVal.CanIterateElements() {
 		diags = diags.Append(
@@ -81,11 +102,12 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 				Summary:  "Invalid resource instance value",
 				Detail:   fmt.Sprintf("Resource instance %s has nil or non-iterable value", addr),
 			})
-		return "", diags
+		return ret, diags
 	}
 
 	iter := stateVal.ElementIterator()
 	for idx := 0; iter.Next(); idx++ {
+		ls := QueryResult{}
 		// Generate a unique resource name for each instance in the list.
 		resAddr := addrs.AbsResourceInstance{
 			Module: addr.Module,
@@ -99,15 +121,17 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 			},
 		}
 		_, val := iter.Element()
-		stateVal := val.GetAttr("state")
+		stateVal := cty.NilVal
+		if val.Type().HasAttribute("state") {
+			stateVal = val.GetAttr("state")
+		}
 		content, gDiags := GenerateResourceContents(resAddr, schema, pc, stateVal)
 		if gDiags.HasErrors() {
 			diags = diags.Append(gDiags)
 			continue
 		}
 		content = WrapResourceContents(resAddr, content)
-		buf.WriteString(content)
-		buf.WriteString("\n")
+		ls.Resource = hclFmt([]byte(content))
 
 		idVal := val.GetAttr("identity")
 		importContent, gDiags := generateImportBlock(resAddr, idSchema, pc, idVal)
@@ -115,14 +139,12 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 			diags = diags.Append(gDiags)
 			continue
 		}
+		ls.Import = hclFmt([]byte(importContent))
 
-		buf.WriteString(importContent)
-		buf.WriteString("\n\n")
-
+		ret[resAddr.String()] = ls
 	}
 
-	formatted := hclwrite.Format([]byte(buf.String()))
-	return string(bytes.TrimSpace(formatted)), diags
+	return ret, diags
 }
 
 func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.Object, pc addrs.LocalProviderConfig, identity cty.Value) (string, tfdiags.Diagnostics) {

@@ -26,8 +26,11 @@ type QueryResult struct {
 	Resource    map[string]json.RawMessage `json:"resource,omitempty"`
 
 	// TODO
-	// Address string `json:"address,omitempty"`
+	Address string `json:"address,omitempty"`
 	// Config string `json:"config,omitempty"`
+
+	ResourceConfig string `json:"resource_config,omitempty"`
+	ImportConfig   string `json:"import_config,omitempty"`
 }
 
 func MarshalForRenderer(
@@ -79,6 +82,9 @@ func marshalQueryInstance(rc *plans.QueryInstanceSrc, schemas *terraform.Schemas
 			Identity:    marshalValues(value.GetAttr("identity")),
 			Resource:    marshalValues(value.GetAttr("state")),
 		}
+		config := query.Results.GeneratedConfig[result.Address]
+		result.ResourceConfig = string(config.Resource)
+		result.ImportConfig = string(config.Import)
 
 		ret.Results = append(ret.Results, result)
 	}

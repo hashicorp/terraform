@@ -4,6 +4,8 @@
 package genconfig
 
 import (
+	"maps"
+	"slices"
 	"strings"
 	"testing"
 
@@ -972,7 +974,6 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
     subnet_id  = "subnet-123"
   }
 }
-
 import {
   to       = aws_instance.example_0
   provider = aws
@@ -980,8 +981,6 @@ import {
     id = "i-abcdef"
   }
 }
-
-
 resource "aws_instance" "example_1" {
   name = "instance-2"
   tags = {
@@ -993,14 +992,14 @@ resource "aws_instance" "example_1" {
     subnet_id  = "subnet-456"
   }
 }
-
 import {
   to       = aws_instance.example_1
   provider = aws
   identity = {
     id = "i-123456"
   }
-}`
+}
+`
 	// Normalize both strings by removing extra whitespace for comparison
 	normalizeString := func(s string) string {
 		// Remove spaces at the end of lines and replace multiple newlines with a single one
@@ -1012,7 +1011,12 @@ import {
 	}
 
 	normalizedExpected := normalizeString(expectedContent)
-	normalizedActual := normalizeString(content)
+
+	var merged string
+	for _, addr := range slices.Sorted(maps.Keys(content)) {
+		merged += content[addr].String()
+	}
+	normalizedActual := normalizeString(merged)
 
 	if diff := cmp.Diff(normalizedExpected, normalizedActual); diff != "" {
 		t.Errorf("Generated content doesn't match expected (-want +got):\n%s", diff)
