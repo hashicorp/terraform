@@ -150,6 +150,7 @@ func (c *QueryCommand) OperationRequest(
 
 	// Build the operation
 	opReq := c.Operation(be, viewType)
+	opReq.Hooks = view.Hooks()
 	opReq.ConfigDir = "."
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()

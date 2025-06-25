@@ -142,6 +142,16 @@ type MockHook struct {
 	PostEphemeralOpReturn      HookAction
 	PostEphemeralOpReturnError error
 
+	PreListQueryCalled      bool
+	PreListQueryAddr        addrs.AbsResourceInstance
+	PreListQueryReturn      HookAction
+	PreListQueryReturnError error
+
+	PostListQueryCalled      bool
+	PostListQueryAddr        addrs.AbsResourceInstance
+	PostListQueryReturn      HookAction
+	PostListQueryReturnError error
+
 	StoppingCalled bool
 
 	PostStateUpdateCalled bool
@@ -344,6 +354,24 @@ func (h *MockHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	h.PostEphemeralOpAddr = id.Addr
 	h.PostEphemeralOpError = opErr
 	return h.PostEphemeralOpReturn, h.PostEphemeralOpReturnError
+}
+
+func (h *MockHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.PreListQueryCalled = true
+	h.PreListQueryAddr = id.Addr
+	return h.PreListQueryReturn, h.PreListQueryReturnError
+}
+
+func (h *MockHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.PostListQueryCalled = true
+	h.PostListQueryAddr = id.Addr
+	return h.PostListQueryReturn, h.PostListQueryReturnError
 }
 
 func (h *MockHook) Stopping() {

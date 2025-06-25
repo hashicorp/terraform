@@ -8,11 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
-	"github.com/hashicorp/terraform/internal/command/jsonlist"
-	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -64,27 +59,6 @@ func (v *QueryOperationHuman) EmergencyDumpState(stateFile *statefile.File) erro
 }
 
 func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	results, err := jsonlist.MarshalForRenderer(plan, schemas)
-	if err != nil {
-		v.view.streams.Eprintf("Failed to marshal query results to json: %s", err)
-		return
-	}
-
-	// TODO: Update to render list results
-	renderer := jsonformat.Renderer{
-		Colorize:            v.view.colorize,
-		Streams:             v.view.streams,
-		RunningInAutomation: v.inAutomation,
-	}
-
-	jplan := jsonformat.Plan{
-		PlanFormatVersion:     jsonplan.FormatVersion,
-		ProviderFormatVersion: jsonprovider.FormatVersion,
-		QueryResults:          results,
-		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
-	}
-
-	renderer.RenderHumanList(jplan)
 }
 
 func (v *QueryOperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -124,37 +98,6 @@ func (v *QueryOperationJSON) EmergencyDumpState(stateFile *statefile.File) error
 }
 
 func (v *QueryOperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	for _, query := range plan.Changes.Queries {
-		addr := query.Addr
-		schema := schemas.ResourceTypeConfig(
-			query.ProviderAddr.Provider,
-			addr.Resource.Resource.Mode,
-			addr.Resource.Resource.Type,
-		)
-		if schema.Body == nil {
-			// TODO: log a warning or error
-			continue
-		}
-
-		queryInstance, err := query.Decode(schema)
-		if err != nil {
-			// TODO: log an error
-			continue
-		}
-
-		data := queryInstance.Results.Value.GetAttr("data")
-		for it := data.ElementIterator(); it.Next(); {
-			_, value := it.Element()
-
-			result := json.NewQueryResult(addr, value)
-
-			v.view.log.Info(
-				fmt.Sprintf("%s: Result found", addr.String()),
-				"type", json.MessageListResourceFound,
-				json.MessageListResourceFound, result,
-			)
-		}
-	}
 }
 
 func (v *QueryOperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {

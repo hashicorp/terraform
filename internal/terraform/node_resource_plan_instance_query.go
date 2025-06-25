@@ -74,6 +74,14 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	rId := HookResourceIdentity{
+		Addr:         addr,
+		ProviderAddr: n.ResolvedProvider.Provider,
+	}
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		// TODO don't show sensitive values
+		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
+	})
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
 	resp := provider.ListResource(providers.ListResourceRequest{
@@ -81,6 +89,12 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		Config:                unmarkedBlockVal,
 		Limit:                 limit,
 		IncludeResourceObject: includeResource,
+	})
+	results := plans.QueryResults{
+		Value: resp.Result,
+	}
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostListQuery(rId, results)
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
@@ -90,9 +104,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
-		Results: plans.QueryResults{
-			Value: resp.Result,
-		},
+		Results:      results,
 	}
 
 	ctx.Changes().AppendQueryInstance(query)

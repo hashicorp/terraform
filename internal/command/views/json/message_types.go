@@ -48,5 +48,6 @@ const (
 	MessageTestRetry     MessageType = "test_retry"
 
 	// List messages
+	MessageListStart         MessageType = "list_start"
 	MessageListResourceFound MessageType = "list_resource_found"
 )

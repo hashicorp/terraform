@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonlist"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
@@ -34,7 +33,6 @@ type Plan struct {
 	ResourceDrift      []jsonplan.ResourceChange         `json:"resource_drift,omitempty"`
 	RelevantAttributes []jsonplan.ResourceAttr           `json:"relevant_attributes,omitempty"`
 	DeferredChanges    []jsonplan.DeferredResourceChange `json:"deferred_changes,omitempty"`
-	QueryResults       []jsonlist.Query                  `json:"query_results,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
@@ -54,20 +52,6 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
 	checkOpts := func(target plans.Quality) bool {
 		return slices.Contains(opts, target)
-	}
-
-	if len(plan.QueryResults) > 0 {
-		for _, query := range plan.QueryResults {
-			renderer.Streams.Printf("Query for %s:\n", query.Address)
-			for _, result := range query.Results {
-				// TODO reformat identity, shorten addres
-				renderer.Streams.Printf("%s\t%s\t%s\n", query.Address, result.Identity, result.DisplayName)
-			}
-			renderer.Streams.Println()
-		}
-
-		// Only render query results
-		return
 	}
 
 	diffs := precomputeDiffs(plan, mode)
