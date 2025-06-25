@@ -276,12 +276,6 @@ func initCommands(
 			}, nil
 		},
 
-		"query": func() (cli.Command, error) {
-			return &command.QueryCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"refresh": func() (cli.Command, error) {
 			return &command.RefreshCommand{
 				Meta: meta,
@@ -447,6 +441,12 @@ func initCommands(
 	if meta.AllowExperimentalFeatures {
 		Commands["cloud"] = func() (cli.Command, error) {
 			return &command.CloudCommand{
+				Meta: meta,
+			}, nil
+		}
+
+		Commands["query"] = func() (cli.Command, error) {
+			return &command.QueryCommand{
 				Meta: meta,
 			}, nil
 		}

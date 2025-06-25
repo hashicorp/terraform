@@ -103,6 +103,11 @@ type Hook interface {
 	PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error)
 	PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error)
 
+	// PreListQuery and PostListQuery are called during a query operation befor and after
+	// resources are queried from the provider.
+	PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error)
+	PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error)
+
 	// Stopping is called if an external signal requests that Terraform
 	// gracefully abort an operation in progress.
 	//
@@ -206,6 +211,14 @@ func (h *NilHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (
 }
 
 func (h *NilHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

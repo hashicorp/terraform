@@ -11,6 +11,12 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
+type QueryStart struct {
+	Address      string                     `json:"address"`
+	ResourceType string                     `json:"resource_type"`
+	InputConfig  map[string]json.RawMessage `json:"input_config,omitempty"`
+}
+
 type QueryResult struct {
 	Address        string                     `json:"address"`
 	DisplayName    string                     `json:"display_name"`
@@ -20,6 +26,14 @@ type QueryResult struct {
 	Config         string                     `json:"config,omitempty"`
 }
 
+func NewQueryStart(addr addrs.AbsResourceInstance, input_config cty.Value) QueryStart {
+	return QueryStart{
+		Address:      addr.String(),
+		ResourceType: addr.Resource.Resource.Type,
+		InputConfig:  marshalValues(input_config),
+	}
+}
+
 func NewQueryResult(addr addrs.AbsResourceInstance, value cty.Value) QueryResult {
 	return QueryResult{
 		Address:        addr.String(),
@@ -27,7 +41,7 @@ func NewQueryResult(addr addrs.AbsResourceInstance, value cty.Value) QueryResult
 		Identity:       marshalValues(value.GetAttr("identity")),
 		ResourceType:   addr.Resource.Resource.Type,
 		ResourceObject: marshalValues(value.GetAttr("state")),
-		// Config
+		// TODO: Add config once we have it available
 	}
 }
 

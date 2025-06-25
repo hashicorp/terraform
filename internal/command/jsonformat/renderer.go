@@ -43,6 +43,8 @@ type JSONLog struct {
 	TestFatalInterrupt *viewsjson.TestFatalInterrupt `json:"test_interrupt,omitempty"`
 	TestState          *State                        `json:"test_state,omitempty"`
 	TestPlan           *Plan                         `json:"test_plan,omitempty"`
+
+	ListQueryResult *viewsjson.QueryResult `json:"list_resource_found,omitempty"`
 }
 
 const (
@@ -78,6 +80,10 @@ const (
 	LogTestInterrupt JSONLogType = "test_interrupt"
 	LogTestStatus    JSONLogType = "test_status"
 	LogTestRetry     JSONLogType = "test_retry"
+
+	// Query Messages
+	LogListStart         JSONLogType = "list_start"
+	LogListResourceFound JSONLogType = "list_resource_found"
 )
 
 func incompatibleVersions(localVersion, remoteVersion string) bool {
@@ -122,10 +128,6 @@ func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...pla
 	plan.renderHuman(renderer, mode, opts...)
 }
 
-func (renderer Renderer) RenderHumanList(plan Plan) {
-	plan.renderHuman(renderer, plans.NormalMode)
-}
-
 func (renderer Renderer) RenderHumanState(state State) {
 	if incompatibleVersions(jsonstate.FormatVersion, state.StateFormatVersion) || incompatibleVersions(jsonprovider.FormatVersion, state.ProviderFormatVersion) {
 		renderer.Streams.Println(format.WordWrap(
@@ -160,7 +162,8 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		LogTestRetry,
 		LogTestPlan,
 		LogTestState,
-		LogTestInterrupt:
+		LogTestInterrupt,
+		LogListStart:
 		// We won't display these types of logs
 		return nil
 
@@ -293,6 +296,13 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 				renderer.Streams.Eprintf(" - %s\n", resource.Instance)
 			}
 		}
+
+	case LogListResourceFound:
+		result := log.ListQueryResult
+		renderer.Streams.Printf("%s\t%s\t%s\n",
+			result.Address,
+			result.Identity,
+			result.DisplayName)
 
 	default:
 		// If the log type is not a known log type, we will just print the log message

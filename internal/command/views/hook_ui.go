@@ -507,6 +507,28 @@ func (h *UiHook) PostEphemeralOp(rId terraform.HookResourceIdentity, action plan
 	return terraform.HookActionContinue, nil
 }
 
+func (h *UiHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value) (terraform.HookAction, error) {
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults) (terraform.HookAction, error) {
+	addr := id.Addr
+	data := results.Value.GetAttr("data")
+	for it := data.ElementIterator(); it.Next(); {
+		_, value := it.Element()
+
+		h.println(fmt.Sprintf(
+			"%s\t%s\t%s",
+			addr.String(),
+			// TODO maybe deduplicate common identity attributes?
+			tfdiags.ObjectToString(value.GetAttr("identity")),
+			value.GetAttr("display_name").AsString(),
+		))
+	}
+
+	return terraform.HookActionContinue, nil
+}
+
 // Wrap calls to the view so that concurrent calls do not interleave println.
 func (h *UiHook) println(s string) {
 	h.viewLock.Lock()
