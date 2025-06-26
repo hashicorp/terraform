@@ -40,7 +40,26 @@ func (p *Pluggable) ConfigSchema() *configschema.Block {
 	return val.Body
 }
 
-// TODO - comment here about prepare vs validate - ned to follow backend.Backend interface
+// PrepareConfig validates the provided config value and returns any necessary diagnostics.
+// The method also returns the input config value, unchanged.
+//
+// Context: Why do we return the config? The answer is this method's signature is affected
+// by some legacy stuff:
+//
+//	> In the past, config validation was performed by methods starting with "Prepare". These
+//	  methods were allowed to return a mutated version of the configuration. This can be seen
+//	  in plugin protocol v5 where RPCs like `PrepareProviderConfig` exist and return a 'prepared'
+//	  config.
+//	> Since then, plugin protocol v6 included changes to rename those methods to start with
+//	  "Validate" and no longer return 'prepared' config.
+//	> How backend.Backend is implemented reflects that past idea of how config validation should
+//	  be approached. Note the method here also starts with "Prepare".
+//	> In the context of pluggable state storage, we disallow providers from returning prepared
+//	  config for a state store during state store-related "Validate" RPCs. Therefore in the
+//	  code below we return the original config in order to fulfil the method signature.
+//
+// TODO (SarahFrench) - update the backend.Backend interface to have a `ValidateConfig` method,
+// instead of `PrepareConfig`, which only returns diagnostics.
 func (p *Pluggable) PrepareConfig(config cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	req := providers.ValidateStateStoreConfigRequest{
 		TypeName: p.typeName,
