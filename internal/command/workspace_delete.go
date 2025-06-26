@@ -44,6 +44,11 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		c.Ui.Error("Expected a single argument: NAME.\n")
 		return cli.RunResultHelp
 	}
+	if args[0] == "" {
+		// Disallowing empty string identifiers more explicitly, versus "Workspace "" doesn't exist."
+		c.Ui.Error(fmt.Sprintf("Expected a workspace name as an argument, instead got an empty string: %q\n", args[0]))
+		return cli.RunResultHelp
+	}
 
 	configPath, err := ModulePath(args[1:])
 	if err != nil {

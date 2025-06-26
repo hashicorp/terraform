@@ -384,6 +384,8 @@ func TestWorkspace_delete(t *testing.T) {
 	}
 }
 
+// TestWorkspace_deleteInvalid shows that if a workspace with an invalid name
+// has been created, Terraform allows users to delete it.
 func TestWorkspace_deleteInvalid(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
@@ -413,6 +415,35 @@ func TestWorkspace_deleteInvalid(t *testing.T) {
 		t.Fatalf("should have deleted workspace, but %s still exists", path)
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("unexpected error for workspace path: %s", err)
+	}
+}
+
+func TestWorkspace_deleteRejectsEmptyString(t *testing.T) {
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	// Empty string identifier for workspace
+	workspace := ""
+	path := filepath.Join(local.DefaultWorkspaceDir, workspace)
+
+	// create the workspace directories
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	delCmd := &WorkspaceDeleteCommand{
+		Meta: Meta{Ui: ui, View: view},
+	}
+
+	// delete the workspace
+	if code := delCmd.Run([]string{workspace}); code != cli.RunResultHelp {
+		t.Fatalf("expected code %d but got %d. Output: %s", cli.RunResultHelp, code, ui.OutputWriter)
+	}
+	if !strings.Contains(string(ui.ErrorWriter.Bytes()), "got an empty string") {
+		t.Fatalf("expected error to include \"got an empty string\" but was missing, got: %s", ui.ErrorWriter)
 	}
 }
 
