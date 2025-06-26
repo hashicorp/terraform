@@ -143,9 +143,10 @@ func (f *BackendStateFile) DeepCopy() *BackendStateFile {
 		return nil
 	}
 	ret := &BackendStateFile{
-		Version:   f.Version,
-		TFVersion: f.TFVersion,
-		Backend:   f.Backend.DeepCopy(),
+		Version:    f.Version,
+		TFVersion:  f.TFVersion,
+		Backend:    f.Backend.DeepCopy(),
+		StateStore: f.StateStore.DeepCopy(),
 	}
 	if f.Remote != nil {
 		// This shouldn't ever be present in an object held by a caller since
