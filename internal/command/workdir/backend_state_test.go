@@ -5,6 +5,7 @@ package workdir
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -228,5 +229,48 @@ func TestEncodeBackendStateFile(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func TestBackendStateFile_DeepCopy(t *testing.T) {
+
+	tests := map[string]struct {
+		file *BackendStateFile
+	}{
+		"Deep copy preserves state_store data": {
+			file: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foo_bar",
+					Provider:  getTestProviderState(t, "1.2.3", "A", "B", "C"),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+		},
+		"Deep copy preserves backend data": {
+			file: &BackendStateFile{
+				Backend: &BackendConfigState{
+					Type:      "foobar",
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+		},
+		"Deep copy preserves version and Terraform version data": {
+			file: &BackendStateFile{
+				Version:   3,
+				TFVersion: "9.9.9",
+			},
+		},
+	}
+
+	for tn, tc := range tests {
+		t.Run(tn, func(t *testing.T) {
+			copy := tc.file.DeepCopy()
+
+			if !reflect.DeepEqual(copy, tc.file) {
+				t.Fatalf("unexpected difference in backend state data:\n got %#v, want %#v", copy, tc.file)
+			}
+		})
 	}
 }
