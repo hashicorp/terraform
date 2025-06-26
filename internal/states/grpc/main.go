@@ -43,52 +43,73 @@ type grpcStateManager struct {
 }
 
 func (g *grpcStateManager) Lock(info *statemgr.LockInfo) (string, error) {
-	req := providers.LockStateRequest{
-		TypeName:  g.typeName,
-		StateId:   g.stateId,
-		Operation: info.Operation,
-	}
-	resp := g.provider.LockState(req)
-	return resp.LockId, resp.Diagnostics.Err()
+	fmt.Printf("in Lock method of state manager from pluggable state store %q in provider %q", g.typeName, g.provider)
+	// TODO (SarahFrench/radeksimko): - implement Lock RPC in protocol, provider interface, and use here
+
+	// req := providers.LockStateRequest{
+	// 	TypeName:  g.typeName,
+	// 	StateId:   g.stateId,
+	// 	Operation: info.Operation,
+	// }
+	// resp := g.provider.LockState(req)
+	// return resp.LockId, resp.Diagnostics.Err()
+
+	return "", nil
 }
 
 func (g *grpcStateManager) Unlock(id string) error {
-	req := providers.UnlockStateRequest{
-		TypeName: g.typeName,
-		StateId:  g.stateId,
-		LockId:   id,
-	}
-	resp := g.provider.UnlockState(req)
-	return resp.Diagnostics.Err()
+	fmt.Printf("in Unlock method of state manager from pluggable state store %q in provider %q, trying to unlock %s", g.typeName, g.provider, id)
+
+	// TODO (SarahFrench/radeksimko): - implement Unlock RPC in protocol, provider interface, and use here
+
+	// req := providers.UnlockStateRequest{
+	// 	TypeName: g.typeName,
+	// 	StateId:  g.stateId,
+	// 	LockId:   id,
+	// }
+	// resp := g.provider.UnlockState(req)
+	// return resp.Diagnostics.Err()
+
+	return nil
 }
 
 func (g *grpcStateManager) State() *states.State {
+	fmt.Printf("in State method of state manager from pluggable state store %q in provider %q", g.typeName, g.provider)
+
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	// TODO: Return a deep copy of the state value from internal, in-memory store here
+	// TODO (SarahFrench/radeksimko): Return a deep copy of the state value from internal, in-memory store here
 	return nil
 }
 
 func (g *grpcStateManager) WriteState(state *states.State) error {
+	fmt.Printf("in WriteState method of state manager from pluggable state store %q in provider %q", g.typeName, g.provider)
+
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	// TODO: write to internal, in-memory store here
+	// TODO (SarahFrench/radeksimko): write to internal, in-memory store here
 	return nil
 }
 
 func (g *grpcStateManager) RefreshState() error {
-	// No ReadState method implemented on the provider yet
+	fmt.Printf("in RefreshState method of state manager from pluggable state store %q in provider %q", g.typeName, g.provider)
+
+	// TODO (SarahFrench/radeksimko): - implement ReadState RPC in protocol, provider interface, and use here
 	return nil
 }
 
 func (g *grpcStateManager) PersistState(foobar *schemarepo.Schemas) error {
-	// No WriteState method implemented on the provider yet
+	fmt.Printf("in PersistState method of state manager from pluggable state store %q in provider %q", g.typeName, g.provider)
+
+	// TODO (SarahFrench/radeksimko): - implement WriteState RPC in protocol, provider interface, and use here
 	return nil
 }
 
 func (g *grpcStateManager) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	fmt.Printf("in GetRootOutputValues method of state manager from pluggable state store %q in provider %q", g.typeName, g.provider)
+
 	if err := g.RefreshState(); err != nil {
 		return nil, fmt.Errorf("Failed to load state: %s", err)
 	}
