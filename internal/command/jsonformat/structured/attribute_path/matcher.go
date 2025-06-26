@@ -151,7 +151,7 @@ func (p *PathMatcher) GetChildWithKey(key string) Matcher {
 			continue
 		}
 
-		if path[0].(string) == key {
+		if p, ok := path[0].(string); ok && p == key {
 			child.Paths = append(child.Paths, path[1:])
 		}
 	}

@@ -254,3 +254,24 @@ func TestPathMatcher_MultiplePaths(t *testing.T) {
 		t.Errorf("should not have partial matched at leaf level")
 	}
 }
+
+func TestPathMatcher_Crash(t *testing.T) {
+	var matcher Matcher
+
+	matcher = &PathMatcher{
+		Paths: [][]interface{}{
+			{
+				float64(0),
+				float64(0), // Invalid
+				float64(0),
+			},
+		},
+	}
+
+	// Should not panic, but also should not match
+	matcher = matcher.GetChildWithKey("key")
+
+	if matcher.Matches() {
+		t.Errorf("should not have matched")
+	}
+}

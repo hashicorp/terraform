@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Avoid crash in renderer during apply
+time: 2025-06-26T13:07:19.14421+02:00
+custom:
+    Issue: "37273"
