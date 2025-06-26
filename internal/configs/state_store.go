@@ -5,6 +5,9 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // StateStore represents a "state_store" block inside a "terraform" block
@@ -77,4 +80,38 @@ var StateStorageBlockSchema = &hcl.BodySchema{
 			LabelNames: []string{"type"},
 		},
 	},
+}
+
+// Hash produces a hash value for the receiver that covers the type and the
+// portions of the config that conform to the state_store schema. The provider
+// block that is nested inside state_store is ignored.
+//
+// If the config does not conform to the schema then the result is not
+// meaningful for comparison since it will be based on an incomplete result.
+//
+// As an exception, required attributes in the schema are treated as optional
+// for the purpose of hashing, so that an incomplete configuration can still
+// be hashed. Other errors, such as extraneous attributes, have no such special
+// case.
+func (b *StateStore) Hash(schema *configschema.Block) int {
+	// Don't fail if required attributes are not set. Instead, we'll just
+	// hash them as nulls.
+	schema = schema.NoneRequired()
+	spec := schema.DecoderSpec()
+
+	// The value `b.Config` will include data about the provider block nested inside state_store, but
+	// the `schema` parameter should be the state store's schema only, and not include a provider block.
+	// Therefore the decoded value below will not include provider information, and the provider will
+	// not impact the hash.
+	val, _ := hcldec.Decode(b.Config, spec, nil)
+	if val == cty.NilVal {
+		val = cty.UnknownVal(schema.ImpliedType())
+	}
+
+	toHash := cty.TupleVal([]cty.Value{
+		cty.StringVal(b.Type),
+		val,
+	})
+
+	return toHash.Hash()
 }
