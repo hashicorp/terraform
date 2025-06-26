@@ -222,6 +222,26 @@ func (mr *MockProviderClientMockRecorder) ImportResourceState(arg0, arg1 any, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportResourceState", reflect.TypeOf((*MockProviderClient)(nil).ImportResourceState), varargs...)
 }
 
+// InvokeAction mocks base method.
+func (m *MockProviderClient) InvokeAction(arg0 context.Context, arg1 *tfplugin5.InvokeAction_Request, arg2 ...grpc.CallOption) (tfplugin5.Provider_InvokeActionClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "InvokeAction", varargs...)
+	ret0, _ := ret[0].(tfplugin5.Provider_InvokeActionClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InvokeAction indicates an expected call of InvokeAction.
+func (mr *MockProviderClientMockRecorder) InvokeAction(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvokeAction", reflect.TypeOf((*MockProviderClient)(nil).InvokeAction), varargs...)
+}
+
 // ListResource mocks base method.
 func (m *MockProviderClient) ListResource(arg0 context.Context, arg1 *tfplugin5.ListResource_Request, arg2 ...grpc.CallOption) (tfplugin5.Provider_ListResourceClient, error) {
 	m.ctrl.T.Helper()
@@ -280,6 +300,26 @@ func (mr *MockProviderClientMockRecorder) OpenEphemeralResource(arg0, arg1 any, 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenEphemeralResource", reflect.TypeOf((*MockProviderClient)(nil).OpenEphemeralResource), varargs...)
+}
+
+// PlanAction mocks base method.
+func (m *MockProviderClient) PlanAction(arg0 context.Context, arg1 *tfplugin5.PlanAction_Request, arg2 ...grpc.CallOption) (*tfplugin5.PlanAction_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PlanAction", varargs...)
+	ret0, _ := ret[0].(*tfplugin5.PlanAction_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PlanAction indicates an expected call of PlanAction.
+func (mr *MockProviderClientMockRecorder) PlanAction(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PlanAction", reflect.TypeOf((*MockProviderClient)(nil).PlanAction), varargs...)
 }
 
 // PlanResourceChange mocks base method.
