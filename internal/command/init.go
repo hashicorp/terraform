@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
@@ -29,6 +31,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -431,18 +434,21 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	extraConfig := initArgs.BackendConfig
 	viewType := initArgs.ViewType
 
-	// TODO - we need appropriate messages for backend vs state_store
+	// TODO (SarahFrench/radeksimko) - we need appropriate messages for backend vs state_store
 	view.Output(views.InitializingBackendMessage)
 
 	var backendConfig *configs.Backend
-	var backendConfigOverride hcl.Body
+	var stateStoreConfig *configs.StateStore
+	var configOverride hcl.Body
 	var factory providers.Factory
 	var locks *depsfile.Locks
-	// TODO: expected mutual exclusive validation to have happened by now
+	// TODO (SarahFrench/radeksimko): expected mutual exclusive validation to have happened by now
 	if root.StateStore != nil {
-		// TODO
+		// TODO (SarahFrench/radeksimko) - cleanup here
 
-		// 1) Download provider
+		stateStoreConfig = root.StateStore
+
+		// Download providers
 		var providersOutput bool
 		var providersAbort bool
 		var providerDiags tfdiags.Diagnostics
@@ -453,7 +459,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 			return nil, providersOutput, diags
 		}
 
-		// 2) Get provider as var
+		// Access provider factories
 		opts, err := c.contextOpts()
 		if err != nil {
 			diags = diags.Append(err)
@@ -462,149 +468,78 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 		if root.StateStore.ProviderAddr.IsZero() {
 			// this should never happen
-			// TODO: handle implied builtin provider address
+
+			// TODO (SarahFrench/radeksimko): handle implied builtin provider address
 			panic("unknown provider for state store")
 		}
 
 		var exists bool
 		factory, exists = opts.Providers[root.StateStore.ProviderAddr]
 		if !exists {
-			panic("oh no")
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider unavailable",
+				Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %s state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+					root.StateStore.Provider.Name,
+					root.StateStore.ProviderAddr,
+					root.StateStore.Type,
+				),
+				Subject: &root.Backend.TypeRange,
+			})
+			return nil, true, diags
 		}
 
-		// provider, err := factory()
-		// if err != nil {
-		// 	diags = diags.Append(err)
-		// 	return nil, true, diags
-		// }
+		// If overrides supplied by -backend-config CLI flag, process them
+		if len(*extraConfig.Items) > 0 {
 
-		// fmt.Println(provider)
-		// // TODO - investigate using GetMetadata here to check provider contains a state store with the correct name
+			// We need to launch an instance of the provider to get the config of the state store for processing any overrides.
+			provider, err := factory()
+			defer provider.Close() // Stop the child process once we're done with it here.
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
+				return nil, true, diags
+			}
 
-		// // Schema needed to convert 'provider' body to cty.Value
-		// resp := provider.GetProviderSchema()
+			resp := provider.GetProviderSchema()
 
-		// // Check provider can do PSS
-		// if len(resp.StateStores) == 0 {
-		// 	diags = diags.Append(&hcl.Diagnostic{
-		// 		Severity: hcl.DiagError,
-		// 		Summary:  "Provider does not support pluggable state storage",
-		// 		Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
-		// 			root.StateStore.Provider.Name,
-		// 			root.StateStore.ProviderAddr),
-		// 		Subject: &root.StateStore.DeclRange,
-		// 	})
-		// 	return nil, true, diags
-		// }
-		// // Check provider includes state store named in config
-		// storeSchema, exists := resp.StateStores[root.StateStore.Type]
-		// if !exists {
-		// 	suggestions := slices.Sorted(maps.Keys(resp.StateStores))
-		// 	suggestion := didyoumean.NameSuggestion(root.StateStore.Type, suggestions)
-		// 	if suggestion != "" {
-		// 		suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-		// 	}
-		// 	diags = diags.Append(&hcl.Diagnostic{
-		// 		Severity: hcl.DiagError,
-		// 		Summary:  "State store not implemented by the provider",
-		// 		Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
-		// 			root.StateStore.Type, root.StateStore.Provider.Name,
-		// 			root.StateStore.ProviderAddr, suggestion),
-		// 		Subject: &root.StateStore.DeclRange,
-		// 	})
-		// 	return nil, true, diags
-		// }
+			if len(resp.StateStores) == 0 {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provider does not support pluggable state storage",
+					Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+						root.StateStore.Provider.Name,
+						root.StateStore.ProviderAddr),
+					Subject: &root.StateStore.DeclRange,
+				})
+				return nil, true, diags
+			}
 
-		// // TODO - here we're using the nested provider block inside state_store
-		// // We haven't added any assertions or usage of a paired required_providers
-		// // entry yet.
-		// spec := resp.Provider.Body.DecoderSpec()
-		// cfg := root.StateStore.Provider.Config
-		// providerConfigVal, decDiags := hcldec.Decode(cfg, spec, nil)
-		// diags = diags.Append(decDiags)
+			configSchema, exists := resp.StateStores[root.StateStore.Type]
+			if !exists {
+				suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+				suggestion := didyoumean.NameSuggestion(root.StateStore.Type, suggestions)
+				if suggestion != "" {
+					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+				}
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "State store not implemented by the provider",
+					Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+						root.StateStore.Type, root.StateStore.Provider.Name,
+						root.StateStore.ProviderAddr, suggestion),
+					Subject: &root.StateStore.DeclRange,
+				})
+				return nil, true, diags
+			}
 
-		// // Validate provider
-		// // TODO: deal with marks
-		// validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
-		// 	Config: providerConfigVal,
-		// })
-		// diags = diags.Append(validateResp.Diagnostics)
-
-		// // Configure provider
-		// configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
-		// 	// TODO TerraformVersion: ,
-		// 	Config: validateResp.PreparedConfig,
-		// 	// TODO ClientCapabilities: ,
-		// })
-		// diags = diags.Append(configureResp.Diagnostics)
-
-		// // Validate Store Config
-		// storeSpec := storeSchema.Body.DecoderSpec()
-		// storeCfg := root.StateStore.Config
-		// storeConfig, decDiags := hcldec.Decode(storeCfg, storeSpec, nil)
-		// // TODO: deal with marks
-		// validateStoreResp := provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
-		// 	TypeName: root.StateStore.Type,
-		// 	Config:   storeConfig,
-		// })
-		// diags = diags.Append(validateStoreResp.Diagnostics)
-
-		// // Configure State Store
-		// cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
-		// 	TypeName: root.StateStore.Type,
-		// 	Config:   storeConfig,
-		// })
-		// diags = diags.Append(cfgStoreResp.Diagnostics)
-
-		// // Save backend state file
-		// statePath := filepath.Join(c.Meta.DataDir(), DefaultStateFilename)
-		// sMgr := &clistate.LocalState{Path: statePath}
-
-		// if err := sMgr.RefreshState(); err != nil {
-		// 	diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
-		// 	return nil, true, diags
-		// }
-
-		// // Load the state, it must be non-nil for the tests below but can be empty
-		// s := sMgr.State()
-		// if s == nil {
-		// 	log.Printf("[TRACE] state store has not previously been initialized in this working directory")
-		// 	s = workdir.NewBackendStateFile()
-		// 	s.StateStore = &workdir.StateStoreConfigState{
-		// 		Type: root.StateStore.Type,
-		// 		Hash: 12345678,
-		// 	}
-		// 	err = s.StateStore.SetConfig(storeConfig, storeSchema.Body)
-		// 	if err != nil {
-		// 		diags = diags.Append(fmt.Errorf("Failed to set state store config: %s", err))
-		// 		return nil, true, diags
-		// 	}
-		// 	pLock := locks.Provider(root.StateStore.ProviderAddr)
-		// 	v, err := providerreqs.GoVersionFromVersion(pLock.Version())
-		// 	if err != nil {
-		// 		diags = diags.Append(fmt.Errorf("Failed to set state store config: %s", err))
-		// 		return nil, true, diags
-		// 	}
-		// 	s.StateStore.Provider = &workdir.Provider{
-		// 		Source:  root.StateStore.ProviderAddr,
-		// 		Version: v,
-		// 	}
-
-		// 	if err = sMgr.WriteState(s); err != nil {
-		// 		diags = diags.Append(fmt.Errorf("Failed to write state store config: %s", err))
-		// 		return nil, true, diags
-		// 	}
-		// 	if err = sMgr.PersistState(); err != nil {
-		// 		diags = diags.Append(fmt.Errorf("Failed to persist state store config: %s", err))
-		// 		return nil, true, diags
-		// 	}
-		// }
-
-		// // 9) Convert provider into backend.Backend
-		// stateStorage := pluggable_state.NewPluggable(provider, root.StateStore.Type)
-		// back := backendLocal.NewWithBackend(stateStorage)
-
-		// return back, true, diags
+			// Handle any overrides supplied via -backend-config CLI flags
+			var overrideDiags tfdiags.Diagnostics
+			configOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, configSchema.Body)
+			diags = diags.Append(overrideDiags)
+			if overrideDiags.HasErrors() {
+				return nil, true, diags
+			}
+		}
 
 	} else if root.Backend != nil {
 		backendType := root.Backend.Type
@@ -639,7 +574,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		backendConfig = root.Backend
 
 		var overrideDiags tfdiags.Diagnostics
-		backendConfigOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
+		configOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
 		diags = diags.Append(overrideDiags)
 		if overrideDiags.HasErrors() {
 			return nil, true, diags
@@ -671,10 +606,10 @@ the backend configuration is present and valid.
 
 	opts := &BackendOpts{
 		BackendConfig:    backendConfig,
-		StateStoreConfig: nil,
+		StateStoreConfig: stateStoreConfig,
 		ProvidersFactory: factory,
 		Locks:            locks,
-		ConfigOverride:   backendConfigOverride,
+		ConfigOverride:   configOverride,
 		Init:             true,
 		ViewType:         viewType,
 	}
