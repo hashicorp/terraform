@@ -4,15 +4,16 @@
 package configs
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
-// provider config isn't used when creating a hash of state_store config
-// as long as the schema for the state store returned from the provider
-// is accurate.
+// The Hash method assumes that the state_store schema doesn't include a provider block,
+// and it requires calling code to remove the nested provider block from state_store config data.
 func TestStateStore_Hash(t *testing.T) {
 
 	// This test assumes a configuration like this,
@@ -35,25 +36,8 @@ func TestStateStore_Hash(t *testing.T) {
 	//   }
 	// }
 
-	// hcl.Body includes all of the contents of the state_store block shown above
-	configWithProvider := SynthBody("TestStateStore_Hash", map[string]cty.Value{
-		"provider": cty.ObjectVal(map[string]cty.Value{
-			"foo": cty.StringVal("bar"),
-		}),
-
-		"path":          cty.StringVal("mystate.tfstate"),
-		"workspace_dir": cty.StringVal("foobar"),
-	})
-
-	// hcl.Body that represents the state_store block shown above
-	// but excludes the provider block
-	configWithoutProvider := SynthBody("TestStateStore_Hash", map[string]cty.Value{
-		"path":          cty.StringVal("mystate.tfstate"),
-		"workspace_dir": cty.StringVal("foobar"),
-	})
-
 	// schema from GetProviderSchema for the given state store
-	schema := &configschema.Block{
+	goodSchema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"path": {
 				Type:     cty.String,
@@ -66,59 +50,92 @@ func TestStateStore_Hash(t *testing.T) {
 		},
 	}
 
-	// The hash of the two different hcl.Body values should be the same,
-	// assuming the schema only describes the schema for configuring
-	// a state store.
-	sWithProvider := StateStore{
-		Config: configWithProvider,
-	}
-	sWithoutProvider := StateStore{
-		Config: configWithoutProvider,
-	}
+	cases := map[string]struct {
+		config          hcl.Body
+		schema          *configschema.Block
+		wantErrorString string
+	}{
+		"Hash method ignores the provider block in config data": {
+			schema: goodSchema,
+			config: SynthBody("TestStateStore_Hash", map[string]cty.Value{
+				"provider": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
 
-	hashWithProvider := sWithProvider.Hash(schema)
-	hashWithoutProvider := sWithoutProvider.Hash(schema)
-
-	if hashWithProvider != hashWithoutProvider {
-		t.Fatalf("presence of provider config should not impact the hash created for a state store, yet these hashes don't match:\n hash with provider: %d\n hash without provider: %d",
-			hashWithProvider,
-			hashWithoutProvider)
-	}
-
-	// If the provider mistakenly described the provider block in the state store's schema
-	// the hashes would differ
-	incorrectSchema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"path": {
-				Type:     cty.String,
-				Optional: true,
-			},
-			"workspace_dir": {
-				Type:     cty.String,
-				Optional: true,
-			},
+				"path":          cty.StringVal("mystate.tfstate"),
+				"workspace_dir": cty.StringVal("foobar"),
+			}),
 		},
-		BlockTypes: map[string]*configschema.NestedBlock{
-			"provider": {
-				Block: configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"foo": {
-							Type:     cty.String,
-							Optional: true,
+		"Hash method returns errors when the config contains non-provider things that aren't in the schema": {
+			schema: goodSchema,
+			config: SynthBody("TestStateStore_Hash", map[string]cty.Value{
+				"unexpected_block": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"unexpected_attr": cty.StringVal("mystate.tfstate"),
+
+				"path":          cty.StringVal("mystate.tfstate"),
+				"workspace_dir": cty.StringVal("foobar"),
+			}),
+			wantErrorString: "config contained unexpected values: unexpected_attr, unexpected_block",
+		},
+		"Hash method returns an error if the schema includes a provider block": {
+			schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"provider": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
 						},
+						Nesting: configschema.NestingSingle,
 					},
 				},
-				Nesting: configschema.NestingSingle,
 			},
+			config: SynthBody("TestStateStore_Hash", map[string]cty.Value{
+				// no provider block here
+				"path":          cty.StringVal("mystate.tfstate"),
+				"workspace_dir": cty.StringVal("foobar"),
+			}),
+			wantErrorString: "schema contains a provider block",
+		},
+		"Hash method returns an error if the schema includes a provider attribute": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"provider": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			config: SynthBody("TestStateStore_Hash", map[string]cty.Value{
+				// no provider block here
+				"path":          cty.StringVal("mystate.tfstate"),
+				"workspace_dir": cty.StringVal("foobar"),
+			}),
+			wantErrorString: "schema contains a provider attribute",
 		},
 	}
 
-	hashWithProvider = sWithProvider.Hash(incorrectSchema)
-	hashWithoutProvider = sWithoutProvider.Hash(incorrectSchema)
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			s := StateStore{
+				Config: tc.config,
+			}
 
-	if hashWithProvider == hashWithoutProvider {
-		t.Fatalf("expected presence of provider config to impact the hash created for a state store, but they match:\n hash with provider: %d\n hash without provider: %d",
-			hashWithProvider,
-			hashWithoutProvider)
+			_, diags := s.Hash(tc.schema)
+			if !diags.HasErrors() && tc.wantErrorString != "" {
+				t.Fatal("expected an error when generating a hash, but got none")
+			}
+			if diags.HasErrors() && tc.wantErrorString == "" {
+				t.Fatalf("unexpected error: %s", diags.Err())
+			}
+			if diags.HasErrors() && !strings.Contains(diags.Err().Error(), tc.wantErrorString) {
+				t.Fatalf("expected %q to be in the returned error string but it's missing: %q", tc.wantErrorString, diags.Err())
+			}
+		})
 	}
 }
