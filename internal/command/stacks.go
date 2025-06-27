@@ -305,7 +305,7 @@ func (c *StacksCommand) initPlugin() tfdiags.Diagnostics {
 }
 
 func (c *StacksCommand) initPackagesCache() (string, error) {
-	packagesPath := path.Join(c.WorkingDir.DataDir(), StacksPluginDataDir)
+	packagesPath := path.Join(path.Join(c.pluginPath...), c.pluginService.Hostname()) // update to use the new data dir here
 
 	if info, err := os.Stat(packagesPath); err != nil || !info.IsDir() {
 		log.Printf("[TRACE] initialized stacksplugin cache directory at %q", packagesPath)
