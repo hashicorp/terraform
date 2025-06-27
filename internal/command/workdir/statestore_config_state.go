@@ -16,7 +16,9 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
-var _ ConfigState[StateStoreConfigState] = &StateStoreConfigState{}
+var _ ConfigState = &StateStoreConfigState{}
+var _ DeepCopier[StateStoreConfigState] = &StateStoreConfigState{}
+var _ PlanDataProvider[plans.StateStore] = &StateStoreConfigState{}
 
 // StateStoreConfigState describes the physical storage format for the state store
 type StateStoreConfigState struct {
@@ -98,19 +100,26 @@ func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Bl
 	return nil
 }
 
-// ForPlan produces an alternative representation of the receiver that is
+// PlanData produces an alternative representation of the receiver that is
 // suitable for storing in a plan. The current workspace must additionally
 // be provided, to be stored alongside the state store configuration.
 //
 // The state_store configuration schema is required in order to properly
 // encode the state store-specific configuration settings.
-func (s *StateStoreConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+func (s *StateStoreConfigState) PlanData(schema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
 	if s == nil {
 		return nil, nil
 	}
-	// TODO
-	// What should a pluggable state store look like in a plan?
-	return nil, nil
+
+	if err := s.Validate(); err != nil {
+		return nil, fmt.Errorf("error when preparing state store config for planfile: %s", err)
+	}
+
+	configVal, err := s.Config(schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode state_store config: %w", err)
+	}
+	return plans.NewStateStore(s.Type, s.Provider.Version, &s.Provider.Source, configVal, schema, workspaceName)
 }
 
 func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {

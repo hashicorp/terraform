@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -23,13 +25,46 @@ import (
 // TestTFPlanRoundTrip writes a plan to a planfile, reads the contents of the planfile,
 // and asserts that the read data matches the written data.
 func TestTFPlanRoundTrip(t *testing.T) {
-
 	cases := map[string]struct {
 		plan *plans.Plan
 	}{
 		"round trip with backend": {
 			plan: func() *plans.Plan {
 				rawPlan := examplePlanForTest(t)
+				return rawPlan
+			}(),
+		},
+		"round trip with state store": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// remove backend data from example plan
+				rawPlan.Backend = plans.Backend{}
+				ver, err := version.NewVersion("9.9.9")
+				if err != nil {
+					t.Fatalf("error encountered during test setup: %s", err)
+				}
+
+				// add state store instead
+				rawPlan.StateStore = plans.StateStore{
+					Type: "foo_bar",
+					Provider: &plans.Provider{
+						Version: ver,
+						Source: &tfaddr.Provider{
+							Hostname:  tfaddr.DefaultProviderRegistryHost,
+							Namespace: "foobar",
+							Type:      "foo",
+						},
+					},
+					Config: mustNewDynamicValue(
+						cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						}),
+						cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						}),
+					),
+					Workspace: "default",
+				}
 				return rawPlan
 			}(),
 		},
@@ -66,12 +101,11 @@ func TestTFPlanRoundTrip(t *testing.T) {
 }
 
 func Test_writeTfplan_validation(t *testing.T) {
-
 	cases := map[string]struct {
 		plan            *plans.Plan
 		wantWriteErrMsg string
 	}{
-		"error when missing backend data": {
+		"error when missing both backend and state store": {
 			plan: func() *plans.Plan {
 				rawPlan := examplePlanForTest(t)
 				// remove backend from example plan
@@ -79,7 +113,41 @@ func Test_writeTfplan_validation(t *testing.T) {
 				rawPlan.Backend.Config = nil
 				return rawPlan
 			}(),
-			wantWriteErrMsg: "plan does not have a backend configuration",
+			wantWriteErrMsg: "plan does not have a backend or state_store configuration",
+		},
+		"error when got both backend and state store": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// Backend is already set on example plan
+
+				// Add state store in parallel
+				ver, err := version.NewVersion("9.9.9")
+				if err != nil {
+					t.Fatalf("error encountered during test setup: %s", err)
+				}
+				rawPlan.StateStore = plans.StateStore{
+					Type: "foo_bar",
+					Provider: &plans.Provider{
+						Version: ver,
+						Source: &tfaddr.Provider{
+							Hostname:  tfaddr.DefaultProviderRegistryHost,
+							Namespace: "foobar",
+							Type:      "foo",
+						},
+					},
+					Config: mustNewDynamicValue(
+						cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						}),
+						cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						}),
+					),
+					Workspace: "default",
+				}
+				return rawPlan
+			}(),
+			wantWriteErrMsg: "plan contains both backend and state_store configurations, only one is expected",
 		},
 	}
 

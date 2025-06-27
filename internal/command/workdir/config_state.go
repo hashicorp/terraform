@@ -5,15 +5,24 @@ package workdir
 
 import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // ConfigState describes a configuration block, and is used to make that config block stateful.
-type ConfigState[T any] interface {
+type ConfigState interface {
 	Empty() bool
-	Config(*configschema.Block) (cty.Value, error)
-	SetConfig(cty.Value, *configschema.Block) error
-	ForPlan(*configschema.Block, string) (*plans.Backend, error)
+	Config(schema *configschema.Block) (cty.Value, error)
+	SetConfig(val cty.Value, schema *configschema.Block) error
+}
+
+// DeepCopier implementations can return deep copies of themselves for use elsewhere
+// without mutating the original value.
+type DeepCopier[T any] interface {
 	DeepCopy() *T
+}
+
+// PlanDataProvider implementations can return a representation of their data that's
+// appropriate for storing in a plan file.
+type PlanDataProvider[T any] interface {
+	PlanData(schema *configschema.Block, workspaceName string) (*T, error)
 }
