@@ -5,9 +5,6 @@ package configs
 
 import (
 	"fmt"
-	"maps"
-	"slices"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -118,18 +115,18 @@ func (b *StateStore) Hash(schema *configschema.Block) (int, tfdiags.Diagnostics)
 	// The value `b.Config` will include data about the provider block nested inside state_store
 	// so we need to ignore it. PartialDecode allows that 'extra' provider block to be ignored,
 	// but we need to check that's the only thing being ignored.
-	val, leftovers, err := hcldec.PartialDecode(b.Config, spec, nil)
-	if err != nil {
-		return 0, diags.Append(err)
-	}
-	leftoverAttrs, leftoverDiags := leftovers.JustAttributes()
-	if leftoverDiags.HasErrors() {
-		return 0, diags.Append(leftoverDiags)
-	}
-	if len(leftoverAttrs) > 1 || (len(leftoverAttrs) == 1 && leftoverAttrs["provider"] == nil) {
-		extras := slices.Sorted(maps.Keys(leftoverAttrs))
-		extrasList := strings.Join(extras, ", ")
-		return 0, diags.Append(fmt.Errorf("error when creating hash of state_store config: config contained unexpected values: %s", extrasList))
+	val, decodeDiags := hcldec.Decode(b.Config, spec, nil)
+	if decodeDiags.HasErrors() {
+		for _, diag := range decodeDiags {
+			if diag.Detail == "Blocks of type \"provider\" are not expected here." {
+				// We want to tolerate this.
+				continue
+			}
+			diags = diags.Append(diag)
+		}
+		if diags.HasErrors() {
+			return 0, diags
+		}
 	}
 
 	// We're on the happy path, so continue to get the hash
