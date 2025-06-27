@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 
+	"slices"
+
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
@@ -49,12 +51,7 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 
 func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
 	checkOpts := func(target plans.Quality) bool {
-		for _, opt := range opts {
-			if opt == target {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(opts, target)
 	}
 
 	diffs := precomputeDiffs(plan, mode)

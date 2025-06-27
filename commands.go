@@ -445,6 +445,12 @@ func initCommands(
 			}, nil
 		}
 
+		Commands["query"] = func() (cli.Command, error) {
+			return &command.QueryCommand{
+				Meta: meta,
+			}, nil
+		}
+
 		Commands["stacks"] = func() (cli.Command, error) {
 			return &command.StacksCommand{
 				Meta: meta,
