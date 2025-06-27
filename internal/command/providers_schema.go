@@ -107,7 +107,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		return 1
 	}
 
-	jsonSchemas, err := jsonprovider.Marshal(schemas)
+	jsonSchemas, err := jsonprovider.Marshal(schemas, c.AllowExperimentalFeatures)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to marshal provider schemas to json: %s", err))
 		return 1
@@ -120,6 +120,6 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 const providersSchemaCommandHelp = `
 Usage: terraform [global options] providers schema -json
 
-  Prints out a json representation of the schemas for all providers used 
+  Prints out a json representation of the schemas for all providers used
   in the current configuration.
 `
