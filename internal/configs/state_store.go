@@ -98,6 +98,11 @@ func (b *StateStore) Hash(schema *configschema.Block) int {
 	// hash them as nulls.
 	schema = schema.NoneRequired()
 	spec := schema.DecoderSpec()
+
+	// The value `b.Config` will include data about the provider block nested inside state_store, but
+	// the `schema` parameter should be the state store's schema only, and not include a provider block.
+	// Therefore the decoded value below will not include provider information, and the provider will
+	// not impact the hash.
 	val, _ := hcldec.Decode(b.Config, spec, nil)
 	if val == cty.NilVal {
 		val = cty.UnknownVal(schema.ImpliedType())
