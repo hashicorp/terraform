@@ -5,6 +5,7 @@ package workdir
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	version "github.com/hashicorp/go-version"
@@ -85,6 +86,9 @@ func (s *StateStoreConfigState) Config(schema *configschema.Block) (cty.Value, e
 // An error is returned if the given value does not conform to the implied
 // type of the schema.
 func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Block) error {
+	if s == nil {
+		return errors.New("SetConfig called on nil StateStoreConfigState receiver")
+	}
 	ty := schema.ImpliedType()
 	buf, err := ctyjson.Marshal(val, ty)
 	if err != nil {
