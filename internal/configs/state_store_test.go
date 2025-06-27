@@ -84,4 +84,41 @@ func TestStateStore_Hash(t *testing.T) {
 			hashWithProvider,
 			hashWithoutProvider)
 	}
+
+	// If the provider mistakenly described the provider block in the state store's schema
+	// the hashes would differ
+	incorrectSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"path": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"workspace_dir": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"provider": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	}
+
+	hashWithProvider = sWithProvider.Hash(incorrectSchema)
+	hashWithoutProvider = sWithoutProvider.Hash(incorrectSchema)
+
+	if hashWithProvider == hashWithoutProvider {
+		t.Fatalf("expected presence of provider config to impact the hash created for a state store, but they match:\n hash with provider: %d\n hash without provider: %d",
+			hashWithProvider,
+			hashWithoutProvider)
+	}
 }
