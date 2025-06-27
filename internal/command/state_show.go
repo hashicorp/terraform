@@ -155,7 +155,7 @@ func (c *StateShowCommand) Run(args []string) int {
 		ProviderFormatVersion: jsonprovider.FormatVersion,
 		RootModule:            root,
 		RootModuleOutputs:     outputs,
-		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 	}
 
 	renderer := jsonformat.Renderer{
@@ -195,11 +195,11 @@ func (c *StateShowCommand) Synopsis() string {
 const errNoInstanceFound = `No instance found for the given address!
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "terraform state list". Please modify
 the address to reference a specific instance.`
 
 const errParsingAddress = `Error parsing instance address: %s
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "terraform state list". Please modify
 the address to reference a specific instance.`

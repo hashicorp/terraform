@@ -110,7 +110,7 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 		OutputChanges:         outputs,
 		ResourceChanges:       changed,
 		ResourceDrift:         drift,
-		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 		RelevantAttributes:    attrs,
 	}
 

@@ -88,7 +88,7 @@ func TestState(t *testing.T) {
 				RootModule:            root,
 				RootModuleOutputs:     outputs,
 				ProviderFormatVersion: jsonprovider.FormatVersion,
-				ProviderSchemas:       jsonprovider.MarshalForRenderer(tt.Schemas),
+				ProviderSchemas:       jsonprovider.MarshalForRenderer(tt.Schemas, false),
 			})
 
 			result := done(t).All()

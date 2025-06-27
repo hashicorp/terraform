@@ -83,7 +83,7 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 			OutputChanges:         outputs,
 			ResourceChanges:       changed,
 			ResourceDrift:         drift,
-			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 			RelevantAttributes:    attrs,
 		}
 
@@ -112,7 +112,7 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 			ProviderFormatVersion: jsonprovider.FormatVersion,
 			RootModule:            root,
 			RootModuleOutputs:     outputs,
-			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 		}
 
 		renderer.RenderHumanState(jstate)

@@ -27,6 +27,7 @@ type Provider struct {
 	ResourceSchemas          map[string]*Schema                         `json:"resource_schemas,omitempty"`
 	DataSourceSchemas        map[string]*Schema                         `json:"data_source_schemas,omitempty"`
 	EphemeralResourceSchemas map[string]*Schema                         `json:"ephemeral_resource_schemas,omitempty"`
+	ListResourceSchemas      map[string]*Schema                         `json:"list_resource_schemas,omitempty"`
 	Functions                map[string]*jsonfunction.FunctionSignature `json:"functions,omitempty"`
 	ResourceIdentitySchemas  map[string]*IdentitySchema                 `json:"resource_identity_schemas,omitempty"`
 }
@@ -43,23 +44,23 @@ func newProviders() *Providers {
 // schema into the public structured JSON versions.
 //
 // This is a format that can be read by the structured plan renderer.
-func MarshalForRenderer(s *terraform.Schemas) map[string]*Provider {
+func MarshalForRenderer(s *terraform.Schemas, includeExperimentalSchemas bool) map[string]*Provider {
 	schemas := make(map[string]*Provider, len(s.Providers))
 	for k, v := range s.Providers {
-		schemas[k.String()] = marshalProvider(v)
+		schemas[k.String()] = marshalProvider(v, includeExperimentalSchemas)
 	}
 	return schemas
 }
 
-func Marshal(s *terraform.Schemas) ([]byte, error) {
+func Marshal(s *terraform.Schemas, includeExperimentalSchemas bool) ([]byte, error) {
 	providers := newProviders()
-	providers.Schemas = MarshalForRenderer(s)
+	providers.Schemas = MarshalForRenderer(s, includeExperimentalSchemas)
 	ret, err := json.Marshal(providers)
 	return ret, err
 }
 
-func marshalProvider(tps providers.ProviderSchema) *Provider {
-	return &Provider{
+func marshalProvider(tps providers.ProviderSchema, includeExperimentalSchemas bool) *Provider {
+	p := &Provider{
 		Provider:                 marshalSchema(tps.Provider),
 		ResourceSchemas:          marshalSchemas(tps.ResourceTypes),
 		DataSourceSchemas:        marshalSchemas(tps.DataSources),
@@ -67,4 +68,10 @@ func marshalProvider(tps providers.ProviderSchema) *Provider {
 		Functions:                jsonfunction.MarshalProviderFunctions(tps.Functions),
 		ResourceIdentitySchemas:  marshalIdentitySchemas(tps.ResourceTypes),
 	}
+
+	if includeExperimentalSchemas {
+		p.ListResourceSchemas = marshalSchemas(tps.ListResourceTypes)
+	}
+
+	return p
 }
