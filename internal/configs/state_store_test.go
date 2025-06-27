@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -36,7 +37,7 @@ func TestStateStore_Hash(t *testing.T) {
 	//   }
 	// }
 
-	// schema from GetProviderSchema for the given state store
+	// Normally this schema would come from a provider's GetProviderSchema data
 	goodSchema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"path": {
@@ -57,27 +58,23 @@ func TestStateStore_Hash(t *testing.T) {
 	}{
 		"Hash method ignores the provider block in config data": {
 			schema: goodSchema,
-			config: SynthBody("TestStateStore_Hash", map[string]cty.Value{
-				"provider": cty.ObjectVal(map[string]cty.Value{
-					"foo": cty.StringVal("bar"),
-				}),
-
-				"path":          cty.StringVal("mystate.tfstate"),
-				"workspace_dir": cty.StringVal("foobar"),
-			}),
+			config: configBodyForTest(t, `
+					provider "foobar" {
+					  foo = "bar"
+					}
+					path          = "mystate.tfstate"
+					workspace_dir = "foobar"`),
 		},
 		"Hash method returns errors when the config contains non-provider things that aren't in the schema": {
 			schema: goodSchema,
-			config: SynthBody("TestStateStore_Hash", map[string]cty.Value{
-				"unexpected_block": cty.ObjectVal(map[string]cty.Value{
-					"foo": cty.StringVal("bar"),
-				}),
-				"unexpected_attr": cty.StringVal("mystate.tfstate"),
-
-				"path":          cty.StringVal("mystate.tfstate"),
-				"workspace_dir": cty.StringVal("foobar"),
-			}),
-			wantErrorString: "config contained unexpected values: unexpected_attr, unexpected_block",
+			config: configBodyForTest(t, `
+					unexpected_block {
+					  foo = "bar"
+					}
+					unexpected_attr = "foobar"
+					path          = "mystate.tfstate"
+					workspace_dir = "foobar"`),
+			wantErrorString: "Unsupported argument",
 		},
 		"Hash method returns an error if the schema includes a provider block": {
 			schema: &configschema.Block{
@@ -95,11 +92,12 @@ func TestStateStore_Hash(t *testing.T) {
 					},
 				},
 			},
-			config: SynthBody("TestStateStore_Hash", map[string]cty.Value{
-				// no provider block here
-				"path":          cty.StringVal("mystate.tfstate"),
-				"workspace_dir": cty.StringVal("foobar"),
-			}),
+			config: configBodyForTest(t, `
+					provider "foobar" {
+					  foo = "bar"
+					}
+					path          = "mystate.tfstate"
+					workspace_dir = "foobar"`),
 			wantErrorString: "schema contains a provider block",
 		},
 		"Hash method returns an error if the schema includes a provider attribute": {
@@ -111,11 +109,12 @@ func TestStateStore_Hash(t *testing.T) {
 					},
 				},
 			},
-			config: SynthBody("TestStateStore_Hash", map[string]cty.Value{
-				// no provider block here
-				"path":          cty.StringVal("mystate.tfstate"),
-				"workspace_dir": cty.StringVal("foobar"),
-			}),
+			config: configBodyForTest(t, `
+					provider "foobar" {
+					  foo = "bar"
+					}
+					path          = "mystate.tfstate"
+					workspace_dir = "foobar"`),
 			wantErrorString: "schema contains a provider attribute",
 		},
 	}
@@ -138,4 +137,13 @@ func TestStateStore_Hash(t *testing.T) {
 			}
 		})
 	}
+}
+
+func configBodyForTest(t *testing.T, config string) hcl.Body {
+	t.Helper()
+	f, diags := hclsyntax.ParseConfig([]byte(config), "", hcl.Pos{Line: 1, Column: 1})
+	if diags.HasErrors() {
+		t.Fatalf("failure creating hcl.Body during test setup")
+	}
+	return f.Body
 }
