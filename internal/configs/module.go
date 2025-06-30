@@ -899,20 +899,15 @@ func (m *Module) gatherProviderLocalNames() {
 func (m *Module) resolveStateStoreProviderType() hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	// We intentionally don't look for entries in required_providers under different local names and match them
-	// Users should use the same local name in the nested provider block as in required_providers.
-	addr, ok := m.ProviderRequirements.RequiredProviders[m.StateStore.Provider.Name]
-	if !ok {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing entry in required_providers",
-			Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for %s (%q)",
-				m.StateStore.Provider.Name,
-				m.StateStore.ProviderAddr),
-			Subject: &m.StateStore.DeclRange,
-		})
+	providerType, typeDiags := resolveStateStoreProviderType(m.ProviderRequirements.RequiredProviders,
+		*m.StateStore)
+
+	if typeDiags.HasErrors() {
+		diags = append(diags, typeDiags...)
+		return diags
 	}
-	m.StateStore.ProviderAddr = addr.Type
+
+	m.StateStore.ProviderAddr = providerType
 	return diags
 }
 
