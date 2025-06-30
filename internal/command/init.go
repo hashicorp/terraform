@@ -467,10 +467,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		if root.StateStore.ProviderAddr.IsZero() {
-			// this should never happen
-
-			// TODO (SarahFrench/radeksimko): handle implied builtin provider address
-			panic("unknown provider for state store")
+			// This should not happen; this data is populated when parsing config,
+			// even for builtin providers
+			panic(fmt.Sprintf("unknown provider while beginning to initialize state store %q from provider %q",
+				root.StateStore.Type,
+				root.StateStore.Provider.Name))
 		}
 
 		var exists bool
