@@ -316,6 +316,34 @@ func (o *offlineProvider) DeleteState(providers.DeleteStateRequest) providers.De
 	}
 }
 
+// PlanAction implements providers.Interface.
+func (o *offlineProvider) PlanAction(request providers.PlanActionRequest) providers.PlanActionResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called PlanAction on an unconfigured provider",
+		"Cannot plan this action because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.PlanActionResponse{
+		Diagnostics: diags,
+	}
+}
+
+// InvokeAction implements providers.Interface.
+func (o *offlineProvider) InvokeAction(request providers.InvokeActionRequest) providers.InvokeActionResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called InvokeAction on an unconfigured provider",
+		"Cannot invoke this action because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.InvokeActionResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (o *offlineProvider) Close() error {
 	// pass the close call to the underlying unconfigured client
 	return o.unconfiguredClient.Close()

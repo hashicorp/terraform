@@ -138,6 +138,14 @@ func (provider *mockProvider) DeleteState(req providers.DeleteStateRequest) prov
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) InvokeAction(_ providers.InvokeActionRequest) providers.InvokeActionResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) Close() error {
 	return nil // do nothing
 }
