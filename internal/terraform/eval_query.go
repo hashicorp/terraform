@@ -15,10 +15,11 @@ const defaultQueryLimit = int64(100)
 // newLimitEvaluator returns an evaluator for the limit expression within a list block.
 func newLimitEvaluator(allowUnknown bool) *ExprEvaluator[cty.Type, int64] {
 	return &ExprEvaluator[cty.Type, int64]{
-		cType:        cty.Number,
-		defaultValue: defaultQueryLimit,
-		argName:      "limit",
-		allowUnknown: allowUnknown,
+		cType:          cty.Number,
+		defaultValue:   defaultQueryLimit,
+		argName:        "limit",
+		allowUnknown:   allowUnknown,
+		allowEphemeral: true, // No reason to disallow ephemeral values here
 		validateGoValue: func(expr hcl.Expression, val int64) tfdiags.Diagnostics {
 			var diags tfdiags.Diagnostics
 			if val < 0 {
@@ -38,9 +39,10 @@ func newLimitEvaluator(allowUnknown bool) *ExprEvaluator[cty.Type, int64] {
 // newIncludeRscEvaluator returns an evaluator for the include_resource expression.
 func newIncludeRscEvaluator(allowUnknown bool) *ExprEvaluator[cty.Type, bool] {
 	return &ExprEvaluator[cty.Type, bool]{
-		cType:        cty.Bool,
-		defaultValue: false,
-		argName:      "include_resource",
-		allowUnknown: allowUnknown,
+		cType:          cty.Bool,
+		defaultValue:   false,
+		argName:        "include_resource",
+		allowUnknown:   allowUnknown,
+		allowEphemeral: true, // No reason to disallow ephemeral values here
 	}
 }
