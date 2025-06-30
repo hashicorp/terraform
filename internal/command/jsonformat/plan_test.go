@@ -7899,7 +7899,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				return
 			}
 
-			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas)
+			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas, false)
 			change := structured.FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher())
 			renderer := Renderer{Colorize: color}
 			diff := diff{
@@ -8249,7 +8249,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 			}
 
 			renderer := Renderer{Colorize: color}
-			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema)
+			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema, false)
 			diffs := precomputeDiffs(Plan{
 				DeferredChanges: deferredChanges,
 				ProviderSchemas: jsonschemas,
