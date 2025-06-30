@@ -766,7 +766,32 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	case stateStoreConfig == nil && !s.StateStore.Empty() &&
 		backendConfig == nil && s.Backend.Empty():
 		// TODO (SarahFrench/radeksimko)
-		return nil, diags
+		log.Printf("[TRACE] Meta.Backend: previously-initialized state_store %q in provider %s (%q) is no longer present in config",
+			s.StateStore.Type,
+			s.StateStore.Provider.Source.Type,
+			s.StateStore.Provider.Source,
+		)
+
+		if !opts.Init {
+			initReason := fmt.Sprintf("Unsetting the previously set state_store %q in provider %s (%q)",
+				s.StateStore.Type,
+				s.StateStore.Provider.Source.Type,
+				s.StateStore.Provider.Source,
+			)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Backend initialization required, please run \"terraform init\"",
+				fmt.Sprintf(strings.TrimSpace(errStateStoreInit), initReason),
+			))
+			return nil, diags
+		}
+
+		if !m.migrateState {
+			diags = diags.Append(migrateOrReconfigDiag)
+			return nil, diags
+		}
+
+		return m.stateStore_c_S(stateStoreConfig, cHash, sMgr, true, opts)
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -798,13 +823,15 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to state_store %q in provider %s (%q)",
 			stateStoreConfig.Type,
 			stateStoreConfig.Provider.Name,
-			stateStoreConfig.ProviderAddr)
+			stateStoreConfig.ProviderAddr,
+		)
 
 		if !opts.Init {
 			initReason := fmt.Sprintf("Initial configuration of the requested state_store %q in provider %s (%q)",
 				stateStoreConfig.Type,
 				stateStoreConfig.Provider.Name,
-				stateStoreConfig.ProviderAddr)
+				stateStoreConfig.ProviderAddr,
+			)
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"State store initialization required, please run \"terraform init\"",
@@ -1647,6 +1674,73 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	return b, diags
 }
 
+func (m *Meta) stateStore_c_S(
+	c *configs.StateStore, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+
+	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
+
+	s := sMgr.State()
+
+	m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputStateStoreMigrateLocal), s.StateStore.Type, s.StateStore.Provider.Source.Type, s.StateStore.Provider.Source))
+
+	// Grab a purely local backend to get the local state if it exists
+	localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Initialize the configured state store
+	b, moreDiags := m.savedStateStore(sMgr, c, opts)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Perform the migration
+	err := m.backendMigrateState(&backendMigrateOpts{
+		SourceType:      s.StateStore.Type,
+		DestinationType: "local",
+		Source:          b,
+		Destination:     localB,
+		ViewType:        vt,
+	})
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	// Get state store type for final UI output
+	stateStoreType := s.StateStore.Type
+
+	// Remove the stored metadata
+	s.StateStore = nil
+	if err := sMgr.WriteState(s); err != nil {
+		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errStateStoreClearSaved), err))
+		return nil, diags
+	}
+	if err := sMgr.PersistState(); err != nil {
+		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errStateStoreClearSaved), err))
+		return nil, diags
+	}
+
+	if output {
+		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+			"[reset][green]\n\n"+
+				strings.TrimSpace(successStateStoreUnset), stateStoreType)))
+	}
+
+	// Return no backend
+	return nil, diags
+}
+
 // Initializing a saved backend from the cache file (legacy state file)
 //
 // TODO: This is extremely similar to Meta.backendFromState() but for legacy reasons this is the
@@ -1702,6 +1796,152 @@ func (m *Meta) savedBackend(sMgr *clistate.LocalState) (backend.Backend, tfdiags
 			return nil, diags
 		}
 	}
+
+	return b, diags
+}
+
+func (m *Meta) savedStateStore(sMgr *clistate.LocalState, config *configs.StateStore, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+	// We're preparing a state_store version of backend.Backend.
+	//
+	// The provider will be configured whatever config is available.
+	// The state store will be configured using the backend state file.
+
+	var diags tfdiags.Diagnostics
+	var b backend.Backend
+
+	s := sMgr.State()
+
+	provider, err := opts.ProvidersFactory()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
+		return nil, diags
+	}
+	// We purposefully don't have a deferred call to the provider's Close method here because the calling code needs a
+	// running provider instance inside the returned backend.Backend instance.
+	// Stopping the provider process is the responsibility of the calling code.
+
+	resp := provider.GetProviderSchema()
+
+	if len(resp.StateStores) == 0 {
+		// No source as we're working from backend state file data; may not be a match in config.
+		diags = diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider does not support pluggable state storage",
+				fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+					s.StateStore.Provider.Source.Type,
+					s.StateStore.Provider.Source),
+			),
+		)
+		return nil, diags
+	}
+
+	schema, exists := resp.StateStores[s.StateStore.Type]
+	if !exists {
+		suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+		suggestion := didyoumean.NameSuggestion(s.StateStore.Type, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+		// No source as we're working from backend state file data; may not be a match in config.
+		diags = diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+
+				"State store not implemented by the provider",
+				fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+					s.StateStore.Type, s.StateStore.Provider.Source.Type,
+					s.StateStore.Provider.Source, suggestion),
+			),
+		)
+		return nil, diags
+	}
+
+	// Configure the provider with config, if available
+	var providerConfigVal cty.Value
+	if config != nil {
+		pDecSpec := resp.Provider.Body.DecoderSpec() // TODO (SarahFrench/radeksimko) - impact of not using .NoneRequired here w.r.t prompting for input?
+		var pDecDiags hcl.Diagnostics
+		providerConfigVal, pDecDiags = hcldec.Decode(config.Provider.Config, pDecSpec, nil)
+		diags = diags.Append(pDecDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+	} else {
+		providerConfigVal = cty.NullVal(providerConfigVal.Type())
+	}
+
+	if !providerConfigVal.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unknown values within state_store's nested provider block",
+			"The `terraform` configuration block should contain only concrete and static values. Another diagnostic should contain more information about which part of the configuration is problematic."))
+		return nil, diags
+	}
+
+	// TODO (SarahFrench/radeksimko) - do we ask for input for missing required values in the provider block?
+
+	// Get the state store config from the backend state file.
+	stateStoreConfigVal, err := s.StateStore.Config(schema.Body)
+	if err != nil {
+		diags = diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Error reading state store configuration state",
+				fmt.Sprintf("The state store %s in the provider %s (%q)",
+					s.StateStore.Provider.Source.Type,
+					s.StateStore.Provider.Source,
+				),
+			),
+		)
+		return nil, diags
+	}
+
+	// Validate and configure the provider
+
+	// TODO (SarahFrench/radeksimko) : deal with marks
+	validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+		Config: providerConfigVal,
+	})
+	diags = diags.Append(validateResp.Diagnostics)
+	if validateResp.Diagnostics.HasErrors() {
+		return nil, diags
+	}
+
+	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
+		// TODO TerraformVersion: ,
+		Config: validateResp.PreparedConfig,
+		// TODO ClientCapabilities: ,
+	})
+	diags = diags.Append(configureResp.Diagnostics)
+	if configureResp.Diagnostics.HasErrors() {
+		return nil, diags
+	}
+
+	// Validate Store Config
+	// TODO (SarahFrench/radeksimko) : deal with marks
+	validateStoreResp := provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
+		TypeName: s.StateStore.Type,
+		Config:   stateStoreConfigVal,
+	})
+	diags = diags.Append(validateStoreResp.Diagnostics)
+	if validateStoreResp.Diagnostics.HasErrors() {
+		return nil, diags
+	}
+
+	// Configure State Store
+	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
+		TypeName: s.StateStore.Type,
+		Config:   stateStoreConfigVal,
+	})
+	diags = diags.Append(cfgStoreResp.Diagnostics)
+	if cfgStoreResp.Diagnostics.HasErrors() {
+		return nil, diags
+	}
+
+	// Now we have a fully configured state store, ready to be used.
+	// To make it usable we need to return it in a backend.Backend interface.
+	b = pluggableState.NewPluggable(provider, s.StateStore.Type)
 
 	return b, diags
 }
@@ -2157,6 +2397,15 @@ use the backend configuration. Please look at the error above, resolve it,
 and try again.
 `
 
+const errStateStoreClearSaved = `
+Error clearing the state store configuration: %s
+
+Terraform removes the saved state store configuration when you're removing a
+configured state store. This must be done so future Terraform runs know to not
+use the state store configuration. Please look at the error above, resolve it,
+and try again.
+`
+
 const errBackendInit = `
 Reason: %s
 
@@ -2229,6 +2478,11 @@ const outputBackendMigrateLocal = `
 Terraform has detected you're unconfiguring your previously set %q backend.
 `
 
+const outputStateStoreMigrateLocal = `
+Terraform has detected you're unconfiguring your previously set %q state store
+using provider %s (%q).
+`
+
 const outputBackendReconfigure = `
 [reset][bold]Backend configuration changed![reset]
 
@@ -2249,6 +2503,10 @@ const successBackendUnset = `
 Successfully unset the backend %q. Terraform will now operate locally.
 `
 
+const successStateStoreUnset = `
+Successfully unset the state store %q. Terraform will now operate locally.
+`
+
 const successBackendSet = `
 Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.
@@ -2256,7 +2514,7 @@ use this backend unless the backend configuration changes.
 
 var migrateOrReconfigDiag = tfdiags.Sourceless(
 	tfdiags.Error,
-	"Backend configuration changed",
-	"A change in the backend configuration has been detected, which may require migrating existing state.\n\n"+
+	"Backend or state store configuration changed",
+	"A change in the backend or state store configuration has been detected, which may require migrating existing state.\n\n"+
 		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
 		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
