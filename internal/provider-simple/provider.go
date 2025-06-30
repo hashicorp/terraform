@@ -49,6 +49,7 @@ func Provider() providers.Interface {
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
+			Actions: map[string]providers.ActionSchema{},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
 			},
@@ -223,6 +224,18 @@ func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigR
 
 func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	panic("not implemented")
+}
+
+func (s simple) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("PlanAction on provider that didn't declare any actions")
+}
+
+func (s simple) InvokeAction(providers.InvokeActionRequest) providers.InvokeActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("InvokeAction on provider that didn't declare any actions")
 }
 
 func (s simple) Close() error {
