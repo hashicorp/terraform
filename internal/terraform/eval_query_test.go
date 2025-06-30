@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -31,6 +32,11 @@ func TestEvaluateLimitExpression(t *testing.T) {
 		"zero": {
 			expr:      hcltest.MockExprLiteral(cty.NumberIntVal(0)),
 			result:    0,
+			wantError: false,
+		},
+		"ephemeral": {
+			expr:      hcltest.MockExprLiteral(cty.NumberIntVal(5).Mark(marks.Ephemeral)),
+			result:    5,
 			wantError: false,
 		},
 		"negative integer": {
@@ -105,6 +111,11 @@ func TestEvaluateIncludeResourceExpression(t *testing.T) {
 		"false value": {
 			expr:      hcltest.MockExprLiteral(cty.False),
 			result:    false,
+			wantError: false,
+		},
+		"ephemeral true value": {
+			expr:      hcltest.MockExprLiteral(cty.True.Mark(marks.Ephemeral)),
+			result:    true,
 			wantError: false,
 		},
 		"null value": {
