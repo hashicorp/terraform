@@ -291,6 +291,15 @@ type ValidateListResourceConfigRequest struct {
 	// Config is the configuration value to validate, which may contain unknown
 	// values.
 	Config cty.Value
+
+	// IncludeResourceObject is the value of the include_resource
+	// argument in the list block. This is a cty value so that it can
+	// contain unknown values.
+	IncludeResourceObject cty.Value
+
+	// Limit is the maximum number of results to return. This is a
+	// cty value so that it can contain unknown values.
+	Limit cty.Value
 }
 
 type ValidateListResourceConfigResponse struct {

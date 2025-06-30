@@ -52,27 +52,29 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
-	validateResp := provider.ValidateListResourceConfig(
-		providers.ValidateListResourceConfigRequest{
-			TypeName: n.Config.Type,
-			Config:   unmarkedBlockVal,
-		},
-	)
-	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	limit, limitDiags := evaluateLimitExpression(config.List.Limit, ctx)
+	limitCty, limit, limitDiags := newLimitEvaluator(false).EvaluateExpr(ctx, config.List.Limit)
 	diags = diags.Append(limitDiags)
 	if limitDiags.HasErrors() {
 		return diags
 	}
 
-	includeResource, includeDiags := evaluateIncludeResourceExpression(config.List.IncludeResource, ctx)
+	includeRscCty, includeRsc, includeDiags := newIncludeRscEvaluator(false).EvaluateExpr(ctx, config.List.IncludeResource)
 	diags = diags.Append(includeDiags)
 	if includeDiags.HasErrors() {
+		return diags
+	}
+
+	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
+	validateResp := provider.ValidateListResourceConfig(
+		providers.ValidateListResourceConfigRequest{
+			TypeName:              n.Config.Type,
+			Config:                unmarkedBlockVal,
+			IncludeResourceObject: includeRscCty,
+			Limit:                 limitCty,
+		},
+	)
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
 		return diags
 	}
 
@@ -82,7 +84,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		TypeName:              n.Config.Type,
 		Config:                unmarkedBlockVal,
 		Limit:                 limit,
-		IncludeResourceObject: includeResource,
+		IncludeResourceObject: includeRsc,
 	})
 	if resp.Diagnostics != nil {
 		return diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
