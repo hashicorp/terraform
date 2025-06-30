@@ -50,25 +50,13 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
-	validateResp := provider.ValidateListResourceConfig(
-		providers.ValidateListResourceConfigRequest{
-			TypeName: n.Config.Type,
-			Config:   unmarkedBlockVal,
-		},
-	)
-	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	limit, limitDiags := evaluateLimitExpression(config.List.Limit, ctx)
+	limitCty, limit, limitDiags := newLimitEvaluator(false).EvaluateExpr(ctx, config.List.Limit)
 	diags = diags.Append(limitDiags)
 	if limitDiags.HasErrors() {
 		return diags
 	}
 
-	includeResource, includeDiags := evaluateIncludeResourceExpression(config.List.IncludeResource, ctx)
+	includeRscCty, includeRsc, includeDiags := newIncludeRscEvaluator(false).EvaluateExpr(ctx, config.List.IncludeResource)
 	diags = diags.Append(includeDiags)
 	if includeDiags.HasErrors() {
 		return diags
@@ -81,13 +69,28 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
 	})
+
+	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
+	validateResp := provider.ValidateListResourceConfig(
+		providers.ValidateListResourceConfigRequest{
+			TypeName:              n.Config.Type,
+			Config:                unmarkedBlockVal,
+			IncludeResourceObject: includeRscCty,
+			Limit:                 limitCty,
+		},
+	)
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
+	}
+
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
 	resp := provider.ListResource(providers.ListResourceRequest{
 		TypeName:              n.Config.Type,
 		Config:                unmarkedBlockVal,
 		Limit:                 limit,
-		IncludeResourceObject: includeResource,
+		IncludeResourceObject: includeRsc,
 	})
 	results := plans.QueryResults{
 		Value: resp.Result,

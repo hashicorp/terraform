@@ -13,9 +13,10 @@ import (
 
 func TestEvaluateLimitExpression(t *testing.T) {
 	tests := map[string]struct {
-		expr      hcl.Expression
-		result    int64
-		wantError bool
+		expr         hcl.Expression
+		result       int64
+		wantError    bool
+		allowUnknown bool
 	}{
 		"nil expression returns default": {
 			expr:      nil,
@@ -47,6 +48,12 @@ func TestEvaluateLimitExpression(t *testing.T) {
 			result:    100,
 			wantError: true,
 		},
+		"unknown value (allowed)": {
+			expr:         hcltest.MockExprLiteral(cty.UnknownVal(cty.Number)),
+			result:       100,
+			wantError:    false,
+			allowUnknown: true,
+		},
 		"wrong type": {
 			expr:      hcltest.MockExprLiteral(cty.StringVal("foo")),
 			result:    100,
@@ -59,9 +66,14 @@ func TestEvaluateLimitExpression(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
 
-			got, diags := evaluateLimitExpression(tc.expr, ctx)
-			if got != tc.result {
-				t.Errorf("got %d, want %d", got, tc.result)
+			_, derived, diags := newLimitEvaluator(tc.allowUnknown).EvaluateExpr(ctx, tc.expr)
+			if !tc.wantError && diags.HasErrors() {
+				t.Errorf("unexpected error: %v", diags.Err())
+				return
+			}
+
+			if derived != tc.result {
+				t.Errorf("got %v, want %v", derived, tc.result)
 			}
 			if tc.wantError && !diags.HasErrors() {
 				t.Errorf("expected error but got none")
@@ -75,9 +87,10 @@ func TestEvaluateLimitExpression(t *testing.T) {
 
 func TestEvaluateIncludeResourceExpression(t *testing.T) {
 	tests := map[string]struct {
-		expr      hcl.Expression
-		result    bool
-		wantError bool
+		expr         hcl.Expression
+		result       bool
+		wantError    bool
+		allowUnknown bool
 	}{
 		"nil expression returns false": {
 			expr:      nil,
@@ -104,6 +117,12 @@ func TestEvaluateIncludeResourceExpression(t *testing.T) {
 			result:    false,
 			wantError: true,
 		},
+		"unknown value (allowed)": {
+			expr:         hcltest.MockExprLiteral(cty.UnknownVal(cty.Bool)),
+			result:       false,
+			wantError:    false,
+			allowUnknown: true,
+		},
 		"wrong type": {
 			expr:      hcltest.MockExprLiteral(cty.NumberIntVal(1)),
 			result:    false,
@@ -116,9 +135,13 @@ func TestEvaluateIncludeResourceExpression(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
 
-			got, diags := evaluateIncludeResourceExpression(tc.expr, ctx)
-			if got != tc.result {
-				t.Errorf("got %v, want %v", got, tc.result)
+			_, derived, diags := newIncludeRscEvaluator(tc.allowUnknown).EvaluateExpr(ctx, tc.expr)
+			if !tc.wantError && diags.HasErrors() {
+				t.Errorf("unexpected error: %v", diags.Err())
+				return
+			}
+			if derived != tc.result {
+				t.Errorf("got %v, want %v", derived, tc.result)
 			}
 			if tc.wantError && !diags.HasErrors() {
 				t.Errorf("expected error but got none")
