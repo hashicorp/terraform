@@ -795,7 +795,24 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Configuring a state store for the first time or -reconfigure flag was used
 	case stateStoreConfig != nil && s.StateStore.Empty() &&
 		backendConfig == nil && s.Backend.Empty():
-		// TODO (SarahFrench/radeksimko)
+		log.Printf("[TRACE] Meta.Backend: moving from default local state only to state_store %q in provider %s (%q)",
+			stateStoreConfig.Type,
+			stateStoreConfig.Provider.Name,
+			stateStoreConfig.ProviderAddr)
+
+		if !opts.Init {
+			initReason := fmt.Sprintf("Initial configuration of the requested state_store %q in provider %s (%q)",
+				stateStoreConfig.Type,
+				stateStoreConfig.Provider.Name,
+				stateStoreConfig.ProviderAddr)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"State store initialization required, please run \"terraform init\"",
+				fmt.Sprintf(strings.TrimSpace(errStateStoreInit), initReason),
+			))
+			return nil, diags
+		}
+
 		return m.stateStore_C_s(stateStoreConfig, cHash, sMgr, opts)
 
 	// Potentially changing a backend configuration
@@ -1559,7 +1576,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	} else {
 		pLock := opts.Locks.Provider(c.ProviderAddr)
 		if pLock == nil {
-			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q: %w",
+			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported: %w",
 				c.Provider.Name,
 				c.ProviderAddr,
 				c.Type,
@@ -1569,7 +1586,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 		var err error
 		pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
 		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q: %w",
+			diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
 				c.Provider.Name,
 				c.ProviderAddr,
 				c.Type,
@@ -1594,11 +1611,15 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	if opts.Init && b != nil {
 		err := m.selectWorkspace(b)
 		if strings.Contains(err.Error(), "No existing workspaces") {
-			// Make the default workspace
-			// TODO (SarahFrench/radeksimko) - this could be moved inside selectWorkspace in future?
+			// Make the default workspace. All other workspaces are user-created via the workspace commands.
 			bStateMgr, err := b.StateMgr(backend.DefaultStateName)
 			if err != nil {
-				panic(err)
+				diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
+					c.Type,
+					c.Provider.Name,
+					c.ProviderAddr,
+					err))
+				return nil, diags
 			}
 			emptyState := states.NewState()
 			if err := bStateMgr.WriteState(emptyState); err != nil {
@@ -2154,6 +2175,24 @@ hasn't changed and try again. At this point, no changes to your existing
 configuration or state have been made.
 `
 
+const errStateStoreInit = `
+Reason: %s
+
+The "state store" is the interface that Terraform uses to store state when
+performing operations on the local machine. If this message is showing up,
+it means that the Terraform configuration you're using is using a custom
+configuration for state storage in Terraform.
+
+Changes to state store configurations require reinitialization. This allows
+Terraform to set up the new configuration, copy existing state, etc. Please run
+"terraform init" with either the "-reconfigure" or "-migrate-state" flags to
+use the current configuration.
+
+If the change reason above is incorrect, please verify your configuration
+hasn't changed and try again. At this point, no changes to your existing
+configuration or state have been made.
+`
+
 const errBackendInitCloud = `
 Reason: %s.
 
@@ -2177,7 +2216,9 @@ above, resolve it, and try again.
 const errStateStoreWorkspaceCreate = `
 Error creating the default workspace using pluggable state store %s: %s
 
-TODO - more text here!
+This could be a bug in the provider used for state storage, or a bug in
+Terraform. Please file an issue with the provider developers before reporting
+a bug for Terraform.
 `
 
 const outputBackendMigrateChange = `
