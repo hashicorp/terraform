@@ -13,6 +13,7 @@ import (
 
 func TestProviderAddrs(t *testing.T) {
 
+	// Prepare plan
 	plan := &Plan{
 		VariableValues: map[string]DynamicValue{},
 		Changes: &ChangesSrc{
@@ -57,11 +58,12 @@ func TestProviderAddrs(t *testing.T) {
 
 	got := plan.ProviderAddrs()
 	want := []addrs.AbsProviderConfig{
-		addrs.AbsProviderConfig{
+		// Providers used for managed resources
+		{
 			Module:   addrs.RootModule.Child("foo"),
 			Provider: addrs.NewDefaultProvider("test"),
 		},
-		addrs.AbsProviderConfig{
+		{
 			Module:   addrs.RootModule,
 			Provider: addrs.NewDefaultProvider("test"),
 		},

@@ -111,6 +111,10 @@ message Plan {
     // settings at the time the plan was created.
     Backend backend = 13;
 
+    // StateStore is a description of the state_store configuration and other related
+    // settings at the time the plan was created.
+    StateStore state_store = 29;
+
     message resource_attr {
        string resource = 1;
        Path attr= 2;
@@ -138,6 +142,19 @@ message Backend {
     string type = 1;
     DynamicValue config = 2;
     string workspace = 3;
+}
+
+// StateStore is a description of state_store configuration and other related settings.
+message StateStore {
+    string type = 1;
+    DynamicValue config = 2;
+    string workspace = 3;
+    Provider provider = 4;
+}
+
+message Provider {
+    string source = 1;
+    string version = 2;
 }
 
 // Action describes the type of action planned for an object.
