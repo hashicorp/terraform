@@ -17,7 +17,7 @@ import (
 // single HCL expressions of a primitive cty type (boolean, number, or string) T,
 // and converting the result to a primitive Go type U. It also includes validation logic
 // for the evaluated expression, such as checking for null or unknown values.
-type ExprEvaluator[T cty.Type, U comparable] struct {
+type ExprEvaluator[T cty.Type, U interface{ int64 | string | bool }] struct {
 	cType           T
 	defaultValue    U
 	argName         string
