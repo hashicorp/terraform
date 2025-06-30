@@ -51,17 +51,24 @@ import (
 type BackendOpts struct {
 	// BackendConfig is a representation of the backend configuration block given in
 	// the root module, or nil if no such block is present.
-	BackendConfig    *configs.Backend
+	BackendConfig *configs.Backend
+
+	// StateStoreConfig is a representation of the state_store configuration block given in
+	// the root module, or nil if no such block is present.
 	StateStoreConfig *configs.StateStore
 
 	// ProvidersFactory allows operations backend-related code to create instances of the provider
 	// used for pluggable state storage. Each call to the factory creates a new instance, so be
 	// conscious about when to configure and/or close instances in the calling code.
+	//
+	// This will only be set if the configuration contains a state_store block.
 	ProvidersFactory providers.Factory
 
 	// Locks allows state-migration logic to detect when the provider used for pluggable state storage
 	// during the last init (i.e. what's in the backend state file) is mismatched with the provider
 	// version in use currently.
+	//
+	// This will only be set if the configuration contains a state_store block.
 	Locks *depsfile.Locks
 
 	// ConfigOverride is an hcl.Body that, if non-nil, will be used with

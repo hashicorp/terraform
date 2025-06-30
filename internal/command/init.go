@@ -34,7 +34,6 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -440,22 +439,27 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		view.Output(views.InitializingBackendMessage)
 	}
 
-	var backendConfig *configs.Backend
-	var stateStoreConfig *configs.StateStore
-	var configOverride hcl.Body
-	var factory providers.Factory
-	var locks *depsfile.Locks
-	// TODO (SarahFrench/radeksimko): expected mutual exclusive validation to have happened by now
-	if root.StateStore != nil {
-		// TODO (SarahFrench/radeksimko) - cleanup here
-
-		stateStoreConfig = root.StateStore
+	var opts *BackendOpts
+	switch {
+	case root.StateStore != nil && root.Backend != nil:
+		// We expect validation during config parsing to have already identified this,
+		// but checking here just in case.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Conflicting backend and state_store configurations present during init",
+			Detail: fmt.Sprintf("When initializing the backend there was configuration data present for both backend %q and state store %q. This is a bug in Terraform and should be reported.",
+				root.StateStore.Provider.Name,
+				root.StateStore.ProviderAddr,
+				root.StateStore.Type,
+			),
+			Subject: &root.Backend.TypeRange,
+		})
+		return nil, true, diags
+	case root.StateStore != nil:
+		// TODO (SarahFrench/radeksimko) - cleanup here; provider download needs to be moved to a more appropriate place
 
 		// Download providers
-		var providersOutput bool
-		var providersAbort bool
-		var providerDiags tfdiags.Diagnostics
-		providersOutput, providersAbort, locks, providerDiags = c.getProviders(ctx, config, nil, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		providersOutput, providersAbort, locks, providerDiags := c.getProviders(ctx, config, nil, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(providerDiags)
 		if providersAbort || providerDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -463,7 +467,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		// Access provider factories
-		opts, err := c.contextOpts()
+		ctxOpts, err := c.contextOpts()
 		if err != nil {
 			diags = diags.Append(err)
 			return nil, true, diags
@@ -478,7 +482,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		var exists bool
-		factory, exists = opts.Providers[root.StateStore.ProviderAddr]
+		factory, exists := ctxOpts.Providers[root.StateStore.ProviderAddr]
 		if !exists {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -494,6 +498,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		// If overrides supplied by -backend-config CLI flag, process them
+		var configOverride hcl.Body
 		if len(*extraConfig.Items) > 0 {
 
 			// We need to launch an instance of the provider to get the config of the state store for processing any overrides.
@@ -545,7 +550,16 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 			}
 		}
 
-	} else if root.Backend != nil {
+		opts = &BackendOpts{
+			StateStoreConfig: root.StateStore,
+			ProvidersFactory: factory,
+			Locks:            locks,
+			ConfigOverride:   configOverride,
+			Init:             true,
+			ViewType:         viewType,
+		}
+
+	case root.Backend != nil:
 		backendType := root.Backend.Type
 		if backendType == "cloud" {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -575,15 +589,21 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 		b := bf()
 		backendSchema := b.ConfigSchema()
-		backendConfig = root.Backend
+		backendConfig := root.Backend
 
-		var overrideDiags tfdiags.Diagnostics
-		configOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
+		configOverride, overrideDiags := c.backendConfigOverrideBody(extraConfig, backendSchema)
 		diags = diags.Append(overrideDiags)
 		if overrideDiags.HasErrors() {
 			return nil, true, diags
 		}
-	} else {
+
+		opts = &BackendOpts{
+			BackendConfig:  backendConfig,
+			ConfigOverride: configOverride,
+			Init:           true,
+			ViewType:       viewType,
+		}
+	default:
 		// If the user supplied a -backend-config on the CLI but no backend
 		// block was found in the configuration, it's likely - but not
 		// necessarily - a mistake. Return a warning.
@@ -606,18 +626,15 @@ the backend configuration is present and valid.
 `,
 			))
 		}
+
+		opts = &BackendOpts{
+			// No config present to use
+			Init:     true,
+			ViewType: viewType,
+		}
 	}
 
-	opts := &BackendOpts{
-		BackendConfig:    backendConfig,
-		StateStoreConfig: stateStoreConfig,
-		ProvidersFactory: factory,
-		Locks:            locks,
-		ConfigOverride:   configOverride,
-		Init:             true,
-		ViewType:         viewType,
-	}
-
+	// Use opts prepared above to initialize an operations backend with a backend or state store
 	back, backDiags := c.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags
