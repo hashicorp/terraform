@@ -434,8 +434,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	extraConfig := initArgs.BackendConfig
 	viewType := initArgs.ViewType
 
-	// TODO (SarahFrench/radeksimko) - we need appropriate messages for backend vs state_store
-	view.Output(views.InitializingBackendMessage)
+	if root.StateStore != nil {
+		view.Output(views.InitializingStateStoreMessage)
+	} else {
+		view.Output(views.InitializingBackendMessage)
+	}
 
 	var backendConfig *configs.Backend
 	var stateStoreConfig *configs.StateStore

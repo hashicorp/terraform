@@ -182,6 +182,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the backend...",
 		JSONValue:  "Initializing the backend...",
 	},
+	"initializing_state_store_message": {
+		HumanValue: "\n[reset][bold]Initializing the state store...",
+		JSONValue:  "Initializing the state store...",
+	},
 	"initializing_provider_plugin_message": {
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
@@ -258,6 +262,7 @@ const (
 	InitializingTerraformCloudMessage   InitMessageCode = "initializing_terraform_cloud_message"
 	InitializingModulesMessage          InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage          InitMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage       InitMessageCode = "initializing_state_store_message"
 	InitializingProviderPluginMessage   InitMessageCode = "initializing_provider_plugin_message"
 	LockInfo                            InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo         InitMessageCode = "dependencies_lock_changes_info"
@@ -309,7 +314,7 @@ You may now begin working with Terraform. Try running "terraform plan" to see
 any changes that are required for your infrastructure. All Terraform commands
 should now work.
 
-If you ever set or change modules or backend configuration for Terraform,
+If you ever set or change modules, backend configuration or state store configuration for Terraform,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
 `
@@ -319,7 +324,7 @@ You may now begin working with Terraform. Try running "terraform plan" to see
 any changes that are required for your infrastructure. All Terraform commands
 should now work.
 
-If you ever set or change modules or backend configuration for Terraform,
+If you ever set or change modules, backend configuration or state store configuration for Terraform,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
 `
