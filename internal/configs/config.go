@@ -691,7 +691,6 @@ func (c *Config) resolveStateStoreProviderType() hcl.Diagnostics {
 		return diags
 	}
 	c.Root.Module.StateStore.ProviderAddr = addr.Type
-	c.Module.StateStore.ProviderAddr = addr.Type
 	return nil
 }
 
