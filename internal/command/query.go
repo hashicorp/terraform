@@ -20,18 +20,43 @@ type QueryCommand struct {
 func (c *QueryCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] query [options]
-  TBD
-Options:
-  -json                 If specified, machine readable output will be printed in
-                        JSON format
-  -no-color             If specified, output won't contain any color.
-  -var 'foo=bar'        Set a value for one of the input variables in the root
-                        module of the configuration. Use this option more than
+
+  Queries the remote infrastructure for resources.
+
+  Terraform will search for .tfquery.hcl files within the current configuration.
+  Terraform will then use the configured providers to query the remote
+  infrastructure for resources that match the defined list blocks. The results
+  will be printed to the terminal and optionally can be used to generate
+  configuration.
+
+Query Customization Options:
+
+  The following options customize how Terraform will run the query.
+
+  -var 'foo=bar'        Set a value for one of the input variables in the query
+                        file of the configuration. Use this option more than
                         once to set more than one variable.
+
   -var-file=filename    Load variable values from the given file, in addition
                         to the default files terraform.tfvars and *.auto.tfvars.
                         Use this option more than once to include more than one
                         variables file.
+
+Other Options:
+
+  -generate-config-out=path  Instructs Terraform to generate import and resource
+                             blocks for any found results. The configuration is
+                             written to a new file at PATH, which must not
+                             already exist. When this option is used with the
+                             json option, the generated configuration will be
+                             part of the JSON output instead of written to a
+                             file.
+
+  -json                 If specified, machine readable output will be printed in
+                        JSON format
+
+  -no-color             If specified, output won't contain any color.
+
 `
 	return strings.TrimSpace(helpText)
 }
@@ -87,7 +112,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.GenerateConfigPath)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -145,6 +170,7 @@ func (c *QueryCommand) OperationRequest(
 	be backendrun.OperationsBackend,
 	view views.Query,
 	viewType arguments.ViewType,
+	generateConfigOut string,
 ) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -153,6 +179,7 @@ func (c *QueryCommand) OperationRequest(
 	opReq.Hooks = view.Hooks()
 	opReq.ConfigDir = "."
 	opReq.Type = backendrun.OperationTypePlan
+	opReq.GenerateConfigOut = generateConfigOut
 	opReq.View = view.Operation()
 	opReq.Query = true
 

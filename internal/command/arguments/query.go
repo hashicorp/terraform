@@ -16,6 +16,11 @@ type Query struct {
 
 	// ViewType specifies which output format to use: human or JSON.
 	ViewType ViewType
+
+	// GenerateConfigPath tells Terraform that config should be generated for
+	// the found resources in the query and which path the generated file should
+	// be written to.
+	GenerateConfigPath string
 }
 
 func ParseQuery(args []string) (*Query, tfdiags.Diagnostics) {
@@ -27,6 +32,7 @@ func ParseQuery(args []string) (*Query, tfdiags.Diagnostics) {
 	}
 
 	cmdFlags := defaultFlagSet("query")
+	cmdFlags.StringVar(&query.GenerateConfigPath, "generate-config-out", "", "generate-config-out")
 
 	varsFlags := NewFlagNameValueSlice("-var")
 	varFilesFlags := varsFlags.Alias("-var-file")

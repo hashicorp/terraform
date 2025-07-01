@@ -79,7 +79,6 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		ProviderAddr: n.ResolvedProvider.Provider,
 	}
 	ctx.Hook(func(h Hook) (HookAction, error) {
-		// TODO don't show sensitive values
 		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
 	})
 	// If we get down here then our configuration is complete and we're ready
