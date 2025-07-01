@@ -97,6 +97,11 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	// We currently don't support the paralleism flag in the query command,
+	// so we set it to the default value here. This avoids backend errors
+	// that check for deviant values.
+	c.Meta.parallelism = DefaultParallelism
+
 	// Prepare the backend with the backend-specific arguments
 	be, beDiags := c.PrepareBackend(args.State, args.ViewType)
 	b, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
