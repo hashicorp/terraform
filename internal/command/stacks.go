@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/go-plugin"
@@ -93,6 +94,10 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 			c.Ui.Error(fmt.Sprintf("Error storing cached stacks plugin path: %s\n", err))
 			return 1
 		}
+		// Remove the cache override arg from the args so it doesn't get passed to the plugin
+		args = slices.DeleteFunc(args, func(arg string) bool {
+			return strings.HasPrefix(arg, "-plugin-cache-dir")
+		})
 	}
 
 	diags := c.initPlugin()
