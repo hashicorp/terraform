@@ -98,7 +98,7 @@ func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Bl
 //
 // The state_store configuration schema is required in order to properly
 // encode the state store-specific configuration settings.
-func (s *StateStoreConfigState) PlanData(schema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
+func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, providerSchema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
 	if s == nil {
 		return nil, nil
 	}
@@ -107,11 +107,15 @@ func (s *StateStoreConfigState) PlanData(schema *configschema.Block, workspaceNa
 		return nil, fmt.Errorf("error when preparing state store config for planfile: %s", err)
 	}
 
-	configVal, err := s.Config(schema)
+	storeConfigVal, err := s.Config(storeSchema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode state_store config: %w", err)
 	}
-	return plans.NewStateStore(s.Type, s.Provider.Version, s.Provider.Source, configVal, schema, workspaceName)
+	providerConfigVal, err := s.Provider.Config(providerSchema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode state_store's nested provider config: %w", err)
+	}
+	return plans.NewStateStore(s.Type, s.Provider.Version, s.Provider.Source, storeConfigVal, storeSchema, providerConfigVal, nil, workspaceName)
 }
 
 func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
