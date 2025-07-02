@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/go-plugin"
@@ -76,7 +77,28 @@ var (
 )
 
 func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
+	var pluginCacheDirOverride string
+
 	args = c.Meta.process(args)
+	cmdFlags := c.Meta.defaultFlagSet("stacks")
+	cmdFlags.StringVar(&pluginCacheDirOverride, "plugin-cache-dir", "", "plugin cache directory")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
+	}
+
+	if pluginCacheDirOverride != "" {
+		err := c.storeStacksPluginPath(path.Join(pluginCacheDirOverride, StacksPluginDataDir))
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error storing cached stacks plugin path: %s\n", err))
+			return 1
+		}
+		// Remove the cache override arg from the args so it doesn't get passed to the plugin
+		args = slices.DeleteFunc(args, func(arg string) bool {
+			return strings.HasPrefix(arg, "-plugin-cache-dir")
+		})
+	}
 
 	diags := c.initPlugin()
 	if diags.HasWarnings() || diags.HasErrors() {
@@ -305,19 +327,50 @@ func (c *StacksCommand) initPlugin() tfdiags.Diagnostics {
 }
 
 func (c *StacksCommand) initPackagesCache() (string, error) {
-	packagesPath := path.Join(c.WorkingDir.DataDir(), StacksPluginDataDir)
+	var pluginPath string
+	defaultPluginPath := path.Join(c.CLIConfigDir, StacksPluginDataDir)
+	cacheStorePath := path.Join(c.WorkingDir.DataDir(), ".stackspluginpath")
 
-	if info, err := os.Stat(packagesPath); err != nil || !info.IsDir() {
-		log.Printf("[TRACE] initialized stacksplugin cache directory at %q", packagesPath)
-		err = os.MkdirAll(packagesPath, 0755)
+	if _, err := os.Stat(cacheStorePath); err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("[TRACE] No stacksplugin cache path store at '%s`, using default '%s'", cacheStorePath, defaultPluginPath)
+			// Use the default plugin cache path if the file does not exist
+			pluginPath = defaultPluginPath
+		} else {
+			log.Printf("[TRACE] Failed to check the stacksplugin cache path store at '%s', using default '%s'", cacheStorePath, defaultPluginPath)
+			// Use the default plugin cache path if there was an error checking the file
+			pluginPath = defaultPluginPath
+		}
+	} else {
+		data, err := os.ReadFile(cacheStorePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read stacks plugin stored path file: %w", err)
+		}
+		pluginPath = string(data)
+	}
+
+	if info, err := os.Stat(pluginPath); err != nil || !info.IsDir() {
+		log.Printf("[TRACE] initialized stacksplugin cache directory at %q", pluginPath)
+		err = os.MkdirAll(pluginPath, 0755)
 		if err != nil {
 			return "", fmt.Errorf("failed to initialize stacksplugin cache directory: %w", err)
 		}
 	} else {
-		log.Printf("[TRACE] stacksplugin cache directory found at %q", packagesPath)
+		log.Printf("[TRACE] stacksplugin cache directory found at %q", pluginPath)
 	}
 
-	return packagesPath, nil
+	return pluginPath, nil
+}
+
+func (c *StacksCommand) storeStacksPluginPath(pluginCachePath string) error {
+	f, err := os.Create(path.Join(c.WorkingDir.DataDir(), ".stackspluginpath"))
+	if err != nil {
+		return fmt.Errorf("failed to create stacks plugin stored path file: %w", err)
+	}
+	defer f.Close()
+	f.WriteString(pluginCachePath)
+
+	return nil
 }
 
 // Run runs the stacks command with the given arguments.
