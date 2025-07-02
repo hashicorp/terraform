@@ -251,7 +251,11 @@ func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plan
 	for idx := 0; iter.Next(); idx++ {
 		_, value := iter.Element()
 
-		result := json.NewQueryResult(addr, value, results.Generated.Results[idx])
+		generated := results.Generated
+		if generated != nil {
+			generated = generated.Results[idx]
+		}
+		result := json.NewQueryResult(addr, value, generated)
 
 		h.view.log.Info(
 			fmt.Sprintf("%s: Result found", addr.String()),

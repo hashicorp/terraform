@@ -92,13 +92,6 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	results := plans.QueryResults{
 		Value: resp.Result,
 	}
-	ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostListQuery(rId, results)
-	})
-	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return diags
-	}
 
 	// If a path is specified, generate the config for the resource
 	if n.generateConfigPath != "" {
@@ -108,6 +101,14 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		if diags.HasErrors() {
 			return diags
 		}
+	}
+
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostListQuery(rId, results)
+	})
+	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	query := &plans.QueryInstance{
