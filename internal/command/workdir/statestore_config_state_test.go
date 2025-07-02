@@ -196,3 +196,95 @@ func TestProviderConfigState_Empty(t *testing.T) {
 		t.Fatalf("expected config to be reported as empty, but got empty=%v", isEmpty)
 	}
 }
+
+func TestStateStoreConfigState_PlanData(t *testing.T) {
+
+	workspace := "default"
+
+	pConfig := `{
+	"credentials": "./creds.json"
+}`
+	provider := getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", pConfig)
+
+	s := &StateStoreConfigState{
+		Type: "whatever",
+		ConfigRaw: []byte(`{
+			"foo": "bar"
+		}`),
+		Hash:     123,
+		Provider: provider,
+	}
+
+	ssSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foo": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+
+	pSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"credentials": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+
+	plan, err := s.PlanData(ssSchema, pSchema, workspace)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// Check state store details
+	if plan.Type != s.Type {
+		t.Fatalf("incorrect Type value, got %q, want %q", plan.Type, s.Type)
+	}
+	if plan.Workspace != workspace {
+		t.Fatalf("incorrect Workspace value, got %q, want %q", plan.Workspace, workspace)
+	}
+	// Config
+	imType, err := plan.Config.ImpliedType()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	val, err := plan.Config.Decode(imType)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	valMap := val.AsValueMap()
+	if len(valMap) != 1 || valMap["foo"] == cty.NilVal {
+		attrs := slices.Sorted(maps.Keys(valMap))
+		t.Fatalf("expected plan's config data to include one attribute called \"foo\", instead got attribute(s): %s", attrs)
+	}
+
+	// Check provider details
+	if plan.Provider == nil {
+		t.Fatal("expected plan to include provider data, but it was nil")
+	}
+	if plan.Provider.Version != s.Provider.Version {
+		t.Fatalf("incorrect provider Version value, got %q, want %q", plan.Workspace, workspace)
+	}
+	if plan.Provider.Source.Hostname != s.Provider.Source.Hostname ||
+		plan.Provider.Source.Namespace != s.Provider.Source.Namespace ||
+		plan.Provider.Source.Type != s.Provider.Source.Type {
+		t.Fatalf("incorrect provider Version value, got %q, want %q", plan.Workspace, workspace)
+	}
+	// Config
+	imType, err = plan.Provider.Config.ImpliedType()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	val, err = plan.Provider.Config.Decode(imType)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	valMap = val.AsValueMap()
+	if len(valMap) != 1 || valMap["credentials"] == cty.NilVal {
+		attrs := slices.Sorted(maps.Keys(valMap))
+		t.Fatalf("expected plan's provider config data to include one attribute called \"credentials\", instead got attribute(s): %s", attrs)
+	}
+
+}
