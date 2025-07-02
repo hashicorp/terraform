@@ -525,7 +525,39 @@ func (h *UiHook) PostListQuery(id terraform.HookResourceIdentity, results plans.
 			value.GetAttr("display_name").AsString(),
 		))
 	}
+	return terraform.HookActionContinue, nil
+}
 
+func (h *UiHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]Action started: %s[reset]"),
+		id.String(),
+	))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]Action %s:[reset] %s[reset]"),
+		id.String(),
+		progress,
+	))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+	if err != nil {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold][red]Action failed: %s - %v[reset]"),
+			id.String(),
+			err,
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold][green]Action complete: %s[reset]"),
+			id.String(),
+		))
+	}
 	return terraform.HookActionContinue, nil
 }
 

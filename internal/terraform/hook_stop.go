@@ -112,6 +112,18 @@ func (h *stopHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return h.hook()
 }
 
+func (h *stopHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) hook() (HookAction, error) {
 	if h.Stopped() {
 		return HookActionHalt, errors.New("execution halted")
