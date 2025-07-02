@@ -353,6 +353,107 @@ func NewRefreshComplete(addr addrs.AbsResourceInstance, idKey, idValue string) H
 	}
 }
 
+// ActionStart: triggered by StartAction hook
+type actionStart struct {
+	TriggeringResource ResourceAddr `json:"resource"`
+	TriggerIndex       int          `json:"trigger_index"`
+	Action             ActionAddr   `json:"action"`
+}
+
+var _ Hook = (*actionStart)(nil)
+
+func (h *actionStart) HookType() MessageType {
+	return MessageActionStart
+}
+
+func (h *actionStart) String() string {
+	return fmt.Sprintf("%s.trigger[%d]: Action Started: %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr)
+}
+
+func NewActionStart(addr addrs.ActionInvocation) Hook {
+	return &actionStart{
+		TriggeringResource: newResourceAddr(addr.TriggeringResource),
+		TriggerIndex:       addr.TriggerIndex,
+		Action:             newActionAddr(addr.Action),
+	}
+}
+
+type actionProgress struct {
+	TriggeringResource ResourceAddr `json:"resource"`
+	TriggerIndex       int          `json:"trigger_index"`
+	Action             ActionAddr   `json:"action"`
+	Message            string       `json:"message"`
+}
+
+var _ Hook = (*actionProgress)(nil)
+
+func (h *actionProgress) HookType() MessageType {
+	return MessageActionProgress
+}
+
+func (h *actionProgress) String() string {
+	return fmt.Sprintf("%s (%d): %s - %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr, h.Message)
+}
+
+func NewActionProgress(addr addrs.ActionInvocation, message string) Hook {
+	return &actionProgress{
+		TriggeringResource: newResourceAddr(addr.TriggeringResource),
+		TriggerIndex:       addr.TriggerIndex,
+		Action:             newActionAddr(addr.Action),
+		Message:            message,
+	}
+}
+
+type actionComplete struct {
+	TriggeringResource ResourceAddr `json:"resource"`
+	TriggerIndex       int          `json:"trigger_index"`
+	Action             ActionAddr   `json:"action"`
+}
+
+var _ Hook = (*actionComplete)(nil)
+
+func (h *actionComplete) HookType() MessageType {
+	return MessageActionComplete
+}
+
+func (h *actionComplete) String() string {
+	return fmt.Sprintf("%s (%d): Action Complete: %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr)
+}
+
+func NewActionComplete(addr addrs.ActionInvocation) Hook {
+	return &actionComplete{
+		TriggeringResource: newResourceAddr(addr.TriggeringResource),
+		TriggerIndex:       addr.TriggerIndex,
+		Action:             newActionAddr(addr.Action),
+	}
+}
+
+type actionErrored struct {
+	TriggeringResource ResourceAddr `json:"resource"`
+	TriggerIndex       int          `json:"trigger_index"`
+	Action             ActionAddr   `json:"action"`
+	Error              string       `json:"error"`
+}
+
+var _ Hook = (*actionErrored)(nil)
+
+func (h *actionErrored) HookType() MessageType {
+	return MessageActionErrored
+}
+
+func (h *actionErrored) String() string {
+	return fmt.Sprintf("%s (%d): Action Errored: %s - %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr, h.Error)
+}
+
+func NewActionErrored(addr addrs.ActionInvocation, err error) Hook {
+	return &actionErrored{
+		TriggeringResource: newResourceAddr(addr.TriggeringResource),
+		TriggerIndex:       addr.TriggerIndex,
+		Action:             newActionAddr(addr.Action),
+		Error:              err.Error(),
+	}
+}
+
 // Convert the subset of plans.Action values we expect to receive into a
 // present-tense verb for the applyStart hook message.
 func startActionVerb(action plans.Action) string {

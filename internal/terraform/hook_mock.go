@@ -158,6 +158,24 @@ type MockHook struct {
 	PostStateUpdateState  *states.State
 	PostStateUpdateReturn HookAction
 	PostStateUpdateError  error
+
+	// Fields for StartAction, ProgressAction, CompleteAction
+	StartActionCalled bool
+	StartActionID     HookActionIdentity
+	StartActionReturn HookAction
+	StartActionError  error
+
+	ProgressActionCalled   bool
+	ProgressActionID       HookActionIdentity
+	ProgressActionProgress string
+	ProgressActionReturn   HookAction
+	ProgressActionError    error
+
+	CompleteActionCalled   bool
+	CompleteActionID       HookActionIdentity
+	CompleteActionErrorArg error
+	CompleteActionReturn   HookAction
+	CompleteActionError    error
 }
 
 var _ Hook = (*MockHook)(nil)
@@ -388,4 +406,33 @@ func (h *MockHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.PostStateUpdateCalled = true
 	h.PostStateUpdateState = new
 	return h.PostStateUpdateReturn, h.PostStateUpdateError
+}
+
+func (h *MockHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.StartActionCalled = true
+	h.StartActionID = id
+	return h.StartActionReturn, h.StartActionError
+}
+
+func (h *MockHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.ProgressActionCalled = true
+	h.ProgressActionID = id
+	h.ProgressActionProgress = progress
+	return h.ProgressActionReturn, h.ProgressActionError
+}
+
+func (h *MockHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.CompleteActionCalled = true
+	h.CompleteActionID = id
+	h.CompleteActionErrorArg = err
+	return h.CompleteActionReturn, h.CompleteActionError
 }
