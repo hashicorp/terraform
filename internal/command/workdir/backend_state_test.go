@@ -75,12 +75,15 @@ func TestParseBackendStateFile(t *testing.T) {
 				"state_store": {
 					"type": "foobar_baz",
 					"config": {
-						"provider": "foobar",
-						"bucket": "my-bucket"
+						"bucket": "my-bucket",
+						"region": "saturn"
 					},
 					"provider": {
 						"version": "1.2.3",
-						"source": "registry.terraform.io/my-org/foobar"
+						"source": "registry.terraform.io/my-org/foobar",
+						"config": {
+							"credentials": "./creds.json"
+						}
 					}
 				}
 			}`,
@@ -88,11 +91,14 @@ func TestParseBackendStateFile(t *testing.T) {
 				Version:   3,
 				TFVersion: "9.9.9",
 				StateStore: &StateStoreConfigState{
-					Type:     "foobar_baz",
-					Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar"),
+					Type: "foobar_baz",
+					// Watch out - the number of tabs in the last argument here are load-bearing
+					Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", `{
+							"credentials": "./creds.json"
+						}`),
 					ConfigRaw: json.RawMessage(`{
-						"provider": "foobar",
-						"bucket": "my-bucket"
+						"bucket": "my-bucket",
+						"region": "saturn"
 					}`),
 				},
 			},
@@ -152,6 +158,17 @@ func TestEncodeBackendStateFile(t *testing.T) {
 		Want    []byte
 		WantErr string
 	}{
+		"encoding a backend state file when state_store is in use": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", `{"foo": "bar"}`),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"1.13.0\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+		},
 		"it returns an error when neither backend nor state_store config state are present": {
 			Input: &BackendStateFile{},
 			Want:  []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"1.13.0\"\n}"),
@@ -160,7 +177,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
 					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, "1.2.3", "", "my-org", "foobar"),
+					Provider:  getTestProviderState(t, "1.2.3", "", "my-org", "foobar", ""),
 					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:      123,
 				},
@@ -171,7 +188,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
 					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, "1.2.3", "", "", "foobar"),
+					Provider:  getTestProviderState(t, "1.2.3", "", "", "foobar", ""),
 					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:      123,
 				},
@@ -182,7 +199,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
 					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, "1.2.3", "", "", ""),
+					Provider:  getTestProviderState(t, "1.2.3", "", "", "", ""),
 					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:      123,
 				},
@@ -198,7 +215,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 				},
 				StateStore: &StateStoreConfigState{
 					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar"),
+					Provider:  getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", ""),
 					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:      123,
 				},
@@ -241,7 +258,7 @@ func TestBackendStateFile_DeepCopy(t *testing.T) {
 			file: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
 					Type:      "foo_bar",
-					Provider:  getTestProviderState(t, "1.2.3", "A", "B", "C"),
+					Provider:  getTestProviderState(t, "1.2.3", "A", "B", "C", ""),
 					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:      123,
 				},

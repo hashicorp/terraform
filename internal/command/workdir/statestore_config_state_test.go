@@ -5,6 +5,8 @@ package workdir
 
 import (
 	"bytes"
+	"maps"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -13,24 +15,26 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestParseStateStoreConfigState_Config_SetConfig(t *testing.T) {
+func TestStateStoreConfigState_Config_SetConfig(t *testing.T) {
 	// This test only really covers the happy path because Config/SetConfig is
 	// largely just a thin wrapper around configschema's "ImpliedType" and
 	// cty's json unmarshal/marshal and both of those are well-tested elsewhere.
-
+	pConfig := `{
+		"foo": "bar"
+	}`
 	s := &StateStoreConfigState{
 		Type: "whatever",
 		ConfigRaw: []byte(`{
-			"provider": "foobar",
-			"foo": "bar"
+			"foo": "bar",
+			"fizz": "buzz"
 		}`),
-		Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar"),
+		Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", pConfig),
 		Hash:     12345,
 	}
 
-	schema := &configschema.Block{
+	ssSchema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
-			"provider": {
+			"fizz": {
 				Type:     cty.String,
 				Required: true,
 			},
@@ -42,10 +46,10 @@ func TestParseStateStoreConfigState_Config_SetConfig(t *testing.T) {
 	}
 
 	// Test Config method
-	got, err := s.Config(schema)
+	got, err := s.Config(ssSchema)
 	want := cty.ObjectVal(map[string]cty.Value{
-		"provider": cty.StringVal("foobar"),
-		"foo":      cty.StringVal("bar"),
+		"foo":  cty.StringVal("bar"),
+		"fizz": cty.StringVal("buzz"),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -56,29 +60,89 @@ func TestParseStateStoreConfigState_Config_SetConfig(t *testing.T) {
 
 	// Test SetConfig method
 	err = s.SetConfig(cty.ObjectVal(map[string]cty.Value{
-		"provider": cty.StringVal("foobar"),
-		"foo":      cty.StringVal("baz"),
-	}), schema)
+		"fizz": cty.StringVal("abc"),
+		"foo":  cty.StringVal("def"),
+	}), ssSchema)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
 	gotRaw := s.ConfigRaw
-	wantRaw := []byte(`{"foo":"baz","provider":"foobar"}`)
+	wantRaw := []byte(`{"fizz":"abc","foo":"def"}`)
 	if !bytes.Equal(wantRaw, gotRaw) {
 		t.Errorf("wrong raw config after encode\ngot:  %s\nwant: %s", gotRaw, wantRaw)
 	}
 }
 
-func TestParseStateStoreConfigState_Empty(t *testing.T) {
+func TestProviderConfigState_Config_SetConfig(t *testing.T) {
+	// This test only really covers the happy path because Config/SetConfig is
+	// largely just a thin wrapper around configschema's "ImpliedType" and
+	// cty's json unmarshal/marshal and both of those are well-tested elsewhere.
+
+	pConfig := `{
+		"foo": "bar"
+	}`
+	s := getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", pConfig)
+	s.ConfigRaw = []byte(`{
+		"credentials": "./creds.json",
+		"region": "saturn"
+	}
+	`)
+
+	pSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"credentials": {
+				Type:     cty.String,
+				Required: true,
+			},
+			"region": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+
+	// Test Config method
+	got, err := s.Config(pSchema)
+	want := cty.ObjectVal(map[string]cty.Value{
+		"credentials": cty.StringVal("./creds.json"),
+		"region":      cty.StringVal("saturn"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+
+	// Test SetConfig method
+	err = s.SetConfig(cty.ObjectVal(map[string]cty.Value{
+		"credentials": cty.StringVal("abc"),
+		"region":      cty.StringVal("def"),
+	}), pSchema)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	gotRaw := s.ConfigRaw
+	wantRaw := []byte(`{"credentials":"abc","region":"def"}`)
+	if !bytes.Equal(wantRaw, gotRaw) {
+		t.Errorf("wrong raw config after encode\ngot:  %s\nwant: %s", gotRaw, wantRaw)
+	}
+}
+
+func TestStateStoreConfigState_Empty(t *testing.T) {
 	// Populated StateStoreConfigState isn't empty
+	pConfig := `{
+		"foo": "bar"
+	}`
 	s := &StateStoreConfigState{
 		Type: "whatever",
 		ConfigRaw: []byte(`{
-			"provider": "foobar",
+			"fizz": "buzz",
 			"foo": "bar"
 		}`),
-		Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar"),
+		Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", pConfig),
 		Hash:     12345,
 	}
 
@@ -96,6 +160,35 @@ func TestParseStateStoreConfigState_Empty(t *testing.T) {
 	}
 
 	// nil StateStoreConfigState is empty
+	s = nil
+
+	isEmpty = s.Empty()
+	if isEmpty != true {
+		t.Fatalf("expected config to be reported as empty, but got empty=%v", isEmpty)
+	}
+}
+
+func TestProviderConfigState_Empty(t *testing.T) {
+	// Populated StateStoreConfigState isn't empty
+	pConfig := `{
+		"foo": "bar"
+	}`
+	s := getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", pConfig)
+
+	isEmpty := s.Empty()
+	if isEmpty {
+		t.Fatalf("expected config to not be reported as empty, but got empty=%v", isEmpty)
+	}
+
+	// Zero valued ProviderConfigState is empty
+	s = &ProviderConfigState{}
+
+	isEmpty = s.Empty()
+	if isEmpty != true {
+		t.Fatalf("expected config to be reported as empty, but got empty=%v", isEmpty)
+	}
+
+	// nil ProviderConfigState is empty
 	s = nil
 
 	isEmpty = s.Empty()
