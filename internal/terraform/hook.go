@@ -103,7 +103,7 @@ type Hook interface {
 	PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error)
 	PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error)
 
-	// PreListQuery and PostListQuery are called during a query operation befor and after
+	// PreListQuery and PostListQuery are called during a query operation before and after
 	// resources are queried from the provider.
 	PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error)
 	PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error)

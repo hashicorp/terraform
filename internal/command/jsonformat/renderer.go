@@ -298,6 +298,8 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		}
 
 	case LogListResourceFound:
+		// TODO: revisit once the cloud backend support list runs
+		// We will need to transform the identity to a more human-readable form
 		result := log.ListQueryResult
 		renderer.Streams.Printf("%s\t%s\t%s\n",
 			result.Address,

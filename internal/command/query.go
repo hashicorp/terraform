@@ -52,10 +52,10 @@ Other Options:
                              part of the JSON output instead of written to a
                              file.
 
-  -json                 If specified, machine readable output will be printed in
-                        JSON format
+  -json                      If specified, machine readable output will be
+                             printed in JSON format
 
-  -no-color             If specified, output won't contain any color.
+  -no-color                  If specified, output won't contain any color.
 
 `
 	return strings.TrimSpace(helpText)

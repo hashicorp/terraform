@@ -58,7 +58,7 @@ func ParseQuery(args []string) (*Query, tfdiags.Diagnostics) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Too many command line arguments",
-			"To specify a working directory for the plan, use the global -chdir flag.",
+			"To specify a working directory for the query, use the global -chdir flag.",
 		))
 	}
 
