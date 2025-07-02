@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -24,6 +25,7 @@ type QueryResult struct {
 	ResourceType   string                     `json:"resource_type"`
 	ResourceObject map[string]json.RawMessage `json:"resource_object,omitempty"`
 	Config         string                     `json:"config,omitempty"`
+	ImportConfig   string                     `json:"import_config,omitempty"`
 }
 
 func NewQueryStart(addr addrs.AbsResourceInstance, input_config cty.Value) QueryStart {
@@ -34,15 +36,17 @@ func NewQueryStart(addr addrs.AbsResourceInstance, input_config cty.Value) Query
 	}
 }
 
-func NewQueryResult(addr addrs.AbsResourceInstance, value cty.Value) QueryResult {
-	return QueryResult{
-		Address:        addr.String(),
+func NewQueryResult(listAddr addrs.AbsResourceInstance, value cty.Value, generated *genconfig.Resource) QueryResult {
+	result := QueryResult{
+		Address:        generated.Addr.String(),
 		DisplayName:    value.GetAttr("display_name").AsString(),
 		Identity:       marshalValues(value.GetAttr("identity")),
-		ResourceType:   addr.Resource.Resource.Type,
+		ResourceType:   listAddr.Resource.Resource.Type,
 		ResourceObject: marshalValues(value.GetAttr("state")),
-		// TODO: Add config once we have it available
+		Config:         string(generated.Body),
+		ImportConfig:   string(generated.Import),
 	}
+	return result
 }
 
 func marshalValues(value cty.Value) map[string]json.RawMessage {

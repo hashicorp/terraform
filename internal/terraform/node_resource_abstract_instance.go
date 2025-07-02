@@ -46,7 +46,7 @@ type NodeAbstractResourceInstance struct {
 
 	preDestroyRefresh bool
 
-	// During import we may generate configuration for a resource, which needs
+	// During import (or query) we may generate configuration for a resource, which needs
 	// to be stored in the final change.
 	generatedConfigHCL string
 

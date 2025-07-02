@@ -100,6 +100,16 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	// If a path is specified, generate the config for the resource
+	if n.generateConfigPath != "" {
+		var gDiags tfdiags.Diagnostics
+		results.Generated, gDiags = n.generateHCLResourceDef(addr, resp.Result.GetAttr("data"), providerSchema.ResourceTypes[n.Config.Type])
+		diags = diags.Append(gDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
