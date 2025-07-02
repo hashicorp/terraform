@@ -112,20 +112,16 @@ func TestContext2Plan_queryList(t *testing.T) {
 					"list.test_resource.test2": {},
 				}
 				actualResources := map[string][]string{}
-				for _, change := range changes.Resources {
+				for _, change := range changes.Queries {
 					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
 					cs, err := change.Decode(schema)
 					if err != nil {
 						t.Fatalf("failed to decode change: %s", err)
 					}
 
-					if cs.Change.Action != plans.Read {
-						t.Fatalf("expected action to be Read, got %s", cs.Change.Action)
-					}
-
 					// Verify instance types
 					actualTypes := make([]string, 0)
-					obj := cs.After.GetAttr("data")
+					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}
@@ -229,7 +225,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test[0]", "list.test_resource.test2"}
 				actualResources := make([]string, 0)
-				for _, change := range changes.Resources {
+				for _, change := range changes.Queries {
 					actualResources = append(actualResources, change.Addr.String())
 					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
 					cs, err := change.Decode(schema)
@@ -237,14 +233,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 						t.Fatalf("failed to decode change: %s", err)
 					}
 
-					if cs.Change.Action != plans.Read {
-						t.Fatalf("expected action to be Read, got %s", cs.Change.Action)
-					}
-
 					// Verify instance types
 					expectedTypes := []string{"ami-123456", "ami-654321"}
 					actualTypes := make([]string, 0)
-					obj := cs.After.GetAttr("data")
+					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}
@@ -535,7 +527,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1", "list.test_resource.test2"}
 				actualResources := make([]string, 0)
-				for _, change := range changes.Resources {
+				for _, change := range changes.Queries {
 					actualResources = append(actualResources, change.Addr.String())
 					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
 					cs, err := change.Decode(schema)
@@ -543,14 +535,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 						t.Fatalf("failed to decode change: %s", err)
 					}
 
-					if cs.Change.Action != plans.Read {
-						t.Fatalf("expected action to be Read, got %s", cs.Change.Action)
-					}
-
 					// Verify instance types
 					expectedTypes := []string{"ami-123456"}
 					actualTypes := make([]string, 0)
-					obj := cs.After.GetAttr("data")
+					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}
@@ -650,7 +638,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1[\"foo\"]", "list.test_resource.test1[\"bar\"]", "list.test_resource.test2[\"foo\"]", "list.test_resource.test2[\"bar\"]"}
 				actualResources := make([]string, 0)
-				for _, change := range changes.Resources {
+				for _, change := range changes.Queries {
 					actualResources = append(actualResources, change.Addr.String())
 					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
 					cs, err := change.Decode(schema)
@@ -658,14 +646,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 						t.Fatalf("failed to decode change: %s", err)
 					}
 
-					if cs.Change.Action != plans.Read {
-						t.Fatalf("expected action to be Read, got %s", cs.Change.Action)
-					}
-
 					// Verify instance types
 					expectedTypes := []string{"ami-123456"}
 					actualTypes := make([]string, 0)
-					obj := cs.After.GetAttr("data")
+					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}

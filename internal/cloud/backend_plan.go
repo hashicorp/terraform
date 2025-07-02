@@ -92,6 +92,15 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		diags = diags.Append(genconfig.ValidateTargetFile(op.GenerateConfigOut))
 	}
 
+	if op.Query {
+		// We don't support running a query operation with the cloud backend for now
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Query operations are not supported",
+			fmt.Sprintf("%s does not support query operations at this time.", b.appName),
+		))
+	}
+
 	// Return if there are any errors.
 	if diags.HasErrors() {
 		return nil, diags.Err()

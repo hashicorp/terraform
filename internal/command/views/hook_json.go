@@ -5,6 +5,7 @@ package views
 
 import (
 	"bufio"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -227,6 +228,35 @@ func (h *jsonHook) PostEphemeralOp(id terraform.HookResourceIdentity, action pla
 		h.view.Hook(json.NewEphemeralOpErrored(id.Addr, progress.action, elapsed))
 	} else {
 		h.view.Hook(json.NewEphemeralOpComplete(id.Addr, progress.action, elapsed))
+	}
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value) (terraform.HookAction, error) {
+	addr := id.Addr
+	h.view.log.Info(
+		fmt.Sprintf("%s: Starting query...", addr.String()),
+		"type", json.MessageListStart,
+		json.MessageListStart, json.NewQueryStart(addr, input_config),
+	)
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults) (terraform.HookAction, error) {
+	addr := id.Addr
+	data := results.Value.GetAttr("data")
+	for it := data.ElementIterator(); it.Next(); {
+		_, value := it.Element()
+
+		result := json.NewQueryResult(addr, value)
+
+		h.view.log.Info(
+			fmt.Sprintf("%s: Result found", addr.String()),
+			"type", json.MessageListResourceFound,
+			json.MessageListResourceFound, result,
+		)
 	}
 
 	return terraform.HookActionContinue, nil

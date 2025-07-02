@@ -169,6 +169,20 @@ func (h *testHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return HookActionContinue, nil
 }
 
+func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PreListQuery", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PostListQuery", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
 func (h *testHook) Stopping() {
 	h.mu.Lock()
 	defer h.mu.Unlock()

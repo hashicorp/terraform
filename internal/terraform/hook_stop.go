@@ -98,6 +98,14 @@ func (h *stopHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return h.hook()
 }
 
+func (h *stopHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) Stopping() {}
 
 func (h *stopHook) PostStateUpdate(new *states.State) (HookAction, error) {

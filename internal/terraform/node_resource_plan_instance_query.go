@@ -9,9 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
@@ -76,6 +74,13 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	rId := HookResourceIdentity{
+		Addr:         addr,
+		ProviderAddr: n.ResolvedProvider.Provider,
+	}
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
+	})
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
 	resp := provider.ListResource(providers.ListResourceRequest{
@@ -84,21 +89,23 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		Limit:                 limit,
 		IncludeResourceObject: includeResource,
 	})
-	if resp.Diagnostics != nil {
-		return diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	results := plans.QueryResults{
+		Value: resp.Result,
+	}
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostListQuery(rId, results)
+	})
+	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
 	}
 
-	change := &plans.ResourceInstanceChange{
+	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
-		Change: plans.Change{
-			Action: plans.Read,
-			Before: cty.DynamicVal,
-			After:  resp.Result,
-		},
-		DeposedKey: states.NotDeposed,
+		Results:      results,
 	}
 
-	ctx.Changes().AppendResourceInstanceChange(change)
+	ctx.Changes().AppendQueryInstance(query)
 	return diags
 }
