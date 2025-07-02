@@ -1,4 +1,4 @@
-## 1.13.0 (Unreleased)
+## 1.13.0-alpha20250702 (July 02, 2025)
 
 
 NEW FEATURES:
@@ -20,12 +20,18 @@ ENHANCEMENTS:
 
 * `terraform test`: File-level variable blocks can now reference run outputs and other variables." ([#37205](https://github.com/hashicorp/terraform/issues/37205))
 
+* skip redundant comparisons when comparing planned set changes ([#37280](https://github.com/hashicorp/terraform/issues/37280))
+
 
 BUG FIXES:
 
 * Added a missing warning diagnostic that alerts users when child module contains an ignored `cloud` block. ([#37180](https://github.com/hashicorp/terraform/issues/37180))
 
 * Nested module outputs could lose sensitivity, even when marked as such in the configuration ([#37212](https://github.com/hashicorp/terraform/issues/37212))
+
+* workspace: Updated validation to reject workspaces named "" ([#37267](https://github.com/hashicorp/terraform/issues/37267))
+
+* workspace: Updated the `workspace delete` command to reject `""` as an invalid workspace name ([#37275](https://github.com/hashicorp/terraform/issues/37275))
 
 
 NOTES:
