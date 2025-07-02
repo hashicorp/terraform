@@ -1519,7 +1519,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	}
 
 	// Get the state store
-	b, configVal, moreDiags := m.stateStoreInitFromConfig(c, opts)
+	b, storeConfigVal, providerConfigVal, moreDiags := m.stateStoreInitFromConfig(c, opts)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -1629,7 +1629,12 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 			Version: pVersion,
 		},
 	}
-	s.StateStore.SetConfig(configVal, b.ConfigSchema())
+	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
+	if plug, ok := b.(*pluggableState.Pluggable); ok {
+		// We need to convert away from backend.Backend interface to use the method
+		// for accessing the provider schema.
+		s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	}
 
 	// Verify that selected workspace exists in the state store.
 	// TODO (SarahFrench/radeksimko) - TF core should be responsible for creating the new workspace.
@@ -2093,13 +2098,13 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 // > Users are prompted for input if required attributes are missing.
 // > The provider is configured, after validating provider config
 // > The state store is configured, after validating state_store config
-func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts) (backend.Backend, cty.Value, tfdiags.Diagnostics) {
+func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	provider, err := opts.ProvidersFactory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 	// We purposefully don't have a deferred call to the provider's Close method here because the calling code needs a
 	// running provider instance inside the returned backend.Backend instance.
@@ -2116,7 +2121,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 				c.ProviderAddr),
 			Subject: &c.DeclRange,
 		})
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	schema, exists := resp.StateStores[c.Type]
@@ -2134,7 +2139,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 				c.ProviderAddr, suggestion),
 			Subject: &c.DeclRange,
 		})
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	// Handle the nested provider block.
@@ -2148,7 +2153,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 			tfdiags.Error,
 			"Unknown values within state_store's nested provider block",
 			"The `terraform` configuration block should contain only concrete and static values. Another diagnostic should contain more information about which part of the configuration is problematic."))
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	// TODO (SarahFrench/radeksimko) - do we ask for input for missing required values in the provider block?
@@ -2158,7 +2163,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	stateStoreConfigVal, ssDecDiags := hcldec.Decode(c.Config, ssdecSpec, nil)
 	diags = diags.Append(ssDecDiags)
 	if ssDecDiags.HasErrors() {
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	if !stateStoreConfigVal.IsWhollyKnown() {
@@ -2166,7 +2171,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 			tfdiags.Error,
 			"Unknown values within state_store definition",
 			"The `terraform` configuration block should contain only concrete and static values. Another diagnostic should contain more information about which part of the configuration is problematic."))
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	if m.Input() {
@@ -2175,6 +2180,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 		stateStoreConfigVal, err = m.inputForSchema(stateStoreConfigVal, schema.Body)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Error asking for input to configure backend %q: %s", c.Type, err))
+			return nil, cty.NilVal, cty.NilVal, diags
 		}
 
 		// We get an unknown here if the if the user aborted input, but we can't
@@ -2193,7 +2199,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	})
 	diags = diags.Append(validateResp.Diagnostics)
 	if validateResp.Diagnostics.HasErrors() {
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
@@ -2203,7 +2209,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	})
 	diags = diags.Append(configureResp.Diagnostics)
 	if configureResp.Diagnostics.HasErrors() {
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	// Validate Store Config
@@ -2214,7 +2220,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	})
 	diags = diags.Append(validateStoreResp.Diagnostics)
 	if validateStoreResp.Diagnostics.HasErrors() {
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	// Configure State Store
@@ -2224,14 +2230,14 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
 	if cfgStoreResp.Diagnostics.HasErrors() {
-		return nil, cty.NilVal, diags
+		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	// Now we have a fully configured state store, ready to be used.
 	// To make it usable we need to return it in a backend.Backend interface.
 	b := pluggableState.NewPluggable(provider, c.Type)
 
-	return b, stateStoreConfigVal, diags
+	return b, stateStoreConfigVal, providerConfigVal, diags
 }
 
 // Helper method to get aliases from the enhanced backend and alias them
