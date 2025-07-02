@@ -657,7 +657,7 @@ the backend configuration is present and valid.
 				return nil, true, diags
 			}
 			var exists bool
-			factory, exists = ctxOpts.Providers[s.StateStore.Provider.Source]
+			factory, exists = ctxOpts.Providers[*s.StateStore.Provider.Source]
 			if !exists {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,

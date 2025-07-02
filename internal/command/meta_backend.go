@@ -1624,8 +1624,8 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	s.StateStore = &workdir.StateStoreConfigState{
 		Type: c.Type,
 		Hash: uint64(cHash),
-		Provider: &workdir.Provider{
-			Source:  c.ProviderAddr,
+		Provider: &workdir.ProviderConfigState{
+			Source:  &c.ProviderAddr,
 			Version: pVersion,
 		},
 	}
