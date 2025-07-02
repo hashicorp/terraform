@@ -33,7 +33,7 @@ type StateStoreConfigState struct {
 // This is NOT state of a `provider` configuration block, or an entry in `required_providers`.
 type Provider struct {
 	Version *version.Version `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
-	Source  tfaddr.Provider  `json:"source"`  // The FQN/fully-qualified name of the provider.
+	Source  *tfaddr.Provider `json:"source"`  // The FQN/fully-qualified name of the provider.
 }
 
 // Empty returns true if there is no active state store.
@@ -119,7 +119,7 @@ func (s *StateStoreConfigState) PlanData(schema *configschema.Block, workspaceNa
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode state_store config: %w", err)
 	}
-	return plans.NewStateStore(s.Type, s.Provider.Version, &s.Provider.Source, configVal, schema, workspaceName)
+	return plans.NewStateStore(s.Type, s.Provider.Version, s.Provider.Source, configVal, schema, workspaceName)
 }
 
 func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {

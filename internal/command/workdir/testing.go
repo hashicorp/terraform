@@ -23,7 +23,7 @@ func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName st
 
 	return &Provider{
 		Version: ver,
-		Source: tfaddr.Provider{
+		Source: &tfaddr.Provider{
 			Hostname:  svchost.Hostname(hostname),
 			Namespace: namespace,
 			Type:      typeName,
