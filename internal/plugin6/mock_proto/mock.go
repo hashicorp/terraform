@@ -141,6 +141,26 @@ func (mr *MockProviderClientMockRecorder) ConfigureStateStore(arg0, arg1 any, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigureStateStore", reflect.TypeOf((*MockProviderClient)(nil).ConfigureStateStore), varargs...)
 }
 
+// DeleteState mocks base method.
+func (m *MockProviderClient) DeleteState(arg0 context.Context, arg1 *tfplugin6.DeleteState_Request, arg2 ...grpc.CallOption) (*tfplugin6.DeleteState_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteState", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.DeleteState_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteState indicates an expected call of DeleteState.
+func (mr *MockProviderClientMockRecorder) DeleteState(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteState", reflect.TypeOf((*MockProviderClient)(nil).DeleteState), varargs...)
+}
+
 // GetFunctions mocks base method.
 func (m *MockProviderClient) GetFunctions(arg0 context.Context, arg1 *tfplugin6.GetFunctions_Request, arg2 ...grpc.CallOption) (*tfplugin6.GetFunctions_Response, error) {
 	m.ctrl.T.Helper()

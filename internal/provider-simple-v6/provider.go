@@ -269,6 +269,10 @@ func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesRes
 	panic("not implemented")
 }
 
+func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	panic("not implemented")
+}
+
 func (s simple) Close() error {
 	return nil
 }

@@ -1407,6 +1407,10 @@ func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) providers.GetStat
 	panic("not implemented")
 }
 
+func (p *GRPCProvider) DeleteState(r providers.DeleteStateRequest) providers.DeleteStateResponse {
+	panic("not implemented")
+}
+
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
 	logger.Trace("GRPCProvider: Close")

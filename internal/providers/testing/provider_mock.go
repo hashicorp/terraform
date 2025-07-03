@@ -146,6 +146,10 @@ type MockProvider struct {
 	GetStatesRequest  providers.GetStatesRequest
 	GetStatesFn       func(providers.GetStatesRequest) providers.GetStatesResponse
 
+	DeleteStateCalled   bool
+	DeleteStateResponse *providers.DeleteStateResponse
+	DeleteStateRequest  providers.DeleteStateRequest
+	DeleteStateFn       func(providers.DeleteStateRequest) providers.DeleteStateResponse
 
 	CloseCalled bool
 	CloseError  error
@@ -963,6 +967,36 @@ func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 	return resp
 }
 
+func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.DeleteStateCalled = true
+	p.DeleteStateRequest = r
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureProvider not called before DeleteState %q", r.TypeName))
+	}
+	if !p.ConfigureStateStoreCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStoreCalled not called before DeleteState %q", r.TypeName))
+	}
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	if p.DeleteStateResponse != nil {
+		return *p.DeleteStateResponse
+	}
+
+	if p.DeleteStateFn != nil {
+		return p.DeleteStateFn(r)
+	}
+
+	// There's no logic we can include here in the absence of other fields on the mock.
+
+	// If the response contains no diagnostics then the deletion is assumed to be successful.
+	return resp
+}
 
 func (p *MockProvider) Close() error {
 	defer p.beginWrite()()

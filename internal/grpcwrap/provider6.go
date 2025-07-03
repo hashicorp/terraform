@@ -895,6 +895,10 @@ func (p *provider6) GetStates(ctx context.Context, req *tfplugin6.GetStates_Requ
 	panic("not implemented")
 }
 
+func (p *provider6) DeleteState(ctx context.Context, req *tfplugin6.DeleteState_Request) (*tfplugin6.DeleteState_Response, error) {
+	panic("not implemented")
+}
+
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {
 	resp := &tfplugin6.StopProvider_Response{}
 	err := p.provider.Stop()

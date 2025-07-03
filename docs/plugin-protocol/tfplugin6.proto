@@ -381,6 +381,7 @@ service Provider {
     rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
 
     rpc GetStates(GetStates.Request) returns (GetStates.Response);
+    rpc DeleteState(DeleteState.Request) returns (DeleteState.Response);
 
     //////// Graceful Shutdown
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
@@ -887,5 +888,15 @@ message GetStates {
     message Response {
         repeated string state_id = 1;
         repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message DeleteState {
+	message Request {
+		string type_name = 1;
+		string state_id = 2;
+    }
+	message Response {
+        repeated Diagnostic diagnostics = 1;
     }
 }

@@ -350,6 +350,20 @@ func (u *unknownProvider) GetStates(providers.GetStatesRequest) providers.GetSta
 	}
 }
 
+// DeleteState implements providers.Interface.
+func (u *unknownProvider) DeleteState(providers.DeleteStateRequest) providers.DeleteStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot use this state store to delete a state because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.DeleteStateResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (u *unknownProvider) Close() error {
 	// the underlying unconfiguredClient is managed elsewhere.
 	return nil

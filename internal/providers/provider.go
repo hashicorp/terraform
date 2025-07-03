@@ -118,6 +118,8 @@ type Interface interface {
 
 	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
 	GetStates(GetStatesRequest) GetStatesResponse
+	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
+	DeleteState(DeleteStateRequest) DeleteStateResponse
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
@@ -793,6 +795,20 @@ type GetStatesResponse struct {
 	// States is a list of state names, sourced by inspecting persisted state data
 	States []cty.Value
 
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type DeleteStateRequest struct {
+	// TypeName is the name of the state store to request states data from
+	TypeName string
+
+	// StateId is the name of the state to be deleted. This is the same as
+	// the concept of CE workspaces.
+	StateId string
+}
+
+type DeleteStateResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
