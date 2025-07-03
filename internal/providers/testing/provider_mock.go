@@ -141,6 +141,16 @@ type MockProvider struct {
 	ConfigureStateStoreRequest  providers.ConfigureStateStoreRequest
 	ConfigureStateStoreFn       func(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse
 
+	PlanActionCalled   bool
+	PlanActionResponse providers.PlanActionResponse
+	PlanActionRequest  providers.PlanActionRequest
+	PlanActionFn       func(providers.PlanActionRequest) providers.PlanActionResponse
+
+	InvokeActionCalled   bool
+	InvokeActionResponse providers.InvokeActionResponse
+	InvokeActionRequest  providers.InvokeActionRequest
+	InvokeActionFn       func(providers.InvokeActionRequest) providers.InvokeActionResponse
+
 	CloseCalled bool
 	CloseError  error
 }
@@ -921,6 +931,34 @@ func (p *MockProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 	}
 
 	return resp
+}
+
+func (p *MockProvider) PlanAction(r providers.PlanActionRequest) (resp providers.PlanActionResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.PlanActionCalled = true
+	p.PlanActionRequest = r
+
+	if p.PlanActionFn != nil {
+		return p.PlanActionFn(r)
+	}
+
+	return p.PlanActionResponse
+}
+
+func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) (resp providers.InvokeActionResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.InvokeActionCalled = true
+	p.InvokeActionRequest = r
+
+	if p.InvokeActionFn != nil {
+		return p.InvokeActionFn(r)
+	}
+
+	return p.InvokeActionResponse
 }
 
 func (p *MockProvider) Close() error {

@@ -4,6 +4,8 @@
 package providers
 
 import (
+	"iter"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -116,6 +118,14 @@ type Interface interface {
 	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
 	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
 
+	// PlanAction plans an action to be invoked, providers might indicate potential drift and
+	// raise issues with the action configuration.
+	PlanAction(PlanActionRequest) PlanActionResponse
+	// InvokeAction invokes an action, providers return a stream of events that update terraform
+	// about the status of the action.
+	InvokeAction(InvokeActionRequest) InvokeActionResponse
+	// CancelAction cancels an action, triggering a graceful shutdown of the action.
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -153,6 +163,9 @@ type GetProviderSchemaResponse struct {
 	// StateStores maps the state store type name to that type's schema.
 	StateStores map[string]Schema
 
+	// Actions maps the name of the action to its schema.
+	Actions map[string]ActionSchema
+
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 
@@ -177,6 +190,48 @@ type IdentitySchema struct {
 	Version int64
 
 	Body *configschema.Object
+}
+
+type ExecutionOrder int
+
+const (
+	ExecutionOrderInvalid ExecutionOrder = iota
+	ExecutionOrderBefore
+	ExecutionOrderAfter
+)
+
+type LinkedResourceSchema struct {
+	TypeName string
+}
+
+type UnlinkedAction struct{}
+type LifecycleAction struct {
+	Exectues       ExecutionOrder
+	LinkedResource LinkedResourceSchema
+}
+type LinkedAction struct {
+	LinkedResources []LinkedResourceSchema
+}
+type ActionSchema struct {
+	ConfigSchema *configschema.Block
+
+	// One of the following fields must be set, indicating the type of action.
+	Unlinked  *UnlinkedAction
+	Lifecycle *LifecycleAction
+	Linked    *LinkedAction
+}
+
+func (a ActionSchema) LinkedResources() []LinkedResourceSchema {
+	if a.Unlinked != nil {
+		return []LinkedResourceSchema{}
+	}
+	if a.Lifecycle != nil {
+		return []LinkedResourceSchema{a.Lifecycle.LinkedResource}
+	}
+	if a.Linked != nil {
+		return a.Linked.LinkedResources
+	}
+	panic("ActionSchema must have one of Unlinked, Lifecycle, or Linked set")
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
@@ -771,3 +826,73 @@ type ConfigureStateStoreResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
+
+type LinkedResourcePlanData struct {
+	PriorState    cty.Value
+	PlannedState  cty.Value
+	Config        cty.Value
+	PriorIdentity cty.Value
+}
+type LinkedResourcePlan struct {
+	PlannedState    cty.Value
+	PlannedIdentity cty.Value
+}
+
+type LinkedResourceInvokeData struct {
+	PriorState      cty.Value
+	PlannedState    cty.Value
+	Config          cty.Value
+	PlannedIdentity cty.Value
+}
+type LinkedResourceResult struct {
+	NewState        cty.Value
+	NewIdentity     cty.Value
+	RequiresReplace bool
+}
+
+type PlanActionRequest struct {
+	ActionType         string
+	ProposedActionData cty.Value
+
+	LinkedResources    []LinkedResourcePlanData
+	ClientCapabilities ClientCapabilities
+}
+
+type PlanActionResponse struct {
+	LinkedResources []LinkedResourcePlan
+	Deferred        *Deferred
+	Diagnostics     tfdiags.Diagnostics
+}
+
+type InvokeActionRequest struct {
+	ActionType        string
+	LinkedResources   []LinkedResourceInvokeData
+	PlannedActionData cty.Value
+}
+
+type InvokeActionResponse struct {
+	Events      iter.Seq[InvokeActionEvent]
+	Diagnostics tfdiags.Diagnostics
+}
+type InvokeActionEvent interface {
+	isInvokeActionEvent()
+}
+
+// Completed Event
+var _ InvokeActionEvent = &InvokeActionEvent_Completed{}
+
+type InvokeActionEvent_Completed struct {
+	LinkedResources []LinkedResourceResult
+	Diagnostics     tfdiags.Diagnostics
+}
+
+func (e InvokeActionEvent_Completed) isInvokeActionEvent() {}
+
+// Progress Event
+var _ InvokeActionEvent = &InvokeActionEvent_Progress{}
+
+type InvokeActionEvent_Progress struct {
+	Message string
+}
+
+func (e InvokeActionEvent_Progress) isInvokeActionEvent() {}

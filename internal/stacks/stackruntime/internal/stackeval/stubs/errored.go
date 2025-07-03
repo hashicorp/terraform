@@ -270,3 +270,31 @@ func (p *erroredProvider) ConfigureStateStore(providers.ConfigureStateStoreReque
 		Diagnostics: nil,
 	}
 }
+
+// PlanAction implements providers.Interface.
+func (p *erroredProvider) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot plan this action because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.PlanActionResponse{
+		Diagnostics: diags,
+	}
+}
+
+// InvokeAction implements providers.Interface.
+func (p *erroredProvider) InvokeAction(_ providers.InvokeActionRequest) providers.InvokeActionResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot invoke this action because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.InvokeActionResponse{
+		Diagnostics: diags,
+	}
+}
