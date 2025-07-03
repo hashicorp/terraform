@@ -94,6 +94,11 @@ type MockProvider struct {
 	ImportResourceStateRequest  providers.ImportResourceStateRequest
 	ImportResourceStateFn       func(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse
 
+	GenerateResourceConfigCalled   bool
+	GenerateResourceConfigResponse *providers.GenerateResourceConfigResponse
+	GenerateResourceConfigRequest  providers.GenerateResourceConfigRequest
+	GenerateResourceConfigFn       func(providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse
+
 	MoveResourceStateCalled   bool
 	MoveResourceStateResponse *providers.MoveResourceStateResponse
 	MoveResourceStateRequest  providers.MoveResourceStateRequest
@@ -742,6 +747,11 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 	}
 
 	return resp
+}
+
+func (p *MockProvider) GenerateResourceConfig(r providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
+	defer p.beginWrite()()
+	panic("not implemented")
 }
 
 func (p *MockProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
