@@ -88,15 +88,16 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		return nil
 	}
 
-	// Try to acquire locks for the existing row `id` and the creation lock `-1`.
-	query := `SELECT %s.id, pg_try_advisory_lock(%s.id), pg_try_advisory_lock(-1) FROM %s.%s WHERE %s.name = $1`
-	row := c.Client.QueryRow(fmt.Sprintf(query, statesTableName, statesTableName, c.SchemaName, statesTableName, statesTableName), c.Name)
+	// Try to acquire locks for the existing row `id` and the creation lock.
+	creation_lock := fmt.Sprintf("%s_create", c.SchemaName)
+	query := `SELECT %s.id, pg_try_advisory_lock(%s.id), pg_try_advisory_lock(%s) FROM %s.%s WHERE %s.name = $1`
+	row := c.Client.QueryRow(fmt.Sprintf(query, statesTableName, statesTableName, creation_lock, c.SchemaName, statesTableName, statesTableName), c.Name)
 	var pgLockId, didLock, didLockForCreate []byte
 	err = row.Scan(&pgLockId, &didLock, &didLockForCreate)
 	switch {
 	case err == sql.ErrNoRows:
 		// No rows means we're creating the workspace. Take the creation lock.
-		innerRow := c.Client.QueryRow(`SELECT pg_try_advisory_lock(-1)`)
+		innerRow := c.Client.QueryRow(fmt.Sprintf(`SELECT pg_try_advisory_lock(%s)`, creation_lock))
 		var innerDidLock []byte
 		err := innerRow.Scan(&innerDidLock)
 		if err != nil {
@@ -105,12 +106,12 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		if string(innerDidLock) == "false" {
 			return "", &statemgr.LockError{Info: info, Err: fmt.Errorf("Already locked for workspace creation: %s", c.Name)}
 		}
-		info.Path = "-1"
+		info.Path = creation_lock
 	case err != nil:
 		return "", &statemgr.LockError{Info: info, Err: err}
 	case string(didLock) == "false":
 		// Existing workspace is already locked. Release the attempted creation lock.
-		lockUnlock("-1")
+		lockUnlock(creation_lock)
 		return "", &statemgr.LockError{Info: info, Err: fmt.Errorf("Workspace is already locked: %s", c.Name)}
 	case string(didLockForCreate) == "false":
 		// Someone has the creation lock already. Release the existing workspace because it might not be safe to touch.
@@ -118,7 +119,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		return "", &statemgr.LockError{Info: info, Err: fmt.Errorf("Cannot lock workspace; already locked for workspace creation: %s", c.Name)}
 	default:
 		// Existing workspace is now locked. Release the attempted creation lock.
-		lockUnlock("-1")
+		lockUnlock(creation_lock)
 		info.Path = string(pgLockId)
 	}
 	c.info = info
