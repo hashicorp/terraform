@@ -141,6 +141,12 @@ type MockProvider struct {
 	ConfigureStateStoreRequest  providers.ConfigureStateStoreRequest
 	ConfigureStateStoreFn       func(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse
 
+	GetStatesCalled   bool
+	GetStatesResponse *providers.GetStatesResponse
+	GetStatesRequest  providers.GetStatesRequest
+	GetStatesFn       func(providers.GetStatesRequest) providers.GetStatesResponse
+
+
 	CloseCalled bool
 	CloseError  error
 }
@@ -922,6 +928,41 @@ func (p *MockProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 
 	return resp
 }
+
+func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.GetStatesResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.GetStatesCalled = true
+	p.GetStatesRequest = r
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureProvider not called before GetStates %q", r.TypeName))
+	}
+	if !p.ConfigureStateStoreCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStoreCalled not called before GetStates %q", r.TypeName))
+	}
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	if p.GetStatesResponse != nil {
+		return *p.GetStatesResponse
+	}
+
+	if p.GetStatesFn != nil {
+		return p.GetStatesFn(r)
+	}
+
+	// If the mock has no further inputs, return an empty list.
+	// The state store should be reporting a minimum of the default workspace usually,
+	// but this should be achieved by querying data storage and identifying the artifact
+	// for that workspace, and reporting that the workspace exists.
+	resp.States = []cty.Value{}
+
+	return resp
+}
+
 
 func (p *MockProvider) Close() error {
 	defer p.beginWrite()()

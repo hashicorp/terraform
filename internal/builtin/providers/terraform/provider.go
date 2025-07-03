@@ -290,6 +290,12 @@ func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest)
 	return resp
 }
 
+func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	var resp providers.GetStatesResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
+}
+
 // Close is a noop for this provider, since it's run in-process.
 func (p *Provider) Close() error {
 	return nil

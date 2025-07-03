@@ -116,6 +116,9 @@ type Interface interface {
 	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
 	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
 
+	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
+	GetStates(GetStatesRequest) GetStatesResponse
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -777,6 +780,19 @@ type ConfigureStateStoreRequest struct {
 }
 
 type ConfigureStateStoreResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type GetStatesRequest struct {
+	// TypeName is the name of the state store to request states data from
+	TypeName string
+}
+
+type GetStatesResponse struct {
+	// States is a list of state names, sourced by inspecting persisted state data
+	States []cty.Value
+
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

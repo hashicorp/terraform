@@ -265,6 +265,10 @@ func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) pr
 	panic("not implemented")
 }
 
+func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	panic("not implemented")
+}
+
 func (s simple) Close() error {
 	return nil
 }

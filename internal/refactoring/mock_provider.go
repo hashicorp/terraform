@@ -130,6 +130,10 @@ func (provider *mockProvider) ConfigureStateStore(req providers.ConfigureStateSt
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) Close() error {
 	return nil // do nothing
 }

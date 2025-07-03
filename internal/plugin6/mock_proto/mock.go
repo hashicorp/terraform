@@ -221,6 +221,26 @@ func (mr *MockProviderClientMockRecorder) GetResourceIdentitySchemas(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourceIdentitySchemas", reflect.TypeOf((*MockProviderClient)(nil).GetResourceIdentitySchemas), varargs...)
 }
 
+// GetStates mocks base method.
+func (m *MockProviderClient) GetStates(arg0 context.Context, arg1 *tfplugin6.GetStates_Request, arg2 ...grpc.CallOption) (*tfplugin6.GetStates_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetStates", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.GetStates_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStates indicates an expected call of GetStates.
+func (mr *MockProviderClientMockRecorder) GetStates(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStates", reflect.TypeOf((*MockProviderClient)(nil).GetStates), varargs...)
+}
+
 // ImportResourceState mocks base method.
 func (m *MockProviderClient) ImportResourceState(arg0 context.Context, arg1 *tfplugin6.ImportResourceState_Request, arg2 ...grpc.CallOption) (*tfplugin6.ImportResourceState_Response, error) {
 	m.ctrl.T.Helper()

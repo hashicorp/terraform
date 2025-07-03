@@ -288,6 +288,20 @@ func (o *offlineProvider) ConfigureStateStore(providers.ConfigureStateStoreReque
 	}
 }
 
+// GetStates implements providers.Interface.
+func (o *offlineProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called GetStates on an unconfigured provider",
+		"Cannot list states managed by this state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.GetStatesResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (o *offlineProvider) Close() error {
 	// pass the close call to the underlying unconfigured client
 	return o.unconfiguredClient.Close()

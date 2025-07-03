@@ -380,6 +380,8 @@ service Provider {
     // ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
     rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
 
+    rpc GetStates(GetStates.Request) returns (GetStates.Response);
+
     //////// Graceful Shutdown
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
 }
@@ -875,5 +877,15 @@ message ConfigureStateStore {
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message GetStates {
+	message Request {
+		string type_name = 1;
+    }
+    message Response {
+        repeated string state_id = 1;
+        repeated Diagnostic diagnostics = 2;
     }
 }

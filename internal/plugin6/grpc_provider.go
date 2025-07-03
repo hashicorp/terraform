@@ -1398,6 +1398,11 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 	panic("not implemented")
 }
 
+func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) providers.GetStatesResponse {
+	panic("not implemented")
+}
+
+
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
 	logger.Trace("GRPCProvider.v6: Close")
