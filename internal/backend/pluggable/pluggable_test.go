@@ -1,6 +1,7 @@
 package pluggable
 
 import (
+	"errors"
 	"maps"
 	"slices"
 	"strings"
@@ -150,6 +151,79 @@ func TestPluggable_ConfigSchema(t *testing.T) {
 				t.Fatalf("expected the returned schema to include an attr called %q, but it was missing. Schema contains attrs: %v",
 					tc.expectedAttrName,
 					slices.Sorted(maps.Keys(s.Attributes)))
+			}
+		})
+	}
+}
+
+func TestPluggable_PrepareConfig(t *testing.T) {
+	fooBar := "foo_bar"
+	cases := map[string]struct {
+		provider providers.Interface
+		typeName string
+		config   cty.Value
+
+		wantError string
+	}{
+		"when config is deemed valid there are no diagnostics": {
+			provider: &testing_provider.MockProvider{
+				ConfigureProviderCalled: true,
+				ValidateStateStoreConfigFn: func(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+					// if validation is ok, response has no diags
+					return providers.ValidateStateStoreConfigResponse{}
+				},
+			},
+			typeName: fooBar,
+		},
+		"errors are returned, and expected arguments are in the request": {
+			provider: &testing_provider.MockProvider{
+				ConfigureProviderCalled: true,
+				ValidateStateStoreConfigFn: func(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+					// Are the right values being put into the incoming request?
+					if req.TypeName != fooBar || req.Config != cty.True {
+						t.Fatalf("expected provider ValidateStateStoreConfig method to receive typeName %q and config %q, instead got typeName %q and config %q",
+							fooBar,
+							cty.True,
+							req.TypeName,
+							req.Config)
+					}
+
+					// Force an error, to see it makes it back to the invoked method ok
+					resp := providers.ValidateStateStoreConfigResponse{}
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("error diagnostic raised from mock"))
+					return resp
+				},
+			},
+			typeName:  fooBar,
+			config:    cty.BoolVal(true),
+			wantError: "error diagnostic raised from mock",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			p, err := NewPluggable(tc.provider, tc.typeName)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			_, diags := p.PrepareConfig(tc.config)
+			if mock, ok := tc.provider.(*testing_provider.MockProvider); ok {
+				if !mock.ValidateStateStoreConfigCalled {
+					t.Fatal("expected mock's ValidateStateStoreConfig method to have been called")
+				}
+			}
+			if diags.HasErrors() {
+				if tc.wantError == "" {
+					t.Fatalf("unexpected error: %s", diags.Err())
+				}
+				if !strings.Contains(diags.Err().Error(), tc.wantError) {
+					t.Fatalf("expected error %q but got: %q", tc.wantError, diags.Err())
+				}
+				return
+			}
+			if !diags.HasErrors() && tc.wantError != "" {
+				t.Fatal("expected an error but got none")
 			}
 		})
 	}
