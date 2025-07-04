@@ -23,15 +23,12 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	"github.com/hashicorp/terraform/internal/backend/local"
-	pluggable_state "github.com/hashicorp/terraform/internal/backend/pluggable-state"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	simple "github.com/hashicorp/terraform/internal/provider-simple-v6"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -183,22 +180,15 @@ func (c *InitCommand) Run(args []string) int {
 	var backDiags tfdiags.Diagnostics
 	var backendOutput bool
 
-	spv6 := simple.Provider()
-	// Which state storage implementation to use from the provider
-	typeName := "local"
-	// How do we convert a provider into a Backend interface?
-	stateStorage := pluggable_state.NewPluggable(spv6, typeName)
-	back = local.NewWithBackend(stateStorage)
-
-	// switch {
-	// case initArgs.Cloud && rootModEarly.CloudConfig != nil:
-	// 	back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
-	// case initArgs.Backend:
-	// 	back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
-	// default:
-	// 	// load the previously-stored backend config
-	// 	back, backDiags = c.Meta.backendFromState(ctx)
-	// }
+	switch {
+	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
+		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
+	case initArgs.Backend:
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
+	default:
+		// load the previously-stored backend config
+		back, backDiags = c.Meta.backendFromState(ctx)
+	}
 	if backendOutput {
 		header = true
 	}
