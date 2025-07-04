@@ -127,8 +127,12 @@ func (p *Pluggable) DeleteWorkspace(workspace string, force bool) error {
 	return resp.Diagnostics.Err()
 }
 
+// StateMgr returns a state manager that uses gRPC to communicate with the
+// state storage provider to interact with state.
+//
+// StateMgr implements backend.Backend
 func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, error) {
 	// repackages the provider's methods inside a state manager,
 	// to be passed to the calling code that expects a statemgr.Full
-	return grpc_statemgr.NewGrpcStateManager(p.provider, p.typeName, workspace), nil
+	return grpc_statemgr.NewRemoteGRPC(p.provider, p.typeName, workspace), nil
 }

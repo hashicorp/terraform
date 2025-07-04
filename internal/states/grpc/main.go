@@ -1,102 +1,88 @@
 package grpc_statemgr
 
 import (
-	"context"
-	"fmt"
-	"sync"
-
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/schemarepo"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
-var (
-	_ statemgr.Full = &grpcStateManager{}
-)
-
-// NewGrpcStateManager takes in a provider that implements states storage
-// and returns a state manager implementation that allows calling code to
-// use the provider's state management-related methods.
+// NewRemoteGRPC returns a remote state manager (remote.State) containing
+// an implementation of remote.Client that allows Terraform to interact with
+// a provider implementing pluggable state storage.
 //
-// Requires being passed:
-// 1) the name of the state storage implementation
-// 2) the name of the state/the active workspace
-func NewGrpcStateManager(provider providers.Interface, typeName string, stateId string) statemgr.Full {
-	return &grpcStateManager{
-		provider: provider,
-		typeName: typeName,
-		stateId:  stateId,
+// The remote.Client implementation's methods invoke the provider's RPC
+// methods to perform tasks like reading in state, locking, etc.
+//
+// NewRemoteGRPC requires these arguments to create the remote.Client:
+// 1) the provider interface, needed to call gRPC methods
+// 2) the name of the state storage implementation in the provider
+// 3) the name of the state/the active workspace
+func NewRemoteGRPC(provider providers.Interface, typeName string, stateId string) statemgr.Full {
+	mgr := &remote.State{
+		Client: &grpcClient{
+			provider: provider,
+			typeName: typeName,
+			stateId:  stateId,
+		},
 	}
+	return mgr
 }
 
-type grpcStateManager struct {
+var (
+	_ remote.Client       = &grpcClient{}
+	_ remote.ClientLocker = &grpcClient{}
+	// _ remote.ClientForcePusher = &grpcClient{}
+)
+
+// grpcClient enables the remote.State state manager to communicate
+// with a provider that implements pluggable state storage via gRPC.
+//
+// The calling code needs to provide information about the store's name
+// and the name of the state (i.e. CE workspace) to use, as these are
+// arguments required in gRPC requests.
+type grpcClient struct {
 	provider providers.Interface
 	typeName string // the state storage implementation's name
 	stateId  string
-
-	mu sync.Mutex
-	// TODO
-	// We need fields here similar to the remote state manager; we need to
-	// have in memory state that can be updated repeatedly and eventually persisted
-	// via a call to PersistState.
 }
 
-func (g *grpcStateManager) Lock(info *statemgr.LockInfo) (string, error) {
-	req := providers.LockStateRequest{
-		TypeName:  g.typeName,
-		StateId:   g.stateId,
-		Operation: info.Operation,
-	}
-	resp := g.provider.LockState(req)
-	return resp.LockId, resp.Diagnostics.Err()
+// Get invokes the ReadStateBytes gRPC method in the plugin protocol
+// and returns a copy of the downloaded state data.
+//
+// Implementation of remote.Client
+func (g *grpcClient) Get() (*remote.Payload, error) {
+	return nil, nil
 }
 
-func (g *grpcStateManager) Unlock(id string) error {
-	req := providers.UnlockStateRequest{
+// Put invokes the WriteStateBytes gRPC method in the plugin protocol
+// and to transfer state data to the remote location.
+//
+// Implementation of remote.Client
+func (g *grpcClient) Put(state []byte) error {
+	return nil
+}
+
+// Delete invokes the DeleteState gRPC method in the plugin protocol
+// to delete a named state in the remote location.
+//
+// NOTE: this is included to fulfil an interface, but deletion of
+// workspaces is actually achieved through the backend.Backend
+// interface's DeleteWorkspace method.
+//
+// Implementation of remote.Client
+func (g *grpcClient) Delete() error {
+	req := providers.DeleteStateRequest{
 		TypeName: g.typeName,
 		StateId:  g.stateId,
-		LockId:   id,
 	}
-	resp := g.provider.UnlockState(req)
+	resp := g.provider.DeleteState(req)
 	return resp.Diagnostics.Err()
 }
 
-func (g *grpcStateManager) State() *states.State {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	// TODO: Return a deep copy of the state value from internal, in-memory store here
-	return nil
+func (g *grpcClient) Lock(*statemgr.LockInfo) (string, error) {
+	panic("not implemented yet")
 }
 
-func (g *grpcStateManager) WriteState(state *states.State) error {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	// TODO: write to internal, in-memory store here
-	return nil
-}
-
-func (g *grpcStateManager) RefreshState() error {
-	// No ReadState method implemented on the provider yet
-	return nil
-}
-
-func (g *grpcStateManager) PersistState(foobar *schemarepo.Schemas) error {
-	// No WriteState method implemented on the provider yet
-	return nil
-}
-
-func (g *grpcStateManager) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
-	if err := g.RefreshState(); err != nil {
-		return nil, fmt.Errorf("Failed to load state: %s", err)
-	}
-
-	state := g.State()
-	if state == nil {
-		state = states.NewState()
-	}
-
-	return state.RootOutputValues, nil
+func (g *grpcClient) Unlock(id string) error {
+	panic("not implemented yet")
 }
