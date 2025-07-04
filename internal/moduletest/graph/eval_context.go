@@ -7,8 +7,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 	"sort"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -81,6 +84,14 @@ type EvalContext struct {
 	verbose  bool
 
 	evalSem terraform.Semaphore
+
+	Paused atomic.Bool
+
+	// RecentRun is the most recently evaluated run block.
+	RecentRun *moduletest.Run
+
+	// RunCh is a channel that emits the run blocks.
+	RunCh chan *moduletest.Run
 }
 
 type EvalContextOpts struct {
@@ -91,6 +102,7 @@ type EvalContextOpts struct {
 	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 	Config            *configs.Config
 	Concurrency       int
+	RunCh             chan *moduletest.Run
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -120,6 +132,8 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		renderer:          opts.Render,
 		config:            opts.Config,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
+		Paused:            atomic.Bool{},
+		RunCh:             opts.RunCh,
 	}
 }
 
@@ -148,6 +162,36 @@ func (ec *EvalContext) Stop() {
 
 func (ec *EvalContext) Stopped() bool {
 	return ec.stopContext.Err() != nil
+}
+
+// Pause sets the paused state of the evaluation context, which when true will
+// cause the graph to pause before another run block is executed.
+func (ec *EvalContext) Pause(val bool) {
+	ec.Paused.Store(val)
+}
+
+// AwaitResume blocks until the evaluation context is resumed.
+func (ec *EvalContext) AwaitResume() {
+	paused := ec.Paused.Load()
+	if paused {
+		// wait until the context is resumed
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+		for range ticker.C {
+			if !ec.Paused.Load() {
+				break
+			}
+		}
+	}
+}
+
+// BreakUntilContinue pauses the evaluation context and emits the current
+// scope for the current run block, allowing the user to inspect the state
+// of the evaluation at that point in time.
+func (ec *EvalContext) BreakUntilContinue(run *moduletest.Run) {
+	ec.Pause(true)
+	ec.EmitScope(run)
+	ec.AwaitResume()
 }
 
 // Verbose returns true if the context is in verbose mode.
@@ -242,19 +286,33 @@ func (ec *EvalContext) HclContext(references []*addrs.Reference) (*hcl.EvalConte
 	}, diags
 }
 
-// EvaluateRun processes the assertions inside the provided configs.TestRun against
-// the run results, returning a status, an object value representing the output
-// values from the module under test, and diagnostics describing any problems.
-//
-// extraVariableVals, if provided, overlays the input variables that are
-// already available in resultScope in case there are additional input
-// variables that were defined only for use in the test suite. Any variable
-// not defined in extraVariableVals will be evaluated through resultScope instead.
-func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
+func (ec *EvalContext) ToHclContext() (*hcl.EvalContext, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	runs := make(map[string]cty.Value)
+	vars := make(map[string]cty.Value)
+
+	for _, run := range ec.runBlocks {
+		runs[run.Name] = run.Outputs
+	}
+	for name, variable := range ec.parsedVariables {
+		vars[name] = variable.Value
+	}
+
+	return &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"run": cty.ObjectVal(runs),
+			"var": cty.ObjectVal(vars),
+		},
+		Functions: lang.TestingFunctions(),
+	}, diags
+}
+
+func (ec *EvalContext) RunScope(run *moduletest.Run, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (*lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if run.ModuleConfig == nil {
 		// This should never happen, but if it does, we can't evaluate the run
-		return moduletest.Error, cty.NilVal, tfdiags.Diagnostics{}
+		return nil, diags
 	}
 
 	mod := run.ModuleConfig.Module
@@ -274,6 +332,39 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		PureOnly:      resultScope.PureOnly,
 		PlanTimestamp: resultScope.PlanTimestamp,
 		ExternalFuncs: resultScope.ExternalFuncs,
+	}
+	run.Scope = scope
+	return scope, diags
+}
+
+func (ec *EvalContext) EmitScope(run *moduletest.Run) {
+	select {
+	case ec.RunCh <- run:
+	default:
+		// If the channel is full, just drop the scope.
+	}
+}
+
+// EvaluateRun processes the assertions inside the provided configs.TestRun against
+// the run results, returning a status, an object value representing the output
+// values from the module under test, and diagnostics describing any problems.
+//
+// extraVariableVals, if provided, overlays the input variables that are
+// already available in resultScope in case there are additional input
+// variables that were defined only for use in the test suite. Any variable
+// not defined in extraVariableVals will be evaluated through resultScope instead.
+func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ec.RecentRun = run
+	if run.ModuleConfig == nil {
+		// This should never happen, but if it does, we can't evaluate the run
+		return moduletest.Error, cty.NilVal, tfdiags.Diagnostics{}
+	}
+
+	mod := run.ModuleConfig.Module
+	scope, diags := ec.RunScope(run, resultScope, extraVariableVals)
+	if diags.HasErrors() {
+		return moduletest.Error, cty.NilVal, diags
 	}
 
 	log.Printf("[TRACE] EvalContext.Evaluate for %s", run.Addr())
@@ -786,4 +877,59 @@ func (d *evaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.Diag
 	}
 
 	return diags
+}
+
+func (ec *EvalContext) EvalExpr(s *lang.Scope, expr hcl.Expression, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
+	parseObjectRef := func(traversal hcl.Traversal) (refs *addrs.Reference, diags tfdiags.Diagnostics) {
+		root := traversal.RootName()
+		// allow accessing run blocks and variables directly
+		if slices.Contains([]string{"run", "var"}, root) && len(traversal) == 1 {
+			return nil, diags
+		}
+		return s.ParseRef(traversal)
+	}
+
+	refs, diags := langrefs.ReferencesInExpr(parseObjectRef, expr)
+	if diags.HasErrors() {
+		return cty.UnknownVal(wantType), diags
+	}
+
+	// remove any references that are nil, as they are not valid
+	refs = slices.CompactFunc(refs, func(a, b *addrs.Reference) bool {
+		return b == nil
+	})
+
+	staticDiags := s.Data.StaticValidateReferences(refs, s.SelfAddr, s.SourceAddr)
+	diags = diags.Append(staticDiags)
+	if staticDiags.HasErrors() {
+		return cty.UnknownVal(wantType), diags
+	}
+
+	ctx, ctxDiags := ec.ToHclContext()
+	diags = diags.Append(ctxDiags)
+	if diags.HasErrors() {
+		// If we have errors in the references, we can't continue.
+		return cty.UnknownVal(wantType), diags
+	}
+
+	val, evalDiags := expr.Value(ctx)
+	diags = diags.Append(evalDiags)
+
+	if wantType != cty.DynamicPseudoType {
+		var convErr error
+		val, convErr = convert.Convert(val, wantType)
+		if convErr != nil {
+			val = cty.UnknownVal(wantType)
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Incorrect value type",
+				Detail:      fmt.Sprintf("Invalid expression value: %s.", tfdiags.FormatError(convErr)),
+				Subject:     expr.Range().Ptr(),
+				Expression:  expr,
+				EvalContext: ctx,
+			})
+		}
+	}
+
+	return val, diags
 }

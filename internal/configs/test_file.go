@@ -83,6 +83,8 @@ type TestFile struct {
 	Config *TestFileConfig
 
 	VariablesDeclRange hcl.Range
+
+	Source []byte
 }
 
 // TestFileConfig represents the configuration block within a test file.
@@ -104,6 +106,8 @@ type TestRun struct {
 	//
 	// One of ['apply', 'plan'].
 	Command TestCommand
+
+	BreakPoints []string
 
 	// Options contains the embedded plan options that will affect the given
 	// Command. These should map to the options documented here:
@@ -307,6 +311,10 @@ func (run *TestRun) Validate(config *Config) tfdiags.Diagnostics {
 
 	return diags
 }
+
+// func (run *TestRun) Content(config *Config) (string, hcl.Diagnostics) {
+// 	hclparse.NewParser().Sources()
+// }
 
 // TestRunModuleCall specifies which module should be executed by a given run
 // block.
@@ -760,6 +768,28 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		diags = append(diags, rawDiags...)
 	}
 
+	if attr, exists := content.Attributes["breakpoint"]; exists {
+		list, diags := hcl.ExprList(attr.Expr)
+		if diags.HasErrors() {
+			return &r, diags
+		}
+		for _, expr := range list {
+			switch hcl.ExprAsKeyword(expr) {
+			case "before":
+				r.BreakPoints = append(r.BreakPoints, "before")
+			case "after":
+				r.BreakPoints = append(r.BreakPoints, "after")
+			default:
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid \"breakpoint\" keyword",
+					Detail:   "The \"breakpoint\" argument requires one of the following keywords without quotes: before or after.",
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+			}
+		}
+	}
+
 	return &r, diags
 }
 
@@ -973,6 +1003,7 @@ var testRunBlockSchema = &hcl.BodySchema{
 		{Name: "expect_failures"},
 		{Name: "state_key"},
 		{Name: "parallel"},
+		{Name: "breakpoint"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -51,6 +52,11 @@ type Run struct {
 	// Executing the same run multiple times may or may not update this field
 	// on each execution.
 	ExecutionMeta *RunExecutionMeta
+
+	// Scope is the scope that was used to execute this run block.
+	Scope *lang.Scope
+
+	Source string
 }
 
 func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {

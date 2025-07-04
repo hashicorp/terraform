@@ -116,6 +116,9 @@ func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
 		// separately in the case of a panic.
 		defer logging.PanicHandler()
 
+		// If the eval context is paused, we need to wait until it is resumed.
+		ctx.AwaitResume()
+
 		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
 
 		defer func() {

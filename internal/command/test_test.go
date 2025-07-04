@@ -3924,3 +3924,77 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 		cleanup()
 	}
 }
+
+func TestTest_Console(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "variable_references")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run([]string{"-var=global=\"triple\"", "-console"})
+	output := done(t).All()
+	fmt.Printf("output:\n%s\n", output)
+
+	if !strings.Contains(output, "3 passed, 0 failed") {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the positions of "test_d", "test_c", "test_setup" in the log output
+	var testDIndex, testCIndex, testSetupIndex int
+	for i, line := range lines {
+		if strings.Contains(line, "run \"setup\"") {
+			testSetupIndex = i
+		} else if strings.Contains(line, "run \"test_d\"") {
+			testDIndex = i
+		} else if strings.Contains(line, "run \"test_c\"") {
+			testCIndex = i
+		}
+	}
+	if testDIndex == 0 || testCIndex == 0 || testSetupIndex == 0 {
+		t.Fatalf("test_d, test_c, or test_setup not found in the log output")
+	}
+
+	// Ensure "test_d" appears before "test_c", because test_d has no dependencies,
+	// and would therefore run in parallel to much earlier tests which test_c depends on.
+	if testDIndex > testCIndex {
+		t.Errorf("test_d appears after test_c in the log output")
+	}
+
+	// Ensure "test_d" appears after "test_setup", because they have the same state key
+	if testDIndex < testSetupIndex {
+		t.Errorf("test_d appears before test_setup in the log output")
+	}
+}

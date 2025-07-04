@@ -6,6 +6,7 @@ package graph
 import (
 	"fmt"
 	"log"
+	"slices"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -65,9 +66,19 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 // Execute executes the test run block and update the status of the run block
 // based on the result of the execution.
 func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
+	// emit scope if there is a breakpoint
+	file, run := n.File(), n.run
+	if slices.Contains(n.run.Config.BreakPoints, "before") {
+		if evalCtx.RecentRun != nil {
+			// use the current run scope, which will get updated later
+			// when this run block is executed.
+			n.run.Scope = evalCtx.RecentRun.Scope
+			evalCtx.BreakUntilContinue(n.run)
+		}
+	}
+
 	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", n.File().Name, n.run.Name)
 	startTime := time.Now().UTC()
-	file, run := n.File(), n.run
 
 	// At the end of the function, we'll update the status of the file based on
 	// the status of the run block, and render the run summary.
@@ -75,6 +86,11 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 		evalCtx.Renderer().Run(run, file, moduletest.Complete, 0)
 		file.UpdateStatus(run.Status)
 		evalCtx.AddRunBlock(run)
+
+		// emit scope if there is a breakpoint
+		if slices.Contains(n.run.Config.BreakPoints, "after") {
+			evalCtx.BreakUntilContinue(run)
+		}
 	}()
 
 	if !evalCtx.PriorRunsCompleted(n.priorRuns) || !evalCtx.ReferencesCompleted(n.References()) {
