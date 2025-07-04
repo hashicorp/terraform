@@ -1,8 +1,7 @@
-package grpc_statemgr
+package remote
 
 import (
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
@@ -18,7 +17,7 @@ import (
 // 2) the name of the state storage implementation in the provider
 // 3) the name of the state/the active workspace
 func NewRemoteGRPC(provider providers.Interface, typeName string, stateId string) statemgr.Full {
-	mgr := &remote.State{
+	mgr := &State{
 		Client: &grpcClient{
 			provider: provider,
 			typeName: typeName,
@@ -29,13 +28,15 @@ func NewRemoteGRPC(provider providers.Interface, typeName string, stateId string
 }
 
 var (
-	_ remote.Client       = &grpcClient{}
-	_ remote.ClientLocker = &grpcClient{}
-	// _ remote.ClientForcePusher = &grpcClient{}
+	_ Client       = &grpcClient{}
+	_ ClientLocker = &grpcClient{}
+	// TODO(SarahFrench/radeksimko - do we need to implement the interface below?)
+	// _ ClientForcePusher = &grpcClient{}
 )
 
-// grpcClient enables the remote.State state manager to communicate
-// with a provider that implements pluggable state storage via gRPC.
+// grpcClient acts like a client to enable the State state manager
+// to communicate with a provider that implements pluggable state
+// storage via gRPC.
 //
 // The calling code needs to provide information about the store's name
 // and the name of the state (i.e. CE workspace) to use, as these are
@@ -50,7 +51,7 @@ type grpcClient struct {
 // and returns a copy of the downloaded state data.
 //
 // Implementation of remote.Client
-func (g *grpcClient) Get() (*remote.Payload, error) {
+func (g *grpcClient) Get() (*Payload, error) {
 	panic("not implemented yet")
 }
 
