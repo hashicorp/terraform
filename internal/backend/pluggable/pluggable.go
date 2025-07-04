@@ -30,7 +30,7 @@ func NewPluggable(p providers.Interface, typeName string) (backend.Backend, erro
 		return nil, errors.New("Attempted to initialize pluggable state with a nil provider interface. This is a bug in Terraform and should be reported")
 	}
 	if typeName == "" {
-		return nil, errors.New("Attempted to initialize pluggable state with an empty string identifier for the state store name. This is a bug in Terraform and should be reported")
+		return nil, errors.New("Attempted to initialize pluggable state with an empty string identifier for the state store. This is a bug in Terraform and should be reported")
 	}
 
 	return &Pluggable{
