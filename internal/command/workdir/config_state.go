@@ -24,5 +24,5 @@ type DeepCopier[T any] interface {
 // PlanDataProvider implementations can return a representation of their data that's
 // appropriate for storing in a plan file.
 type PlanDataProvider[T any] interface {
-	PlanData(schema *configschema.Block, workspaceName string) (*T, error)
+	PlanData(storeSchema *configschema.Block, providerSchema *configschema.Block, workspaceName string) (*T, error)
 }

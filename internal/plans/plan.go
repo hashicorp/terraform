@@ -241,8 +241,8 @@ type StateStore struct {
 
 	Provider *Provider
 
-	// Config is the configuration of the backend, whose schema is decided by
-	// the backend Type.
+	// Config is the configuration of the state store, whose schema is obtained
+	// from the host provider's GetProviderSchema response.
 	Config DynamicValue
 
 	// Workspace is the name of the workspace that was active when the plan
@@ -257,10 +257,18 @@ type StateStore struct {
 type Provider struct {
 	Version *version.Version // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
 	Source  *tfaddr.Provider // The FQN/fully-qualified name of the provider.
+
+	// Config is the configuration of the state store, whose schema is obtained
+	// from the host provider's GetProviderSchema response.
+	Config DynamicValue
 }
 
-func NewStateStore(typeName string, ver *version.Version, source *tfaddr.Provider, config cty.Value, configSchema *configschema.Block, workspaceName string) (*StateStore, error) {
-	dv, err := NewDynamicValue(config, configSchema.ImpliedType())
+func NewStateStore(typeName string, ver *version.Version, source *tfaddr.Provider, storeConfig cty.Value, storeSchema *configschema.Block, providerConfig cty.Value, providerSchema *configschema.Block, workspaceName string) (*StateStore, error) {
+	sdv, err := NewDynamicValue(storeConfig, storeSchema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+	pdv, err := NewDynamicValue(providerConfig, providerSchema.ImpliedType())
 	if err != nil {
 		return nil, err
 	}
@@ -268,12 +276,13 @@ func NewStateStore(typeName string, ver *version.Version, source *tfaddr.Provide
 	provider := &Provider{
 		Version: ver,
 		Source:  source,
+		Config:  pdv,
 	}
 
 	return &StateStore{
 		Type:      typeName,
 		Provider:  provider,
-		Config:    dv,
+		Config:    sdv,
 		Workspace: workspaceName,
 	}, nil
 }
