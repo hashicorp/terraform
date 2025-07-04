@@ -1,6 +1,8 @@
 package pluggable_state
 
 import (
+	"errors"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -10,11 +12,31 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func NewPluggable(p providers.Interface, typeName string) backend.Backend {
+// NewPluggable returns an instance of the backend.Backend interface that
+// contains a provider interface. These are the assumptions about that
+// provider:
+//
+// * The provider implements at least one state store.
+// * The provider has already been configured before using NewPluggable.
+//
+// The state store could also be configured prior to using NewPluggable,
+// or it could be configured using the relevant backend.Backend methods.
+//
+// By wrapping a configured provider in a Pluggable we allow calling code
+// to use the provider's gRPC methods when interacting with state.
+func NewPluggable(p providers.Interface, typeName string) (backend.Backend, error) {
+
+	if p == nil {
+		return nil, errors.New("Attempted to initialize pluggable state with a nil provider interface. This is a bug in Terraform and should be reported")
+	}
+	if typeName == "" {
+		return nil, errors.New("Attempted to initialize pluggable state with an empty string identifier for the state store name. This is a bug in Terraform and should be reported")
+	}
+
 	return &Pluggable{
 		provider: p,
 		typeName: typeName,
-	}
+	}, nil
 }
 
 var _ backend.Backend = &Pluggable{}
