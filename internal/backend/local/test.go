@@ -4,16 +4,13 @@
 package local
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log"
 	"maps"
 	"path/filepath"
 	"slices"
-	"strings"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -95,21 +92,14 @@ func (runner *TestSuiteRunner) Debug() *DebugContext {
 
 		// Attach the source code to each run in the suite.
 		for _, file := range suite.Files {
-			for _, run := range file.Runs {
-				endRange := endDeclRange(file.Runs, run.Index, len(file.Config.Source))
-				rng := hcl.RangeOver(run.Config.DeclRange, endRange)
-				sc := hcl.NewRangeScanner(file.Config.Source, rng.Filename, bufio.ScanLines)
-				var code strings.Builder
-				for sc.Scan() {
-					lineRange := sc.Range()
-					if lineRange.Overlaps(rng) {
-						code.Write(lineRange.SliceBytes(file.Config.Source))
-						code.WriteRune('\n')
-					}
-				}
-				codeStr := strings.TrimSuffix(code.String(), "\n")
-				run.Source = codeStr
-			}
+			hdiags := file.WithSourceCode()
+			diags = diags.Append(hdiags)
+		}
+
+		if diags.HasErrors() {
+			ctx.ErrCh <- diags
+			close(ctx.RunCh)
+			return
 		}
 
 		_, diags := runner.test(ctx, suite)
@@ -142,11 +132,6 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 func (runner *TestSuiteRunner) test(dbgCtx *DebugContext, suite *moduletest.Suite) (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	// TODO: (2 needed for the subgraph to be able to run its child nodes)
-	if runner.Concurrency < 2 {
-		runner.Concurrency = 10
-	}
 
 	runner.View.Abstract(suite)
 
@@ -286,49 +271,6 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 	log.Printf("[DEBUG] TestSuiteRunner: found %d files with %d run blocks", fileCount, runCount)
 
 	return suite, diags
-}
-
-// endDeclRange returns the end declaration range for a run block.
-// In reality, this is simply the start of the next run block's
-// declaration range, and therefore may contain other non-run contents.
-func endDeclRange(runs []*moduletest.Run, index, max int) hcl.Range {
-	if index < len(runs)-1 {
-		// If not the last run, then we can use the next run's decl range
-		// to determine the end of the current run's decl range.
-		filename := runs[index].Config.DeclRange.Filename
-		next := runs[index+1].Config.DeclRange
-		return hcl.Range{
-			Filename: filename,
-			Start: hcl.Pos{
-				Line:   next.Start.Line,
-				Column: next.Start.Column,
-				Byte:   next.Start.Byte - 2,
-			},
-			End: hcl.Pos{
-				Line:   next.End.Line,
-				Column: next.End.Column,
-				Byte:   next.Start.Byte - 1,
-			},
-		}
-	}
-
-	// If this is the last run, then we can use the max byte offset
-	// to determine the end of the current run's decl range.
-	if index == len(runs)-1 {
-		current := runs[index].Config.DeclRange
-		if len(runs) > 0 {
-			return hcl.Range{
-				Filename: current.Filename,
-				Start:    current.Start,
-				End: hcl.Pos{
-					Line:   current.End.Line,
-					Column: 1,
-					Byte:   max,
-				},
-			}
-		}
-	}
-	return hcl.Range{}
 }
 
 type TestFileRunner struct {
