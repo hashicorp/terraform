@@ -46,6 +46,10 @@ type Pluggable struct {
 	typeName string
 }
 
+// ConfigSchema returns the schema for the state store implementation
+// name provided when the Pluggable was constructed.
+//
+// ConfigSchema implements backend.Backend
 func (p *Pluggable) ConfigSchema() *configschema.Block {
 	schemaResp := p.provider.GetProviderSchema()
 	if schemaResp.StateStores == nil {
