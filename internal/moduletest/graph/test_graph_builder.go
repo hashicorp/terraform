@@ -129,8 +129,12 @@ func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
 			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
 		}()
 
-		ctx.evalSem.Acquire()
-		defer ctx.evalSem.Release()
+		// expandable nodes are not executed, but they are walked and
+		// their children are executed, so they need not acquire the semaphore themselves.
+		if _, ok := v.(Subgrapher); !ok {
+			ctx.evalSem.Acquire()
+			defer ctx.evalSem.Release()
+		}
 
 		if executable, ok := v.(GraphNodeExecutable); ok {
 			executable.Execute(ctx)

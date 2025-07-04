@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Test run Parallelism of 1 should not result in deadlock
+time: 2025-07-04T18:22:48.934287+02:00
+custom:
+    Issue: "37292"

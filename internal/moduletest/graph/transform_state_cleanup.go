@@ -12,7 +12,14 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-var _ GraphNodeExecutable = &TeardownSubgraph{}
+var (
+	_ GraphNodeExecutable = &TeardownSubgraph{}
+	_ Subgrapher          = &TeardownSubgraph{}
+)
+
+type Subgrapher interface {
+	isSubGrapher()
+}
 
 // TeardownSubgraph is a subgraph for cleaning up the state of
 // resources defined in the state files created by the test runs.
@@ -53,6 +60,8 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	diags = Walk(g, ctx)
 	b.opts.File.AppendDiagnostics(diags)
 }
+
+func (b *TeardownSubgraph) isSubGrapher() {}
 
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
