@@ -944,7 +944,7 @@ func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureProvider not called before GetStates %q", r.TypeName))
 	}
 	if !p.ConfigureStateStoreCalled {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStoreCalled not called before GetStates %q", r.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStore not called before GetStates %q", r.TypeName))
 	}
 	if resp.Diagnostics.HasErrors() {
 		return resp
@@ -978,7 +978,7 @@ func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp provide
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureProvider not called before DeleteState %q", r.TypeName))
 	}
 	if !p.ConfigureStateStoreCalled {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStoreCalled not called before DeleteState %q", r.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStore not called before DeleteState %q", r.TypeName))
 	}
 	if resp.Diagnostics.HasErrors() {
 		return resp
