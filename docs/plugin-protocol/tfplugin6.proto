@@ -380,7 +380,9 @@ service Provider {
     // ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
     rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
 
+    // GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
     rpc GetStates(GetStates.Request) returns (GetStates.Response);
+    // DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
     rpc DeleteState(DeleteState.Request) returns (DeleteState.Response);
 
     //////// Graceful Shutdown

@@ -787,7 +787,7 @@ type ConfigureStateStoreResponse struct {
 }
 
 type GetStatesRequest struct {
-	// TypeName is the name of the state store to request states data from
+	// TypeName is the name of the state store to request the list of states from
 	TypeName string
 }
 
@@ -800,7 +800,7 @@ type GetStatesResponse struct {
 }
 
 type DeleteStateRequest struct {
-	// TypeName is the name of the state store to request states data from
+	// TypeName is the name of the state store to request deletion from
 	TypeName string
 
 	// StateId is the name of the state to be deleted. This is the same as
