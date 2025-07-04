@@ -871,6 +871,16 @@ func (p *MockProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreCo
 		return resp
 	}
 
+	if p.ValidateStateStoreConfigResponse != nil {
+		return *p.ValidateStateStoreConfigResponse
+	}
+
+	if p.ValidateStateStoreConfigFn != nil {
+		return p.ValidateStateStoreConfigFn(r)
+	}
+
+	// In the absence of any custom logic, we do basic validation of the received config against the schema.
+	//
 	// Marshall the value to replicate behavior by the GRPC protocol,
 	// and return any relevant errors
 	storeSchema, ok := p.getProviderSchema().StateStores[r.TypeName]
@@ -879,18 +889,10 @@ func (p *MockProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreCo
 		return resp
 	}
 
-	if p.ValidateStateStoreConfigResponse != nil {
-		return *p.ValidateStateStoreConfigResponse
-	}
-
 	_, err := msgpack.Marshal(r.Config, storeSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
-	}
-
-	if p.ValidateStateStoreConfigFn != nil {
-		return p.ValidateStateStoreConfigFn(r)
 	}
 
 	return resp
@@ -908,6 +910,12 @@ func (p *MockProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 		return resp
 	}
 
+	if p.ConfigureStateStoreFn != nil {
+		return p.ConfigureStateStoreFn(r)
+	}
+
+	// In the absence of any custom logic, we do the logic below.
+	//
 	// Marshall the value to replicate behavior by the GRPC protocol,
 	// and return any relevant errors
 	storeSchema, ok := p.getProviderSchema().StateStores[r.TypeName]
@@ -926,10 +934,68 @@ func (p *MockProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 		return resp
 	}
 
-	if p.ConfigureStateStoreFn != nil {
-		return p.ConfigureStateStoreFn(r)
+	return resp
+}
+
+func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.GetStatesResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.GetStatesCalled = true
+	p.GetStatesRequest = r
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureProvider not called before GetStates %q", r.TypeName))
+	}
+	if !p.ConfigureStateStoreCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStore not called before GetStates %q", r.TypeName))
+	}
+	if resp.Diagnostics.HasErrors() {
+		return resp
 	}
 
+	if p.GetStatesResponse != nil {
+		return *p.GetStatesResponse
+	}
+
+	if p.GetStatesFn != nil {
+		return p.GetStatesFn(r)
+	}
+
+	// If the mock has no further inputs, return an empty list.
+	// The state store should be reporting a minimum of the default workspace usually,
+	// but this should be achieved by querying data storage and identifying the artifact
+	// for that workspace, and reporting that the workspace exists.
+	resp.States = []string{}
+
+	return resp
+}
+
+func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.DeleteStateCalled = true
+	p.DeleteStateRequest = r
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureProvider not called before DeleteState %q", r.TypeName))
+	}
+	if !p.ConfigureStateStoreCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStore not called before DeleteState %q", r.TypeName))
+	}
+
+	if p.DeleteStateResponse != nil {
+		return *p.DeleteStateResponse
+	}
+
+	if p.DeleteStateFn != nil {
+		return p.DeleteStateFn(r)
+	}
+
+	// There's no logic we can include here in the absence of other fields on the mock.
+
+	// If the response contains no diagnostics then the deletion is assumed to be successful.
 	return resp
 }
 
