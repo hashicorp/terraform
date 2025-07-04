@@ -263,6 +263,25 @@ func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plan
 			json.MessageListResourceFound, result,
 		)
 	}
+	return terraform.HookActionContinue, nil
+}
 
+func (h *jsonHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	h.view.Hook(json.NewActionStart(id))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	h.view.Hook(json.NewActionProgress(id, progress))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+
+	if err != nil {
+		h.view.Hook(json.NewActionErrored(id, err))
+	} else {
+		h.view.Hook(json.NewActionComplete(id))
+	}
 	return terraform.HookActionContinue, nil
 }

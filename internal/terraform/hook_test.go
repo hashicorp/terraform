@@ -195,3 +195,24 @@ func (h *testHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.Calls = append(h.Calls, &testHookCall{"PostStateUpdate", ""})
 	return HookActionContinue, nil
 }
+
+func (h *testHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"StartAction", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"ProgressAction", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"CompleteAction", ""})
+	return HookActionContinue, nil
+}
