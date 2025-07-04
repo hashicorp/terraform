@@ -113,6 +113,11 @@ func (runner *TestSuiteRunner) Stop() {
 	runner.Stopped = true
 }
 
+func (runner *TestSuiteRunner) Debug() (suite *moduletest.Suite, diags tfdiags.Diagnostics) {
+	// no-op
+	return
+}
+
 func (runner *TestSuiteRunner) IsStopped() bool {
 	return runner.Stopped
 }

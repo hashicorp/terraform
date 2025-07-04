@@ -22,7 +22,14 @@ import (
 type Session struct {
 	// Scope is the evaluation scope where expressions will be evaluated.
 	Scope *lang.Scope
+
+	// Handlers is a map of command names to functions that handle
+	// those commands. If a command is not found in this map, the
+	// expression will be evaluated as a normal expression.
+	Handlers map[string]HandleFunc
 }
+
+type HandleFunc func(line string) (string, bool, tfdiags.Diagnostics)
 
 // Handle handles a single line of input from the REPL.
 //
@@ -30,7 +37,7 @@ type Session struct {
 // a variable). This function should not be called in parallel.
 //
 // The return value is the output and the error to show.
-func (s *Session) Handle(line string) (string, bool, tfdiags.Diagnostics) {
+func (s *Session) Handle(line string) (ret string, exit bool, diags tfdiags.Diagnostics) {
 	switch {
 	case strings.TrimSpace(line) == "":
 		return "", false, nil

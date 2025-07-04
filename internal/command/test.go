@@ -5,10 +5,13 @@ package command
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -17,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/repl"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -248,7 +252,11 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
-		status, testDiags = runner.Test()
+		if runner, ok := runner.(*local.TestSuiteRunner); ok && args.Console {
+			status, testDiags = c.RunInConsole(runner)
+		} else {
+			status, testDiags = runner.Test()
+		}
 	}()
 
 	// Wait for the operation to complete, or for an interrupt to occur.
@@ -305,4 +313,69 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 	return 0
+}
+
+func (c *TestCommand) RunInConsole(runner *local.TestSuiteRunner) (status moduletest.Status, testDiags tfdiags.Diagnostics) {
+	console := &ConsoleCommand{Meta: c.Meta}
+	dbgCtx := runner.Debug()
+
+	// Set up the UI so we can output directly to stdout
+	ui := &cli.BasicUi{
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+	}
+
+	status = moduletest.Pending
+
+loop:
+	for {
+		select {
+		case diags := <-dbgCtx.ErrCh:
+			testDiags = testDiags.Append(diags)
+			if diags.HasErrors() {
+				status = moduletest.Error
+			}
+			break loop
+		case run, ok := <-dbgCtx.RunCh:
+			if !ok {
+				// The scope channel was closed, which means the test suite is done.
+				break loop
+			}
+			scope := run.Scope
+			scope.ConsoleMode = true
+			continueFn := func(line string) (string, bool, tfdiags.Diagnostics) {
+				dbgCtx.Resume()
+				return "", true, nil
+			}
+
+			// IO Loop
+			session := &repl.TestSession{
+				Scope:   scope,
+				Current: run,
+				Handlers: map[string]repl.HandleFunc{
+					"c":        continueFn,
+					"continue": continueFn,
+					"exit": func(line string) (string, bool, tfdiags.Diagnostics) {
+						close(dbgCtx.RunCh)
+						return "", true, nil
+					},
+				},
+				Evaluator: dbgCtx,
+			}
+
+			ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][yellow]--> %s[reset]", run.Config.DeclRange.String())))
+			ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][blue]    %s[reset]\n", strings.ReplaceAll(run.Source, "\n", "\n    "))))
+			code := console.runSession(session, ui)
+			if code != 0 {
+				testDiags = testDiags.Append(fmt.Errorf("The interactive console mode returned an error code: %d", code))
+				status = moduletest.Error
+				break loop
+			}
+		}
+	}
+
+	for _, file := range dbgCtx.Suite.Files {
+		status = status.Merge(file.Status)
+	}
+	return status, testDiags
 }

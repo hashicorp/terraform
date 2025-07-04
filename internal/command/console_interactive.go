@@ -19,9 +19,14 @@ import (
 	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/repl"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {
+type HandleSession interface {
+	Handle(line string) (string, bool, tfdiags.Diagnostics)
+}
+
+func (c *ConsoleCommand) modeInteractive(session HandleSession, ui cli.Ui) int {
 	// Configure input
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:            "> ",

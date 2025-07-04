@@ -176,6 +176,10 @@ func (c *ConsoleCommand) Run(args []string) int {
 		Scope: scope,
 	}
 
+	return c.runSession(session, ui)
+}
+
+func (c *ConsoleCommand) runSession(session HandleSession, ui cli.Ui) int {
 	// Determine if stdin is a pipe. If so, we evaluate directly.
 	if c.StdinPiped() {
 		return c.modePiped(session, ui)
@@ -184,7 +188,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	return c.modeInteractive(session, ui)
 }
 
-func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
+func (c *ConsoleCommand) modePiped(session HandleSession, ui cli.Ui) int {
 	var lastResult string
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {

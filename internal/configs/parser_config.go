@@ -44,6 +44,10 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 	}
 
 	test, testDiags := loadTestFile(body)
+	src := p.Sources()
+	if len(test.Runs) > 0 {
+		test.Source = src[test.Runs[0].DeclRange.Filename]
+	}
 	diags = append(diags, testDiags...)
 	return test, diags
 }

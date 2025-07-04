@@ -4,13 +4,16 @@
 package local
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
 	"maps"
 	"path/filepath"
 	"slices"
+	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -65,6 +68,60 @@ func (runner *TestSuiteRunner) Stop() {
 	runner.Stopped = true
 }
 
+// Debug is a special function that allows the test suite to be run in a
+// debug mode. The suite is returned immediately, and the tests are
+// executed asynchronously. The suite's scope is used to communicate
+// the results of the tests back to the caller. The caller can then
+// use the scope to wait for the tests to complete and retrieve the
+// results of the tests.
+func (runner *TestSuiteRunner) Debug() *DebugContext {
+	var diags tfdiags.Diagnostics
+	ctx := &DebugContext{
+		RunCh: make(chan *moduletest.Run),
+		ErrCh: make(chan tfdiags.Diagnostics, 1),
+	}
+
+	// run the test suite in a goroutine and
+	// send the results back to the caller via the debug context's RunCh channel.
+	go func() {
+		suite, suiteDiags := runner.collectTests()
+		diags = diags.Append(suiteDiags)
+		if suiteDiags.HasErrors() {
+			ctx.ErrCh <- diags
+			close(ctx.RunCh)
+			return
+		}
+		ctx.Suite = suite
+
+		// Attach the source code to each run in the suite.
+		for _, file := range suite.Files {
+			for _, run := range file.Runs {
+				endRange := endDeclRange(file.Runs, run.Index, len(file.Config.Source))
+				rng := hcl.RangeOver(run.Config.DeclRange, endRange)
+				sc := hcl.NewRangeScanner(file.Config.Source, rng.Filename, bufio.ScanLines)
+				var code strings.Builder
+				for sc.Scan() {
+					lineRange := sc.Range()
+					if lineRange.Overlaps(rng) {
+						code.Write(lineRange.SliceBytes(file.Config.Source))
+						code.WriteRune('\n')
+					}
+				}
+				codeStr := strings.TrimSuffix(code.String(), "\n")
+				run.Source = codeStr
+			}
+		}
+
+		_, diags := runner.test(ctx, suite)
+		close(ctx.RunCh)
+		if diags.HasErrors() {
+			ctx.ErrCh <- diags
+		}
+	}()
+
+	return ctx
+}
+
 func (runner *TestSuiteRunner) IsStopped() bool {
 	return runner.Stopped
 }
@@ -75,15 +132,20 @@ func (runner *TestSuiteRunner) Cancel() {
 
 func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	if runner.Concurrency < 1 {
-		runner.Concurrency = 10
-	}
-
 	suite, suiteDiags := runner.collectTests()
 	diags = diags.Append(suiteDiags)
 	if suiteDiags.HasErrors() {
 		return moduletest.Error, diags
+	}
+	return runner.test(nil, suite)
+}
+
+func (runner *TestSuiteRunner) test(dbgCtx *DebugContext, suite *moduletest.Suite) (moduletest.Status, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// TODO: (2 needed for the subgraph to be able to run its child nodes)
+	if runner.Concurrency < 2 {
+		runner.Concurrency = 10
 	}
 
 	runner.View.Abstract(suite)
@@ -113,6 +175,11 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			currentGlobalVariables = testDirectoryGlobalVariables
 		}
 
+		var runCh chan *moduletest.Run
+		if dbgCtx != nil {
+			runCh = dbgCtx.RunCh
+		}
+
 		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
 			Config:            runner.Config,
 			CancelCtx:         runner.CancelledCtx,
@@ -121,7 +188,14 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			Render:            runner.View,
 			UnparsedVariables: currentGlobalVariables,
 			Concurrency:       runner.Concurrency,
+			RunCh:             runCh,
 		})
+
+		if dbgCtx != nil {
+			// set the current file runner's eval context as the active eval context, so that the caller
+			// can resume the test execution within this eval context.
+			dbgCtx.activeEvalContext = evalCtx
+		}
 
 		fileRunner := &TestFileRunner{
 			Suite:       runner,
@@ -214,11 +288,55 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 	return suite, diags
 }
 
+// endDeclRange returns the end declaration range for a run block.
+// In reality, this is simply the start of the next run block's
+// declaration range, and therefore may contain other non-run contents.
+func endDeclRange(runs []*moduletest.Run, index, max int) hcl.Range {
+	if index < len(runs)-1 {
+		// If not the last run, then we can use the next run's decl range
+		// to determine the end of the current run's decl range.
+		filename := runs[index].Config.DeclRange.Filename
+		next := runs[index+1].Config.DeclRange
+		return hcl.Range{
+			Filename: filename,
+			Start: hcl.Pos{
+				Line:   next.Start.Line,
+				Column: next.Start.Column,
+				Byte:   next.Start.Byte - 2,
+			},
+			End: hcl.Pos{
+				Line:   next.End.Line,
+				Column: next.End.Column,
+				Byte:   next.Start.Byte - 1,
+			},
+		}
+	}
+
+	// If this is the last run, then we can use the max byte offset
+	// to determine the end of the current run's decl range.
+	if index == len(runs)-1 {
+		current := runs[index].Config.DeclRange
+		if len(runs) > 0 {
+			return hcl.Range{
+				Filename: current.Filename,
+				Start:    current.Start,
+				End: hcl.Pos{
+					Line:   current.End.Line,
+					Column: 1,
+					Byte:   max,
+				},
+			}
+		}
+	}
+	return hcl.Range{}
+}
+
 type TestFileRunner struct {
 	// Suite contains all the helpful metadata about the test that we need
 	// during the execution of a file.
 	Suite       *TestSuiteRunner
 	EvalContext *graph.EvalContext
+	TestSuite   *moduletest.Suite
 }
 
 func (runner *TestFileRunner) Test(file *moduletest.File) {

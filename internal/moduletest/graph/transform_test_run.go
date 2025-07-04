@@ -57,7 +57,9 @@ func ControlParallelism[T any](g *terraform.Graph, nodes []T) {
 	for i, node := range nodes {
 		switch node := any(node).(type) {
 		case *NodeTestRun:
-			if node.run.Config.Parallel {
+			// If a node has a breakpoint set, it will not connect to
+			// any runs, allowing it to run independently.
+			if node.run.Config.Parallel && len(node.run.Config.BreakPoints) == 0 {
 				continue
 			}
 
