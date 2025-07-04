@@ -51,7 +51,7 @@ type grpcClient struct {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Get() (*remote.Payload, error) {
-	return nil, nil
+	panic("not implemented yet")
 }
 
 // Put invokes the WriteStateBytes gRPC method in the plugin protocol
@@ -59,7 +59,7 @@ func (g *grpcClient) Get() (*remote.Payload, error) {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Put(state []byte) error {
-	return nil
+	panic("not implemented yet")
 }
 
 // Delete invokes the DeleteState gRPC method in the plugin protocol
