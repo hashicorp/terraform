@@ -247,10 +247,15 @@ func (h *jsonHook) PreListQuery(id terraform.HookResourceIdentity, input_config 
 func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults) (terraform.HookAction, error) {
 	addr := id.Addr
 	data := results.Value.GetAttr("data")
-	for it := data.ElementIterator(); it.Next(); {
-		_, value := it.Element()
+	iter := data.ElementIterator()
+	for idx := 0; iter.Next(); idx++ {
+		_, value := iter.Element()
 
-		result := json.NewQueryResult(addr, value)
+		generated := results.Generated
+		if generated != nil {
+			generated = generated.Results[idx]
+		}
+		result := json.NewQueryResult(addr, value, generated)
 
 		h.view.log.Info(
 			fmt.Sprintf("%s: Result found", addr.String()),

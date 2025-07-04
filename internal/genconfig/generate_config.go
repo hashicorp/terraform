@@ -4,6 +4,7 @@
 package genconfig
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -21,6 +22,50 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type Resource struct {
+	// HCL Body of the resource, which is the attributes and blocks
+	// that are part of the resource.
+	Body []byte
+
+	// Import is the HCL code for the import block. This is only
+	// generated for list resource results.
+	Import  []byte
+	Addr    addrs.AbsResourceInstance
+	Results []*Resource
+}
+
+func (r *Resource) String() string {
+	var buf strings.Builder
+	switch r.Addr.Resource.Resource.Mode {
+	case addrs.ListResourceMode:
+		last := len(r.Results) - 1
+		// sort the results by their keys so the output is consistent
+		for idx, managed := range r.Results {
+			if managed.Body != nil {
+				buf.WriteString(managed.String())
+				buf.WriteString("\n")
+			}
+			if managed.Import != nil {
+				buf.WriteString(string(managed.Import))
+				buf.WriteString("\n")
+			}
+			if idx != last {
+				buf.WriteString("\n")
+			}
+		}
+	case addrs.ManagedResourceMode:
+		buf.WriteString(fmt.Sprintf("resource %q %q {\n", r.Addr.Resource.Resource.Type, r.Addr.Resource.Resource.Name))
+		buf.Write(r.Body)
+		buf.WriteString("}")
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", r.Addr.Resource.Resource.Mode))
+	}
+
+	// The output better be valid HCL which can be parsed and formatted.
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(formatted)
+}
+
 // GenerateResourceContents generates HCL configuration code for the provided
 // resource and state value.
 //
@@ -30,7 +75,7 @@ import (
 func GenerateResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
 	pc addrs.LocalProviderConfig,
-	stateVal cty.Value) (string, tfdiags.Diagnostics) {
+	stateVal cty.Value) (*Resource, tfdiags.Diagnostics) {
 	var buf strings.Builder
 
 	var diags tfdiags.Diagnostics
@@ -44,25 +89,97 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocks(addr, &buf, schema.BlockTypes, 2))
 	} else {
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2, optionalOrRequiredProcessor))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, stateVal, schema.BlockTypes, 2))
 	}
 
 	// The output better be valid HCL which can be parsed and formatted.
 	formatted := hclwrite.Format([]byte(buf.String()))
-	return string(formatted), diags
+	return &Resource{
+		Body: formatted,
+		Addr: addr,
+	}, diags
 }
 
-func WrapResourceContents(addr addrs.AbsResourceInstance, config string) string {
+func GenerateListResourceContents(addr addrs.AbsResourceInstance,
+	schema *configschema.Block,
+	idSchema *configschema.Object,
+	pc addrs.LocalProviderConfig,
+	stateVal cty.Value,
+) (*Resource, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if !stateVal.CanIterateElements() {
+		diags = diags.Append(
+			hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid resource instance value",
+				Detail:   fmt.Sprintf("Resource instance %s has nil or non-iterable value", addr),
+			})
+		return nil, diags
+	}
+
+	ret := make([]*Resource, stateVal.LengthInt())
+	iter := stateVal.ElementIterator()
+	for idx := 0; iter.Next(); idx++ {
+		// Generate a unique resource name for each instance in the list.
+		resAddr := addrs.AbsResourceInstance{
+			Module: addr.Module,
+			Resource: addrs.ResourceInstance{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: addr.Resource.Resource.Type,
+					Name: fmt.Sprintf("%s_%d", addr.Resource.Resource.Name, idx),
+				},
+				Key: addr.Resource.Key,
+			},
+		}
+		ls := &Resource{Addr: resAddr}
+		ret[idx] = ls
+
+		_, val := iter.Element()
+		// we still need to generate the resource block even if the state is not given,
+		// so that the import block can reference it.
+		stateVal := cty.NilVal
+		if val.Type().HasAttribute("state") {
+			stateVal = val.GetAttr("state")
+		}
+		content, gDiags := GenerateResourceContents(resAddr, schema, pc, stateVal)
+		if gDiags.HasErrors() {
+			diags = diags.Append(gDiags)
+			continue
+		}
+		ls.Body = content.Body
+
+		idVal := val.GetAttr("identity")
+		importContent, gDiags := generateImportBlock(resAddr, idSchema, pc, idVal)
+		if gDiags.HasErrors() {
+			diags = diags.Append(gDiags)
+			continue
+		}
+		ls.Import = bytes.TrimSpace(hclwrite.Format([]byte(importContent)))
+	}
+
+	return &Resource{
+		Results: ret,
+		Addr:    addr,
+	}, diags
+}
+
+func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.Object, pc addrs.LocalProviderConfig, identity cty.Value) (string, tfdiags.Diagnostics) {
 	var buf strings.Builder
+	var diags tfdiags.Diagnostics
 
-	buf.WriteString(fmt.Sprintf("resource %q %q {\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name))
-	buf.WriteString(config)
-	buf.WriteString("}")
+	buf.WriteString("\n")
+	buf.WriteString("import {\n")
+	buf.WriteString(fmt.Sprintf("  to = %s\n", addr.String()))
+	buf.WriteString(fmt.Sprintf("  provider = %s\n", pc.StringCompact()))
+	buf.WriteString("  identity = {\n")
+	diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, identity, idSchema.Attributes, 2, allowAllAttributesProcessor))
+	buf.WriteString(strings.Repeat(" ", 2))
+	buf.WriteString("}\n}\n")
 
-	// The output better be valid HCL which can be parsed and formatted.
 	formatted := hclwrite.Format([]byte(buf.String()))
-	return string(formatted)
+	return string(formatted), diags
 }
 
 func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
@@ -112,7 +229,16 @@ func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder,
 	return diags
 }
 
-func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
+func optionalOrRequiredProcessor(attr *configschema.Attribute) bool {
+	// Exclude computed-only attributes
+	return attr.Optional || attr.Required
+}
+
+func allowAllAttributesProcessor(attr *configschema.Attribute) bool {
+	return true
+}
+
+func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int, processAttr func(*configschema.Attribute) bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if len(attrs) == 0 {
 		return diags
@@ -126,8 +252,7 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 			continue
 		}
 
-		// Exclude computed-only attributes
-		if attrS.Required || attrS.Optional {
+		if processAttr != nil && processAttr(attrS) {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = ", name))
 
@@ -327,6 +452,7 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 
 func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	processor := optionalOrRequiredProcessor
 
 	switch schema.NestedType.Nesting {
 	case configschema.NestingSingle:
@@ -354,7 +480,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2, processor))
 		buf.WriteString("}\n")
 		return diags
 
@@ -386,7 +512,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			}
 
 			buf.WriteString("{\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4, processor))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("},\n")
 		}
@@ -424,7 +550,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			}
 
 			buf.WriteString("\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4, processor))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("}\n")
 		}
@@ -440,6 +566,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.NestedBlock, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	processAttr := optionalOrRequiredProcessor
 
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
@@ -455,7 +582,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 			return diags
 		}
 		buf.WriteString("\n")
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2, processAttr))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, stateVal, schema.BlockTypes, indent+2))
 		buf.WriteString("}\n")
 		return diags
@@ -469,7 +596,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s {\n", name))
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2, processAttr))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, listVals[i], schema.BlockTypes, indent+2))
 			buf.WriteString("}\n")
 		}
@@ -491,7 +618,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 				return diags
 			}
 			buf.WriteString("\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2, processAttr))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, vals[key], schema.BlockTypes, indent+2))
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString("}\n")
