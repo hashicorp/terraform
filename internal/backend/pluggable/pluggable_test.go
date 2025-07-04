@@ -274,3 +274,80 @@ func TestPluggable_Configure(t *testing.T) {
 		t.Fatalf("expected error %q but got: %q", wantError, diags.Err())
 	}
 }
+
+func TestPluggable_Workspaces(t *testing.T) {
+	fooBar := "foo_bar"
+	cases := map[string]struct {
+		provider           providers.Interface
+		expectedWorkspaces []string
+		wantError          string
+	}{
+		"returned workspaces match what's returned from the store": {
+			// and "default" isn't included by default
+			provider: &testing_provider.MockProvider{
+				ConfigureProviderCalled:        true,
+				ValidateStateStoreConfigCalled: true,
+				ConfigureStateStoreCalled:      true,
+				GetStatesFn: func(req providers.GetStatesRequest) providers.GetStatesResponse {
+					workspaces := []string{"abcd", "efg"}
+					resp := providers.GetStatesResponse{
+						States: workspaces,
+					}
+					return resp
+				},
+			},
+			expectedWorkspaces: []string{"abcd", "efg"},
+		},
+		"errors are returned, and expected arguments are in the request": {
+			provider: &testing_provider.MockProvider{
+				ConfigureProviderCalled:        true,
+				ValidateStateStoreConfigCalled: true,
+				ConfigureStateStoreCalled:      true,
+				GetStatesFn: func(req providers.GetStatesRequest) providers.GetStatesResponse {
+					if req.TypeName != fooBar {
+						t.Fatalf("expected provider GetStates method to receive typeName %q, instead got typeName %q",
+							fooBar,
+							req.TypeName)
+					}
+					resp := providers.GetStatesResponse{}
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("error diagnostic raised from mock"))
+					return resp
+				},
+			},
+			wantError: "error diagnostic raised from mock",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			p, err := NewPluggable(tc.provider, fooBar)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			workspaces, err := p.Workspaces()
+			if mock, ok := tc.provider.(*testing_provider.MockProvider); ok {
+				if !mock.GetStatesCalled {
+					t.Fatal("expected mock's GetStates method to have been called")
+				}
+			}
+			if err != nil {
+				if tc.wantError == "" {
+					t.Fatalf("unexpected error: %s", err)
+				}
+				if !strings.Contains(err.Error(), tc.wantError) {
+					t.Fatalf("expected error %q but got: %q", tc.wantError, err)
+				}
+				return
+			}
+
+			if tc.wantError != "" {
+				t.Fatal("expected an error but got none")
+			}
+
+			if slices.Compare(workspaces, tc.expectedWorkspaces) != 0 {
+				t.Fatalf("expected workspaces %v, got %v", tc.expectedWorkspaces, workspaces)
+			}
+		})
+	}
+}
