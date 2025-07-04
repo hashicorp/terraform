@@ -4,7 +4,13 @@
 package configs
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // StateStore represents a "state_store" block inside a "terraform" block
@@ -77,4 +83,61 @@ var StateStorageBlockSchema = &hcl.BodySchema{
 			LabelNames: []string{"type"},
 		},
 	},
+}
+
+// Hash produces a hash value for the receiver that covers the type and the
+// portions of the config that conform to the state_store schema. The provider
+// block that is nested inside state_store is ignored.
+//
+// If the config does not conform to the schema then the result is not
+// meaningful for comparison since it will be based on an incomplete result.
+//
+// As an exception, required attributes in the schema are treated as optional
+// for the purpose of hashing, so that an incomplete configuration can still
+// be hashed. Other errors, such as extraneous attributes, have no such special
+// case.
+func (b *StateStore) Hash(schema *configschema.Block) (int, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// The schema should not include a provider block or attr
+	if _, exists := schema.Attributes["provider"]; exists {
+		return 0, diags.Append(fmt.Errorf("error when creating hash of state_store config: schema contains a provider attribute. \nThis is a bug in the provider used for state storage, which should be reported in the provider's own issue tracker."))
+	}
+	if _, exists := schema.BlockTypes["provider"]; exists {
+		return 0, diags.Append(fmt.Errorf("error when creating hash of state_store config: schema contains a provider block. \nThis is a bug in the provider used for state storage, which should be reported in the provider's own issue tracker."))
+	}
+
+	// Don't fail if required attributes are not set. Instead, we'll just
+	// hash them as nulls.
+	schema = schema.NoneRequired()
+	spec := schema.DecoderSpec()
+
+	// The value `b.Config` will include data about the provider block nested inside state_store
+	// so we need to ignore it. PartialDecode allows that 'extra' provider block to be ignored,
+	// but we need to check that's the only thing being ignored.
+	val, decodeDiags := hcldec.Decode(b.Config, spec, nil)
+	if decodeDiags.HasErrors() {
+		for _, diag := range decodeDiags {
+			if diag.Detail == "Blocks of type \"provider\" are not expected here." {
+				// We want to tolerate this.
+				continue
+			}
+			diags = diags.Append(diag)
+		}
+		if diags.HasErrors() {
+			return 0, diags
+		}
+	}
+
+	// We're on the happy path, so continue to get the hash
+	if val == cty.NilVal {
+		val = cty.UnknownVal(schema.ImpliedType())
+	}
+
+	toHash := cty.TupleVal([]cty.Value{
+		cty.StringVal(b.Type),
+		val,
+	})
+
+	return toHash.Hash(), nil
 }

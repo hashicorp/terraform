@@ -29,7 +29,7 @@ func decodeBackendBlock(block *hcl.Block) (*Backend, hcl.Diagnostics) {
 	}, nil
 }
 
-// Hash produces a hash value for the reciever that covers the type and the
+// Hash produces a hash value for the receiver that covers the type and the
 // portions of the config that conform to the given schema.
 //
 // If the config does not conform to the schema then the result is not
