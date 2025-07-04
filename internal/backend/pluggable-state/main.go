@@ -56,8 +56,21 @@ func (p *Pluggable) PrepareConfig(config cty.Value) (cty.Value, tfdiags.Diagnost
 	return config, resp.Diagnostics
 }
 
+// Configure configures the state store in the state storage provider.
+// Calling code is expected to have already validated the config using
+// the PrepareConfig method.
+//
+// It is the provider's responsibility to access any environment variables
+// set by the user to get the complete set of configuration.
+//
+// Configure implements backend.Backend
 func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
-	return nil
+	req := providers.ConfigureStateStoreRequest{
+		TypeName: p.typeName,
+		Config:   config,
+	}
+	resp := p.provider.ConfigureStateStore(req)
+	return resp.Diagnostics
 }
 
 func (p *Pluggable) Workspaces() ([]string, error) {
