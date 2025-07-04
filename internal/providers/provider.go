@@ -793,7 +793,7 @@ type GetStatesRequest struct {
 
 type GetStatesResponse struct {
 	// States is a list of state names, sourced by inspecting persisted state data
-	States []cty.Value
+	States []string
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
