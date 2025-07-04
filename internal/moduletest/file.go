@@ -6,6 +6,8 @@ package moduletest
 import (
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -52,4 +54,25 @@ func (f *File) AppendDiagnostics(diags tfdiags.Diagnostics) {
 	if diags.HasErrors() {
 		f.Status = f.Status.Merge(Error)
 	}
+}
+
+// WithSourceCode updates the file's runs with their source code
+// extracted from the HCL file.
+func (f *File) WithSourceCode() (diags tfdiags.Diagnostics) {
+	hfile, hdiags := hclwrite.ParseConfig(f.Config.Source, f.Name, hcl.InitialPos)
+	diags = diags.Append(hdiags)
+	if hdiags.HasErrors() {
+		return diags
+	}
+	idx := 0
+	for _, bl := range hfile.Body().Blocks() {
+		if bl.Type() == "run" {
+			run := f.Runs[idx]
+			tokens := bl.BuildTokens(nil)
+			codeStr := string(tokens.Bytes())
+			run.Source = codeStr
+			idx++
+		}
+	}
+	return diags
 }
