@@ -353,6 +353,12 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic("nil plan but no errors")
 	}
 
+	if plan != nil {
+		relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
+		diags = diags.Append(rDiags)
+		plan.RelevantAttributes = relevantAttrs
+	}
+
 	if diags.HasErrors() {
 		// We can't proceed further with an invalid plan, because an invalid
 		// plan isn't applyable by definition.
@@ -541,6 +547,10 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		destroyPlan.PrevRunState = prevRunState
 	}
 
+	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, destroyPlan)
+	diags = diags.Append(rDiags)
+
+	destroyPlan.RelevantAttributes = relevantAttrs
 	return destroyPlan, evalScope, diags
 }
 
@@ -767,9 +777,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	deferredResources, deferredDiags := c.deferredResources(config, walker.Deferrals.GetDeferredChanges(), priorState)
 	diags = diags.Append(deferredDiags)
 
-	relevantAttributes, relevantDiags := c.relevantResourceAttrsForPlan(config, changes, priorState)
-	diags = diags.Append(relevantDiags)
-
 	var forgottenResources []string
 	for _, rc := range changes.Resources {
 		if rc.Action == plans.Forget {
@@ -807,7 +814,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Checks:             states.NewCheckResults(walker.Checks),
 		Timestamp:          timestamp,
 		FunctionResults:    funcResults.GetHashes(),
-		RelevantAttributes: relevantAttributes,
 
 		// Other fields get populated by Context.Plan after we return
 	}
@@ -1150,17 +1156,15 @@ func (c *Context) referenceAnalyzer(config *configs.Config, state *states.State)
 }
 
 // relevantResourcesForPlan implements the heuristic we use to populate the
-// RelevantResources field of returned plans. we use the ChangesSync here
-// so we don't have to decode the changes to assess the validity of any
-// references.
-func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, changes *plans.Changes, state *states.State) ([]globalref.ResourceAttr, tfdiags.Diagnostics) {
-	azr, diags := c.referenceAnalyzer(config, state)
+// RelevantResources field of returned plans.
+func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, plan *plans.Plan) ([]globalref.ResourceAttr, tfdiags.Diagnostics) {
+	azr, diags := c.referenceAnalyzer(config, plan.PriorState)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
 	var refs []globalref.Reference
-	for _, change := range changes.Resources {
+	for _, change := range plan.Changes.Resources {
 		if change.Action == plans.NoOp {
 			continue
 		}
@@ -1169,7 +1173,7 @@ func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, changes *
 		refs = append(refs, moreRefs...)
 	}
 
-	for _, change := range changes.RootOutputValues() {
+	for _, change := range plan.Changes.Outputs {
 		if change.Action == plans.NoOp {
 			continue
 		}
@@ -1181,25 +1185,7 @@ func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, changes *
 	var contributors []globalref.ResourceAttr
 
 	for _, ref := range azr.ContributingResourceReferences(refs...) {
-
-		// because of the can and try functions, users can actually place
-		// invalid references into their configuration that don't error.
-		//
-		// these references will then be picked up here, so we are just going
-		// to perform a last validation of the references so we don't insert
-		// invalid references into the relevant references index.
-
 		if res, ok := ref.ResourceAttr(); ok {
-			change := changes.ResourceInstance(res.Resource)
-			if change == nil {
-				log.Printf("[WARN]: attribute %s was detected as relevant, but pointed to missing resource.", res.DebugString())
-				continue
-			}
-			if _, err := res.Attr.Apply(change.After); err != nil {
-				log.Printf("[WARN]: attribute %s was detected as relevant, but pointed to invalid attribute.", res.DebugString())
-				continue
-			}
-
 			contributors = append(contributors, res)
 		}
 	}

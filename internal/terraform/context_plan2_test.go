@@ -6781,6 +6781,7 @@ resource "test_simple_object" "b" {
 `,
 			},
 			expectedAttributes: []string{
+				"test_computed_object.a.object",
 				"test_computed_object.a.object.value",
 			},
 		},
@@ -6795,6 +6796,7 @@ resource "test_simple_object" "b" {
 `,
 			},
 			expectedAttributes: []string{
+				"test_computed_object.a.dynamic",
 				"test_computed_object.a.object.value",
 			},
 		},
