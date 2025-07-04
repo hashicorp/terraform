@@ -1,4 +1,4 @@
-package pluggable_state
+package pluggable
 
 import (
 	"errors"
