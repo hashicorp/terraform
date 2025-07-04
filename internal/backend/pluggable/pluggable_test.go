@@ -1,11 +1,15 @@
 package pluggable
 
 import (
+	"maps"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNewPluggable(t *testing.T) {
@@ -51,6 +55,101 @@ func TestNewPluggable(t *testing.T) {
 			}
 			if err == nil && tc.wantError != "" {
 				t.Fatalf("expected error %q but got none", tc.wantError)
+			}
+		})
+	}
+}
+
+func TestPluggable_ConfigSchema(t *testing.T) {
+
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider:          providers.Schema{},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				// This imagines a provider called foo that contains
+				// two pluggable state store implementations, called
+				// bar and baz.
+				// It's accurate to include the prefixed provider name
+				// in the keys of schema maps
+				"foo_bar": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"bar": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+				"foo_baz": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"baz": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cases := map[string]struct {
+		provider providers.Interface
+		typeName string
+
+		expectedAttrName string
+		expectNil        bool
+	}{
+		"returns expected schema - bar store": {
+			provider:         p,
+			typeName:         "foo_bar",
+			expectedAttrName: "bar",
+		},
+		"returns expected schema - baz store": {
+			provider:         p,
+			typeName:         "foo_baz",
+			expectedAttrName: "baz",
+		},
+		"returns nil if there isn't a store with a matching name": {
+			provider:  p,
+			typeName:  "foo_not_implemented",
+			expectNil: true,
+		},
+		"returns nil if no state stores are implemented in the provider": {
+			provider:  &testing_provider.MockProvider{},
+			typeName:  "foo_bar",
+			expectNil: true,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			p, err := NewPluggable(tc.provider, tc.typeName)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			s := p.ConfigSchema()
+			if mock, ok := tc.provider.(*testing_provider.MockProvider); ok {
+				if !mock.GetProviderSchemaCalled {
+					t.Fatal("expected mock's GetProviderSchema method to have been called")
+				}
+			}
+			if s == nil {
+				if !tc.expectNil {
+					t.Fatal("ConfigSchema returned an unexpected nil schema")
+				}
+				return
+			}
+			if val := s.Attributes[tc.expectedAttrName]; val == nil {
+				t.Fatalf("expected the returned schema to include an attr called %q, but it was missing. Schema contains attrs: %v",
+					tc.expectedAttrName,
+					slices.Sorted(maps.Keys(s.Attributes)))
 			}
 		})
 	}
