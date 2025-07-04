@@ -52,7 +52,7 @@ type Pluggable struct {
 // ConfigSchema implements backend.Backend
 func (p *Pluggable) ConfigSchema() *configschema.Block {
 	schemaResp := p.provider.GetProviderSchema()
-	if schemaResp.StateStores == nil {
+	if len(schemaResp.StateStores) == 0 {
 		// No state stores
 		return nil
 	}
