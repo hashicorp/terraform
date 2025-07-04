@@ -225,6 +225,16 @@ func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) pr
 	panic("not implemented")
 }
 
+func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	// provider-simple uses protocol version 5, which does not include the RPC that maps to this method
+	panic("not implemented")
+}
+
+func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	// provider-simple uses protocol version 5, which does not include the RPC that maps to this method
+	panic("not implemented")
+}
+
 func (s simple) Close() error {
 	return nil
 }

@@ -116,6 +116,11 @@ type Interface interface {
 	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
 	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
 
+	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
+	GetStates(GetStatesRequest) GetStatesResponse
+	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
+	DeleteState(DeleteStateRequest) DeleteStateResponse
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -777,6 +782,33 @@ type ConfigureStateStoreRequest struct {
 }
 
 type ConfigureStateStoreResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type GetStatesRequest struct {
+	// TypeName is the name of the state store to request the list of states from
+	TypeName string
+}
+
+type GetStatesResponse struct {
+	// States is a list of state names, sourced by inspecting persisted state data
+	States []string
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type DeleteStateRequest struct {
+	// TypeName is the name of the state store to request deletion from
+	TypeName string
+
+	// StateId is the name of the state to be deleted. This is the same as
+	// the concept of CE workspaces.
+	StateId string
+}
+
+type DeleteStateResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

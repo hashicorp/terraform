@@ -425,6 +425,14 @@ func (m *Mock) ConfigureStateStore(req ConfigureStateStoreRequest) ConfigureStat
 	return m.Provider.ConfigureStateStore(req)
 }
 
+func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
+	return m.Provider.GetStates(req)
+}
+
+func (m *Mock) DeleteState(req DeleteStateRequest) DeleteStateResponse {
+	return m.Provider.DeleteState(req)
+}
+
 func (m *Mock) Close() error {
 	return m.Provider.Close()
 }

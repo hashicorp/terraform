@@ -141,6 +141,16 @@ type MockProvider struct {
 	ConfigureStateStoreRequest  providers.ConfigureStateStoreRequest
 	ConfigureStateStoreFn       func(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse
 
+	GetStatesCalled   bool
+	GetStatesResponse *providers.GetStatesResponse
+	GetStatesRequest  providers.GetStatesRequest
+	GetStatesFn       func(providers.GetStatesRequest) providers.GetStatesResponse
+
+	DeleteStateCalled   bool
+	DeleteStateResponse *providers.DeleteStateResponse
+	DeleteStateRequest  providers.DeleteStateRequest
+	DeleteStateFn       func(providers.DeleteStateRequest) providers.DeleteStateResponse
+
 	CloseCalled bool
 	CloseError  error
 }
@@ -920,6 +930,71 @@ func (p *MockProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 		return p.ConfigureStateStoreFn(r)
 	}
 
+	return resp
+}
+
+func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.GetStatesResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.GetStatesCalled = true
+	p.GetStatesRequest = r
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureProvider not called before GetStates %q", r.TypeName))
+	}
+	if !p.ConfigureStateStoreCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStore not called before GetStates %q", r.TypeName))
+	}
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	if p.GetStatesResponse != nil {
+		return *p.GetStatesResponse
+	}
+
+	if p.GetStatesFn != nil {
+		return p.GetStatesFn(r)
+	}
+
+	// If the mock has no further inputs, return an empty list.
+	// The state store should be reporting a minimum of the default workspace usually,
+	// but this should be achieved by querying data storage and identifying the artifact
+	// for that workspace, and reporting that the workspace exists.
+	resp.States = []string{}
+
+	return resp
+}
+
+func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.DeleteStateCalled = true
+	p.DeleteStateRequest = r
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureProvider not called before DeleteState %q", r.TypeName))
+	}
+	if !p.ConfigureStateStoreCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStore not called before DeleteState %q", r.TypeName))
+	}
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	if p.DeleteStateResponse != nil {
+		return *p.DeleteStateResponse
+	}
+
+	if p.DeleteStateFn != nil {
+		return p.DeleteStateFn(r)
+	}
+
+	// There's no logic we can include here in the absence of other fields on the mock.
+
+	// If the response contains no diagnostics then the deletion is assumed to be successful.
 	return resp
 }
 
