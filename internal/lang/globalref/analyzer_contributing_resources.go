@@ -74,8 +74,10 @@ func (a *Analyzer) ContributingResourceReferences(refs ...Reference) []Reference
 	// Initial state: identify any directly-mentioned resources and
 	// queue up any named values we refer to.
 	for _, ref := range refs {
-		if _, ok := resourceForAddr(ref.LocalRef.Subject); ok {
-			found[ref.addrKey()] = ref
+		if addr, ok := resourceForAddr(ref.LocalRef.Subject); ok {
+			if ref, ok := a.validateRef(addr, ref); ok {
+				found[ref.addrKey()] = ref
+			}
 		}
 		pendingObjects[ref.addrKey()] = ref
 	}
@@ -98,8 +100,10 @@ func (a *Analyzer) ContributingResourceReferences(refs ...Reference) []Reference
 
 			moreRefs := a.MetaReferences(ref)
 			for _, newRef := range moreRefs {
-				if _, ok := resourceForAddr(newRef.LocalRef.Subject); ok {
-					found[newRef.addrKey()] = newRef
+				if addr, ok := resourceForAddr(newRef.LocalRef.Subject); ok {
+					if newRef, ok := a.validateRef(addr, newRef); ok {
+						found[newRef.addrKey()] = newRef
+					}
 				}
 
 				newKey := newRef.addrKey()
@@ -119,6 +123,42 @@ func (a *Analyzer) ContributingResourceReferences(refs ...Reference) []Reference
 		ret = append(ret, ref)
 	}
 	return ret
+}
+
+func (a *Analyzer) validateRef(addr addrs.Resource, ref Reference) (Reference, bool) {
+	module := a.ModuleConfig(ref.ModuleAddr())
+	if module == nil {
+		// shouldn't be possible, all the references were added from existing
+		// modules.
+		return ref, false
+	}
+
+	resource := module.ResourceByAddr(addr)
+	if resource == nil {
+		// shouldn't be possible, a reference to a resource not in the
+		// configuration would be a static validation error and we shouldn't
+		// have got this far.
+		return ref, false
+	}
+
+	providerSchema, ok := a.providerSchemas[resource.Provider]
+	if !ok {
+		return ref, false
+	}
+
+	resourceTypeSchema := providerSchema.SchemaForResourceAddr(addr)
+	if resourceTypeSchema.Body == nil {
+		return ref, false
+	}
+
+	return Reference{
+		ContainerAddr: ref.ContainerAddr,
+		LocalRef: &addrs.Reference{
+			Subject:     ref.LocalRef.Subject,
+			SourceRange: ref.LocalRef.SourceRange,
+			Remaining:   walkBlock(resourceTypeSchema.Body, ref.LocalRef.Remaining),
+		},
+	}, true
 }
 
 func resourceForAddr(addr addrs.Referenceable) (addrs.Resource, bool) {

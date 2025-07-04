@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'plan: truncate invalid or dynamic references in the relevant attributes'
+time: 2025-07-04T17:02:21.289541+02:00
+custom:
+    Issue: "37290"
