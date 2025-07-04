@@ -73,12 +73,32 @@ func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
 	return resp.Diagnostics
 }
 
+// Workspaces returns a list of all states/CE workspaces that the backend.Backend
+// can find, given how it is configured. For example returning a list of differently
+// -named files in a blob storage service.
+//
+// Workspace implements backend.Backend
 func (p *Pluggable) Workspaces() ([]string, error) {
-	return nil, nil
+	req := providers.GetStatesRequest{
+		TypeName: p.typeName,
+	}
+	resp := p.provider.GetStates(req)
+
+	return resp.States, resp.Diagnostics.Err()
 }
 
+// DeleteWorkspace deletes the state file for the named workspace.
+// The state storage provider is expected to return error diagnostics
+// if the workspace doesn't exist or it is unable to be deleted.
+//
+// DeleteWorkspace implements backend.Backend
 func (p *Pluggable) DeleteWorkspace(workspace string, force bool) error {
-	return nil
+	req := providers.DeleteStateRequest{
+		TypeName: p.typeName,
+		StateId:  workspace,
+	}
+	resp := p.provider.DeleteState(req)
+	return resp.Diagnostics.Err()
 }
 
 func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, error) {
