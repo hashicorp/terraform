@@ -228,3 +228,49 @@ func TestPluggable_PrepareConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestPluggable_Configure(t *testing.T) {
+
+	// Arrange mocks
+	typeName := "foo_bar"
+	wantError := "error diagnostic raised from mock"
+	mock := &testing_provider.MockProvider{
+		ConfigureProviderCalled:        true,
+		ValidateStateStoreConfigCalled: true,
+		ConfigureStateStoreFn: func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+			if req.TypeName != typeName || req.Config != cty.True {
+				t.Fatalf("expected provider ConfigureStateStore method to receive typeName %q and config %q, instead got typeName %q and StateId %q",
+					typeName,
+					cty.True,
+					req.TypeName,
+					req.Config)
+			}
+
+			resp := providers.ConfigureStateStoreResponse{}
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New(wantError))
+			return resp
+		},
+	}
+
+	// Make Pluggable and invoke Configure
+	p, err := NewPluggable(mock, typeName)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// This isn't representative of true values used with the method, but is sufficient
+	// for testing that the mock receives the provided value as expected.
+	config := cty.BoolVal(true)
+	diags := p.Configure(config)
+
+	// Assertions
+	if !mock.ValidateStateStoreConfigCalled {
+		t.Fatal("expected mock's ValidateStateStoreConfig method to have been called")
+	}
+	if !diags.HasErrors() {
+		t.Fatal("expected an error but got none")
+	}
+	if !strings.Contains(diags.Err().Error(), wantError) {
+		t.Fatalf("expected error %q but got: %q", wantError, diags.Err())
+	}
+}
