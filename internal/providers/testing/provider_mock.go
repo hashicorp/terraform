@@ -962,7 +962,7 @@ func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 	// The state store should be reporting a minimum of the default workspace usually,
 	// but this should be achieved by querying data storage and identifying the artifact
 	// for that workspace, and reporting that the workspace exists.
-	resp.States = []cty.Value{}
+	resp.States = []string{}
 
 	return resp
 }
