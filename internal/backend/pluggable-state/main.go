@@ -40,12 +40,19 @@ func (p *Pluggable) ConfigSchema() *configschema.Block {
 	return val.Body
 }
 
+// PrepareConfig validates configuration for the state store in
+// the state storage provider. The configuration sent from Terraform core
+// will not include any values from environment variables; it is the
+// provider's responsibility to access any environment variables
+// to get the complete set of configuration prior to validating it.
+//
+// PrepareConfig implements backend.Backend
 func (p *Pluggable) PrepareConfig(config cty.Value) (cty.Value, tfdiags.Diagnostics) {
-	req := providers.ValidateStorageConfigRequest{
+	req := providers.ValidateStateStoreConfigRequest{
 		TypeName: p.typeName,
 		Config:   config,
 	}
-	resp := p.provider.ValidateStorageConfig(req)
+	resp := p.provider.ValidateStateStoreConfig(req)
 	return config, resp.Diagnostics
 }
 
