@@ -351,3 +351,48 @@ func TestPluggable_Workspaces(t *testing.T) {
 		})
 	}
 }
+
+func TestPluggable_DeleteWorkspace(t *testing.T) {
+
+	// Arrange mocks
+	typeName := "foo_bar"
+	stateId := "my-state"
+	mock := &testing_provider.MockProvider{
+		ConfigureProviderCalled:        true,
+		ValidateStateStoreConfigCalled: true,
+		ConfigureStateStoreCalled:      true,
+		DeleteStateFn: func(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+			if req.TypeName != typeName || req.StateId != stateId {
+				t.Fatalf("expected provider DeleteState method to receive typeName %q and stateId %q, instead got typeName %q and stateId %q",
+					typeName,
+					stateId,
+					req.TypeName,
+					req.StateId,
+				)
+			}
+			resp := providers.DeleteStateResponse{}
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("error diagnostic raised from mock"))
+			return resp
+		},
+	}
+
+	// Make Pluggable and invoke DeleteWorkspace
+	p, err := NewPluggable(mock, typeName)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	err = p.DeleteWorkspace(stateId, false)
+
+	// Assertions
+	if !mock.DeleteStateCalled {
+		t.Fatal("expected mock's DeleteState method to have been called")
+	}
+
+	if err == nil {
+		t.Fatal("test is expected to return an error, but there isn't one")
+	}
+	wantError := "error diagnostic raised from mock"
+	if !strings.Contains(err.Error(), wantError) {
+		t.Fatalf("expected error %q but got: %q", wantError, err)
+	}
+}
