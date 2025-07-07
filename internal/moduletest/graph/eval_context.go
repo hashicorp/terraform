@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"slices"
+	"maps"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
+	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -92,6 +93,10 @@ type EvalContext struct {
 
 	// RunCh is a channel that emits the run blocks.
 	RunCh chan *moduletest.Run
+
+	File *moduletest.File
+
+	*DebugContext
 }
 
 type EvalContextOpts struct {
@@ -102,7 +107,7 @@ type EvalContextOpts struct {
 	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 	Config            *configs.Config
 	Concurrency       int
-	RunCh             chan *moduletest.Run
+	*DebugContext
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -112,7 +117,7 @@ type EvalContextOpts struct {
 func NewEvalContext(opts EvalContextOpts) *EvalContext {
 	cancelCtx, cancel := context.WithCancel(opts.CancelCtx)
 	stopCtx, stop := context.WithCancel(opts.StopCtx)
-	return &EvalContext{
+	ret := &EvalContext{
 		unparsedVariables: opts.UnparsedVariables,
 		parsedVariables:   make(terraform.InputValues),
 		variableStatus:    make(map[string]moduletest.Status),
@@ -133,8 +138,14 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		config:            opts.Config,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
 		Paused:            atomic.Bool{},
-		RunCh:             opts.RunCh,
+		DebugContext:      opts.DebugContext,
 	}
+
+	if opts.DebugContext != nil {
+		ret.RunCh = opts.DebugContext.RunCh
+	}
+
+	return ret
 }
 
 // Renderer returns the renderer for the test suite.
@@ -282,31 +293,50 @@ func (ec *EvalContext) HclContext(references []*addrs.Reference) (*hcl.EvalConte
 			"run": cty.ObjectVal(runs),
 			"var": cty.ObjectVal(vars),
 		},
-		Functions: lang.TestingFunctions(),
+		Functions: ec.TestingFunctions(),
 	}, diags
 }
 
-func (ec *EvalContext) ToHclContext() (*hcl.EvalContext, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
+// func (ec *EvalContext) ToHclContext(parent *hcl.EvalContext) (*hcl.EvalContext, tfdiags.Diagnostics) {
+// 	var diags tfdiags.Diagnostics
 
-	runs := make(map[string]cty.Value)
-	vars := make(map[string]cty.Value)
+// 	runs := make(map[string]cty.Value)
+// 	vars := make(map[string]cty.Value)
 
-	for _, run := range ec.runBlocks {
-		runs[run.Name] = run.Outputs
-	}
-	for name, variable := range ec.parsedVariables {
-		vars[name] = variable.Value
-	}
+// 	for _, run := range ec.runBlocks {
+// 		runs[run.Name] = run.Outputs
+// 	}
+// 	for name, variable := range ec.parsedVariables {
+// 		vars[name] = variable.Value
+// 	}
 
-	return &hcl.EvalContext{
-		Variables: map[string]cty.Value{
-			"run": cty.ObjectVal(runs),
-			"var": cty.ObjectVal(vars),
-		},
-		Functions: lang.TestingFunctions(),
-	}, diags
-}
+// 	if prevRuns, ok := parent.Variables["run"]; ok {
+// 		for key, run := range prevRuns.AsValueMap() {
+// 			if _, exists := runs[key]; !exists {
+// 				// If the run is already in the parent context, we don't need to
+// 				// add it again.
+// 				runs[key] = run
+// 			}
+// 		}
+// 	}
+
+// 	if prevVars, ok := parent.Variables["var"]; ok {
+// 		for key, variable := range prevVars.AsValueMap() {
+// 			if _, exists := vars[key]; !exists {
+// 				vars[key] = variable
+// 			}
+// 		}
+// 	}
+
+// 	ret := parent.NewChild()
+// 	ret.Variables = map[string]cty.Value{
+// 		"run": cty.ObjectVal(runs),
+// 		"var": cty.ObjectVal(vars),
+// 	}
+// 	ret.Functions = ec.TestingFunctions()
+
+// 	return ret, diags
+// }
 
 func (ec *EvalContext) RunScope(run *moduletest.Run, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (*lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -321,9 +351,18 @@ func (ec *EvalContext) RunScope(run *moduletest.Run, resultScope *lang.Scope, ex
 	evalData := &evaluationData{
 		ctx:       ec,
 		module:    mod,
+		debugMode: ec.DebugContext != nil,
 		current:   resultScope.Data,
 		extraVars: extraVariableVals,
 	}
+
+	externalFunc := resultScope.ExternalFuncs
+	if externalFunc.Core == nil {
+		externalFunc.Core = make(map[string]function.Function)
+	}
+	maps.Copy(externalFunc.Core, map[string]function.Function{
+		"break": ec.DebugContext.breakFunc(),
+	})
 	scope := &lang.Scope{
 		Data:          evalData,
 		ParseRef:      addrs.ParseRefFromTestingScope,
@@ -331,7 +370,7 @@ func (ec *EvalContext) RunScope(run *moduletest.Run, resultScope *lang.Scope, ex
 		BaseDir:       resultScope.BaseDir,
 		PureOnly:      resultScope.PureOnly,
 		PlanTimestamp: resultScope.PlanTimestamp,
-		ExternalFuncs: resultScope.ExternalFuncs,
+		ExternalFuncs: externalFunc,
 	}
 	run.Scope = scope
 	return scope, diags
@@ -343,6 +382,15 @@ func (ec *EvalContext) EmitScope(run *moduletest.Run) {
 	default:
 		// If the channel is full, just drop the scope.
 	}
+}
+
+func (ec *EvalContext) TestingFunctions() map[string]function.Function {
+	ret := lang.TestingFunctions()
+	if ec.DebugContext != nil {
+		// If we have a debug context, we add the break function to the testing functions.
+		ret["break"] = ec.DebugContext.breakFunc()
+	}
+	return ret
 }
 
 // EvaluateRun processes the assertions inside the provided configs.TestRun against
@@ -746,6 +794,7 @@ type evaluationData struct {
 	ctx       *EvalContext
 	module    *configs.Module
 	current   lang.Data
+	debugMode bool
 	extraVars terraform.InputValues
 }
 
@@ -768,6 +817,14 @@ func (d *evaluationData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.Sour
 
 // GetInputVariable implements lang.Data.
 func (d *evaluationData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	if addr.Name == "" {
+		vars := map[string]cty.Value{}
+		for name, val := range d.extraVars {
+			vars[name] = val.Value
+		}
+		return cty.ObjectVal(vars), nil
+	}
+
 	if extra, exists := d.extraVars[addr.Name]; exists {
 		return extra.Value, nil
 	}
@@ -812,7 +869,7 @@ func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (c
 			Subject:  rng.ToHCL().Ptr(),
 		})
 	}
-	if ret == cty.NilVal {
+	if ret == cty.NilVal && !d.debugMode {
 		// An explicit nil value indicates that the block was declared but
 		// hasn't yet been visited.
 		ret = cty.DynamicVal
@@ -880,56 +937,28 @@ func (d *evaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.Diag
 }
 
 func (ec *EvalContext) EvalExpr(s *lang.Scope, expr hcl.Expression, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
-	parseObjectRef := func(traversal hcl.Traversal) (refs *addrs.Reference, diags tfdiags.Diagnostics) {
-		root := traversal.RootName()
-		// allow accessing run blocks and variables directly
-		if slices.Contains([]string{"run", "var"}, root) && len(traversal) == 1 {
-			return nil, diags
+	var diags tfdiags.Diagnostics
+	switch hcl.ExprAsKeyword(expr) {
+	case "run":
+		runs := make(map[string]cty.Value)
+		for _, run := range ec.runBlocks {
+			runs[run.Name] = run.Outputs
 		}
-		return s.ParseRef(traversal)
-	}
-
-	refs, diags := langrefs.ReferencesInExpr(parseObjectRef, expr)
-	if diags.HasErrors() {
-		return cty.UnknownVal(wantType), diags
-	}
-
-	// remove any references that are nil, as they are not valid
-	refs = slices.CompactFunc(refs, func(a, b *addrs.Reference) bool {
-		return b == nil
-	})
-
-	staticDiags := s.Data.StaticValidateReferences(refs, s.SelfAddr, s.SourceAddr)
-	diags = diags.Append(staticDiags)
-	if staticDiags.HasErrors() {
-		return cty.UnknownVal(wantType), diags
-	}
-
-	ctx, ctxDiags := ec.ToHclContext()
-	diags = diags.Append(ctxDiags)
-	if diags.HasErrors() {
-		// If we have errors in the references, we can't continue.
-		return cty.UnknownVal(wantType), diags
-	}
-
-	val, evalDiags := expr.Value(ctx)
-	diags = diags.Append(evalDiags)
-
-	if wantType != cty.DynamicPseudoType {
-		var convErr error
-		val, convErr = convert.Convert(val, wantType)
-		if convErr != nil {
-			val = cty.UnknownVal(wantType)
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     "Incorrect value type",
-				Detail:      fmt.Sprintf("Invalid expression value: %s.", tfdiags.FormatError(convErr)),
-				Subject:     expr.Range().Ptr(),
-				Expression:  expr,
-				EvalContext: ctx,
-			})
+		ret := cty.ObjectVal(runs)
+		return ret, diags
+	case "var":
+		val, evalDiags := s.EvalExpr(expr, wantType)
+		diags = diags.Append(evalDiags)
+		if evalDiags.HasErrors() {
+			return cty.UnknownVal(wantType), diags
 		}
+		return val.AsValueMap()[""], diags
+	default:
+		val, evalDiags := s.EvalExpr(expr, wantType)
+		diags = diags.Append(evalDiags)
+		if evalDiags.HasErrors() {
+			return cty.UnknownVal(wantType), diags
+		}
+		return val, diags
 	}
-
-	return val, diags
 }

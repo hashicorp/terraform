@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -347,14 +349,44 @@ loop:
 				dbgCtx.Resume()
 				return "", true, nil
 			}
+			nextFn := func(line string) (string, bool, tfdiags.Diagnostics) {
+				dbgCtx.Next(run)
+				return "", true, nil
+			}
+
+			// var diags tfdiags.Diagnostics
+			// expr, expdiags := hclsyntax.ParseExpression([]byte("break(\"run.secondary\", true)"), "<console-input>", hcl.InitialPos)
+			// diags = diags.Append(expdiags)
+			// if diags.HasErrors() {
+			// 	return
+			// }
+			// ret, diags := dbgCtx.EvalExpr(scope, &graph.BreakExpr{expr}, cty.DynamicPseudoType)
+			// if !diags.HasErrors() {
+			// 	return
+			// }
+			// _ = ret
+			// fmt.Printf("Running test run: %s\n", run.Name)
 
 			// IO Loop
 			session := &repl.TestSession{
-				Scope:   scope,
-				Current: run,
+				Scope: scope,
 				Handlers: map[string]repl.HandleFunc{
-					"c":        continueFn,
 					"continue": continueFn,
+					"c":        continueFn,
+					"next":     nextFn,
+					"n":        nextFn,
+					"break": func(breakExpr string) (string, bool, tfdiags.Diagnostics) {
+						var diags tfdiags.Diagnostics
+						expr, hDiags := hclsyntax.ParseExpression([]byte(breakExpr), "<console-input>", hcl.InitialPos)
+						if diags.HasErrors() {
+							return "Invalid run address", false, diags.Append(hDiags)
+						}
+						runName, diags := dbgCtx.Break(scope, expr)
+						if !diags.HasErrors() && runName != "" {
+							ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][blue]set breakpoint for %q[reset]", runName)))
+						}
+						return "", false, diags
+					},
 					"exit": func(line string) (string, bool, tfdiags.Diagnostics) {
 						close(dbgCtx.RunCh)
 						return "", true, nil
@@ -363,7 +395,7 @@ loop:
 				Evaluator: dbgCtx,
 			}
 
-			ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][yellow]--> %s[reset]", run.Config.DeclRange.String())))
+			ui.Output(c.Colorize().Color(fmt.Sprintf("\n[reset]breakpoint(%s) [yellow]--> %s[reset]", dbgCtx.ExecutionPoint, run.Config.DeclRange.String())))
 			ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][blue]    %s[reset]\n", strings.ReplaceAll(run.Source, "\n", "\n    "))))
 			code := console.runSession(session, ui)
 			if code != 0 {

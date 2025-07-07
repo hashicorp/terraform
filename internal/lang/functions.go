@@ -232,6 +232,18 @@ func (s *Scope) Functions() map[string]function.Function {
 				s.funcs[name] = fn
 			}
 		}
+
+		// Also external functions that the caller provided
+		for funcName, funcs := range s.ExternalFuncs.Core {
+			if _, ok := s.funcs[funcName]; ok {
+				// If the function is already defined, we don't override it.
+				// This allows the caller to override built-in functions if they
+				// want to.
+				continue
+			}
+			s.funcs[funcName] = funcs
+			s.funcs["core::"+funcName] = funcs
+		}
 	}
 	s.funcsLock.Unlock()
 
@@ -440,6 +452,7 @@ func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn funct
 // to conform to the expected function return value conventions.
 type ExternalFuncs struct {
 	Provider map[string]map[string]function.Function
+	Core     map[string]function.Function
 }
 
 // immutableResults is a wrapper for cty function implementations which may

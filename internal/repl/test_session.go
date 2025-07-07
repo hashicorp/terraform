@@ -56,9 +56,9 @@ func (s *TestSession) Handle(line string) (ret string, exit bool, diags tfdiags.
 	case cleanedLine == "help":
 		ret, diags := s.handleHelp()
 		return ret, false, diags
-	case strings.HasPrefix(cleanedLine, "break "):
+	case strings.HasPrefix(cleanedLine, "break"):
 		if handler, ok := s.Handlers["break"]; ok {
-			ret, exit, diags = handler(strings.TrimPrefix(cleanedLine, "break "))
+			ret, exit, diags = handler(cleanedLine)
 			return ret, exit, diags
 		}
 		return "", false, nil
