@@ -33,7 +33,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/hcl/v2 v2.23.1-0.20250203194505-ba0759438da2
+	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/hashicorp/jsonapi v1.3.2
 	github.com/hashicorp/terraform-registry-address v0.3.0
 	github.com/hashicorp/terraform-svchost v0.1.1
@@ -63,7 +63,7 @@ require (
 	github.com/spf13/afero v1.9.5
 	github.com/xanzy/ssh-agent v0.3.3
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v1.16.2
+	github.com/zclconf/go-cty v1.16.3
 	github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940
 	github.com/zclconf/go-cty-yaml v1.1.0
 	go.opentelemetry.io/contrib/exporters/autoexport v0.45.0

@@ -247,6 +247,26 @@ func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.
 		rng = tfdiags.SourceRangeFromHCL(result.Expression.Range())
 	}
 
+	for attr, value := range v.AsValueMap() {
+		if value == cty.NilVal {
+			// If any of the specific inputs could not be evaluated, we need to
+			// validate and return early now to save a crash later. This should
+			// only happen if something has gone wrong, and a diagnostic should
+			// have been produced at that earlier point with more information.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid inputs for component",
+				Detail:      fmt.Sprintf("Input variable %q could not be evaluated, additional diagnostics elsewhere should provide mode detail.", attr),
+				Subject:     rng.ToHCL().Ptr(),
+				Expression:  expr,
+				EvalContext: hclCtx,
+			})
+		}
+	}
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+
 	if defs != nil {
 		v = defs.Apply(v)
 	}
