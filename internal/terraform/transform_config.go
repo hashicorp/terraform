@@ -196,6 +196,11 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// If any import targets were not claimed by resources we may be
 	// generating configuration. Add them to the graph for validation.
 	for _, i := range importTargets {
+		if t.resourceMatcher != nil && !t.resourceMatcher(i.Config.ToResource.Resource.Mode) {
+			// Skip resources that do not match the filter
+			continue
+		}
+
 		log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
 
 		// TODO: if config generation is ever supported for for_each
