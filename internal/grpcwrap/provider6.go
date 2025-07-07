@@ -955,28 +955,34 @@ func (p *provider6) PlanAction(_ context.Context, req *tfplugin6.PlanAction_Requ
 
 		priorState, err := decodeDynamicValue6(lr.PriorState, linkedResourceTy)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode prior state for linked resource #%d (%q) in action %q: %w", i+1, linkedResouceSchemas[i].TypeName, req.ActionType, err)
+			return nil, fmt.Errorf("failed to decode prior state for linked resource #%d (%q) in action %q: %w", i, linkedResouceSchemas[i].TypeName, req.ActionType, err)
 		}
 
 		config, err := decodeDynamicValue6(lr.Config, linkedResourceTy)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode config for linked resource #%d (%q) in action %q: %w", i+1, linkedResouceSchemas[i].TypeName, req.ActionType, err)
+			return nil, fmt.Errorf("failed to decode config for linked resource #%d (%q) in action %q: %w", i, linkedResouceSchemas[i].TypeName, req.ActionType, err)
 		}
 
 		var priorIdentity cty.Value
 		if lr.PriorIdentity != nil && lr.PriorIdentity.IdentityData != nil {
 			priorIdentity, err = decodeDynamicValue6(lr.PriorIdentity.IdentityData, linkedResourceIdentityTy)
 			if err != nil {
-				return nil, fmt.Errorf("failed to decode prior identity for linked resource #%d (%q) in action %q: %w", i+1, linkedResouceSchemas[i].TypeName, req.ActionType, err)
+				return nil, fmt.Errorf("failed to decode prior identity for linked resource #%d (%q) in action %q: %w", i, linkedResouceSchemas[i].TypeName, req.ActionType, err)
 			}
 		} else {
 			priorIdentity = cty.NullVal(linkedResourceIdentityTy)
+		}
+
+		plannedState, err := decodeDynamicValue6(lr.PlannedState, linkedResourceTy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode planned state for linked resource #%d (%q) in action %q: %w", i, linkedResouceSchemas[i].TypeName, req.ActionType, err)
 		}
 
 		inputLinkedResources = append(inputLinkedResources, providers.LinkedResourcePlanData{
 			PriorState:    priorState,
 			Config:        config,
 			PriorIdentity: priorIdentity,
+			PlannedState:  plannedState,
 		})
 	}
 
@@ -1047,24 +1053,24 @@ func (p *provider6) InvokeAction(req *tfplugin6.InvokeAction_Request, server tfp
 
 		priorState, err := decodeDynamicValue6(lr.PriorState, linkedResourceTy)
 		if err != nil {
-			return fmt.Errorf("failed to decode prior state for linked resource #%d (%q) in action %q: %w", i+1, linkedResourceSchemas[i].TypeName, req.ActionType, err)
+			return fmt.Errorf("failed to decode prior state for linked resource #%d (%q) in action %q: %w", i, linkedResourceSchemas[i].TypeName, req.ActionType, err)
 		}
 
 		plannedState, err := decodeDynamicValue6(lr.PlannedState, linkedResourceTy)
 		if err != nil {
-			return fmt.Errorf("failed to decode planned state for linked resource #%d (%q) in action %q: %w", i+1, linkedResourceSchemas[i].TypeName, req.ActionType, err)
+			return fmt.Errorf("failed to decode planned state for linked resource #%d (%q) in action %q: %w", i, linkedResourceSchemas[i].TypeName, req.ActionType, err)
 		}
 
 		config, err := decodeDynamicValue6(lr.Config, linkedResourceTy)
 		if err != nil {
-			return fmt.Errorf("failed to decode config for linked resource #%d (%q) in action %q: %w", i+1, linkedResourceSchemas[i].TypeName, req.ActionType, err)
+			return fmt.Errorf("failed to decode config for linked resource #%d (%q) in action %q: %w", i, linkedResourceSchemas[i].TypeName, req.ActionType, err)
 		}
 
 		plannedIdentity := cty.NullVal(linkedResourceIdentityTy)
 		if lr.PlannedIdentity != nil && lr.PlannedIdentity.IdentityData != nil {
 			plannedIdentity, err = decodeDynamicValue6(lr.PlannedIdentity.IdentityData, linkedResourceIdentityTy)
 			if err != nil {
-				return fmt.Errorf("failed to decode planned identity for linked resource #%d (%q) in action %q: %w", i+1, linkedResourceSchemas[i].TypeName, req.ActionType, err)
+				return fmt.Errorf("failed to decode planned identity for linked resource #%d (%q) in action %q: %w", i, linkedResourceSchemas[i].TypeName, req.ActionType, err)
 			}
 		}
 
