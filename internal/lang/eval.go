@@ -359,6 +359,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			rawSubj = addr.Call
 		case addrs.ModuleCallInstanceOutput:
 			rawSubj = addr.Call.Call
+		case addrs.ActionInstance:
+			rawSubj = addr.Action
 		}
 
 		switch subj := rawSubj.(type) {
@@ -435,6 +437,10 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			val, valDiags := normalizeRefValue(s.Data.GetRunBlock(subj, rng))
 			diags = diags.Append(valDiags)
 			runBlocks[subj.Name] = val
+
+		// Actions can not be accessed.
+		case addrs.Action:
+			return nil, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Can not access actions", fmt.Sprintf("Actions can not be accessed, they have no state and can only be referenced with a resources lifecycle action_trigger events list. Tried to access %s.", subj.String())))
 
 		default:
 			// Should never happen

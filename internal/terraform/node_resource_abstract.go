@@ -215,6 +215,11 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, p.Config, schema)
 				result = append(result, refs...)
 			}
+
+			// All actions referenced in the action triggeres should be evaluated prior.
+			for _, at := range c.Managed.ActionTriggers {
+				result = append(result, at.Actions...)
+			}
 		}
 
 		if c.List != nil {
