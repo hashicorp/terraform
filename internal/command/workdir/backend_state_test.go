@@ -56,7 +56,8 @@ func TestParseBackendStateFile(t *testing.T) {
 				"terraform_version": "0.8.0",
 				"backend": {
 					"type": "treasure_chest_buried_on_a_remote_island",
-					"config": {}
+					"config": {},
+					"hash" : 12345
 				}
 			}`,
 			Want: &BackendStateFile{
@@ -65,6 +66,7 @@ func TestParseBackendStateFile(t *testing.T) {
 				Backend: &BackendConfigState{
 					Type:      "treasure_chest_buried_on_a_remote_island",
 					ConfigRaw: json.RawMessage("{}"),
+					Hash:      12345,
 				},
 			},
 		},
@@ -83,8 +85,10 @@ func TestParseBackendStateFile(t *testing.T) {
 						"source": "registry.terraform.io/my-org/foobar",
 						"config": {
 							"credentials": "./creds.json"
-						}
-					}
+						},
+						"hash" : 12345
+					},
+					"hash" : 12345
 				}
 			}`,
 			Want: &BackendStateFile{
@@ -100,6 +104,7 @@ func TestParseBackendStateFile(t *testing.T) {
 						"bucket": "my-bucket",
 						"region": "saturn"
 					}`),
+					Hash: 12345,
 				},
 			},
 		},
@@ -109,7 +114,8 @@ func TestParseBackendStateFile(t *testing.T) {
 				"terraform_version": "9.9.9",
 				"backend": {
 					"type": "treasure_chest_buried_on_a_remote_island",
-					"config": {}
+					"config": {},
+					"hash" : 12345
 				},
 				"state_store": {
 					"type": "foobar_baz",
@@ -119,8 +125,10 @@ func TestParseBackendStateFile(t *testing.T) {
 					},
 					"provider": {
 						"version": "1.2.3",
-						"source": "registry.terraform.io/my-org/foobar"
-					}
+						"source": "registry.terraform.io/my-org/foobar",
+						"hash" : 12345
+					},
+					"hash" : 12345
 				}
 			}`,
 			WantErr: `encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block`,
