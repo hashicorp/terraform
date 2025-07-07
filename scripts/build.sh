@@ -17,6 +17,7 @@ cd "$DIR" || exit
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
 XC_EXCLUDE_OSARCH="!darwin/arm !darwin/386"
+TF_DEV=1
 
 # Delete the old dir
 echo "==> Removing old directory..."
@@ -46,6 +47,7 @@ export GOFLAGS="-mod=readonly"
 if [[ -n "${TF_RELEASE}" ]]; then
     LD_FLAGS="-s -w -X 'github.com/hashicorp/terraform/version.dev=no'"
 fi
+LD_FLAGS="-s -w -X 'main.experimentsAllowed=yes'"
 
 # Ensure all remote modules are downloaded and cached before build so that
 # the concurrent builds launched by gox won't race to redundantly download them.

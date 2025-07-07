@@ -31,6 +31,7 @@ func (e *EvalContextTransformer) Transform(graph *terraform.Graph) error {
 						State: states.NewState(),
 					})
 				}
+				ctx.AddRunBlock(run)
 			}
 		},
 	}
