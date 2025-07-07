@@ -315,6 +315,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	if rn, ok := v.(GraphNodeReferencer); ok {
 		for _, ref := range rn.References() {
 			referenceKeys = append(referenceKeys, m.referenceMapKey(vertexReferencePath(v), ref.Subject))
+
 		}
 	}
 
@@ -579,6 +580,10 @@ func (m ReferenceMap) referenceMapKey(path addrs.Module, addr addrs.Referenceabl
 
 		if mci, ok := addr.(addrs.ModuleCallInstance); ok {
 			return m.mapKey(path, mci.Call)
+		}
+
+		if ai, ok := addr.(addrs.ActionInstance); ok {
+			return m.mapKey(path, ai.ContainingAction())
 		}
 
 		// If nothing matched, then we'll just return the original key

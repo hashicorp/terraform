@@ -486,6 +486,13 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// instead of using the plan.
 			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
+
+		// TODO: Verify no non-error branches are skipped here
+		planActionDiags := n.planActionTriggers(ctx, change)
+		diags = diags.Append(planActionDiags)
+		if diags.HasErrors() {
+			return diags
+		}
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
@@ -541,6 +548,82 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					After:  instanceRefreshState.Value,
 				},
 			})
+		}
+	}
+
+	return diags
+}
+
+// planActionTriggers plans all actions (potentially) triggered by this
+// resource instance change sequentially, and returns any diagnostics
+func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// TODO: When is the config nil?
+	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.ActionTriggers == nil {
+		return diags
+	}
+
+	for i, at := range n.Config.Managed.ActionTriggers {
+		if !eventIncludesAction(at.Events, change.Action) {
+			continue
+		}
+
+		// TODO: Deal with conditions
+		for j, actionRef := range at.Actions {
+			var actionAddr addrs.ActionInstance
+
+			if a, ok := actionRef.Subject.(addrs.ActionInstance); ok {
+				actionAddr = a
+			} else if a, ok := actionRef.Subject.(addrs.Action); ok {
+				// Could be a reference to an action without an instance specified
+				// TODO: This is where we should auto-expand, for now we will just default to taking
+				// the action address with no key
+				actionAddr = a.Instance(addrs.NoKey)
+			} else {
+				// TODO: Better diagnostic message
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("%s action trigger #%d refers to an invalid address", n.Addr, i),
+					fmt.Sprintf("actions list item #%d refers to a subject that is not an action or action instance.", j),
+				))
+				continue
+			}
+
+			// We don't support accessing actions within modules right now, therefore we can just make the action absolute based on the current module path.
+			absActionAddr := actionAddr.Absolute(n.Path())
+			actionInstance, ok := ctx.Actions().GetActionInstance(absActionAddr)
+
+			if !ok {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("action trigger #%d refers to a non-existent action instance %s", i, absActionAddr),
+					"Action instance not found in the current context.",
+				))
+				return diags
+			}
+
+			provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to get provider",
+					fmt.Sprintf("Failed to get provider: %s", err),
+				))
+				return diags
+			}
+
+			resp := provider.PlanAction(providers.PlanActionRequest{
+				ActionType:         actionAddr.Action.Type,
+				ProposedActionData: actionInstance.ConfigValue,
+				ClientCapabilities: ctx.ClientCapabilities(),
+			})
+
+			// TODO: Deal with deferred responses
+			diags = diags.Append(resp.Diagnostics)
+			if diags.HasErrors() {
+				return diags
+			}
 		}
 	}
 
@@ -977,4 +1060,32 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 		}
 	}
 	return true
+}
+
+func eventIncludesAction(events []configs.ActionTriggerEvent, action plans.Action) bool {
+	for _, event := range events {
+		switch event {
+		case configs.BeforeCreate, configs.AfterCreate:
+			if action.IsReplace() || action == plans.Create {
+				return true
+			} else {
+				continue
+			}
+		case configs.BeforeUpdate, configs.AfterUpdate:
+			if action == plans.Update {
+				return true
+			} else {
+				continue
+			}
+		case configs.BeforeDestroy, configs.AfterDestroy:
+			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
+				return true
+			} else {
+				continue
+			}
+		default:
+			panic(fmt.Sprintf("unknown action trigger event %s", event))
+		}
+	}
+	return false
 }
