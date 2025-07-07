@@ -113,7 +113,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
 	}
 
-	ControlParallelism(g, arr)
+	ControlParallelism(g, arr, t.opts.DebugMode)
 	return nil
 }
 

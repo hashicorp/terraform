@@ -77,6 +77,7 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewHuman,
 				Vars:                 &Vars{},
 				OperationParallelism: 10,
+				RunParallelism:       10,
 			},
 			wantDiags: nil,
 		},
@@ -88,6 +89,7 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewHuman,
 				Vars:                 &Vars{},
 				OperationParallelism: 10,
+				RunParallelism:       10,
 			},
 			wantDiags: nil,
 		},
@@ -99,6 +101,7 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewJSON,
 				Vars:                 &Vars{},
 				OperationParallelism: 10,
+				RunParallelism:       10,
 			},
 			wantDiags: nil,
 		},
@@ -110,6 +113,7 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewHuman,
 				Vars:                 &Vars{},
 				OperationParallelism: 10,
+				RunParallelism:       10,
 			},
 			wantDiags: nil,
 		},
@@ -122,6 +126,7 @@ func TestParseTest(t *testing.T) {
 				Verbose:              true,
 				Vars:                 &Vars{},
 				OperationParallelism: 10,
+				RunParallelism:       10,
 			},
 		},
 		"with-parallelism-set": {
@@ -132,6 +137,7 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewHuman,
 				Vars:                 &Vars{},
 				OperationParallelism: 5,
+				RunParallelism:       10,
 			},
 			wantDiags: nil,
 		},
@@ -143,9 +149,11 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewHuman,
 				Vars:                 &Vars{},
 				OperationParallelism: 10,
+				RunParallelism:       10,
 			},
 			wantDiags: nil,
 		},
+
 		"cloud-with-parallelism-0": {
 			args: []string{"-parallelism=0", "-cloud-run=foobar"},
 			want: &Test{
@@ -155,6 +163,31 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewHuman,
 				Vars:                 &Vars{},
 				OperationParallelism: 0,
+				RunParallelism:       10,
+			},
+			wantDiags: nil,
+		},
+		"with-run-parallelism-set": {
+			args: []string{"-run-parallelism=10"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+				RunParallelism:       10,
+			},
+			wantDiags: nil,
+		},
+		"with-run-parallelism-0": {
+			args: []string{"-run-parallelism=0"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+				RunParallelism:       0,
 			},
 			wantDiags: nil,
 		},
@@ -166,6 +199,7 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewHuman,
 				Vars:                 &Vars{},
 				OperationParallelism: 10,
+				RunParallelism:       10,
 			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -185,6 +219,7 @@ func TestParseTest(t *testing.T) {
 				ViewType:             ViewHuman,
 				Vars:                 &Vars{},
 				OperationParallelism: 10,
+				RunParallelism:       10,
 			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(

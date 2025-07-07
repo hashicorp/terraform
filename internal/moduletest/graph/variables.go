@@ -83,7 +83,10 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 					Subject:  expr.Range().Ptr(),
 				})
 			}
-			continue // Don't add it to our final set of variables.
+			// Don't add it to our final set of variables unless we're in debug mode.
+			if !n.opts.DebugMode {
+				continue
+			}
 		}
 
 		values[name] = &terraform.InputValue{

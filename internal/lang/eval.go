@@ -200,44 +200,6 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 	return val, diags
 }
 
-func (s *Scope) EvalDbgExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
-	refs, diags := langrefs.ReferencesInExpr(s.ParseRef, expr)
-
-	ctx, ctxDiags := s.EvalContext(refs)
-	// runs := map[string]cty.Value{}
-	// for _, val := range ctx.Variables["run"] {
-
-	// }
-	// ctx.Variables["dbg"] = cty.StringVal("dbg")
-	diags = diags.Append(ctxDiags)
-	if diags.HasErrors() {
-		// We'll stop early if we found problems in the references, because
-		// it's likely evaluation will produce redundant copies of the same errors.
-		return cty.UnknownVal(wantType), diags
-	}
-
-	val, evalDiags := expr.Value(ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
-
-	if wantType != cty.DynamicPseudoType {
-		var convErr error
-		val, convErr = convert.Convert(val, wantType)
-		if convErr != nil {
-			val = cty.UnknownVal(wantType)
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     "Incorrect value type",
-				Detail:      fmt.Sprintf("Invalid expression value: %s.", tfdiags.FormatError(convErr)),
-				Subject:     expr.Range().Ptr(),
-				Expression:  expr,
-				EvalContext: ctx,
-			})
-		}
-	}
-
-	return val, diags
-}
-
 // EvalReference evaluates the given reference in the receiving scope and
 // returns the resulting value. The value will be converted to the given type before
 // it is returned if possible, or else an error diagnostic will be produced

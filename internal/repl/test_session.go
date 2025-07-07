@@ -20,8 +20,8 @@ import (
 // TestSession represents the state for a single REPL session.
 type TestSession struct {
 	// Scope is the evaluation scope where expressions will be evaluated.
-	Scope   *lang.Scope
-	Current *moduletest.Run
+	Scope *lang.Scope
+	Run   *moduletest.Run
 
 	// Handlers is a map of command names to functions that handle
 	// those commands. If a command is not found in this map, the
@@ -36,13 +36,6 @@ type Evaluator interface {
 	EvalExpr(s *lang.Scope, expr hcl.Expression, wantType cty.Type) (cty.Value, tfdiags.Diagnostics)
 }
 
-// func (s *TestSession) Code() string {
-// 	// if s.Current == nil {
-// 	// 	return ""
-// 	// }
-// 	// return s.Current.Code
-// }
-
 // Handle handles a single line of input from the REPL.
 //
 // This is a stateful operation if a command is given (such as setting
@@ -50,18 +43,25 @@ type Evaluator interface {
 //
 // The return value is the output and the error to show.
 func (s *TestSession) Handle(line string) (ret string, exit bool, diags tfdiags.Diagnostics) {
-	if handler := s.Handlers[strings.TrimSpace(line)]; handler != nil {
+	cleanedLine := strings.TrimSpace(line)
+	if handler := s.Handlers[cleanedLine]; handler != nil {
 		ret, exit, diags = handler(line)
 		return
 	}
 	switch {
-	case strings.TrimSpace(line) == "":
+	case cleanedLine == "":
 		return "", false, nil
-	case strings.TrimSpace(line) == "exit":
+	case cleanedLine == "exit":
 		return "", true, nil
-	case strings.TrimSpace(line) == "help":
+	case cleanedLine == "help":
 		ret, diags := s.handleHelp()
 		return ret, false, diags
+	case strings.HasPrefix(cleanedLine, "break "):
+		if handler, ok := s.Handlers["break"]; ok {
+			ret, exit, diags = handler(strings.TrimPrefix(cleanedLine, "break "))
+			return ret, exit, diags
+		}
+		return "", false, nil
 	default:
 		ret, diags = s.handleEval(line)
 		return ret, false, diags
