@@ -28,7 +28,7 @@ func TestStateStore_Hash(t *testing.T) {
 	//   state_store "foobar_fs" {
 	//     # Nested provider block
 	//     provider "foobar" {
-	//       foo = "bar"
+	//       foobar = "foobar"
 	//     }
 
 	//     # Attributes for configuring the state store
@@ -37,8 +37,8 @@ func TestStateStore_Hash(t *testing.T) {
 	//   }
 	// }
 
-	// Normally this schema would come from a provider's GetProviderSchema data
-	goodSchema := &configschema.Block{
+	// Normally these schemas would come from a provider's GetProviderSchema data
+	stateStoreSchema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"path": {
 				Type:     cty.String,
@@ -50,33 +50,47 @@ func TestStateStore_Hash(t *testing.T) {
 			},
 		},
 	}
+	providerSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foobar": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
 
 	cases := map[string]struct {
 		config          hcl.Body
+		providerConfig  hcl.Body
 		schema          *configschema.Block
 		wantErrorString string
 	}{
-		"Hash method ignores the provider block in config data": {
-			schema: goodSchema,
+		"ignores the provider block in config data, as long as the schema doesn't include it": {
+			schema: stateStoreSchema,
 			config: configBodyForTest(t, `
 					provider "foobar" {
-					  foo = "bar"
+					  foobar = "foobar"
 					}
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
+			providerConfig: configBodyForTest(t, `foobar = "foobar"`),
 		},
-		"Hash method returns errors when the config contains non-provider things that aren't in the schema": {
-			schema: goodSchema,
+		"returns errors when the config contains non-provider things that aren't in the schema": {
+			schema: stateStoreSchema,
 			config: configBodyForTest(t, `
+					provider "foobar" {
+					  foobar = "foobar"
+					}
 					unexpected_block {
-					  foo = "bar"
+					  foobar = "foobar"
 					}
 					unexpected_attr = "foobar"
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
+			providerConfig:  configBodyForTest(t, `foobar = "foobar"`),
 			wantErrorString: "Unsupported argument",
 		},
-		"Hash method returns an error if the schema includes a provider block": {
+		"returns an error if the schema includes a provider block": {
 			schema: &configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"provider": {
@@ -94,13 +108,14 @@ func TestStateStore_Hash(t *testing.T) {
 			},
 			config: configBodyForTest(t, `
 					provider "foobar" {
-					  foo = "bar"
+					  foobar = "foobar"
 					}
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
+			providerConfig:  configBodyForTest(t, `foobar = "foobar"`),
 			wantErrorString: "schema contains a provider block",
 		},
-		"Hash method returns an error if the schema includes a provider attribute": {
+		"returns an error if the schema includes a provider attribute": {
 			schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"provider": {
@@ -111,10 +126,11 @@ func TestStateStore_Hash(t *testing.T) {
 			},
 			config: configBodyForTest(t, `
 					provider "foobar" {
-					  foo = "bar"
+					  foobar = "foobar"
 					}
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
+			providerConfig:  configBodyForTest(t, `foobar = "foobar"`),
 			wantErrorString: "schema contains a provider attribute",
 		},
 	}
@@ -123,17 +139,30 @@ func TestStateStore_Hash(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			s := StateStore{
 				Config: tc.config,
+				Provider: &Provider{
+					Config: tc.providerConfig,
+				},
 			}
 
-			_, diags := s.Hash(tc.schema)
+			ssHash, pHash, diags := s.Hash(tc.schema, providerSchema)
+			if diags.HasErrors() {
+				if tc.wantErrorString == "" {
+					t.Fatalf("unexpected error: %s", diags.Err())
+				}
+				if !strings.Contains(diags.Err().Error(), tc.wantErrorString) {
+					t.Fatalf("expected %q to be in the returned error string but it's missing: %q", tc.wantErrorString, diags.Err())
+				}
+
+				return // early return if testing an error case
+			}
+
 			if !diags.HasErrors() && tc.wantErrorString != "" {
 				t.Fatal("expected an error when generating a hash, but got none")
 			}
-			if diags.HasErrors() && tc.wantErrorString == "" {
-				t.Fatalf("unexpected error: %s", diags.Err())
-			}
-			if diags.HasErrors() && !strings.Contains(diags.Err().Error(), tc.wantErrorString) {
-				t.Fatalf("expected %q to be in the returned error string but it's missing: %q", tc.wantErrorString, diags.Err())
+
+			if ssHash == pHash {
+				// These should not be equal, unless an error occurred and zero values were returned
+				t.Fatalf("expected unique hashes for state_store and provider config, but they both have value: %d", ssHash)
 			}
 		})
 	}
