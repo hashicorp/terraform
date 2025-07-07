@@ -115,7 +115,7 @@ func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, provid
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode state_store's nested provider config: %w", err)
 	}
-	return plans.NewStateStore(s.Type, s.Provider.Version, s.Provider.Source, storeConfigVal, storeSchema, providerConfigVal, nil, workspaceName)
+	return plans.NewStateStore(s.Type, s.Provider.Version, s.Provider.Source, storeConfigVal, storeSchema, providerConfigVal, providerSchema, workspaceName)
 }
 
 func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
