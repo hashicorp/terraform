@@ -125,6 +125,7 @@ func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
 	provider := &ProviderConfigState{
 		Version: s.Provider.Version,
 		Source:  s.Provider.Source,
+		Hash:    s.Provider.Hash,
 	}
 	if s.Provider.ConfigRaw != nil {
 		provider.ConfigRaw = make([]byte, len(s.Provider.ConfigRaw))

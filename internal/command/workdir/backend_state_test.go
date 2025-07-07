@@ -5,7 +5,6 @@ package workdir
 
 import (
 	"encoding/json"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -293,8 +292,8 @@ func TestBackendStateFile_DeepCopy(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			copy := tc.file.DeepCopy()
 
-			if !reflect.DeepEqual(copy, tc.file) {
-				t.Fatalf("unexpected difference in backend state data:\n got %#v, want %#v", copy, tc.file)
+			if diff := cmp.Diff(copy, tc.file); diff != "" {
+				t.Fatalf("unexpected difference in backend state data:\n %s", diff)
 			}
 		})
 	}
