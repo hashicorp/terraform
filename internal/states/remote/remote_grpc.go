@@ -83,10 +83,18 @@ func (g *grpcClient) Delete() error {
 	return resp.Diagnostics.Err()
 }
 
+// Lock invokes the LockState gRPC method in the plugin protocol
+// to lock a named state in the remote location.
+//
+// Implementation of remote.Client
 func (g *grpcClient) Lock(*statemgr.LockInfo) (string, error) {
 	panic("not implemented yet")
 }
 
+// Unlock invokes the UnlockState gRPC method in the plugin protocol
+// to release a named lock on a specific state in the remote location.
+//
+// Implementation of remote.Client
 func (g *grpcClient) Unlock(id string) error {
 	panic("not implemented yet")
 }
