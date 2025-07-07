@@ -57,6 +57,8 @@ type Run struct {
 	Scope *lang.Scope
 
 	Source string
+
+	Breakpoints map[string]bool
 }
 
 func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {
@@ -65,7 +67,32 @@ func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *R
 		ModuleConfig: moduleConfig,
 		Name:         config.Name,
 		Index:        index,
+		Breakpoints: func() map[string]bool {
+			ret := make(map[string]bool, len(config.BreakPoints))
+			if config.BreakPoints == nil {
+				return ret
+			}
+
+			for _, bp := range config.BreakPoints {
+				if bp == "" {
+					continue
+				}
+				ret[bp] = true
+			}
+			return ret
+		}(),
 	}
+}
+
+func (run *Run) SetBreakPoint(name string) {
+	run.Breakpoints[name] = true
+}
+
+func (run *Run) HasBreakPoint(name string) bool {
+	if run.Breakpoints == nil {
+		return false
+	}
+	return run.Breakpoints[name]
 }
 
 type RunExecutionMeta struct {

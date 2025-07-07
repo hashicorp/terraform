@@ -25,7 +25,7 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
-	setVariables, testOnlyVariables, setVariableDiags := n.FilterVariablesToModule(variables)
+	setVariables, _, setVariableDiags := n.FilterVariablesToModule(variables)
 	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
 
 	// ignore diags because validate has covered it
@@ -71,7 +71,7 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	// of the run. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
 	// previous run blocks.
-	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, planScope, testOnlyVariables)
+	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, planScope, variables)
 	run.Status = newStatus
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
 	run.Outputs = outputVals

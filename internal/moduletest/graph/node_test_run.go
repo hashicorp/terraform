@@ -6,7 +6,6 @@ package graph
 import (
 	"fmt"
 	"log"
-	"slices"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -68,12 +67,13 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 	// emit scope if there is a breakpoint
 	file, run := n.File(), n.run
-	if slices.Contains(n.run.Config.BreakPoints, "before") {
+	if run.HasBreakPoint("before") {
 		if evalCtx.RecentRun != nil {
 			// use the current run scope, which will get updated later
 			// when this run block is executed.
-			n.run.Scope = evalCtx.RecentRun.Scope
-			evalCtx.BreakUntilContinue(n.run)
+			run.Scope = evalCtx.RecentRun.Scope
+			evalCtx.DebugContext.ExecutionPoint = "before"
+			evalCtx.BreakUntilContinue(run)
 		}
 	}
 
@@ -88,7 +88,8 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 		evalCtx.AddRunBlock(run)
 
 		// emit scope if there is a breakpoint
-		if slices.Contains(n.run.Config.BreakPoints, "after") {
+		if run.HasBreakPoint("after") {
+			evalCtx.DebugContext.ExecutionPoint = "after"
 			evalCtx.BreakUntilContinue(run)
 		}
 	}()

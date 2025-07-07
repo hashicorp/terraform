@@ -26,11 +26,13 @@ type TestGraphBuilder struct {
 	Config      *configs.Config
 	File        *moduletest.File
 	ContextOpts *terraform.ContextOpts
+	DebugMode   bool
 }
 
 type graphOptions struct {
 	File        *moduletest.File
 	ContextOpts *terraform.ContextOpts
+	DebugMode   bool
 }
 
 // See GraphBuilder
@@ -47,6 +49,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	opts := &graphOptions{
 		File:        b.File,
 		ContextOpts: b.ContextOpts,
+		DebugMode:   b.DebugMode,
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},

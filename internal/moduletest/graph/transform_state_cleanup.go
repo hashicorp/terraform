@@ -107,6 +107,8 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	for _, node := range arr {
 		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
 	}
+
+	ControlParallelism(g, arr, t.opts.DebugMode)
 	return nil
 }
 

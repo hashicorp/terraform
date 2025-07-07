@@ -34,6 +34,13 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 		})
 	}
 
+	// Connect nodes based on dependencies
+	ControlParallelism(g, nodes, t.opts.DebugMode)
+
+	// Runs with the same state key inherently depend on each other, so we
+	// connect them sequentially.
+	t.connectSameStateRuns(g, nodes)
+
 	return nil
 }
 
@@ -56,13 +63,15 @@ func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*N
 // settings. If a node opts out of parallelism, it will be connected sequentially
 // to all previous and subsequent nodes that are also part of the parallelism
 // control flow.
-func ControlParallelism[T any](g *terraform.Graph, nodes []T) {
+func ControlParallelism[T any](g *terraform.Graph, nodes []T, debugMode bool) {
 	for i, node := range nodes {
 		switch node := any(node).(type) {
 		case *NodeTestRun:
 			// If a node has a breakpoint set, it will not connect to
 			// any runs, allowing it to run independently.
-			if node.run.Config.Parallel && len(node.run.Config.BreakPoints) == 0 {
+			// TODO: If debug mode does not run tests sequentially, functions like
+			// `next` will be non-deterministic.
+			if node.run.Config.Parallel && !debugMode {
 				continue
 			}
 

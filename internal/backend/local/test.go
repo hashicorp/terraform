@@ -71,12 +71,16 @@ func (runner *TestSuiteRunner) Stop() {
 // the results of the tests back to the caller. The caller can then
 // use the scope to wait for the tests to complete and retrieve the
 // results of the tests.
-func (runner *TestSuiteRunner) Debug() *DebugContext {
+func (runner *TestSuiteRunner) Debug() *graph.DebugContext {
 	var diags tfdiags.Diagnostics
-	ctx := &DebugContext{
+	ctx := &graph.DebugContext{
 		RunCh: make(chan *moduletest.Run),
 		ErrCh: make(chan tfdiags.Diagnostics, 1),
 	}
+
+	// TODO: If debug mode does not run tests sequentially, functions like
+	// `next` will be non-deterministic.
+	runner.Concurrency = 1 // Debug mode always runs tests sequentially.
 
 	// run the test suite in a goroutine and
 	// send the results back to the caller via the debug context's RunCh channel.
@@ -130,7 +134,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	return runner.test(nil, suite)
 }
 
-func (runner *TestSuiteRunner) test(dbgCtx *DebugContext, suite *moduletest.Suite) (moduletest.Status, tfdiags.Diagnostics) {
+func (runner *TestSuiteRunner) test(dbgCtx *graph.DebugContext, suite *moduletest.Suite) (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	runner.View.Abstract(suite)
@@ -160,11 +164,6 @@ func (runner *TestSuiteRunner) test(dbgCtx *DebugContext, suite *moduletest.Suit
 			currentGlobalVariables = testDirectoryGlobalVariables
 		}
 
-		var runCh chan *moduletest.Run
-		if dbgCtx != nil {
-			runCh = dbgCtx.RunCh
-		}
-
 		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
 			Config:            runner.Config,
 			CancelCtx:         runner.CancelledCtx,
@@ -173,18 +172,20 @@ func (runner *TestSuiteRunner) test(dbgCtx *DebugContext, suite *moduletest.Suit
 			Render:            runner.View,
 			UnparsedVariables: currentGlobalVariables,
 			Concurrency:       runner.Concurrency,
-			RunCh:             runCh,
+			DebugContext:      dbgCtx,
 		})
+		evalCtx.File = file
 
 		if dbgCtx != nil {
 			// set the current file runner's eval context as the active eval context, so that the caller
 			// can resume the test execution within this eval context.
-			dbgCtx.activeEvalContext = evalCtx
+			dbgCtx.ActiveEvalContext = evalCtx
 		}
 
 		fileRunner := &TestFileRunner{
-			Suite:       runner,
-			EvalContext: evalCtx,
+			Suite:        runner,
+			EvalContext:  evalCtx,
+			DebugContext: dbgCtx,
 		}
 
 		runner.View.File(file, moduletest.Starting)
@@ -276,9 +277,10 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 type TestFileRunner struct {
 	// Suite contains all the helpful metadata about the test that we need
 	// during the execution of a file.
-	Suite       *TestSuiteRunner
-	EvalContext *graph.EvalContext
-	TestSuite   *moduletest.Suite
+	Suite        *TestSuiteRunner
+	EvalContext  *graph.EvalContext
+	TestSuite    *moduletest.Suite
+	DebugContext *graph.DebugContext
 }
 
 func (runner *TestFileRunner) Test(file *moduletest.File) {
@@ -303,6 +305,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		Config:      runner.Suite.Config,
 		File:        file,
 		ContextOpts: runner.Suite.Opts,
+		DebugMode:   runner.DebugContext != nil,
 	}
 	g, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)
