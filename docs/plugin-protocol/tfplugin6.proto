@@ -189,8 +189,6 @@ message ActionSchema {
     }
 }
 
-
-
 // Schema is the configuration schema for a Resource or Provider.
 message Schema {
     message Block {

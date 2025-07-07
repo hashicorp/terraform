@@ -190,7 +190,6 @@ message ActionSchema {
     }
 }
 
-
 // Schema is the configuration schema for a Resource, Provider, or Provisioner.
 message Schema {
     message Block {
