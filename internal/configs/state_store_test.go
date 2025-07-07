@@ -42,7 +42,7 @@ func TestStateStore_Hash(t *testing.T) {
 		Attributes: map[string]*configschema.Attribute{
 			"path": {
 				Type:     cty.String,
-				Optional: true,
+				Required: true,
 			},
 			"workspace_dir": {
 				Type:     cty.String,
@@ -54,7 +54,7 @@ func TestStateStore_Hash(t *testing.T) {
 		Attributes: map[string]*configschema.Attribute{
 			"foobar": {
 				Type:     cty.String,
-				Optional: true,
+				Required: true,
 			},
 		},
 	}
@@ -74,6 +74,27 @@ func TestStateStore_Hash(t *testing.T) {
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
 			providerConfig: configBodyForTest(t, `foobar = "foobar"`),
+		},
+		"tolerates empty config block for the provider even when schema has Required field(s)": {
+			schema: stateStoreSchema,
+			config: configBodyForTest(t, `
+					provider "foobar" {
+						# required field "foobar" is missing
+					}
+					path          = "mystate.tfstate"
+					workspace_dir = "foobar"`),
+			providerConfig: hcl.EmptyBody(),
+		},
+		"tolerates missing Required field(s) in state_store config": {
+			schema: stateStoreSchema,
+			config: configBodyForTest(t, `
+					provider "foobar" {
+					  foobar = "foobar"
+					}
+					
+					# required field "path" is missing
+					workspace_dir = "foobar"`),
+			providerConfig: hcl.EmptyBody(),
 		},
 		"returns errors when the config contains non-provider things that aren't in the schema": {
 			schema: stateStoreSchema,
