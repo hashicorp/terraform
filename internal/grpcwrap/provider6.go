@@ -849,10 +849,10 @@ func (p *provider6) ListResource(req *tfplugin6.ListResource_Request, res tfplug
 
 	for iter := data.ElementIterator(); iter.Next(); {
 		_, item := iter.Element()
-		state := item.GetAttr("state")
 		var stateVal *tfplugin6.DynamicValue
-		var err error
-		if !state.IsNull() {
+		if item.Type().HasAttribute("state") {
+			state := item.GetAttr("state")
+			var err error
 			stateVal, err = encodeDynamicValue6(state, resourceSchema.Body.ImpliedType())
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to encode list resource item state: %v", err)
