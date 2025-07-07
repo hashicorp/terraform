@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -67,7 +68,8 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(testManifest))
 		}
 	default:
-		fileToSend, err := os.Open(fmt.Sprintf("testdata/%s", r.URL.Path))
+		path := filepath.Clean(r.URL.Path)
+		fileToSend, err := os.Open(fmt.Sprintf("testdata/%s", path))
 		if err == nil {
 			io.Copy(w, fileToSend)
 			return
