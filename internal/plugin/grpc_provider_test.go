@@ -2061,28 +2061,26 @@ func TestGRPCProvider_planAction_linked_provider_returns_error(t *testing.T) {
 }
 
 func TestGRPCProvider_invokeAction_unlinked_valid(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	mockInvokeClient := &mockproto.MockInvokeProtoClient{
-		Events: []*proto.InvokeAction_Event{
-			{
-				Type: &proto.InvokeAction_Event_Progress_{
-					Progress: &proto.InvokeAction_Event_Progress{
-						Message: "Hello from the action",
-					},
-				},
-			},
-
-			{
-				Type: &proto.InvokeAction_Event_Completed_{
-					Completed: &proto.InvokeAction_Event_Completed{},
-				},
+	mockInvokeClient := mockproto.NewMockProvider_InvokeActionClient(ctrl)
+	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
+		Type: &proto.InvokeAction_Event_Progress_{
+			Progress: &proto.InvokeAction_Event_Progress{
+				Message: "Hello from the action",
 			},
 		},
-	}
+	}, nil)
+	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
+		Type: &proto.InvokeAction_Event_Completed_{
+			Completed: &proto.InvokeAction_Event_Completed{},
+		},
+	}, nil)
+	mockInvokeClient.EXPECT().Recv().Return(nil, io.EOF)
 
 	client.EXPECT().InvokeAction(
 		gomock.Any(),
@@ -2125,38 +2123,37 @@ func TestGRPCProvider_invokeAction_unlinked_invalid(t *testing.T) {
 }
 
 func TestGRPCProvider_invokeAction_lifecycle_valid(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	mockInvokeClient := &mockproto.MockInvokeProtoClient{
-		Events: []*proto.InvokeAction_Event{
-			{
-				Type: &proto.InvokeAction_Event_Progress_{
-					Progress: &proto.InvokeAction_Event_Progress{
-						Message: "Lifecycle progress",
-					},
-				},
-			},
-			{
-				Type: &proto.InvokeAction_Event_Completed_{
-					Completed: &proto.InvokeAction_Event_Completed{
-						LinkedResources: []*proto.InvokeAction_Event_Completed_LinkedResource{{
-							NewState: &proto.DynamicValue{
-								Msgpack: []byte("\x81\xa4attr\xa3new"),
-							},
-							NewIdentity: &proto.ResourceIdentityData{
-								IdentityData: &proto.DynamicValue{
-									Msgpack: []byte("\x81\xa7id_attr\xa2id"),
-								},
-							},
-						}},
-					},
-				},
+	mockInvokeClient := mockproto.NewMockProvider_InvokeActionClient(ctrl)
+	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
+		Type: &proto.InvokeAction_Event_Progress_{
+			Progress: &proto.InvokeAction_Event_Progress{
+				Message: "Lifecycle progress",
 			},
 		},
-	}
+	}, nil)
+	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
+		Type: &proto.InvokeAction_Event_Completed_{
+			Completed: &proto.InvokeAction_Event_Completed{
+				LinkedResources: []*proto.InvokeAction_Event_Completed_LinkedResource{{
+					NewState: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa4attr\xa3new"),
+					},
+					NewIdentity: &proto.ResourceIdentityData{
+						IdentityData: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa7id_attr\xa2id"),
+						},
+					},
+				}},
+			},
+		},
+	}, nil)
+	mockInvokeClient.EXPECT().Recv().Return(nil, io.EOF)
 
 	client.EXPECT().InvokeAction(
 		gomock.Any(),
@@ -2263,28 +2260,28 @@ func TestGRPCProvider_invokeAction_lifecycle_extra_linked_resource(t *testing.T)
 }
 
 func TestGRPCProvider_invokeAction_lifecycle_provider_returns_error(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	mockInvokeClient := &mockproto.MockInvokeProtoClient{
-		Events: []*proto.InvokeAction_Event{
-			{
-				Type: &proto.InvokeAction_Event_Completed_{
-					Completed: &proto.InvokeAction_Event_Completed{
-						Diagnostics: []*proto.Diagnostic{
-							{
-								Severity: proto.Diagnostic_ERROR,
-								Summary:  "Provider error",
-								Detail:   "Something went wrong",
-							},
-						},
+	mockInvokeClient := mockproto.NewMockProvider_InvokeActionClient(ctrl)
+	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
+		Type: &proto.InvokeAction_Event_Completed_{
+			Completed: &proto.InvokeAction_Event_Completed{
+				Diagnostics: []*proto.Diagnostic{
+					{
+						Severity: proto.Diagnostic_ERROR,
+						Summary:  "Provider error",
+						Detail:   "Something went wrong",
 					},
 				},
 			},
 		},
-	}
+	}, nil)
+
+	mockInvokeClient.EXPECT().Recv().Return(nil, io.EOF)
 
 	client.EXPECT().InvokeAction(
 		gomock.Any(),
@@ -2327,50 +2324,49 @@ func TestGRPCProvider_invokeAction_lifecycle_provider_returns_error(t *testing.T
 }
 
 func TestGRPCProvider_invokeAction_linked_valid(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	mockInvokeClient := &mockproto.MockInvokeProtoClient{
-		Events: []*proto.InvokeAction_Event{
-			{
-				Type: &proto.InvokeAction_Event_Progress_{
-					Progress: &proto.InvokeAction_Event_Progress{
-						Message: "Linked progress",
-					},
-				},
+	mockInvokeClient := mockproto.NewMockProvider_InvokeActionClient(ctrl)
+	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
+		Type: &proto.InvokeAction_Event_Progress_{
+			Progress: &proto.InvokeAction_Event_Progress{
+				Message: "Linked progress",
 			},
-			{
-				Type: &proto.InvokeAction_Event_Completed_{
-					Completed: &proto.InvokeAction_Event_Completed{
-						LinkedResources: []*proto.InvokeAction_Event_Completed_LinkedResource{
-							{
-								NewState: &proto.DynamicValue{
-									Msgpack: []byte("\x81\xa4attr\xa3new"),
-								},
-								NewIdentity: &proto.ResourceIdentityData{
-									IdentityData: &proto.DynamicValue{
-										Msgpack: []byte("\x81\xa7id_attr\xa2id"),
-									},
-								},
+		},
+	}, nil)
+	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
+		Type: &proto.InvokeAction_Event_Completed_{
+			Completed: &proto.InvokeAction_Event_Completed{
+				LinkedResources: []*proto.InvokeAction_Event_Completed_LinkedResource{
+					{
+						NewState: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa4attr\xa3new"),
+						},
+						NewIdentity: &proto.ResourceIdentityData{
+							IdentityData: &proto.DynamicValue{
+								Msgpack: []byte("\x81\xa7id_attr\xa2id"),
 							},
-							{
-								NewState: &proto.DynamicValue{
-									Msgpack: []byte("\x81\xa4attr\xa4new2"),
-								},
-								NewIdentity: &proto.ResourceIdentityData{
-									IdentityData: &proto.DynamicValue{
-										Msgpack: []byte("\x81\xa7id_attr\xa3id2"),
-									},
-								},
+						},
+					},
+					{
+						NewState: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa4attr\xa4new2"),
+						},
+						NewIdentity: &proto.ResourceIdentityData{
+							IdentityData: &proto.DynamicValue{
+								Msgpack: []byte("\x81\xa7id_attr\xa3id2"),
 							},
 						},
 					},
 				},
 			},
 		},
-	}
+	}, nil)
+	mockInvokeClient.EXPECT().Recv().Return(nil, io.EOF)
 
 	client.EXPECT().InvokeAction(
 		gomock.Any(),
@@ -2520,28 +2516,28 @@ func TestGRPCProvider_invokeAction_linked_too_many_linked_resources(t *testing.T
 }
 
 func TestGRPCProvider_invokeAction_linked_provider_returns_error(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	mockInvokeClient := &mockproto.MockInvokeProtoClient{
-		Events: []*proto.InvokeAction_Event{
-			{
-				Type: &proto.InvokeAction_Event_Completed_{
-					Completed: &proto.InvokeAction_Event_Completed{
-						Diagnostics: []*proto.Diagnostic{
-							{
-								Severity: proto.Diagnostic_ERROR,
-								Summary:  "Provider error",
-								Detail:   "Something went wrong",
-							},
-						},
+	mockInvokeClient := mockproto.NewMockProvider_InvokeActionClient(ctrl)
+	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
+		Type: &proto.InvokeAction_Event_Completed_{
+			Completed: &proto.InvokeAction_Event_Completed{
+				Diagnostics: []*proto.Diagnostic{
+					{
+						Severity: proto.Diagnostic_ERROR,
+						Summary:  "Provider error",
+						Detail:   "Something went wrong",
 					},
 				},
 			},
 		},
-	}
+	}, nil)
+
+	mockInvokeClient.EXPECT().Recv().Return(nil, io.EOF)
 
 	client.EXPECT().InvokeAction(
 		gomock.Any(),
