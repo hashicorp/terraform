@@ -1,13 +1,25 @@
 package terraform
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sort"
 
-	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+)
+
+const (
+	DefaultWorkspaceDir    = "terraform.tfstate.d"
+	DefaultWorkspaceFile   = "environment"
+	DefaultStateFilename   = "terraform.tfstate"
+	DefaultBackupExtension = ".backup"
 )
 
 var stateStores = map[string]providers.Schema{
@@ -33,6 +45,15 @@ func fsStateStoreSchema() providers.Schema {
 	}
 }
 
+// stateWorkspaceDir returns the directory where state environments are stored.
+func (p *Provider) stateWorkspaceDir() string {
+	if p.StateWorkspaceDir != "" {
+		return p.StateWorkspaceDir
+	}
+
+	return DefaultWorkspaceDir
+}
+
 func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
 	var resp providers.ValidateStateStoreConfigResponse
 	_, ok := stateStores[req.TypeName]
@@ -40,18 +61,33 @@ func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConf
 		// Should not get here if the caller is behaving correctly, because
 		// we don't declare any state stores in our schema that we don't have
 		// implementations for.
-		resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 		return resp
 	}
 
-	// attr := ss.Body.AttributeByPath(cty.GetAttrPath("path"))
+	if val := req.Config.GetAttr("path"); !val.IsNull() {
+		p := val.AsString()
+		if p == "" {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid local state file path",
+				`The "path" attribute value must not be empty.`,
+				cty.Path{cty.GetAttrStep{Name: "path"}},
+			))
+		}
+	}
 
-	// TODO: real validation logic here
-	resp.Diagnostics.Append(&hcl.Diagnostic{
-		Severity: hcl.DiagWarning,
-		Summary:  "validation warning",
-		Detail:   "yolo tada yada",
-	})
+	if val := req.Config.GetAttr("workspace_dir"); !val.IsNull() {
+		p := val.AsString()
+		if p == "" {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid local workspace directory path",
+				`The "workspace_dir" attribute value must not be empty.`,
+				cty.Path{cty.GetAttrStep{Name: "workspace_dir"}},
+			))
+		}
+	}
 
 	return resp
 }
@@ -64,28 +100,70 @@ func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest)
 		// we don't declare any state stores in our schema that we don't have
 		// implementations for.
 		resp.Diagnostics = tfdiags.Diagnostics{}
-		resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 		return resp
 	}
 
-	// TODO: real configuration logic here
-	resp.Diagnostics.Append(&hcl.Diagnostic{
-		Severity: hcl.DiagWarning,
-		Summary:  "configuration warning",
-		Detail:   "yolo tada yada",
-	})
+	if val := req.Config.GetAttr("path"); !val.IsNull() {
+		path := val.AsString()
+		p.StatePath = path
+		p.StateOutPath = path
+	} else {
+		p.StatePath = DefaultStateFilename
+		p.StateOutPath = DefaultStateFilename
+	}
+
+	if val := req.Config.GetAttr("workspace_dir"); !val.IsNull() {
+		workspaceDir := val.AsString()
+		p.StateWorkspaceDir = workspaceDir
+	} else {
+		p.StateWorkspaceDir = DefaultWorkspaceDir
+	}
 
 	return resp
 }
 
 func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
 	var resp providers.GetStatesResponse
+	var envs []string
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+
+	entries, err := ioutil.ReadDir(p.stateWorkspaceDir())
+	if os.IsNotExist(err) {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	var listed []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			listed = append(listed, filepath.Base(entry.Name()))
+		}
+	}
+
+	sort.Strings(listed)
+	envs = append(envs, listed...)
+
+	resp.States = envs
 	return resp
+
 }
 
 func (p *Provider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
 	var resp providers.DeleteStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+
+	if req.StateId == backend.DefaultStateName {
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("cannot delete default state"))
+		return resp
+	}
+
+	delete(p.states, req.StateId)
+	err := os.RemoveAll(filepath.Join(p.stateWorkspaceDir(), req.StateId))
+
+	resp.Diagnostics = resp.Diagnostics.Append(err)
 	return resp
 }
