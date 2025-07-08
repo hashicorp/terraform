@@ -1,4 +1,4 @@
-## 1.13.0-alpha20250702 (July 02, 2025)
+## 1.13.0-alpha20250708 (July 08, 2025)
 
 
 NEW FEATURES:
@@ -32,6 +32,8 @@ BUG FIXES:
 * workspace: Updated validation to reject workspaces named "" ([#37267](https://github.com/hashicorp/terraform/issues/37267))
 
 * workspace: Updated the `workspace delete` command to reject `""` as an invalid workspace name ([#37275](https://github.com/hashicorp/terraform/issues/37275))
+
+* Test run Parallelism of 1 should not result in deadlock ([#37292](https://github.com/hashicorp/terraform/issues/37292))
 
 
 NOTES:
