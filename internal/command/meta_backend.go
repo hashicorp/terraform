@@ -715,13 +715,18 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	}
 }
 
+// determineInitReason is used in non-Init commands to interrupt the command early and prompt users to instead run an init command.
+// That prompt needs to include the reason why init needs to be run, and it is determined here.
+//
+// Note: the calling code is responsible for determining that a change has occurred before invoking this
+// method. This makes the default cases (config has changed) valid.
 func (m *Meta) determineInitReason(previousBackendType string, currentBackendType string, cloudMode cloud.ConfigChangeMode) tfdiags.Diagnostics {
 	initReason := ""
 	switch cloudMode {
 	case cloud.ConfigMigrationIn:
 		initReason = fmt.Sprintf("Changed from backend %q to HCP Terraform", previousBackendType)
 	case cloud.ConfigMigrationOut:
-		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", previousBackendType)
+		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", currentBackendType)
 	case cloud.ConfigChangeInPlace:
 		initReason = "HCP Terraform configuration block has changed"
 	default:
