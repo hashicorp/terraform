@@ -30,8 +30,8 @@ func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResour
 	}
 }
 
-func testJSONHookActionID(addr addrs.ActionInvocation) terraform.HookActionIdentity {
-	return addrs.ActionInvocation{
+func testJSONHookActionID(addr addrs.AbsActionInvocationInstance) terraform.HookActionIdentity {
+	return addrs.AbsActionInvocationInstance{
 		TriggeringResource: addr.TriggeringResource,
 		Action:             addr.Action,
 		TriggerIndex:       addr.TriggerIndex,
@@ -593,7 +593,7 @@ func TestJSONHook_actions(t *testing.T) {
 		Name: "boop",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	invocationA := addrs.ActionInvocation{
+	invocationA := addrs.AbsActionInvocationInstance{
 		TriggeringResource: resourceA,
 		Action:             actionA,
 		TriggerIndex:       23,
@@ -614,7 +614,7 @@ func TestJSONHook_actions(t *testing.T) {
 		Name: "boop",
 	}.Instance(addrs.NoKey).Absolute(subModule)
 
-	invocationB := addrs.ActionInvocation{
+	invocationB := addrs.AbsActionInvocationInstance{
 		TriggeringResource: resourceB,
 		Action:             actionB,
 		TriggerIndex:       0,

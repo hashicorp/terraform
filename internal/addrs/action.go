@@ -330,8 +330,8 @@ type configActionKey string
 
 func (k configActionKey) uniqueKeySigil() {}
 
-// ActionInvocation describes the invocation of an action as part of a plan / apply.
-type ActionInvocation struct {
+// AbsActionInvocationInstance describes the invocation of an action as part of a plan / apply.
+type AbsActionInvocationInstance struct {
 	TriggeringResource AbsResourceInstance
 	Action             AbsActionInstance
 	TriggerIndex       int
@@ -345,6 +345,6 @@ type ActionInvocation struct {
 	ActionReferenceSourceRange *tfdiags.SourceRange
 }
 
-func (a ActionInvocation) String() string {
+func (a AbsActionInvocationInstance) String() string {
 	return fmt.Sprintf("%s.%d.%s", a.TriggeringResource.String(), a.TriggerIndex, a.Action.String())
 }

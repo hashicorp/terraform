@@ -370,7 +370,7 @@ func (h *actionStart) String() string {
 	return fmt.Sprintf("%s.trigger[%d]: Action Started: %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr)
 }
 
-func NewActionStart(addr addrs.ActionInvocation) Hook {
+func NewActionStart(addr addrs.AbsActionInvocationInstance) Hook {
 	return &actionStart{
 		TriggeringResource: newResourceAddr(addr.TriggeringResource),
 		TriggerIndex:       addr.TriggerIndex,
@@ -395,7 +395,7 @@ func (h *actionProgress) String() string {
 	return fmt.Sprintf("%s (%d): %s - %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr, h.Message)
 }
 
-func NewActionProgress(addr addrs.ActionInvocation, message string) Hook {
+func NewActionProgress(addr addrs.AbsActionInvocationInstance, message string) Hook {
 	return &actionProgress{
 		TriggeringResource: newResourceAddr(addr.TriggeringResource),
 		TriggerIndex:       addr.TriggerIndex,
@@ -420,7 +420,7 @@ func (h *actionComplete) String() string {
 	return fmt.Sprintf("%s (%d): Action Complete: %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr)
 }
 
-func NewActionComplete(addr addrs.ActionInvocation) Hook {
+func NewActionComplete(addr addrs.AbsActionInvocationInstance) Hook {
 	return &actionComplete{
 		TriggeringResource: newResourceAddr(addr.TriggeringResource),
 		TriggerIndex:       addr.TriggerIndex,
@@ -445,7 +445,7 @@ func (h *actionErrored) String() string {
 	return fmt.Sprintf("%s (%d): Action Errored: %s - %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr, h.Error)
 }
 
-func NewActionErrored(addr addrs.ActionInvocation, err error) Hook {
+func NewActionErrored(addr addrs.AbsActionInvocationInstance, err error) Hook {
 	return &actionErrored{
 		TriggeringResource: newResourceAddr(addr.TriggeringResource),
 		TriggerIndex:       addr.TriggerIndex,
