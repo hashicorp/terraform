@@ -281,6 +281,10 @@ message ServerCapabilities {
     // The move_resource_state capability signals that a provider supports the
     // MoveResourceState RPC.
     bool move_resource_state = 3;
+
+    // The generate_resource_config capability signals that a provider supports
+    // GenerateResourceConfig.
+    bool generate_resource_config = 4;
 }
 
 // ClientCapabilities allows Terraform to publish information regarding
