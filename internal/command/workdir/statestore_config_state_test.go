@@ -198,7 +198,6 @@ func TestProviderConfigState_Empty(t *testing.T) {
 }
 
 func TestStateStoreConfigState_PlanData(t *testing.T) {
-
 	workspace := "default"
 
 	pConfig := `{

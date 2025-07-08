@@ -95,7 +95,6 @@ func TestBackendStateConfig_Empty(t *testing.T) {
 }
 
 func TestBackendStateConfig_PlanData(t *testing.T) {
-
 	workspace := "default"
 	s := &BackendConfigState{
 		Type: "whatever",
