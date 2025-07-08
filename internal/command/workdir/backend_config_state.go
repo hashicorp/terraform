@@ -72,7 +72,9 @@ func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block
 //
 // The backend configuration schema is required in order to properly
 // encode the backend-specific configuration settings.
-func (s *BackendConfigState) PlanData(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+//
+// As backends are not implemented by providers, the provider schema argument should always be nil
+func (s *BackendConfigState) PlanData(schema *configschema.Block, _ *configschema.Block, workspaceName string) (*plans.Backend, error) {
 	if s == nil {
 		return nil, nil
 	}
