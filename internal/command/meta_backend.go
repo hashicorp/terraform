@@ -898,7 +898,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		if !opts.Init {
 			//user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
-			initDiag := m.determineInitReason(s.Backend.Type, backendConfig.Type, cloudMode)
+			initDiag := m.determineInitReason(s, backendConfig, stateStoreConfig, cloudMode)
 			diags = diags.Append(initDiag)
 			return nil, diags
 		}
@@ -937,51 +937,138 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 }
 
 // determineInitReason is used in non-Init commands to interrupt the command early and prompt users to instead run an init command.
-// That prompt needs to include the reason why init needs to be run, and it is determined here.
+// That prompt needs to include the reason why init needs to be run, and is determined here.
 //
 // Note: the calling code is responsible for determining that a change has occurred before invoking this
 // method. This makes the default cases (config has changed) valid.
-func (m *Meta) determineInitReason(previousBackendType string, currentBackendType string, cloudMode cloud.ConfigChangeMode) tfdiags.Diagnostics {
-	initReason := ""
-	switch cloudMode {
-	case cloud.ConfigMigrationIn:
-		initReason = fmt.Sprintf("Changed from backend %q to HCP Terraform", previousBackendType)
-	case cloud.ConfigMigrationOut:
-		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", currentBackendType)
-	case cloud.ConfigChangeInPlace:
-		initReason = "HCP Terraform configuration block has changed"
-	default:
-		switch {
-		case previousBackendType != currentBackendType:
-			initReason = fmt.Sprintf("Backend type changed from %q to %q", previousBackendType, currentBackendType)
-		default:
-			initReason = "Backend configuration block has changed"
+func (m *Meta) determineInitReason(previous *workdir.BackendStateFile, currentBackend *configs.Backend, currentStateStore *configs.StateStore, cloudMode cloud.ConfigChangeMode) tfdiags.Diagnostic {
+
+	// At last init, was a non-cloud method of state storage used?
+	wdWasNonCloudBackend := previous.Backend != nil && previous.Backend.Type != "cloud"
+	wdWasStateStore := previous.StateStore != nil
+
+	// In current config, is a non-cloud method of state storage used?
+	wdIsNonCloudBackend := currentBackend.Type != "" && currentBackend.Type != "cloud"
+	wdIsStateStore := currentStateStore.Type != ""
+
+	// Identify scenarios where Cloud is involved
+	if cloudMode != cloud.ConfigChangeIrrelevant {
+		initReason := ""
+
+		switch cloudMode {
+		case cloud.ConfigMigrationIn:
+			if wdWasNonCloudBackend {
+				initReason = fmt.Sprintf("Changed from backend %q to HCP Terraform", previous.Backend.Type)
+			}
+			if wdWasStateStore {
+				initReason = fmt.Sprintf("Changed from state store %q to HCP Terraform", previous.StateStore.Type)
+			}
+			return tfdiags.Sourceless(
+				tfdiags.Error,
+				"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
+				fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
+			)
+		case cloud.ConfigMigrationOut:
+			if wdIsNonCloudBackend {
+				initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", currentBackend.Type)
+			}
+			if wdIsStateStore {
+				initReason = fmt.Sprintf("Changed from HCP Terraform to state store %q", currentStateStore.Type)
+			}
+			return tfdiags.Sourceless(
+				tfdiags.Error,
+				"Backend initialization required: please run \"terraform init\"",
+				fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
+			)
+		case cloud.ConfigChangeInPlace:
+			initReason = "HCP Terraform configuration block has changed"
+			return tfdiags.Sourceless(
+				tfdiags.Error,
+				"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
+				fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
+			)
 		}
 	}
 
-	var diags tfdiags.Diagnostics
-	switch cloudMode {
-	case cloud.ConfigChangeInPlace:
-		diags = diags.Append(tfdiags.Sourceless(
+	// Identify scenarios where the mechanism of state storage changes
+	switch {
+	case wdWasNonCloudBackend && wdIsStateStore:
+		// backend => state_store
+		initReason := fmt.Sprintf("Changed from backend %q to state store %q in provider %s (%q)",
+			previous.Backend.Type,
+			currentStateStore.Type,
+			currentStateStore.Provider.Name,
+			currentStateStore.ProviderAddr,
+		)
+		return tfdiags.Sourceless(
 			tfdiags.Error,
-			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
-			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
-		))
-	case cloud.ConfigMigrationIn:
-		diags = diags.Append(tfdiags.Sourceless(
+			"State store initialization required: please run \"terraform init\"",
+			fmt.Sprintf(strings.TrimSpace(errStateStoreInit), initReason),
+		)
+	case wdWasStateStore && wdIsNonCloudBackend:
+		// state_store => backend
+		initReason := fmt.Sprintf("Changed from state store %q in provider %s (%q) to backend %q",
+			previous.StateStore.Type,
+			previous.StateStore.Provider.Source.Type,
+			previous.StateStore.Provider.Source,
+			currentBackend.Type)
+		return tfdiags.Sourceless(
 			tfdiags.Error,
-			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
-			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
-		))
-	default:
-		diags = diags.Append(tfdiags.Sourceless(
+			"State store initialization required: please run \"terraform init\"",
+			fmt.Sprintf(strings.TrimSpace(errStateStoreInit), initReason),
+		)
+	}
+
+	// Identify scenarios where there are broad changes within a specific state storage mechanism
+	// 1) Backend scenarios
+	if wdWasNonCloudBackend && wdIsNonCloudBackend {
+		initReason := ""
+		if previous.Backend.Type != currentBackend.Type {
+			initReason = fmt.Sprintf("Backend type changed from %q to %q", previous.Backend.Type, currentBackend.Type)
+		} else {
+			initReason = "Backend configuration block has changed"
+		}
+		return tfdiags.Sourceless(
 			tfdiags.Error,
 			"Backend initialization required: please run \"terraform init\"",
 			fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
-		))
+		)
+	}
+	// 2) State store scenarios
+	if wdWasStateStore && wdIsStateStore {
+		initReason := ""
+
+		switch {
+		case !previous.StateStore.Provider.Source.Equals(currentStateStore.ProviderAddr):
+			initReason = fmt.Sprintf("State store provider has changed from %s (%q) to %s (%q)",
+				previous.StateStore.Provider.Source.Type,
+				previous.StateStore.Provider.Source,
+				currentStateStore.Provider.Name,
+				currentStateStore.ProviderAddr,
+			)
+		// case !previous.StateStore.Provider.Version.Equal(currentStateStore.Provider.):
+		// TODO need lock data for this.
+		case previous.StateStore.Type != currentStateStore.Type:
+			initReason = fmt.Sprintf("State store type has changed from %q to %q",
+				previous.StateStore.Type,
+				currentStateStore.Type,
+			)
+		default:
+			initReason = "State store configuration block has changed"
+		}
+		return tfdiags.Sourceless(
+			tfdiags.Error,
+			"State store initialization required: please run \"terraform init\"",
+			fmt.Sprintf(strings.TrimSpace(errStateStoreInit), initReason),
+		)
 	}
 
-	return diags
+	// default message
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Backend initialization required: please run \"terraform init\"",
+		fmt.Sprintf(strings.TrimSpace(errBackendInit), "Backend or state store configuration has changed"),
+	)
 }
 
 // backendFromState returns the initialized (not configured) backend directly
@@ -1894,6 +1981,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, config *configs.StateS
 				tfdiags.Error,
 				"Error reading state store configuration state",
 				fmt.Sprintf("The state store %s in the provider %s (%q)",
+					s.StateStore.Type,
 					s.StateStore.Provider.Source.Type,
 					s.StateStore.Provider.Source,
 				),
