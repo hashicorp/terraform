@@ -721,7 +721,7 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	case cloud.ConfigMigrationIn:
 		initReason = fmt.Sprintf("Changed from backend %q to HCP Terraform", previousBackendType)
 	case cloud.ConfigMigrationOut:
-		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", previousBackendType)
+		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", currentBackendType)
 	case cloud.ConfigChangeInPlace:
 		initReason = "HCP Terraform configuration block has changed"
 	default:
