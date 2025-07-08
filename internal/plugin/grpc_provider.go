@@ -1698,12 +1698,11 @@ func linkedResourceInvokeDataToProto(schema providers.GetProviderSchemaResponse,
 
 func protoToLinkedResourcePlans(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []*proto.PlanAction_Response_LinkedResource) ([]providers.LinkedResourcePlan, error) {
 
-	linkedResources := make([]providers.LinkedResourcePlan, 0, len(lrs))
-
 	if len(lrs) != len(linkedResourceSchema) {
 		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
 	}
 
+	linkedResources := make([]providers.LinkedResourcePlan, 0, len(lrs))
 	for i, lr := range lrs {
 		linkedResourceType := linkedResourceSchema[i].TypeName
 		// Currently we restrict linked resources to be within the same provider,
@@ -1737,12 +1736,11 @@ func protoToLinkedResourcePlans(schema providers.GetProviderSchemaResponse, link
 
 func protoToLinkedResourceResults(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []*proto.InvokeAction_Event_Completed_LinkedResource) ([]providers.LinkedResourceResult, error) {
 
-	linkedResources := make([]providers.LinkedResourceResult, 0, len(lrs))
-
 	if len(lrs) != len(linkedResourceSchema) {
 		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
 	}
 
+	linkedResources := make([]providers.LinkedResourceResult, 0, len(lrs))
 	for i, lr := range lrs {
 		linkedResourceType := linkedResourceSchema[i].TypeName
 		// Currently we restrict linked resources to be within the same provider,
