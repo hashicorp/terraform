@@ -33,8 +33,6 @@ func NewRemoteGRPC(provider providers.Interface, typeName string, stateId string
 var (
 	_ Client       = &grpcClient{}
 	_ ClientLocker = &grpcClient{}
-	// TODO(SarahFrench/radeksimko - do we need to implement the interface below?)
-	// _ ClientForcePusher = &grpcClient{}
 )
 
 // grpcClient acts like a client to enable the State state manager
