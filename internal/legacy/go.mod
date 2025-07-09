@@ -2,7 +2,7 @@ module github.com/hashicorp/terraform/internal/legacy
 
 replace github.com/hashicorp/terraform => ../..
 
-go 1.24.2
+go 1.24.5
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
