@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'Added a missing warning diagnostic that alerts users when child module contains an ignored `cloud` block.'
-time: 2025-05-29T16:34:49.041168+01:00
-custom:
-    Issue: "37180"
