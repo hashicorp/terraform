@@ -27,6 +27,8 @@ import (
 func TestUnmanagedQuery(t *testing.T) {
 	t.Parallel()
 
+	t.Logf("Running TestUnmanagedQuery test")
+
 	tests := []struct {
 		name            string
 		protocolVersion int
