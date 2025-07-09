@@ -1,4 +1,4 @@
-## 1.13.0 (Unreleased)
+## 1.13.0-beta1 (July 09, 2025)
 
 
 NEW FEATURES:
@@ -22,6 +22,8 @@ ENHANCEMENTS:
 
 * skip redundant comparisons when comparing planned set changes ([#37280](https://github.com/hashicorp/terraform/issues/37280))
 
+* type checking: improve error message on type mismatches. ([#37298](https://github.com/hashicorp/terraform/issues/37298))
+
 
 BUG FIXES:
 
@@ -33,7 +35,11 @@ BUG FIXES:
 
 * workspace: Updated the `workspace delete` command to reject `""` as an invalid workspace name ([#37275](https://github.com/hashicorp/terraform/issues/37275))
 
+* plan: truncate invalid or dynamic references in the relevant attributes ([#37290](https://github.com/hashicorp/terraform/issues/37290))
+
 * Test run Parallelism of 1 should not result in deadlock ([#37292](https://github.com/hashicorp/terraform/issues/37292))
+
+* static validation: detect invalid static references via indexes on objects. ([#37298](https://github.com/hashicorp/terraform/issues/37298))
 
 
 NOTES:
@@ -45,12 +51,6 @@ UPGRADE NOTES:
 
 * `terraform test`: External variables referenced within test files should now be accompanied by a `variable` definition block within the test file. This is optional, but users with complex external variables may see error diagnostics without the additional variable definition. ([#37195](https://github.com/hashicorp/terraform/issues/37195))
 
-
-EXPERIMENTS:
-
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
 
 ## Previous Releases
 
