@@ -14,12 +14,14 @@ import (
 
 // Action represents an "action" block inside a configuration
 type Action struct {
-	Name      string
-	Type      string
-	Config    hcl.Body
-	Count     hcl.Expression
-	ForEach   hcl.Expression
-	DependsOn []hcl.Traversal
+	Name    string
+	Type    string
+	Config  hcl.Body
+	Count   hcl.Expression
+	ForEach hcl.Expression
+	// DependsOn []hcl.Traversal // not yet supported
+
+	LinkedResources []hcl.Traversal
 
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
@@ -54,7 +56,6 @@ const (
 )
 
 // ActionRef represents a reference to a configured Action
-// copypasta of providerconfigref; not sure what's needed.
 type ActionRef struct {
 	Traversal hcl.Traversal
 	Range     hcl.Range
@@ -75,9 +76,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		a.Condition = attr.Expr
 	}
 
-	// this is parsing events like expressions, so it's angry when there's quotes
-	// needs to parse strings:
-	// Quoted references are deprecated; In this context, references are expected literally rather than in quotes.
 	if attr, exists := content.Attributes["events"]; exists {
 		exprs, ediags := hcl.ExprList(attr.Expr)
 		diags = append(diags, ediags...)
@@ -185,9 +183,8 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 		})
 	}
 
-	content, remain, moreDiags := block.Body.PartialContent(actionBlockSchema)
+	content, moreDiags := block.Body.Content(actionBlockSchema)
 	diags = append(diags, moreDiags...)
-	a.Config = remain
 
 	if attr, exists := content.Attributes["count"]; exists {
 		a.Count = attr.Expr
@@ -206,24 +203,106 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 		}
 	}
 
+	if attr, exists := content.Attributes["linked_resource"]; exists {
+		if a.LinkedResources != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid use of "linked_resource"`,
+				Detail:   `The "linked_resource" and "linked_resources" are mutually exclusive, only one should be used.`,
+				Subject:  &attr.NameRange,
+			})
+		}
+
+		traversal, travDiags := hcl.AbsTraversalForExpr(attr.Expr)
+		diags = append(diags, travDiags...)
+		if len(traversal) != 0 {
+			a.LinkedResources = []hcl.Traversal{traversal}
+		}
+	}
+
+	if attr, exists := content.Attributes["linked_resources"]; exists {
+		if a.LinkedResources != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid use of "linked_resources"`,
+				Detail:   `The "linked_resource" and "linked_resources" are mutually exclusive, only one should be used.`,
+				Subject:  &attr.NameRange,
+			})
+		}
+
+		exprs, diags := hcl.ExprList(attr.Expr)
+		lrs := make([]hcl.Traversal, len(exprs))
+
+		for i, expr := range exprs {
+			traversal, travDiags := hcl.AbsTraversalForExpr(expr)
+			diags = append(diags, travDiags...)
+			if len(traversal) != 0 {
+				lrs[i] = traversal
+			}
+		}
+		a.LinkedResources = lrs
+	}
+
+	for _, block := range content.Blocks {
+		switch block.Type {
+		case "config":
+			if a.Config != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate config block",
+					Detail:   "An action must contain only one nested \"config\" block.",
+					Subject:  block.DefRange.Ptr(),
+				})
+				return nil, diags
+			}
+			a.Config = block.Body
+		default:
+			// Should not get here because the above should cover all
+			// block types declared in the schema.
+			panic(fmt.Sprintf("unhandled block type %q", block.Type))
+		}
+	}
+
 	if attr, exists := content.Attributes["provider"]; exists {
 		var providerDiags hcl.Diagnostics
 		a.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
 		diags = append(diags, providerDiags...)
 	}
 
-	if attr, exists := content.Attributes["depends_on"]; exists {
-		deps, depsDiags := DecodeDependsOn(attr)
-		diags = append(diags, depsDiags...)
-		a.DependsOn = append(a.DependsOn, deps...)
-	}
+	// depends_on: not yet supported
+	// if attr, exists := content.Attributes["depends_on"]; exists {
+	// 	deps, depsDiags := DecodeDependsOn(attr)
+	// 	diags = append(diags, depsDiags...)
+	// 	a.DependsOn = append(a.DependsOn, deps...)
+	// }
 
 	return a, diags
 }
 
 // actionBlockSchema is the schema for an action type within terraform.
 var actionBlockSchema = &hcl.BodySchema{
-	Attributes: commonResourceAttributes,
+	Attributes: commonActionAttributes,
+	Blocks: []hcl.BlockHeaderSchema{
+		{Type: "config"},
+	},
+}
+
+var commonActionAttributes = []hcl.AttributeSchema{
+	{
+		Name: "count",
+	},
+	{
+		Name: "for_each",
+	},
+	{
+		Name: "provider",
+	},
+	{
+		Name: "linked_resource",
+	},
+	{
+		Name: "linked_resources",
+	},
 }
 
 var actionTriggerSchema = &hcl.BodySchema{
