@@ -251,7 +251,7 @@ var (
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid inputs for component",
-					Detail:   "Invalid input variable definition object: attribute \"input\": string required.",
+					Detail:   "Invalid input variable definition object: attribute \"input\": string required, but have configuration for hashicorp/testing provider.",
 					Subject: &hcl.Range{
 						Filename: mainBundleSourceAddrStr("with-single-input/input-from-provider/input-from-provider.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 17, Column: 12, Byte: 239},

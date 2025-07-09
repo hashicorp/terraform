@@ -16,12 +16,15 @@ import (
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -1953,6 +1956,105 @@ func TestBackendFromState(t *testing.T) {
 
 	if _, ok := stateBackend.(*backendInmem.Backend); !ok {
 		t.Fatal("did not get expected inmem backend")
+	}
+}
+
+func Test_determineInitReason(t *testing.T) {
+
+	cases := map[string]struct {
+		cloudMode     cloud.ConfigChangeMode
+		backendState  workdir.BackendStateFile
+		backendConfig configs.Backend
+
+		wantErr string
+	}{
+		// All scenarios involving Cloud backend
+		"change in cloud config": {
+			cloudMode: cloud.ConfigChangeInPlace,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "cloud",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "cloud",
+				// Other fields unnecessary
+			},
+			wantErr: `HCP Terraform configuration block has changed`,
+		},
+		"migrate backend to cloud": {
+			cloudMode: cloud.ConfigMigrationIn,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "foobar",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "cloud",
+				// Other fields unnecessary
+			},
+			wantErr: `Changed from backend "foobar" to HCP Terraform`,
+		},
+		"migrate cloud to backend": {
+			cloudMode: cloud.ConfigMigrationOut,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "cloud",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "foobar",
+				// Other fields unnecessary
+			},
+			wantErr: `Changed from HCP Terraform to backend "foobar"`,
+		},
+
+		// Changes within the backend config block
+		"backend type changed": {
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "foobar1",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "foobar2",
+				// Other fields unnecessary
+			},
+			wantErr: `Backend type changed from "foobar1" to "foobar2`,
+		},
+		"backend config changed": {
+			// Note that we don't need to include differing config to trigger this
+			// scenario, as we're hitting the default case. If the types match, then
+			// only the config is left to differ.
+			// See the comment above determineInitReason for more info.
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "foobar",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "foobar",
+				// Other fields unnecessary
+			},
+			wantErr: `Backend configuration block has changed`,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			m := Meta{}
+			diags := m.determineInitReason(tc.backendState.Backend.Type, tc.backendConfig.Type, tc.cloudMode)
+			if !strings.Contains(diags.Err().Error(), tc.wantErr) {
+				t.Fatalf("expected error diagnostic detail to include \"%s\" but it's missing: %s", tc.wantErr, diags.Err())
+			}
+		})
 	}
 }
 

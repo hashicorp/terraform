@@ -336,7 +336,7 @@ func TestTemplateString(t *testing.T) {
 			// from somewhere else and want to avoid callers needing to deal
 			// with anything other than string results.
 			cty.NilVal,
-			`invalid template result: string required`,
+			`invalid template result: string required, but have tuple`,
 		},
 		{
 			`data.whatever.whatever["foo"].result`,
