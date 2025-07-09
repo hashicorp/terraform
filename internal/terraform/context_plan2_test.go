@@ -6780,9 +6780,8 @@ resource "test_simple_object" "b" {
 }
 `,
 			},
-			expectedAttributes: []string{
-				"test_computed_object.a.object",
-				"test_computed_object.a.object.value",
+			expectedDiags: []string{
+				"Invalid index:The given key does not identify an element in this collection value. An object only supports looking up attributes by name, not by numeric index.",
 			},
 		},
 		"dynamic object reference": {
