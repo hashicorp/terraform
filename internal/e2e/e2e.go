@@ -258,7 +258,7 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 
 	args := []string{"build", "-o", tmpFilename}
 	if exp := os.Getenv(TestExperimentFlag); exp != "" && exp != "false" {
-		args = append(args, "-ldflags", "-w -s -X 'main.experimentsAllowed=yes'")
+		args = append(args, "-ldflags", "-X 'main.experimentsAllowed=yes'")
 	}
 	args = append(args, pkgPath)
 	cmd := exec.Command("go", args...)

@@ -144,7 +144,7 @@ func TestUnmanagedQuery(t *testing.T) {
 			//// QUERY
 			stdout, stderr, err = tf.Run("query")
 			if err != nil {
-				t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+				t.Fatalf("unexpected query error: %s\nstderr:\n%s", err, stderr)
 			}
 
 			if !provider.ListResourceCalled() {
