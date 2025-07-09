@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes
 
-go 1.24.2
+go 1.24.5
 
 require (
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
