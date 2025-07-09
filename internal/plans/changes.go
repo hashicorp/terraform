@@ -25,6 +25,10 @@ type Changes struct {
 
 	Queries []*QueryInstance
 
+	// ActionInvocations tracks planned action invocations, which may have
+	// embedded resource instance changes.
+	ActionInvocations []*ActionInstance
+
 	// Outputs tracks planned changes output values.
 	//
 	// Note that although an in-memory plan contains planned changes for
@@ -347,7 +351,7 @@ type ResourceInstanceChange struct {
 	Private []byte
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInstanceChangeSrc, error) {
@@ -387,7 +391,7 @@ func (rc *ResourceInstanceChange) Moved() bool {
 }
 
 // Simplify will, where possible, produce a change with a simpler action than
-// the receiever given a flag indicating whether the caller is dealing with
+// the receiver given a flag indicating whether the caller is dealing with
 // a normal apply or a destroy. This flag deals with the fact that Terraform
 // Core uses a specialized graph node type for destroying; only that
 // specialized node should set "destroying" to true.
@@ -601,7 +605,7 @@ type OutputChange struct {
 	Sensitive bool
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file.
 func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	cs, err := oc.Change.Encode(nil)
@@ -689,7 +693,7 @@ type Change struct {
 	GeneratedConfig string
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the type constraint
 // that the values are expected to conform to; to properly decode the values
 // later an identical type constraint must be provided at that time.
@@ -768,5 +772,60 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 		AfterIdentity:        afterIdentityDV,
 		Importing:            c.Importing.Encode(identityTy),
 		GeneratedConfig:      c.GeneratedConfig,
+	}, nil
+}
+
+type ActionInstance struct {
+	Addr addrs.AbsActionInstance // mildwonkey TODO: this will be a *trigger* instance when that pr merges
+
+	// Provider is the address of the provider configuration that was used
+	// to plan this action, and thus the configuration that must also be
+	// used to apply it.
+	ProviderAddr addrs.AbsProviderConfig
+
+	// nil resources = unlinked action
+	// single resource = lifecycle or linked
+	// multiple resources = linked
+	LinkedResources []ResourceInstanceActionChange
+}
+
+type ResourceInstanceActionChange struct {
+	// Addr is the absolute address of the resource instance that the change
+	// will apply to.
+	Addr addrs.AbsResourceInstance
+
+	// Change is an embedded description of the change.
+	//
+	// mildwonkey: This would be a great place to document action data flow, if
+	// I understood it well enough to repeat.
+	//
+	// Generic Actions have no "change", just a record of the triggering
+	// resource, so this may be missing a field.
+	Change
+}
+
+// Encode produces a variant of the receiver that has its change values
+// serialized so it can be written to a plan file. Pass the implied type of the
+// corresponding resource type schema for correct operation.
+func (ai *ActionInstance) Encode(schema providers.Schema) (*ActionInstanceSrc, error) {
+	resourceChanges := make([]ResourceInstanceActionChangeSrc, 0, len(ai.LinkedResources))
+
+	for i, rc := range ai.LinkedResources {
+		resourceChanges[i] = ResourceInstanceActionChangeSrc{
+			Addr: rc.Addr,
+		}
+
+		cs, err := rc.Change.Encode(&schema)
+		if err != nil {
+			return nil, err
+		}
+
+		resourceChanges[i].ChangeSrc = *cs
+	}
+
+	return &ActionInstanceSrc{
+		Addr:            ai.Addr,
+		ProviderAddr:    ai.ProviderAddr,
+		LinkedResources: resourceChanges,
 	}, nil
 }
