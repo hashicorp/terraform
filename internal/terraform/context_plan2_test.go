@@ -6698,6 +6698,165 @@ resource "aws_instance" "foo" {
 	}
 }
 
+func TestContext2Plan_invalidReferencesAreNotRelevant(t *testing.T) {
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: new(configschema.Block),
+			},
+			ResourceTypes: map[string]providers.Schema{
+				"test_computed_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"key": {
+								Type:     cty.String,
+								Computed: true,
+							},
+							"dynamic": {
+								Type:     cty.DynamicPseudoType,
+								Computed: true,
+							},
+							"object": {
+								NestedType: &configschema.Object{
+									Nesting: configschema.NestingSingle,
+									Attributes: map[string]*configschema.Attribute{
+										"value": {
+											Type:     cty.String,
+											Computed: true,
+										},
+									},
+								},
+								Computed: true,
+							},
+						},
+					},
+				},
+				"test_simple_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			switch request.TypeName {
+			case "test_computed_object":
+				return providers.PlanResourceChangeResponse{
+					PlannedState: cty.ObjectVal(map[string]cty.Value{
+						"key": cty.UnknownVal(cty.String),
+						"object": cty.UnknownVal(cty.Object(map[string]cty.Type{
+							"value": cty.String,
+						})),
+						"dynamic": cty.DynamicVal,
+					}),
+				}
+			case "test_simple_object":
+				return providers.PlanResourceChangeResponse{
+					PlannedState: request.ProposedNewState,
+				}
+			default:
+				panic(fmt.Sprintf("unknown resource type %q", request.TypeName))
+			}
+		},
+	}
+
+	tcs := map[string]struct {
+		configs            map[string]string
+		expectedAttributes []string
+		expectedDiags      []string
+	}{
+		"invalid object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.object[0].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedAttributes: []string{
+				"test_computed_object.a.object",
+				"test_computed_object.a.object.value",
+			},
+		},
+		"dynamic object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.dynamic[0].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedAttributes: []string{
+				"test_computed_object.a.dynamic",
+				"test_computed_object.a.object.value",
+			},
+		},
+		"unknown object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.object[test_computed_object.a.key].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedAttributes: []string{
+				"test_computed_object.a.key",
+				"test_computed_object.a.object",
+				"test_computed_object.a.object.value",
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, tc.configs)
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+			if len(diags) != len(tc.expectedDiags) {
+				t.Errorf("should find exactly %d diagnostics, but was %d", len(tc.expectedDiags), len(diags))
+			} else {
+				for ix := range tc.expectedDiags {
+					if diag := fmt.Sprintf("%s:%s", diags[ix].Description().Summary, diags[ix].Description().Detail); diag != tc.expectedDiags[ix] {
+						t.Errorf("unexpected diagnostic diagnostic: %s", diag)
+					}
+				}
+			}
+
+			if len(plan.RelevantAttributes) != len(tc.expectedAttributes) {
+				t.Errorf("should find exactly %d relevant attribute, but was %d", len(tc.expectedAttributes), len(plan.RelevantAttributes))
+			} else {
+
+				var sorted []string
+				for _, attr := range plan.RelevantAttributes {
+					sorted = append(sorted, attr.DebugString())
+				}
+				sort.Strings(sorted)
+
+				for ix := range tc.expectedAttributes {
+					if sorted[ix] != tc.expectedAttributes[ix] {
+						t.Errorf("found wrong relevant attribute at %d: %s", ix, sorted[ix])
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestContext2Plan_orphanUpdateInstance(t *testing.T) {
 	// ean orphaned instance should still reflect the refreshed state in the plan
 	m := testModuleInline(t, map[string]string{
