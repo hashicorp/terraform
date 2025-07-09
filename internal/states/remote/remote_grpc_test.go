@@ -18,8 +18,8 @@ import (
 // In future we should remove the need for a Delete method in
 // remote.Client, but for now it is implemented and tested.
 func Test_grpcClient_Delete(t *testing.T) {
-	typeName := "my-workspace"
-	stateId := "foobar"
+	typeName := "foo_bar" // state store 'bar' in provider 'foo'
+	stateId := "production"
 
 	provider := testing_provider.MockProvider{
 		// Mock a provider and internal state store that
@@ -30,7 +30,7 @@ func Test_grpcClient_Delete(t *testing.T) {
 		// Check values received by the provider from the Delete method.
 		DeleteStateFn: func(req providers.DeleteStateRequest) providers.DeleteStateResponse {
 			if req.TypeName != typeName || req.StateId != stateId {
-				t.Fatalf("expected provider DeleteState method to receive typeName %q and StateId %q, instead got typeName %q and StateId %q",
+				t.Fatalf("expected provider DeleteState method to receive TypeName %q and StateId %q, instead got TypeName %q and StateId %q",
 					typeName,
 					stateId,
 					req.TypeName,
@@ -52,7 +52,7 @@ func Test_grpcClient_Delete(t *testing.T) {
 
 	err := c.Delete()
 	if err != nil {
-		t.Fatal("unexpected error")
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	if !provider.DeleteStateCalled {

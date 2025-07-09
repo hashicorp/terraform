@@ -37,7 +37,7 @@ func TestNewPluggable(t *testing.T) {
 			typeName:  "",
 			wantError: "Attempted to initialize pluggable state with an empty string identifier for the state store.",
 		},
-		"error when provider interface is nil ": {
+		"error when provider interface is nil": {
 			provider:  nil,
 			typeName:  "foo_bar",
 			wantError: "Attempted to initialize pluggable state with a nil provider interface.",
@@ -47,7 +47,6 @@ func TestNewPluggable(t *testing.T) {
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
 			_, err := NewPluggable(tc.provider, tc.typeName)
-
 			if err != nil {
 				if tc.wantError == "" {
 					t.Fatalf("unexpected error: %s", err)
@@ -184,7 +183,7 @@ func TestPluggable_PrepareConfig(t *testing.T) {
 				ValidateStateStoreConfigFn: func(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
 					// Are the right values being put into the incoming request?
 					if req.TypeName != fooBar || req.Config != cty.True {
-						t.Fatalf("expected provider ValidateStateStoreConfig method to receive typeName %q and config %q, instead got typeName %q and config %q",
+						t.Fatalf("expected provider ValidateStateStoreConfig method to receive TypeName %q and Config %q, instead got TypeName %q and Config %q",
 							fooBar,
 							cty.True,
 							req.TypeName,
@@ -242,7 +241,7 @@ func TestPluggable_Configure(t *testing.T) {
 		ValidateStateStoreConfigCalled: true,
 		ConfigureStateStoreFn: func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 			if req.TypeName != typeName || req.Config != cty.True {
-				t.Fatalf("expected provider ConfigureStateStore method to receive typeName %q and config %q, instead got typeName %q and StateId %q",
+				t.Fatalf("expected provider ConfigureStateStore method to receive TypeName %q and Config %q, instead got TypeName %q and Config %q",
 					typeName,
 					cty.True,
 					req.TypeName,
@@ -308,7 +307,7 @@ func TestPluggable_Workspaces(t *testing.T) {
 				ConfigureStateStoreCalled:      true,
 				GetStatesFn: func(req providers.GetStatesRequest) providers.GetStatesResponse {
 					if req.TypeName != fooBar {
-						t.Fatalf("expected provider GetStates method to receive typeName %q, instead got typeName %q",
+						t.Fatalf("expected provider GetStates method to receive TypeName %q, instead got TypeName %q",
 							fooBar,
 							req.TypeName)
 					}
@@ -366,7 +365,7 @@ func TestPluggable_DeleteWorkspace(t *testing.T) {
 		ConfigureStateStoreCalled:      true,
 		DeleteStateFn: func(req providers.DeleteStateRequest) providers.DeleteStateResponse {
 			if req.TypeName != typeName || req.StateId != stateId {
-				t.Fatalf("expected provider DeleteState method to receive typeName %q and stateId %q, instead got typeName %q and stateId %q",
+				t.Fatalf("expected provider DeleteState method to receive TypeName %q and StateId %q, instead got TypeName %q and StateId %q",
 					typeName,
 					stateId,
 					req.TypeName,
