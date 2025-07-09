@@ -23,7 +23,6 @@ import (
 )
 
 func TestContext2Plan_queryList(t *testing.T) {
-
 	cases := []struct {
 		name           string
 		mainConfig     string

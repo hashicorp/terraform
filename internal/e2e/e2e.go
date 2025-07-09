@@ -19,6 +19,13 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
+var (
+	// TestExperimentFlag is the name of the environment variable that
+	// can be set to built a terraform binary with experimental features enabled.
+	// Any value besides "false" or an empty string will enable the feature.
+	TestExperimentFlag = "TF_TEST_EXPERIMENTS"
+)
+
 // Type binary represents the combination of a compiled binary
 // and a temporary working directory to run it in.
 type binary struct {
@@ -249,11 +256,12 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 		panic(err)
 	}
 
-	cmd := exec.Command(
-		"go", "build",
-		"-o", tmpFilename,
-		pkgPath,
-	)
+	args := []string{"build", "-o", tmpFilename}
+	if exp := os.Getenv(TestExperimentFlag); exp != "" && exp != "false" {
+		args = append(args, "-ldflags", "-X 'main.experimentsAllowed=yes'")
+	}
+	args = append(args, pkgPath)
+	cmd := exec.Command("go", args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 
