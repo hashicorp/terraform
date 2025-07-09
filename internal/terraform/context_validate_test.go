@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -2705,7 +2706,7 @@ output "result" {
 		if !diags.HasErrors() {
 			t.Fatal("unexpected success")
 		}
-		if got, want := diags.Err().Error(), "Invalid function argument: Invalid value for \"string\" parameter: string required."; !strings.Contains(got, want) {
+		if got, want := diags.Err().Error(), "Invalid function argument: Invalid value for \"string\" parameter: string required, but have tuple."; !strings.Contains(got, want) {
 			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
 		}
 	})
