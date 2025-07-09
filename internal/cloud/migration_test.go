@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/command/workdir"
-	"github.com/hashicorp/terraform/internal/configs"
 )
 
 func TestDetectConfigChangeType(t *testing.T) {
@@ -20,102 +19,143 @@ func TestDetectConfigChangeType(t *testing.T) {
 		wantIsCloudMigration bool
 	}{
 		"init cloud": {
-			``, `cloud`, false,
-			ConfigChangeInPlace,
-			true, false,
+			stateType:            ``,
+			configType:           `cloud`,
+			localStates:          false,
+			want:                 ConfigChangeInPlace,
+			wantInvolvesCloud:    true,
+			wantIsCloudMigration: false,
 		},
 		"reinit cloud": {
-			`cloud`, `cloud`, false,
-			ConfigChangeInPlace,
-			true, false,
+			stateType:            `cloud`,
+			configType:           `cloud`,
+			localStates:          false,
+			want:                 ConfigChangeInPlace,
+			wantInvolvesCloud:    true,
+			wantIsCloudMigration: false,
 		},
 		"migrate default local to cloud with existing local state": {
-			``, `cloud`, true,
-			ConfigMigrationIn,
-			true, true,
+			stateType:            ``,
+			configType:           `cloud`,
+			localStates:          true,
+			want:                 ConfigMigrationIn,
+			wantInvolvesCloud:    true,
+			wantIsCloudMigration: true,
 		},
 		"migrate local to cloud": {
-			`local`, `cloud`, false,
-			ConfigMigrationIn,
-			true, true,
+			stateType:            `local`,
+			configType:           `cloud`,
+			localStates:          false,
+			want:                 ConfigMigrationIn,
+			wantInvolvesCloud:    true,
+			wantIsCloudMigration: true,
 		},
 		"migrate remote to cloud": {
-			`local`, `cloud`, false,
-			ConfigMigrationIn,
-			true, true,
+			stateType:            `local`,
+			configType:           `cloud`,
+			localStates:          false,
+			want:                 ConfigMigrationIn,
+			wantInvolvesCloud:    true,
+			wantIsCloudMigration: true,
 		},
 		"migrate cloud to local": {
-			`cloud`, `local`, false,
-			ConfigMigrationOut,
-			true, true,
+			stateType:            `cloud`,
+			configType:           `local`,
+			localStates:          false,
+			want:                 ConfigMigrationOut,
+			wantInvolvesCloud:    true,
+			wantIsCloudMigration: true,
 		},
 		"migrate cloud to remote": {
-			`cloud`, `remote`, false,
-			ConfigMigrationOut,
-			true, true,
+			stateType:            `cloud`,
+			configType:           `remote`,
+			localStates:          false,
+			want:                 ConfigMigrationOut,
+			wantInvolvesCloud:    true,
+			wantIsCloudMigration: true,
 		},
 		"migrate cloud to default local": {
-			`cloud`, ``, false,
-			ConfigMigrationOut,
-			true, true,
+			stateType:            `cloud`,
+			configType:           ``,
+			localStates:          false,
+			want:                 ConfigMigrationOut,
+			wantInvolvesCloud:    true,
+			wantIsCloudMigration: true,
 		},
 
 		// Various other cases can potentially be valid (decided by the
 		// Terraform CLI layer) but are irrelevant for Cloud mode purposes.
 		"init default local": {
-			``, ``, false,
-			ConfigChangeIrrelevant,
-			false, false,
+			stateType:            ``,
+			configType:           ``,
+			localStates:          false,
+			want:                 ConfigChangeIrrelevant,
+			wantInvolvesCloud:    false,
+			wantIsCloudMigration: false,
 		},
 		"init default local with existing local state": {
-			``, ``, true,
-			ConfigChangeIrrelevant,
-			false, false,
+			stateType:            ``,
+			configType:           ``,
+			localStates:          true,
+			want:                 ConfigChangeIrrelevant,
+			wantInvolvesCloud:    false,
+			wantIsCloudMigration: false,
 		},
 		"init remote backend": {
-			``, `remote`, false,
-			ConfigChangeIrrelevant,
-			false, false,
+			stateType:            ``,
+			configType:           `remote`,
+			localStates:          false,
+			want:                 ConfigChangeIrrelevant,
+			wantInvolvesCloud:    false,
+			wantIsCloudMigration: false,
 		},
 		"init remote backend with existing local state": {
-			``, `remote`, true,
-			ConfigChangeIrrelevant,
-			false, false,
+			stateType:            ``,
+			configType:           `remote`,
+			localStates:          true,
+			want:                 ConfigChangeIrrelevant,
+			wantInvolvesCloud:    false,
+			wantIsCloudMigration: false,
 		},
 		"reinit remote backend": {
-			`remote`, `remote`, false,
-			ConfigChangeIrrelevant,
-			false, false,
+			stateType:            `remote`,
+			configType:           `remote`,
+			localStates:          false,
+			want:                 ConfigChangeIrrelevant,
+			wantInvolvesCloud:    false,
+			wantIsCloudMigration: false,
 		},
 		"migrate local to remote backend": {
-			`local`, `remote`, false,
-			ConfigChangeIrrelevant,
-			false, false,
+			stateType:            `local`,
+			configType:           `remote`,
+			localStates:          false,
+			want:                 ConfigChangeIrrelevant,
+			wantInvolvesCloud:    false,
+			wantIsCloudMigration: false,
 		},
 		"migrate remote to default local": {
-			`remote`, ``, false,
-			ConfigChangeIrrelevant,
-			false, false,
+			stateType:            `remote`,
+			configType:           ``,
+			localStates:          false,
+			want:                 ConfigChangeIrrelevant,
+			wantInvolvesCloud:    false,
+			wantIsCloudMigration: false,
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			var state *workdir.BackendConfigState
-			var config *configs.Backend
+			var state *workdir.BackendStateFile
 			if test.stateType != "" {
-				state = &workdir.BackendConfigState{
-					Type: test.stateType,
-					// everything else is irrelevant for our purposes here
+				state = &workdir.BackendStateFile{
+					Backend: &workdir.BackendConfigState{
+						Type: test.stateType,
+						// everything else is irrelevant for our purposes here
+					},
 				}
 			}
-			if test.configType != "" {
-				config = &configs.Backend{
-					Type: test.configType,
-					// everything else is irrelevant for our purposes here
-				}
-			}
-			got := DetectConfigChangeType(state, config, test.localStates)
+
+			got := DetectConfigChangeType(state, test.configType, test.localStates)
 
 			if got != test.want {
 				t.Errorf(

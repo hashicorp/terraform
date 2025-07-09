@@ -36,7 +36,6 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -554,8 +553,8 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 		opts = &BackendOpts{
 			StateStoreConfig: root.StateStore,
-			ProvidersFactory: factory,
 			Locks:            locks,
+			ProviderFactory:  factory,
 			ConfigOverride:   configOverride,
 			Init:             true,
 			ViewType:         viewType,
@@ -629,59 +628,53 @@ the backend configuration is present and valid.
 			))
 		}
 
-		// If a state store was previously in use we need to identify which provider
-		// was used in the backend state, and ensure that provider factory is passed
-		// to downstream init code.
-		statePath := filepath.Join(c.Meta.DataDir(), DefaultStateFilename)
-		sMgr := &clistate.LocalState{Path: statePath}
-		if err := sMgr.RefreshState(); err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
-			return nil, true, diags
-		}
-		s := sMgr.State()
-
-		var factory providers.Factory
-		if s.StateStore != nil {
-			log.Printf("[TRACE] init: backend state file indicates state store %q was previously used from provider %s (%v), version %s",
-				s.StateStore.Type,
-				s.StateStore.Provider.Source.Type,
-				s.StateStore.Provider.Source,
-				s.StateStore.Provider.Version,
-			)
-
-			// Access provider factories
-			ctxOpts, err := c.contextOpts()
-			if err != nil {
-				diags = diags.Append(err)
-				return nil, true, diags
-			}
-			var exists bool
-			factory, exists = ctxOpts.Providers[*s.StateStore.Provider.Source]
-			if !exists {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Provider unavailable",
-					Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
-						s.StateStore.Provider.Source.Type,
-						s.StateStore.Provider.Source,
-						s.StateStore.Type,
-					),
-					Subject: &root.Backend.TypeRange,
-				})
-				return nil, true, diags
-			}
-
-		}
-
 		opts = &BackendOpts{
 			// No config present to use
 			Init:     true,
 			ViewType: viewType,
-
-			// This will only be set here if we need a provider factory
-			// for migrating away from a pluggable state store
-			ProvidersFactory: factory,
 		}
+	}
+
+	// If a state store was previously in use we need to identify which provider
+	// was used in the backend state, and ensure that provider factory is passed
+	// to downstream init code.
+	statePath := filepath.Join(c.Meta.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		return nil, true, diags
+	}
+	s := sMgr.State()
+	if s != nil && s.StateStore != nil {
+		log.Printf("[TRACE] init: backend state file indicates state store %q was previously used from provider %s (%v), version %s",
+			s.StateStore.Type,
+			s.StateStore.Provider.Source.Type,
+			s.StateStore.Provider.Source,
+			s.StateStore.Provider.Version,
+		)
+
+		// Access provider factories
+		ctxOpts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, true, diags
+		}
+		factory, exists := ctxOpts.Providers[*s.StateStore.Provider.Source]
+		if !exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider unavailable",
+				Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+					s.StateStore.Provider.Source.Type,
+					s.StateStore.Provider.Source,
+					s.StateStore.Type,
+				),
+				Subject: &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
+		opts.ProviderFactoryFrom = factory
 	}
 
 	// Use opts prepared above to initialize an operations backend with a backend or state store
