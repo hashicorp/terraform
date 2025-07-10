@@ -4,8 +4,6 @@
 package configs
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -106,10 +104,20 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 
 	// The state store schema should not include a provider block or attr
 	if _, exists := stateStoreSchema.Attributes["provider"]; exists {
-		return 0, 0, diags.Append(fmt.Errorf("error when creating hash of state_store config: schema contains a provider attribute. \nThis is a bug in the provider used for state storage, which should be reported in the provider's own issue tracker."))
+		return 0, 0, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Protected argument name \"provider\" in state store schema",
+			Detail:   "Schemas for state stores cannot contain attributes or blocks called \"provider\", to avoid confusion with the provider block nested inside the state_store block. This is a bug in the provider used for state storage, which should be reported in the provider's own issue tracker.",
+			Context:  &b.Provider.DeclRange,
+		})
 	}
 	if _, exists := stateStoreSchema.BlockTypes["provider"]; exists {
-		return 0, 0, diags.Append(fmt.Errorf("error when creating hash of state_store config: schema contains a provider block. \nThis is a bug in the provider used for state storage, which should be reported in the provider's own issue tracker."))
+		return 0, 0, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Protected block name \"provider\" in state store schema",
+			Detail:   "Schemas for state stores cannot contain attributes or blocks called \"provider\", to avoid confusion with the provider block nested inside the state_store block. This is a bug in the provider used for state storage, which should be reported in the provider's own issue tracker.",
+			Context:  &b.Provider.DeclRange,
+		})
 	}
 
 	// Don't fail if required attributes are not set. Instead, we'll just
