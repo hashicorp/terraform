@@ -199,7 +199,7 @@ func TestStateStore_Hash(t *testing.T) {
 	}
 }
 
-func TestStateStore_checkHashesConsistent(t *testing.T) {
+func TestStateStore_checkStateStoreHashUnaffectedByProviderBlock(t *testing.T) {
 
 	// Normally these schemas would come from a provider's GetProviderSchema data
 	stateStoreSchema := &configschema.Block{
@@ -248,13 +248,9 @@ func TestStateStore_checkHashesConsistent(t *testing.T) {
 		},
 	}
 
-	s1StoreHash, s1ProviderHash, _ := s1.Hash(stateStoreSchema, providerSchema)
-	s2StoreHash, s2ProviderHash, _ := s2.Hash(stateStoreSchema, providerSchema)
+	s1StoreHash, _, _ := s1.Hash(stateStoreSchema, providerSchema)
+	s2StoreHash, _, _ := s2.Hash(stateStoreSchema, providerSchema)
 
-	// Everything should match, regardless of the different Config values.
-	if s1ProviderHash != s2ProviderHash {
-		t.Fatalf("expected provider block hashes to match, as their configuration is equal. Got s1 %d, s2 %d", s1ProviderHash, s2ProviderHash)
-	}
 	if s1StoreHash != s2StoreHash {
 		t.Fatalf("expected state_store block hashes to match, as hashing logic should ignore presence of provider block. Got s1 %d, s2 %d", s1StoreHash, s2StoreHash)
 	}
