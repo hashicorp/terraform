@@ -11,10 +11,39 @@ import (
 
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 // Provider is an implementation of providers.Interface
-type Provider struct{}
+// It also contains logic of a pluggable state store implementation directly,
+// instead of what's expected: routing gRPC calls to invoke the logic of one of
+// multiple PSS implementations within the provider.
+type Provider struct {
+	// The fields below are copied from the Local backend.Backend.
+	//
+	// The State* paths are set from the backend config, and may be left blank
+	// to use the defaults. If the actual paths for the local backend state are
+	// needed, use the StatePaths method.
+	//
+	// StatePath is the local path where state is read from.
+	//
+	// StateOutPath is the local path where the state will be written.
+	// If this is empty, it will default to StatePath.
+	//
+	// StateBackupPath is the local path where a backup file will be written.
+	// Set this to "-" to disable state backup.
+	//
+	// StateWorkspaceDir is the path to the folder containing data for
+	// non-default workspaces. This defaults to DefaultWorkspaceDir if not set.
+	StatePath         string
+	StateOutPath      string
+	StateBackupPath   string
+	StateWorkspaceDir string
+
+	// We only want to create a single instance of a local state, so store them
+	// here as they're loaded.
+	states map[string]statemgr.Full
+}
 
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
@@ -73,7 +102,9 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				ReturnType: cty.String,
 			},
 		},
-		StateStores: map[string]providers.Schema{},
+		StateStores: map[string]providers.Schema{
+			"fs": fsStateStoreSchema(),
+		},
 	}
 	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
 	return resp
@@ -275,30 +306,6 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 func (p *Provider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
 	var resp providers.ListResourceResponse
 	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported list resource type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
-	var resp providers.ValidateStateStoreConfigResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	var resp providers.ConfigureStateStoreResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
-	var resp providers.GetStatesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
-	var resp providers.DeleteStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
