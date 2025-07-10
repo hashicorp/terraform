@@ -1,5 +1,7 @@
 action "test_action" "test" {
-    foo = "baz"
+    config {
+      foo = "baz"
+    }
 }
 
 resource "test_instance" "test" {
