@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestParseBackendStateFile(t *testing.T) {
@@ -159,7 +160,7 @@ func TestParseBackendStateFile(t *testing.T) {
 }
 
 func TestEncodeBackendStateFile(t *testing.T) {
-
+	tfVersion := version.Version
 	tests := map[string]struct {
 		Input   *BackendStateFile
 		Want    []byte
@@ -174,11 +175,11 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"1.13.0\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      },\n      \"hash\": 12345\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      },\n      \"hash\": 12345\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
 		},
 		"it returns an error when neither backend nor state_store config state are present": {
 			Input: &BackendStateFile{},
-			Want:  []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"1.13.0\"\n}"),
+			Want:  []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\"\n}"),
 		},
 		"it returns an error when the provider source's hostname is missing": {
 			Input: &BackendStateFile{

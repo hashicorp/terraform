@@ -52,6 +52,7 @@ type providerServer struct {
 	proto.ProviderServer
 	planResourceChangeCalled  bool
 	applyResourceChangeCalled bool
+	listResourceCalled        bool
 }
 
 func (p *providerServer) PlanResourceChange(ctx context.Context, req *proto.PlanResourceChange_Request) (*proto.PlanResourceChange_Response, error) {
@@ -68,6 +69,14 @@ func (p *providerServer) ApplyResourceChange(ctx context.Context, req *proto.App
 
 	p.applyResourceChangeCalled = true
 	return p.ProviderServer.ApplyResourceChange(ctx, req)
+}
+
+func (p *providerServer) ListResource(req *proto.ListResource_Request, res proto.Provider_ListResourceServer) error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.listResourceCalled = true
+	return p.ProviderServer.ListResource(req, res)
 }
 
 func (p *providerServer) PlanResourceChangeCalled() bool {
@@ -96,11 +105,19 @@ func (p *providerServer) ResetApplyResourceChangeCalled() {
 	p.applyResourceChangeCalled = false
 }
 
+func (p *providerServer) ListResourceCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.listResourceCalled
+}
+
 type providerServer5 struct {
 	sync.Mutex
 	proto5.ProviderServer
 	planResourceChangeCalled  bool
 	applyResourceChangeCalled bool
+	listResourceCalled        bool
 }
 
 func (p *providerServer5) PlanResourceChange(ctx context.Context, req *proto5.PlanResourceChange_Request) (*proto5.PlanResourceChange_Response, error) {
@@ -118,6 +135,14 @@ func (p *providerServer5) ApplyResourceChange(ctx context.Context, req *proto5.A
 	p.applyResourceChangeCalled = true
 
 	return p.ProviderServer.ApplyResourceChange(ctx, req)
+}
+
+func (p *providerServer5) ListResource(req *proto5.ListResource_Request, res proto5.Provider_ListResourceServer) error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.listResourceCalled = true
+	return p.ProviderServer.ListResource(req, res)
 }
 
 func (p *providerServer5) PlanResourceChangeCalled() bool {
@@ -144,6 +169,13 @@ func (p *providerServer5) ResetApplyResourceChangeCalled() {
 	defer p.Unlock()
 
 	p.applyResourceChangeCalled = false
+}
+
+func (p *providerServer5) ListResourceCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.listResourceCalled
 }
 
 func TestUnmanagedSeparatePlan(t *testing.T) {

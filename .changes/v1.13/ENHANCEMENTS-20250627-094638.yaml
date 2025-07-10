@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: skip redundant comparisons when comparing planned set changes
-time: 2025-06-27T09:46:38.899237-04:00
-custom:
-    Issue: "37280"
