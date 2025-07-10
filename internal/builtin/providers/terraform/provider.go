@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -13,6 +14,12 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
+
+const EnablePSSExperiment string = "TF_ENABLE_BUILTIN_PSS"
+
+func experimentsEnabled() bool {
+	return os.Getenv(EnablePSSExperiment) != ""
+}
 
 // Provider is an implementation of providers.Interface
 // It also contains logic of a pluggable state store implementation directly,
@@ -102,10 +109,16 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				ReturnType: cty.String,
 			},
 		},
-		StateStores: map[string]providers.Schema{
-			"fs": fsStateStoreSchema(),
-		},
 	}
+
+	if experimentsEnabled() {
+		// The provider will only advertise its PSS implementation if the
+		// necessary ENV is set
+		resp.StateStores = map[string]providers.Schema{
+			"fs": fsStateStoreSchema(),
+		}
+	}
+
 	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
 	return resp
 }
