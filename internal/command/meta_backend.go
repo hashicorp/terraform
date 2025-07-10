@@ -40,9 +40,9 @@ import (
 
 // BackendOpts are the options used to initialize a backendrun.OperationsBackend.
 type BackendOpts struct {
-	// Config is a representation of the backend configuration block given in
+	// BackendConfig is a representation of the backend configuration block given in
 	// the root module, or nil if no such block is present.
-	Config *configs.Backend
+	BackendConfig *configs.Backend
 
 	// ConfigOverride is an hcl.Body that, if non-nil, will be used with
 	// configs.MergeBodies to override the type-specific backend configuration
@@ -452,7 +452,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if opts.Config == nil {
+	if opts.BackendConfig == nil {
 		// check if the config was missing, or just not required
 		conf, moreDiags := m.loadBackendConfig(".")
 		diags = diags.Append(moreDiags)
@@ -466,10 +466,10 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 		}
 
 		log.Printf("[TRACE] Meta.Backend: BackendOpts.Config not set, so using settings loaded from %s", conf.DeclRange)
-		opts.Config = conf
+		opts.BackendConfig = conf
 	}
 
-	c := opts.Config
+	c := opts.BackendConfig
 
 	if c == nil {
 		log.Println("[TRACE] Meta.Backend: no explicit backend config, so returning nil config")
