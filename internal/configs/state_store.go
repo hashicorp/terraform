@@ -116,8 +116,9 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Missing entry in required_providers",
-			Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %q",
-				stateStore.Provider.Name),
+			Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %s",
+				stateStore.Provider.Name,
+			),
 			Subject: &stateStore.DeclRange,
 		})
 		return tfaddr.Provider{}, diags
