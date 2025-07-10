@@ -142,7 +142,7 @@ func TestStateStore_Hash(t *testing.T) {
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
 			providerConfig:  configBodyForTest(t, `foobar = "foobar"`),
-			wantErrorString: "schema contains a provider block",
+			wantErrorString: `Protected block name "provider" in state store schema`,
 		},
 		"returns an error if the schema includes a provider attribute": {
 			schema: &configschema.Block{
@@ -160,7 +160,7 @@ func TestStateStore_Hash(t *testing.T) {
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
 			providerConfig:  configBodyForTest(t, `foobar = "foobar"`),
-			wantErrorString: "schema contains a provider attribute",
+			wantErrorString: `Protected argument name "provider" in state store schema`,
 		},
 	}
 
