@@ -366,6 +366,7 @@ func (u *unknownProvider) DeleteState(providers.DeleteStateRequest) providers.De
 
 // PlanAction implements providers.Interface.
 func (u *unknownProvider) PlanAction(request providers.PlanActionRequest) providers.PlanActionResponse {
+	// TODO: Once actions support deferrals we can implement this
 	return providers.PlanActionResponse{
 		Diagnostics: []tfdiags.Diagnostic{
 			tfdiags.AttributeValue(
