@@ -60,10 +60,12 @@ func TestStateStore_Hash(t *testing.T) {
 	}
 
 	cases := map[string]struct {
-		config          hcl.Body
-		providerConfig  hcl.Body
-		schema          *configschema.Block
-		wantErrorString string
+		config             hcl.Body
+		providerConfig     hcl.Body
+		schema             *configschema.Block
+		wantErrorString    string
+		wantProviderHash   int
+		wantStateStoreHash int
 	}{
 		"ignores the provider block in config data, as long as the schema doesn't include it": {
 			schema: stateStoreSchema,
@@ -73,7 +75,9 @@ func TestStateStore_Hash(t *testing.T) {
 					}
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
-			providerConfig: configBodyForTest(t, `foobar = "foobar"`),
+			providerConfig:     configBodyForTest(t, `foobar = "foobar"`),
+			wantProviderHash:   4114724339,
+			wantStateStoreHash: 3485592773,
 		},
 		"tolerates empty config block for the provider even when schema has Required field(s)": {
 			schema: stateStoreSchema,
@@ -83,7 +87,9 @@ func TestStateStore_Hash(t *testing.T) {
 					}
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"`),
-			providerConfig: hcl.EmptyBody(),
+			providerConfig:     hcl.EmptyBody(),
+			wantProviderHash:   3978553527,
+			wantStateStoreHash: 3485592773,
 		},
 		"tolerates missing Required field(s) in state_store config": {
 			schema: stateStoreSchema,
@@ -91,10 +97,12 @@ func TestStateStore_Hash(t *testing.T) {
 					provider "foobar" {
 					  foobar = "foobar"
 					}
-					
+
 					# required field "path" is missing
 					workspace_dir = "foobar"`),
-			providerConfig: hcl.EmptyBody(),
+			providerConfig:     configBodyForTest(t, `foobar = "foobar"`),
+			wantProviderHash:   4114724339,
+			wantStateStoreHash: 392841918,
 		},
 		"returns errors when the config contains non-provider things that aren't in the schema": {
 			schema: stateStoreSchema,
@@ -181,9 +189,11 @@ func TestStateStore_Hash(t *testing.T) {
 				t.Fatal("expected an error when generating a hash, but got none")
 			}
 
-			if ssHash == pHash {
-				// These should not be equal, unless an error occurred and zero values were returned
-				t.Fatalf("expected unique hashes for state_store and provider config, but they both have value: %d", ssHash)
+			if ssHash != tc.wantStateStoreHash {
+				t.Fatalf("expected hash for state_store to be %d, but got %d", tc.wantStateStoreHash, ssHash)
+			}
+			if pHash != tc.wantProviderHash {
+				t.Fatalf("expected hash for provider to be %d, but got %d", tc.wantProviderHash, pHash)
 			}
 		})
 	}
