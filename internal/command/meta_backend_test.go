@@ -316,6 +316,75 @@ func TestMetaBackend_configureNewBackend(t *testing.T) {
 	}
 }
 
+// Newly configured state store
+//
+// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
+// case for this scenario, and will need to be updated when that init feature is implemented.
+func TestMetaBackend_configureNewStateStore(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-new"), td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.AllowExperimentalFeatures = true
+
+	// Get the state store's config
+	mod, loadDiags := m.loadSingleModule(td)
+	if loadDiags.HasErrors() {
+		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	}
+
+	// Get mock provider factory to be used during init
+	//
+	// This imagines a provider called foo that contains
+	// a pluggable state store implementation called bar.
+	mock := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				"foo_bar": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"bar": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	factory := func() (providers.Interface, error) {
+		return mock, nil
+	}
+
+	// Get the operations backend
+	_, beDiags := m.Backend(&BackendOpts{
+		Init:             true,
+		StateStoreConfig: mod.StateStore,
+		ProviderFactory:  factory,
+	})
+	if !beDiags.HasErrors() {
+		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	}
+	wantErr := "Configuring a state store for the first time is not implemented yet"
+	if !strings.Contains(beDiags.Err().Error(), wantErr) {
+		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	}
+
+}
+
 // Newly configured backend with prior local state and no remote state
 func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 	// Create a temporary working directory that is empty
