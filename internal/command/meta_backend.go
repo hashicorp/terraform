@@ -37,11 +37,11 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// BackendOpts are the options used to initialize a backend.Backend.
+// BackendOpts are the options used to initialize a backendrun.OperationsBackend.
 type BackendOpts struct {
-	// Config is a representation of the backend configuration block given in
+	// BackendConfig is a representation of the backend configuration block given in
 	// the root module, or nil if no such block is present.
-	Config *configs.Backend
+	BackendConfig *configs.Backend
 
 	// ConfigOverride is an hcl.Body that, if non-nil, will be used with
 	// configs.MergeBodies to override the type-specific backend configuration
@@ -70,7 +70,7 @@ type BackendWithRemoteTerraformVersion interface {
 	IsLocalOperations() bool
 }
 
-// Backend initializes and returns the backend for this CLI session.
+// Backend initializes and returns the operations backend for this CLI session.
 //
 // The backend is used to perform the actual Terraform operations. This
 // abstraction enables easily sliding in new Terraform behavior such as
@@ -162,22 +162,22 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 		}
 	}
 
-	// If the result of loading the backend is an enhanced backend,
+	// If the result of loading a backend is an operations backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.Backend: backend %T supports operations", b)
 		return enhanced, nil
 	}
 
-	// We either have a non-enhanced backend or no backend configured at
-	// all. In either case, we use local as our enhanced backend and the
-	// non-enhanced (if any) as the state backend.
+	// We either have a non-operations backend configured for state storage
+	// or none configured at all. In either case, we use local as our operations backend
+	// and the state-storage backend (if any) to manage state.
 
 	if !opts.ForceLocal {
 		log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
 	}
 
-	// Build the local backend
+	// Build the local operations backend
 	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend isn't allowed to fail. It would be a bug.
@@ -451,7 +451,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if opts.Config == nil {
+	if opts.BackendConfig == nil {
 		// check if the config was missing, or just not required
 		conf, moreDiags := m.loadBackendConfig(".")
 		diags = diags.Append(moreDiags)
@@ -465,10 +465,10 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 		}
 
 		log.Printf("[TRACE] Meta.Backend: BackendOpts.Config not set, so using settings loaded from %s", conf.DeclRange)
-		opts.Config = conf
+		opts.BackendConfig = conf
 	}
 
-	c := opts.Config
+	c := opts.BackendConfig
 
 	if c == nil {
 		log.Println("[TRACE] Meta.Backend: no explicit backend config, so returning nil config")
