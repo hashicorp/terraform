@@ -308,75 +308,6 @@ func TestMetaBackend_configureNewBackend(t *testing.T) {
 	}
 }
 
-// Newly configured state store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_configureNewStateStore(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-new"), td)
-	defer testChdir(t, td)()
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get mock provider factory to be used during init
-	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Configuring a state store for the first time is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-
-}
-
 // Newly configured backend with prior local state and no remote state
 func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 	// Create a temporary working directory that is empty
@@ -807,173 +738,6 @@ func TestMetaBackend_changeConfiguredBackend(t *testing.T) {
 	}
 }
 
-// Changing a configured state store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-// ALSO, this test will need to be split into multiple scenarios in future.
-func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-changed"), td)
-	defer testChdir(t, td)()
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get mock provider factory to be used during init
-	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Changing a state store configuration is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
-func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("backend-to-state-store"), td)
-	defer testChdir(t, td)()
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get mock provider factory to be used during init
-	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Migration from backend to state store is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
-func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-to-backend"), td)
-	defer testChdir(t, td)()
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the backend's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// No mock provider is used here - yet
-	// Logic will need to be implemented that lets the init have access to
-	// a factory for the 'old' provider used for PSS previously. This will be
-	// used when migrating away from PSS entirely, or to a new PSS configuration.
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:          true,
-		BackendConfig: mod.Backend,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Migration from state store to backend is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
 // Reconfiguring with an already configured backend.
 // This should ignore the existing backend config, and configure the new
 // backend is if this is the first time.
@@ -1024,84 +788,6 @@ func TestMetaBackend_reconfigureBackendChange(t *testing.T) {
 	if oldState == nil || oldState.Empty() {
 		t.Fatal("original state should be untouched")
 	}
-}
-
-// Reconfiguring with an already configured state store.
-// This should ignore the existing state_store config, and configure the new
-// state store is if this is the first time.
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-reconfigure"), td)
-	defer testChdir(t, td)()
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// this should not ask for input
-	m.input = false
-
-	// cli flag -reconfigure
-	m.reconfigure = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get mock provider factory to be used during init
-	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
-	})
-
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Configuring a state store for the first time is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-
 }
 
 // Initializing a backend which supports workspaces and does *not* have
@@ -1791,44 +1477,6 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 	}
 }
 
-// Unsetting a saved state store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unset"), td)
-	defer testChdir(t, td)()
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// No mock provider is used here - yet
-	// Logic will need to be implemented that lets the init have access to
-	// a factory for the 'old' provider used for PSS previously. This will be
-	// used when migrating away from PSS entirely, or to a new PSS configuration.
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Unsetting a state store is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
 // Unsetting a saved backend and copying the remote state
 func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
@@ -2410,6 +2058,366 @@ func Test_determineInitReason(t *testing.T) {
 				t.Fatalf("expected error diagnostic detail to include \"%s\" but it's missing: %s", tc.wantErr, diags.Err())
 			}
 		})
+	}
+}
+
+// Newly configured state store
+//
+// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
+// case for this scenario, and will need to be updated when that init feature is implemented.
+func TestMetaBackend_configureNewStateStore(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-new"), td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.AllowExperimentalFeatures = true
+
+	// Get the state store's config
+	mod, loadDiags := m.loadSingleModule(td)
+	if loadDiags.HasErrors() {
+		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	}
+
+	// Get mock provider factory to be used during init
+	//
+	// This imagines a provider called foo that contains
+	// a pluggable state store implementation called bar.
+	mock := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				"foo_bar": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"bar": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	factory := func() (providers.Interface, error) {
+		return mock, nil
+	}
+
+	// Get the operations backend
+	_, beDiags := m.Backend(&BackendOpts{
+		Init:             true,
+		StateStoreConfig: mod.StateStore,
+		ProviderFactory:  factory,
+	})
+	if !beDiags.HasErrors() {
+		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	}
+	wantErr := "Configuring a state store for the first time is not implemented yet"
+	if !strings.Contains(beDiags.Err().Error(), wantErr) {
+		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	}
+
+}
+
+// Unsetting a saved state store
+//
+// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
+// case for this scenario, and will need to be updated when that init feature is implemented.
+func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unset"), td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.AllowExperimentalFeatures = true
+
+	// Get the state store's config
+	mod, loadDiags := m.loadSingleModule(td)
+	if loadDiags.HasErrors() {
+		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	}
+
+	// No mock provider is used here - yet
+	// Logic will need to be implemented that lets the init have access to
+	// a factory for the 'old' provider used for PSS previously. This will be
+	// used when migrating away from PSS entirely, or to a new PSS configuration.
+
+	// Get the operations backend
+	_, beDiags := m.Backend(&BackendOpts{
+		Init:             true,
+		StateStoreConfig: mod.StateStore,
+	})
+	if !beDiags.HasErrors() {
+		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	}
+	wantErr := "Unsetting a state store is not implemented yet"
+	if !strings.Contains(beDiags.Err().Error(), wantErr) {
+		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	}
+}
+
+// Reconfiguring with an already configured state store.
+// This should ignore the existing state_store config, and configure the new
+// state store is if this is the first time.
+//
+// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
+// case for this scenario, and will need to be updated when that init feature is implemented.
+func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-reconfigure"), td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.AllowExperimentalFeatures = true
+
+	// this should not ask for input
+	m.input = false
+
+	// cli flag -reconfigure
+	m.reconfigure = true
+
+	// Get the state store's config
+	mod, loadDiags := m.loadSingleModule(td)
+	if loadDiags.HasErrors() {
+		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	}
+
+	// Get mock provider factory to be used during init
+	//
+	// This imagines a provider called foo that contains
+	// a pluggable state store implementation called bar.
+	mock := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				"foo_bar": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"bar": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	factory := func() (providers.Interface, error) {
+		return mock, nil
+	}
+
+	// Get the operations backend
+	_, beDiags := m.Backend(&BackendOpts{
+		Init:             true,
+		StateStoreConfig: mod.StateStore,
+		ProviderFactory:  factory,
+	})
+
+	if !beDiags.HasErrors() {
+		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	}
+	wantErr := "Configuring a state store for the first time is not implemented yet"
+	if !strings.Contains(beDiags.Err().Error(), wantErr) {
+		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	}
+
+}
+
+// Changing a configured state store
+//
+// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
+// case for this scenario, and will need to be updated when that init feature is implemented.
+// ALSO, this test will need to be split into multiple scenarios in future.
+func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-changed"), td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.AllowExperimentalFeatures = true
+
+	// Get the state store's config
+	mod, loadDiags := m.loadSingleModule(td)
+	if loadDiags.HasErrors() {
+		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	}
+
+	// Get mock provider factory to be used during init
+	//
+	// This imagines a provider called foo that contains
+	// a pluggable state store implementation called bar.
+	mock := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				"foo_bar": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"bar": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	factory := func() (providers.Interface, error) {
+		return mock, nil
+	}
+
+	// Get the operations backend
+	_, beDiags := m.Backend(&BackendOpts{
+		Init:             true,
+		StateStoreConfig: mod.StateStore,
+		ProviderFactory:  factory,
+	})
+	if !beDiags.HasErrors() {
+		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	}
+	wantErr := "Changing a state store configuration is not implemented yet"
+	if !strings.Contains(beDiags.Err().Error(), wantErr) {
+		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	}
+}
+
+// Changing from using backend to state_store
+//
+// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
+// case for this scenario, and will need to be updated when that init feature is implemented.
+func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("backend-to-state-store"), td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.AllowExperimentalFeatures = true
+
+	// Get the state store's config
+	mod, loadDiags := m.loadSingleModule(td)
+	if loadDiags.HasErrors() {
+		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	}
+
+	// Get mock provider factory to be used during init
+	//
+	// This imagines a provider called foo that contains
+	// a pluggable state store implementation called bar.
+	mock := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				"foo_bar": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"bar": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	factory := func() (providers.Interface, error) {
+		return mock, nil
+	}
+
+	// Get the operations backend
+	_, beDiags := m.Backend(&BackendOpts{
+		Init:             true,
+		StateStoreConfig: mod.StateStore,
+		ProviderFactory:  factory,
+	})
+	if !beDiags.HasErrors() {
+		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	}
+	wantErr := "Migration from backend to state store is not implemented yet"
+	if !strings.Contains(beDiags.Err().Error(), wantErr) {
+		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	}
+}
+
+// Changing from using state_store to backend
+//
+// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
+// case for this scenario, and will need to be updated when that init feature is implemented.
+func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-to-backend"), td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.AllowExperimentalFeatures = true
+
+	// Get the backend's config
+	mod, loadDiags := m.loadSingleModule(td)
+	if loadDiags.HasErrors() {
+		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	}
+
+	// No mock provider is used here - yet
+	// Logic will need to be implemented that lets the init have access to
+	// a factory for the 'old' provider used for PSS previously. This will be
+	// used when migrating away from PSS entirely, or to a new PSS configuration.
+
+	// Get the operations backend
+	_, beDiags := m.Backend(&BackendOpts{
+		Init:          true,
+		BackendConfig: mod.Backend,
+	})
+	if !beDiags.HasErrors() {
+		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	}
+	wantErr := "Migration from state store to backend is not implemented yet"
+	if !strings.Contains(beDiags.Err().Error(), wantErr) {
+		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
 	}
 }
 
