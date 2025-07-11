@@ -273,3 +273,57 @@ func parseImportToPartialAddress(traversal hcl.Traversal) (addrs.PartialExpanded
 
 	return partial, diags
 }
+
+// evaluateCreateWhenMissingExpression evaluates the given expression to determine
+// whether a resource should be created if it does not exist during import.
+// It should evaluate to a boolean value.
+//
+// The given expression may be nil, in which case the default behavior is false.
+func evaluateCreateWhenMissingExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// If no expression is provided, default to false
+	if expr == nil {
+		return false, diags
+	}
+
+	// import blocks only exist in the root module, and must be evaluated in
+	// that context.
+	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
+	scope := ctx.EvaluationScope(nil, nil, keyData)
+	createWhenMissingVal, evalDiags := scope.EvalExpr(expr, cty.Bool)
+	diags = diags.Append(evalDiags)
+
+	if createWhenMissingVal.IsNull() {
+		return false, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid create_when_missing argument",
+			Detail:   "The create_when_missing cannot be null.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+
+	if !createWhenMissingVal.IsKnown() {
+		return false, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid create_when_missing argument",
+			Detail:   "The create_when_missing argument must be a known boolean value.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+
+	// createWhenMissing data may have marks, which we can discard because the value is only
+	// used for control flow.
+	createWhenMissingVal, _ = createWhenMissingVal.Unmark()
+
+	if createWhenMissingVal.Type() != cty.Bool {
+		return false, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid create_when_missing argument",
+			Detail:   "The create_when_missing value is unsuitable: not a boolean.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+
+	return createWhenMissingVal.True(), diags
+}

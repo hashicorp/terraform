@@ -25,6 +25,8 @@ type Import struct {
 
 	ForEach hcl.Expression
 
+	CreateWhenMissing hcl.Expression
+
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
 
@@ -75,6 +77,10 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 
 	if attr, exists := content.Attributes["for_each"]; exists {
 		imp.ForEach = attr.Expr
+	}
+
+	if attr, exists := content.Attributes["create_when_missing"]; exists {
+		imp.CreateWhenMissing = attr.Expr
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -131,6 +137,9 @@ var importBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "identity",
+		},
+		{
+			Name: "create_when_missing",
 		},
 	},
 }
