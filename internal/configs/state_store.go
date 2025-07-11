@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -110,11 +111,7 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		// We do not expect users to include built in providers in required_providers
 		// So, if we don't find an entry in required_providers under local name 'terraform' we assume
 		// that the builtin provider is intended.
-		return tfaddr.Provider{
-			Hostname:  tfaddr.BuiltInProviderHost,
-			Namespace: tfaddr.BuiltInProviderNamespace,
-			Type:      stateStore.Provider.Name,
-		}, nil
+		return addrs.NewBuiltInProvider("terraform"), nil
 	case !foundReqProviderEntry:
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
