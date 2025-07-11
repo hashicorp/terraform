@@ -27,7 +27,7 @@ type Changes struct {
 
 	// ActionInvocations tracks planned action invocations, which may have
 	// embedded resource instance changes.
-	ActionInvocations []*ActionInstance
+	ActionInvocations ActionInstances
 
 	// Outputs tracks planned changes output values.
 	//
@@ -245,6 +245,59 @@ func (c *Changes) SyncWrapper() *ChangesSync {
 	return &ChangesSync{
 		changes: c,
 	}
+}
+
+// ActionInvocations returns planned action invocations for all module instances
+// that reside in the parent path.  Returns nil if no changes are planned.
+func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.ModuleCall) []*ActionInstance {
+	var ret []*ActionInstance
+
+	for _, a := range c.ActionInvocations {
+		changeMod, changeCall := a.Addr.Module.Call()
+		// this does not reside on our parent instance path
+		if !changeMod.Equal(parent) {
+			continue
+		}
+
+		// this is not the module you're looking for
+		if changeCall.Name != module.Name {
+			continue
+		}
+
+		ret = append(ret, a)
+	}
+
+	return ret
+}
+
+// ActionsForResourceInstance returns the planned actions for the current object
+// of the resource instance of the given address, if any. Returns nil if no
+// change is planned.
+func (c *Changes) ActionsForResourceInstance(addr addrs.AbsResourceInstance) ActionInstances {
+	var ret []*ActionInstance
+	for _, a := range c.ActionInvocations {
+		for _, r := range a.LinkedResources {
+			if r.Addr.Equal(addr) && r.DeposedKey == states.NotDeposed {
+				ret = append(ret, a)
+			}
+		}
+	}
+	return ret
+}
+
+// ActionsForResourceInstanceDeposed returns the plan actions of a deposed
+// object of the resource instance of the given address, if any. Returns nil if
+// no change is planned.
+func (c *Changes) ActionsForResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) ActionInstances {
+	var ret []*ActionInstance
+	for _, a := range c.ActionInvocations {
+		for _, r := range a.LinkedResources {
+			if r.Addr.Equal(addr) && r.DeposedKey == key {
+				ret = append(ret, a)
+			}
+		}
+	}
+	return ret
 }
 
 type QueryInstance struct {
@@ -772,60 +825,5 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 		AfterIdentity:        afterIdentityDV,
 		Importing:            c.Importing.Encode(identityTy),
 		GeneratedConfig:      c.GeneratedConfig,
-	}, nil
-}
-
-type ActionInstance struct {
-	Addr addrs.AbsActionInstance // mildwonkey TODO: this will be a *trigger* instance when that pr merges
-
-	// Provider is the address of the provider configuration that was used
-	// to plan this action, and thus the configuration that must also be
-	// used to apply it.
-	ProviderAddr addrs.AbsProviderConfig
-
-	// nil resources = unlinked action
-	// single resource = lifecycle or linked
-	// multiple resources = linked
-	LinkedResources []ResourceInstanceActionChange
-}
-
-type ResourceInstanceActionChange struct {
-	// Addr is the absolute address of the resource instance that the change
-	// will apply to.
-	Addr addrs.AbsResourceInstance
-
-	// Change is an embedded description of the change.
-	//
-	// mildwonkey: This would be a great place to document action data flow, if
-	// I understood it well enough to repeat.
-	//
-	// Generic Actions have no "change", just a record of the triggering
-	// resource, so this may be missing a field.
-	Change
-}
-
-// Encode produces a variant of the receiver that has its change values
-// serialized so it can be written to a plan file. Pass the implied type of the
-// corresponding resource type schema for correct operation.
-func (ai *ActionInstance) Encode(schema providers.Schema) (*ActionInstanceSrc, error) {
-	resourceChanges := make([]ResourceInstanceActionChangeSrc, 0, len(ai.LinkedResources))
-
-	for i, rc := range ai.LinkedResources {
-		resourceChanges[i] = ResourceInstanceActionChangeSrc{
-			Addr: rc.Addr,
-		}
-
-		cs, err := rc.Change.Encode(&schema)
-		if err != nil {
-			return nil, err
-		}
-
-		resourceChanges[i].ChangeSrc = *cs
-	}
-
-	return &ActionInstanceSrc{
-		Addr:            ai.Addr,
-		ProviderAddr:    ai.ProviderAddr,
-		LinkedResources: resourceChanges,
 	}, nil
 }

@@ -238,3 +238,73 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 		return
 	}
 }
+
+// GetActionInvocation
+func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance) *ActionInstance {
+	if cs == nil {
+		panic("GetActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	for _, a := range cs.changes.ActionInvocations {
+		if a.Addr.Equal(addr) {
+			return a
+		}
+	}
+	return nil
+}
+
+// AppendActionInvocation
+func (cs *ChangesSync) AppendActionInvocation(action *ActionInstance) {
+	if cs == nil {
+		panic("AppendActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	cs.changes.ActionInvocations = append(cs.changes.ActionInvocations, action)
+}
+
+// RemoveActionInvocation searches the set of action invocations for one
+// matching the given address, and removes it from the set if it exists.
+func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInvocationInstance) {
+	if cs == nil {
+		panic("RemoveActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	addrStr := addr.String()
+	for i, a := range cs.changes.ActionInvocations {
+		if a.Addr.String() != addrStr {
+			continue
+		}
+		copy(cs.changes.ActionInvocations[i:], cs.changes.ActionInvocations[i+1:])
+		cs.changes.ActionInvocations = cs.changes.ActionInvocations[:len(cs.changes.ActionInvocations)-1]
+		return
+	}
+}
+
+// GetResourceInstanceActions searches the set of action instances for any with
+// LinkedResources matching the given address and deposed key, returning it if
+// it exists. Use [addrs.NotDeposed] as the deposed key to represent the
+// "current" object for the given resource instance.
+//
+// If no such change exists, nil is returned.
+//
+// The returned array is a deep copy of the changes recorded in the plan, so
+// callers may mutate then although it's generally better (less confusing) to
+// treat planned changes as immutable after they've been initially constructed.
+func (cs *ChangesSync) GetResourceInstanceActions(addr addrs.AbsResourceInstance, dk addrs.DeposedKey) []*ActionInstance {
+	if cs == nil {
+		panic("GetResourceInstanceChange on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	if dk == addrs.NotDeposed {
+		return cs.changes.ActionsForResourceInstance(addr).DeepCopy()
+	}
+	return cs.changes.ActionsForResourceInstanceDeposed(addr, dk).DeepCopy()
+}
