@@ -41,7 +41,7 @@ action "test_unlinked" "hello" {}
 			expectPlanActionCalled: false,
 		},
 
-		"invalid config": {
+		"invalid attr": {
 			module: map[string]string{
 				"main.tf": `
 terraform { experiments = [actions] }
@@ -60,6 +60,32 @@ action "test_unlinked" "hello" {
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 4, Column: 3, Byte: 74},
 						End:      hcl.Pos{Line: 4, Column: 15, Byte: 86},
+					},
+				})
+			},
+		},
+
+		"invalid config": {
+			module: map[string]string{
+				"main.tf": `
+terraform { experiments = [actions] }
+action "test_unlinked" "hello" {
+  config {
+    unknown_attr = "value"
+  }
+}
+		`,
+			},
+			expectPlanActionCalled: false,
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported argument",
+					Detail:   `An argument named "unknown_attr" is not expected here.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 5, Byte: 87},
+						End:      hcl.Pos{Line: 5, Column: 17, Byte: 99},
 					},
 				})
 			},
@@ -245,6 +271,10 @@ resource "test_object" "a" {
 terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   for_each = toset(["a", "b"])
+  
+  config {
+    attr = "value-${each.key}"
+  }
 }
 resource "test_object" "a" {
   lifecycle {
@@ -264,8 +294,13 @@ resource "test_object" "a" {
 				"main.tf": `
 terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
-    count = 2
+  count = 2
+
+  config {
+    attr = "value-${count.index}"
+  }
 }
+
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
@@ -285,6 +320,10 @@ resource "test_object" "a" {
 terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   for_each = toset(["a", "b"])
+
+  config {
+    attr = "value-${each.key}"
+  }
 }
 resource "test_object" "a" {
   lifecycle {
@@ -311,7 +350,11 @@ resource "test_object" "a" {
 				"main.tf": `
 terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
-    count = 2
+  count = 2
+
+  config {
+    attr = "value-${count.index}"
+  }
 }
 resource "test_object" "a" {
   lifecycle {
@@ -358,7 +401,11 @@ resource "test_object" "a" {
 				"main.tf": `
 terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
-count = 2
+  count = 2
+
+  config {
+    attr = "value-${count.index}"
+  }
 }
 resource "test_object" "a" {
   count = 2
@@ -383,7 +430,9 @@ resource "test_object" "a" {
   name = "a"
 }
 action "test_unlinked" "hello" {
+  config {
     attr = test_object.a.name
+  }
 }
 resource "test_object" "b" {
   name = "b"
@@ -410,10 +459,14 @@ resource "test_object" "b" {
   name = "b"
 }
 action "test_unlinked" "hello_a" {
+  config {
     attr = test_object.a.name
+  }
 }
 action "test_unlinked" "hello_b" {
+  config {
     attr = test_object.a.name
+  }
 }
 resource "test_object" "c" {
   name = "c"
@@ -487,7 +540,9 @@ resource "test_object" "a" {
 				"main.tf": `
 terraform { experiments = [actions] }
 action "test_unlinked" "my_action" {
-  attr = "value"
+  config {
+    attr = "value"
+  }
 }
 resource "test_object" "a" {
   name = action.test_unlinked.my_action.attr
