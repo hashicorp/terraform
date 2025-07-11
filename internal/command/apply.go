@@ -229,8 +229,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 		}
 
 		be, beDiags = c.Backend(&BackendOpts{
-			Config:   backendConfig,
-			ViewType: viewType,
+			BackendConfig: backendConfig,
+			ViewType:      viewType,
 		})
 	}
 

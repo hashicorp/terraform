@@ -160,8 +160,8 @@ func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.
 
 	// Load the backend
 	be, beDiags := c.Backend(&BackendOpts{
-		Config:   backendConfig,
-		ViewType: viewType,
+		BackendConfig: backendConfig,
+		ViewType:      viewType,
 	})
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
