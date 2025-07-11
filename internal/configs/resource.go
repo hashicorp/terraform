@@ -39,6 +39,10 @@ type Resource struct {
 	// For all other resource modes, this field is nil.
 	Managed *ManagedResource
 
+	// List is populated only for Mode = addrs.ListResourceMode,
+	// containing the additional fields that apply to list resources.
+	List *ListResource
+
 	// Container links a scoped resource back up to the resources that contains
 	// it. This field is referenced during static analysis to check whether any
 	// references are also made from within the same container.
@@ -63,6 +67,17 @@ type ManagedResource struct {
 
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
+}
+
+type ListResource struct {
+	// By default, the results of a list resource only include the identities of
+	// the discovered resources. If the user specifies "include_resources = true",
+	// then the provider should include the resource data in the result.
+	IncludeResource hcl.Expression
+
+	// Limit is an optional expression that can be used to limit the
+	// number of results returned by the list resource.
+	Limit hcl.Expression
 }
 
 func (r *Resource) moduleUniqueKey() string {

@@ -259,7 +259,18 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		}
 		remain := traversal[1:] // trim off "ephemeral" so we can use our shared resource reference parser
 		return parseResourceRef(EphemeralResourceMode, rootRange, remain)
-
+	case "list":
+		if len(traversal) < 3 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "list" object must be followed by two attribute names: the list resource type and the list resource name.`,
+				Subject:  traversal.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		remain := traversal[1:] // trim off "list" so we can use our shared resource reference parser
+		return parseResourceRef(ListResourceMode, rootRange, remain)
 	case "local":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{

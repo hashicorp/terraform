@@ -9,15 +9,17 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, waiter *operationWaiter) {
+func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
 	key := n.run.GetStateKey()
@@ -31,7 +33,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
-	_, plan, planDiags := n.plan(ctx, tfCtx, setVariables, waiter)
+	_, plan, planDiags := n.plan(ctx, tfCtx, setVariables, providers, mocks, waiter)
 
 	// Any error during the planning prevents our apply from
 	// continuing which is an error.
@@ -57,7 +59,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	run.Diagnostics = filteredDiags
 
 	// execute the apply operation
-	applyScope, updated, applyDiags := n.apply(tfCtx, plan, moduletest.Running, variables, waiter)
+	applyScope, updated, applyDiags := n.apply(tfCtx, plan, moduletest.Running, variables, providers, waiter)
 
 	// Remove expected diagnostics, and add diagnostics in case anything that should have failed didn't.
 	// We'll also update the run status based on the presence of errors or missing expected failures.
@@ -71,8 +73,6 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 		})
 		return
 	}
-
-	n.AddVariablesToConfig(variables)
 
 	if ctx.Verbose() {
 		schemas, diags := tfCtx.Schemas(config, updated)
@@ -106,10 +106,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, applyScope, testOnlyVariables)
 	run.Status = newStatus
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
-
-	// Now we've successfully validated this run block, lets add it into
-	// our prior run outputs so future run blocks can access it.
-	ctx.SetOutput(run, outputVals)
+	run.Outputs = outputVals
 
 	// Only update the most recent run and state if the state was
 	// actually updated by this change. We want to use the run that
@@ -121,7 +118,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	})
 }
 
-func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
+func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
 	run := n.run
 	file := n.File()
 	log.Printf("[TRACE] TestFileRunner: called apply for %s/%s", file.Name, run.Name)
@@ -160,7 +157,8 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 	}
 
 	applyOpts := &terraform.ApplyOpts{
-		SetVariables: ephemeralVariables,
+		SetVariables:      ephemeralVariables,
+		ExternalProviders: providers,
 	}
 
 	waiter.update(tfCtx, progress, created)

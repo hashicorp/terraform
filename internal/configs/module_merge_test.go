@@ -372,7 +372,6 @@ func TestModuleOverride_action_and_trigger(t *testing.T) {
 		Config:            nil,
 		Count:             nil,
 		ForEach:           nil,
-		DependsOn:         nil,
 		ProviderConfigRef: nil,
 		Provider:          addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
 		DeclRange: hcl.Range{

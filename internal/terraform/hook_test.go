@@ -169,6 +169,20 @@ func (h *testHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return HookActionContinue, nil
 }
 
+func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PreListQuery", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PostListQuery", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
 func (h *testHook) Stopping() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -179,5 +193,26 @@ func (h *testHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostStateUpdate", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"StartAction", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"ProgressAction", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"CompleteAction", ""})
 	return HookActionContinue, nil
 }

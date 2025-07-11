@@ -286,6 +286,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	dataResources := map[string]map[string]cty.Value{}
 	managedResources := map[string]map[string]cty.Value{}
 	ephemeralResources := map[string]map[string]cty.Value{}
+	listResources := map[string]map[string]cty.Value{}
 	wholeModules := map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
@@ -370,6 +371,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				into = dataResources
 			case addrs.EphemeralResourceMode:
 				into = ephemeralResources
+			case addrs.ListResourceMode:
+				into = listResources
 			default:
 				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Mode))
 			}
@@ -475,6 +478,10 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	if self != cty.NilVal {
 		vals["self"] = self
+	}
+
+	if len(listResources) > 0 {
+		vals["list"] = cty.ObjectVal(buildResourceObjects(listResources))
 	}
 
 	return ctx, diags

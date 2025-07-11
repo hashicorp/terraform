@@ -20,11 +20,13 @@ var cmpOpts = cmpopts.IgnoreUnexported(Provider{})
 
 func TestMarshalProvider(t *testing.T) {
 	tests := []struct {
-		Input providers.ProviderSchema
-		Want  *Provider
+		Input               providers.ProviderSchema
+		IncludeExperimental bool
+		Want                *Provider
 	}{
 		{
 			providers.ProviderSchema{},
+			false,
 			&Provider{
 				Provider:                 &Schema{},
 				ResourceSchemas:          map[string]*Schema{},
@@ -35,6 +37,7 @@ func TestMarshalProvider(t *testing.T) {
 		},
 		{
 			testProvider(),
+			false,
 			&Provider{
 				Provider: &Schema{
 					Block: &Block{
@@ -211,11 +214,54 @@ func TestMarshalProvider(t *testing.T) {
 				ResourceIdentitySchemas: map[string]*IdentitySchema{},
 			},
 		},
+		{
+			providers.ProviderSchema{
+				ListResourceTypes: map[string]providers.Schema{
+					"test_list_resource": {
+						Version: 1,
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"filter": {Type: cty.String, Optional: true},
+								"items":  {Type: cty.List(cty.String), Required: true},
+							},
+						},
+					},
+				},
+			},
+			true,
+			&Provider{
+				Provider:                 &Schema{},
+				ResourceSchemas:          map[string]*Schema{},
+				DataSourceSchemas:        map[string]*Schema{},
+				EphemeralResourceSchemas: map[string]*Schema{},
+				ListResourceSchemas: map[string]*Schema{
+					"test_list_resource": {
+						Version: 1,
+						Block: &Block{
+							Attributes: map[string]*Attribute{
+								"filter": {
+									AttributeType:   json.RawMessage(`"string"`),
+									Optional:        true,
+									DescriptionKind: "plain",
+								},
+								"items": {
+									AttributeType:   json.RawMessage(`["list","string"]`),
+									Required:        true,
+									DescriptionKind: "plain",
+								},
+							},
+							DescriptionKind: "plain",
+						},
+					},
+				},
+				ResourceIdentitySchemas: map[string]*IdentitySchema{},
+			},
+		},
 	}
 
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			got := marshalProvider(test.Input)
+			got := marshalProvider(test.Input, test.IncludeExperimental)
 			if diff := cmp.Diff(test.Want, got, cmpOpts); diff != "" {
 				t.Fatalf("wrong result:\n %s\n", diff)
 			}
@@ -313,6 +359,17 @@ func testProvider() providers.ProviderSchema {
 								},
 							},
 						},
+					},
+				},
+			},
+		},
+		ListResourceTypes: map[string]providers.Schema{
+			"test_list_resource": {
+				Version: 1,
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"filter": {Type: cty.String, Optional: true},
+						"items":  {Type: cty.List(cty.String), Required: true},
 					},
 				},
 			},

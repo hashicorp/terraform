@@ -180,6 +180,12 @@ func (cp *Plugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema
 		}
 	}
 
+	for t, r := range resp.ListResourceTypes {
+		if err := r.Body.InternalValidate(); err != nil {
+			return resp, fmt.Errorf("provider %s has invalid schema for list resource type %q, which is a bug in the provider: %q", addr, t, err)
+		}
+	}
+
 	for n, f := range resp.Functions {
 		if !hclsyntax.ValidIdentifier(n) {
 			return resp, fmt.Errorf("provider %s declares function with invalid name %q", addr, n)

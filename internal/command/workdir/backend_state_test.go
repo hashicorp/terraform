@@ -4,15 +4,13 @@
 package workdir
 
 import (
-	"bytes"
 	"encoding/json"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestParseBackendStateFile(t *testing.T) {
@@ -65,11 +63,68 @@ func TestParseBackendStateFile(t *testing.T) {
 			Want: &BackendStateFile{
 				Version:   3,
 				TFVersion: "0.8.0",
-				Backend: &BackendState{
+				Backend: &BackendConfigState{
 					Type:      "treasure_chest_buried_on_a_remote_island",
 					ConfigRaw: json.RawMessage("{}"),
 				},
 			},
+		},
+		"active state_store": {
+			Input: `{
+				"version": 3,
+				"terraform_version": "9.9.9",
+				"state_store": {
+					"type": "foobar_baz",
+					"config": {
+						"bucket": "my-bucket",
+						"region": "saturn"
+					},
+					"provider": {
+						"version": "1.2.3",
+						"source": "registry.terraform.io/my-org/foobar",
+						"config": {
+							"credentials": "./creds.json"
+						}
+					}
+				}
+			}`,
+			Want: &BackendStateFile{
+				Version:   3,
+				TFVersion: "9.9.9",
+				StateStore: &StateStoreConfigState{
+					Type: "foobar_baz",
+					// Watch out - the number of tabs in the last argument here are load-bearing
+					Provider: getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", `{
+							"credentials": "./creds.json"
+						}`),
+					ConfigRaw: json.RawMessage(`{
+						"bucket": "my-bucket",
+						"region": "saturn"
+					}`),
+				},
+			},
+		},
+		"detection of malformed state: conflicting 'backend' and 'state_store' sections": {
+			Input: `{
+				"version": 3,
+				"terraform_version": "9.9.9",
+				"backend": {
+					"type": "treasure_chest_buried_on_a_remote_island",
+					"config": {}
+				},
+				"state_store": {
+					"type": "foobar_baz",
+					"config": {
+						"provider": "foobar",
+						"bucket": "my-bucket"
+					},
+					"provider": {
+						"version": "1.2.3",
+						"source": "registry.terraform.io/my-org/foobar"
+					}
+				}
+			}`,
+			WantErr: `encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block`,
 		},
 	}
 
@@ -97,47 +152,143 @@ func TestParseBackendStateFile(t *testing.T) {
 	}
 }
 
-func ParseBackendStateConfig(t *testing.T) {
-	// This test only really covers the happy path because Config/SetConfig is
-	// largely just a thin wrapper around configschema's "ImpliedType" and
-	// cty's json unmarshal/marshal and both of those are well-tested elsewhere.
-
-	s := &BackendState{
-		Type: "whatever",
-		ConfigRaw: []byte(`{
-			"foo": "bar"
-		}`),
+func TestEncodeBackendStateFile(t *testing.T) {
+	tfVersion := version.Version
+	tests := map[string]struct {
+		Input   *BackendStateFile
+		Want    []byte
+		WantErr string
+	}{
+		"encoding a backend state file when state_store is in use": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", `{"foo": "bar"}`),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+		},
+		"it returns an error when neither backend nor state_store config state are present": {
+			Input: &BackendStateFile{},
+			Want:  []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\"\n}"),
+		},
+		"it returns an error when the provider source's hostname is missing": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "", "my-org", "foobar", ""),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			WantErr: `state store is not valid: Unknown hostname: Expected hostname in the provider address to be set`,
+		},
+		"it returns an error when the provider source's hostname and namespace are missing ": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "", "", "foobar", ""),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			WantErr: `state store is not valid: Unknown hostname: Expected hostname in the provider address to be set`,
+		},
+		"it returns an error when the provider source is completely missing ": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "", "", "", ""),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			WantErr: `state store is not valid: Empty provider address: Expected address composed of hostname, provider namespace and name`,
+		},
+		"it returns an error when both backend and state_store config state are present": {
+			Input: &BackendStateFile{
+				Backend: &BackendConfigState{
+					Type:      "foobar",
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+				StateStore: &StateStoreConfigState{
+					Type:      "foobar_baz",
+					Provider:  getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", ""),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+			WantErr: `attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block`,
+		},
 	}
 
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"foo": {
-				Type:     cty.String,
-				Optional: true,
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := EncodeBackendStateFile(test.Input)
+
+			if test.WantErr != "" {
+				if err == nil {
+					t.Fatalf("unexpected success\nwant error: %s", test.WantErr)
+				}
+				if !strings.Contains(err.Error(), test.WantErr) {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", err.Error(), test.WantErr)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if diff := cmp.Diff(test.Want, got); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+
+	}
+}
+
+func TestBackendStateFile_DeepCopy(t *testing.T) {
+
+	tests := map[string]struct {
+		file *BackendStateFile
+	}{
+		"Deep copy preserves state_store data": {
+			file: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:      "foo_bar",
+					Provider:  getTestProviderState(t, "1.2.3", "A", "B", "C", ""),
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+		},
+		"Deep copy preserves backend data": {
+			file: &BackendStateFile{
+				Backend: &BackendConfigState{
+					Type:      "foobar",
+					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:      123,
+				},
+			},
+		},
+		"Deep copy preserves version and Terraform version data": {
+			file: &BackendStateFile{
+				Version:   3,
+				TFVersion: "9.9.9",
 			},
 		},
 	}
-	got, err := s.Config(schema)
-	want := cty.ObjectVal(map[string]cty.Value{
-		"foo": cty.StringVal("bar"),
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
-		t.Errorf("wrong result\n%s", diff)
-	}
 
-	err = s.SetConfig(cty.ObjectVal(map[string]cty.Value{
-		"foo": cty.StringVal("baz"),
-	}), schema)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+	for tn, tc := range tests {
+		t.Run(tn, func(t *testing.T) {
+			copy := tc.file.DeepCopy()
 
-	gotRaw := s.ConfigRaw
-	wantRaw := []byte(`{"foo":"baz"}`)
-	if !bytes.Equal(wantRaw, gotRaw) {
-		t.Errorf("wrong raw config after encode\ngot:  %s\nwant: %s", gotRaw, wantRaw)
+			if !reflect.DeepEqual(copy, tc.file) {
+				t.Fatalf("unexpected difference in backend state data:\n got %#v, want %#v", copy, tc.file)
+			}
+		})
 	}
 }

@@ -428,7 +428,7 @@ func TestCoerceValue(t *testing.T) {
 				"foo": cty.False,
 			}),
 			cty.DynamicVal,
-			`.foo: number required`,
+			`.foo: number required, but have bool`,
 		},
 		"unset computed value": {
 			&Block{

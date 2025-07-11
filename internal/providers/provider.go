@@ -4,6 +4,8 @@
 package providers
 
 import (
+	"iter"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -104,6 +106,31 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
+	// ListResource queries the remote for a specific resource type and returns an iterator of items
+	//
+	// An error indicates that there was a problem before calling the provider,
+	// like a missing schema. Problems during a list operation are reported as
+	// diagnostics on the yielded events.
+	ListResource(ListResourceRequest) ListResourceResponse
+
+	// ValidateStateStoreConfig performs configuration validation
+	ValidateStateStoreConfig(ValidateStateStoreConfigRequest) ValidateStateStoreConfigResponse
+	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
+	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
+
+	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
+	GetStates(GetStatesRequest) GetStatesResponse
+	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
+	DeleteState(DeleteStateRequest) DeleteStateResponse
+
+	// PlanAction plans an action to be invoked, providers might indicate potential drift and
+	// raise issues with the action configuration.
+	PlanAction(PlanActionRequest) PlanActionResponse
+	// InvokeAction invokes an action, providers return a stream of events that update terraform
+	// about the status of the action.
+	InvokeAction(InvokeActionRequest) InvokeActionResponse
+	// CancelAction cancels an action, triggering a graceful shutdown of the action.
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -130,13 +157,19 @@ type GetProviderSchemaResponse struct {
 	// to its schema.
 	EphemeralResourceTypes map[string]Schema
 
-	// ListResourceTypes maps the name of an ephemeral resource type to its
+	// ListResourceTypes maps the name of a list resource type to its
 	// schema.
 	ListResourceTypes map[string]Schema
 
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
+
+	// StateStores maps the state store type name to that type's schema.
+	StateStores map[string]Schema
+
+	// Actions maps the name of the action to its schema.
+	Actions map[string]ActionSchema
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
@@ -162,6 +195,48 @@ type IdentitySchema struct {
 	Version int64
 
 	Body *configschema.Object
+}
+
+type ExecutionOrder int
+
+const (
+	ExecutionOrderInvalid ExecutionOrder = iota
+	ExecutionOrderBefore
+	ExecutionOrderAfter
+)
+
+type LinkedResourceSchema struct {
+	TypeName string
+}
+
+type UnlinkedAction struct{}
+type LifecycleAction struct {
+	Exectues       ExecutionOrder
+	LinkedResource LinkedResourceSchema
+}
+type LinkedAction struct {
+	LinkedResources []LinkedResourceSchema
+}
+type ActionSchema struct {
+	ConfigSchema *configschema.Block
+
+	// One of the following fields must be set, indicating the type of action.
+	Unlinked  *UnlinkedAction
+	Lifecycle *LifecycleAction
+	Linked    *LinkedAction
+}
+
+func (a ActionSchema) LinkedResources() []LinkedResourceSchema {
+	if a.Unlinked != nil {
+		return []LinkedResourceSchema{}
+	}
+	if a.Lifecycle != nil {
+		return []LinkedResourceSchema{a.Lifecycle.LinkedResource}
+	}
+	if a.Linked != nil {
+		return a.Linked.LinkedResources
+	}
+	panic("ActionSchema must have one of Unlinked, Lifecycle, or Linked set")
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
@@ -276,6 +351,15 @@ type ValidateListResourceConfigRequest struct {
 	// Config is the configuration value to validate, which may contain unknown
 	// values.
 	Config cty.Value
+
+	// IncludeResourceObject is the value of the include_resource
+	// argument in the list block. This is a cty value so that it can
+	// contain unknown values.
+	IncludeResourceObject cty.Value
+
+	// Limit is the maximum number of results to return. This is a
+	// cty value so that it can contain unknown values.
+	Limit cty.Value
 }
 
 type ValidateListResourceConfigResponse struct {
@@ -710,6 +794,12 @@ type CallFunctionResponse struct {
 	Err error
 }
 
+type ListResourceResponse struct {
+	Result cty.Value
+
+	Diagnostics tfdiags.Diagnostics
+}
+
 type ListResourceRequest struct {
 	// TypeName is the name of the resource type being read.
 	TypeName string
@@ -720,4 +810,130 @@ type ListResourceRequest struct {
 	// IncludeResourceObject can be set to true when a provider should include
 	// the full resource object for each result
 	IncludeResourceObject bool
+
+	// Limit is the maximum number of results to return
+	Limit int64
 }
+
+type ValidateStateStoreConfigRequest struct {
+	// TypeName is the name of the state store to validate.
+	TypeName string
+
+	// Config is the configuration value to validate.
+	Config cty.Value
+}
+
+type ValidateStateStoreConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ConfigureStateStoreRequest struct {
+	// TypeName is the name of the state store to configure
+	TypeName string
+
+	// Config is the configuration value to configure the store with.
+	Config cty.Value
+}
+
+type ConfigureStateStoreResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type GetStatesRequest struct {
+	// TypeName is the name of the state store to request the list of states from
+	TypeName string
+}
+
+type GetStatesResponse struct {
+	// States is a list of state names, sourced by inspecting persisted state data
+	States []string
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type DeleteStateRequest struct {
+	// TypeName is the name of the state store to request deletion from
+	TypeName string
+
+	// StateId is the name of the state to be deleted. This is the same as
+	// the concept of CE workspaces.
+	StateId string
+}
+
+type DeleteStateResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type LinkedResourcePlanData struct {
+	PriorState    cty.Value
+	PlannedState  cty.Value
+	Config        cty.Value
+	PriorIdentity cty.Value
+}
+type LinkedResourcePlan struct {
+	PlannedState    cty.Value
+	PlannedIdentity cty.Value
+}
+
+type LinkedResourceInvokeData struct {
+	PriorState      cty.Value
+	PlannedState    cty.Value
+	Config          cty.Value
+	PlannedIdentity cty.Value
+}
+type LinkedResourceResult struct {
+	NewState        cty.Value
+	NewIdentity     cty.Value
+	RequiresReplace bool
+}
+
+type PlanActionRequest struct {
+	ActionType         string
+	ProposedActionData cty.Value
+
+	LinkedResources    []LinkedResourcePlanData
+	ClientCapabilities ClientCapabilities
+}
+
+type PlanActionResponse struct {
+	LinkedResources []LinkedResourcePlan
+	Deferred        *Deferred
+	Diagnostics     tfdiags.Diagnostics
+}
+
+type InvokeActionRequest struct {
+	ActionType        string
+	LinkedResources   []LinkedResourceInvokeData
+	PlannedActionData cty.Value
+}
+
+type InvokeActionResponse struct {
+	Events      iter.Seq[InvokeActionEvent]
+	Diagnostics tfdiags.Diagnostics
+}
+type InvokeActionEvent interface {
+	isInvokeActionEvent()
+}
+
+// Completed Event
+var _ InvokeActionEvent = &InvokeActionEvent_Completed{}
+
+type InvokeActionEvent_Completed struct {
+	LinkedResources []LinkedResourceResult
+	Diagnostics     tfdiags.Diagnostics
+}
+
+func (e InvokeActionEvent_Completed) isInvokeActionEvent() {}
+
+// Progress Event
+var _ InvokeActionEvent = &InvokeActionEvent_Progress{}
+
+type InvokeActionEvent_Progress struct {
+	Message string
+}
+
+func (e InvokeActionEvent_Progress) isInvokeActionEvent() {}

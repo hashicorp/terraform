@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -202,7 +201,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &workdir.BackendState{
+		m.backendState = &workdir.BackendConfigState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -412,7 +411,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		// here first is a bug, so panic.
 		panic(fmt.Sprintf("invalid workspace: %s", err))
 	}
-	planOutBackend, err := m.backendState.ForPlan(schema, workspace)
+	planOutBackend, err := m.backendState.PlanData(schema, nil, workspace)
 	if err != nil {
 		// Always indicates an implementation error in practice, because
 		// errors here indicate invalid encoding of the backend configuration
@@ -716,13 +715,18 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	}
 }
 
+// determineInitReason is used in non-Init commands to interrupt the command early and prompt users to instead run an init command.
+// That prompt needs to include the reason why init needs to be run, and it is determined here.
+//
+// Note: the calling code is responsible for determining that a change has occurred before invoking this
+// method. This makes the default cases (config has changed) valid.
 func (m *Meta) determineInitReason(previousBackendType string, currentBackendType string, cloudMode cloud.ConfigChangeMode) tfdiags.Diagnostics {
 	initReason := ""
 	switch cloudMode {
 	case cloud.ConfigMigrationIn:
 		initReason = fmt.Sprintf("Changed from backend %q to HCP Terraform", previousBackendType)
 	case cloud.ConfigMigrationOut:
-		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", previousBackendType)
+		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", currentBackendType)
 	case cloud.ConfigChangeInPlace:
 		initReason = "HCP Terraform configuration block has changed"
 	default:
@@ -1046,21 +1050,19 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		defer stateLocker.Unlock()
 	}
 
-	configJSON, err := ctyjson.Marshal(configVal, b.ConfigSchema().ImpliedType())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
-		return nil, diags
-	}
-
 	// Store the metadata in our saved state location
 	s := sMgr.State()
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
-	s.Backend = &workdir.BackendState{
-		Type:      c.Type,
-		ConfigRaw: json.RawMessage(configJSON),
-		Hash:      uint64(cHash),
+	s.Backend = &workdir.BackendConfigState{
+		Type: c.Type,
+		Hash: uint64(cHash),
+	}
+	err = s.Backend.SetConfig(configVal, b.ConfigSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
+		return nil, diags
 	}
 
 	// Verify that selected workspace exists in the backend.
@@ -1191,21 +1193,19 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		}
 	}
 
-	configJSON, err := ctyjson.Marshal(configVal, b.ConfigSchema().ImpliedType())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
-		return nil, diags
-	}
-
 	// Update the backend state
 	s = sMgr.State()
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
-	s.Backend = &workdir.BackendState{
-		Type:      c.Type,
-		ConfigRaw: json.RawMessage(configJSON),
-		Hash:      uint64(cHash),
+	s.Backend = &workdir.BackendConfigState{
+		Type: c.Type,
+		Hash: uint64(cHash),
+	}
+	err := s.Backend.SetConfig(configVal, b.ConfigSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
+		return nil, diags
 	}
 
 	// Verify that selected workspace exist. Otherwise prompt user to create one
@@ -1325,7 +1325,7 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 // this function will conservatively assume that migration is required,
 // expecting that the migration code will subsequently deal with the same
 // errors.
-func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.BackendState) bool {
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.BackendConfigState) bool {
 	if s == nil || s.Empty() {
 		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
 		return true

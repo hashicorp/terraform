@@ -10,7 +10,6 @@ on:
     inputs:
       cgo-enabled:
         type: string
-        default: 0
         required: true
       goos:
         required: true

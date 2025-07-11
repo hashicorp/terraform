@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -23,6 +24,8 @@ import (
 type ChangesSrc struct {
 	// Resources tracks planned changes to resource instance objects.
 	Resources []*ResourceInstanceChangeSrc
+
+	Queries []*QueryInstanceSrc
 
 	// Outputs tracks planned changes output values.
 	//
@@ -133,6 +136,25 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		changes.Resources = append(changes.Resources, rc)
 	}
 
+	for _, qis := range c.Queries {
+		p, ok := schemas.Providers[qis.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", qis.ProviderAddr, qis.Addr)
+		}
+		schema := p.ListResourceTypes[qis.Addr.Resource.Resource.Type]
+
+		if schema.Body == nil {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", qis.Addr)
+		}
+
+		query, err := qis.Decode(schema)
+		if err != nil {
+			return nil, err
+		}
+
+		changes.Queries = append(changes.Queries, query)
+	}
+
 	for _, ocs := range c.Outputs {
 		oc, err := ocs.Decode()
 		if err != nil {
@@ -152,6 +174,29 @@ func (c *ChangesSrc) AppendResourceInstanceChange(change *ResourceInstanceChange
 
 	s := change.DeepCopy()
 	c.Resources = append(c.Resources, s)
+}
+
+type QueryInstanceSrc struct {
+	Addr         addrs.AbsResourceInstance
+	ProviderAddr addrs.AbsProviderConfig
+	Results      DynamicValue
+	Generated    *genconfig.Resource
+}
+
+func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, error) {
+	query, err := qis.Results.Decode(schema.Body.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return &QueryInstance{
+		Addr: qis.Addr,
+		Results: QueryResults{
+			Value:     query,
+			Generated: qis.Generated,
+		},
+		ProviderAddr: qis.ProviderAddr,
+	}, nil
 }
 
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.

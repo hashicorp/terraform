@@ -274,7 +274,20 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
-	opReq.DeferralAllowed = args.DeferralAllowed
+
+	// EXPERIMENTAL: maybe enable deferred actions
+	if c.AllowExperimentalFeatures {
+		opReq.DeferralAllowed = args.DeferralAllowed
+	} else if args.DeferralAllowed {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()

@@ -7,11 +7,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
+	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
@@ -347,7 +349,15 @@ func (m *Main) Stack(ctx context.Context, addr stackaddrs.StackInstance, phase E
 // ProviderFactories returns the collection of factory functions for providers
 // that are available to this instance of the evaluation runtime.
 func (m *Main) ProviderFactories() ProviderFactories {
-	return m.providerFactories
+	// Built-in provider factories are always present
+	resultProviderFactories := ProviderFactories{}
+	for k, v := range builtinProviders.BuiltInProviders() {
+		resultProviderFactories[addrs.NewBuiltInProvider(k)] = v
+	}
+
+	maps.Copy(resultProviderFactories, m.providerFactories)
+
+	return resultProviderFactories
 }
 
 // ProviderFunctions returns the collection of externally defined provider

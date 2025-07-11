@@ -25,6 +25,11 @@
             "source": "git::https://example.com/deprecated.git",
             "local": "deprecated",
             "meta": {}
+        },
+        {
+            "source": "git::https://example.com/builtin.git",
+            "local": "builtin",
+            "meta": {}
         }
     ],
     "registry": [

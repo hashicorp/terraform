@@ -39,6 +39,13 @@ type PackageAuthenticationResult struct {
 	KeyID  string
 }
 
+func NewPackageAuthenticationResult(result int, keyID string) *PackageAuthenticationResult {
+	return &PackageAuthenticationResult{
+		result: packageAuthenticationResult(result),
+		KeyID:  keyID,
+	}
+}
+
 func (t *PackageAuthenticationResult) String() string {
 	if t == nil {
 		return "unauthenticated"

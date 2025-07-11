@@ -161,7 +161,7 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 		{
 			name:             "simple",
 			directory:        "testdata/query-files/valid/simple",
-			listResources:    2,
+			listResources:    3,
 			allowExperiments: true,
 		},
 		{

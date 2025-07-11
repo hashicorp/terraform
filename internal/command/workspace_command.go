@@ -45,6 +45,9 @@ func (c *WorkspaceCommand) Synopsis() string {
 // Since most named states are accessed via a filesystem path or URL, check if
 // escaping the name would be required.
 func validWorkspaceName(name string) bool {
+	if name == "" {
+		return false
+	}
 	return name == url.PathEscape(name)
 }
 
@@ -100,7 +103,7 @@ to another workspace and try again.
 
 	envInvalidName = `
 The workspace name %q is not allowed. The name must contain only URL safe
-characters, and no path separators.
+characters, contain no path separators, and not be an empty string.
 `
 
 	envIsOverriddenNote = `

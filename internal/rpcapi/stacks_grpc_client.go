@@ -24,10 +24,11 @@ import (
 
 // GRPCStacksClient is the client interface for interacting with terraform-stacksplugin
 type GRPCStacksClient struct {
-	Client   stacksproto1.CommandServiceClient
-	Broker   *plugin.GRPCBroker
-	Services *disco.Disco
-	Context  context.Context
+	Client     stacksproto1.CommandServiceClient
+	Broker     *plugin.GRPCBroker
+	Services   *disco.Disco
+	Context    context.Context
+	ShutdownCh <-chan struct{}
 }
 
 // Proof that GRPCStacksClient fulfills the go-plugin interface
@@ -102,7 +103,17 @@ func (c GRPCStacksClient) registerBrokers(stdout, stderr io.Writer) brokerIDs {
 // Execute sends the client Execute request and waits for the plugin to return
 // an exit code response before returning
 func (c GRPCStacksClient) executeWithBrokers(brokerIDs brokerIDs, args []string, stdout, stderr io.Writer) int {
-	client, err := c.Client.Execute(c.Context, &stacksproto1.CommandRequest{
+	ctx, cancel := context.WithCancel(c.Context)
+
+	// Monitor for interrupt and cancel the context if received
+	go func() {
+		sig := <-c.ShutdownCh
+		fmt.Print("\n\nOperation Interrupted, any remote operations started will continue\n\n")
+		log.Printf("[INFO] Received signal: %s, cancelling operation", sig)
+		cancel()
+	}()
+
+	client, err := c.Client.Execute(ctx, &stacksproto1.CommandRequest{
 		DependenciesServer: brokerIDs.dependenciesBrokerID,
 		PackagesServer:     brokerIDs.packagesBrokerID,
 		StacksServer:       brokerIDs.stacksBrokerID,

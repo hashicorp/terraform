@@ -6698,6 +6698,164 @@ resource "aws_instance" "foo" {
 	}
 }
 
+func TestContext2Plan_invalidReferencesAreNotRelevant(t *testing.T) {
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: new(configschema.Block),
+			},
+			ResourceTypes: map[string]providers.Schema{
+				"test_computed_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"key": {
+								Type:     cty.String,
+								Computed: true,
+							},
+							"dynamic": {
+								Type:     cty.DynamicPseudoType,
+								Computed: true,
+							},
+							"object": {
+								NestedType: &configschema.Object{
+									Nesting: configschema.NestingSingle,
+									Attributes: map[string]*configschema.Attribute{
+										"value": {
+											Type:     cty.String,
+											Computed: true,
+										},
+									},
+								},
+								Computed: true,
+							},
+						},
+					},
+				},
+				"test_simple_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			switch request.TypeName {
+			case "test_computed_object":
+				return providers.PlanResourceChangeResponse{
+					PlannedState: cty.ObjectVal(map[string]cty.Value{
+						"key": cty.UnknownVal(cty.String),
+						"object": cty.UnknownVal(cty.Object(map[string]cty.Type{
+							"value": cty.String,
+						})),
+						"dynamic": cty.DynamicVal,
+					}),
+				}
+			case "test_simple_object":
+				return providers.PlanResourceChangeResponse{
+					PlannedState: request.ProposedNewState,
+				}
+			default:
+				panic(fmt.Sprintf("unknown resource type %q", request.TypeName))
+			}
+		},
+	}
+
+	tcs := map[string]struct {
+		configs            map[string]string
+		expectedAttributes []string
+		expectedDiags      []string
+	}{
+		"invalid object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.object[0].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedDiags: []string{
+				"Invalid index:The given key does not identify an element in this collection value. An object only supports looking up attributes by name, not by numeric index.",
+			},
+		},
+		"dynamic object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.dynamic[0].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedAttributes: []string{
+				"test_computed_object.a.dynamic",
+				"test_computed_object.a.object.value",
+			},
+		},
+		"unknown object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.object[test_computed_object.a.key].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedAttributes: []string{
+				"test_computed_object.a.key",
+				"test_computed_object.a.object",
+				"test_computed_object.a.object.value",
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, tc.configs)
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+			if len(diags) != len(tc.expectedDiags) {
+				t.Errorf("should find exactly %d diagnostics, but was %d", len(tc.expectedDiags), len(diags))
+			} else {
+				for ix := range tc.expectedDiags {
+					if diag := fmt.Sprintf("%s:%s", diags[ix].Description().Summary, diags[ix].Description().Detail); diag != tc.expectedDiags[ix] {
+						t.Errorf("unexpected diagnostic diagnostic: %s", diag)
+					}
+				}
+			}
+
+			if len(plan.RelevantAttributes) != len(tc.expectedAttributes) {
+				t.Errorf("should find exactly %d relevant attribute, but was %d", len(tc.expectedAttributes), len(plan.RelevantAttributes))
+			} else {
+
+				var sorted []string
+				for _, attr := range plan.RelevantAttributes {
+					sorted = append(sorted, attr.DebugString())
+				}
+				sort.Strings(sorted)
+
+				for ix := range tc.expectedAttributes {
+					if sorted[ix] != tc.expectedAttributes[ix] {
+						t.Errorf("found wrong relevant attribute at %d: %s", ix, sorted[ix])
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestContext2Plan_orphanUpdateInstance(t *testing.T) {
 	// ean orphaned instance should still reflect the refreshed state in the plan
 	m := testModuleInline(t, map[string]string{
@@ -6845,5 +7003,108 @@ data "test_data_source" "foo" {
 	if !after.RawEquals(expected) {
 		t.Fatalf("\nexpected plan: %#v\n  actual plan: %#v\n", expected, after)
 
+	}
+}
+
+// Testing that managed resources of type list are handled correctly
+//   - They must be referenced using the fully qualified name
+//   - We provide a hint to the user if they try to reference a resource of type list
+//     without using the fully qualified name
+func TestContext2Plan_resourceNamedList(t *testing.T) {
+	cases := []struct {
+		name           string
+		mainConfig     string
+		diagCount      int
+		expectedErrMsg []string
+	}{
+		{
+			// We tried to reference a resource of type list without using the fully-qualified name.
+			// The error contains a hint to help the user.
+			name: "reference list block from resource",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource1" {
+					provider = test
+				}
+
+				resource "list" "test_resource2" {
+					provider = test
+					attr = list.test_resource1.attr
+				}
+				`,
+			diagCount: 1,
+			expectedErrMsg: []string{
+				"Reference to undeclared resource",
+				"A list resource \"test_resource1\" \"attr\" has not been declared in the root module.",
+				"Did you mean the managed resource list.test_resource1? If so, please use the fully qualified name of the resource, e.g. resource.list.test_resource1",
+			},
+		},
+		{
+			// We are referencing a managed resource
+			// of type list using the resource.<block>.<name> syntax. This should be allowed.
+			name: "reference managed resource of type list using resource.<block>.<name>",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource" {
+					provider = test
+					attr = "bar"
+				}
+
+				resource "list" "normal_resource" {
+					provider = test
+					attr = resource.list.test_resource.attr
+				}
+				`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			configs := map[string]string{"main.tf": tc.mainConfig}
+
+			m := testModuleInline(t, configs)
+
+			providerAddr := addrs.NewDefaultProvider("test")
+			provider := testProvider("test")
+			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, nil))
+			if len(diags) != tc.diagCount {
+				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
+			}
+
+			if tc.diagCount > 0 {
+				for _, err := range tc.expectedErrMsg {
+					if !strings.Contains(diags.Err().Error(), err) {
+						t.Fatalf("expected error message %q, but got %q", err, diags.Err().Error())
+					}
+				}
+			}
+
+		})
 	}
 }

@@ -862,7 +862,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				SourceType: ValueFromCaller,
 			}
 
-			got, diags := prepareFinalInputVariableValue(
+			got, diags := PrepareFinalInputVariableValue(
 				varAddr, rawVal, varCfg,
 			)
 
@@ -895,7 +895,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			{
 				ValueFromUnknown,
 				tfdiags.SourceRange{},
-				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required.`,
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required, but have object.`,
 				`Required variable not set: Unsuitable value for var.constrained_string_required set from outside of the configuration: required variable may not be set to null.`,
 			},
 			{
@@ -905,7 +905,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 					Start:    tfdiags.SourcePos(hcl.InitialPos),
 					End:      tfdiags.SourcePos(hcl.InitialPos),
 				},
-				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required.`,
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required, but have object.`,
 				`Required variable not set: The given value is not suitable for var.constrained_string_required defined at main.tf:32,3-41: required variable may not be set to null.`,
 			},
 			{
@@ -915,7 +915,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 					Start:    tfdiags.SourcePos(hcl.InitialPos),
 					End:      tfdiags.SourcePos(hcl.InitialPos),
 				},
-				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required.`,
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required, but have object.`,
 				`Required variable not set: The given value is not suitable for var.constrained_string_required defined at main.tf:32,3-41: required variable may not be set to null.`,
 			},
 			{
@@ -925,25 +925,25 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 					Start:    tfdiags.SourcePos(hcl.InitialPos),
 					End:      tfdiags.SourcePos(hcl.InitialPos),
 				},
-				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required.`,
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required, but have object.`,
 				`Required variable not set: The given value is not suitable for var.constrained_string_required defined at main.tf:32,3-41: required variable may not be set to null.`,
 			},
 			{
 				ValueFromCLIArg,
 				tfdiags.SourceRange{},
-				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using -var="constrained_string_required=...": string required.`,
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using -var="constrained_string_required=...": string required, but have object.`,
 				`Required variable not set: Unsuitable value for var.constrained_string_required set using -var="constrained_string_required=...": required variable may not be set to null.`,
 			},
 			{
 				ValueFromEnvVar,
 				tfdiags.SourceRange{},
-				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using the TF_VAR_constrained_string_required environment variable: string required.`,
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using the TF_VAR_constrained_string_required environment variable: string required, but have object.`,
 				`Required variable not set: Unsuitable value for var.constrained_string_required set using the TF_VAR_constrained_string_required environment variable: required variable may not be set to null.`,
 			},
 			{
 				ValueFromInput,
 				tfdiags.SourceRange{},
-				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using an interactive prompt: string required.`,
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using an interactive prompt: string required, but have object.`,
 				`Required variable not set: Unsuitable value for var.constrained_string_required set using an interactive prompt: required variable may not be set to null.`,
 			},
 			{
@@ -954,13 +954,13 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				// and during planning we'll always have other source types.
 				ValueFromPlan,
 				tfdiags.SourceRange{},
-				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required.`,
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required, but have object.`,
 				`Required variable not set: Unsuitable value for var.constrained_string_required set from outside of the configuration: required variable may not be set to null.`,
 			},
 			{
 				ValueFromCaller,
 				tfdiags.SourceRange{},
-				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required.`,
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required, but have object.`,
 				`Required variable not set: Unsuitable value for var.constrained_string_required set from outside of the configuration: required variable may not be set to null.`,
 			},
 		}
@@ -976,7 +976,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 						SourceRange: test.SourceRange,
 					}
 
-					_, diags := prepareFinalInputVariableValue(
+					_, diags := PrepareFinalInputVariableValue(
 						varAddr, rawVal, varCfg,
 					)
 					if !diags.HasErrors() {
@@ -994,7 +994,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 						SourceRange: test.SourceRange,
 					}
 
-					_, diags := prepareFinalInputVariableValue(
+					_, diags := PrepareFinalInputVariableValue(
 						varAddr, rawVal, varCfg,
 					)
 					if !diags.HasErrors() {
@@ -1019,7 +1019,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			{
 				ValueFromUnknown,
 				tfdiags.SourceRange{},
-				"Invalid value for input variable: Unsuitable value for var.constrained_string_sensitive_required set from outside of the configuration: string required.",
+				"Invalid value for input variable: Unsuitable value for var.constrained_string_sensitive_required set from outside of the configuration: string required, but have object.",
 				false,
 			},
 			{
@@ -1029,7 +1029,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 					Start:    tfdiags.SourcePos(hcl.InitialPos),
 					End:      tfdiags.SourcePos(hcl.InitialPos),
 				},
-				`Invalid value for input variable: The given value is not suitable for var.constrained_string_sensitive_required, which is sensitive: string required. Invalid value defined at example.tfvars:1,1-1.`,
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_sensitive_required, which is sensitive: string required, but have object. Invalid value defined at example.tfvars:1,1-1.`,
 				true,
 			},
 		}
@@ -1045,7 +1045,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 						SourceRange: test.SourceRange,
 					}
 
-					_, diags := prepareFinalInputVariableValue(
+					_, diags := PrepareFinalInputVariableValue(
 						varAddr, rawVal, varCfg,
 					)
 					if !diags.HasErrors() {

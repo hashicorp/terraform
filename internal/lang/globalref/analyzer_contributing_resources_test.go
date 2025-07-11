@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -113,8 +114,7 @@ func TestAnalyzerContributingResourceAttrs(t *testing.T) {
 				)
 			},
 			[]string{
-				`data.test_thing.environment.any.base_cidr_block`,
-				`data.test_thing.environment.any.subnet_count`,
+				`data.test_thing.environment.any`,
 				`module.network.test_thing.subnet`,
 				`module.network.test_thing.vpc.string`,
 			},
@@ -126,8 +126,7 @@ func TestAnalyzerContributingResourceAttrs(t *testing.T) {
 				)
 			},
 			[]string{
-				`data.test_thing.environment.any.base_cidr_block`,
-				`data.test_thing.environment.any.subnet_count`,
+				`data.test_thing.environment.any`,
 				`module.compute.test_thing.load_balancer.string`,
 				`module.network.test_thing.subnet`,
 				`module.network.test_thing.vpc.string`,
@@ -144,8 +143,7 @@ func TestAnalyzerContributingResourceAttrs(t *testing.T) {
 				)
 			},
 			[]string{
-				`data.test_thing.environment.any.base_cidr_block`,
-				`data.test_thing.environment.any.subnet_count`,
+				`data.test_thing.environment.any`,
 				`module.compute.test_thing.controller`,
 				`module.network.test_thing.subnet`,
 				`module.network.test_thing.vpc.string`,

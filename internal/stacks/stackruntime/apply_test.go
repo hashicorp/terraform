@@ -68,6 +68,18 @@ func TestApply(t *testing.T) {
 		store  *stacks_testing_provider.ResourceStore
 		cycles []TestCycle
 	}{
+		"built-in provider used not present in required": {
+			path: "with-built-in-provider",
+			cycles: []TestCycle{
+				{}, // plan, apply -> no diags
+			},
+		},
+		"built-in provider used and explicitly defined in required providers": {
+			path: "with-built-in-provider-explicitly-defined",
+			cycles: []TestCycle{
+				{}, // plan, apply -> no diags
+			},
+		},
 		"creating inputs and outputs": {
 			path: "component-input-output",
 			cycles: []TestCycle{
@@ -3848,7 +3860,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 			tfdiags.Error,
 			"Inconsistent value for input variable during apply",
 			"The value for non-ephemeral input variable \"input\" was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases."),
-		expectDiagnostic(tfdiags.Error, "Invalid inputs for component", "Invalid input variable definition object: attribute \"input\": string required."),
+		expectDiagnostic(tfdiags.Error, "Invalid inputs for component", "Input variable \"input\" could not be evaluated, additional diagnostics elsewhere should provide mode detail."),
 	)
 
 	wantChanges := []stackstate.AppliedChange{
