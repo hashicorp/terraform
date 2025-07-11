@@ -165,7 +165,12 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for action %s", ais.ProviderAddr, ais.Addr)
 		}
 
-		// haha p.Actions doesn't exist yet
+		action, err := ais.Decode(p)
+		if err != nil {
+			return nil, err
+		}
+
+		changes.ActionInvocations = append(changes.ActionInvocations, action)
 	}
 
 	for _, ocs := range c.Outputs {
@@ -560,7 +565,12 @@ type ResourceInstanceActionChangeSrc struct {
 }
 
 // Decode unmarshals the raw representation of any linked resources.
-func (acs *ActionInstanceSrc) Decode(schema providers.Schema) (*ActionInstance, error) {
+func (acs *ActionInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionInstance, error) {
+	as := schema.Actions[acs.Addr.Action.Action.Type]
+
+	if as.IsNil() {
+		return nil, fmt.Errorf("ActionInstanceSrc.Decode: missing schema for %s", acs.Addr)
+	}
 
 	ai := &ActionInstance{
 		Addr: acs.Addr,
@@ -570,8 +580,18 @@ func (acs *ActionInstanceSrc) Decode(schema providers.Schema) (*ActionInstance, 
 		return ai, nil
 	}
 
+	linkedResourceTys := as.LinkedResources()
+	if len(as.LinkedResources()) != len(acs.LinkedResources) {
+		// unpossible: this should have been caught a dozen times over by now
+		// but it's a good check for tests
+		panic("how did we get here")
+	}
+
 	changes := make([]ResourceInstanceActionChange, 0, len(acs.LinkedResources))
 	for i, cs := range acs.LinkedResources {
+
+		ty := linkedResourceTys[i].TypeName
+		schema := schema.ResourceTypes[ty]
 		c, err := cs.Decode(&schema)
 
 		if err != nil {
