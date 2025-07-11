@@ -16,7 +16,7 @@ import (
 type Action struct {
 	Name    string
 	Type    string
-	Config  hcl.Body
+	Config  *hcl.Body
 	Count   hcl.Expression
 	ForEach hcl.Expression
 	// DependsOn []hcl.Traversal // not yet supported
@@ -275,7 +275,7 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 				})
 				return nil, diags
 			}
-			a.Config = block.Body
+			a.Config = &block.Body
 		default:
 			// Should not get here because the above should cover all
 			// block types declared in the schema.

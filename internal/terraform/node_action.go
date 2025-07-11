@@ -78,8 +78,8 @@ func (n *nodeExpandActionDeclaration) References() []*addrs.Reference {
 	refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
 	result = append(result, refs...)
 
-	if n.Schema != nil {
-		refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
+	if n.Schema != nil && c.Config != nil {
+		refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, *c.Config, n.Schema.ConfigSchema)
 		result = append(result, refs...)
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeActionDeclarationInstance represents an action in a particular module.
@@ -78,14 +79,17 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 	allInsts := ctx.InstanceExpander()
 	keyData := allInsts.GetActionInstanceRepetitionData(n.Addr)
 
-	configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema.ConfigSchema.DeepCopy(), nil, keyData)
-
-	diags = diags.Append(configDiags)
-	if diags.HasErrors() {
-		return diags
+	planActionVal := cty.EmptyObjectVal
+	if n.Config.Config != nil {
+		configVal, _, configDiags := ctx.EvaluateBlock(*n.Config.Config, schema.ConfigSchema.DeepCopy(), nil, keyData)
+		diags = diags.Append(configDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+		planActionVal = configVal
 	}
 
-	ctx.Actions().AddActionInstance(n.Addr, configVal, n.ResolvedProvider)
+	ctx.Actions().AddActionInstance(n.Addr, planActionVal, n.ResolvedProvider)
 	return nil
 }
 
@@ -103,8 +107,8 @@ func (n *NodeActionDeclarationInstance) References() []*addrs.Reference {
 	forEachRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
 	result = append(result, forEachRefs...)
 
-	if n.Schema != nil {
-		configRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
+	if n.Schema != nil && c.Config != nil {
+		configRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, *c.Config, n.Schema.ConfigSchema)
 		result = append(result, configRefs...)
 	}
 
