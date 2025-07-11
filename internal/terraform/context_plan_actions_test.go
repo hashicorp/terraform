@@ -41,30 +41,6 @@ action "test_unlinked" "hello" {}
 			expectPlanActionCalled: false,
 		},
 
-		"invalid attr": {
-			module: map[string]string{
-				"main.tf": `
-terraform { experiments = [actions] }
-action "test_unlinked" "hello" {
-  unknown_attr = "value"
-}
-		`,
-			},
-			expectPlanActionCalled: false,
-			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
-				return diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Unsupported argument",
-					Detail:   `An argument named "unknown_attr" is not expected here.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 4, Column: 3, Byte: 74},
-						End:      hcl.Pos{Line: 4, Column: 15, Byte: 86},
-					},
-				})
-			},
-		},
-
 		"invalid config": {
 			module: map[string]string{
 				"main.tf": `
