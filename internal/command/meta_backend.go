@@ -799,7 +799,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			s.StateStore.Provider.Source,
 			backendConfig.Type,
 		)
-		panic("not implemented yet")
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not implemented yet",
+			Detail:   "Migration from state store to backend is not implemented yet",
+		})
 
 	// Migration from backend to state store
 	case backendConfig == nil && !s.Backend.Empty() &&
@@ -810,7 +814,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			stateStoreConfig.Provider.Name,
 			stateStoreConfig.ProviderAddr,
 		)
-		panic("not implemented yet")
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not implemented yet",
+			Detail:   "Migration from backend to state store is not implemented yet",
+		})
 
 	// Potentially changing a backend configuration
 	case backendConfig != nil && !s.Backend.Empty() &&
