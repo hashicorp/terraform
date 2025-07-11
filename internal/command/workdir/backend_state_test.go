@@ -5,7 +5,6 @@ package workdir
 
 import (
 	"encoding/json"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -57,7 +56,8 @@ func TestParseBackendStateFile(t *testing.T) {
 				"terraform_version": "0.8.0",
 				"backend": {
 					"type": "treasure_chest_buried_on_a_remote_island",
-					"config": {}
+					"config": {},
+					"hash" : 12345
 				}
 			}`,
 			Want: &BackendStateFile{
@@ -66,6 +66,7 @@ func TestParseBackendStateFile(t *testing.T) {
 				Backend: &BackendConfigState{
 					Type:      "treasure_chest_buried_on_a_remote_island",
 					ConfigRaw: json.RawMessage("{}"),
+					Hash:      12345,
 				},
 			},
 		},
@@ -84,8 +85,10 @@ func TestParseBackendStateFile(t *testing.T) {
 						"source": "registry.terraform.io/my-org/foobar",
 						"config": {
 							"credentials": "./creds.json"
-						}
-					}
+						},
+						"hash" : 12345
+					},
+					"hash" : 12345
 				}
 			}`,
 			Want: &BackendStateFile{
@@ -101,6 +104,7 @@ func TestParseBackendStateFile(t *testing.T) {
 						"bucket": "my-bucket",
 						"region": "saturn"
 					}`),
+					Hash: 12345,
 				},
 			},
 		},
@@ -110,7 +114,8 @@ func TestParseBackendStateFile(t *testing.T) {
 				"terraform_version": "9.9.9",
 				"backend": {
 					"type": "treasure_chest_buried_on_a_remote_island",
-					"config": {}
+					"config": {},
+					"hash" : 12345
 				},
 				"state_store": {
 					"type": "foobar_baz",
@@ -120,8 +125,10 @@ func TestParseBackendStateFile(t *testing.T) {
 					},
 					"provider": {
 						"version": "1.2.3",
-						"source": "registry.terraform.io/my-org/foobar"
-					}
+						"source": "registry.terraform.io/my-org/foobar",
+						"hash" : 12345
+					},
+					"hash" : 12345
 				}
 			}`,
 			WantErr: `encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block`,
@@ -168,7 +175,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      },\n      \"hash\": 12345\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
 		},
 		"it returns an error when neither backend nor state_store config state are present": {
 			Input: &BackendStateFile{},
@@ -286,8 +293,8 @@ func TestBackendStateFile_DeepCopy(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			copy := tc.file.DeepCopy()
 
-			if !reflect.DeepEqual(copy, tc.file) {
-				t.Fatalf("unexpected difference in backend state data:\n got %#v, want %#v", copy, tc.file)
+			if diff := cmp.Diff(copy, tc.file); diff != "" {
+				t.Fatalf("unexpected difference in backend state data:\n %s", diff)
 			}
 		})
 	}
