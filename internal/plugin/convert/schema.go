@@ -173,7 +173,7 @@ func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
 		schema.Unlinked = &providers.UnlinkedAction{}
 	case *proto.ActionSchema_Lifecycle_:
 		schema.Lifecycle = &providers.LifecycleAction{
-			Exectues:       ProtoToExecutionOrder(t.Lifecycle.Executes),
+			Executes:       ProtoToExecutionOrder(t.Lifecycle.Executes),
 			LinkedResource: ProtoToLinkedResource(t.Lifecycle.LinkedResource),
 		}
 	case *proto.ActionSchema_Linked_:
