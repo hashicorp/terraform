@@ -894,7 +894,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// > Changing how the store is configured.
 		// > Allowing values to be moved between partial overrides and config
 
-		panic("not implemented yet")
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not implemented yet",
+			Detail:   "Changing a state store configuration is not implemented yet",
+		})
 
 	default:
 		diags = diags.Append(fmt.Errorf(
