@@ -26,6 +26,7 @@ permissions:
 
 jobs:
     check-changelog-entry:
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog-check') }}
         name: "Check Changelog Entry"
         runs-on: ubuntu-latest
         concurrency:
