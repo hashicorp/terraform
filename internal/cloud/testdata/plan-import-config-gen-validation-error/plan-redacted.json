@@ -51,7 +51,7 @@
         "importing": {
           "id": "bar"
         },
-        "generated_config": "resource \"terraform_data\" \"foo\" {\n  input            = null\n  triggers_replace = null\n}"
+        "generated_config": "resource \"terraform_data\" \"foo\" {\n  provider         = terraform\n  input            = null\n  triggers_replace = null\n}"
       }
     }
   ],

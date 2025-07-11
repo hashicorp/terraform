@@ -3,5 +3,6 @@
 
 # __generated__ by Terraform from "bar"
 resource "test_instance" "foo" {
-  ami = null
+  provider = test
+  ami      = null
 }
