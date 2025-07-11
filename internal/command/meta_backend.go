@@ -637,7 +637,6 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		if ssDiags.HasErrors() {
 			return nil, diags
 		}
-		panic(fmt.Sprintf("logic for using a state store during init isn't implemented yet, but state store %s is in use", stateStoreConfig.Type))
 	} else {
 		// backend config may or may not have been parsed and included in opts,
 		// or may not exist in config at all (default/implied local backend)
@@ -739,6 +738,16 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		return m.backend_c_r_S(backendConfig, cHash, sMgr, true, opts)
 
+	// We're unsetting a state_store (moving from state_store => local)
+	case stateStoreConfig == nil && !s.StateStore.Empty() &&
+		backendConfig == nil && s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: previously-initialized state_store %q in provider %s (%q) is no longer present in config",
+			s.StateStore.Type,
+			s.StateStore.Provider.Source.Type,
+			s.StateStore.Provider.Source,
+		)
+		panic("not implemented yet")
+
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
 		stateStoreConfig == nil && s.StateStore.Empty():
@@ -762,6 +771,39 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 		return m.backend_C_r_s(backendConfig, cHash, sMgr, opts)
+
+	// Configuring a state store for the first time or -reconfigure flag was used
+	case stateStoreConfig != nil && s.StateStore.Empty() &&
+		backendConfig == nil && s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: moving from default local state only to state_store %q in provider %s (%q)",
+			stateStoreConfig.Type,
+			stateStoreConfig.Provider.Name,
+			stateStoreConfig.ProviderAddr,
+		)
+		panic("not implemented yet")
+
+	// Migration from state store to backend
+	case backendConfig != nil && s.Backend.Empty() &&
+		stateStoreConfig == nil && !s.StateStore.Empty():
+		log.Printf("[TRACE] Meta.Backend: config has changed from state_store %q in provider %s (%q) to backend %q",
+			s.StateStore.Type,
+			s.StateStore.Provider.Source.Type,
+			s.StateStore.Provider.Source,
+			backendConfig.Type,
+		)
+		panic("not implemented yet")
+
+	// Migration from backend to state store
+	case backendConfig == nil && !s.Backend.Empty() &&
+		stateStoreConfig != nil && s.StateStore.Empty():
+		log.Printf("[TRACE] Meta.Backend: config has changed from backend %q to state_store %q in provider %s (%q)",
+			s.Backend.Type,
+			stateStoreConfig.Type,
+			stateStoreConfig.Provider.Name,
+			stateStoreConfig.ProviderAddr,
+		)
+		panic("not implemented yet")
+
 	// Potentially changing a backend configuration
 	case backendConfig != nil && !s.Backend.Empty() &&
 		stateStoreConfig == nil && s.StateStore.Empty():
@@ -830,6 +872,21 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		log.Printf("[WARN] backend config has changed since last init")
 		return m.backend_C_r_S_changed(backendConfig, cHash, sMgr, true, opts)
+
+	// Potentially changing a state store configuration
+	case backendConfig == nil && s.Backend.Empty() &&
+		stateStoreConfig != nil && !s.StateStore.Empty():
+		// When implemented, this will need to handle multiple scenarios like:
+		// > Changing to using a different provider for PSS.
+		// > Changing to using a different version of the same provider for PSS.
+		// >>>> Navigating state upgrades that do not force an explicit migration &&
+		//      identifying when migration is required.
+		// > Changing to using a different store in the same version of the provider.
+		// > Changing how the provider is configured.
+		// > Changing how the store is configured.
+		// > Allowing values to be moved between partial overrides and config
+
+		panic("not implemented yet")
 
 	default:
 		diags = diags.Append(fmt.Errorf(
