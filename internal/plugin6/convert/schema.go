@@ -8,10 +8,11 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ConfigSchemaToProto takes a *configschema.Block and converts it to a
@@ -121,7 +122,7 @@ func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
 		schema.Unlinked = &providers.UnlinkedAction{}
 	case *proto.ActionSchema_Lifecycle_:
 		schema.Lifecycle = &providers.LifecycleAction{
-			Exectues:       ProtoToExecutionOrder(t.Lifecycle.Executes),
+			Executes:       ProtoToExecutionOrder(t.Lifecycle.Executes),
 			LinkedResource: ProtoToLinkedResource(t.Lifecycle.LinkedResource),
 		}
 	case *proto.ActionSchema_Linked_:
@@ -129,7 +130,7 @@ func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
 			LinkedResources: ProtoToLinkedResources(t.Linked.LinkedResources),
 		}
 	default:
-		panic("Unknown Action Type, expected schema to contain either Unlinked, Liefecycle, or Linked")
+		panic("Unknown Action Type. Expected schema to contain either Unlinked, Lifecycle, or Linked")
 	}
 	return schema
 }
