@@ -398,7 +398,7 @@ func TestModuleOverride_action_and_trigger(t *testing.T) {
 		Foo *string `hcl:"foo"`
 	}
 	var gotArgs content
-	diags = gohcl.DecodeBody(gotConfig, nil, &gotArgs)
+	diags = gohcl.DecodeBody(*gotConfig, nil, &gotArgs)
 	assertNoDiagnostics(t, diags)
 
 	wantArgs := content{
