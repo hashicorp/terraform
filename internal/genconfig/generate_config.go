@@ -80,10 +80,8 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 
 	var diags tfdiags.Diagnostics
 
-	if pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != "" {
-		buf.WriteString(strings.Repeat(" ", 2))
-		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
-	}
+	buf.WriteString(strings.Repeat(" ", 2))
+	buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
 
 	if stateVal.RawEquals(cty.NilVal) {
 		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))

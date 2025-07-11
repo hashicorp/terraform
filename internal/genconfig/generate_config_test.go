@@ -66,7 +66,8 @@ func TestConfigGeneration(t *testing.T) {
 			value: cty.NilVal,
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
-  value = null          # OPTIONAL string
+  provider = tfcoremock
+  value    = null       # OPTIONAL string
   list_block {          # OPTIONAL block
     nested_value = null # OPTIONAL string
   }
@@ -121,7 +122,8 @@ resource "tfcoremock_simple_resource" "empty" {
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
-  value = "Hello, world!"
+  provider = tfcoremock
+  value    = "Hello, world!"
   list_block {
     nested_value = "Hello, solar system!"
   }
@@ -175,7 +177,8 @@ resource "tfcoremock_simple_resource" "empty" {
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
-  value = null
+  provider = tfcoremock
+  value    = null
   list_block {
     nested_value = "Hello, solar system!"
   }
@@ -419,9 +422,10 @@ resource "tfcoremock_simple_resource" "empty" {
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
-  list   = null
-  map    = null
-  single = null
+  provider = tfcoremock
+  list     = null
+  map      = null
+  single   = null
 }`,
 		},
 		"simple_resource_with_stringified_json_object": {
@@ -458,6 +462,7 @@ resource "tfcoremock_simple_resource" "empty" {
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
+  provider = tfcoremock
   value = jsonencode({
     "0Hello" = "World"
     And      = ["Solar", "System"]
@@ -499,7 +504,8 @@ resource "tfcoremock_simple_resource" "empty" {
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
-  value = jsonencode(["Hello", "World"])
+  provider = tfcoremock
+  value    = jsonencode(["Hello", "World"])
 }`,
 		},
 		"simple_resource_with_json_primitive_strings": {
@@ -540,6 +546,7 @@ resource "tfcoremock_simple_resource" "empty" {
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
+  provider            = tfcoremock
   value_string_bool   = "true"
   value_string_number = "42"
 }`,
@@ -578,7 +585,8 @@ resource "tfcoremock_simple_resource" "empty" {
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
-  value = "[\"Hello\", \"World\""
+  provider = tfcoremock
+  value    = "[\"Hello\", \"World\""
 }`,
 		},
 		// Just try all the simple values with sensitive marks.
@@ -632,6 +640,7 @@ resource "tfcoremock_simple_resource" "empty" {
 			}),
 			expected: `
 resource "tfcoremock_sensitive_values" "values" {
+  provider     = tfcoremock
   bool         = null # sensitive
   empty_string = null # sensitive
   list         = null # sensitive
@@ -672,6 +681,7 @@ resource "tfcoremock_sensitive_values" "values" {
 				}),
 			}),
 			expected: `resource "testing_resource" "resource" {
+  provider = testing
   map = {
     "key with spaces"    = "spaces"
     key_with_underscores = "underscores"
@@ -720,6 +730,7 @@ resource "tfcoremock_sensitive_values" "values" {
 				}),
 			}),
 			expected: `resource "testing_resource" "resource" {
+  provider = testing
   map = {
     "key with spaces" = {
       value = "spaces"
@@ -760,6 +771,7 @@ resource "tfcoremock_sensitive_values" "values" {
 				}),
 			}),
 			expected: `resource "testing_resource" "resource" {
+  provider = testing
   map = {
     "key.with.periods"   = "periods"
     key_with_underscores = "underscores"
@@ -808,6 +820,7 @@ resource "tfcoremock_sensitive_values" "values" {
 				}),
 			}),
 			expected: `resource "testing_resource" "resource" {
+  provider = testing
   map = {
     "key.with.periods" = {
       value = "periods"
@@ -962,7 +975,8 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
 
 	// Check the generated content
 	expectedContent := `resource "aws_instance" "example_0" {
-  name = "instance-1"
+  provider = aws
+  name     = "instance-1"
   tags = {
     Environment = "Dev"
     Owner       = "Team1"
@@ -981,7 +995,8 @@ import {
 }
 
 resource "aws_instance" "example_1" {
-  name = "instance-2"
+  provider = aws
+  name     = "instance-2"
   tags = {
     Environment = "Prod"
     Owner       = "Team2"
