@@ -683,15 +683,20 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		s = workdir.NewBackendStateFile()
 	} else if s.Backend != nil {
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
+	} else if s.StateStore != nil {
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q state_store using provider %q, version %s",
+			s.StateStore.Type,
+			s.StateStore.Provider.Source,
+			s.StateStore.Provider.Version)
 	} else {
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
 	}
 
-	// if we want to force reconfiguration of the backend, we set the backend
-	// state to nil on this copy. This will direct us through the correct
-	// configuration path in the switch statement below.
+	// if we want to force reconfiguration of the backend or state store, we set the backend
+	// and state_store state to nil on this copy. This will direct us through the correct
 	if m.reconfigure {
 		s.Backend = nil
+		s.StateStore = nil
 	}
 
 	// Upon return, we want to set the state we're using in-memory so that
@@ -707,12 +712,14 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// configuring new backends, updating previously-configured backends, etc.
 	switch {
 	// No configuration set at all. Pure local state.
-	case backendConfig == nil && s.Backend.Empty():
+	case backendConfig == nil && s.Backend.Empty() &&
+		stateStoreConfig == nil && s.StateStore.Empty():
 		log.Printf("[TRACE] Meta.Backend: using default local state only (no backend configuration, and no existing initialized backend)")
 		return nil, nil
 
 	// We're unsetting a backend (moving from backend => local)
-	case backendConfig == nil && !s.Backend.Empty():
+	case backendConfig == nil && !s.Backend.Empty() &&
+		stateStoreConfig == nil && s.StateStore.Empty():
 		log.Printf("[TRACE] Meta.Backend: previously-initialized %q backend is no longer present in config", s.Backend.Type)
 
 		initReason := fmt.Sprintf("Unsetting the previously set backend %q", s.Backend.Type)
@@ -733,7 +740,8 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		return m.backend_c_r_S(backendConfig, cHash, sMgr, true, opts)
 
 	// Configuring a backend for the first time or -reconfigure flag was used
-	case backendConfig != nil && s.Backend.Empty():
+	case backendConfig != nil && s.Backend.Empty() &&
+		stateStoreConfig == nil && s.StateStore.Empty():
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", backendConfig.Type)
 		if !opts.Init {
 			if backendConfig.Type == "cloud" {
@@ -755,7 +763,8 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 		return m.backend_C_r_s(backendConfig, cHash, sMgr, opts)
 	// Potentially changing a backend configuration
-	case backendConfig != nil && !s.Backend.Empty():
+	case backendConfig != nil && !s.Backend.Empty() &&
+		stateStoreConfig == nil && s.StateStore.Empty():
 		// We are not going to migrate if...
 		//
 		// We're not initializing
