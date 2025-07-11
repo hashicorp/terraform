@@ -378,7 +378,7 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 }
 
 // Newly configured backend with prior local state and no remote state
-func TestMetaBackend_configureNewWithState(t *testing.T) {
+func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
@@ -455,7 +455,7 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 
 // Newly configured backend with matching local and remote state doesn't prompt
 // for copy.
-func TestMetaBackend_configureNewWithoutCopy(t *testing.T) {
+func TestMetaBackend_configureNewBackendWithoutCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
@@ -505,7 +505,7 @@ func TestMetaBackend_configureNewWithoutCopy(t *testing.T) {
 
 // Newly configured backend with prior local state and no remote state,
 // but opting to not migrate.
-func TestMetaBackend_configureNewWithStateNoMigrate(t *testing.T) {
+func TestMetaBackend_configureNewBackendWithStateNoMigrate(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
@@ -549,7 +549,7 @@ func TestMetaBackend_configureNewWithStateNoMigrate(t *testing.T) {
 }
 
 // Newly configured backend with prior local state and remote state
-func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
+func TestMetaBackend_configureNewBackendWithStateExisting(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate-existing"), td)
@@ -620,7 +620,7 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 }
 
 // Newly configured backend with prior local state and remote state
-func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
+func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate-existing"), td)
@@ -691,7 +691,7 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 }
 
 // Saved backend state matching config
-func TestMetaBackend_configuredUnchanged(t *testing.T) {
+func TestMetaBackend_configuredBackendUnchanged(t *testing.T) {
 	defer testChdir(t, testFixturePath("backend-unchanged"))()
 
 	// Setup the meta
@@ -879,7 +879,7 @@ func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
 // Reconfiguring with an already configured backend.
 // This should ignore the existing backend config, and configure the new
 // backend is if this is the first time.
-func TestMetaBackend_reconfigureChange(t *testing.T) {
+func TestMetaBackend_reconfigureBackendChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-single-to-single"), td)
@@ -1010,7 +1010,7 @@ func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 // the currently selected workspace should prompt the user with a list of
 // workspaces to choose from to select a valid one, if more than one workspace
 // is available.
-func TestMetaBackend_initSelectedWorkspaceDoesNotExist(t *testing.T) {
+func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExist(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-multi"), td)
@@ -1043,7 +1043,7 @@ func TestMetaBackend_initSelectedWorkspaceDoesNotExist(t *testing.T) {
 // Initializing a backend which supports workspaces and does *not* have the
 // currently selected workspace - and which only has a single workspace - should
 // automatically select that single workspace.
-func TestMetaBackend_initSelectedWorkspaceDoesNotExistAutoSelect(t *testing.T) {
+func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExistAutoSelect(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-single"), td)
@@ -1084,7 +1084,7 @@ func TestMetaBackend_initSelectedWorkspaceDoesNotExistAutoSelect(t *testing.T) {
 
 // Initializing a backend which supports workspaces and does *not* have
 // the currently selected workspace with input=false should fail.
-func TestMetaBackend_initSelectedWorkspaceDoesNotExistInputFalse(t *testing.T) {
+func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExistInputFalse(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-multi"), td)
@@ -1104,7 +1104,7 @@ func TestMetaBackend_initSelectedWorkspaceDoesNotExistInputFalse(t *testing.T) {
 }
 
 // Changing a configured backend, copying state
-func TestMetaBackend_configuredChangeCopy(t *testing.T) {
+func TestMetaBackend_configuredBackendChangeCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change"), td)
@@ -1151,7 +1151,7 @@ func TestMetaBackend_configuredChangeCopy(t *testing.T) {
 
 // Changing a configured backend that supports only single states to another
 // backend that only supports single states.
-func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
+func TestMetaBackend_configuredBackendChangeCopy_singleState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-single-to-single"), td)
@@ -1205,7 +1205,7 @@ func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
 // Changing a configured backend that supports multi-state to a
 // backend that only supports single states. The multi-state only has
 // a default state.
-func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
+func TestMetaBackend_configuredBackendChangeCopy_multiToSingleDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-default-to-single"), td)
@@ -1258,7 +1258,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
 
 // Changing a configured backend that supports multi-state to a
 // backend that only supports single states.
-func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
+func TestMetaBackend_configuredBackendChangeCopy_multiToSingle(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-single"), td)
@@ -1327,7 +1327,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 
 // Changing a configured backend that supports multi-state to a
 // backend that only supports single states.
-func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) {
+func TestMetaBackend_configuredBackendChangeCopy_multiToSingleCurrentEnv(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-single"), td)
@@ -1392,7 +1392,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 
 // Changing a configured backend that supports multi-state to a
 // backend that also supports multi-state.
-func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
+func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-multi"), td)
@@ -1485,7 +1485,7 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 // Changing a configured backend that supports multi-state to a
 // backend that also supports multi-state, but doesn't allow a
 // default state while the default state is non-empty.
-func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithDefault(t *testing.T) {
+func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-no-default-with-default"), td)
@@ -1560,7 +1560,7 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithDefault(t *testing
 // Changing a configured backend that supports multi-state to a
 // backend that also supports multi-state, but doesn't allow a
 // default state while the default state is empty.
-func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithoutDefault(t *testing.T) {
+func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-no-default-without-default"), td)
@@ -1732,7 +1732,7 @@ func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
 }
 
 // Unsetting a saved backend and copying the remote state
-func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
+func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unset"), td)
@@ -2066,7 +2066,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 }
 
 // init a backend using -backend-config options multiple times
-func TestMetaBackend_configureWithExtra(t *testing.T) {
+func TestMetaBackend_configureBackendWithExtra(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-empty"), td)
@@ -2147,7 +2147,7 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 }
 
 // move options from config to -backend-config
-func TestMetaBackend_configToExtra(t *testing.T) {
+func TestMetaBackend_backendConfigToExtra(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
