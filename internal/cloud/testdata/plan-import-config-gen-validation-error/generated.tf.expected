@@ -3,6 +3,7 @@
 
 # __generated__ by Terraform from "bar"
 resource "terraform_data" "foo" {
+  provider         = terraform
   input            = null
   triggers_replace = null
 }

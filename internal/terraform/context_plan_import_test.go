@@ -959,6 +959,7 @@ import {
 		}
 
 		want := `resource "test_object" "a" {
+  provider    = test
   test_bool   = null
   test_list   = null
   test_map    = null
@@ -1150,6 +1151,7 @@ import {
 	}
 
 	want := `resource "test_object" "a" {
+  provider    = test
   test_bool   = null
   test_list   = null
   test_map    = null
