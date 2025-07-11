@@ -4,9 +4,6 @@ terraform {
       source = "my-org/foo"
     }
   }
-  state_store "foo_override" {
-    provider "foo" {}
 
-    custom_attr = "override"
-  }
+  # Config has been updated to remove a state_store block 
 }
