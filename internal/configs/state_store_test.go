@@ -13,6 +13,54 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+func TestTest(t *testing.T) {
+	body := configBodyForTest(t, `
+state_store "foo" {
+	provider "foobar" {
+		nootbar = "foobar"
+	}
+	path          = "mystate.tfstate"
+	workspace_dir = "foobar"
+}
+`)
+	content, diags := body.Content(terraformBlockSchema)
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %s", diags)
+	}
+
+	block := content.Blocks.OfType("state_store")[0]
+
+	ss, diags := decodeStateStoreBlock(block)
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %s", diags)
+	}
+	ssSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"path": {
+				Type:     cty.String,
+				Required: true,
+			},
+			"workspace_dir": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+	pSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foobar": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	_, _, tfDiags := ss.Hash(ssSchema, pSchema)
+	if len(tfDiags) > 0 {
+		t.Fatalf("diags: %s", diags)
+	}
+
+}
+
 // The Hash method assumes that the state_store schema doesn't include a provider block,
 // and it requires calling code to remove the nested provider block from state_store config data.
 func TestStateStore_Hash(t *testing.T) {

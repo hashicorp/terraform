@@ -36,8 +36,20 @@ func decodeStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
 		DeclRange: block.DefRange,
 	}
 
-	content, remain, moreDiags := block.Body.PartialContent(StateStorageBlockSchema)
+	content, _, moreDiags := block.Body.PartialContent(StateStorageBlockSchema)
 	diags = append(diags, moreDiags...)
+
+	// ensure remaining configuration omits `provider` block for hcldec
+	spec := &hcldec.BlockSpec{
+		TypeName: "provider",
+		Required: true,
+		Nested: &hcldec.BlockLabelSpec{
+			Index: 0,
+			Name:  "type",
+		},
+	}
+	_, remain, _ := hcldec.PartialDecode(block.Body, spec, nil)
+
 	ss.Config = remain
 
 	if len(content.Blocks) == 0 {
@@ -129,13 +141,9 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 	// so we need to ignore it. Decode will return errors about 'extra' attrs and blocks. We can ignore
 	// the diagnostic reporting the unexpected provider block, but we need to handle all other diagnostics.
 	// but we need to check that's the only thing being ignored.
-	ssVal, decodeDiags := hcldec.Decode(b.Config, spec, nil)
+	ssVal, _, decodeDiags := hcldec.PartialDecode(b.Config, spec, nil)
 	if decodeDiags.HasErrors() {
 		for _, diag := range decodeDiags {
-			if diag.Detail == "Blocks of type \"provider\" are not expected here." {
-				// We want to tolerate this, so it's not appended
-				continue
-			}
 			diags = diags.Append(diag)
 		}
 		if diags.HasErrors() {
