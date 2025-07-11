@@ -1630,6 +1630,44 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 	}
 }
 
+// Unsetting a saved state store
+//
+// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
+// case for this scenario, and will need to be updated when that init feature is implemented.
+func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unset"), td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.AllowExperimentalFeatures = true
+
+	// Get the state store's config
+	mod, loadDiags := m.loadSingleModule(td)
+	if loadDiags.HasErrors() {
+		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	}
+
+	// No mock provider is used here - yet
+	// Logic will need to be implemented that lets the init have access to
+	// a factory for the 'old' provider used for PSS previously. This will be
+	// used when migrating away from PSS entirely, or to a new PSS configuration.
+
+	// Get the operations backend
+	_, beDiags := m.Backend(&BackendOpts{
+		Init:             true,
+		StateStoreConfig: mod.StateStore,
+	})
+	if !beDiags.HasErrors() {
+		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	}
+	wantErr := "Unsetting a state store is not implemented yet"
+	if !strings.Contains(beDiags.Err().Error(), wantErr) {
+		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	}
+}
+
 // Unsetting a saved backend and copying the remote state
 func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
