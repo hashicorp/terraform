@@ -210,13 +210,16 @@ type LinkedResourceSchema struct {
 }
 
 type UnlinkedAction struct{}
+
 type LifecycleAction struct {
-	Exectues       ExecutionOrder
+	Executes       ExecutionOrder
 	LinkedResource LinkedResourceSchema
 }
+
 type LinkedAction struct {
 	LinkedResources []LinkedResourceSchema
 }
+
 type ActionSchema struct {
 	ConfigSchema *configschema.Block
 
@@ -237,6 +240,11 @@ func (a ActionSchema) LinkedResources() []LinkedResourceSchema {
 		return a.Linked.LinkedResources
 	}
 	panic("ActionSchema must have one of Unlinked, Lifecycle, or Linked set")
+}
+
+// IsNil() returns true is there is no action schema at all.
+func (a ActionSchema) IsNil() bool {
+	return a.ConfigSchema == nil && a.Unlinked == nil && a.Lifecycle == nil && a.Linked == nil
 }
 
 // Schema pairs a provider or resource schema with that schema's version.

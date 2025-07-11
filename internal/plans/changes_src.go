@@ -27,6 +27,10 @@ type ChangesSrc struct {
 
 	Queries []*QueryInstanceSrc
 
+	// ActionInvocations tracks planned action invocations, which may have
+	// embedded resource instance changes.
+	Actions []*ActionInstanceSrc
+
 	// Outputs tracks planned changes output values.
 	//
 	// Note that although an in-memory plan contains planned changes for
@@ -153,6 +157,20 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		}
 
 		changes.Queries = append(changes.Queries, query)
+	}
+
+	for _, ais := range c.Actions {
+		p, ok := schemas.Providers[ais.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for action %s", ais.ProviderAddr, ais.Addr)
+		}
+
+		action, err := ais.Decode(p)
+		if err != nil {
+			return nil, err
+		}
+
+		changes.ActionInvocations = append(changes.ActionInvocations, action)
 	}
 
 	for _, ocs := range c.Outputs {
@@ -529,4 +547,62 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		Importing:       cs.Importing.Decode(identityType),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
+}
+
+type ActionInstanceSrc struct {
+	Addr addrs.AbsActionInstance
+
+	ProviderAddr addrs.AbsProviderConfig
+
+	LinkedResources []ResourceInstanceActionChangeSrc
+}
+
+type ResourceInstanceActionChangeSrc struct {
+	Addr addrs.AbsResourceInstance
+
+	// ChangeSrc is an embedded description of the not-yet-decoded change.
+	ChangeSrc
+}
+
+// Decode unmarshals the raw representation of any linked resources.
+func (acs *ActionInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionInstance, error) {
+	as := schema.Actions[acs.Addr.Action.Action.Type]
+
+	if as.IsNil() {
+		return nil, fmt.Errorf("ActionInstanceSrc.Decode: missing schema for %s", acs.Addr)
+	}
+
+	ai := &ActionInstance{
+		Addr: acs.Addr,
+	}
+
+	if len(acs.LinkedResources) == 0 {
+		return ai, nil
+	}
+
+	linkedResourceTys := as.LinkedResources()
+	if len(as.LinkedResources()) != len(acs.LinkedResources) {
+		// unpossible: this should have been caught a dozen times over by now
+		// but it's a good check for tests
+		panic("how did we get here")
+	}
+
+	changes := make([]ResourceInstanceActionChange, 0, len(acs.LinkedResources))
+	for i, cs := range acs.LinkedResources {
+
+		ty := linkedResourceTys[i].TypeName
+		schema := schema.ResourceTypes[ty]
+		c, err := cs.Decode(&schema)
+
+		if err != nil {
+			return nil, err
+		}
+		changes[i] = ResourceInstanceActionChange{
+			Addr:   cs.Addr,
+			Change: *c,
+		}
+	}
+
+	ai.LinkedResources = changes
+	return ai, nil
 }

@@ -115,7 +115,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 		} else if act.Lifecycle != nil {
 			newAct.Type = &tfplugin6.ActionSchema_Lifecycle_{
 				Lifecycle: &tfplugin6.ActionSchema_Lifecycle{
-					Executes:       convert.ExecutionOrderToProto(act.Lifecycle.Exectues),
+					Executes:       convert.ExecutionOrderToProto(act.Lifecycle.Executes),
 					LinkedResource: convert.LinkedResourceToProto(act.Lifecycle.LinkedResource),
 				},
 			}
