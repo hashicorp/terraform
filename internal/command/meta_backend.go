@@ -746,7 +746,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			s.StateStore.Provider.Source.Type,
 			s.StateStore.Provider.Source,
 		)
-		panic("not implemented yet")
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not implemented yet",
+			Detail:   "Unsetting a state store is not implemented yet",
+		})
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
