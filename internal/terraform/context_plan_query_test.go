@@ -998,7 +998,7 @@ import {
 `
 
 	testResourceCfg2 = `resource "test_resource" "test2_0" {
-  instance_type = null # OPTIONAL string
+  instance_type = "ami-123456"
 }
 import {
   to       = test_resource.test2_0
@@ -1009,7 +1009,7 @@ import {
 }
 
 resource "test_resource" "test2_1" {
-  instance_type = null # OPTIONAL string
+  instance_type = "ami-654321"
 }
 import {
   to       = test_resource.test2_1
@@ -1020,7 +1020,7 @@ import {
 }
 
 resource "test_resource" "test2_2" {
-  instance_type = null # OPTIONAL string
+  instance_type = "ami-789012"
 }
 import {
   to       = test_resource.test2_2
