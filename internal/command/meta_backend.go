@@ -892,9 +892,14 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		diags = diags.Append(fmt.Errorf(
 			"Unhandled backend configuration state. This is a bug. Please\n"+
 				"report this error with the following information.\n\n"+
-				"Config Nil: %v\n"+
-				"Saved Backend Empty: %v\n",
-			backendConfig == nil, s.Backend.Empty(),
+				"Backend Config Nil: %v\n"+
+				"Saved Backend Empty: %v\n"+
+				"StateStore Config Nil: %v\n"+
+				"Saved StateStore Empty: %v\n",
+			backendConfig == nil,
+			s.Backend.Empty(),
+			stateStoreConfig == nil,
+			s.StateStore.Empty(),
 		))
 		return nil, diags
 	}
