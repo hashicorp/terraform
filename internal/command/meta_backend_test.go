@@ -2425,8 +2425,8 @@ func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
 	}
 }
 
-// Verify that interpolations result in an error
-func TestMetaBackend_configureStateStoreInterpolation(t *testing.T) {
+// Verify that using variables results in an error
+func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	wantErr := "Variables not allowed"
 
 	cases := map[string]struct {
