@@ -2433,11 +2433,11 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 		fixture string
 		wantErr string
 	}{
-		"no interpolation in nested provider block": {
+		"no variables in nested provider block": {
 			fixture: "state-store-new-vars-in-provider",
 			wantErr: wantErr,
 		},
-		"no interpolation in the state_store block": {
+		"no variables in the state_store block": {
 			fixture: "state-store-new-vars-in-store",
 			wantErr: wantErr,
 		},
