@@ -236,22 +236,26 @@ func TestStateStore_checkStateStoreHashUnaffectedByProviderBlock(t *testing.T) {
 	// Make two StateStores:
 	// 1) Has provider block in the main Config value, as well as matching data in Provider.Config
 	// 2) Doesn't have provider block in the main Config value, has config in Provider.Config
+
 	s1 := StateStore{
-		Config: configBodyForTest(t, `
-		provider "foobar" {
-		  foobar = "foobar"
-		}
-		path          = "mystate.tfstate"
-		workspace_dir = "foobar"`),
+		Config: configBodyForTest(t, `state_store "foo" {
+			provider "foobar" {
+				foobar = "foobar"
+			}
+			path          = "mystate.tfstate"
+			workspace_dir = "foobar"
+		}`),
 		Provider: &Provider{
 			Config: providerConfig,
 		},
 	}
 	s2 := StateStore{
-		Config: configBodyForTest(t, `
-		# No provider block here
-		path          = "mystate.tfstate"
-		workspace_dir = "foobar"`),
+		Config: configBodyForTest(t, `state_store "foo" {
+			# No provider block here
+
+			path          = "mystate.tfstate"
+			workspace_dir = "foobar"
+		}`),
 		Provider: &Provider{
 			Config: providerConfig,
 		},
