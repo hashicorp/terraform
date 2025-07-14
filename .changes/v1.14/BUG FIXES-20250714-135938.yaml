@@ -1,5 +1,5 @@
 kind: BUG FIXES
 body: Retrieve all workspace variables while doing a `terraform import`, include variables inherited from variable sets but not overwritten by the workspace.
-time: 2025-06-18T10:14:56.994302+05:30
+time: 2025-07-14T13:59:38.867411+05:30
 custom:
     Issue: "37241"
