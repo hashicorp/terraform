@@ -218,7 +218,13 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 
 			// All actions referenced in the action triggeres should be evaluated prior.
 			for _, at := range c.Managed.ActionTriggers {
-				result = append(result, at.Actions...)
+				for _, actionRef := range at.Actions {
+					// This should have been caught during validation
+					ref, _ := addrs.ParseRef(actionRef.Traversal)
+					if ref != nil {
+						result = append(result, ref)
+					}
+				}
 			}
 		}
 
