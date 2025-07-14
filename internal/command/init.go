@@ -422,7 +422,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
 
-	view.Output(views.InitializingBackendMessage)
+	if root.StateStore != nil {
+		view.Output(views.InitializingStateStoreMessage)
+	} else {
+		view.Output(views.InitializingBackendMessage)
+	}
 
 	var backendConfig *configs.Backend
 	var backendConfigOverride hcl.Body
