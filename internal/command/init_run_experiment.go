@@ -205,9 +205,10 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		// TODO(SarahFrench/radeksimko) - pass information about config locks (`configLocks`) into initBackend to
-		// enable PSS
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
+		// This handles case when config contains either backend or state_store blocks.
+		// This is valid as either can be implementations of backend.Backend, which is what we
+		// obtain here.
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, configLocks, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
