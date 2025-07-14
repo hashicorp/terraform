@@ -639,6 +639,11 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				if diags.HasErrors() {
 					return diags
 				}
+
+				ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
+					Addr:         absActionAddr,
+					ProviderAddr: actionInstance.ProviderAddr,
+				})
 			}
 		}
 	}

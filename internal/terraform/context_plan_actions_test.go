@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -31,6 +32,7 @@ func TestContextPlan_actions(t *testing.T) {
 		expectPlanActionCalled    bool
 		expectValidateDiagnostics func(m *configs.Config) tfdiags.Diagnostics
 		expectPlanDiagnostics     func(m *configs.Config) tfdiags.Diagnostics
+		assertPlan                func(*testing.T, *plans.Plan)
 	}{
 		"unreferenced": {
 			module: map[string]string{
@@ -39,6 +41,12 @@ action "test_unlinked" "hello" {}
 			`,
 			},
 			expectPlanActionCalled: false,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected no actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+			},
 		},
 
 		"invalid config": {
@@ -81,6 +89,19 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				// TODO: Test that action the triggering resource address is set correctly
+			},
 		},
 
 		"after_create triggered": {
@@ -98,6 +119,19 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				// TODO: Test that action the triggering resource address is set correctly
+			},
 		},
 
 		"before_update triggered - on create": {
@@ -253,6 +287,27 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				actionAddrs := []string{}
+				for _, action := range p.Changes.ActionInvocations {
+					actionAddrs = append(actionAddrs, action.Addr.String())
+				}
+				slices.Sort(actionAddrs)
+
+				if !slices.Equal(actionAddrs, []string{
+					"action.test_unlinked.hello[\"a\"]",
+					"action.test_unlinked.hello[\"b\"]",
+				}) {
+					t.Fatalf("expected action addresses to be 'action.test_unlinked.hello[\"a\"]' and 'action.test_unlinked.hello[\"b\"]', got %v", actionAddrs)
+				}
+
+				// TODO: Test that action the triggering resource address is set correctly
+			},
 		},
 
 		"action for_each with auto-expansion": {
@@ -300,6 +355,27 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				actionAddrs := []string{}
+				for _, action := range p.Changes.ActionInvocations {
+					actionAddrs = append(actionAddrs, action.Addr.String())
+				}
+				slices.Sort(actionAddrs)
+
+				if !slices.Equal(actionAddrs, []string{
+					"action.test_unlinked.hello[0]",
+					"action.test_unlinked.hello[1]",
+				}) {
+					t.Fatalf("expected action addresses to be 'action.test_unlinked.hello[0]' and 'action.test_unlinked.hello[1]', got %v", actionAddrs)
+				}
+
+				// TODO: Test that action the triggering resource address is set correctly
+			},
 		},
 
 		"action count with auto-expansion": {
@@ -403,6 +479,27 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				actionAddrs := []string{}
+				for _, action := range p.Changes.ActionInvocations {
+					actionAddrs = append(actionAddrs, action.Addr.String())
+				}
+				slices.Sort(actionAddrs)
+
+				if !slices.Equal(actionAddrs, []string{
+					"action.test_unlinked.hello",
+					"action.test_unlinked.hello",
+				}) {
+					t.Fatalf("expected action addresses to be 'action.test_unlinked.hello' and 'action.test_unlinked.hello', got %v", actionAddrs)
+				}
+
+				// TODO: Test that action the triggering resource address is set correctly
+			},
 		},
 		"expanded resource - expanded action": {
 			toBeImplemented: true, // TODO: Not sure why this panics
@@ -428,6 +525,27 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				actionAddrs := []string{}
+				for _, action := range p.Changes.ActionInvocations {
+					actionAddrs = append(actionAddrs, action.Addr.String())
+				}
+				slices.Sort(actionAddrs)
+
+				if !slices.Equal(actionAddrs, []string{
+					"action.test_unlinked.hello[0]",
+					"action.test_unlinked.hello[1]",
+				}) {
+					t.Fatalf("expected action addresses to be 'action.test_unlinked.hello[0]' and 'action.test_unlinked.hello[1]', got %v", actionAddrs)
+				}
+
+				// TODO: Test that action the triggering resource address is set correctly
+			},
 		},
 
 		"transitive dependencies": {
@@ -752,7 +870,7 @@ resource "test_object" "a" {
 				opts = tc.planOpts
 			}
 
-			_, diags = ctx.Plan(m, prevRunState, opts)
+			plan, diags := ctx.Plan(m, prevRunState, opts)
 
 			if tc.expectPlanDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
@@ -760,12 +878,14 @@ resource "test_object" "a" {
 				tfdiags.AssertNoDiagnostics(t, diags)
 			}
 
-			// TODO: add tc.assertPlan once we have a plan implementation for actions
-
 			if tc.expectPlanActionCalled && !p.PlanActionCalled {
 				t.Errorf("expected plan action to be called, but it was not")
 			} else if !tc.expectPlanActionCalled && p.PlanActionCalled {
 				t.Errorf("expected plan action to not be called, but it was")
+			}
+
+			if tc.assertPlan != nil {
+				tc.assertPlan(t, plan)
 			}
 		})
 	}
