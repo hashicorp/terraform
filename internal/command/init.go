@@ -286,15 +286,19 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		backendSchema := b.ConfigSchema()
 		backendConfig := root.Backend
 
-		backendConfigOverride, overrideDiags := c.backendConfigOverrideBody(extraConfig, backendSchema)
-		diags = diags.Append(overrideDiags)
-		if overrideDiags.HasErrors() {
-			return nil, true, diags
+		var configOverride hcl.Body
+		if len(*extraConfig.Items) > 0 {
+			var overrideDiags tfdiags.Diagnostics
+			configOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
+			diags = diags.Append(overrideDiags)
+			if overrideDiags.HasErrors() {
+				return nil, true, diags
+			}
 		}
 
 		opts = &BackendOpts{
 			BackendConfig:  backendConfig,
-			ConfigOverride: backendConfigOverride,
+			ConfigOverride: configOverride,
 			Init:           true,
 			ViewType:       viewType,
 		}
