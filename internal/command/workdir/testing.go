@@ -13,6 +13,7 @@ import (
 
 // getTestProviderState is a test helper that returns a state representation
 // of a provider used for managing state via pluggable state storage.
+// The Hash is always hardcoded at 12345.
 func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName, config string) *ProviderConfigState {
 	t.Helper()
 
@@ -29,5 +30,6 @@ func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName, c
 			Type:      typeName,
 		},
 		ConfigRaw: []byte(config),
+		Hash:      12345,
 	}
 }

@@ -394,6 +394,9 @@ var terraformBlockSchema = &hcl.BodySchema{
 		{
 			Type: "required_providers",
 		},
+		// NOTE: An entry for state_store is not present here
+		// because we conditionally add it in the calling code
+		// depending on whether experiments are enabled or not.
 		{
 			Type:       "provider_meta",
 			LabelNames: []string{"provider"},
