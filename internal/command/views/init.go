@@ -182,6 +182,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the backend...",
 		JSONValue:  "Initializing the backend...",
 	},
+	"initializing_state_store_message": {
+		HumanValue: "\n[reset][bold]Initializing the state store...",
+		JSONValue:  "Initializing the state store...",
+	},
 	"initializing_provider_plugin_message": {
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
@@ -193,10 +197,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	"initializing_provider_plugin_from_state_message": {
 		HumanValue: "\n[reset][bold]Initializing provider plugins found in the state...",
 		JSONValue:  "Initializing provider plugins found in the state...",
-	},
-	"initializing_state_store_message": {
-		HumanValue: "\n[reset][bold]Initializing the state store...",
-		JSONValue:  "Initializing the state store...",
 	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
