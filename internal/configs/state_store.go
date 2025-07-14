@@ -132,10 +132,6 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 	ssVal, decodeDiags := hcldec.Decode(b.Config, spec, nil)
 	if decodeDiags.HasErrors() {
 		for _, diag := range decodeDiags {
-			if diag.Detail == "Blocks of type \"provider\" are not expected here." {
-				// We want to tolerate this, so it's not appended
-				continue
-			}
 			diags = diags.Append(diag)
 		}
 		if diags.HasErrors() {

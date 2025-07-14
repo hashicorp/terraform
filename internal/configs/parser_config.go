@@ -395,6 +395,10 @@ var terraformBlockSchema = &hcl.BodySchema{
 			Type: "required_providers",
 		},
 		{
+			Type:       "state_store",
+			LabelNames: []string{"type"},
+		},
+		{
 			Type:       "provider_meta",
 			LabelNames: []string{"provider"},
 		},

@@ -69,44 +69,47 @@ func TestStateStore_Hash(t *testing.T) {
 	}{
 		"ignores the provider block in config data, as long as the schema doesn't include it": {
 			schema: stateStoreSchema,
-			config: configBodyForTest(t, `
+			config: configBodyForTest(t, `state_store "foo" {
 					provider "foobar" {
 					  foobar = "foobar"
 					}
 					path          = "mystate.tfstate"
-					workspace_dir = "foobar"`),
+					workspace_dir = "foobar"
+			}`),
 			providerConfig:     configBodyForTest(t, `foobar = "foobar"`),
-			wantProviderHash:   4114724339,
-			wantStateStoreHash: 3485592773,
+			wantProviderHash:   2672365208,
+			wantStateStoreHash: 3037430836,
 		},
 		"tolerates empty config block for the provider even when schema has Required field(s)": {
 			schema: stateStoreSchema,
-			config: configBodyForTest(t, `
+			config: configBodyForTest(t, `state_store "foo" {
 					provider "foobar" {
 						# required field "foobar" is missing
 					}
 					path          = "mystate.tfstate"
-					workspace_dir = "foobar"`),
+					workspace_dir = "foobar"
+			}`),
 			providerConfig:     hcl.EmptyBody(),
-			wantProviderHash:   3978553527,
-			wantStateStoreHash: 3485592773,
+			wantProviderHash:   2911589008,
+			wantStateStoreHash: 3037430836,
 		},
 		"tolerates missing Required field(s) in state_store config": {
 			schema: stateStoreSchema,
-			config: configBodyForTest(t, `
+			config: configBodyForTest(t, `state_store "foo" {
 					provider "foobar" {
 					  foobar = "foobar"
 					}
 
 					# required field "path" is missing
-					workspace_dir = "foobar"`),
+					workspace_dir = "foobar"
+			}`),
 			providerConfig:     configBodyForTest(t, `foobar = "foobar"`),
-			wantProviderHash:   4114724339,
-			wantStateStoreHash: 392841918,
+			wantProviderHash:   2672365208,
+			wantStateStoreHash: 3453024478,
 		},
 		"returns errors when the config contains non-provider things that aren't in the schema": {
 			schema: stateStoreSchema,
-			config: configBodyForTest(t, `
+			config: configBodyForTest(t, `state_store "foo" {
 					provider "foobar" {
 					  foobar = "foobar"
 					}
@@ -115,7 +118,8 @@ func TestStateStore_Hash(t *testing.T) {
 					}
 					unexpected_attr = "foobar"
 					path          = "mystate.tfstate"
-					workspace_dir = "foobar"`),
+					workspace_dir = "foobar"
+			}`),
 			providerConfig:  configBodyForTest(t, `foobar = "foobar"`),
 			wantErrorString: "Unsupported argument",
 		},
@@ -135,12 +139,13 @@ func TestStateStore_Hash(t *testing.T) {
 					},
 				},
 			},
-			config: configBodyForTest(t, `
+			config: configBodyForTest(t, `state_store "foo" {
 					provider "foobar" {
 					  foobar = "foobar"
 					}
 					path          = "mystate.tfstate"
-					workspace_dir = "foobar"`),
+					workspace_dir = "foobar"
+			}`),
 			providerConfig:  configBodyForTest(t, `foobar = "foobar"`),
 			wantErrorString: `Protected block name "provider" in state store schema`,
 		},
@@ -153,12 +158,13 @@ func TestStateStore_Hash(t *testing.T) {
 					},
 				},
 			},
-			config: configBodyForTest(t, `
+			config: configBodyForTest(t, `state_store "foo" {
 					provider "foobar" {
 					  foobar = "foobar"
 					}
 					path          = "mystate.tfstate"
-					workspace_dir = "foobar"`),
+					workspace_dir = "foobar"
+			}`),
 			providerConfig:  configBodyForTest(t, `foobar = "foobar"`),
 			wantErrorString: `Protected argument name "provider" in state store schema`,
 		},
@@ -166,11 +172,14 @@ func TestStateStore_Hash(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-			s := StateStore{
-				Config: tc.config,
-				Provider: &Provider{
-					Config: tc.providerConfig,
-				},
+			content, _, cfgDiags := tc.config.PartialContent(terraformBlockSchema)
+			if len(cfgDiags) > 0 {
+				t.Fatalf("unexpected diagnostics: %s", cfgDiags)
+			}
+			var ssDiags hcl.Diagnostics
+			s, ssDiags := decodeStateStoreBlock(content.Blocks.OfType("state_store")[0])
+			if len(ssDiags) > 0 {
+				t.Fatalf("unexpected diagnostics: %s", ssDiags)
 			}
 
 			ssHash, pHash, diags := s.Hash(tc.schema, providerSchema)
