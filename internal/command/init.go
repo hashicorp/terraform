@@ -247,6 +247,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 
 		opts = &BackendOpts{
 			StateStoreConfig: root.StateStore,
+			Locks:            locks,
 			ProviderFactory:  factory,
 			ConfigOverride:   configOverride,
 			Init:             true,
