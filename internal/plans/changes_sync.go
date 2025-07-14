@@ -240,7 +240,7 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 }
 
 // GetActionInvocation
-func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance) *ActionInstance {
+func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance) *ActionInvocationInstance {
 	if cs == nil {
 		panic("GetActionInvocation on nil ChangesSync")
 	}
@@ -256,7 +256,7 @@ func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance) *Action
 }
 
 // AppendActionInvocation
-func (cs *ChangesSync) AppendActionInvocation(action *ActionInstance) {
+func (cs *ChangesSync) AppendActionInvocation(action *ActionInvocationInstance) {
 	if cs == nil {
 		panic("AppendActionInvocation on nil ChangesSync")
 	}
@@ -296,7 +296,7 @@ func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInvocationInst
 // The returned array is a deep copy of the changes recorded in the plan, so
 // callers may mutate then although it's generally better (less confusing) to
 // treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetResourceInstanceActions(addr addrs.AbsResourceInstance, dk addrs.DeposedKey) []*ActionInstance {
+func (cs *ChangesSync) GetResourceInstanceActions(addr addrs.AbsResourceInstance, dk addrs.DeposedKey) []*ActionInvocationInstance {
 	if cs == nil {
 		panic("GetResourceInstanceChange on nil ChangesSync")
 	}

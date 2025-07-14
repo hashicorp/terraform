@@ -10,11 +10,12 @@
 package planproto
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -472,6 +473,7 @@ type Plan struct {
 	// checks, and each of those may have zero or more dynamic objects that
 	// the checks were applied to nested within.
 	CheckResults []*CheckResults `protobuf:"bytes,19,rep,name=check_results,json=checkResults,proto3" json:"check_results,omitempty"`
+	// An unordered set of planned action invocations.
 	// An unordered set of target addresses to include when applying. If no
 	// target addresses are present, the plan applies to the whole
 	// configuration.

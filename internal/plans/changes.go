@@ -27,7 +27,7 @@ type Changes struct {
 
 	// ActionInvocations tracks planned action invocations, which may have
 	// embedded resource instance changes.
-	ActionInvocations ActionInstances
+	ActionInvocations ActionInvocationInstances
 
 	// Outputs tracks planned changes output values.
 	//
@@ -249,8 +249,8 @@ func (c *Changes) SyncWrapper() *ChangesSync {
 
 // ActionInvocations returns planned action invocations for all module instances
 // that reside in the parent path.  Returns nil if no changes are planned.
-func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.ModuleCall) []*ActionInstance {
-	var ret []*ActionInstance
+func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.ModuleCall) []*ActionInvocationInstance {
+	var ret []*ActionInvocationInstance
 
 	for _, a := range c.ActionInvocations {
 		changeMod, changeCall := a.Addr.Module.Call()
@@ -273,8 +273,8 @@ func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.Modu
 // ActionsForResourceInstance returns the planned actions for the current object
 // of the resource instance of the given address, if any. Returns nil if no
 // change is planned.
-func (c *Changes) ActionsForResourceInstance(addr addrs.AbsResourceInstance) ActionInstances {
-	var ret []*ActionInstance
+func (c *Changes) ActionsForResourceInstance(addr addrs.AbsResourceInstance) ActionInvocationInstances {
+	var ret []*ActionInvocationInstance
 	for _, a := range c.ActionInvocations {
 		for _, r := range a.LinkedResources {
 			if r.Addr.Equal(addr) && r.DeposedKey == states.NotDeposed {
@@ -288,8 +288,8 @@ func (c *Changes) ActionsForResourceInstance(addr addrs.AbsResourceInstance) Act
 // ActionsForResourceInstanceDeposed returns the plan actions of a deposed
 // object of the resource instance of the given address, if any. Returns nil if
 // no change is planned.
-func (c *Changes) ActionsForResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) ActionInstances {
-	var ret []*ActionInstance
+func (c *Changes) ActionsForResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) ActionInvocationInstances {
+	var ret []*ActionInvocationInstance
 	for _, a := range c.ActionInvocations {
 		for _, r := range a.LinkedResources {
 			if r.Addr.Equal(addr) && r.DeposedKey == key {

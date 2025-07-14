@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-type ActionInstance struct {
+type ActionInvocationInstance struct {
 	Addr addrs.AbsActionInstance // mildwonkey TODO: this will be a *trigger* instance when that pr merges
 
 	// Provider is the address of the provider configuration that was used
@@ -43,7 +43,7 @@ type ResourceInstanceActionChange struct {
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
-func (ai *ActionInstance) Encode(schema providers.Schema) (*ActionInstanceSrc, error) {
+func (ai *ActionInvocationInstance) Encode(schema providers.Schema) (*ActionInstanceSrc, error) {
 	resourceChanges := make([]ResourceInstanceActionChangeSrc, 0, len(ai.LinkedResources))
 
 	for i, rc := range ai.LinkedResources {
@@ -66,21 +66,21 @@ func (ai *ActionInstance) Encode(schema providers.Schema) (*ActionInstanceSrc, e
 	}, nil
 }
 
-type ActionInstances []*ActionInstance
+type ActionInvocationInstances []*ActionInvocationInstance
 
-func (ais ActionInstances) DeepCopy() ActionInstances {
+func (ais ActionInvocationInstances) DeepCopy() ActionInvocationInstances {
 	if ais == nil {
 		return ais
 	}
 
-	ret := make(ActionInstances, len(ais))
+	ret := make(ActionInvocationInstances, len(ais))
 	for i, ai := range ais {
 		ret[i] = ai.DeepCopy()
 	}
 	return ret
 }
 
-func (ai *ActionInstance) DeepCopy() *ActionInstance {
+func (ai *ActionInvocationInstance) DeepCopy() *ActionInvocationInstance {
 	if ai == nil {
 		return ai
 	}

@@ -565,14 +565,14 @@ type ResourceInstanceActionChangeSrc struct {
 }
 
 // Decode unmarshals the raw representation of any linked resources.
-func (acs *ActionInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionInstance, error) {
+func (acs *ActionInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionInvocationInstance, error) {
 	as := schema.Actions[acs.Addr.Action.Action.Type]
 
 	if as.IsNil() {
 		return nil, fmt.Errorf("ActionInstanceSrc.Decode: missing schema for %s", acs.Addr)
 	}
 
-	ai := &ActionInstance{
+	ai := &ActionInvocationInstance{
 		Addr: acs.Addr,
 	}
 

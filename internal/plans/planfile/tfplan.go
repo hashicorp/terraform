@@ -68,6 +68,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		DriftedResources:  []*plans.ResourceInstanceChangeSrc{},
 		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{},
 		Checks:            &states.CheckResults{},
+		ActionInvocations: []*plans.ActionInvocationInstance{},
 	}
 
 	plan.Applyable = rawPlan.Applyable
