@@ -35,7 +35,7 @@ type Action struct {
 type ActionTrigger struct {
 	Condition hcl.Expression
 	Events    []ActionTriggerEvent
-	Actions   []*addrs.Reference // References to actions
+	Actions   []ActionRef // References to actions
 
 	DeclRange hcl.Range
 }
@@ -57,28 +57,16 @@ const (
 
 // ActionRef represents a reference to a configured Action
 type ActionRef struct {
-	Type string
-	Name string
-	Key  addrs.InstanceKey
+	Traversal hcl.Traversal
 
 	Range hcl.Range
-}
-
-// Addr returns the address of the action reference.
-// Since we don't allow referencing actions across module boundaries,
-// this is always a relative address.
-func (a ActionRef) Addr() addrs.ActionInstance {
-	return addrs.Action{
-		Type: a.Type,
-		Name: a.Name,
-	}.Instance(a.Key)
 }
 
 func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	a := &ActionTrigger{
 		Events:    []ActionTriggerEvent{},
-		Actions:   []*addrs.Reference{},
+		Actions:   []ActionRef{},
 		Condition: nil,
 	}
 
@@ -126,7 +114,7 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 	if attr, exists := content.Attributes["actions"]; exists {
 		exprs, ediags := hcl.ExprList(attr.Expr)
 		diags = append(diags, ediags...)
-		actions := []*addrs.Reference{}
+		actions := []ActionRef{}
 		for _, expr := range exprs {
 			traversal, travDiags := hcl.AbsTraversalForExpr(expr)
 			diags = append(diags, travDiags...)
@@ -141,17 +129,13 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 				continue
 			}
 
-			ref, refDiags := addrs.ParseRef(traversal)
-			if refDiags.HasErrors() {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid action reference",
-					Detail:   fmt.Sprintf("The action reference %q is invalid: %s", traversal, refDiags.Err()),
-					Subject:  expr.Range().Ptr(),
-				})
-				continue
+			if len(traversal) != 0 {
+				actionRef := ActionRef{
+					Traversal: traversal,
+					Range:     expr.Range(),
+				}
+				actions = append(actions, actionRef)
 			}
-			actions = append(actions, ref)
 
 		}
 		a.Actions = actions
