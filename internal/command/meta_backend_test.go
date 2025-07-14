@@ -229,7 +229,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 }
 
 // Verify that interpolations result in an error
-func TestMetaBackend_configureInterpolation(t *testing.T) {
+func TestMetaBackend_configureBackendInterpolation(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-interp"), td)
@@ -242,6 +242,10 @@ func TestMetaBackend_configureInterpolation(t *testing.T) {
 	_, err := m.Backend(&BackendOpts{Init: true})
 	if err == nil {
 		t.Fatal("should error")
+	}
+	wantErr := "Variables not allowed"
+	if !strings.Contains(err.Err().Error(), wantErr) {
+		t.Fatalf("error should include %q, got: %s", wantErr, err.Err())
 	}
 }
 
@@ -2418,6 +2422,92 @@ func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
 	wantErr := "Migration from state store to backend is not implemented yet"
 	if !strings.Contains(beDiags.Err().Error(), wantErr) {
 		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	}
+}
+
+// Verify that interpolations result in an error
+func TestMetaBackend_configureStateStoreInterpolation(t *testing.T) {
+	wantErr := "Variables not allowed"
+
+	cases := map[string]struct {
+		fixture string
+		wantErr string
+	}{
+		"no interpolation in nested provider block": {
+			fixture: "state-store-new-vars-in-provider",
+			wantErr: wantErr,
+		},
+		"no interpolation in the state_store block": {
+			fixture: "state-store-new-vars-in-store",
+			wantErr: wantErr,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			// Create a temporary working directory that is empty
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(tc.fixture), td)
+			defer testChdir(t, td)()
+
+			// Setup the meta
+			m := testMetaBackend(t, nil)
+			m.AllowExperimentalFeatures = true
+
+			// Get the state store's config
+			mod, loadDiags := m.loadSingleModule(td)
+			if loadDiags.HasErrors() {
+				t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+			}
+
+			// Get mock provider factory to be used during init
+			//
+			// This imagines a provider called foo that contains
+			// a pluggable state store implementation called bar.
+			mock := &testing_provider.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					Provider: providers.Schema{
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"region": {Type: cty.String, Optional: true},
+							},
+						},
+					},
+					DataSources:       map[string]providers.Schema{},
+					ResourceTypes:     map[string]providers.Schema{},
+					ListResourceTypes: map[string]providers.Schema{},
+					StateStores: map[string]providers.Schema{
+						"foo_bar": {
+							Body: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"bar": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			factory := func() (providers.Interface, error) {
+				return mock, nil
+			}
+
+			// Get the operations backend
+			_, err := m.Backend(&BackendOpts{
+				Init:             true,
+				StateStoreConfig: mod.StateStore,
+				ProviderFactory:  factory,
+			})
+			if err == nil {
+				t.Fatal("should error")
+			}
+			if !strings.Contains(err.Err().Error(), tc.wantErr) {
+				t.Fatalf("error should include %q, got: %s", tc.wantErr, err.Err())
+			}
+
+		})
 	}
 }
 
