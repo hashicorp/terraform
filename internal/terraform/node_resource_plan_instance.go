@@ -573,9 +573,15 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 		for j, actionRef := range at.Actions {
 			var actionAddr addrs.ActionInstance
 
-			if a, ok := actionRef.Subject.(addrs.ActionInstance); ok {
+			ref, parseRefDiags := addrs.ParseRef(actionRef.Traversal)
+			diags = diags.Append(parseRefDiags)
+			if parseRefDiags.HasErrors() {
+				return diags
+			}
+
+			if a, ok := ref.Subject.(addrs.ActionInstance); ok {
 				actionAddr = a
-			} else if a, ok := actionRef.Subject.(addrs.Action); ok {
+			} else if a, ok := ref.Subject.(addrs.Action); ok {
 				// Could be a reference to an action without an instance specified
 				// TODO: This is where we should auto-expand, for now we will just default to taking
 				// the action address with no key
