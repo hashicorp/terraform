@@ -601,7 +601,7 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 		configBody = configs.MergeBodies(configBody, opts.ConfigOverride)
 	}
 
-	log.Printf("[TRACE] Meta.Backend: built configuration for %q state_store with hash value %d and nested provider block with has value %d", c.Type, stateStoreHash, providerHash)
+	log.Printf("[TRACE] Meta.Backend: built configuration for %q state_store with hash value %d and nested provider block with hash value %d", c.Type, stateStoreHash, providerHash)
 
 	// We'll shallow-copy configs.StateStore here so that we can replace the
 	// body without affecting others that hold this reference.
