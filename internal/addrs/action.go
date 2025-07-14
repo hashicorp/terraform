@@ -6,6 +6,8 @@ package addrs
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Action is an address for an action block within configuration, which
@@ -327,3 +329,22 @@ func (a ConfigAction) UniqueKey() UniqueKey {
 type configActionKey string
 
 func (k configActionKey) uniqueKeySigil() {}
+
+// AbsActionInvocationInstance describes the invocation of an action as part of a plan / apply.
+type AbsActionInvocationInstance struct {
+	TriggeringResource AbsResourceInstance
+	Action             AbsActionInstance
+	TriggerIndex       int
+
+	// TriggerBlockSourceRange is the location of the action_trigger block
+	// within the resources lifecyclye block that triggered this action.
+	TriggerBlockSourceRange *tfdiags.SourceRange
+
+	// ActionReferenceSourceRange is the location of the action reference
+	// in the actions list within the action_trigger block.
+	ActionReferenceSourceRange *tfdiags.SourceRange
+}
+
+func (a AbsActionInvocationInstance) String() string {
+	return fmt.Sprintf("%s.%d.%s", a.TriggeringResource.String(), a.TriggerIndex, a.Action.String())
+}

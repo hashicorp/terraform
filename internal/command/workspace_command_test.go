@@ -62,6 +62,49 @@ func TestWorkspace_createAndChange(t *testing.T) {
 
 }
 
+func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	newCmd := &WorkspaceNewCommand{}
+
+	current, _ := newCmd.Workspace()
+	if current != backend.DefaultStateName {
+		t.Fatal("current workspace should be 'default'")
+	}
+
+	args := []string{""}
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	newCmd.Meta = Meta{Ui: ui, View: view}
+	if code := newCmd.Run(args); code != 1 {
+		t.Fatalf("expected failure when trying to create the \"\" workspace.\noutput: %s", ui.OutputWriter)
+	}
+
+	gotStderr := ui.ErrorWriter.String()
+	if want, got := `The workspace name "" is not allowed`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+
+	ui = cli.NewMockUi()
+	selectCmd := &WorkspaceSelectCommand{
+		Meta: Meta{
+			Ui:   ui,
+			View: view,
+		},
+	}
+	if code := selectCmd.Run(args); code != 1 {
+		t.Fatalf("expected failure when trying to select the the \"\" workspace.\noutput: %s", ui.OutputWriter)
+	}
+
+	gotStderr = ui.ErrorWriter.String()
+	if want, got := `The workspace name "" is not allowed`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+}
+
 // Create some workspaces and test the list output.
 // This also ensures we switch to the correct env after each call
 func TestWorkspace_createAndList(t *testing.T) {
@@ -341,6 +384,8 @@ func TestWorkspace_delete(t *testing.T) {
 	}
 }
 
+// TestWorkspace_deleteInvalid shows that if a workspace with an invalid name
+// has been created, Terraform allows users to delete it.
 func TestWorkspace_deleteInvalid(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
@@ -370,6 +415,35 @@ func TestWorkspace_deleteInvalid(t *testing.T) {
 		t.Fatalf("should have deleted workspace, but %s still exists", path)
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("unexpected error for workspace path: %s", err)
+	}
+}
+
+func TestWorkspace_deleteRejectsEmptyString(t *testing.T) {
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	// Empty string identifier for workspace
+	workspace := ""
+	path := filepath.Join(local.DefaultWorkspaceDir, workspace)
+
+	// create the workspace directories
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	delCmd := &WorkspaceDeleteCommand{
+		Meta: Meta{Ui: ui, View: view},
+	}
+
+	// delete the workspace
+	if code := delCmd.Run([]string{workspace}); code != cli.RunResultHelp {
+		t.Fatalf("expected code %d but got %d. Output: %s", cli.RunResultHelp, code, ui.OutputWriter)
+	}
+	if !strings.Contains(string(ui.ErrorWriter.Bytes()), "got an empty string") {
+		t.Fatalf("expected error to include \"got an empty string\" but was missing, got: %s", ui.ErrorWriter)
 	}
 }
 
@@ -449,6 +523,93 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	}
 }
 
+func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	// Create an empty default state, i.e. create default workspace.
+	originalStateFile := &statefile.File{
+		Serial:  1,
+		Lineage: "whatever",
+		State:   states.NewState(),
+	}
+
+	f, err := os.Create(filepath.Join(local.DefaultStateFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := statefile.Write(originalStateFile, f); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a non-default workspace
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, "test"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Select the non-default "test" workspace
+	selectCmd := &WorkspaceSelectCommand{}
+	args := []string{"test"}
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	selectCmd.Meta = Meta{Ui: ui, View: view}
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	// Assert there is a default and "test" workspace, and "test" is selected
+	listCmd := &WorkspaceListCommand{}
+	ui = cli.NewMockUi()
+	listCmd.Meta = Meta{Ui: ui, View: view}
+
+	if code := listCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "default\n* test"
+
+	if actual != expected {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
+	}
+
+	// Attempt to delete the default workspace (not forced)
+	ui = cli.NewMockUi()
+	delCmd := &WorkspaceDeleteCommand{
+		Meta: Meta{Ui: ui, View: view},
+	}
+	args = []string{"default"}
+	if code := delCmd.Run(args); code != 1 {
+		t.Fatalf("expected failure when trying to delete the default workspace.\noutput: %s", ui.OutputWriter)
+	}
+
+	// User should be prevented from deleting the default workspace despite:
+	// * the state being empty
+	// * default not being the selected workspace
+	gotStderr := ui.ErrorWriter.String()
+	if want, got := `Cannot delete the default workspace`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+
+	// Attempt to force delete the default workspace
+	ui = cli.NewMockUi()
+	delCmd = &WorkspaceDeleteCommand{
+		Meta: Meta{Ui: ui, View: view},
+	}
+	args = []string{"-force", "default"}
+	if code := delCmd.Run(args); code != 1 {
+		t.Fatalf("expected failure when trying to delete the default workspace.\noutput: %s", ui.OutputWriter)
+	}
+
+	// Outcome should be the same even when forcing
+	gotStderr = ui.ErrorWriter.String()
+	if want, got := `Cannot delete the default workspace`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+}
+
 func TestWorkspace_selectWithOrCreate(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -475,4 +636,37 @@ func TestWorkspace_selectWithOrCreate(t *testing.T) {
 		t.Fatalf("current workspace should be 'test', got %q", current)
 	}
 
+}
+
+func TestValidWorkspaceName(t *testing.T) {
+	cases := map[string]struct {
+		input string
+		valid bool
+	}{
+		"foobar": {
+			input: "foobar",
+			valid: true,
+		},
+		"valid symbols": {
+			input: "-._~@:",
+			valid: true,
+		},
+		"includes space": {
+			input: "two words",
+			valid: false,
+		},
+		"empty string": {
+			input: "",
+			valid: false,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			valid := validWorkspaceName(tc.input)
+			if valid != tc.valid {
+				t.Fatalf("unexpected output when processing input %q. Wanted %v got %v", tc.input, tc.valid, valid)
+			}
+		})
+	}
 }

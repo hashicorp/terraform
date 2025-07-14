@@ -57,7 +57,7 @@ func TestOutputValueResultValue(t *testing.T) {
 			WantRootVal:  cty.UnknownVal(cty.String),
 			WantChildVal: cty.StringVal("irrelevant"),
 
-			WantRootErr: `Unsuitable value for output "root": string required.`,
+			WantRootErr: `Unsuitable value for output "root": string required, but have object.`,
 		},
 		"type mismatch child": {
 			RootVal:  cty.StringVal("irrelevant"),
@@ -66,7 +66,7 @@ func TestOutputValueResultValue(t *testing.T) {
 			WantRootVal:  cty.StringVal("irrelevant"),
 			WantChildVal: cty.UnknownVal(cty.String),
 
-			WantChildErr: `Unsuitable value for output "foo": string required.`,
+			WantChildErr: `Unsuitable value for output "foo": string required, but have tuple.`,
 		},
 		"dynamic value placeholders": {
 			RootVal:  cty.DynamicVal,

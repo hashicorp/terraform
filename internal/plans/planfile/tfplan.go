@@ -179,9 +179,17 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		)
 	}
 
-	if rawBackend := rawPlan.Backend; rawBackend == nil {
-		return nil, fmt.Errorf("plan file has no backend settings; backend settings are required")
-	} else {
+	switch {
+	case rawPlan.Backend == nil && rawPlan.StateStore == nil:
+		// Similar validation in writeTfPlan should prevent this occurring
+		return nil,
+			fmt.Errorf("plan file has neither backend nor state_store settings; one of these settings is required. This is a bug in Terraform and should be reported.")
+	case rawPlan.Backend != nil && rawPlan.StateStore != nil:
+		// Similar validation in writeTfPlan should prevent this occurring
+		return nil,
+			fmt.Errorf("plan file contains both backend and state_store settings when only one of these settings should be set. This is a bug in Terraform and should be reported.")
+	case rawPlan.Backend != nil:
+		rawBackend := rawPlan.Backend
 		config, err := valueFromTfplan(rawBackend.Config)
 		if err != nil {
 			return nil, fmt.Errorf("plan file has invalid backend configuration: %s", err)
@@ -190,6 +198,28 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Type:      rawBackend.Type,
 			Config:    config,
 			Workspace: rawBackend.Workspace,
+		}
+	case rawPlan.StateStore != nil:
+		rawStateStore := rawPlan.StateStore
+		config, err := valueFromTfplan(rawStateStore.Config)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store configuration: %s", err)
+		}
+		provider := &plans.Provider{}
+		err = provider.SetSource(rawStateStore.Provider.Source)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store provider source: %s", err)
+		}
+		err = provider.SetVersion(rawStateStore.Provider.Version)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store provider version: %s", err)
+		}
+
+		plan.StateStore = plans.StateStore{
+			Type:      rawStateStore.Type,
+			Provider:  provider,
+			Config:    config,
+			Workspace: rawStateStore.Workspace,
 		}
 	}
 
@@ -636,17 +666,35 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		)
 	}
 
-	if plan.Backend.Type == "" || plan.Backend.Config == nil {
+	// Store details about accessing state
+	backendInUse := plan.Backend.Type != "" && plan.Backend.Config != nil
+	stateStoreInUse := plan.StateStore.Type != "" && plan.StateStore.Config != nil
+	switch {
+	case !backendInUse && !stateStoreInUse:
 		// This suggests a bug in the code that created the plan, since it
-		// ought to always have a backend populated, even if it's the default
+		// ought to always have either a backend or state_store populated, even if it's the default
 		// "local" backend with a local state file.
-		return fmt.Errorf("plan does not have a backend configuration")
-	}
-
-	rawPlan.Backend = &planproto.Backend{
-		Type:      plan.Backend.Type,
-		Config:    valueToTfplan(plan.Backend.Config),
-		Workspace: plan.Backend.Workspace,
+		return fmt.Errorf("plan does not have a backend or state_store configuration")
+	case backendInUse && stateStoreInUse:
+		// This suggests a bug in the code that created the plan, since it
+		// should never have both a backend and state_store populated.
+		return fmt.Errorf("plan contains both backend and state_store configurations, only one is expected")
+	case backendInUse:
+		rawPlan.Backend = &planproto.Backend{
+			Type:      plan.Backend.Type,
+			Config:    valueToTfplan(plan.Backend.Config),
+			Workspace: plan.Backend.Workspace,
+		}
+	case stateStoreInUse:
+		rawPlan.StateStore = &planproto.StateStore{
+			Type: plan.StateStore.Type,
+			Provider: &planproto.Provider{
+				Version: plan.StateStore.Provider.Version.String(),
+				Source:  plan.StateStore.Provider.Source.String(),
+			},
+			Config:    valueToTfplan(plan.StateStore.Config),
+			Workspace: plan.StateStore.Workspace,
+		}
 	}
 
 	rawPlan.Timestamp = plan.Timestamp.Format(time.RFC3339)

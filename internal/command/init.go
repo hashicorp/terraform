@@ -407,9 +407,9 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	backendConfig := root.CloudConfig.ToBackendConfig()
 
 	opts := &BackendOpts{
-		Config:   &backendConfig,
-		Init:     true,
-		ViewType: viewType,
+		BackendConfig: &backendConfig,
+		Init:          true,
+		ViewType:      viewType,
 	}
 
 	back, backDiags := c.Backend(opts)
@@ -490,7 +490,7 @@ the backend configuration is present and valid.
 	}
 
 	opts := &BackendOpts{
-		Config:         backendConfig,
+		BackendConfig:  backendConfig,
 		ConfigOverride: backendConfigOverride,
 		Init:           true,
 		ViewType:       viewType,

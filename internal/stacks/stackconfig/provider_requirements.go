@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/addrs"
+	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -31,15 +32,38 @@ type ProviderRequirement struct {
 
 func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	var ret *ProviderRequirements
 	attrs, hclDiags := block.Body.JustAttributes()
 	diags = diags.Append(hclDiags)
+
+	// Include built-in providers, if not present
+	includeBuiltInProviders := func(pr *ProviderRequirements) *ProviderRequirements {
+		if pr == nil {
+			pr = &ProviderRequirements{
+				Requirements: make(map[string]ProviderRequirement, len(attrs)),
+				DeclRange:    tfdiags.SourceRangeFromHCL(hcl.Range{}),
+			}
+		}
+
+		for providerName := range builtinProviders.BuiltInProviders() {
+			if _, ok := pr.Requirements[providerName]; !ok {
+				pr.Requirements[providerName] = ProviderRequirement{
+					LocalName: providerName,
+					Provider:  addrs.NewBuiltInProvider(providerName),
+				}
+			}
+		}
+
+		return pr
+	}
+
 	if len(attrs) == 0 {
-		return nil, diags
+		return includeBuiltInProviders(ret), diags
 	}
 
 	reverseMap := make(map[addrs.Provider]string)
 
-	ret := &ProviderRequirements{
+	ret = &ProviderRequirements{
 		Requirements: make(map[string]ProviderRequirement, len(attrs)),
 		DeclRange:    tfdiags.SourceRangeFromHCL(block.DefRange),
 	}
@@ -196,7 +220,8 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 		}
 		reverseMap[providerAddr] = name
 	}
-	return ret, diags
+
+	return includeBuiltInProviders(ret), diags
 }
 
 func (pr *ProviderRequirements) ProviderForLocalName(localName string) (addrs.Provider, bool) {

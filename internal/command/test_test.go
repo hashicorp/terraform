@@ -62,6 +62,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
+		"simple_pass_count": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			args:        []string{"-run-parallelism", "1"},
+			code:        0,
+		},
 		"simple_pass_nested_alternate": {
 			args:        []string{"-test-directory", "other"},
 			expectedOut: []string{"1 passed, 0 failed."},

@@ -425,6 +425,47 @@ func (m *Mock) ConfigureStateStore(req ConfigureStateStoreRequest) ConfigureStat
 	return m.Provider.ConfigureStateStore(req)
 }
 
+func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
+	return m.Provider.GetStates(req)
+}
+
+func (m *Mock) DeleteState(req DeleteStateRequest) DeleteStateResponse {
+	return m.Provider.DeleteState(req)
+}
+
+func (m *Mock) PlanAction(request PlanActionRequest) PlanActionResponse {
+	plannedLinkedResources := make([]LinkedResourcePlan, 0, len(request.LinkedResources))
+	for i, linkedResource := range request.LinkedResources {
+		plannedLinkedResources[i] = LinkedResourcePlan{
+			PlannedState:    linkedResource.PlannedState,
+			PlannedIdentity: linkedResource.PriorIdentity,
+		}
+	}
+
+	return PlanActionResponse{
+		LinkedResources: plannedLinkedResources,
+		Diagnostics:     nil,
+	}
+}
+
+func (m *Mock) InvokeAction(request InvokeActionRequest) InvokeActionResponse {
+	linkedResources := make([]LinkedResourceResult, 0, len(request.LinkedResources))
+	for i, linkedResource := range request.LinkedResources {
+		linkedResources[i] = LinkedResourceResult{
+			NewState:    linkedResource.PlannedState,
+			NewIdentity: linkedResource.PlannedIdentity,
+		}
+	}
+	return InvokeActionResponse{
+		Events: func(yield func(InvokeActionEvent) bool) {
+			yield(InvokeActionEvent_Completed{
+				LinkedResources: linkedResources,
+			})
+		},
+		Diagnostics: nil,
+	}
+}
+
 func (m *Mock) Close() error {
 	return m.Provider.Close()
 }

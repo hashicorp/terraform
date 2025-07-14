@@ -846,9 +846,9 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		return cty.DynamicVal, diags
 	}
 	resourceType := resourceSchema.Body.ImpliedType()
-	changes := d.Evaluator.Changes.GetChangesForAbsResource(lAddr.Absolute(d.ModulePath))
+	queries := d.Evaluator.Changes.GetQueryInstancesForAbsResource(lAddr.Absolute(d.ModulePath))
 
-	if len(changes) == 0 {
+	if len(queries) == 0 {
 		// Since we know there are no instances, return an empty container of the expected type.
 		switch {
 		case config.Count != nil:
@@ -865,7 +865,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 	case config.Count != nil:
 		// figure out what the last index we have is
 		length := -1
-		for _, inst := range changes {
+		for _, inst := range queries {
 			if intKey, ok := inst.Addr.Resource.Key.(addrs.IntKey); ok {
 				length = max(int(intKey)+1, length)
 			}
@@ -873,10 +873,10 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 
 		if length > 0 {
 			vals := make([]cty.Value, length)
-			for _, inst := range changes {
+			for _, inst := range queries {
 				key := inst.Addr.Resource.Key
 				if intKey, ok := key.(addrs.IntKey); ok {
-					vals[int(intKey)] = inst.After
+					vals[int(intKey)] = inst.Results.Value
 				}
 			}
 
@@ -892,10 +892,10 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		}
 	case config.ForEach != nil:
 		vals := make(map[string]cty.Value)
-		for _, inst := range changes {
+		for _, inst := range queries {
 			key := inst.Addr.Resource.Key
 			if strKey, ok := key.(addrs.StringKey); ok {
-				vals[string(strKey)] = inst.After
+				vals[string(strKey)] = inst.Results.Value
 			}
 		}
 
@@ -909,13 +909,13 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 			ret = cty.EmptyObjectVal
 		}
 	default:
-		if len(changes) <= 0 {
+		if len(queries) <= 0 {
 			// if the instance is missing, insert an empty tuple
 			ret = cty.ObjectVal(map[string]cty.Value{
 				"data": cty.EmptyTupleVal,
 			})
 		} else {
-			ret = changes[0].After
+			ret = queries[0].Results.Value
 		}
 	}
 

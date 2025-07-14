@@ -5,6 +5,7 @@ package workdir
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
@@ -14,7 +15,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-var _ ConfigState[BackendConfigState] = &BackendConfigState{}
+var _ ConfigState = &BackendConfigState{}
+var _ DeepCopier[BackendConfigState] = &BackendConfigState{}
+var _ PlanDataProvider[plans.Backend] = &BackendConfigState{}
 
 // BackendConfigState describes the physical storage format for the backend state
 // in a working directory, and provides the lowest-level API for decoding it.
@@ -51,6 +54,9 @@ func (s *BackendConfigState) Config(schema *configschema.Block) (cty.Value, erro
 // An error is returned if the given value does not conform to the implied
 // type of the schema.
 func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block) error {
+	if s == nil {
+		return errors.New("SetConfig called on nil BackendConfigState receiver")
+	}
 	ty := schema.ImpliedType()
 	buf, err := ctyjson.Marshal(val, ty)
 	if err != nil {
@@ -60,13 +66,15 @@ func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block
 	return nil
 }
 
-// ForPlan produces an alternative representation of the receiver that is
+// PlanData produces an alternative representation of the receiver that is
 // suitable for storing in a plan. The current workspace must additionally
 // be provided, to be stored alongside the backend configuration.
 //
 // The backend configuration schema is required in order to properly
 // encode the backend-specific configuration settings.
-func (s *BackendConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+//
+// As backends are not implemented by providers, the provider schema argument should always be nil
+func (s *BackendConfigState) PlanData(schema *configschema.Block, _ *configschema.Block, workspaceName string) (*plans.Backend, error) {
 	if s == nil {
 		return nil, nil
 	}

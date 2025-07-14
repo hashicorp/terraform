@@ -9,9 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
@@ -52,27 +50,37 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
-	validateResp := provider.ValidateListResourceConfig(
-		providers.ValidateListResourceConfigRequest{
-			TypeName: n.Config.Type,
-			Config:   unmarkedBlockVal,
-		},
-	)
-	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	limit, limitDiags := evaluateLimitExpression(config.List.Limit, ctx)
+	limitCty, limit, limitDiags := newLimitEvaluator(false).EvaluateExpr(ctx, config.List.Limit)
 	diags = diags.Append(limitDiags)
 	if limitDiags.HasErrors() {
 		return diags
 	}
 
-	includeResource, includeDiags := evaluateIncludeResourceExpression(config.List.IncludeResource, ctx)
+	includeRscCty, includeRsc, includeDiags := newIncludeRscEvaluator(false).EvaluateExpr(ctx, config.List.IncludeResource)
 	diags = diags.Append(includeDiags)
 	if includeDiags.HasErrors() {
+		return diags
+	}
+
+	rId := HookResourceIdentity{
+		Addr:         addr,
+		ProviderAddr: n.ResolvedProvider.Provider,
+	}
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
+	})
+
+	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
+	validateResp := provider.ValidateListResourceConfig(
+		providers.ValidateListResourceConfigRequest{
+			TypeName:              n.Config.Type,
+			Config:                unmarkedBlockVal,
+			IncludeResourceObject: includeRscCty,
+			Limit:                 limitCty,
+		},
+	)
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
 		return diags
 	}
 
@@ -82,23 +90,36 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		TypeName:              n.Config.Type,
 		Config:                unmarkedBlockVal,
 		Limit:                 limit,
-		IncludeResourceObject: includeResource,
+		IncludeResourceObject: includeRsc,
 	})
-	if resp.Diagnostics != nil {
-		return diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	results := plans.QueryResults{
+		Value: resp.Result,
 	}
 
-	change := &plans.ResourceInstanceChange{
+	// If a path is specified, generate the config for the resource
+	if n.generateConfigPath != "" {
+		var gDiags tfdiags.Diagnostics
+		results.Generated, gDiags = n.generateHCLResourceDef(addr, resp.Result.GetAttr("data"), providerSchema.ResourceTypes[n.Config.Type])
+		diags = diags.Append(gDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostListQuery(rId, results)
+	})
+	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
-		Change: plans.Change{
-			Action: plans.Read,
-			Before: cty.DynamicVal,
-			After:  resp.Result,
-		},
-		DeposedKey: states.NotDeposed,
+		Results:      results,
 	}
 
-	ctx.Changes().AppendResourceInstanceChange(change)
+	ctx.Changes().AppendQueryInstance(query)
 	return diags
 }

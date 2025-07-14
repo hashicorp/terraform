@@ -9,6 +9,8 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -69,7 +71,9 @@ type Plan struct {
 	DeferredResources []*DeferredResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
-	Backend           Backend
+
+	Backend    Backend
+	StateStore StateStore
 
 	// Complete is true if Terraform considers this to be a "complete" plan,
 	// which is to say that it includes a planned action (even if no-op)
@@ -227,4 +231,86 @@ func NewBackend(typeName string, config cty.Value, configSchema *configschema.Bl
 		Config:    dv,
 		Workspace: workspaceName,
 	}, nil
+}
+
+// StateStore represents the state store-related configuration and other data as it
+// existed when a plan was created.
+type StateStore struct {
+	// Type is the type of state store that the plan will apply against.
+	Type string
+
+	Provider *Provider
+
+	// Config is the configuration of the state store, whose schema is obtained
+	// from the host provider's GetProviderSchema response.
+	Config DynamicValue
+
+	// Workspace is the name of the workspace that was active when the plan
+	// was created. It is illegal to apply a plan created for one workspace
+	// to the state of another workspace.
+	// (This constraint is already enforced by the statefile lineage mechanism,
+	// but storing this explicitly allows us to return a better error message
+	// in the situation where the user has the wrong workspace selected.)
+	Workspace string
+}
+
+type Provider struct {
+	Version *version.Version // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
+	Source  *tfaddr.Provider // The FQN/fully-qualified name of the provider.
+
+	// Config is the configuration of the state store, whose schema is obtained
+	// from the host provider's GetProviderSchema response.
+	Config DynamicValue
+}
+
+func NewStateStore(typeName string, ver *version.Version, source *tfaddr.Provider, storeConfig cty.Value, storeSchema *configschema.Block, providerConfig cty.Value, providerSchema *configschema.Block, workspaceName string) (*StateStore, error) {
+	sdv, err := NewDynamicValue(storeConfig, storeSchema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+	pdv, err := NewDynamicValue(providerConfig, providerSchema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	provider := &Provider{
+		Version: ver,
+		Source:  source,
+		Config:  pdv,
+	}
+
+	return &StateStore{
+		Type:      typeName,
+		Provider:  provider,
+		Config:    sdv,
+		Workspace: workspaceName,
+	}, nil
+}
+
+// SetVersion includes logic for parsing a string representation of a version,
+// for example data read from a plan file.
+// If an error occurs it is returned and the receiver's Version field is unchanged.
+// If there are no errors then the receiver's Version field is updated.
+func (p *Provider) SetVersion(input string) error {
+	ver, err := version.NewVersion(input)
+	if err != nil {
+		return err
+	}
+
+	p.Version = ver
+	return nil
+}
+
+// SetSource includes logic for parsing a string representation of a provider source,
+// for example data read from a plan file.
+// If an error occurs it is returned and the receiver's Source field is unchanged.
+// If there are no errors then the receiver's Source field is updated.
+func (p *Provider) SetSource(input string) error {
+	source, diags := addrs.ParseProviderSourceString(input)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
+	}
+
+	p.Source = &source
+	return nil
 }

@@ -74,6 +74,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			},
 		},
 		StateStores: map[string]providers.Schema{},
+		Actions:     map[string]providers.ActionSchema{},
 	}
 	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
 	return resp
@@ -287,6 +288,40 @@ func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConf
 func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	var resp providers.ConfigureStateStoreResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
+}
+
+func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	var resp providers.GetStatesResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
+}
+
+func (p *Provider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	var resp providers.DeleteStateResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
+}
+
+func (p *Provider) PlanAction(req providers.PlanActionRequest) providers.PlanActionResponse {
+	var resp providers.PlanActionResponse
+
+	switch req.ActionType {
+	default:
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported action %q", req.ActionType))
+	}
+
+	return resp
+}
+
+func (p *Provider) InvokeAction(req providers.InvokeActionRequest) providers.InvokeActionResponse {
+	var resp providers.InvokeActionResponse
+
+	switch req.ActionType {
+	default:
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported action %q", req.ActionType))
+	}
+
 	return resp
 }
 

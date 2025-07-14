@@ -1,13 +1,13 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/gcs
 
-go 1.24.2
+go 1.24.5
 
 require (
 	cloud.google.com/go/kms v1.15.5
 	cloud.google.com/go/storage v1.30.1
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/zclconf/go-cty v1.16.2
+	github.com/zclconf/go-cty v1.16.3
 	golang.org/x/oauth2 v0.27.0
 	google.golang.org/api v0.155.0
 	google.golang.org/genproto v0.0.0-20231211222908-989df2bf70f3
@@ -37,7 +37,7 @@ require (
 	github.com/hashicorp/go-slug v0.16.4 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
-	github.com/hashicorp/hcl/v2 v2.23.1-0.20250203194505-ba0759438da2 // indirect
+	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/hashicorp/terraform-registry-address v0.3.0 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect

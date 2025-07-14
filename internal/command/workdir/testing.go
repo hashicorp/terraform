@@ -13,7 +13,7 @@ import (
 
 // getTestProviderState is a test helper that returns a state representation
 // of a provider used for managing state via pluggable state storage.
-func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName string) *Provider {
+func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName, config string) *ProviderConfigState {
 	t.Helper()
 
 	ver, err := version.NewSemver(semVer)
@@ -21,12 +21,13 @@ func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName st
 		t.Fatalf("test setup failed when creating version.Version: %s", err)
 	}
 
-	return &Provider{
+	return &ProviderConfigState{
 		Version: ver,
-		Source: tfaddr.Provider{
+		Source: &tfaddr.Provider{
 			Hostname:  svchost.Hostname(hostname),
 			Namespace: namespace,
 			Type:      typeName,
 		},
+		ConfigRaw: []byte(config),
 	}
 }

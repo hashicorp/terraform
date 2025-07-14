@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -21,6 +22,8 @@ import (
 type Changes struct {
 	// Resources tracks planned changes to resource instance objects.
 	Resources []*ResourceInstanceChange
+
+	Queries []*QueryInstance
 
 	// Outputs tracks planned changes output values.
 	//
@@ -73,6 +76,24 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 		changesSrc.Resources = append(changesSrc.Resources, rcs)
 	}
 
+	for _, qi := range c.Queries {
+		p, ok := schemas.Providers[qi.ProviderAddr.Provider]
+		if !ok {
+			return changesSrc, fmt.Errorf("Changes.Encode: missing provider %s for %s", qi.ProviderAddr, qi.Addr)
+		}
+
+		schema := p.ListResourceTypes[qi.Addr.Resource.Resource.Type]
+		if schema.Body == nil {
+			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", qi.Addr)
+		}
+		rcs, err := qi.Encode(schema)
+		if err != nil {
+			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
+		}
+
+		changesSrc.Queries = append(changesSrc.Queries, rcs)
+	}
+
 	for _, ocs := range c.Outputs {
 		oc, err := ocs.Encode()
 		if err != nil {
@@ -111,6 +132,18 @@ func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceIns
 	}
 
 	return changes
+}
+
+func (c *Changes) QueriesForAbsResource(addr addrs.AbsResource) []*QueryInstance {
+	var queries []*QueryInstance
+	for _, q := range c.Queries {
+		qAddr := q.Addr.ContainingResource()
+		if qAddr.Equal(addr) {
+			queries = append(queries, q)
+		}
+	}
+
+	return queries
 }
 
 // InstancesForConfigResource returns the planned change for the current objects
@@ -210,6 +243,42 @@ func (c *Changes) SyncWrapper() *ChangesSync {
 	}
 }
 
+type QueryInstance struct {
+	Addr addrs.AbsResourceInstance
+
+	ProviderAddr addrs.AbsProviderConfig
+
+	Results QueryResults
+}
+
+type QueryResults struct {
+	Value     cty.Value
+	Generated *genconfig.Resource
+}
+
+func (qi *QueryInstance) DeepCopy() *QueryInstance {
+	if qi == nil {
+		return qi
+	}
+
+	ret := *qi
+	return &ret
+}
+
+func (rc *QueryInstance) Encode(schema providers.Schema) (*QueryInstanceSrc, error) {
+	results, err := NewDynamicValue(rc.Results.Value, schema.Body.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return &QueryInstanceSrc{
+		Addr:         rc.Addr,
+		Results:      results,
+		ProviderAddr: rc.ProviderAddr,
+		Generated:    rc.Results.Generated,
+	}, nil
+}
+
 // ResourceInstanceChange describes a change to a particular resource instance
 // object.
 type ResourceInstanceChange struct {
@@ -293,7 +362,6 @@ func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInst
 		prevRunAddr = rc.Addr
 	}
 	return &ResourceInstanceChangeSrc{
-
 		Addr:            rc.Addr,
 		PrevRunAddr:     prevRunAddr,
 		DeposedKey:      rc.DeposedKey,

@@ -839,16 +839,15 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 
 		// Generate the HCL string first, then parse the HCL body from it.
-		// First we generate the contents of the resource block for use within
-		// the planning node. Then we wrap it in an enclosing resource block to
-		// pass into the plan for rendering.
-		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema.Body)
+		generatedResource, generatedDiags := n.generateHCLResourceDef(n.Addr, instanceRefreshState.Value, schema)
 		diags = diags.Append(generatedDiags)
 
-		n.generatedConfigHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
+		// This wraps the content of the resource block in an enclosing resource block
+		// to pass into the plan for rendering.
+		n.generatedConfigHCL = generatedResource.String()
 
-		// parse the "file" as HCL to get the hcl.Body
-		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), filepath.Base(n.generateConfigPath), hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		// parse the "file" body as HCL to get the hcl.Body
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig(generatedResource.Body, filepath.Base(n.generateConfigPath), hcl.Pos{Byte: 0, Line: 1, Column: 1})
 		diags = diags.Append(hclDiags)
 		if hclDiags.HasErrors() {
 			return instanceRefreshState, nil, diags
@@ -883,10 +882,11 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	return instanceRefreshState, deferred, diags
 }
 
-// generateHCLStringAttributes produces a string in HCL format for the given
-// resource state and schema without the surrounding block.
-func (n *NodePlannableResourceInstance) generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, tfdiags.Diagnostics) {
-	filteredSchema := schema.Filter(
+// generateHCLResourceDef generates the HCL definition for the resource
+// instance, including the surrounding block. This is used to generate the
+// configuration for the resource instance when importing or generating
+func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (*genconfig.Resource, tfdiags.Diagnostics) {
+	filteredSchema := schema.Body.Filter(
 		configschema.FilterOr(
 			configschema.FilterReadOnlyAttribute,
 			configschema.FilterDeprecatedAttribute,
@@ -911,7 +911,15 @@ func (n *NodePlannableResourceInstance) generateHCLStringAttributes(addr addrs.A
 		Alias:     n.ResolvedProvider.Alias,
 	}
 
-	return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state.Value)
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state)
+	case addrs.ListResourceMode:
+		identitySchema := schema.Identity
+		return genconfig.GenerateListResourceContents(addr, filteredSchema, identitySchema, providerAddr, state)
+	default:
+		panic(fmt.Sprintf("unexpected resource mode %s for resource %s", addr.Resource.Resource.Mode, addr))
+	}
 }
 
 // mergeDeps returns the union of 2 sets of dependencies
