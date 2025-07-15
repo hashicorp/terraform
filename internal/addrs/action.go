@@ -333,6 +333,13 @@ type configActionKey string
 
 func (k configActionKey) uniqueKeySigil() {}
 
+// AbsActionInvocationInstance describes the invocation of an action as part of a plan / apply.
+type AbsActionInvocationInstance struct {
+	TriggeringResource AbsResourceInstance
+	Action             AbsActionInstance
+	TriggerIndex       int
+}
+
 // ParseAbsActionInstanceStr is a helper wrapper around
 // ParseAbsActionInstance that takes a string and parses it with the HCL
 // native syntax traversal parser before interpreting it.
