@@ -65,7 +65,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 	if c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
-		panic("This experiment is not available yet")
+		return c.runPssInit(initArgs, view)
 	} else {
 		return c.run(initArgs, view)
 	}
