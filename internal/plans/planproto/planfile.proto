@@ -434,9 +434,9 @@ message ActionInvocation {
     // provider is the address of the provider configuration that this change
     // was planned with, and thus the configuration that must be used to
     // apply it.
-    string provider = 1;
+    string provider = 2;
 
-    repeated ResourceInstanceActionChange linked_resources = 2;
+    repeated ResourceInstanceActionChange linked_resources = 3;
 }
 
 message ResourceInstanceActionChange {
@@ -449,9 +449,7 @@ message ResourceInstanceActionChange {
     // set, the change applies to the instance's current object.
     string deposed_key = 2;
 
-    // Description of the proposed change.
-
-    // TODO: which of this are true? Just update & no-op? 
+    // Description of the proposed change. 
     // May use "update", "replace", "delete" and "no-op" actions.
-    Change change = 9;
+    Change change = 3;
 }

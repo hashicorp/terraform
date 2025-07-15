@@ -180,6 +180,16 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		)
 	}
 
+	for _, rawAction := range rawPlan.ActionInvocations {
+		action, err := actionInvocationFromTfplan(rawAction)
+		if err != nil {
+			// errors from actionInvocationFromTfplan already include context
+			return nil, err
+		}
+
+		plan.ActionInvocations = append(plan.ActionInvocations, action)
+	}
+
 	switch {
 	case rawPlan.Backend == nil && rawPlan.StateStore == nil:
 		// Similar validation in writeTfPlan should prevent this occurring
@@ -1224,4 +1234,21 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	} else {
 		return nil, nil
 	}
+}
+
+func actionInvocationFromTfplan(rawAction *planproto.ActionInvocation) (*plans.ActionInvocationInstance, error) {
+	if rawAction == nil {
+		// Should never happen in practice, since protobuf can't represent
+		// a nil value in a list.
+		return nil, fmt.Errorf("action invocation object is absent")
+	}
+
+	ret := &plans.ActionInvocationInstance{}
+	actionAddr, diags := addrs.ParseAbsActionInstanceStr(rawAction.Addr)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("invalid resource instance address %q: %w", &rawAction.Addr, diags.Err())
+	}
+	ret.Addr = actionAddr
+
+	return ret, nil
 }
