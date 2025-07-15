@@ -338,6 +338,18 @@ type AbsActionInvocationInstance struct {
 	TriggeringResource AbsResourceInstance
 	Action             AbsActionInstance
 	TriggerIndex       int
+
+	// TriggerBlockSourceRange is the location of the action_trigger block
+	// within the resources lifecycle block that triggered this action.
+	TriggerBlockSourceRange *tfdiags.SourceRange
+
+	// ActionReferenceSourceRange is the location of the action reference
+	// in the actions list within the action_trigger block.
+	ActionReferenceSourceRange *tfdiags.SourceRange
+}
+
+func (a AbsActionInvocationInstance) String() string {
+	return fmt.Sprintf("%s.%d.%s", a.TriggeringResource.String(), a.TriggerIndex, a.Action.String())
 }
 
 // ParseAbsActionInstanceStr is a helper wrapper around
