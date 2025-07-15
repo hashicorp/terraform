@@ -25,7 +25,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	newCmd := &WorkspaceNewCommand{}
 
@@ -66,7 +66,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	newCmd := &WorkspaceNewCommand{}
 
@@ -111,7 +111,7 @@ func TestWorkspace_createAndList(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// make sure a vars file doesn't interfere
 	err := ioutil.WriteFile(
@@ -159,7 +159,7 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// make sure a vars file doesn't interfere
 	err := ioutil.WriteFile(
@@ -227,7 +227,7 @@ func TestWorkspace_createInvalid(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	envs := []string{"test_a*", "test_b/foo", "../../../test_c", "好_d"}
 
@@ -264,7 +264,7 @@ func TestWorkspace_createInvalid(t *testing.T) {
 func TestWorkspace_createWithState(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("inmem-backend"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 	defer inmem.Reset()
 
 	// init the backend
@@ -334,7 +334,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 func TestWorkspace_delete(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// create the workspace directories
 	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, "test"), 0755); err != nil {
@@ -389,7 +389,7 @@ func TestWorkspace_delete(t *testing.T) {
 func TestWorkspace_deleteInvalid(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// choose an invalid workspace name
 	workspace := "test workspace"
@@ -421,7 +421,7 @@ func TestWorkspace_deleteInvalid(t *testing.T) {
 func TestWorkspace_deleteRejectsEmptyString(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Empty string identifier for workspace
 	workspace := ""
@@ -450,7 +450,7 @@ func TestWorkspace_deleteRejectsEmptyString(t *testing.T) {
 func TestWorkspace_deleteWithState(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// create the workspace directories
 	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, "test"), 0755); err != nil {
@@ -526,7 +526,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Create an empty default state, i.e. create default workspace.
 	originalStateFile := &statefile.File{
@@ -614,7 +614,7 @@ func TestWorkspace_selectWithOrCreate(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	selectCmd := &WorkspaceSelectCommand{}
 

@@ -165,7 +165,7 @@ func TestImport_providerConfig(t *testing.T) {
 func TestImport_remoteState(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	statePath := "imported.tfstate"
 
@@ -277,7 +277,7 @@ func TestImport_remoteState(t *testing.T) {
 func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	statePath := "imported.tfstate"
 
@@ -746,7 +746,7 @@ func TestImport_missingModuleConfig(t *testing.T) {
 func TestImportModuleVarFile(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-module-var-file"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	statePath := testTempFile(t)
 
@@ -820,7 +820,7 @@ func TestImportModuleVarFile(t *testing.T) {
 func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-module-input-variable"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	statePath := testTempFile(t)
 

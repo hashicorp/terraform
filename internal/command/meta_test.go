@@ -186,7 +186,7 @@ func TestMeta_initStatePaths(t *testing.T) {
 func TestMeta_Env(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	m := new(Meta)
 
@@ -315,7 +315,7 @@ func TestMeta_Workspace_override(t *testing.T) {
 func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// this is an invalid workspace name
 	workspace := "test workspace"
@@ -447,7 +447,7 @@ func TestCommand_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	ui := cli.NewMockUi()
 	meta := Meta{

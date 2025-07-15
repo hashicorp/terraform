@@ -27,7 +27,7 @@ import (
 func TestGraph_planPhase(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	ui := new(cli.MockUi)
 	streams, closeStreams := terminal.StreamsForTesting(t)
@@ -53,7 +53,7 @@ func TestGraph_planPhase(t *testing.T) {
 func TestGraph_cyclic(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph-cyclic"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	tests := []struct {
 		name     string
@@ -189,7 +189,7 @@ func TestGraph_multipleArgs(t *testing.T) {
 func TestGraph_noConfig(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	streams, closeStreams := terminal.StreamsForTesting(t)
 	defer closeStreams(t)

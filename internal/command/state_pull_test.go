@@ -16,7 +16,7 @@ func TestStatePull(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-pull-backend"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	expected, err := ioutil.ReadFile("local-state.tfstate")
 	if err != nil {
@@ -70,7 +70,7 @@ func TestStatePull_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	p := testProvider()
 	ui := cli.NewMockUi()

@@ -73,7 +73,7 @@ func TestValidateCommandWithTfvarsFile(t *testing.T) {
 	// requires scanning the current working directory by validate command.
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("validate-valid/with-tfvars-file"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	view, done := testView(t)
 	c := &ValidateCommand{
@@ -260,7 +260,7 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-module")), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -317,7 +317,7 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-overrides")), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)

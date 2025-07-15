@@ -23,7 +23,7 @@ func TestProvidersLock(t *testing.T) {
 		// create an empty working directory
 		td := t.TempDir()
 		os.MkdirAll(td, 0755)
-		defer testChdir(t, td)()
+		t.Cleanup(testChdir(t, td))
 
 		ui := new(cli.MockUi)
 		c := &ProvidersLockCommand{
@@ -74,7 +74,7 @@ provider "registry.terraform.io/hashicorp/test" {
 func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(testDirectory), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the

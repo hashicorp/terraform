@@ -381,7 +381,7 @@ func TestStateRm_noState(t *testing.T) {
 func TestStateRm_needsInit(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -409,7 +409,7 @@ func TestStateRm_needsInit(t *testing.T) {
 func TestStateRm_backendState(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -490,7 +490,7 @@ func TestStateRm_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
