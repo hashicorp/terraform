@@ -964,6 +964,7 @@ func getListProviderSchemaResp() *providers.GetProviderSchemaResponse {
 
 var (
 	testResourceCfg = `resource "test_resource" "test_0" {
+  provider      = test
   instance_type = "ami-123456"
 }
 import {
@@ -975,6 +976,7 @@ import {
 }
 
 resource "test_resource" "test_1" {
+  provider      = test
   instance_type = "ami-654321"
 }
 import {
@@ -986,6 +988,7 @@ import {
 }
 
 resource "test_resource" "test_2" {
+  provider      = test
   instance_type = "ami-789012"
 }
 import {
@@ -998,6 +1001,7 @@ import {
 `
 
 	testResourceCfg2 = `resource "test_resource" "test2_0" {
+  provider      = test
   instance_type = "ami-123456"
 }
 import {
@@ -1009,6 +1013,7 @@ import {
 }
 
 resource "test_resource" "test2_1" {
+  provider      = test
   instance_type = "ami-654321"
 }
 import {
@@ -1020,6 +1025,7 @@ import {
 }
 
 resource "test_resource" "test2_2" {
+  provider      = test
   instance_type = "ami-789012"
 }
 import {
