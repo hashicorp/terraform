@@ -807,7 +807,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 
 	return true, false, diags
 }
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output, abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -823,10 +823,6 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
 		return false, true, diags
-	}
-	if state != nil {
-		stateReqs := state.ProviderRequirements()
-		reqs = reqs.Merge(stateReqs)
 	}
 
 	for providerAddr := range reqs {
