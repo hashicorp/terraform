@@ -559,7 +559,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	// TODO: When is the config nil?
 	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.ActionTriggers == nil {
 		return diags
 	}
