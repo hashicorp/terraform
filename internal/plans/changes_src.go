@@ -29,7 +29,7 @@ type ChangesSrc struct {
 
 	// ActionInvocations tracks planned action invocations, which may have
 	// embedded resource instance changes.
-	Actions []*ActionInstanceSrc
+	Actions []*ActionInvocationInstanceSrc
 
 	// Outputs tracks planned changes output values.
 	//
@@ -549,7 +549,7 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 	}, nil
 }
 
-type ActionInstanceSrc struct {
+type ActionInvocationInstanceSrc struct {
 	Addr addrs.AbsActionInstance
 
 	ProviderAddr addrs.AbsProviderConfig
@@ -560,12 +560,17 @@ type ActionInstanceSrc struct {
 type ResourceInstanceActionChangeSrc struct {
 	Addr addrs.AbsResourceInstance
 
+	// DeposedKey is the identifier for a deposed object associated with the
+	// given instance, or states.NotDeposed if this change applies to the
+	// current object.
+	DeposedKey states.DeposedKey
+
 	// ChangeSrc is an embedded description of the not-yet-decoded change.
 	ChangeSrc
 }
 
 // Decode unmarshals the raw representation of any linked resources.
-func (acs *ActionInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionInvocationInstance, error) {
+func (acs *ActionInvocationInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionInvocationInstance, error) {
 	as := schema.Actions[acs.Addr.Action.Action.Type]
 
 	if as.IsNil() {
@@ -584,7 +589,7 @@ func (acs *ActionInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionIn
 	if len(as.LinkedResources()) != len(acs.LinkedResources) {
 		// unpossible: this should have been caught a dozen times over by now
 		// but it's a good check for tests
-		panic("how did we get here")
+		return nil, fmt.Errorf("wrong number of linked resources")
 	}
 
 	changes := make([]ResourceInstanceActionChange, 0, len(acs.LinkedResources))

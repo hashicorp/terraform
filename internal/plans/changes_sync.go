@@ -268,7 +268,7 @@ func (cs *ChangesSync) AppendActionInvocation(action *ActionInvocationInstance) 
 
 // RemoveActionInvocation searches the set of action invocations for one
 // matching the given address, and removes it from the set if it exists.
-func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInvocationInstance) {
+func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInstance) {
 	if cs == nil {
 		panic("RemoveActionInvocation on nil ChangesSync")
 	}

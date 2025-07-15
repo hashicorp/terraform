@@ -426,8 +426,8 @@ message Deferred {
     DeferredReason reason = 1;
 }
 
-// ActionInvocation contains a planned action invocation and any embedded ResourceInstanceActionChanges
-message ActionInvocation {
+// ActionInvocationInstance contains a planned action invocation and any embedded ResourceInstanceActionChanges
+message ActionInvocationInstance {
     // addr is a string representation of the action invocation instance address of this change
     string addr = 1;
 

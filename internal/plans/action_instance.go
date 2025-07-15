@@ -43,7 +43,7 @@ type ResourceInstanceActionChange struct {
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
-func (ai *ActionInvocationInstance) Encode(schema providers.Schema) (*ActionInstanceSrc, error) {
+func (ai *ActionInvocationInstance) Encode(schema providers.Schema) (*ActionInvocationInstanceSrc, error) {
 	resourceChanges := make([]ResourceInstanceActionChangeSrc, 0, len(ai.LinkedResources))
 
 	for i, rc := range ai.LinkedResources {
@@ -59,7 +59,7 @@ func (ai *ActionInvocationInstance) Encode(schema providers.Schema) (*ActionInst
 		resourceChanges[i].ChangeSrc = *cs
 	}
 
-	return &ActionInstanceSrc{
+	return &ActionInvocationInstanceSrc{
 		Addr:            ai.Addr,
 		ProviderAddr:    ai.ProviderAddr,
 		LinkedResources: resourceChanges,
