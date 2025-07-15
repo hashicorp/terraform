@@ -68,7 +68,8 @@ func TestRoundtrip(t *testing.T) {
 			Config:    plans.DynamicValue([]byte("config placeholder")),
 			Workspace: "default",
 		},
-		Checks: &states.CheckResults{},
+		Checks:            &states.CheckResults{},
+		ActionInvocations: []*plans.ActionInvocationInstanceSrc{},
 
 		// Due to some historical oddities in how we've changed modelling over
 		// time, we also include the states (without the corresponding file
