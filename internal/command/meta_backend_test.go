@@ -2072,7 +2072,7 @@ func Test_determineInitReason(t *testing.T) {
 func TestMetaBackend_configureNewStateStore(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-store-new"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -2141,7 +2141,7 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-store-unset"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -2181,7 +2181,7 @@ func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
 func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-store-reconfigure"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -2258,7 +2258,7 @@ func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-store-changed"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -2326,7 +2326,7 @@ func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
 func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-to-state-store"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -2394,7 +2394,7 @@ func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-store-to-backend"), td)
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -2448,7 +2448,7 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 			// Create a temporary working directory that is empty
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(tc.fixture), td)
-			defer testChdir(t, td)()
+			t.Cleanup(testChdir(t, td))
 
 			// Setup the meta
 			m := testMetaBackend(t, nil)
