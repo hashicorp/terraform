@@ -35,7 +35,7 @@ type HookResourceIdentity struct {
 
 // HookActionIdentity is passed to Hook interface methods to fully identify
 // the action being performed.
-type HookActionIdentity = addrs.AbsActionInvocationInstance
+type HookActionIdentity = addrs.AbsActionInstance
 
 // Hook is the interface that must be implemented to hook into various
 // parts of Terraform, allowing you to inspect or change behavior at runtime.
