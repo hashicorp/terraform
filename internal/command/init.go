@@ -807,6 +807,453 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 
 	return true, false, diags
 }
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output, abort bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "install providers")
+	defer span.End()
+
+	// Dev overrides cause the result of "terraform init" to be irrelevant for
+	// any overridden providers, so we'll warn about it to avoid later
+	// confusion when Terraform ends up using a different provider than the
+	// lock file called for.
+	diags = diags.Append(c.providerDevOverrideInitWarnings())
+
+	// First we'll collect all the provider dependencies we can see in the
+	// configuration and the state.
+	reqs, hclDiags := config.ProviderRequirements()
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return false, true, diags
+	}
+	if state != nil {
+		stateReqs := state.ProviderRequirements()
+		reqs = reqs.Merge(stateReqs)
+	}
+
+	for providerAddr := range reqs {
+		if providerAddr.IsLegacy() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid legacy provider address",
+				fmt.Sprintf(
+					"This configuration or its associated state refers to the unqualified provider %q.\n\nYou must complete the Terraform 0.13 upgrade process before upgrading to later versions.",
+					providerAddr.Type,
+				),
+			))
+		}
+	}
+
+	previousLocks, moreDiags := c.lockedDependencies()
+	diags = diags.Append(moreDiags)
+
+	if diags.HasErrors() {
+		return false, true, diags
+	}
+
+	var inst *providercache.Installer
+	if len(pluginDirs) == 0 {
+		// By default we use a source that looks for providers in all of the
+		// standard locations, possibly customized by the user in CLI config.
+		inst = c.providerInstaller()
+	} else {
+		// If the user passes at least one -plugin-dir then that circumvents
+		// the usual sources and forces Terraform to consult only the given
+		// directories. Anything not available in one of those directories
+		// is not available for installation.
+		source := c.providerCustomLocalDirectorySource(pluginDirs)
+		inst = c.providerInstallerCustomSource(source)
+
+		// The default (or configured) search paths are logged earlier, in provider_source.go
+		// Log that those are being overridden by the `-plugin-dir` command line options
+		log.Println("[DEBUG] init: overriding provider plugin search paths")
+		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
+	}
+
+	// We want to print out a nice warning if we don't manage to pull
+	// checksums for all our providers. This is tracked via callbacks
+	// and incomplete providers are stored here for later analysis.
+	var incompleteProviders []string
+
+	// Because we're currently just streaming a series of events sequentially
+	// into the terminal, we're showing only a subset of the events to keep
+	// things relatively concise. Later it'd be nice to have a progress UI
+	// where statuses update in-place, but we can't do that as long as we
+	// are shimming our vt100 output to the legacy console API on Windows.
+	evts := &providercache.InstallerEvents{
+		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
+			view.Output(views.InitializingProviderPluginMessage)
+		},
+		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
+			view.LogInitMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
+		},
+		BuiltInProviderAvailable: func(provider addrs.Provider) {
+			view.LogInitMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
+		},
+		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid dependency on built-in provider",
+				fmt.Sprintf("Cannot use %s: %s.", provider.ForDisplay(), err),
+			))
+		},
+		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
+			if locked {
+				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+			} else {
+				if len(versionConstraints) > 0 {
+					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+				} else {
+					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+				}
+			}
+		},
+		LinkFromCacheBegin: func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
+			view.LogInitMessage(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
+		},
+		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+			view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
+		},
+		QueryPackagesFailure: func(provider addrs.Provider, err error) {
+			switch errorTy := err.(type) {
+			case getproviders.ErrProviderNotFound:
+				sources := errorTy.Sources
+				displaySources := make([]string, len(sources))
+				for i, source := range sources {
+					displaySources[i] = fmt.Sprintf("  - %s", source)
+				}
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s\n\n%s",
+						provider.ForDisplay(), err, strings.Join(displaySources, "\n"),
+					),
+				))
+			case getproviders.ErrRegistryProviderNotKnown:
+				// We might be able to suggest an alternative provider to use
+				// instead of this one.
+				suggestion := fmt.Sprintf("\n\nAll modules should specify their required_providers so that external consumers will get the correct providers when using a module. To see which modules are currently depending on %s, run the following command:\n    terraform providers", provider.ForDisplay())
+				alternative := getproviders.MissingProviderSuggestion(ctx, provider, inst.ProviderSource(), reqs)
+				if alternative != provider {
+					suggestion = fmt.Sprintf(
+						"\n\nDid you intend to use %s? If so, you must specify that source address in each module which requires that provider. To see which modules are currently depending on %s, run the following command:\n    terraform providers",
+						alternative.ForDisplay(), provider.ForDisplay(),
+					)
+				}
+
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
+					),
+				))
+			case getproviders.ErrHostNoProviders:
+				switch {
+				case errorTy.Hostname == svchost.Hostname("github.com") && !errorTy.HasOtherVersion:
+					// If a user copies the URL of a GitHub repository into
+					// the source argument and removes the schema to make it
+					// provider-address-shaped then that's one way we can end up
+					// here. We'll use a specialized error message in anticipation
+					// of that mistake. We only do this if github.com isn't a
+					// provider registry, to allow for the (admittedly currently
+					// rather unlikely) possibility that github.com starts being
+					// a real Terraform provider registry in the future.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The given source address %q specifies a GitHub repository rather than a Terraform provider. Refer to the documentation of the provider to find the correct source address to use.",
+							provider.String(),
+						),
+					))
+
+				case errorTy.HasOtherVersion:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
+							errorTy.Hostname, provider.String(),
+						),
+					))
+
+				default:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry.",
+							errorTy.Hostname, provider.String(),
+						),
+					))
+				}
+
+			case getproviders.ErrRequestCanceled:
+				// We don't attribute cancellation to any particular operation,
+				// but rather just emit a single general message about it at
+				// the end, by checking ctx.Err().
+
+			default:
+				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
+					),
+				))
+			}
+
+		},
+		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
+			displayWarnings := make([]string, len(warnings))
+			for i, warning := range warnings {
+				displayWarnings[i] = fmt.Sprintf("- %s", warning)
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Additional provider information from registry",
+				fmt.Sprintf("The remote registry returned warnings for %s:\n%s",
+					provider.String(),
+					strings.Join(displayWarnings, "\n"),
+				),
+			))
+		},
+		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install provider from shared cache",
+				fmt.Sprintf("Error while importing %s v%s from the shared cache directory: %s.", provider.ForDisplay(), version, err),
+			))
+		},
+		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			const summaryIncompatible = "Incompatible provider version"
+			switch err := err.(type) {
+			case getproviders.ErrProtocolNotSupported:
+				closestAvailable := err.Suggestion
+				switch {
+				case closestAvailable == getproviders.UnspecifiedVersion:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(errProviderVersionIncompatible, provider.String()),
+					))
+				case version.GreaterThan(closestAvailable):
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(providerProtocolTooNew, provider.ForDisplay(),
+							version, tfversion.String(), closestAvailable, closestAvailable,
+							getproviders.VersionConstraintsString(reqs[provider]),
+						),
+					))
+				default: // version is less than closestAvailable
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(providerProtocolTooOld, provider.ForDisplay(),
+							version, tfversion.String(), closestAvailable, closestAvailable,
+							getproviders.VersionConstraintsString(reqs[provider]),
+						),
+					))
+				}
+			case getproviders.ErrPlatformNotSupported:
+				switch {
+				case err.MirrorURL != nil:
+					// If we're installing from a mirror then it may just be
+					// the mirror lacking the package, rather than it being
+					// unavailable from upstream.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(
+							"Your chosen provider mirror at %s does not have a %s v%s package available for your current platform, %s.\n\nProvider releases are separate from Terraform CLI releases, so this provider might not support your current platform. Alternatively, the mirror itself might have only a subset of the plugin packages available in the origin registry, at %s.",
+							err.MirrorURL, err.Provider, err.Version, err.Platform,
+							err.Provider.Hostname,
+						),
+					))
+				default:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(
+							"Provider %s v%s does not have a package available for your current platform, %s.\n\nProvider releases are separate from Terraform CLI releases, so not all providers are available for all platforms. Other versions of this provider may have different platforms supported.",
+							err.Provider, err.Version, err.Platform,
+						),
+					))
+				}
+
+			case getproviders.ErrRequestCanceled:
+				// We don't attribute cancellation to any particular operation,
+				// but rather just emit a single general message about it at
+				// the end, by checking ctx.Err().
+
+			default:
+				// We can potentially end up in here under cancellation too,
+				// in spite of our getproviders.ErrRequestCanceled case above,
+				// because not all of the outgoing requests we do under the
+				// "fetch package" banner are source metadata requests.
+				// In that case we will emit a redundant error here about
+				// the request being cancelled, but we'll still detect it
+				// as a cancellation after the installer returns and do the
+				// normal cancellation handling.
+
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
+				))
+			}
+		},
+		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+			var keyID string
+			if authResult != nil && authResult.ThirdPartySigned() {
+				keyID = authResult.KeyID
+			}
+			if keyID != "" {
+				keyID = view.PrepareMessage(views.KeyID, keyID)
+			}
+
+			view.LogInitMessage(views.InstalledProviderVersionInfo, provider.ForDisplay(), version, authResult, keyID)
+		},
+		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash) {
+			// We're going to use this opportunity to track if we have any
+			// "incomplete" installs of providers. An incomplete install is
+			// when we are only going to write the local hashes into our lock
+			// file which means a `terraform init` command will fail in future
+			// when used on machines of a different architecture.
+			//
+			// We want to print a warning about this.
+
+			if len(signedHashes) > 0 {
+				// If we have any signedHashes hashes then we don't worry - as
+				// we know we retrieved all available hashes for this version
+				// anyway.
+				return
+			}
+
+			// If local hashes and prior hashes are exactly the same then
+			// it means we didn't record any signed hashes previously, and
+			// we know we're not adding any extra in now (because we already
+			// checked the signedHashes), so that's a problem.
+			//
+			// In the actual check here, if we have any priorHashes and those
+			// hashes are not the same as the local hashes then we're going to
+			// accept that this provider has been configured correctly.
+			if len(priorHashes) > 0 && !reflect.DeepEqual(localHashes, priorHashes) {
+				return
+			}
+
+			// Now, either signedHashes is empty, or priorHashes is exactly the
+			// same as our localHashes which means we never retrieved the
+			// signedHashes previously.
+			//
+			// Either way, this is bad. Let's complain/warn.
+			incompleteProviders = append(incompleteProviders, provider.ForDisplay())
+		},
+		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
+			thirdPartySigned := false
+			for _, authResult := range authResults {
+				if authResult.ThirdPartySigned() {
+					thirdPartySigned = true
+					break
+				}
+			}
+			if thirdPartySigned {
+				view.LogInitMessage(views.PartnerAndCommunityProvidersMessage)
+			}
+		},
+	}
+	ctx = evts.OnContext(ctx)
+
+	mode := providercache.InstallNewProvidersOnly
+	if upgrade {
+		if flagLockfile == "readonly" {
+			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
+			view.Diagnostics(diags)
+			return true, true, diags
+		}
+
+		mode = providercache.InstallUpgrades
+	}
+	newLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
+	if ctx.Err() == context.Canceled {
+		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
+		view.Diagnostics(diags)
+		return true, true, diags
+	}
+	if err != nil {
+		// The errors captured in "err" should be redundant with what we
+		// received via the InstallerEvents callbacks above, so we'll
+		// just return those as long as we have some.
+		if !diags.HasErrors() {
+			diags = diags.Append(err)
+		}
+
+		return true, true, diags
+	}
+
+	// If the provider dependencies have changed since the last run then we'll
+	// say a little about that in case the reader wasn't expecting a change.
+	// (When we later integrate module dependencies into the lock file we'll
+	// probably want to refactor this so that we produce one lock-file related
+	// message for all changes together, but this is here for now just because
+	// it's the smallest change relative to what came before it, which was
+	// a hidden JSON file specifically for tracking providers.)
+	if !newLocks.Equal(previousLocks) {
+		// if readonly mode
+		if flagLockfile == "readonly" {
+			// check if required provider dependences change
+			if !newLocks.EqualProviderAddress(previousLocks) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					`Provider dependency changes detected`,
+					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
+				))
+				return true, true, diags
+			}
+
+			// suppress updating the file to record any new information it learned,
+			// such as a hash using a new scheme.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				`Provider lock file not updated`,
+				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
+			))
+			return true, false, diags
+		}
+
+		// Jump in here and add a warning if any of the providers are incomplete.
+		if len(incompleteProviders) > 0 {
+			// We don't really care about the order here, we just want the
+			// output to be deterministic.
+			sort.Slice(incompleteProviders, func(i, j int) bool {
+				return incompleteProviders[i] < incompleteProviders[j]
+			})
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				incompleteLockFileInformationHeader,
+				fmt.Sprintf(
+					incompleteLockFileInformationBody,
+					strings.Join(incompleteProviders, "\n  - "),
+					getproviders.CurrentPlatform.String())))
+		}
+
+		if previousLocks.Empty() {
+			// A change from empty to non-empty is special because it suggests
+			// we're running "terraform init" for the first time against a
+			// new configuration. In that case we'll take the opportunity to
+			// say a little about what the dependency lock file is, for new
+			// users or those who are upgrading from a previous Terraform
+			// version that didn't have dependency lock files.
+			view.Output(views.LockInfo)
+		} else {
+			view.Output(views.DependenciesLockChangesInfo)
+		}
+
+		moreDiags = c.replaceLockedDependencies(newLocks)
+		diags = diags.Append(moreDiags)
+	}
+
+	return true, false, diags
+}
 
 // backendConfigOverrideBody interprets the raw values of -backend-config
 // arguments into a hcl Body that should override the backend settings given
