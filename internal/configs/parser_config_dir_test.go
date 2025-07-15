@@ -38,6 +38,8 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 
 			if strings.Contains(name, "state-store") {
 				// The PSS project is currently gated as experimental
+				// TODO(SarahFrench/radeksimko) - remove this from the test once
+				// the feature is GA.
 				parser.allowExperiments = true
 			}
 
