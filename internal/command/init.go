@@ -57,7 +57,7 @@ func (c *InitCommand) Run(args []string) int {
 	//  > The flag -enable-pss is passed to the init command.
 	if c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
-		panic("pss: experimental init code hasn't been added yet")
+		return c.runPluggableStateStorage(initArgs, view)
 	} else {
 		return c.run(initArgs, view)
 	}
