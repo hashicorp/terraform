@@ -265,6 +265,30 @@ resource "test_object" "a" {
 			expectPlanActionCalled: true,
 		},
 
+		"action for_each with auto-expansion": {
+			module: map[string]string{
+				"main.tf": `
+terraform { experiments = [actions] }
+action "test_unlinked" "hello" {
+  for_each = toset(["a", "b"])
+  
+  config {
+    attr = "value-${each.key}"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello] # This will auto-expand to action.test_unlinked.hello["a"] and action.test_unlinked.hello["b"]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+		},
+
 		"action count": {
 			module: map[string]string{
 				"main.tf": `
@@ -282,6 +306,31 @@ resource "test_object" "a" {
     action_trigger {
       events = [before_create]
       actions = [action.test_unlinked.hello[0], action.test_unlinked.hello[1]]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+		},
+
+		"action count with auto-expansion": {
+			module: map[string]string{
+				"main.tf": `
+terraform { experiments = [actions] }
+action "test_unlinked" "hello" {
+  count = 2
+
+  config {
+    attr = "value-${count.index}"
+  }
+}
+
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello] # This will auto-expand to action.test_unlinked.hello[0] and action.test_unlinked.hello[1]
     }
   }
 }

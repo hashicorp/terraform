@@ -56,3 +56,17 @@ func (a *Actions) GetActionInstance(addr addrs.AbsActionInstance) (*ActionData, 
 
 	return &data, true
 }
+
+func (a *Actions) GetActionInstanceKeys(addr addrs.AbsAction) []addrs.AbsActionInstance {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	result := []addrs.AbsActionInstance{}
+	for _, data := range a.actionInstances.Elements() {
+		if data.Key.ContainingAction().Equal(addr) {
+			result = append(result, data.Key)
+		}
+	}
+
+	return result
+}
