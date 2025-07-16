@@ -110,88 +110,31 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 			))
 		}
 
-		// The rest of our work here needs to know which module instance it's
-		// working in, so that it can evaluate expressions in the appropriate scope.
-		_, err := n.expandActionInstances(ctx, absActAddr, &g)
-		diags = diags.Append(err)
+		// recordActionData is responsible for informing the expander of what
+		// repetition mode this resource has, which allows expander.ExpandResource
+		// to work below.
+		moreDiags := n.recordActionData(moduleCtx, absActAddr)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return nil, diags
+		}
+
+		// Expand the action instances for this module.
+		for _, absActInstance := range expander.ExpandAction(absActAddr) {
+			node := NodeActionDeclarationInstance{
+				Addr:             absActInstance,
+				Config:           n.Config,
+				Schema:           n.Schema,
+				ResolvedProvider: n.ResolvedProvider,
+			}
+
+			g.Add(&node)
+		}
 	}
+
+	addRootNodeToGraph(&g)
 
 	return &g, diags
-}
-
-func (n *nodeExpandActionDeclaration) expandActionInstances(globalCtx EvalContext, actAddr addrs.AbsAction, g *Graph) ([]addrs.AbsActionInstance, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// The rest of our work here needs to know which module instance it's
-	// working in, so that it can evaluate expressions in the appropriate scope.
-	moduleCtx := evalContextForModuleInstance(globalCtx, actAddr.Module)
-
-	// writeResourceState is responsible for informing the expander of what
-	// repetition mode this resource has, which allows expander.ExpandResource
-	// to work below.
-	moreDiags := n.recordActionData(moduleCtx, actAddr)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Before we expand our resource into potentially many resource instances,
-	// we'll verify that any mention of this resource in n.forceReplace is
-	// consistent with the repetition mode of the resource. In other words,
-	// we're aiming to catch a situation where naming a particular resource
-	// instance would require an instance key but the given address has none.
-	expander := moduleCtx.InstanceExpander()
-	instanceAddrs := expander.ExpandAction(actAddr)
-
-	// NOTE: The actual interpretation of n.forceReplace to produce replace
-	// actions is in the per-instance function we're about to call, because
-	// we need to evaluate it on a per-instance basis.
-
-	// Our graph builder mechanism expects to always be constructing new
-	// graphs rather than adding to existing ones, so we'll first
-	// construct a subgraph just for this individual modules's instances and
-	// then we'll steal all of its nodes and edges to incorporate into our
-	// main graph which contains all of the resource instances together.
-	instG, instDiags := n.actionInstanceSubgraph(actAddr, instanceAddrs)
-	if instDiags.HasErrors() {
-		diags = diags.Append(instDiags)
-		return nil, diags
-	}
-	g.Subsume(&instG.AcyclicGraph.Graph)
-
-	return instanceAddrs, diags
-}
-
-func (n *nodeExpandActionDeclaration) actionInstanceSubgraph(addr addrs.AbsAction, instanceAddrs []addrs.AbsActionInstance) (*Graph, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// Start creating the steps
-	steps := []GraphTransformer{
-		// Expand the count or for_each (if present)
-		&ActionCountTransformer{
-			Schema:           n.Schema,
-			Config:           n.Config,
-			Addr:             n.Addr,
-			InstanceAddrs:    instanceAddrs,
-			ResolvedProvider: n.ResolvedProvider,
-		},
-
-		// Connect references so ordering is correct
-		&ReferenceTransformer{},
-
-		// Make sure there is a single root
-		&RootTransformer{},
-	}
-
-	// Build the graph
-	b := &BasicGraphBuilder{
-		Steps: steps,
-		Name:  "nodeExpandActionDeclaration",
-	}
-	graph, graphDiags := b.Build(addr.Module)
-	diags = diags.Append(graphDiags)
-
-	return graph, diags
 }
 
 func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr addrs.AbsAction) (diags tfdiags.Diagnostics) {
