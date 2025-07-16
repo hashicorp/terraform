@@ -85,7 +85,8 @@ func TestPlan_lockedState(t *testing.T) {
 }
 
 func TestPlan_plan(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	planPath := testPlanFileNoop(t)
 
