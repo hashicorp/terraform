@@ -549,6 +549,17 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 	}, nil
 }
 
+// AppendResourceInstanceChange records the given resource instance change in
+// the set of planned resource changes.
+func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocationInstanceSrc) {
+	if c == nil {
+		panic("AppendResourceInstanceChange on nil ChangesSync")
+	}
+
+	a := action.DeepCopy()
+	c.Actions = append(c.Actions, a)
+}
+
 type ActionInvocationInstanceSrc struct {
 	Addr addrs.AbsActionInstance
 
@@ -567,4 +578,12 @@ func (acs *ActionInvocationInstanceSrc) Decode(schema providers.ProviderSchema) 
 		Addr: acs.Addr,
 	}
 	return ai, nil
+}
+
+func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc {
+	if acs == nil {
+		return acs
+	}
+	ret := *acs
+	return &ret
 }
