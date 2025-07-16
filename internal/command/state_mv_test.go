@@ -175,7 +175,7 @@ func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 	t.Run("backup option specified", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		t.Cleanup(testChdir(t, td))
+		t.Chdir(td)
 
 		backupPath := filepath.Join(td, "backup")
 
@@ -223,7 +223,7 @@ on a local state file only. You must specify a local state file with the
 	t.Run("backup-out option specified", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		t.Cleanup(testChdir(t, td))
+		t.Chdir(td)
 
 		backupOutPath := filepath.Join(td, "backup-out")
 
@@ -271,7 +271,7 @@ on a local state file only. You must specify a local state file with the
 	t.Run("backup and backup-out options specified", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		t.Cleanup(testChdir(t, td))
+		t.Chdir(td)
 
 		backupPath := filepath.Join(td, "backup")
 		backupOutPath := filepath.Join(td, "backup-out")
@@ -321,7 +321,7 @@ on a local state file only. You must specify a local state file with the
 	t.Run("backup option specified with state option", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		t.Cleanup(testChdir(t, td))
+		t.Chdir(td)
 
 		statePath := testStateFile(t, state)
 		backupPath := filepath.Join(td, "backup")
@@ -361,7 +361,7 @@ on a local state file only. You must specify a local state file with the
 	t.Run("backup-out option specified with state option", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		t.Cleanup(testChdir(t, td))
+		t.Chdir(td)
 
 		statePath := testStateFile(t, state)
 		backupOutPath := filepath.Join(td, "backup-out")
@@ -852,7 +852,7 @@ match.
 func TestStateMv_explicitWithBackend(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	backupPath := filepath.Join(td, "backup")
 
@@ -1465,7 +1465,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 func TestStateMv_withinBackend(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1544,7 +1544,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 func TestStateMv_fromBackendToLocal(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	state := states.NewState()
 	state.Module(addrs.RootModuleInstance).SetResourceInstanceCurrent(
@@ -1711,7 +1711,7 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(

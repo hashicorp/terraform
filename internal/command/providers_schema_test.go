@@ -50,7 +50,7 @@ func TestProvidersSchema_output(t *testing.T) {
 			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			t.Cleanup(testChdir(t, td))
+			t.Chdir(td)
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
 				"test": {"1.2.3"},

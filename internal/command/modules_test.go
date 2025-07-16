@@ -22,9 +22,10 @@ func TestModules_noJsonFlag(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
 	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
+	t.Chdir(dir)
+
 	ui := new(cli.MockUi)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
@@ -71,9 +72,10 @@ Modules declared by configuration:
 func TestModules_noJsonFlag_noModules(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
+	t.Chdir(dir)
+
 	ui := new(cli.MockUi)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
@@ -100,10 +102,10 @@ func TestModules_fullCmd(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
 	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
+	t.Chdir(dir)
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{

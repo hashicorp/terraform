@@ -20,7 +20,7 @@ func TestVersionCommand_implements(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	td := t.TempDir()
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	// We'll create a fixed dependency lock file in our working directory
 	// so we can verify that the version command shows the information
@@ -114,7 +114,7 @@ func TestVersion_outdated(t *testing.T) {
 
 func TestVersion_json(t *testing.T) {
 	td := t.TempDir()
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	ui := cli.NewMockUi()
 	meta := Meta{
