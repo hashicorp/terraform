@@ -156,20 +156,23 @@ func Test_appendLockedDependencies(t *testing.T) {
 				t.Fatalf("unexpected error when reading dep lock file: %s", depsDiags.Err().Error())
 			}
 
-			if len(deps.AllProviders()) != len(tc.expectedLocks.AllProviders()) {
-				t.Fatalf("expected deps lock file to describe %d providers, but got %d:\n %#v",
-					len(tc.expectedLocks.AllProviders()),
-					len(deps.AllProviders()),
-					deps.AllProviders(),
-				)
-			}
-			for _, lock := range tc.expectedLocks.AllProviders() {
-				if match := deps.Provider(lock.Provider()); match == nil {
-					t.Fatalf("expected deps lock file to include provider %s, but it's missing", lock.Provider())
+			if !deps.Equal(tc.expectedLocks) {
+				// Something is wrong - try to get useful feedback to show in the UI when running tests
+				if len(deps.AllProviders()) != len(tc.expectedLocks.AllProviders()) {
+					t.Fatalf("expected deps lock file to describe %d providers, but got %d:\n %#v",
+						len(tc.expectedLocks.AllProviders()),
+						len(deps.AllProviders()),
+						deps.AllProviders(),
+					)
 				}
-			}
-			if diff := cmp.Diff(tc.expectedLocks, deps); diff != "" {
-				t.Errorf("difference in file contents detected\n%s", diff)
+				for _, lock := range tc.expectedLocks.AllProviders() {
+					if match := deps.Provider(lock.Provider()); match == nil {
+						t.Fatalf("expected deps lock file to include provider %s, but it's missing", lock.Provider())
+					}
+				}
+				if diff := cmp.Diff(tc.expectedLocks, deps); diff != "" {
+					t.Errorf("difference in file contents detected\n%s", diff)
+				}
 			}
 		})
 	}
