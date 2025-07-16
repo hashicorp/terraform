@@ -106,6 +106,16 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 					Subject:  expr.Range().Ptr(),
 				})
 			}
+
+			if event == BeforeDestroy || event == AfterDestroy {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid destroy event used",
+					Detail:   "The destroy events (before_destroy, after_destroy) are not supported as of right now. They will be supported in a future release.",
+					Subject:  expr.Range().Ptr(),
+				})
+			}
+
 			events = append(events, event)
 		}
 		a.Events = events
