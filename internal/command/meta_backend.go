@@ -29,7 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
-	pluggableState "github.com/hashicorp/terraform/internal/backend/pluggable-state"
+	pluggableState "github.com/hashicorp/terraform/internal/backend/pluggable"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -2188,7 +2188,10 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 
 	// Now we have a fully configured state store, ready to be used.
 	// To make it usable we need to return it in a backend.Backend interface.
-	b = pluggableState.NewPluggable(provider, s.StateStore.Type)
+	b, err = pluggableState.NewPluggable(provider, s.StateStore.Type)
+	if err != nil {
+		diags = diags.Append(err)
+	}
 
 	return b, diags
 }
@@ -2477,7 +2480,10 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 
 	// Now we have a fully configured state store, ready to be used.
 	// To make it usable we need to return it in a backend.Backend interface.
-	b := pluggableState.NewPluggable(provider, c.Type)
+	b, err := pluggableState.NewPluggable(provider, c.Type)
+	if err != nil {
+		diags = diags.Append(err)
+	}
 
 	return b, stateStoreConfigVal, providerConfigVal, diags
 }
