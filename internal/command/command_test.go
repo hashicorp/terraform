@@ -116,8 +116,8 @@ func tempWorkingDir(t *testing.T) *workdir.Dir {
 //
 // The same caveats about working directory apply as for testWorkingDir. See
 // the testWorkingDir commentary for an example of how to use this function
-// along with testChdir to meet the expectations of command.Meta legacy
-// functionality.
+// along with t.TempDir and t.Chdir from the testing library to meet the
+// expectations of command.Meta legacy functionality.
 func tempWorkingDirFixture(t *testing.T, fixtureName string) *workdir.Dir {
 	t.Helper()
 

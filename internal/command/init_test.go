@@ -3188,9 +3188,9 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 // names (interpreted as a "default" provider address) and versions into the
 // local plugin cache for the given "meta".
 //
-// Any test using this must be using testChdir or some similar mechanism to
-// make sure that it isn't writing directly into a test fixture or source
-// directory within the codebase.
+// Any test using this must also use t.TempDir and t.Chdir from the testing library
+// or some similar mechanism to make sure that it isn't writing directly into a test
+// fixture or source directory within the codebase.
 //
 // If a requested package cannot be installed for some reason, this function
 // will abort the test using the given testing.T. Therefore if this function
@@ -3209,9 +3209,10 @@ func installFakeProviderPackages(t *testing.T, meta *Meta, providerVersions map[
 func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.Dir, providerVersions map[string][]string) {
 	t.Helper()
 
-	// It can be hard to spot the mistake of forgetting to run testChdir before
-	// modifying the working directory, so we'll use a simple heuristic here
-	// to try to detect that mistake and make a noisy error about it instead.
+	// It can be hard to spot the mistake of forgetting to use t.TempDir and
+	// t.Chdir from the testing library before modifying the working directory,
+	// so we'll use a simple heuristic here to try to detect that mistake
+	// and make a noisy error about it instead.
 	wd, err := os.Getwd()
 	if err == nil {
 		wd = filepath.Clean(wd)
@@ -3220,7 +3221,7 @@ func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.
 		// an error. This will cause the test to fail but won't block it from
 		// running.
 		if filepath.Base(wd) == "command" || filepath.Base(wd) == "testdata" || strings.Contains(filepath.ToSlash(wd), "/testdata/") {
-			t.Errorf("installFakeProviderPackage may be used only by tests that switch to a temporary working directory, e.g. using testChdir")
+			t.Errorf("installFakeProviderPackage may be used only by tests that switch to a temporary working directory, e.g. using t.TempDir and t.Chdir from the testing library")
 		}
 	}
 
