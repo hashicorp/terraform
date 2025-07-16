@@ -145,13 +145,39 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		return 1
 	}
 
+	if initArgs.Get {
+		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
+		diags = diags.Append(modsDiags)
+		if modsAbort || modsDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+		if modsOutput {
+			header = true
+		}
+	}
+
+	// With all of the modules (hopefully) installed, we can now try to load the
+	// whole configuration tree.
+	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
+	// configDiags will be handled after the version constraint check, since an
+	// incorrect version of terraform may be producing errors for configuration
+	// constructs added in later versions.
+
+	// Before we go further, we'll check to make sure none of the modules in
+	// the configuration declare that they don't support this Terraform
+	// version, so we can produce a version-related error message rather than
+	// potentially-confusing downstream errors.
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
+	if versionDiags.HasErrors() {
+		view.Diagnostics(versionDiags)
+		return 1
+	}
+
 	var back backend.Backend
 
-	// There may be config errors or backend init errors but these will be shown later _after_
-	// checking for core version requirement errors.
 	var backDiags tfdiags.Diagnostics
 	var backendOutput bool
-
 	switch {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
@@ -194,40 +220,8 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		state = sMgr.State()
 	}
 
-	if initArgs.Get {
-		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
-		diags = diags.Append(modsDiags)
-		if modsAbort || modsDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-		if modsOutput {
-			header = true
-		}
-	}
-
-	// With all of the modules (hopefully) installed, we can now try to load the
-	// whole configuration tree.
-	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
-	// configDiags will be handled after the version constraint check, since an
-	// incorrect version of terraform may be producing errors for configuration
-	// constructs added in later versions.
-
-	// Before we go further, we'll check to make sure none of the modules in
-	// the configuration declare that they don't support this Terraform
-	// version, so we can produce a version-related error message rather than
-	// potentially-confusing downstream errors.
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	if versionDiags.HasErrors() {
-		view.Diagnostics(versionDiags)
-		return 1
-	}
-
-	// We've passed the core version check, now we can show errors from the
-	// configuration and backend initialisation.
-
-	// Now, we can check the diagnostics from the early configuration and the
-	// backend.
+	// As Terraform version-related diagnostics are handled above, we can now
+	// check the diagnostics from the early configuration and the backend.
 	diags = diags.Append(earlyConfDiags)
 	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
