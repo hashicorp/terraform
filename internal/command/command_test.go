@@ -616,31 +616,6 @@ func testTempDir(t *testing.T) string {
 	return d
 }
 
-// testChdir changes the directory and returns a function to defer to
-// revert the old cwd.
-func testChdir(t *testing.T, new string) func() {
-	t.Helper()
-
-	old, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if err := os.Chdir(new); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	return func() {
-		// This code needs to be resilient to the tmp directory having already
-		// been deleted by the cleanup function made by t.TempDir.
-		//
-		// To achieve this, avoid recursion
-		if err := os.Chdir(old); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-}
-
 // testCwd is used to change the current working directory into a temporary
 // directory. The cleanup is performed automatically after the test and all its
 // subtests complete.
