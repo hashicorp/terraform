@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: 'cli: Added `terraform force-lock` command to manually acquire state locks, complementing the existing `terraform force-unlock` command'
+time: 2025-01-16T12:00:00.000000Z
+custom:
+    Issue: ""
