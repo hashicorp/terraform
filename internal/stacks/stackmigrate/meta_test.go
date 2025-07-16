@@ -58,7 +58,7 @@ func TestMeta_Workspace_override(t *testing.T) {
 // existing workflows with invalid workspace names.
 func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	td := t.TempDir()
-	defer testChdir(t, td)()
+	t.Cleanup(testChdir(t, td))
 
 	// this is an invalid workspace name
 	workspace := "test workspace"

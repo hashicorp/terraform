@@ -631,8 +631,13 @@ func testChdir(t *testing.T, new string) func() {
 	}
 
 	return func() {
-		// Re-run the function ignoring the defer result
-		testChdir(t, old)
+		// This code needs to be resilient to the tmp directory having already
+		// been deleted by the cleanup function made by t.TempDir.
+		//
+		// To achieve this, avoid recursion
+		if err := os.Chdir(old); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
 }
 
