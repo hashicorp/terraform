@@ -21,7 +21,9 @@ import (
 )
 
 func TestImport(t *testing.T) {
-	t.Chdir(testFixturePath("import-provider-implicit"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-implicit"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -76,7 +78,9 @@ func TestImport(t *testing.T) {
 }
 
 func TestImport_providerConfig(t *testing.T) {
-	t.Chdir(testFixturePath("import-provider"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -344,7 +348,9 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 }
 
 func TestImport_providerConfigWithVar(t *testing.T) {
-	t.Chdir(testFixturePath("import-provider-var"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-var"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -424,7 +430,9 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 }
 
 func TestImport_providerConfigWithDataSource(t *testing.T) {
-	t.Chdir(testFixturePath("import-provider-datasource"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-datasource"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -489,7 +497,9 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 }
 
 func TestImport_providerConfigWithVarDefault(t *testing.T) {
-	t.Chdir(testFixturePath("import-provider-var-default"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-var-default"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -568,7 +578,9 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 }
 
 func TestImport_providerConfigWithVarFile(t *testing.T) {
-	t.Chdir(testFixturePath("import-provider-var-file"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-var-file"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -682,7 +694,9 @@ func TestImport_emptyConfig(t *testing.T) {
 }
 
 func TestImport_missingResourceConfig(t *testing.T) {
-	t.Chdir(testFixturePath("import-missing-resource-config"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -714,7 +728,9 @@ func TestImport_missingResourceConfig(t *testing.T) {
 }
 
 func TestImport_missingModuleConfig(t *testing.T) {
-	t.Chdir(testFixturePath("import-missing-resource-config"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -882,7 +898,9 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 }
 
 func TestImport_dataResource(t *testing.T) {
-	t.Chdir(testFixturePath("import-missing-resource-config"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -914,7 +932,9 @@ func TestImport_dataResource(t *testing.T) {
 }
 
 func TestImport_invalidResourceAddr(t *testing.T) {
-	t.Chdir(testFixturePath("import-missing-resource-config"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -946,7 +966,9 @@ func TestImport_invalidResourceAddr(t *testing.T) {
 }
 
 func TestImport_targetIsModule(t *testing.T) {
-	t.Chdir(testFixturePath("import-missing-resource-config"))
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
