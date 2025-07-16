@@ -91,7 +91,7 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 	}
 
 	ctx.Actions().AddActionInstance(n.Addr, configVal, n.ResolvedProvider)
-	return nil
+	return diags
 }
 
 // GraphNodeReferenceable
