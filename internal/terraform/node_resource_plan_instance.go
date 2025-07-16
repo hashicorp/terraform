@@ -570,7 +570,7 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 
 		// TODO: Deal with conditions
 		for j, actionRef := range at.Actions {
-			var actionAddr addrs.ActionInstance
+			absActionInstAddrs := []addrs.AbsActionInstance{}
 
 			ref, parseRefDiags := addrs.ParseRef(actionRef.Traversal)
 			diags = diags.Append(parseRefDiags)
@@ -578,13 +578,15 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				return diags
 			}
 
+			// We don't support accessing actions within modules right now, therefore we can just make the action absolute based on the current module path.
 			if a, ok := ref.Subject.(addrs.ActionInstance); ok {
-				actionAddr = a
+				absActionInstAddrs = append(absActionInstAddrs, a.Absolute(n.Path()))
 			} else if a, ok := ref.Subject.(addrs.Action); ok {
-				// Could be a reference to an action without an instance specified
-				// TODO: This is where we should auto-expand, for now we will just default to taking
-				// the action address with no key
-				actionAddr = a.Instance(addrs.NoKey)
+				// If the reference action is expanded we get a single action address,
+				// otherwise all expanded action addresses. This auto-expansion feature is syntacic
+				// sugar for the user so that they can refer to all of an expanded action's
+				// instances
+				absActionInstAddrs = ctx.Actions().GetActionInstanceKeys(a.Absolute(n.Path()))
 			} else {
 				// TODO: Better diagnostic message
 				diags = diags.Append(tfdiags.Sourceless(
@@ -595,39 +597,48 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				continue
 			}
 
-			// We don't support accessing actions within modules right now, therefore we can just make the action absolute based on the current module path.
-			absActionAddr := actionAddr.Absolute(n.Path())
-			actionInstance, ok := ctx.Actions().GetActionInstance(absActionAddr)
-
-			if !ok {
+			if len(absActionInstAddrs) == 0 {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					fmt.Sprintf("action trigger #%d refers to a non-existent action instance %s", i, absActionAddr),
-					"Action instance not found in the current context.",
+					fmt.Sprintf("%s action trigger #%d refers to a non-existent action %s", n.Addr, i, actionRef.Traversal),
+					fmt.Sprintf("action trigger #%d refers to a non-existent action %s", i, actionRef.Traversal),
 				))
 				return diags
 			}
 
-			provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to get provider",
-					fmt.Sprintf("Failed to get provider: %s", err),
-				))
-				return diags
-			}
+			for _, absActionAddr := range absActionInstAddrs {
+				actionInstance, ok := ctx.Actions().GetActionInstance(absActionAddr)
 
-			resp := provider.PlanAction(providers.PlanActionRequest{
-				ActionType:         actionAddr.Action.Type,
-				ProposedActionData: actionInstance.ConfigValue,
-				ClientCapabilities: ctx.ClientCapabilities(),
-			})
+				if !ok {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("action trigger #%d refers to a non-existent action instance %s", i, absActionAddr),
+						"Action instance not found in the current context.",
+					))
+					return diags
+				}
 
-			// TODO: Deal with deferred responses
-			diags = diags.Append(resp.Diagnostics)
-			if diags.HasErrors() {
-				return diags
+				provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to get provider",
+						fmt.Sprintf("Failed to get provider: %s", err),
+					))
+					return diags
+				}
+
+				resp := provider.PlanAction(providers.PlanActionRequest{
+					ActionType:         absActionAddr.Action.Action.Type,
+					ProposedActionData: actionInstance.ConfigValue,
+					ClientCapabilities: ctx.ClientCapabilities(),
+				})
+
+				// TODO: Deal with deferred responses
+				diags = diags.Append(resp.Diagnostics)
+				if diags.HasErrors() {
+					return diags
+				}
 			}
 		}
 	}
