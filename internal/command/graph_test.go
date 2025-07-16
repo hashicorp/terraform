@@ -292,7 +292,8 @@ digraph G {
 }
 
 func TestGraph_applyPhaseSavedPlan(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	emptyObj, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
 	if err != nil {

@@ -24,7 +24,8 @@ import (
 // This file still contains some tests using the stdin-based input.
 
 func TestConsole_basic(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	p := testProvider()
 	ui := cli.NewMockUi()

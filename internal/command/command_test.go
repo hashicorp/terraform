@@ -641,32 +641,6 @@ func testChdir(t *testing.T, new string) func() {
 	}
 }
 
-// testCwd is used to change the current working directory into a temporary
-// directory. The cleanup is performed automatically after the test and all its
-// subtests complete.
-func testCwd(t *testing.T) string {
-	t.Helper()
-
-	tmp := t.TempDir()
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if err := os.Chdir(tmp); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	t.Cleanup(func() {
-		if err := os.Chdir(cwd); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	})
-
-	return tmp
-}
-
 // testStdinPipe changes os.Stdin to be a pipe that sends the data from
 // the reader before closing the pipe.
 //
