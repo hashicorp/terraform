@@ -98,10 +98,10 @@ func TestMain(m *testing.M) {
 // similar to the following when initializing your test:
 //
 //	wd := tempWorkingDir(t)
-//	defer testChdir(t, wd.RootModuleDir())()
+//	t.Chdir(wd.RootModuleDir())
 //
-// Note that testChdir modifies global state for the test process, and so a
-// test using this pattern must never call t.Parallel().
+// Note that t.Chdir() modifies global state for the test process, and so a
+// test using this pattern is incompatible with use of t.Parallel().
 func tempWorkingDir(t *testing.T) *workdir.Dir {
 	t.Helper()
 
@@ -116,8 +116,8 @@ func tempWorkingDir(t *testing.T) *workdir.Dir {
 //
 // The same caveats about working directory apply as for testWorkingDir. See
 // the testWorkingDir commentary for an example of how to use this function
-// along with testChdir to meet the expectations of command.Meta legacy
-// functionality.
+// along with t.TempDir and t.Chdir from the testing library to meet the
+// expectations of command.Meta legacy functionality.
 func tempWorkingDirFixture(t *testing.T, fixtureName string) *workdir.Dir {
 	t.Helper()
 
@@ -635,31 +635,6 @@ func testTempDir(t *testing.T) string {
 	}
 
 	return d
-}
-
-// testChdir changes the directory and returns a function to defer to
-// revert the old cwd.
-func testChdir(t *testing.T, new string) func() {
-	t.Helper()
-
-	old, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if err := os.Chdir(new); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	return func() {
-		// This code needs to be resilient to the tmp directory having already
-		// been deleted by the cleanup function made by t.TempDir.
-		//
-		// To achieve this, avoid recursion
-		if err := os.Chdir(old); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
 }
 
 // testStdinPipe changes os.Stdin to be a pipe that sends the data from

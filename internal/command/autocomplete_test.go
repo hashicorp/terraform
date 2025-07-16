@@ -17,7 +17,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	// make sure a vars file doesn't interfere
 	err := ioutil.WriteFile(DefaultVarsFilename, nil, 0644)

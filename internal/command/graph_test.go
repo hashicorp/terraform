@@ -27,7 +27,7 @@ import (
 func TestGraph_planPhase(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	ui := new(cli.MockUi)
 	streams, closeStreams := terminal.StreamsForTesting(t)
@@ -53,7 +53,7 @@ func TestGraph_planPhase(t *testing.T) {
 func TestGraph_cyclic(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph-cyclic"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	tests := []struct {
 		name     string
@@ -189,7 +189,7 @@ func TestGraph_multipleArgs(t *testing.T) {
 func TestGraph_noConfig(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	streams, closeStreams := terminal.StreamsForTesting(t)
 	defer closeStreams(t)
@@ -212,7 +212,7 @@ func TestGraph_noConfig(t *testing.T) {
 
 func TestGraph_resourcesOnly(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "graph-interesting")
-	defer testChdir(t, wd.RootModuleDir())()
+	t.Chdir(wd.RootModuleDir())
 
 	// The graph-interesting fixture has a child module, so we'll need to
 	// run the module installer just to get the working directory set up

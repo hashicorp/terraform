@@ -193,7 +193,7 @@ func TestStateIdentities_backendDefaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-identities-backend-default"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -243,7 +243,7 @@ func TestStateIdentities_backendOverrideState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to rename state file: %s", err)
 	}
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -307,7 +307,7 @@ func TestStateIdentities_modules(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-identities-nested-modules"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	p := testProvider()
 	ui := cli.NewMockUi()

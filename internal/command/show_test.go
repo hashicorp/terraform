@@ -105,7 +105,7 @@ func TestShow_argsWithState(t *testing.T) {
 	statePath := testStateFile(t, testState())
 	stateDir := filepath.Dir(statePath)
 	defer os.RemoveAll(stateDir)
-	defer testChdir(t, stateDir)()
+	t.Chdir(stateDir)
 
 	view, done := testView(t)
 	c := &ShowCommand{
@@ -153,7 +153,7 @@ func TestShow_argsWithStateAliasedProvider(t *testing.T) {
 	statePath := testStateFile(t, testState)
 	stateDir := filepath.Dir(statePath)
 	defer os.RemoveAll(stateDir)
-	defer testChdir(t, stateDir)()
+	t.Chdir(stateDir)
 
 	view, done := testView(t)
 	c := &ShowCommand{
@@ -545,7 +545,7 @@ func TestShow_json_output(t *testing.T) {
 			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			t.Cleanup(testChdir(t, td))
+			t.Chdir(td)
 
 			expectError := strings.Contains(entry.Name(), "error")
 
@@ -660,7 +660,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	td := t.TempDir()
 	inputDir := "testdata/show-json-sensitive"
 	testCopyDir(t, inputDir, td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
 	defer close()
@@ -755,7 +755,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 	td := t.TempDir()
 	inputDir := "testdata/show-json/conditions"
 	testCopyDir(t, inputDir, td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
 	defer close()
@@ -864,7 +864,7 @@ func TestShow_json_output_state(t *testing.T) {
 			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			t.Cleanup(testChdir(t, td))
+			t.Chdir(td)
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
 				"test": {"1.2.3"},
@@ -939,7 +939,7 @@ func TestShow_planWithNonDefaultStateLineage(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("show"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	// Write default state file with a testing lineage ("fake-for-testing")
 	testStateFileDefault(t, testState())
@@ -986,7 +986,7 @@ func TestShow_corruptStatefile(t *testing.T) {
 	td := t.TempDir()
 	inputDir := "testdata/show-corrupt-statefile"
 	testCopyDir(t, inputDir, td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	view, done := testView(t)
 	c := &ShowCommand{

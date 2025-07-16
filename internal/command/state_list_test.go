@@ -101,7 +101,7 @@ func TestStateList_backendDefaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-list-backend-default"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -129,7 +129,7 @@ func TestStateList_backendCustomState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -157,7 +157,7 @@ func TestStateList_backendOverrideState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -205,7 +205,7 @@ func TestStateList_modules(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-list-nested-modules"), td)
-	t.Cleanup(testChdir(t, td))
+	t.Chdir(td)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
