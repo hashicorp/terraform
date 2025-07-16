@@ -913,7 +913,7 @@ func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsRes
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state)
+		return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state, false)
 	case addrs.ListResourceMode:
 		identitySchema := schema.Identity
 		return genconfig.GenerateListResourceContents(addr, filteredSchema, identitySchema, providerAddr, state)
