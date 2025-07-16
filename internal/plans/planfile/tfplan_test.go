@@ -465,34 +465,6 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 			{
 				Addr:         addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				ProviderAddr: provider,
-				LinkedResources: []plans.ResourceInstanceActionChangeSrc{
-					{
-						Addr: addrs.Resource{
-							Mode: addrs.ManagedResourceMode,
-							Type: "test_thing",
-							Name: "woot",
-						}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
-						ChangeSrc: plans.ChangeSrc{
-							Action: plans.Update,
-							Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
-								"id": cty.StringVal("foo-bar-baz"),
-								"boop": cty.ListVal([]cty.Value{
-									cty.StringVal("beep"),
-								}),
-							}), objTy),
-							After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
-								"id": cty.StringVal("foo-bar-baz"),
-								"boop": cty.ListVal([]cty.Value{
-									cty.StringVal("beep"),
-									cty.StringVal("honk"),
-								}),
-							}), objTy),
-							AfterSensitivePaths: []cty.Path{
-								cty.GetAttrPath("boop").IndexInt(1),
-							},
-						},
-					},
-				},
 			},
 		},
 	}

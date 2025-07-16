@@ -285,26 +285,3 @@ func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInstance) {
 		return
 	}
 }
-
-// GetResourceInstanceActions searches the set of action instances for any with
-// LinkedResources matching the given address and deposed key, returning it if
-// it exists. Use [addrs.NotDeposed] as the deposed key to represent the
-// "current" object for the given resource instance.
-//
-// If no such change exists, nil is returned.
-//
-// The returned array is a deep copy of the changes recorded in the plan, so
-// callers may mutate then although it's generally better (less confusing) to
-// treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetResourceInstanceActions(addr addrs.AbsResourceInstance, dk addrs.DeposedKey) []*ActionInvocationInstance {
-	if cs == nil {
-		panic("GetResourceInstanceChange on nil ChangesSync")
-	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
-
-	if dk == addrs.NotDeposed {
-		return cs.changes.ActionsForResourceInstance(addr).DeepCopy()
-	}
-	return cs.changes.ActionsForResourceInstanceDeposed(addr, dk).DeepCopy()
-}

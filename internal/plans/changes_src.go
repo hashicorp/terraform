@@ -553,20 +553,6 @@ type ActionInvocationInstanceSrc struct {
 	Addr addrs.AbsActionInstance
 
 	ProviderAddr addrs.AbsProviderConfig
-
-	LinkedResources []ResourceInstanceActionChangeSrc
-}
-
-type ResourceInstanceActionChangeSrc struct {
-	Addr addrs.AbsResourceInstance
-
-	// DeposedKey is the identifier for a deposed object associated with the
-	// given instance, or states.NotDeposed if this change applies to the
-	// current object.
-	DeposedKey states.DeposedKey
-
-	// ChangeSrc is an embedded description of the not-yet-decoded change.
-	ChangeSrc
 }
 
 // Decode unmarshals the raw representation of any linked resources.
@@ -580,34 +566,5 @@ func (acs *ActionInvocationInstanceSrc) Decode(schema providers.ProviderSchema) 
 	ai := &ActionInvocationInstance{
 		Addr: acs.Addr,
 	}
-
-	if len(acs.LinkedResources) == 0 {
-		return ai, nil
-	}
-
-	linkedResourceTys := as.LinkedResources()
-	if len(as.LinkedResources()) != len(acs.LinkedResources) {
-		// unpossible: this should have been caught a dozen times over by now
-		// but it's a good check for tests
-		return nil, fmt.Errorf("wrong number of linked resources")
-	}
-
-	changes := make([]ResourceInstanceActionChange, 0, len(acs.LinkedResources))
-	for i, cs := range acs.LinkedResources {
-
-		ty := linkedResourceTys[i].TypeName
-		schema := schema.ResourceTypes[ty]
-		c, err := cs.Decode(&schema)
-
-		if err != nil {
-			return nil, err
-		}
-		changes[i] = ResourceInstanceActionChange{
-			Addr:   cs.Addr,
-			Change: *c,
-		}
-	}
-
-	ai.LinkedResources = changes
 	return ai, nil
 }

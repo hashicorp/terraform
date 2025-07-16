@@ -1265,31 +1265,6 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocation) (*plans.A
 	}
 	ret.ProviderAddr = providerAddr
 
-	lrs := make([]plans.ResourceInstanceActionChangeSrc, 0, len(rawAction.LinkedResources))
-	for _, lr := range rawAction.LinkedResources {
-		rc := plans.ResourceInstanceActionChangeSrc{}
-		rAddr, diags := addrs.ParseAbsResourceInstanceStr(lr.Addr)
-		if diags.HasErrors() {
-			return ret, fmt.Errorf("invalid resource instance address %q in linked resources: %w", lr.Addr, diags.Err())
-		}
-		rc.Addr = rAddr
-
-		if lr.DeposedKey != "" {
-			if len(lr.DeposedKey) != 8 {
-				return nil, fmt.Errorf("deposed object for %s has invalid deposed key %q", ret.Addr, lr.DeposedKey)
-			}
-			rc.DeposedKey = states.DeposedKey(lr.DeposedKey)
-		}
-
-		change, err := changeFromTfplan(lr.Change)
-		if err != nil {
-			return nil, fmt.Errorf("invalid plan for action %q: %s", lr, err)
-		}
-		rc.ChangeSrc = *change
-		lrs = append(lrs, rc)
-	}
-	ret.LinkedResources = lrs
-
 	return ret, nil
 }
 
@@ -1302,23 +1277,5 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		Addr:     action.Addr.String(),
 		Provider: action.ProviderAddr.String(),
 	}
-
-	lrs := make([]*planproto.ResourceInstanceActionChange, 0, len(action.LinkedResources))
-	for _, lr := range action.LinkedResources {
-		riac := planproto.ResourceInstanceActionChange{
-			Addr:       lr.Addr.String(),
-			DeposedKey: lr.DeposedKey.String(),
-		}
-		valChange, err := changeToTfplan(&lr.ChangeSrc)
-		if err != nil {
-			return nil, fmt.Errorf("failed to serialize resource %s change: %s", action.Addr, err)
-		}
-		riac.Change = valChange
-		lrs = append(lrs, &riac)
-	}
-
-	ret.LinkedResources = lrs
-
 	return ret, nil
-
 }

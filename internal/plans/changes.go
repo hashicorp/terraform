@@ -270,36 +270,6 @@ func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.Modu
 	return ret
 }
 
-// ActionsForResourceInstance returns the planned actions for the current object
-// of the resource instance of the given address, if any. Returns nil if no
-// change is planned.
-func (c *Changes) ActionsForResourceInstance(addr addrs.AbsResourceInstance) ActionInvocationInstances {
-	var ret []*ActionInvocationInstance
-	for _, a := range c.ActionInvocations {
-		for _, r := range a.LinkedResources {
-			if r.Addr.Equal(addr) && r.DeposedKey == states.NotDeposed {
-				ret = append(ret, a)
-			}
-		}
-	}
-	return ret
-}
-
-// ActionsForResourceInstanceDeposed returns the plan actions of a deposed
-// object of the resource instance of the given address, if any. Returns nil if
-// no change is planned.
-func (c *Changes) ActionsForResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) ActionInvocationInstances {
-	var ret []*ActionInvocationInstance
-	for _, a := range c.ActionInvocations {
-		for _, r := range a.LinkedResources {
-			if r.Addr.Equal(addr) && r.DeposedKey == key {
-				ret = append(ret, a)
-			}
-		}
-	}
-	return ret
-}
-
 type QueryInstance struct {
 	Addr addrs.AbsResourceInstance
 
