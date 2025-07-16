@@ -511,7 +511,7 @@ resource "test_object" "a" {
 			},
 		},
 
-		"actions cant be accessed": {
+		"actions cant be accessed in resources": {
 			module: map[string]string{
 				"main.tf": `
 terraform { experiments = [actions] }
@@ -533,6 +533,38 @@ resource "test_object" "a" {
 			},
 			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Can not access actions", "Actions can not be accessed, they have no state and can only be referenced with a resources lifecycle action_trigger events list. Tried to access action.test_unlinked.my_action.")}
+			},
+		},
+
+		"actions cant be accessed in outputs": {
+			module: map[string]string{
+				"main.tf": `
+terraform { experiments = [actions] }
+action "test_unlinked" "my_action" {
+  config {
+    attr = "value"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.my_action]
+    }
+  }
+}
+
+output "my_output" {
+    value = action.test_unlinked.my_action.attr
+}
+
+output "my_output2" {
+    value = action.test_unlinked.my_action
+}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Can not access actions", "Actions can not be accessed, they have no state and can only be referenced with a resources lifecycle action_trigger events list. Tried to access action.test_unlinked.my_action."), tfdiags.Sourceless(tfdiags.Error, "Can not access actions", "Actions can not be accessed, they have no state and can only be referenced with a resources lifecycle action_trigger events list. Tried to access action.test_unlinked.my_action.")}
 			},
 		},
 	} {
