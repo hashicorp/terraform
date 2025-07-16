@@ -287,23 +287,6 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		}
 	}
 
-	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
-	diags = diags.Append(providerDiags)
-	if providersAbort || providerDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-	if providersOutput {
-		header = true
-	}
-
-	// If we outputted information, then we need to output a newline
-	// so that our success message is nicely spaced out from prior text.
-	if header {
-		view.Output(views.EmptyMessage)
-	}
-
 	// If we accumulated any warnings along the way that weren't accompanied
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
