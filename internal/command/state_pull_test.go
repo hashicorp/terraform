@@ -44,7 +44,8 @@ func TestStatePull(t *testing.T) {
 }
 
 func TestStatePull_noState(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	p := testProvider()
 	ui := cli.NewMockUi()

@@ -285,7 +285,8 @@ func TestStateIdentities_backendOverrideState(t *testing.T) {
 }
 
 func TestStateIdentities_noState(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	p := testProvider()
 	ui := cli.NewMockUi()

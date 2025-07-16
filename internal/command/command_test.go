@@ -463,7 +463,14 @@ func testStateFile(t *testing.T, s *states.State) string {
 }
 
 // testStateFileDefault writes the state out to the default statefile
-// in the cwd. Use `testCwd` to change into a temp cwd.
+// in the cwd.
+//
+// Before calling this, use:
+//
+//	tmp := t.TempDir()
+//	t.Chdir(tmp)
+//
+// to change into a temp working directory
 func testStateFileDefault(t *testing.T, s *states.State) {
 	t.Helper()
 
@@ -479,7 +486,14 @@ func testStateFileDefault(t *testing.T, s *states.State) {
 }
 
 // testStateFileWorkspaceDefault writes the state out to the default statefile
-// for the given workspace in the cwd. Use `testCwd` to change into a temp cwd.
+// for the given workspace in the cwd.
+//
+// Before calling this, use:
+//
+//	tmp := t.TempDir()
+//	t.Chdir(tmp)
+//
+// to change into a temp working directory
 func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.State) string {
 	t.Helper()
 
@@ -504,7 +518,14 @@ func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.Sta
 }
 
 // testStateFileRemote writes the state out to the remote statefile
-// in the cwd. Use `testCwd` to change into a temp cwd.
+// in the cwd.
+//
+// Before calling this, use:
+//
+//	tmp := t.TempDir()
+//	t.Chdir(tmp)
+//
+// to change into a temp working directory
 func testStateFileRemote(t *testing.T, s *workdir.BackendStateFile) string {
 	t.Helper()
 
@@ -614,32 +635,6 @@ func testTempDir(t *testing.T) string {
 	}
 
 	return d
-}
-
-// testCwd is used to change the current working directory into a temporary
-// directory. The cleanup is performed automatically after the test and all its
-// subtests complete.
-func testCwd(t *testing.T) string {
-	t.Helper()
-
-	tmp := t.TempDir()
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if err := os.Chdir(tmp); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	t.Cleanup(func() {
-		if err := os.Chdir(cwd); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	})
-
-	return tmp
 }
 
 // testStdinPipe changes os.Stdin to be a pipe that sends the data from

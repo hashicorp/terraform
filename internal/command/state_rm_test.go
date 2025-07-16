@@ -357,7 +357,8 @@ func TestStateRm_backupExplicit(t *testing.T) {
 }
 
 func TestStateRm_noState(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	p := testProvider()
 	ui := new(cli.MockUi)

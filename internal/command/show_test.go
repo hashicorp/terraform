@@ -73,7 +73,8 @@ func TestShow_noArgsNoState(t *testing.T) {
 
 func TestShow_noArgsWithState(t *testing.T) {
 	// Get a temp cwd
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 	// Create the default state
 	testStateFileDefault(t, testState())
 

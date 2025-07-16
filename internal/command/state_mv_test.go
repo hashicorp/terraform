@@ -1137,7 +1137,8 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 }
 
 func TestStateMv_noState(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
