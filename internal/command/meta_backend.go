@@ -1825,7 +1825,7 @@ func (m *Meta) stateStore_c_S(
 	}
 
 	// Initialize the configured state store
-	b, moreDiags := m.savedStateStore(sMgr, opts.ProviderFactory)
+	b, moreDiags := m.savedStateStore(sMgr, opts.ProviderFactoryFrom)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags
