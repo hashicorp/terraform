@@ -98,10 +98,10 @@ func TestMain(m *testing.M) {
 // similar to the following when initializing your test:
 //
 //	wd := tempWorkingDir(t)
-//	defer testChdir(t, wd.RootModuleDir())()
+//	t.Chdir(wd.RootModuleDir())
 //
-// Note that testChdir modifies global state for the test process, and so a
-// test using this pattern must never call t.Parallel().
+// Note that t.Chdir() modifies global state for the test process, and so a
+// test using this pattern is incompatible with use of t.Parallel().
 func tempWorkingDir(t *testing.T) *workdir.Dir {
 	t.Helper()
 
