@@ -174,6 +174,29 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		return 1
 	}
 
+	// Now the full configuration is loaded, we can download the providers specified in the configuration.
+	// This is step one of a two-step provider download process
+	configProvidersOutput, configProvidersOutcome, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	diags = diags.Append(configProviderDiags)
+	if configProvidersOutcome == ProviderDownloadAborted || configProviderDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+	if configProvidersOutput {
+		header = true
+	}
+	if configProvidersOutcome == ProviderDownloadLocksChanged {
+		// Only update the dependency lock file if the locks have changed
+		lockFileDiags := c.replaceLockedDependencies(configLocks)
+		diags = diags.Append(lockFileDiags)
+	}
+
+	// If we outputted information, then we need to output a newline
+	// so that our success message is nicely spaced out from prior text.
+	if header {
+		view.Output(views.EmptyMessage)
+	}
+
 	var back backend.Backend
 
 	var backDiags tfdiags.Diagnostics
@@ -182,6 +205,8 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
+		fmt.Println("In future, code will use locks here")
+		fmt.Println(configLocks)
 		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	default:
 		// load the previously-stored backend config
@@ -220,6 +245,8 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		state = sMgr.State()
 	}
 
+	// TODO: Download providers described only in the state, update dependency lock file.
+
 	// As Terraform version-related diagnostics are handled above, we can now
 	// check the diagnostics from the early configuration and the backend.
 	diags = diags.Append(earlyConfDiags)
@@ -255,23 +282,6 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 				return 1
 			}
 		}
-	}
-
-	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
-	diags = diags.Append(providerDiags)
-	if providersAbort || providerDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-	if providersOutput {
-		header = true
-	}
-
-	// If we outputted information, then we need to output a newline
-	// so that our success message is nicely spaced out from prior text.
-	if header {
-		view.Output(views.EmptyMessage)
 	}
 
 	// If we accumulated any warnings along the way that weren't accompanied
