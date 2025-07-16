@@ -680,7 +680,16 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 
 	return true, false, diags
 }
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output, abort bool, diags tfdiags.Diagnostics) {
+
+type ProviderDownloadOutcome int
+
+const (
+	ProviderDownloadAborted ProviderDownloadOutcome = iota
+	ProviderDownloadLocksSame
+	ProviderDownloadLocksChanged
+)
+
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, outcome ProviderDownloadOutcome, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -695,7 +704,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return false, true, diags
+		return false, ProviderDownloadAborted, nil, diags
 	}
 
 	for providerAddr := range reqs {
@@ -715,7 +724,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	diags = diags.Append(moreDiags)
 
 	if diags.HasErrors() {
-		return false, true, diags
+		return false, ProviderDownloadAborted, nil, diags
 	}
 
 	var inst *providercache.Installer
@@ -1037,7 +1046,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		if flagLockfile == "readonly" {
 			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 			view.Diagnostics(diags)
-			return true, true, diags
+			return true, ProviderDownloadAborted, nil, diags
 		}
 
 		mode = providercache.InstallUpgrades
@@ -1046,7 +1055,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, true, diags
+		return true, ProviderDownloadAborted, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -1056,7 +1065,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			diags = diags.Append(err)
 		}
 
-		return true, true, diags
+		return true, ProviderDownloadAborted, nil, diags
 	}
 
 	// If the provider dependencies have changed since the last run then we'll
@@ -1069,14 +1078,14 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	if !newLocks.Equal(previousLocks) {
 		// if readonly mode
 		if flagLockfile == "readonly" {
-			// check if required provider dependences change
+			// check if required provider dependencies change
 			if !newLocks.EqualProviderAddress(previousLocks) {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					`Provider dependency changes detected`,
 					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
 				))
-				return true, true, diags
+				return true, ProviderDownloadAborted, nil, diags
 			}
 
 			// suppress updating the file to record any new information it learned,
@@ -1086,7 +1095,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 				`Provider lock file not updated`,
 				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
 			))
-			return true, false, diags
+			return true, ProviderDownloadLocksSame, previousLocks, diags
 		}
 
 		// Jump in here and add a warning if any of the providers are incomplete.
@@ -1117,11 +1126,10 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			view.Output(views.DependenciesLockChangesInfo)
 		}
 
-		moreDiags = c.replaceLockedDependencies(newLocks)
-		diags = diags.Append(moreDiags)
+		return true, ProviderDownloadLocksChanged, newLocks, diags
 	}
 
-	return true, false, diags
+	return true, ProviderDownloadLocksSame, previousLocks, diags
 }
 
 // backendConfigOverrideBody interprets the raw values of -backend-config
