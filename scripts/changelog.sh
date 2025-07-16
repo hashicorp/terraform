@@ -83,7 +83,7 @@ function generate {
         # If we have no changes yet, the changelog is empty now, so we need to add a header
         if ! grep -q "$COMPLETE_VERSION" CHANGELOG.md; then
             CURRENT_CHANGELOG=$(cat CHANGELOG.md)
-            echo "## $COMPLETE_VERSION" > CHANGELOG.md
+            echo "## $COMPLETE_VERSION ($HUMAN_DATE)" > CHANGELOG.md
             echo "" >> CHANGELOG.md
             echo "$CURRENT_CHANGELOG" >> CHANGELOG.md
         fi
