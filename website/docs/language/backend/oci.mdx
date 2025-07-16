@@ -178,7 +178,7 @@ The oci backend requires the configuration of the OCI namespace and Object Stora
 ### 🔧 Setting Backend Configuration via Environment Variables
 You can configure the OCI Terraform backend using environment variables. This provides flexibility and simplifies automation workflows.
 
-For any backend attribute (e.g., region), you can set its value using one of the following environment variable formats:
+For Optional backend attribute (e.g., region), you can set its value using one of the following environment variable formats:
 
 #### 🧩 Supported Environment Variable Prefixes (in order of priority):
 1. `OCI_` – OCI SDK-compatible environment variable. Can also be used for Terraform Provider OCI credentials.
@@ -191,6 +191,7 @@ For any backend attribute (e.g., region), you can set its value using one of the
    ```
 Terraform will resolve the attribute value using the first match it finds based on the above priority order.
 
+> ⚠️ **Note**:  Required attributes like bucket and namespace cannot be configured through environment variables. They must be explicitly specified in the backend configuration block.
 ### Custom encryption key
 
 To use a custom encryption key, you can generate a new key and its SHA256 hash using the following commands:
