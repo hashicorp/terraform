@@ -66,6 +66,40 @@ func (m *Meta) replaceLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostic
 	return depsfile.SaveLocksToFile(new, dependencyLockFilename)
 }
 
+// appendLockedDependencies overwrites the existing lock file with a combination of
+// the old lock contents and new locks.
+// This allows code in the init command to download providers in separate phases and
+// keep the lock file updated accurately after each phase.
+//
+// Any overlaps between the two sets of locks will be ignored; only new providers will
+// be appended.
+func (m *Meta) appendLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostics {
+	locks, diags := m.lockedDependencies()
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Append new locks to existing locks.
+	for _, newLock := range new.AllProviders() {
+		match := locks.Provider(newLock.Provider())
+		if match != nil {
+			log.Printf("[TRACE] Ignoring provider %s version %s in appendLockedDependencies; lock file contains %s version %s already",
+				newLock.Provider(),
+				newLock.Version(),
+				match.Provider(),
+				match.Version(),
+			)
+		} else {
+			// This is a new provider now present in the lockfile yet
+			log.Printf("[DEBUG] Appending provider %s to the lock file", newLock.Provider())
+			locks.SetProvider(newLock.Provider(), newLock.Version(), newLock.VersionConstraints(), newLock.AllHashes())
+		}
+	}
+
+	// Override the locks file with the new combination of locks
+	return depsfile.SaveLocksToFile(locks, dependencyLockFilename)
+}
+
 // annotateDependencyLocksWithOverrides modifies the given Locks object in-place
 // to track as overridden any provider address that's subject to testing
 // overrides, development overrides, or "unmanaged provider" status.
