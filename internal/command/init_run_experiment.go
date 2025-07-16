@@ -245,7 +245,28 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		state = sMgr.State()
 	}
 
-	// TODO: Download providers described only in the state, update dependency lock file.
+	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
+	// This is step two of a two-step provider download process
+	stateProvidersOutput, stateProvidersOutcome, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	diags = diags.Append(configProviderDiags)
+	if stateProvidersOutcome == ProviderDownloadAborted || stateProvidersDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+	if stateProvidersOutput {
+		header = true
+	}
+	if stateProvidersOutcome == ProviderDownloadLocksChanged {
+		// Only update the dependency lock file if the state's provider locks differ from the ones saved to file already.
+		lockFileDiags := c.appendLockedDependencies(stateLocks)
+		diags = diags.Append(lockFileDiags)
+	}
+
+	// If we outputted information, then we need to output a newline
+	// so that our success message is nicely spaced out from prior text.
+	if header {
+		view.Output(views.EmptyMessage)
+	}
 
 	// As Terraform version-related diagnostics are handled above, we can now
 	// check the diagnostics from the early configuration and the backend.
