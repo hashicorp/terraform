@@ -129,10 +129,10 @@ func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
 	testCopyDir(t, testFixturePath("modules-unreferenced-entries"), dir)
+	t.Chdir(dir)
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
@@ -155,10 +155,10 @@ func TestModules_uninstalledModules(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
 	testCopyDir(t, testFixturePath("modules-uninstalled-entries"), dir)
+	t.Chdir(dir)
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{

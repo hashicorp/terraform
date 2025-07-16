@@ -104,7 +104,7 @@ func TestShow_argsWithState(t *testing.T) {
 	statePath := testStateFile(t, testState())
 	stateDir := filepath.Dir(statePath)
 	defer os.RemoveAll(stateDir)
-	defer testChdir(t, stateDir)()
+	t.Chdir(stateDir)
 
 	view, done := testView(t)
 	c := &ShowCommand{
@@ -152,7 +152,7 @@ func TestShow_argsWithStateAliasedProvider(t *testing.T) {
 	statePath := testStateFile(t, testState)
 	stateDir := filepath.Dir(statePath)
 	defer os.RemoveAll(stateDir)
-	defer testChdir(t, stateDir)()
+	t.Chdir(stateDir)
 
 	view, done := testView(t)
 	c := &ShowCommand{
