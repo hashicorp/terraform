@@ -199,11 +199,8 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 
 	var back backend.Backend
 
-	// There may be config errors or backend init errors but these will be shown later _after_
-	// checking for core version requirement errors.
 	var backDiags tfdiags.Diagnostics
 	var backendOutput bool
-
 	switch {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
