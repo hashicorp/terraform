@@ -1056,12 +1056,11 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 
 	// We use the same starting fixture for all of these tests, but some
 	// of them will customize it a bit as part of their work.
-	setupTempDir := func(t *testing.T) func() {
+	setupTempDir := func(t *testing.T) {
 		t.Helper()
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-cloud-simple"), td)
-		unChdir := testChdir(t, td)
-		return unChdir
+		t.Chdir(td)
 	}
 
 	// Some of the tests need a non-empty placeholder state file to work
@@ -1090,7 +1089,7 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 	fakeStateBytes := fakeStateBuf.Bytes()
 
 	t.Run("-backend-config", func(t *testing.T) {
-		defer setupTempDir(t)()
+		setupTempDir(t)
 
 		// We have -backend-config as a pragmatic way to dynamically set
 		// certain settings of backends that tend to vary depending on
@@ -1129,7 +1128,7 @@ Cloud configuration block in the root module.
 		}
 	})
 	t.Run("-reconfigure", func(t *testing.T) {
-		defer setupTempDir(t)()
+		setupTempDir(t)
 
 		// The -reconfigure option was originally imagined as a way to force
 		// skipping state migration when migrating between backends, but it
@@ -1167,7 +1166,7 @@ Cloud configuration settings.
 		}
 	})
 	t.Run("-reconfigure when migrating in", func(t *testing.T) {
-		defer setupTempDir(t)()
+		setupTempDir(t)
 
 		// We have a slightly different error message for the case where we
 		// seem to be trying to migrate to HCP Terraform with existing
@@ -1202,7 +1201,7 @@ because activating HCP Terraform involves some additional steps.
 		}
 	})
 	t.Run("-migrate-state", func(t *testing.T) {
-		defer setupTempDir(t)()
+		setupTempDir(t)
 
 		// In Cloud mode, migrating in or out always proposes migrating state
 		// and changing configuration while staying in cloud mode never migrates
@@ -1235,7 +1234,7 @@ storage location is not configurable.
 		}
 	})
 	t.Run("-migrate-state when migrating in", func(t *testing.T) {
-		defer setupTempDir(t)()
+		setupTempDir(t)
 
 		// We have a slightly different error message for the case where we
 		// seem to be trying to migrate to HCP Terraform with existing
@@ -1273,7 +1272,7 @@ prompts.
 		}
 	})
 	t.Run("-force-copy", func(t *testing.T) {
-		defer setupTempDir(t)()
+		setupTempDir(t)
 
 		// In Cloud mode, migrating in or out always proposes migrating state
 		// and changing configuration while staying in cloud mode never migrates
@@ -1306,7 +1305,7 @@ storage location is not configurable.
 		}
 	})
 	t.Run("-force-copy when migrating in", func(t *testing.T) {
-		defer setupTempDir(t)()
+		setupTempDir(t)
 
 		// We have a slightly different error message for the case where we
 		// seem to be trying to migrate to HCP Terraform with existing
