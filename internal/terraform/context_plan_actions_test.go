@@ -581,7 +581,17 @@ resource "test_object" "a" {
 `,
 			},
 			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Can not access actions", "Actions can not be accessed, they have no state and can only be referenced with a resources lifecycle action_trigger events list. Tried to access action.test_unlinked.my_action.")}
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid reference",
+						Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 9, Column: 10, Byte: 150},
+							End:      hcl.Pos{Line: 9, Column: 40, Byte: 180},
+						},
+					})
 			},
 		},
 
@@ -613,7 +623,28 @@ output "my_output2" {
 `,
 			},
 			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Can not access actions", "Actions can not be accessed, they have no state and can only be referenced with a resources lifecycle action_trigger events list. Tried to access action.test_unlinked.my_action."), tfdiags.Sourceless(tfdiags.Error, "Can not access actions", "Actions can not be accessed, they have no state and can only be referenced with a resources lifecycle action_trigger events list. Tried to access action.test_unlinked.my_action.")}
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid reference",
+						Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 22, Column: 13, Byte: 375},
+							End:      hcl.Pos{Line: 22, Column: 43, Byte: 405},
+						},
+					}).Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid reference",
+						Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 18, Column: 13, Byte: 302},
+							End:      hcl.Pos{Line: 18, Column: 43, Byte: 332},
+						},
+					},
+				)
 			},
 		},
 	} {

@@ -440,7 +440,12 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 		// Actions can not be accessed.
 		case addrs.Action:
-			return nil, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Can not access actions", fmt.Sprintf("Actions can not be accessed, they have no state and can only be referenced with a resources lifecycle action_trigger events list. Tried to access %s.", subj.String())))
+			return nil, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+				Subject:  rng.ToHCL().Ptr(),
+			})
 
 		default:
 			// Should never happen
