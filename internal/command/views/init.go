@@ -186,6 +186,14 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
 	},
+	"initializing_provider_plugin_from_config_message": {
+		HumanValue: "\n[reset][bold]Initializing provider plugins found in the configuration...",
+		JSONValue:  "Initializing provider plugins found in the configuration...",
+	},
+	"initializing_provider_plugin_from_state_message": {
+		HumanValue: "\n[reset][bold]Initializing provider plugins found in the state...",
+		JSONValue:  "Initializing provider plugins found in the state...",
+	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store...",
 		JSONValue:  "Initializing the state store...",
@@ -251,32 +259,34 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	CopyingConfigurationMessage         InitMessageCode = "copying_configuration_message"
-	EmptyMessage                        InitMessageCode = "empty_message"
-	OutputInitEmptyMessage              InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage            InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage       InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage         InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage    InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage             InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage   InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage          InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage          InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage       InitMessageCode = "initializing_state_store_message"
-	InitializingProviderPluginMessage   InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                            InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo         InitMessageCode = "dependencies_lock_changes_info"
-	ProviderAlreadyInstalledMessage     InitMessageCode = "provider_already_installed_message"
-	BuiltInProviderAvailableMessage     InitMessageCode = "built_in_provider_available_message"
-	ReusingPreviousVersionInfo          InitMessageCode = "reusing_previous_version_info"
-	FindingMatchingVersionMessage       InitMessageCode = "finding_matching_version_message"
-	FindingLatestVersionMessage         InitMessageCode = "finding_latest_version_message"
-	UsingProviderFromCacheDirInfo       InitMessageCode = "using_provider_from_cache_dir_info"
-	InstallingProviderMessage           InitMessageCode = "installing_provider_message"
-	KeyID                               InitMessageCode = "key_id"
-	InstalledProviderVersionInfo        InitMessageCode = "installed_provider_version_info"
-	PartnerAndCommunityProvidersMessage InitMessageCode = "partner_and_community_providers_message"
-	InitConfigError                     InitMessageCode = "init_config_error"
+	CopyingConfigurationMessage                 InitMessageCode = "copying_configuration_message"
+	EmptyMessage                                InitMessageCode = "empty_message"
+	OutputInitEmptyMessage                      InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage                    InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage               InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage                 InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage            InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage                     InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage           InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage                  InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage                  InitMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage               InitMessageCode = "initializing_state_store_message"
+	InitializingProviderPluginMessage           InitMessageCode = "initializing_provider_plugin_message"
+	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
+	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
+	LockInfo                                    InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo                 InitMessageCode = "dependencies_lock_changes_info"
+	ProviderAlreadyInstalledMessage             InitMessageCode = "provider_already_installed_message"
+	BuiltInProviderAvailableMessage             InitMessageCode = "built_in_provider_available_message"
+	ReusingPreviousVersionInfo                  InitMessageCode = "reusing_previous_version_info"
+	FindingMatchingVersionMessage               InitMessageCode = "finding_matching_version_message"
+	FindingLatestVersionMessage                 InitMessageCode = "finding_latest_version_message"
+	UsingProviderFromCacheDirInfo               InitMessageCode = "using_provider_from_cache_dir_info"
+	InstallingProviderMessage                   InitMessageCode = "installing_provider_message"
+	KeyID                                       InitMessageCode = "key_id"
+	InstalledProviderVersionInfo                InitMessageCode = "installed_provider_version_info"
+	PartnerAndCommunityProvidersMessage         InitMessageCode = "partner_and_community_providers_message"
+	InitConfigError                             InitMessageCode = "init_config_error"
 )
 
 const outputInitEmpty = `
