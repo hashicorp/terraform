@@ -176,6 +176,8 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 
 	// Now the full configuration is loaded, we can download the providers specified in the configuration.
 	// This is step one of a two-step provider download process
+	// Providers may be downloaded by this code, but the dependency lock file is only updated later in `init`
+	// after step two of provider download is complete.
 	configProvidersOutput, configProvidersOutcome, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if configProvidersOutcome == ProviderDownloadAborted || configProviderDiags.HasErrors() {
@@ -184,11 +186,6 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	}
 	if configProvidersOutput {
 		header = true
-	}
-	if configProvidersOutcome == ProviderDownloadLocksChanged {
-		// Only update the dependency lock file if the locks have changed
-		lockFileDiags := c.replaceLockedDependencies(configLocks)
-		diags = diags.Append(lockFileDiags)
 	}
 
 	// If we outputted information, then we need to output a newline
@@ -256,9 +253,13 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	if stateProvidersOutput {
 		header = true
 	}
-	if stateProvidersOutcome == ProviderDownloadLocksChanged {
-		// Only update the dependency lock file if the state's provider locks differ from the ones saved to file already.
-		lockFileDiags := c.appendLockedDependencies(stateLocks)
+	if configProvidersOutcome == ProviderDownloadLocksChanged ||
+		stateProvidersOutcome == ProviderDownloadLocksChanged {
+		// Only update the dependency lock file if locks differ.
+		// We update the lock file once, after all dependencies are collected,
+		// to avoid scenarios where Terraform is interrupted between partial updates.
+		merged := c.mergeLockedDependencies(stateLocks, configLocks)
+		lockFileDiags := c.replaceLockedDependencies(merged)
 		diags = diags.Append(lockFileDiags)
 	}
 

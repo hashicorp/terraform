@@ -202,6 +202,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
 	},
+	"dependencies_lock_pending_changes_info": {
+		HumanValue: dependenciesLockPendingChangesInfo,
+		JSONValue:  dependenciesLockPendingChangesInfo,
+	},
 	"lock_info": {
 		HumanValue: previousLockInfoHuman,
 		JSONValue:  previousLockInfoJSON,
@@ -259,32 +263,53 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	CopyingConfigurationMessage         InitMessageCode = "copying_configuration_message"
-	EmptyMessage                        InitMessageCode = "empty_message"
-	OutputInitEmptyMessage              InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage            InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage       InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage         InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage    InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage             InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage   InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage          InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage          InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage       InitMessageCode = "initializing_state_store_message"
-	InitializingProviderPluginMessage   InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                            InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo         InitMessageCode = "dependencies_lock_changes_info"
-	ProviderAlreadyInstalledMessage     InitMessageCode = "provider_already_installed_message"
-	BuiltInProviderAvailableMessage     InitMessageCode = "built_in_provider_available_message"
-	ReusingPreviousVersionInfo          InitMessageCode = "reusing_previous_version_info"
-	FindingMatchingVersionMessage       InitMessageCode = "finding_matching_version_message"
-	FindingLatestVersionMessage         InitMessageCode = "finding_latest_version_message"
-	UsingProviderFromCacheDirInfo       InitMessageCode = "using_provider_from_cache_dir_info"
-	InstallingProviderMessage           InitMessageCode = "installing_provider_message"
-	KeyID                               InitMessageCode = "key_id"
-	InstalledProviderVersionInfo        InitMessageCode = "installed_provider_version_info"
+	// Following message codes are used and documented EXTERNALLY
+	// Keep docs/internals/machine-readable-ui.mdx up to date with
+	// this list when making changes here.
+	CopyingConfigurationMessage       InitMessageCode = "copying_configuration_message"
+	EmptyMessage                      InitMessageCode = "empty_message"
+	OutputInitEmptyMessage            InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage          InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage           InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
+	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
+	LockInfo                          InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
+
+	//// Message codes below are ONLY used INTERNALLY (for now)
+
+	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
+	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
+	DependenciesLockPendingChangesInfo          InitMessageCode = "dependencies_lock_pending_changes_info"
+
+	// InitConfigError indicates problems encountered during initialisation
+	InitConfigError InitMessageCode = "init_config_error"
+	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
+	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
+	// InstalledProviderVersionInfo describes a successfully installed provider along with its version
+	InstalledProviderVersionInfo InitMessageCode = "installed_provider_version_info"
+	// ReusingPreviousVersionInfo indicates a provider which is locked to a specific version during installation
+	ReusingPreviousVersionInfo InitMessageCode = "reusing_previous_version_info"
+	// BuiltInProviderAvailableMessage indicates a built-in provider in use during installation
+	BuiltInProviderAvailableMessage InitMessageCode = "built_in_provider_available_message"
+	// ProviderAlreadyInstalledMessage indicates a provider that is already installed during installation
+	ProviderAlreadyInstalledMessage InitMessageCode = "provider_already_installed_message"
+	// KeyID indicates the key ID used to sign of a successfully installed provider
+	KeyID InitMessageCode = "key_id"
+	// InstallingProviderMessage indicates that a provider is being installed (from a remote location)
+	InstallingProviderMessage InitMessageCode = "installing_provider_message"
+	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
+	FindingLatestVersionMessage InitMessageCode = "finding_latest_version_message"
+	// UsingProviderFromCacheDirInfo indicates that a provider is being linked from a system-wide cache
+	UsingProviderFromCacheDirInfo InitMessageCode = "using_provider_from_cache_dir_info"
+	// PartnerAndCommunityProvidersMessage is a message concerning partner and community providers and how these are signed
 	PartnerAndCommunityProvidersMessage InitMessageCode = "partner_and_community_providers_message"
-	InitConfigError                     InitMessageCode = "init_config_error"
 )
 
 const outputInitEmpty = `
@@ -369,6 +394,11 @@ const dependenciesLockChangesInfo = `
 Terraform has made some changes to the provider dependency selections recorded
 in the .terraform.lock.hcl file. Review those changes and commit them to your
 version control system if they represent changes you intended to make.`
+
+const dependenciesLockPendingChangesInfo = `
+Terraform has pending changes to make to the provider dependency selections recorded
+in the .terraform.lock.hcl file. These will be persisted once the final set of dependencies
+are determined.`
 
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
