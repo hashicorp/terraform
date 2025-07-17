@@ -5,7 +5,6 @@ package plans
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/providers"
 )
 
 type ActionInvocationInstance struct {
@@ -20,7 +19,7 @@ type ActionInvocationInstance struct {
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
-func (ai *ActionInvocationInstance) Encode(schema providers.Schema) (*ActionInvocationInstanceSrc, error) {
+func (ai *ActionInvocationInstance) Encode() (*ActionInvocationInstanceSrc, error) {
 	return &ActionInvocationInstanceSrc{
 		Addr:         ai.Addr,
 		ProviderAddr: ai.ProviderAddr,
