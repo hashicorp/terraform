@@ -341,3 +341,75 @@ func TestAbsActionUniqueKey(t *testing.T) {
 		})
 	}
 }
+
+func TestParseAbsActionInstance(t *testing.T) {
+	tests := []struct {
+		input     string
+		want      AbsActionInstance
+		expectErr bool
+	}{
+		{
+			"",
+			AbsActionInstance{},
+			true,
+		},
+		{
+			"action.example.foo",
+			AbsActionInstance{
+				Action: ActionInstance{
+					Action: Action{
+						Type: "example",
+						Name: "foo",
+					},
+					Key: NoKey,
+				},
+				Module: RootModuleInstance,
+			},
+			false,
+		},
+		{
+			"action.example.foo[0]",
+			AbsActionInstance{
+				Action: ActionInstance{
+					Action: Action{
+						Type: "example",
+						Name: "foo",
+					},
+					Key: IntKey(0),
+				},
+				Module: RootModuleInstance,
+			},
+			false,
+		},
+		{
+			"action.example.foo[\"bar\"]",
+			AbsActionInstance{
+				Action: ActionInstance{
+					Action: Action{
+						Type: "example",
+						Name: "foo",
+					},
+					Key: StringKey("bar"),
+				},
+				Module: RootModuleInstance,
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("ParseAbsActionStr(%s)", test.input), func(t *testing.T) {
+			got, gotDiags := ParseAbsActionInstanceStr(test.input)
+			if gotDiags.HasErrors() != test.expectErr {
+				if !test.expectErr {
+					t.Fatalf("wrong results! Expected success, got error: %s\n", gotDiags.Err())
+				} else {
+					t.Fatal("wrong results! Expected error(s), got success!")
+				}
+			}
+			if !got.Equal(test.want) {
+				t.Fatalf("wrong result! Got %s, wanted %s", got.String(), test.want.String())
+			}
+		})
+	}
+}

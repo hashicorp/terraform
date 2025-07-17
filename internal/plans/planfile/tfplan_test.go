@@ -176,6 +176,11 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 	applyTimeVariables := collections.NewSetCmp[string]()
 	applyTimeVariables.Add("bar")
 
+	provider := addrs.AbsProviderConfig{
+		Provider: addrs.NewDefaultProvider("test"),
+		Module:   addrs.RootModule,
+	}
+
 	return &plans.Plan{
 		Applyable: true,
 		Complete:  true,
@@ -224,10 +229,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						Type: "test_thing",
 						Name: "woot",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					ProviderAddr: provider,
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.DeleteThenCreate,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -286,10 +288,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						Type: "test_thing",
 						Name: "importing",
 					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					ProviderAddr: provider,
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.NoOp,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -316,10 +315,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 					Type: "test_thing",
 					Name: "woot",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr: addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("test"),
-					Module:   addrs.RootModule,
-				},
+				ProviderAddr: provider,
 				ChangeSrc: plans.ChangeSrc{
 					Action: plans.DeleteThenCreate,
 					Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -350,10 +346,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						Type: "test_thing",
 						Name: "woot",
 					}.Instance(addrs.WildcardKey).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					ProviderAddr: provider,
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
 						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -379,10 +372,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 							InstanceKey: addrs.WildcardKey,
 						},
 					}),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					ProviderAddr: provider,
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
 						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -470,6 +460,12 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				}),
 			),
 			Workspace: "default",
+		},
+		ActionInvocations: []*plans.ActionInvocationInstanceSrc{
+			{
+				Addr:         addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				ProviderAddr: provider,
+			},
 		},
 	}
 }

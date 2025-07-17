@@ -68,6 +68,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		DriftedResources:  []*plans.ResourceInstanceChangeSrc{},
 		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{},
 		Checks:            &states.CheckResults{},
+		ActionInvocations: []*plans.ActionInvocationInstanceSrc{},
 	}
 
 	plan.Applyable = rawPlan.Applyable
@@ -177,6 +178,16 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 				Result: hash.Result,
 			},
 		)
+	}
+
+	for _, rawAction := range rawPlan.ActionInvocations {
+		action, err := actionInvocationFromTfplan(rawAction)
+		if err != nil {
+			// errors from actionInvocationFromTfplan already include context
+			return nil, err
+		}
+
+		plan.ActionInvocations = append(plan.ActionInvocations, action)
 	}
 
 	switch {
@@ -561,12 +572,13 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
 
-		Variables:       map[string]*planproto.DynamicValue{},
-		OutputChanges:   []*planproto.OutputChange{},
-		CheckResults:    []*planproto.CheckResults{},
-		ResourceChanges: []*planproto.ResourceInstanceChange{},
-		ResourceDrift:   []*planproto.ResourceInstanceChange{},
-		DeferredChanges: []*planproto.DeferredResourceInstanceChange{},
+		Variables:         map[string]*planproto.DynamicValue{},
+		OutputChanges:     []*planproto.OutputChange{},
+		CheckResults:      []*planproto.CheckResults{},
+		ResourceChanges:   []*planproto.ResourceInstanceChange{},
+		ResourceDrift:     []*planproto.ResourceInstanceChange{},
+		DeferredChanges:   []*planproto.DeferredResourceInstanceChange{},
+		ActionInvocations: []*planproto.ActionInvocation{},
 	}
 
 	rawPlan.Applyable = plan.Applyable
@@ -666,6 +678,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		)
 	}
 
+	for _, action := range plan.ActionInvocations {
+		rawAction, err := actionInvocationToTfPlan(action)
+		if err != nil {
+			return err
+		}
+		rawPlan.ActionInvocations = append(rawPlan.ActionInvocations, rawAction)
+	}
+
 	// Store details about accessing state
 	backendInUse := plan.Backend.Type != "" && plan.Backend.Config != nil
 	stateStoreInUse := plan.StateStore.Type != "" && plan.StateStore.Config != nil
@@ -752,7 +772,7 @@ func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceA
 // in its own wire format while using a different overall container.
 func ResourceChangeToProto(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
 	if change == nil {
-		// We assume this represents the absense of a change, then.
+		// We assume this represents the absence of a change, then.
 		return nil, nil
 	}
 	return resourceChangeToTfplan(change)
@@ -1223,4 +1243,39 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	} else {
 		return nil, nil
 	}
+}
+
+func actionInvocationFromTfplan(rawAction *planproto.ActionInvocation) (*plans.ActionInvocationInstanceSrc, error) {
+	if rawAction == nil {
+		// Should never happen in practice, since protobuf can't represent
+		// a nil value in a list.
+		return nil, fmt.Errorf("action invocation object is absent")
+	}
+
+	ret := &plans.ActionInvocationInstanceSrc{}
+	actionAddr, diags := addrs.ParseAbsActionInstanceStr(rawAction.Addr)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("invalid resource instance address %q: %w", rawAction.Addr, diags.Err())
+	}
+	ret.Addr = actionAddr
+
+	providerAddr, diags := addrs.ParseAbsProviderConfigStr(rawAction.Provider)
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+	ret.ProviderAddr = providerAddr
+
+	return ret, nil
+}
+
+func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocation, error) {
+	if action == nil {
+		return nil, nil
+	}
+
+	ret := &planproto.ActionInvocation{
+		Addr:     action.Addr.String(),
+		Provider: action.ProviderAddr.String(),
+	}
+	return ret, nil
 }
