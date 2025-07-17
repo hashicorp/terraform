@@ -206,6 +206,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: previousLockInfoHuman,
 		JSONValue:  previousLockInfoJSON,
 	},
+	"pending_lock_info": {
+		HumanValue: pendingLockInfoHuman,
+		JSONValue:  pendingLockInfoJSON,
+	},
 	"provider_already_installed_message": {
 		HumanValue: "- Using previously-installed %s v%s",
 		JSONValue:  "%s v%s: Using previously-installed provider version",
@@ -274,6 +278,7 @@ const (
 	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
 	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
 	LockInfo                                    InitMessageCode = "lock_info"
+	PendingLockInfo                             InitMessageCode = "pending_lock_info"
 	DependenciesLockChangesInfo                 InitMessageCode = "dependencies_lock_changes_info"
 	DependenciesLockPendingChangesInfo          InitMessageCode = "dependencies_lock_pending_changes_info"
 	ProviderAlreadyInstalledMessage             InitMessageCode = "provider_already_installed_message"
@@ -361,8 +366,20 @@ selections it made above. Include this file in your version control repository
 so that Terraform can guarantee to make the same selections by default when
 you run "terraform init" in the future.`
 
+const pendingLockInfoHuman = `
+Terraform will create a lock file [bold].terraform.lock.hcl[reset] to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.`
+
 const previousLockInfoJSON = `
 Terraform has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.`
+
+const pendingLockInfoJSON = `
+Terraform will create a lock file .terraform.lock.hcl to record the provider
 selections it made above. Include this file in your version control repository
 so that Terraform can guarantee to make the same selections by default when
 you run "terraform init" in the future.`
