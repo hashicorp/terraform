@@ -34,7 +34,6 @@ func TestContextPlan_actions(t *testing.T) {
 		"unreferenced": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 			`,
 			},
@@ -44,7 +43,6 @@ action "test_unlinked" "hello" {}
 		"invalid config": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   config {
     unknown_attr = "value"
@@ -60,8 +58,8 @@ action "test_unlinked" "hello" {
 					Detail:   `An argument named "unknown_attr" is not expected here.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 5, Column: 5, Byte: 87},
-						End:      hcl.Pos{Line: 5, Column: 17, Byte: 99},
+						Start:    hcl.Pos{Line: 4, Column: 5, Byte: 49},
+						End:      hcl.Pos{Line: 4, Column: 17, Byte: 61},
 					},
 				})
 			},
@@ -70,7 +68,6 @@ action "test_unlinked" "hello" {
 		"before_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
@@ -88,7 +85,6 @@ resource "test_object" "a" {
 		"after_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
@@ -106,7 +102,6 @@ resource "test_object" "a" {
 		"before_update triggered - on create": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
@@ -124,7 +119,6 @@ resource "test_object" "a" {
 		"after_update triggered - on create": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
@@ -142,7 +136,6 @@ resource "test_object" "a" {
 		"before_update triggered - on update": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
@@ -167,7 +160,6 @@ resource "test_object" "a" {
 		"after_update triggered - on update": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
@@ -192,7 +184,6 @@ resource "test_object" "a" {
 		"before_update triggered - on replace": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
@@ -218,7 +209,6 @@ resource "test_object" "a" {
 		"after_update triggered - on replace": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
@@ -244,7 +234,6 @@ resource "test_object" "a" {
 		"action for_each": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   for_each = toset(["a", "b"])
   
@@ -268,7 +257,6 @@ resource "test_object" "a" {
 		"action for_each with auto-expansion": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   for_each = toset(["a", "b"])
   
@@ -292,7 +280,6 @@ resource "test_object" "a" {
 		"action count": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   count = 2
 
@@ -317,7 +304,6 @@ resource "test_object" "a" {
 		"action count with auto-expansion": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   count = 2
 
@@ -342,7 +328,6 @@ resource "test_object" "a" {
 		"action for_each invalid access": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   for_each = toset(["a", "b"])
 
@@ -373,7 +358,6 @@ resource "test_object" "a" {
 		"action count invalid access": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   count = 2
 
@@ -404,7 +388,6 @@ resource "test_object" "a" {
 		"expanded resource - unexpanded action": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {}
 resource "test_object" "a" {
   count = 2
@@ -424,7 +407,6 @@ resource "test_object" "a" {
 			toBeImplemented: true, // TODO: Not sure why this panics
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "hello" {
   count = 2
 
@@ -450,7 +432,6 @@ resource "test_object" "a" {
 		"transitive dependencies": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 resource "test_object" "a" {
   name = "a"
 }
@@ -476,7 +457,6 @@ resource "test_object" "b" {
 		"expanded transitive dependencies": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 resource "test_object" "a" {
   name = "a"
 }
@@ -528,7 +508,6 @@ resource "test_object" "e" {
 		"failing actions cancel next ones": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "failure" {}
 resource "test_object" "a" {
   lifecycle {
@@ -563,7 +542,6 @@ resource "test_object" "a" {
 		"actions cant be accessed in resources": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "my_action" {
   config {
     attr = "value"
@@ -588,8 +566,8 @@ resource "test_object" "a" {
 						Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 9, Column: 10, Byte: 150},
-							End:      hcl.Pos{Line: 9, Column: 40, Byte: 180},
+							Start:    hcl.Pos{Line: 8, Column: 10, Byte: 112},
+							End:      hcl.Pos{Line: 8, Column: 40, Byte: 142},
 						},
 					})
 			},
@@ -598,7 +576,6 @@ resource "test_object" "a" {
 		"actions cant be accessed in outputs": {
 			module: map[string]string{
 				"main.tf": `
-terraform { experiments = [actions] }
 action "test_unlinked" "my_action" {
   config {
     attr = "value"
@@ -630,8 +607,8 @@ output "my_output2" {
 						Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 22, Column: 13, Byte: 375},
-							End:      hcl.Pos{Line: 22, Column: 43, Byte: 405},
+							Start:    hcl.Pos{Line: 21, Column: 13, Byte: 337},
+							End:      hcl.Pos{Line: 21, Column: 43, Byte: 367},
 						},
 					}).Append(
 					&hcl.Diagnostic{
@@ -640,8 +617,8 @@ output "my_output2" {
 						Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 18, Column: 13, Byte: 302},
-							End:      hcl.Pos{Line: 18, Column: 43, Byte: 332},
+							Start:    hcl.Pos{Line: 17, Column: 13, Byte: 264},
+							End:      hcl.Pos{Line: 17, Column: 43, Byte: 294},
 						},
 					},
 				)

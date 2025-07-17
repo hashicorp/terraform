@@ -4,12 +4,9 @@
 package terraform
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -97,18 +94,6 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 		// Check if the actions language experiment is enabled for this module.
 		moduleCtx := evalContextForModuleInstance(ctx, module)
-		allowActions := moduleCtx.LanguageExperimentActive(experiments.Actions)
-		if !allowActions {
-			summary := fmt.Sprintf("Actions experiment not enabled for module %s", module)
-			if module.IsRoot() {
-				summary = "Actions experiment not enabled"
-			}
-			return nil, diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				summary,
-				"The actions experiment must be enabled in order to use actions in your configuration. You can enable it by adding a terraform { experiments = [actions] } block to your configuration.",
-			))
-		}
 
 		// recordActionData is responsible for informing the expander of what
 		// repetition mode this resource has, which allows expander.ExpandResource
