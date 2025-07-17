@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
-func Test_appendLockedDependencies(t *testing.T) {
+func Test_mergeLockedDependencies(t *testing.T) {
 
 	providerA := tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "my-org", "providerA")
 	providerB := tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "my-org", "providerB")
@@ -138,14 +138,8 @@ func Test_appendLockedDependencies(t *testing.T) {
 				View: view,
 			}
 
-			// Set up the 'prior' locks file containing providers obtained from the config
-			diags := m.replaceLockedDependencies(tc.configLocks) // saves file
-			if diags.HasErrors() {
-				t.Fatalf("unexpected error in test setup: %s", diags.Err().Error())
-			}
-
 			// Code under test - combine deps from state with prior deps from config
-			stateProviderDiags := m.appendLockedDependencies(tc.stateLocks)
+			stateProviderDiags := m.mergeLockedDependencies(tc.stateLocks, tc.configLocks)
 			if stateProviderDiags.HasErrors() {
 				t.Fatalf("unexpected error from code under test: %s", stateProviderDiags.Err().Error())
 			}

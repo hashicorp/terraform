@@ -202,6 +202,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
 	},
+	"dependencies_lock_pending_changes_info": {
+		HumanValue: dependenciesLockPendingChangesInfo,
+		JSONValue:  dependenciesLockPendingChangesInfo,
+	},
 	"lock_info": {
 		HumanValue: previousLockInfoHuman,
 		JSONValue:  previousLockInfoJSON,
@@ -276,6 +280,7 @@ const (
 	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
 	LockInfo                                    InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo                 InitMessageCode = "dependencies_lock_changes_info"
+	DependenciesLockPendingChangesInfo          InitMessageCode = "dependencies_lock_pending_changes_info"
 	ProviderAlreadyInstalledMessage             InitMessageCode = "provider_already_installed_message"
 	BuiltInProviderAvailableMessage             InitMessageCode = "built_in_provider_available_message"
 	ReusingPreviousVersionInfo                  InitMessageCode = "reusing_previous_version_info"
@@ -371,6 +376,11 @@ const dependenciesLockChangesInfo = `
 Terraform has made some changes to the provider dependency selections recorded
 in the .terraform.lock.hcl file. Review those changes and commit them to your
 version control system if they represent changes you intended to make.`
+
+const dependenciesLockPendingChangesInfo = `
+Terraform has pending changes to make to the provider dependency selections recorded
+in the .terraform.lock.hcl file. These will be persisted once the final set of dependencies
+are determined.`
 
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
