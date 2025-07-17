@@ -26,6 +26,7 @@ func TestContextPlan_actions(t *testing.T) {
 		module             map[string]string
 		buildState         func(*states.SyncState)
 		planActionResponse *providers.PlanActionResponse
+		planOpts           *PlanOpts
 
 		expectPlanActionCalled    bool
 		expectValidateDiagnostics func(m *configs.Config) tfdiags.Diagnostics
@@ -624,6 +625,61 @@ output "my_output2" {
 				)
 			},
 		},
+
+		"destroy run": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts:               SimplePlanOpts(plans.DestroyMode, InputValues{}),
+		},
+
+		// Since if we just destroy a node there is no reference to an action in config, we try
+		// to provoke an error by just removing a resource instance.
+		"destroying expanded node": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 2
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[0]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[1]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[2]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -691,7 +747,12 @@ output "my_output2" {
 				prevRunState = states.BuildState(tc.buildState)
 			}
 
-			_, diags = ctx.Plan(m, prevRunState, SimplePlanOpts(plans.NormalMode, InputValues{}))
+			opts := SimplePlanOpts(plans.NormalMode, InputValues{})
+			if tc.planOpts != nil {
+				opts = tc.planOpts
+			}
+
+			_, diags = ctx.Plan(m, prevRunState, opts)
 
 			if tc.expectPlanDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
