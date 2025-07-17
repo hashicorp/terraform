@@ -1251,7 +1251,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			// version that didn't have dependency lock files.
 			view.Output(views.LockInfo)
 		} else {
-			view.Output(views.DependenciesLockChangesInfo)
+			view.Output(views.DependenciesLockPendingChangesInfo)
 		}
 
 		return true, ProviderDownloadLocksChanged, newLocks, diags
