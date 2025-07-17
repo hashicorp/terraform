@@ -113,7 +113,7 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 			log.Printf("[TRACE] skipping retrieving variables from workspace %s/%s (%s), workspace is in Local Execution mode", remoteWorkspaceName, b.organization, remoteWorkspaceID)
 		} else {
 			log.Printf("[TRACE] backend/remote: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
-			tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, nil)
+			tfeVariables, err := b.client.Variables.ListAll(context.Background(), remoteWorkspaceID, nil)
 			if err != nil && err != tfe.ErrResourceNotFound {
 				diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
 				return nil, nil, diags
