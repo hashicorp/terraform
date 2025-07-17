@@ -1249,7 +1249,10 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			// say a little about what the dependency lock file is, for new
 			// users or those who are upgrading from a previous Terraform
 			// version that didn't have dependency lock files.
-			view.Output(views.LockInfo)
+			//
+			// As calling code controls saving dependencies, we report that
+			// a lock file _will_ be made.
+			view.Output(views.PendingLockInfo)
 		} else {
 			view.Output(views.DependenciesLockPendingChangesInfo)
 		}
