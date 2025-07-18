@@ -59,8 +59,8 @@ func (c *InitCommand) Run(args []string) int {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
 		panic("pss: experimental init code hasn't been added yet")
 	} else {
+		return c.run(initArgs, view)
 	}
-	return c.run(initArgs, view)
 }
 
 func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, view views.Init) (output bool, abort bool, diags tfdiags.Diagnostics) {
