@@ -1,0 +1,270 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"path"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/zclconf/go-cty/cty"
+)
+
+func TestQuery(t *testing.T) {
+	tests := []struct {
+		name        string
+		directory   string
+		expectedOut string
+		expectedErr []string
+		initCode    int
+	}{
+		{
+			name:      "basic query",
+			directory: "basic",
+			expectedOut: `list.test_instance.example	id=test-instance-1	Test Instance 1
+list.test_instance.example	id=test-instance-2	Test Instance 2`,
+		},
+		{
+			name:      "query referencing local variable",
+			directory: "with-locals",
+			expectedOut: `list.test_instance.example	id=test-instance-1	Test Instance 1
+		list.test_instance.example	id=test-instance-2	Test Instance 2`,
+		},
+		{
+			name:        "config with no query block",
+			directory:   "no-list-block",
+			expectedOut: "",
+			expectedErr: []string{`Warning: No resources to query
+
+The configuration does not contain any resources that can be queried.`},
+		},
+		{
+			name:        "missing query file",
+			directory:   "missing-query-file",
+			expectedOut: "",
+			expectedErr: []string{"No resources to query"},
+		},
+		{
+			name:        "invalid query syntax",
+			directory:   "invalid-syntax",
+			expectedOut: "",
+			initCode:    1,
+			expectedErr: []string{"Unsupported block type", "on query.tfquery.hcl line 11", `resource "test_instance" "example"`},
+		},
+	}
+
+	for _, ts := range tests {
+		t.Run(ts.name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("query", ts.directory)), td)
+			t.Chdir(td)
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+			defer close()
+
+			p := queryFixtureProvider()
+			view, done := testView(t)
+			meta := Meta{
+				testingOverrides:          metaOverridesForProvider(p),
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				ProviderSource:            providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+			if code := init.Run(nil); code != ts.initCode {
+				output := done(t)
+				t.Fatalf("expected status code %d but got %d: %s", ts.initCode, code, output.All())
+			}
+
+			c := &QueryCommand{
+				Meta: meta,
+			}
+			args := []string{"-no-color"}
+			code := c.Run(args)
+			output := done(t)
+			actual := output.All()
+			if len(ts.expectedErr) == 0 {
+				if code != 0 && len(ts.expectedErr) == 0 {
+					t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+
+					// Check that we have query output
+					if !strings.Contains(actual, ts.expectedOut) {
+						t.Errorf("expected query output to contain '%s', got: %s", ts.expectedOut, actual)
+					}
+				}
+			} else {
+				for _, expected := range ts.expectedErr {
+					if !strings.Contains(actual, expected) {
+						t.Errorf("expected error message to contain '%s', got: %s", expected, actual)
+					}
+				}
+			}
+		})
+	}
+}
+
+func queryFixtureProvider() *testing_provider.MockProvider {
+	p := testProvider()
+	instanceListSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"data": {
+				Type:     cty.DynamicPseudoType,
+				Computed: true,
+			},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"config": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	}
+	databaseListSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"data": {
+				Type:     cty.DynamicPseudoType,
+				Computed: true,
+			},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"config": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"engine": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"ami": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+			"test_database": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"engine": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+		ListResourceTypes: map[string]providers.Schema{
+			"test_instance": {Body: instanceListSchema},
+			"test_database": {Body: databaseListSchema},
+		},
+	}
+
+	// Mock the ListResources method for query operations
+	p.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		// Check the config to determine what kind of response to return
+		wholeConfigMap := request.Config.AsValueMap()
+
+		configMap := wholeConfigMap["config"]
+
+		// For empty results test case //TODO: Remove?
+		if ami, ok := wholeConfigMap["ami"]; ok && ami.AsString() == "ami-nonexistent" {
+			return providers.ListResourceResponse{
+				Result: cty.ObjectVal(map[string]cty.Value{
+					"data":   cty.ListVal([]cty.Value{}),
+					"config": configMap,
+				}),
+			}
+		}
+
+		switch request.TypeName {
+		case "test_instance":
+			return providers.ListResourceResponse{
+				Result: cty.ObjectVal(map[string]cty.Value{
+					"data": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"identity": cty.ObjectVal(map[string]cty.Value{
+								"id": cty.StringVal("test-instance-1"),
+							}),
+							"state": cty.ObjectVal(map[string]cty.Value{
+								"id":  cty.StringVal("test-instance-1"),
+								"ami": cty.StringVal("ami-12345"),
+							}),
+							"display_name": cty.StringVal("Test Instance 1"),
+						}),
+						cty.ObjectVal(map[string]cty.Value{
+							"identity": cty.ObjectVal(map[string]cty.Value{
+								"id": cty.StringVal("test-instance-2"),
+							}),
+							"state": cty.ObjectVal(map[string]cty.Value{
+								"id":  cty.StringVal("test-instance-2"),
+								"ami": cty.StringVal("ami-67890"),
+							}),
+							"display_name": cty.StringVal("Test Instance 2"),
+						}),
+					}),
+					"config": configMap,
+				}),
+			}
+		case "test_database":
+			return providers.ListResourceResponse{
+				Result: cty.ObjectVal(map[string]cty.Value{
+					"data": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"identity": cty.ObjectVal(map[string]cty.Value{
+								"id": cty.StringVal("test-db-1"),
+							}),
+							"state": cty.ObjectVal(map[string]cty.Value{
+								"id":     cty.StringVal("test-db-1"),
+								"engine": cty.StringVal("mysql"),
+							}),
+							"display_name": cty.StringVal("Test Database 1"),
+						}),
+					}),
+					"config": configMap,
+				}),
+			}
+		default:
+			return providers.ListResourceResponse{
+				Result: cty.ObjectVal(map[string]cty.Value{
+					"data":   cty.ListVal([]cty.Value{}),
+					"config": configMap,
+				}),
+			}
+		}
+	}
+
+	return p
+}
