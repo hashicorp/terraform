@@ -1,3 +1,5 @@
+variable "foo" { default = "bar" }
+
 terraform {
   required_providers {
     foo = {
@@ -5,10 +7,10 @@ terraform {
     }
   }
   state_store "foo_bar" {
-    provider "foo" {}
+    provider "foo" {
+      region = var.foo
+    }
 
-    custom_attr = "foobar"
+    bar = "hardcoded"
   }
 }
-
-provider "foo" {}

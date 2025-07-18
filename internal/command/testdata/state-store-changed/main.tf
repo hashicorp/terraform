@@ -7,8 +7,6 @@ terraform {
   state_store "foo_bar" {
     provider "foo" {}
 
-    custom_attr = "foobar"
+    bar = "changed-value" # changed versus backend state file
   }
 }
-
-provider "foo" {}
