@@ -21,18 +21,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func (c *InitCommand) run(args []string) int {
+func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	var diags tfdiags.Diagnostics
-	args = c.Meta.process(args)
-	initArgs, initDiags := arguments.ParseInit(args)
-
-	view := views.NewInit(initArgs.ViewType, c.View)
-
-	if initDiags.HasErrors() {
-		diags = diags.Append(initDiags)
-		view.Diagnostics(diags)
-		return 1
-	}
 
 	c.forceInitCopy = initArgs.ForceInitCopy
 	c.Meta.stateLock = initArgs.StateLock

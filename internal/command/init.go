@@ -39,7 +39,18 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	return c.run(args)
+	var diags tfdiags.Diagnostics
+	args = c.Meta.process(args)
+	initArgs, initDiags := arguments.ParseInit(args)
+
+	view := views.NewInit(initArgs.ViewType, c.View)
+
+	if initDiags.HasErrors() {
+		diags = diags.Append(initDiags)
+		view.Diagnostics(diags)
+		return 1
+	}
+	return c.run(initArgs, view)
 }
 
 func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, view views.Init) (output bool, abort bool, diags tfdiags.Diagnostics) {
