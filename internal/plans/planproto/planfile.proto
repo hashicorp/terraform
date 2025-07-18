@@ -426,6 +426,18 @@ message Deferred {
     DeferredReason reason = 1;
 }
 
+// ActionInvocation describes the reason an action was triggered
+enum ActionTriggerEvent {
+    INVALID_EVENT = 0;
+    BEFORE_CERATE = 1;
+    AFTER_CREATE = 2;
+    BEFORE_UPDATE = 3;
+    AFTER_UPDATE = 4;
+    BEFORE_DESTROY = 5;
+    AFTER_DESTROY = 6;
+    CLI = 7;
+}
+
 // ActionInvocationInstance contains a planned action invocation and any embedded ResourceInstanceActionChanges
 message ActionInvocationInstance {
     // addr is a string representation of the action invocation instance address of this change
@@ -437,6 +449,11 @@ message ActionInvocationInstance {
     string provider = 2;
 
     repeated ResourceInstanceActionChange linked_resources = 3;
+
+    string triggering_resource_addr = 4;
+    ActionTriggerEvent trigger_event = 5;
+    int64 action_trigger_block_index = 6;
+    int64 actions_list_index = 7;
 }
 
 message ResourceInstanceActionChange {

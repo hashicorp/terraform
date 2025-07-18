@@ -564,7 +564,8 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 	}
 
 	for i, at := range n.Config.Managed.ActionTriggers {
-		if !eventIncludesAction(at.Events, change.Action) {
+		triggeringEvent, isTriggered := actionIsTriggeredByEvent(at.Events, change.Action)
+		if !isTriggered {
 			continue
 		}
 
@@ -641,8 +642,12 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				}
 
 				ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-					Addr:         absActionAddr,
-					ProviderAddr: actionInstance.ProviderAddr,
+					Addr:                    absActionAddr,
+					ProviderAddr:            actionInstance.ProviderAddr,
+					TriggeringResourceAddr:  n.Addr,
+					TriggerEvent:            *triggeringEvent,
+					ActionTriggerBlockIndex: i,
+					ActionsListIndex:        j,
 				})
 			}
 		}
@@ -1083,24 +1088,24 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	return true
 }
 
-func eventIncludesAction(events []configs.ActionTriggerEvent, action plans.Action) bool {
+func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) (*configs.ActionTriggerEvent, bool) {
 	for _, event := range events {
 		switch event {
 		case configs.BeforeCreate, configs.AfterCreate:
 			if action.IsReplace() || action == plans.Create {
-				return true
+				return &event, true
 			} else {
 				continue
 			}
 		case configs.BeforeUpdate, configs.AfterUpdate:
 			if action == plans.Update {
-				return true
+				return &event, true
 			} else {
 				continue
 			}
 		case configs.BeforeDestroy, configs.AfterDestroy:
 			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
-				return true
+				return &event, true
 			} else {
 				continue
 			}
@@ -1108,5 +1113,5 @@ func eventIncludesAction(events []configs.ActionTriggerEvent, action plans.Actio
 			panic(fmt.Sprintf("unknown action trigger event %s", event))
 		}
 	}
-	return false
+	return nil, false
 }
