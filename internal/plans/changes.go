@@ -98,6 +98,14 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 		changesSrc.Queries = append(changesSrc.Queries, rcs)
 	}
 
+	for _, ai := range c.ActionInvocations {
+		a, err := ai.Encode()
+		if err != nil {
+			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
+		}
+		changesSrc.ActionInvocations = append(changesSrc.ActionInvocations, a)
+	}
+
 	for _, ocs := range c.Outputs {
 		oc, err := ocs.Encode()
 		if err != nil {

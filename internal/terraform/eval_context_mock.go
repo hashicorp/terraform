@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
+	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -166,6 +167,9 @@ type MockEvalContext struct {
 
 	ForgetCalled bool
 	ForgetValues bool
+
+	ActionsCalled bool
+	ActionsState  *actions.Actions
 }
 
 // MockEvalContext implements EvalContext
@@ -441,4 +445,9 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
 	}
+}
+
+func (c *MockEvalContext) Actions() *actions.Actions {
+	c.ActionsCalled = true
+	return c.ActionsState
 }

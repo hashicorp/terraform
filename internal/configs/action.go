@@ -35,7 +35,7 @@ type Action struct {
 type ActionTrigger struct {
 	Condition hcl.Expression
 	Events    []ActionTriggerEvent
-	Actions   []ActionRef
+	Actions   []ActionRef // References to actions
 
 	DeclRange hcl.Range
 }
@@ -58,7 +58,8 @@ const (
 // ActionRef represents a reference to a configured Action
 type ActionRef struct {
 	Traversal hcl.Traversal
-	Range     hcl.Range
+
+	Range hcl.Range
 }
 
 func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics) {
@@ -105,6 +106,16 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 					Subject:  expr.Range().Ptr(),
 				})
 			}
+
+			if event == BeforeDestroy || event == AfterDestroy {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid destroy event used",
+					Detail:   "The destroy events (before_destroy, after_destroy) are not supported as of right now. They will be supported in a future release.",
+					Subject:  expr.Range().Ptr(),
+				})
+			}
+
 			events = append(events, event)
 		}
 		a.Events = events
@@ -125,7 +136,9 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 					Detail:   "action_triggers.actions accepts a list of one or more actions",
 					Subject:  block.DefRange.Ptr(),
 				})
+				continue
 			}
+
 			if len(traversal) != 0 {
 				actionRef := ActionRef{
 					Traversal: traversal,
@@ -133,6 +146,7 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 				}
 				actions = append(actions, actionRef)
 			}
+
 		}
 		a.Actions = actions
 	}

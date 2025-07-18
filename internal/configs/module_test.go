@@ -542,6 +542,7 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 		t.Run(tc.dir, func(t *testing.T) {
 			var diags hcl.Diagnostics
 			if tc.allowExperiments {
+				// TODO(SarahFrench/radeksimko) - disable experiments in this test once the feature is GA.
 				_, diags = testModuleFromDirWithExperiments(tc.dir)
 			} else {
 				_, diags = testModuleFromDir(tc.dir)
@@ -559,7 +560,8 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 
 func TestModule_stateStore_overrides_stateStore(t *testing.T) {
 	t.Run("it can override a state_store block with a different state_store block", func(t *testing.T) {
-		mod, diags := testModuleFromDir("testdata/valid-modules/override-state-store")
+		// TODO(SarahFrench/radeksimko) - disable experiments in this test once the feature is GA.
+		mod, diags := testModuleFromDirWithExperiments("testdata/valid-modules/override-state-store")
 		if diags.HasErrors() {
 			t.Fatal(diags.Error())
 		}
@@ -598,7 +600,8 @@ func TestModule_stateStore_overrides_stateStore(t *testing.T) {
 // configuration file, as an omitted backend there implies the local backend.
 func TestModule_stateStore_override_no_base(t *testing.T) {
 	t.Run("it can introduce a state_store block via overrides when the base config has has no cloud, backend, or state_store blocks", func(t *testing.T) {
-		mod, diags := testModuleFromDir("testdata/valid-modules/override-state-store-no-base")
+		// TODO(SarahFrench/radeksimko) - disable experiments in this test once the feature is GA.
+		mod, diags := testModuleFromDirWithExperiments("testdata/valid-modules/override-state-store-no-base")
 		if diags.HasErrors() {
 			t.Fatal(diags.Error())
 		}
@@ -611,7 +614,8 @@ func TestModule_stateStore_override_no_base(t *testing.T) {
 
 func TestModule_stateStore_overrides_backend(t *testing.T) {
 	t.Run("it can override a backend block with a state_store block", func(t *testing.T) {
-		mod, diags := testModuleFromDir("testdata/valid-modules/override-backend-with-state-store")
+		// TODO(SarahFrench/radeksimko) - disable experiments in this test once the feature is GA.
+		mod, diags := testModuleFromDirWithExperiments("testdata/valid-modules/override-backend-with-state-store")
 		if diags.HasErrors() {
 			t.Fatal(diags.Error())
 		}
@@ -638,7 +642,8 @@ func TestModule_stateStore_overrides_backend(t *testing.T) {
 
 func TestModule_stateStore_overrides_cloud(t *testing.T) {
 	t.Run("it can override a cloud block with a state_store block", func(t *testing.T) {
-		mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud-with-state-store")
+		// TODO(SarahFrench/radeksimko) - disable experiments in this test once the feature is GA.
+		mod, diags := testModuleFromDirWithExperiments("testdata/valid-modules/override-cloud-with-state-store")
 		if diags.HasErrors() {
 			t.Fatal(diags.Error())
 		}
@@ -664,8 +669,8 @@ func TestModule_stateStore_overrides_cloud(t *testing.T) {
 
 func TestModule_state_store_multiple(t *testing.T) {
 	t.Run("it detects when two state_store blocks are present within the same module in separate files", func(t *testing.T) {
-
-		_, diags := testModuleFromDir("testdata/invalid-modules/multiple-state-store")
+		// TODO(SarahFrench/radeksimko) - disable experiments in this test once the feature is GA.
+		_, diags := testModuleFromDirWithExperiments("testdata/invalid-modules/multiple-state-store")
 		if !diags.HasErrors() {
 			t.Fatal("module should have error diags, but does not")
 		}

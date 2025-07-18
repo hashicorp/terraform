@@ -29,6 +29,7 @@ func (r *ReferenceTransformer) Transform(graph *terraform.Graph) error {
 
 	for referencer := range dag.SelectSeq[GraphNodeReferencer](graph.VerticesSeq()) {
 		for _, reference := range referencer.References() {
+
 			if target, ok := nodes.GetOk(reference.Subject); ok {
 				graph.Connect(dag.BasicEdge(referencer, target))
 			}

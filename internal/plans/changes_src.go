@@ -29,7 +29,7 @@ type ChangesSrc struct {
 
 	// ActionInvocations tracks planned action invocations, which may have
 	// embedded resource instance changes.
-	Actions []*ActionInvocationInstanceSrc
+	ActionInvocations []*ActionInvocationInstanceSrc
 
 	// Outputs tracks planned changes output values.
 	//
@@ -159,7 +159,7 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		changes.Queries = append(changes.Queries, query)
 	}
 
-	for _, ais := range c.Actions {
+	for _, ais := range c.ActionInvocations {
 		p, ok := schemas.Providers[ais.ProviderAddr.Provider]
 		if !ok {
 			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for action %s", ais.ProviderAddr, ais.Addr)
@@ -557,7 +557,7 @@ func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocati
 	}
 
 	a := action.DeepCopy()
-	c.Actions = append(c.Actions, a)
+	c.ActionInvocations = append(c.ActionInvocations, a)
 }
 
 type ActionInvocationInstanceSrc struct {

@@ -673,6 +673,26 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 	return providers
 }
 
+// resolveStateStoreProviderType gets tfaddr.Provider data for the provider used for pluggable state storage
+// and assigns it to the ProviderAddr field in the config's root module's state store data.
+//
+// See the reused function resolveStateStoreProviderType for details about logic.
+// If no match is found, an error diagnostic is returned.
+func (c *Config) resolveStateStoreProviderType() hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	providerType, typeDiags := resolveStateStoreProviderType(c.Root.Module.ProviderRequirements.RequiredProviders,
+		*c.Root.Module.StateStore)
+
+	if typeDiags.HasErrors() {
+		diags = append(diags, typeDiags...)
+		return diags
+	}
+
+	c.Root.Module.StateStore.ProviderAddr = providerType
+	return nil
+}
+
 // resolveProviderTypesForTests matches resolveProviderTypes except it uses
 // the information from resolveProviderTypes to resolve the provider types for
 // providers defined within the configs test files.

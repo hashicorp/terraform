@@ -486,6 +486,13 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// instead of using the plan.
 			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
+
+		// TODO: Verify no non-error branches are skipped here
+		planActionDiags := n.planActionTriggers(ctx, change)
+		diags = diags.Append(planActionDiags)
+		if diags.HasErrors() {
+			return diags
+		}
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
@@ -541,6 +548,103 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					After:  instanceRefreshState.Value,
 				},
 			})
+		}
+	}
+
+	return diags
+}
+
+// planActionTriggers plans all actions (potentially) triggered by this
+// resource instance change sequentially, and returns any diagnostics
+func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.ActionTriggers == nil {
+		return diags
+	}
+
+	for i, at := range n.Config.Managed.ActionTriggers {
+		if !eventIncludesAction(at.Events, change.Action) {
+			continue
+		}
+
+		// TODO: Deal with conditions
+		for j, actionRef := range at.Actions {
+			absActionInstAddrs := []addrs.AbsActionInstance{}
+
+			ref, parseRefDiags := addrs.ParseRef(actionRef.Traversal)
+			diags = diags.Append(parseRefDiags)
+			if parseRefDiags.HasErrors() {
+				return diags
+			}
+
+			// We don't support accessing actions within modules right now, therefore we can just make the action absolute based on the current module path.
+			if a, ok := ref.Subject.(addrs.ActionInstance); ok {
+				absActionInstAddrs = append(absActionInstAddrs, a.Absolute(n.Path()))
+			} else if a, ok := ref.Subject.(addrs.Action); ok {
+				// If the reference action is expanded we get a single action address,
+				// otherwise all expanded action addresses. This auto-expansion feature is syntacic
+				// sugar for the user so that they can refer to all of an expanded action's
+				// instances
+				absActionInstAddrs = ctx.Actions().GetActionInstanceKeys(a.Absolute(n.Path()))
+			} else {
+				// TODO: Better diagnostic message
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("%s action trigger #%d refers to an invalid address", n.Addr, i),
+					fmt.Sprintf("actions list item #%d refers to a subject that is not an action or action instance.", j),
+				))
+				continue
+			}
+
+			if len(absActionInstAddrs) == 0 {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("%s action trigger #%d refers to a non-existent action %s", n.Addr, i, actionRef.Traversal),
+					fmt.Sprintf("action trigger #%d refers to a non-existent action %s", i, actionRef.Traversal),
+				))
+				return diags
+			}
+
+			for _, absActionAddr := range absActionInstAddrs {
+				actionInstance, ok := ctx.Actions().GetActionInstance(absActionAddr)
+
+				if !ok {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("action trigger #%d refers to a non-existent action instance %s", i, absActionAddr),
+						"Action instance not found in the current context.",
+					))
+					return diags
+				}
+
+				provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to get provider",
+						fmt.Sprintf("Failed to get provider: %s", err),
+					))
+					return diags
+				}
+
+				resp := provider.PlanAction(providers.PlanActionRequest{
+					ActionType:         absActionAddr.Action.Action.Type,
+					ProposedActionData: actionInstance.ConfigValue,
+					ClientCapabilities: ctx.ClientCapabilities(),
+				})
+
+				// TODO: Deal with deferred responses
+				diags = diags.Append(resp.Diagnostics)
+				if diags.HasErrors() {
+					return diags
+				}
+
+				ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
+					Addr:         absActionAddr,
+					ProviderAddr: actionInstance.ProviderAddr,
+				})
+			}
 		}
 	}
 
@@ -977,4 +1081,32 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 		}
 	}
 	return true
+}
+
+func eventIncludesAction(events []configs.ActionTriggerEvent, action plans.Action) bool {
+	for _, event := range events {
+		switch event {
+		case configs.BeforeCreate, configs.AfterCreate:
+			if action.IsReplace() || action == plans.Create {
+				return true
+			} else {
+				continue
+			}
+		case configs.BeforeUpdate, configs.AfterUpdate:
+			if action == plans.Update {
+				return true
+			} else {
+				continue
+			}
+		case configs.BeforeDestroy, configs.AfterDestroy:
+			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
+				return true
+			} else {
+				continue
+			}
+		default:
+			panic(fmt.Sprintf("unknown action trigger event %s", event))
+		}
+	}
+	return false
 }

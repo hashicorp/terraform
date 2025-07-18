@@ -7,7 +7,7 @@ action "test_action" "test" {
 resource "test_instance" "test" {
     lifecycle {
       action_trigger {
-        events = [after_destroy]
+        events = [before_create]
         actions = [action.test_action.dosomething]
       }
     }
