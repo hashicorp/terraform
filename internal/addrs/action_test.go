@@ -109,15 +109,15 @@ func TestActionInstanceEqual(t *testing.T) {
 func TestAbsActionInstanceEqual(t *testing.T) {
 	actions := []AbsActionInstance{
 		{
-			RootModuleInstance,
-			ActionInstance{
+			Module: RootModuleInstance,
+			Action: ActionInstance{
 				Action: Action{Type: "foo", Name: "bar"},
 				Key:    NoKey,
 			},
 		},
 		{
-			mustParseModuleInstanceStr("module.child"),
-			ActionInstance{
+			Module: mustParseModuleInstanceStr("module.child"),
+			Action: ActionInstance{
 				Action: Action{Type: "the", Name: "bloop"},
 				Key:    StringKey("fish"),
 			},
@@ -139,15 +139,15 @@ func TestAbsActionInstanceEqual(t *testing.T) {
 	}{
 		{ // different keys
 			AbsActionInstance{
-				RootModuleInstance,
-				ActionInstance{
+				Module: RootModuleInstance,
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    NoKey,
 				},
 			},
 			AbsActionInstance{
-				RootModuleInstance,
-				ActionInstance{
+				Module: RootModuleInstance,
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    IntKey(1),
 				},
@@ -156,15 +156,15 @@ func TestAbsActionInstanceEqual(t *testing.T) {
 
 		{ // different module
 			AbsActionInstance{
-				RootModuleInstance,
-				ActionInstance{
+				Module: RootModuleInstance,
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    NoKey,
 				},
 			},
 			AbsActionInstance{
-				mustParseModuleInstanceStr("module.child[1]"),
-				ActionInstance{
+				Module: mustParseModuleInstanceStr("module.child[1]"),
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    NoKey,
 				},
@@ -173,15 +173,15 @@ func TestAbsActionInstanceEqual(t *testing.T) {
 
 		{ // totally different
 			AbsActionInstance{
-				RootModuleInstance,
-				ActionInstance{
+				Module: RootModuleInstance,
+				Action: ActionInstance{
 					Action: Action{Type: "oof", Name: "rab"},
 					Key:    NoKey,
 				},
 			},
 			AbsActionInstance{
-				mustParseModuleInstanceStr("module.foo"),
-				ActionInstance{
+				Module: mustParseModuleInstanceStr("module.foo"),
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    IntKey(11),
 				},
