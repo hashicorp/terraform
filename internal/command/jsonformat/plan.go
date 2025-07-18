@@ -7,10 +7,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
-
-	"slices"
 
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
@@ -33,6 +32,7 @@ type Plan struct {
 	ResourceDrift      []jsonplan.ResourceChange         `json:"resource_drift,omitempty"`
 	RelevantAttributes []jsonplan.ResourceAttr           `json:"relevant_attributes,omitempty"`
 	DeferredChanges    []jsonplan.DeferredResourceChange `json:"deferred_changes,omitempty"`
+	ActionInvocations  []jsonplan.ActionInvocation       `json:"action_invocations,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`

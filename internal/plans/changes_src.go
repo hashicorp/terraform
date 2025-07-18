@@ -27,6 +27,10 @@ type ChangesSrc struct {
 
 	Queries []*QueryInstanceSrc
 
+	// ActionInvocations tracks planned action invocations, which may have
+	// embedded resource instance changes.
+	Actions []*ActionInvocationInstanceSrc
+
 	// Outputs tracks planned changes output values.
 	//
 	// Note that although an in-memory plan contains planned changes for
@@ -153,6 +157,20 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		}
 
 		changes.Queries = append(changes.Queries, query)
+	}
+
+	for _, ais := range c.Actions {
+		p, ok := schemas.Providers[ais.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for action %s", ais.ProviderAddr, ais.Addr)
+		}
+
+		action, err := ais.Decode(p)
+		if err != nil {
+			return nil, err
+		}
+
+		changes.ActionInvocations = append(changes.ActionInvocations, action)
 	}
 
 	for _, ocs := range c.Outputs {
@@ -529,4 +547,43 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		Importing:       cs.Importing.Decode(identityType),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
+}
+
+// AppendResourceInstanceChange records the given resource instance change in
+// the set of planned resource changes.
+func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocationInstanceSrc) {
+	if c == nil {
+		panic("AppendResourceInstanceChange on nil ChangesSync")
+	}
+
+	a := action.DeepCopy()
+	c.Actions = append(c.Actions, a)
+}
+
+type ActionInvocationInstanceSrc struct {
+	Addr addrs.AbsActionInstance
+
+	ProviderAddr addrs.AbsProviderConfig
+}
+
+// Decode unmarshals the raw representation of any linked resources.
+func (acs *ActionInvocationInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionInvocationInstance, error) {
+	as := schema.Actions[acs.Addr.Action.Action.Type]
+
+	if as.IsNil() {
+		return nil, fmt.Errorf("ActionInstanceSrc.Decode: missing schema for %s", acs.Addr)
+	}
+
+	ai := &ActionInvocationInstance{
+		Addr: acs.Addr,
+	}
+	return ai, nil
+}
+
+func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc {
+	if acs == nil {
+		return acs
+	}
+	ret := *acs
+	return &ret
 }

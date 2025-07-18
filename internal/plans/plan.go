@@ -7,10 +7,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/zclconf/go-cty/cty"
-
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -67,6 +67,7 @@ type Plan struct {
 	ApplyTimeVariables collections.Set[string]
 
 	Changes           *ChangesSrc
+	ActionInvocations []*ActionInvocationInstanceSrc
 	DriftedResources  []*ResourceInstanceChangeSrc
 	DeferredResources []*DeferredResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable

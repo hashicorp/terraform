@@ -12,9 +12,9 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/logging"
