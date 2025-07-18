@@ -373,6 +373,12 @@ func initCommands(
 		// Plumbing
 		//-----------------------------------------------------------
 
+		"force-lock": func() (cli.Command, error) {
+			return &command.LockCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"force-unlock": func() (cli.Command, error) {
 			return &command.UnlockCommand{
 				Meta: meta,
