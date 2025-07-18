@@ -2449,7 +2449,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 
 	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
 		// TODO TerraformVersion: ,
-		Config: validateResp.PreparedConfig,
+		Config: providerConfigVal,
 		// TODO ClientCapabilities: ,
 	})
 	diags = diags.Append(configureResp.Diagnostics)
