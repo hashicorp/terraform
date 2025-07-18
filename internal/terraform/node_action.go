@@ -184,7 +184,7 @@ func (n *nodeExpandActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool) 
 
 	return addrs.AbsProviderConfig{
 		Provider: n.Provider(),
-		Module:   addrs.RootModule, // TODO: Deal with modules
+		Module:   n.ModulePath(),
 	}, false
 }
 
