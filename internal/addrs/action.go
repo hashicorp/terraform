@@ -211,6 +211,7 @@ func (a AbsAction) UniqueKey() UniqueKey {
 // AbsActionInstance is an absolute address for an action instance under a
 // given module path.
 type AbsActionInstance struct {
+	referenceable
 	Module ModuleInstance
 	Action ActionInstance
 }
