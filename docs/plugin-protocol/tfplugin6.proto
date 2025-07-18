@@ -433,6 +433,7 @@ service Provider {
     //////// Actions
     rpc PlanAction(PlanAction.Request) returns (PlanAction.Response);
     rpc InvokeAction(InvokeAction.Request) returns (stream InvokeAction.Event);
+    rpc ValidateActionConfig(ValidateActionConfig.Request) returns (ValidateActionConfig.Response);
 
     //////// Graceful Shutdown
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
@@ -1032,4 +1033,20 @@ message InvokeAction {
       Completed completed = 2;
     }
   }
+}
+
+message ValidateActionConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+        repeated LinkedResourceConfig linked_resources = 3;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message LinkedResourceConfig {
+    string type_name = 1;
+    DynamicValue config = 2;
 }

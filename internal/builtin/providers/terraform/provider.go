@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
-	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
@@ -320,6 +320,17 @@ func (p *Provider) InvokeAction(req providers.InvokeActionRequest) providers.Inv
 	switch req.ActionType {
 	default:
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported action %q", req.ActionType))
+	}
+
+	return resp
+}
+
+func (p *Provider) ValidateActionConfig(req providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	var resp providers.ValidateActionConfigResponse
+
+	switch req.TypeName {
+	default:
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported action %q", req.TypeName))
 	}
 
 	return resp

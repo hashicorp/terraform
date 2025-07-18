@@ -578,7 +578,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		ResourceChanges:   []*planproto.ResourceInstanceChange{},
 		ResourceDrift:     []*planproto.ResourceInstanceChange{},
 		DeferredChanges:   []*planproto.DeferredResourceInstanceChange{},
-		ActionInvocations: []*planproto.ActionInvocation{},
+		ActionInvocations: []*planproto.ActionInvocationInstance{},
 	}
 
 	rawPlan.Applyable = plan.Applyable
@@ -1245,7 +1245,7 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	}
 }
 
-func actionInvocationFromTfplan(rawAction *planproto.ActionInvocation) (*plans.ActionInvocationInstanceSrc, error) {
+func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
 	if rawAction == nil {
 		// Should never happen in practice, since protobuf can't represent
 		// a nil value in a list.
@@ -1268,12 +1268,12 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocation) (*plans.A
 	return ret, nil
 }
 
-func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocation, error) {
+func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {
 	if action == nil {
 		return nil, nil
 	}
 
-	ret := &planproto.ActionInvocation{
+	ret := &planproto.ActionInvocationInstance{
 		Addr:     action.Addr.String(),
 		Provider: action.ProviderAddr.String(),
 	}
