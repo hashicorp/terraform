@@ -146,6 +146,10 @@ func (provider *mockProvider) InvokeAction(_ providers.InvokeActionRequest) prov
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) ValidateActionConfig(_ providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) Close() error {
 	return nil // do nothing
 }

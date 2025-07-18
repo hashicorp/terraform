@@ -331,6 +331,12 @@ func (s simple) InvokeAction(providers.InvokeActionRequest) providers.InvokeActi
 	panic("InvokeAction on provider that didn't declare any actions")
 }
 
+func (s simple) ValidateActionConfig(providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("InvokeAction on provider that didn't declare any actions")
+}
+
 func (s simple) Close() error {
 	return nil
 }
