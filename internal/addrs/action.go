@@ -334,25 +334,6 @@ type configActionKey string
 
 func (k configActionKey) uniqueKeySigil() {}
 
-// AbsActionInvocationInstance describes the invocation of an action as part of a plan / apply.
-type AbsActionInvocationInstance struct {
-	TriggeringResource AbsResourceInstance
-	Action             AbsActionInstance
-	TriggerIndex       int
-
-	// TriggerBlockSourceRange is the location of the action_trigger block
-	// within the resources lifecycle block that triggered this action.
-	TriggerBlockSourceRange *tfdiags.SourceRange
-
-	// ActionReferenceSourceRange is the location of the action reference
-	// in the actions list within the action_trigger block.
-	ActionReferenceSourceRange *tfdiags.SourceRange
-}
-
-func (a AbsActionInvocationInstance) String() string {
-	return fmt.Sprintf("%s.%d.%s", a.TriggeringResource.String(), a.TriggerIndex, a.Action.String())
-}
-
 // ParseAbsActionInstanceStr is a helper wrapper around
 // ParseAbsActionInstance that takes a string and parses it with the HCL
 // native syntax traversal parser before interpreting it.

@@ -74,11 +74,15 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 			))
 			return diags
 		}
-		// TODO: Change the hook identity to be sth contained in hooks
-		hookIdentity := addrs.AbsActionInvocationInstance{
-			TriggeringResource: ai.TriggeringResourceAddr,
-			Action:             ai.Addr,
-			TriggerIndex:       ai.ActionTriggerBlockIndex,
+
+		// We don't want to send the marks, but all marks are okay in the context of an action invocation.
+		unmarkedConfigValue, _ := actionData.ConfigValue.UnmarkDeep()
+
+		hookIdentity := HookActionIdentity{
+			Addr:                    ai.Addr,
+			TriggeringResourceAddr:  ai.TriggeringResourceAddr,
+			ActionTriggerBlockIndex: ai.ActionTriggerBlockIndex,
+			ActionsListIndex:        ai.ActionsListIndex,
 		}
 
 		ctx.Hook(func(h Hook) (HookAction, error) {
@@ -86,7 +90,7 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 		})
 		resp := provider.InvokeAction(providers.InvokeActionRequest{
 			ActionType:        orderedActionInvocations[i].Addr.Action.Action.Type,
-			PlannedActionData: actionData.ConfigValue,
+			PlannedActionData: unmarkedConfigValue,
 		})
 
 		diags = diags.Append(resp.Diagnostics)
