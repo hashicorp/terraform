@@ -36,16 +36,19 @@ type NodeApplyableResourceInstance struct {
 	// it might contain addresses that have nothing to do with the resource
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
+
+	beforeActionInvocations []*plans.ActionInvocationInstance
 }
 
 var (
-	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource      = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance    = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer          = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutable          = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies  = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachBeforeActions = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -209,6 +212,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var state *states.ResourceInstanceObject
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
+
+	diags = diags.Append(invokeActions(ctx, n.beforeActionInvocations))
+	if diags.HasErrors() {
+		return diags
+	}
 
 	addr := n.ResourceInstanceAddr().Resource
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -465,6 +473,10 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 		))
 	}
 	return diags
+}
+
+func (n *NodeApplyableResourceInstance) AttachBeforeActions(ais []*plans.ActionInvocationInstance) {
+	n.beforeActionInvocations = ais
 }
 
 // maybeTainted takes the resource addr, new value, planned change, and possible
