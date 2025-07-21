@@ -12,6 +12,24 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
+func invalidLinkedResourceDiag(subj *hcl.Range) *hcl.Diagnostic {
+	return &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  `Invalid "linked_resource"`,
+		Detail:   `"linked_resource" must only refer to a managed resource in the current module.`,
+		Subject:  subj,
+	}
+}
+
+func invalidLinkedResourcesDiag(subj *hcl.Range) *hcl.Diagnostic {
+	return &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  `Invalid "linked_resources"`,
+		Detail:   `"linked_resources" must only refer to managed resources in the current module.`,
+		Subject:  subj,
+	}
+}
+
 // Action represents an "action" block inside a configuration
 type Action struct {
 	Name    string
@@ -222,7 +240,7 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Invalid use of "linked_resource"`,
-				Detail:   `The "linked_resource" and "linked_resources" are mutually exclusive, only one should be used.`,
+				Detail:   `"linked_resource" and "linked_resources" are mutually exclusive, only one should be used.`,
 				Subject:  &attr.NameRange,
 			})
 		}
@@ -230,7 +248,25 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 		traversal, travDiags := hcl.AbsTraversalForExpr(attr.Expr)
 		diags = append(diags, travDiags...)
 		if len(traversal) != 0 {
-			a.LinkedResources = []hcl.Traversal{traversal}
+			ref, refDiags := addrs.ParseRef(traversal)
+			diags = append(diags, refDiags.ToHCL()...)
+
+			switch res := ref.Subject.(type) {
+			case addrs.Resource:
+				if res.Mode != addrs.ManagedResourceMode {
+					diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
+				} else {
+					a.LinkedResources = []hcl.Traversal{traversal}
+				}
+			case addrs.ResourceInstance:
+				if res.Resource.Mode != addrs.ManagedResourceMode {
+					diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
+				} else {
+					a.LinkedResources = []hcl.Traversal{traversal}
+				}
+			default:
+				diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
+			}
 		}
 	}
 
@@ -239,22 +275,34 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Invalid use of "linked_resources"`,
-				Detail:   `The "linked_resource" and "linked_resources" are mutually exclusive, only one should be used.`,
+				Detail:   `"linked_resource" and "linked_resources" are mutually exclusive, only one should be used.`,
 				Subject:  &attr.NameRange,
 			})
 		}
 
-		exprs, diags := hcl.ExprList(attr.Expr)
-		lrs := make([]hcl.Traversal, len(exprs))
+		exprs, exprDiags := hcl.ExprList(attr.Expr)
+		diags = append(diags, exprDiags...)
 
-		for i, expr := range exprs {
-			traversal, travDiags := hcl.AbsTraversalForExpr(expr)
-			diags = append(diags, travDiags...)
-			if len(traversal) != 0 {
-				lrs[i] = traversal
+		if len(exprs) > 0 {
+			lrs := make([]hcl.Traversal, 0, len(exprs))
+			for _, expr := range exprs {
+				traversal, travDiags := hcl.AbsTraversalForExpr(expr)
+				diags = append(diags, travDiags...)
+
+				if len(traversal) != 0 {
+					ref, refDiags := addrs.ParseRef(traversal)
+					diags = append(diags, refDiags.ToHCL()...)
+
+					switch ref.Subject.(type) {
+					case addrs.Resource, addrs.ResourceInstance:
+						lrs = append(lrs, traversal)
+					default:
+						diags = append(diags, invalidLinkedResourcesDiag(&attr.NameRange))
+					}
+				}
 			}
+			a.LinkedResources = lrs
 		}
-		a.LinkedResources = lrs
 	}
 
 	for _, block := range content.Blocks {
