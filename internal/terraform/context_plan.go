@@ -272,11 +272,12 @@ The -target option is not for routine use, and is provided only for exceptional 
 
 	if opts.Query {
 		var hasQuery bool
-		config.DeepEach(func(c *configs.Config) {
+		for c := range config.AllModules() {
 			if len(c.Module.ListResources) > 0 {
 				hasQuery = true
+				break
 			}
-		})
+		}
 
 		if !hasQuery {
 			diags = diags.Append(tfdiags.Sourceless(
