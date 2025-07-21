@@ -96,7 +96,7 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 
 // GraphNodeReferenceable
 func (n *NodeActionDeclarationInstance) ReferenceableAddrs() []addrs.Referenceable {
-	return []addrs.Referenceable{n.Addr.Action, n.Addr.Action.Action}
+	return []addrs.Referenceable{n.Addr, n.Addr.Action, n.Addr.Action.Action}
 }
 
 // GraphNodeReferencer
