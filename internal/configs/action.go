@@ -123,6 +123,7 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 					Subject:  expr.Range().Ptr(),
 				})
+				continue
 			}
 
 			if event == BeforeDestroy || event == AfterDestroy {
@@ -132,8 +133,8 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 					Detail:   "The destroy events (before_destroy, after_destroy) are not supported as of right now. They will be supported in a future release.",
 					Subject:  expr.Range().Ptr(),
 				})
+				continue
 			}
-
 			events = append(events, event)
 		}
 		a.Events = events
@@ -146,25 +147,29 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		for _, expr := range exprs {
 			traversal, travDiags := hcl.AbsTraversalForExpr(expr)
 			diags = append(diags, travDiags...)
-			// verify that the traversal is an action
-			if traversal.RootName() != "action" {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid actions argument inside action_triggers",
-					Detail:   "action_triggers.actions accepts a list of one or more actions",
-					Subject:  block.DefRange.Ptr(),
-				})
-				continue
-			}
 
-			if len(traversal) != 0 {
-				actionRef := ActionRef{
-					Traversal: traversal,
-					Range:     expr.Range(),
+			if len(traversal) > 0 {
+				// verify that the traversal is an action
+				ref, refDiags := addrs.ParseRef(traversal)
+				diags = append(diags, refDiags.ToHCL()...)
+
+				switch ref.Subject.(type) {
+				case addrs.ActionInstance, addrs.Action:
+					actionRef := ActionRef{
+						Traversal: traversal,
+						Range:     expr.Range(),
+					}
+					actions = append(actions, actionRef)
+				default:
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid actions argument inside action_triggers",
+						Detail:   "action_triggers.actions accepts a list of one or more actions, which must be in the current module.",
+						Subject:  expr.Range().Ptr(),
+					})
+					continue
 				}
-				actions = append(actions, actionRef)
 			}
-
 		}
 		a.Actions = actions
 	}
