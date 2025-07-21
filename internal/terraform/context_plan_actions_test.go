@@ -100,7 +100,23 @@ resource "test_object" "a" {
 					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				// TODO: Test that action the triggering resource address is set correctly
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+					t.Fatal("expected action to have a triggering resource address, but it is nil")
+				}
+
+				if action.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				}
+				if action.TriggerEvent != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+				}
+				if action.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				}
+
+				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
+					t.Fatalf("expected action to have a provider address of 'provider[\"registry.terraform.io/hashicorp/test\"]', got '%s'", action.ProviderAddr)
+				}
 			},
 		},
 
