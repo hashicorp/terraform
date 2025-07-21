@@ -281,10 +281,11 @@ The -target option is not for routine use, and is provided only for exceptional 
 
 		if !hasQuery {
 			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
+				tfdiags.Error,
 				"No resources to query",
 				`The configuration does not contain any resources that can be queried.`,
 			))
+			return nil, nil, diags
 		}
 	}
 

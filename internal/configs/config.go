@@ -148,6 +148,9 @@ func (c *Config) DeepEach(cb func(c *Config)) {
 // nodes in the module tree until the iterator is exhausted or terminated.
 func (c *Config) AllModules() iter.Seq[*Config] {
 	return func(yield func(*Config) bool) {
+		if !yield(c) {
+			return
+		}
 		for _, ch := range c.Children {
 			if !yield(ch) {
 				return

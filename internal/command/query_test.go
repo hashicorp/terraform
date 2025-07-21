@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -26,34 +27,58 @@ func TestQuery(t *testing.T) {
 			name:      "basic query",
 			directory: "basic",
 			expectedOut: `list.test_instance.example	id=test-instance-1	Test Instance 1
-list.test_instance.example	id=test-instance-2	Test Instance 2`,
+				list.test_instance.example	id=test-instance-2	Test Instance 2`,
 		},
 		{
 			name:      "query referencing local variable",
 			directory: "with-locals",
 			expectedOut: `list.test_instance.example	id=test-instance-1	Test Instance 1
-		list.test_instance.example	id=test-instance-2	Test Instance 2`,
+						list.test_instance.example	id=test-instance-2	Test Instance 2`,
 		},
 		{
 			name:        "config with no query block",
 			directory:   "no-list-block",
 			expectedOut: "",
-			expectedErr: []string{`Warning: No resources to query
+			expectedErr: []string{`
+Error: No resources to query
 
-The configuration does not contain any resources that can be queried.`},
+The configuration does not contain any resources that can be queried.
+`},
 		},
 		{
 			name:        "missing query file",
 			directory:   "missing-query-file",
 			expectedOut: "",
-			expectedErr: []string{"No resources to query"},
+			expectedErr: []string{`
+Error: No resources to query
+
+The configuration does not contain any resources that can be queried.
+`},
+		},
+		{
+			name:        "missing configuration",
+			directory:   "missing-configuration",
+			expectedOut: "",
+			expectedErr: []string{`
+Error: No configuration files
+
+Query Plan requires a query configuration to be present. Create a Terraform
+query configuration file (.tfquery.hcl file) and try again.
+`},
 		},
 		{
 			name:        "invalid query syntax",
 			directory:   "invalid-syntax",
 			expectedOut: "",
 			initCode:    1,
-			expectedErr: []string{"Unsupported block type", "on query.tfquery.hcl line 11", `resource "test_instance" "example"`},
+			expectedErr: []string{`
+Error: Unsupported block type
+
+  on query.tfquery.hcl line 11:
+  11: resource "test_instance" "example" {
+
+Blocks of type "resource" are not expected here.
+`},
 		},
 	}
 
@@ -76,20 +101,20 @@ The configuration does not contain any resources that can be queried.`},
 				ProviderSource:            providerSource,
 			}
 
-			init := &InitCommand{
-				Meta: meta,
-			}
-			if code := init.Run(nil); code != ts.initCode {
-				output := done(t)
+			init := &InitCommand{Meta: meta}
+			code := init.Run(nil)
+			output := done(t)
+			if code != ts.initCode {
 				t.Fatalf("expected status code %d but got %d: %s", ts.initCode, code, output.All())
 			}
 
-			c := &QueryCommand{
-				Meta: meta,
-			}
+			view, done = testView(t)
+			meta.View = view
+
+			c := &QueryCommand{Meta: meta}
 			args := []string{"-no-color"}
-			code := c.Run(args)
-			output := done(t)
+			code = c.Run(args)
+			output = done(t)
 			actual := output.All()
 			if len(ts.expectedErr) == 0 {
 				if code != 0 && len(ts.expectedErr) == 0 {
@@ -102,8 +127,8 @@ The configuration does not contain any resources that can be queried.`},
 				}
 			} else {
 				for _, expected := range ts.expectedErr {
-					if !strings.Contains(actual, expected) {
-						t.Errorf("expected error message to contain '%s', got: %s", expected, actual)
+					if diff := cmp.Diff(expected, actual); diff != "" {
+						t.Errorf("expected error message to contain '%s', \ngot: %s, diff: %s", expected, actual, diff)
 					}
 				}
 			}
