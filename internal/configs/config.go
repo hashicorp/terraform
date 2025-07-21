@@ -483,6 +483,15 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 		reqs[fqn] = nil
 	}
 
+	for _, rc := range c.Module.Actions {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
 	// Import blocks that are generating config may have a custom provider
 	// meta-argument. Like the provider meta-argument used in resource blocks,
 	// we use this opportunity to load any implicit providers.
@@ -1020,6 +1029,9 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProvider
 		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
 	for _, rc := range c.Module.DataResources {
+		maybePutLocal(rc.ProviderConfigAddr(), false)
+	}
+	for _, rc := range c.Module.Actions {
 		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
 	for _, ic := range c.Module.Import {

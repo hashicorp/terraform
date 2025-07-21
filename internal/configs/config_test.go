@@ -29,14 +29,16 @@ func TestConfigProviderTypes(t *testing.T) {
 		t.Fatal("expected empty result from empty config")
 	}
 
-	cfg, diags := testModuleConfigFromFile("testdata/valid-files/providers-explicit-implied.tf")
+	cfg, diags := testModuleFromFileWithExperiments("testdata/valid-files/providers-explicit-implied.tf")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
 
 	got = cfg.ProviderTypes()
+
 	want := []addrs.Provider{
 		addrs.NewDefaultProvider("aws"),
+		addrs.NewDefaultProvider("external"),
 		addrs.NewDefaultProvider("local"),
 		addrs.NewDefaultProvider("null"),
 		addrs.NewDefaultProvider("template"),
