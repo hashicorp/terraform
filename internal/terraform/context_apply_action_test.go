@@ -404,9 +404,9 @@ resource "test_object" "b" {
 			_, diags = ctx.Apply(plan, m, nil)
 			if tc.expectDiagnostics.HasErrors() {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics)
-				return
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
 			}
-			tfdiags.AssertNoDiagnostics(t, diags)
 
 			if tc.expectInvokeActionCalled && len(invokeActionCalls) == 0 {
 				t.Fatalf("expected invoke action to be called, but it was not")

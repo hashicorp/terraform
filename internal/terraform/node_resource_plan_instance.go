@@ -623,7 +623,7 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				if err != nil {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Failed to get provider",
+						fmt.Sprintf("Failed to get provider for action %s", absActionAddr),
 						fmt.Sprintf("Failed to get provider: %s", err),
 					))
 					return diags

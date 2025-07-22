@@ -41,14 +41,14 @@ type NodeApplyableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeConfigResource      = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance    = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator             = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer          = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer             = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeExecutable          = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachDependencies  = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachBeforeActions = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeActionProviders    = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -475,8 +475,12 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 	return diags
 }
 
-func (n *NodeApplyableResourceInstance) AttachBeforeActions(ais []*plans.ActionInvocationInstance) {
-	n.beforeActionInvocations = ais
+func (n *NodeApplyableResourceInstance) ActionProviders() []addrs.AbsProviderConfig {
+	ret := []addrs.AbsProviderConfig{}
+	for _, ai := range n.beforeActionInvocations {
+		ret = append(ret, ai.ProviderAddr)
+	}
+	return ret
 }
 
 // maybeTainted takes the resource addr, new value, planned change, and possible
