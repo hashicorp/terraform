@@ -463,7 +463,8 @@ message GetProviderSchema {
         map<string, Function> functions = 7;
         map<string, Schema> ephemeral_resource_schemas = 8;
         map<string, Schema> list_resource_schemas = 9;
-        map<string, ActionSchema> action_schemas = 10;
+        // Field number 10 is used by state stores in version 6
+        map<string, ActionSchema> action_schemas = 11;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
