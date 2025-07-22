@@ -3600,19 +3600,20 @@ func (*GetProviderSchema_Request) Descriptor() ([]byte, []int) {
 }
 
 type GetProviderSchema_Response struct {
-	state                    protoimpl.MessageState   `protogen:"open.v1"`
-	Provider                 *Schema                  `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	ResourceSchemas          map[string]*Schema       `protobuf:"bytes,2,rep,name=resource_schemas,json=resourceSchemas,proto3" json:"resource_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	DataSourceSchemas        map[string]*Schema       `protobuf:"bytes,3,rep,name=data_source_schemas,json=dataSourceSchemas,proto3" json:"data_source_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Functions                map[string]*Function     `protobuf:"bytes,7,rep,name=functions,proto3" json:"functions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	EphemeralResourceSchemas map[string]*Schema       `protobuf:"bytes,8,rep,name=ephemeral_resource_schemas,json=ephemeralResourceSchemas,proto3" json:"ephemeral_resource_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	ListResourceSchemas      map[string]*Schema       `protobuf:"bytes,9,rep,name=list_resource_schemas,json=listResourceSchemas,proto3" json:"list_resource_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	ActionSchemas            map[string]*ActionSchema `protobuf:"bytes,10,rep,name=action_schemas,json=actionSchemas,proto3" json:"action_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Diagnostics              []*Diagnostic            `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
-	ProviderMeta             *Schema                  `protobuf:"bytes,5,opt,name=provider_meta,json=providerMeta,proto3" json:"provider_meta,omitempty"`
-	ServerCapabilities       *ServerCapabilities      `protobuf:"bytes,6,opt,name=server_capabilities,json=serverCapabilities,proto3" json:"server_capabilities,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	Provider                 *Schema                `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ResourceSchemas          map[string]*Schema     `protobuf:"bytes,2,rep,name=resource_schemas,json=resourceSchemas,proto3" json:"resource_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	DataSourceSchemas        map[string]*Schema     `protobuf:"bytes,3,rep,name=data_source_schemas,json=dataSourceSchemas,proto3" json:"data_source_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Functions                map[string]*Function   `protobuf:"bytes,7,rep,name=functions,proto3" json:"functions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	EphemeralResourceSchemas map[string]*Schema     `protobuf:"bytes,8,rep,name=ephemeral_resource_schemas,json=ephemeralResourceSchemas,proto3" json:"ephemeral_resource_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ListResourceSchemas      map[string]*Schema     `protobuf:"bytes,9,rep,name=list_resource_schemas,json=listResourceSchemas,proto3" json:"list_resource_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Field number 10 is used by state stores in version 6
+	ActionSchemas      map[string]*ActionSchema `protobuf:"bytes,11,rep,name=action_schemas,json=actionSchemas,proto3" json:"action_schemas,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Diagnostics        []*Diagnostic            `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+	ProviderMeta       *Schema                  `protobuf:"bytes,5,opt,name=provider_meta,json=providerMeta,proto3" json:"provider_meta,omitempty"`
+	ServerCapabilities *ServerCapabilities      `protobuf:"bytes,6,opt,name=server_capabilities,json=serverCapabilities,proto3" json:"server_capabilities,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetProviderSchema_Response) Reset() {
@@ -7789,7 +7790,7 @@ var file_tfplugin5_proto_rawDesc = string([]byte{
 	0x73, 0x74, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61,
 	0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x13, 0x6c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x6f,
 	0x75, 0x72, 0x63, 0x65, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x73, 0x12, 0x5f, 0x0a, 0x0e, 0x61,
-	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x73, 0x18, 0x0a, 0x20,
+	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x73, 0x18, 0x0b, 0x20,
 	0x03, 0x28, 0x0b, 0x32, 0x38, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x35, 0x2e,
 	0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d,
 	0x61, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x6f,
