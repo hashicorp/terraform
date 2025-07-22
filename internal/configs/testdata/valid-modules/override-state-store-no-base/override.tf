@@ -1,5 +1,9 @@
 terraform {
-  // Note: not valid config - a paired entry in required_providers is usually needed
+  required_providers {
+    foo = {
+      source = "my-org/foo"
+    }
+  }
   state_store "foo_bar" {
     provider "foo" {}
 

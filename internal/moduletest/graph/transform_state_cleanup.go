@@ -153,8 +153,6 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	for node := range maps.Values(cleanupMap) {
 		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
 	}
-
-	ControlParallelism(g, arr)
 	return nil
 }
 
@@ -170,11 +168,7 @@ func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, nod
 			continue
 		}
 		refNode := cleanupNodes[refStateKey]
-		// leave non-parallel nodes out of this. Their sequential connections
-		// will be handled later.
-		if node.parallel && refNode.parallel {
-			g.Connect(dag.BasicEdge(refNode, node))
-		}
+		g.Connect(dag.BasicEdge(refNode, node))
 		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
 	}
 }

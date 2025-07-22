@@ -393,6 +393,19 @@ func (u *unknownProvider) InvokeAction(request providers.InvokeActionRequest) pr
 	}
 }
 
+func (u *unknownProvider) ValidateActionConfig(request providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	return providers.ValidateActionConfigResponse{
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot validate this action configuration because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
+	}
+}
+
 func (u *unknownProvider) Close() error {
 	// the underlying unconfiguredClient is managed elsewhere.
 	return nil

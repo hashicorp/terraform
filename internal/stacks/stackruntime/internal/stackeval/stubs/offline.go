@@ -344,6 +344,20 @@ func (o *offlineProvider) InvokeAction(request providers.InvokeActionRequest) pr
 	}
 }
 
+// InvokeAction implements providers.Interface.
+func (o *offlineProvider) ValidateActionConfig(request providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ValidateActionConfig on an unconfigured provider",
+		"Cannot invoke this action because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateActionConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (o *offlineProvider) Close() error {
 	// pass the close call to the underlying unconfigured client
 	return o.unconfiguredClient.Close()

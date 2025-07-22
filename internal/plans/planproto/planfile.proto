@@ -95,7 +95,7 @@ message Plan {
 
     // An unordered set of proposed action invocations. This includes any
     // embedded ResourceInstanceActionChanges for LinkedResources
-    repeated ActionInvocation action_invocations = 30;
+    repeated ActionInvocationInstance action_invocations = 30;
 
     // An unordered set of target addresses to include when applying. If no
     // target addresses are present, the plan applies to the whole

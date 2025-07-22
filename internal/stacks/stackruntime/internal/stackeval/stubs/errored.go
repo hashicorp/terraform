@@ -326,3 +326,16 @@ func (p *erroredProvider) InvokeAction(_ providers.InvokeActionRequest) provider
 		Diagnostics: diags,
 	}
 }
+
+func (p *erroredProvider) ValidateActionConfig(_ providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot validate this action configuration because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateActionConfigResponse{
+		Diagnostics: diags,
+	}
+}

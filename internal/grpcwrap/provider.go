@@ -1073,6 +1073,45 @@ func (p *provider) InvokeAction(req *tfplugin5.InvokeAction_Request, server tfpl
 	return nil
 }
 
+func (p *provider) ValidateActionConfig(_ context.Context, req *tfplugin5.ValidateActionConfig_Request) (*tfplugin5.ValidateActionConfig_Response, error) {
+	resp := &tfplugin5.ValidateActionConfig_Response{}
+	ty := p.schema.Actions[req.TypeName].ConfigSchema.ImpliedType()
+
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	protoReq := providers.ValidateActionConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	}
+
+	lrs := make([]providers.LinkedResourceConfig, 0, len(req.LinkedResources))
+	for _, lr := range req.LinkedResources {
+		ty := p.schema.ResourceTypes[lr.TypeName].Body.ImpliedType()
+
+		configVal, err := decodeDynamicValue(lr.Config, ty)
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		lrs = append(lrs, providers.LinkedResourceConfig{
+			TypeName: lr.TypeName,
+			Config:   configVal,
+		})
+	}
+
+	if len(lrs) > 0 {
+		protoReq.LinkedResources = lrs
+	}
+
+	validateResp := p.provider.ValidateActionConfig(protoReq)
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
 	resp := &tfplugin5.Stop_Response{}
 	err := p.provider.Stop()

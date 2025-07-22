@@ -20,10 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const (
-	MainStateIdentifier = ""
-)
-
 type Run struct {
 	Config *configs.TestRun
 

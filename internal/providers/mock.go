@@ -107,6 +107,13 @@ func (m *Mock) ValidateListResourceConfig(request ValidateListResourceConfigRequ
 	return m.Provider.ValidateListResourceConfig(request)
 }
 
+func (m *Mock) ValidateActionConfig(request ValidateActionConfigRequest) ValidateActionConfigResponse {
+	// We'll just pass this through to the underlying provider. The mock should
+	// support the same data source syntax as the original provider and we can
+	// call validate without needing to configure the provider first.
+	return m.Provider.ValidateActionConfig(request)
+}
+
 func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (response UpgradeResourceStateResponse) {
 	// We can't do this from a mocked provider, so we just return whatever state
 	// is in the request back unchanged.

@@ -49,6 +49,16 @@ func (n *NodeTestRun) Referenceable() addrs.Referenceable {
 
 func (n *NodeTestRun) References() []*addrs.Reference {
 	references, _ := n.run.GetReferences()
+
+	for _, run := range n.priorRuns {
+		// we'll also draw an implicit reference to all prior runs to make sure
+		// they execute first
+		references = append(references, &addrs.Reference{
+			Subject:     run.Addr(),
+			SourceRange: tfdiags.SourceRangeFromHCL(n.run.Config.DeclRange),
+		})
+	}
+
 	return references
 }
 
@@ -117,10 +127,6 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	ctx.Renderer().Run(run, file, moduletest.Starting, 0)
-	if run.Config.ConfigUnderTest != nil && run.Config.StateKey == moduletest.MainStateIdentifier {
-		// This is bad, and should not happen because the state key is derived from the custom module source.
-		panic(fmt.Sprintf("TestFileRunner: custom module %s has the same key as main state", file.Name))
-	}
 
 	providers, mocks, providerDiags := n.getProviders(ctx)
 	if !ctx.ProvidersCompleted(providers) {

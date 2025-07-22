@@ -364,6 +364,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Invalid condition run"},
 			code:        1,
 		},
+		"write-into-default-state": {
+			args:        []string{"-verbose"},
+			expectedOut: []string{"test_resource.two will be destroyed"},
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
