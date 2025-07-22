@@ -18,11 +18,6 @@ updates:
       - dependencies
       - build
       - security
-    reviewers:
-      - hashicorp/terraform-core
-    # only update HashiCorp actions, external actions managed by TSCCR
-    allow:
-      - dependency-name: hashicorp/*
     groups:
       github-actions-breaking:
         update-types:

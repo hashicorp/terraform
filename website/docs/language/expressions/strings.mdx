@@ -5,6 +5,12 @@ description: >-
   Learn about both quoted and heredoc string syntax.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Strings and Templates
 
 String literals are the most complex kind of literal expression in
@@ -47,7 +53,7 @@ There are also two special escape sequences that do not use backslashes:
 
 ## Heredoc Strings
 
-Terraform also supports a "heredoc" style of string literal inspired by Unix
+Terraform supports a "heredoc" style of string literal inspired by Unix
 shell languages, which allows multi-line strings to be expressed more clearly.
 
 ```hcl
@@ -74,19 +80,24 @@ In the above example, `EOT` is the identifier selected. Any identifier is
 allowed, but conventionally this identifier is in all-uppercase and begins with
 `EO`, meaning "end of". `EOT` in this case stands for "end of text".
 
-### Generating JSON or YAML
+<Highlight>
 
 Don't use "heredoc" strings to generate JSON or YAML. Instead, use
 [the `jsonencode` function](/terraform/language/functions/jsonencode) or
 [the `yamlencode` function](/terraform/language/functions/yamlencode) so that Terraform
 can be responsible for guaranteeing valid JSON or YAML syntax.
 
+<CodeBlockConfig>
+
 ```hcl
-  example = jsonencode({
-    a = 1
-    b = "hello"
-  })
+example = jsonencode({
+  a = 1
+  b = "hello"
+})
 ```
+
+</CodeBlockConfig>
+</Highlight>
 
 ### Indented Heredocs
 

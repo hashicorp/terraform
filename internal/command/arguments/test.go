@@ -22,6 +22,10 @@ type Test struct {
 	// during the plan or apply command within a single test run.
 	OperationParallelism int
 
+	// RunParallelism is the limit Terraform places on parallel test runs. This
+	// is the number of test runs that can be executed in parallel within a file.
+	RunParallelism int
+
 	// TestDirectory allows the user to override the directory that the test
 	// command will use to discover test files, defaults to "tests". Regardless
 	// of the value here, test files within the configuration directory will
@@ -63,6 +67,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.StringVar(&test.JUnitXMLFile, "junit-xml", "", "junit-xml")
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
 	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
+	cmdFlags.IntVar(&test.RunParallelism, "run-parallelism", DefaultParallelism, "run-parallelism")
 	cmdFlags.BoolVar(&test.Repair, "repair", false, "repair")
 
 	// TODO: Finalise the name of this flag.

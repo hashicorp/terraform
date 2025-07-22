@@ -15,7 +15,6 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote"
-	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/states"
@@ -153,7 +152,7 @@ func (l *Loader) loadWorkingDir(configPath string) (*workdir.Dir, string, error)
 	if data := os.Getenv("TF_DATA_DIR"); len(data) > 0 {
 		workingDirectory.OverrideDataDir(data)
 	}
-	meta := &command.Meta{WorkingDir: workingDirectory}
+	meta := Meta{WorkingDir: workingDirectory}
 
 	// Load the currently active workspace from the environment, defaulting
 	// to the default workspace if not set.

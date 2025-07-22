@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 // Package stackconfig deals with decoding and some static validation of the
-// Terraform Stack language, which uses files with the suffixes .tfstack.hcl
-// and .tfstack.json to describe a set of components to be planned and applied
-// together.
+// Terraform Stack language, which uses files with the suffixes .tfcomponent.hcl
+// and .tfcomponent.json to describe a set of components to be planned and
+// applied together.
 //
 // The Stack language has some elements that are intentionally similar to the
 // main Terraform language (used to describe individual modules), but is

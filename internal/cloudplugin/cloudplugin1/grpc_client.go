@@ -9,8 +9,8 @@ import (
 	"io"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/cloudplugin"
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudproto1"
+	"github.com/hashicorp/terraform/internal/pluginshared"
 )
 
 // GRPCCloudClient is the client interface for interacting with terraform-cloudplugin
@@ -20,7 +20,7 @@ type GRPCCloudClient struct {
 }
 
 // Proof that GRPCCloudClient fulfills the go-plugin interface
-var _ cloudplugin.Cloud1 = GRPCCloudClient{}
+var _ pluginshared.CustomPluginClient = GRPCCloudClient{}
 
 // Execute sends the client Execute request and waits for the plugin to return
 // an exit code response before returning

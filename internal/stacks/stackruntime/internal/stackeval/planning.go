@@ -58,14 +58,58 @@ type Plannable interface {
 	tracingNamer
 }
 
-func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
+func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, seq *hookSeq, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) {
 	addr := scope.Addr()
 
-	h := hooksFromContext(ctx)
-	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstancePlan, addr)
-	seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, addr)
+	cic := &hooks.ComponentInstanceChange{
+		Addr: addr,
+	}
+
+	for _, rsrcChange := range plan.DriftedResources {
+		hookMore(ctx, seq, h.ReportResourceInstanceDrift, &hooks.ResourceInstanceChange{
+			Addr: stackaddrs.AbsResourceInstanceObject{
+				Component: addr,
+				Item:      rsrcChange.ObjectAddr(),
+			},
+			Change: rsrcChange,
+		})
+	}
+	for _, rsrcChange := range plan.Changes.Resources {
+		if rsrcChange.Importing != nil {
+			cic.Import++
+		}
+		if rsrcChange.Moved() {
+			cic.Move++
+		}
+		cic.CountNewAction(rsrcChange.Action)
+
+		hookMore(ctx, seq, h.ReportResourceInstancePlanned, &hooks.ResourceInstanceChange{
+			Addr: stackaddrs.AbsResourceInstanceObject{
+				Component: addr,
+				Item:      rsrcChange.ObjectAddr(),
+			},
+			Change: rsrcChange,
+		})
+	}
+	for _, rsrcChange := range plan.DeferredResources {
+		cic.Defer++
+		hookMore(ctx, seq, h.ReportResourceInstanceDeferred, &hooks.DeferredResourceInstanceChange{
+			Reason: rsrcChange.DeferredReason,
+			Change: &hooks.ResourceInstanceChange{
+				Addr: stackaddrs.AbsResourceInstanceObject{
+					Component: addr,
+					Item:      rsrcChange.ChangeSrc.ObjectAddr(),
+				},
+				Change: rsrcChange.ChangeSrc,
+			},
+		})
+	}
+
+	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
+}
+
+func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, hooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 
 	// This is our main bridge from the stacks language into the main Terraform
 	// module language during the planning phase. We need to ask the main
@@ -119,14 +163,7 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	}
 
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
-		Hooks: []terraform.Hook{
-			&componentInstanceTerraformHook{
-				ctx:   ctx,
-				seq:   seq,
-				hooks: hooksFromContext(ctx),
-				addr:  addr,
-			},
-		},
+		Hooks:                    hooks,
 		Providers:                providerFactories,
 		PreloadedProviderSchemas: providerSchemas,
 		Provisioners:             main.availableProvisioners(),
@@ -157,64 +194,6 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 
 	plan, moreDiags := tfCtx.Plan(moduleTree, state, opts)
 	diags = diags.Append(moreDiags)
-
-	if plan != nil {
-		cic := &hooks.ComponentInstanceChange{
-			Addr: addr,
-		}
-
-		for _, rsrcChange := range plan.DriftedResources {
-			hookMore(ctx, seq, h.ReportResourceInstanceDrift, &hooks.ResourceInstanceChange{
-				Addr: stackaddrs.AbsResourceInstanceObject{
-					Component: addr,
-					Item:      rsrcChange.ObjectAddr(),
-				},
-				Change: rsrcChange,
-			})
-		}
-		for _, rsrcChange := range plan.Changes.Resources {
-			if rsrcChange.Importing != nil {
-				cic.Import++
-			}
-			if rsrcChange.Moved() {
-				cic.Move++
-			}
-			cic.CountNewAction(rsrcChange.Action)
-
-			hookMore(ctx, seq, h.ReportResourceInstancePlanned, &hooks.ResourceInstanceChange{
-				Addr: stackaddrs.AbsResourceInstanceObject{
-					Component: addr,
-					Item:      rsrcChange.ObjectAddr(),
-				},
-				Change: rsrcChange,
-			})
-		}
-		for _, rsrcChange := range plan.DeferredResources {
-			cic.Defer++
-			hookMore(ctx, seq, h.ReportResourceInstanceDeferred, &hooks.DeferredResourceInstanceChange{
-				Reason: rsrcChange.DeferredReason,
-				Change: &hooks.ResourceInstanceChange{
-					Addr: stackaddrs.AbsResourceInstanceObject{
-						Component: addr,
-						Item:      rsrcChange.ChangeSrc.ObjectAddr(),
-					},
-					Change: rsrcChange.ChangeSrc,
-				},
-			})
-		}
-		hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
-	}
-
-	if diags.HasErrors() {
-		hookMore(ctx, seq, h.ErrorComponentInstancePlan, addr)
-	} else {
-		if plan.Complete {
-			hookMore(ctx, seq, h.EndComponentInstancePlan, addr)
-
-		} else {
-			hookMore(ctx, seq, h.DeferComponentInstancePlan, addr)
-		}
-	}
 
 	return plan, diags
 }

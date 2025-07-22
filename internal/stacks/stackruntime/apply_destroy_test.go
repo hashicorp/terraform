@@ -6,6 +6,7 @@ package stackruntime
 import (
 	"context"
 	"path"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
@@ -1590,6 +1592,139 @@ func TestApplyDestroy(t *testing.T) {
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.secondary"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+					},
+				},
+			},
+		},
+		"destroy-with-follow-up": {
+			path: filepath.Join("with-single-input", "valid"),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode, // create
+					planInputs: map[string]cty.Value{
+						"id":    cty.StringVal("self"),
+						"input": cty.StringVal("self"),
+					},
+				},
+				{
+					planMode: plans.DestroyMode, // destroy
+					planInputs: map[string]cty.Value{
+						"id":    cty.StringVal("self"),
+						"input": cty.StringVal("self"),
+					},
+					wantPlannedHooks: &ExpectedHooks{
+						ComponentExpanded: []*hooks.ComponentInstances{
+							{
+								ComponentAddr: mustAbsComponent("component.self"),
+								InstanceAddrs: []stackaddrs.AbsComponentInstance{mustAbsComponentInstance("component.self")},
+							},
+						},
+						PendingComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						BeginComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						EndComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						ReportResourceInstanceStatus: []*hooks.ResourceInstanceStatusHookData{
+							{
+								Addr:         mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+								ProviderAddr: mustDefaultRootProvider("testing").Provider,
+								Status:       hooks.ResourceInstancePlanning,
+							},
+							{
+								Addr:         mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+								ProviderAddr: mustDefaultRootProvider("testing").Provider,
+								Status:       hooks.ResourceInstancePlanned,
+							},
+						},
+						ReportResourceInstancePlanned: []*hooks.ResourceInstanceChange{
+							{
+								Addr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+								Change: &plans.ResourceInstanceChangeSrc{
+									Addr:         mustAbsResourceInstance("testing_resource.data"),
+									PrevRunAddr:  mustAbsResourceInstance("testing_resource.data"),
+									ProviderAddr: mustDefaultRootProvider("testing"),
+									ChangeSrc: plans.ChangeSrc{
+										Action: plans.Delete,
+										Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+											"id":    cty.StringVal("self"),
+											"value": cty.StringVal("self"),
+										})),
+										After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+											"id":    cty.String,
+											"value": cty.String,
+										}))),
+									},
+								},
+							},
+						},
+						ReportComponentInstancePlanned: []*hooks.ComponentInstanceChange{
+							{
+								Addr:   mustAbsComponentInstance("component.self"),
+								Remove: 1,
+							},
+						},
+					},
+					wantAppliedHooks: &ExpectedHooks{
+						ComponentExpanded: []*hooks.ComponentInstances{
+							{
+								ComponentAddr: mustAbsComponent("component.self"),
+								InstanceAddrs: []stackaddrs.AbsComponentInstance{mustAbsComponentInstance("component.self")},
+							},
+						},
+						PendingComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						BeginComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						EndComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						ReportResourceInstanceStatus: []*hooks.ResourceInstanceStatusHookData{
+							{
+								Addr:         mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+								ProviderAddr: mustDefaultRootProvider("testing").Provider,
+								Status:       hooks.ResourceInstanceApplying,
+							},
+							{
+								Addr:         mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+								ProviderAddr: mustDefaultRootProvider("testing").Provider,
+								Status:       hooks.ResourceInstanceApplied,
+							},
+						},
+						ReportComponentInstanceApplied: []*hooks.ComponentInstanceChange{
+							{
+								Addr:   mustAbsComponentInstance("component.self"),
+								Remove: 1,
+							},
+						},
+					},
+				},
+				{
+					planMode: plans.DestroyMode, // should be empty destroy
+					planInputs: map[string]cty.Value{
+						"id":    cty.StringVal("self"),
+						"input": cty.StringVal("self"),
+					},
+					wantPlannedHooks: &ExpectedHooks{
+						ComponentExpanded: []*hooks.ComponentInstances{
+							{
+								ComponentAddr: mustAbsComponent("component.self"),
+								InstanceAddrs: []stackaddrs.AbsComponentInstance{mustAbsComponentInstance("component.self")},
+							},
+						},
+					},
+					wantAppliedHooks: &ExpectedHooks{
+						ComponentExpanded: []*hooks.ComponentInstances{
+							{
+								ComponentAddr: mustAbsComponent("component.self"),
+								InstanceAddrs: []stackaddrs.AbsComponentInstance{mustAbsComponentInstance("component.self")},
+							},
 						},
 					},
 				},

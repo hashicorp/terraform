@@ -7,11 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -32,9 +27,16 @@ type BackendStateFile struct {
 	TFVersion string `json:"terraform_version,omitempty"`
 
 	// Backend tracks the configuration for the backend in use with
-	// this state. This is used to track any changes in the backend
-	// configuration.
-	Backend *BackendState `json:"backend,omitempty"`
+	// this state. This is used to track any changes in the `backend`
+	// block's configuration.
+	// Note: this also used to tracking changes in the `cloud` block
+	Backend *BackendConfigState `json:"backend,omitempty"`
+
+	// StateStore tracks the configuration for a state store in use
+	// with this state. This is used to track any changes in the `state_store`
+	// block's configuration or associated data about the provider facilitating
+	// state storage
+	StateStore *StateStoreConfigState `json:"state_store,omitempty"`
 
 	// This is here just so we can sniff for the unlikely-but-possible
 	// situation that someone is trying to use modern Terraform with a
@@ -63,7 +65,7 @@ func NewBackendStateFile() *BackendStateFile {
 // of an unsupported format version.
 //
 // This does not immediately decode the embedded backend config, and so
-// it's possible that a subsequent call to [BackendState.Config] will
+// it's possible that a subsequent call to [BackendConfigState.Config] will
 // return further errors even if this call succeeds.
 func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 	// To avoid any weird collisions with as-yet-unknown future versions of
@@ -105,6 +107,9 @@ func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 		// This error message assumes that's the case.
 		return nil, fmt.Errorf("this working directory uses legacy remote state and so must first be upgraded using Terraform v0.9")
 	}
+	if stateFile.Backend != nil && stateFile.StateStore != nil {
+		return nil, fmt.Errorf("encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block")
+	}
 
 	return &stateFile, nil
 }
@@ -112,6 +117,24 @@ func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 func EncodeBackendStateFile(f *BackendStateFile) ([]byte, error) {
 	f.Version = 3 // we only support version 3
 	f.TFVersion = version.SemVer.String()
+
+	switch {
+	case f.Backend != nil && f.StateStore != nil:
+		return nil, fmt.Errorf("attempted to encode a malformed backend state file; it contains state for both a 'backend' and a 'state_store' block. This is a bug in Terraform and should be reported.")
+	case f.Backend == nil && f.StateStore == nil:
+		// This is valid - if the user has a backend state file and an implied local backend in use
+		// the backend state file exists but has no Backend data.
+	case f.Backend != nil:
+		// Not implementing anything here - risk of breaking changes
+	case f.StateStore != nil:
+		err := f.StateStore.Validate()
+		if err != nil {
+			return nil, err
+		}
+	default:
+		panic("error when determining whether backend state file was valid. This is a bug in Terraform and should be reported.")
+	}
+
 	return json.MarshalIndent(f, "", "  ")
 }
 
@@ -120,93 +143,16 @@ func (f *BackendStateFile) DeepCopy() *BackendStateFile {
 		return nil
 	}
 	ret := &BackendStateFile{
-		Version:   f.Version,
-		TFVersion: f.TFVersion,
-		Backend:   f.Backend.DeepCopy(),
+		Version:    f.Version,
+		TFVersion:  f.TFVersion,
+		Backend:    f.Backend.DeepCopy(),
+		StateStore: f.StateStore.DeepCopy(),
 	}
 	if f.Remote != nil {
 		// This shouldn't ever be present in an object held by a caller since
 		// we'd return an error about it during load, but we'll set it anyway
 		// just to minimize surprise.
 		ret.Remote = &struct{}{}
-	}
-	return ret
-}
-
-// BackendState describes the physical storage format for the backend state
-// in a working directory, and provides the lowest-level API for decoding it.
-type BackendState struct {
-	Type      string          `json:"type"`   // Backend type
-	ConfigRaw json.RawMessage `json:"config"` // Backend raw config
-	Hash      uint64          `json:"hash"`   // Hash of portion of configuration from config files
-}
-
-// Empty returns true if there is no active backend.
-//
-// In practice this typically means that the working directory is using the
-// implied local backend, but that decision is made by the caller.
-func (s *BackendState) Empty() bool {
-	return s == nil || s.Type == ""
-}
-
-// Config decodes the type-specific configuration object using the provided
-// schema and returns the result as a cty.Value.
-//
-// An error is returned if the stored configuration does not conform to the
-// given schema, or is otherwise invalid.
-func (s *BackendState) Config(schema *configschema.Block) (cty.Value, error) {
-	ty := schema.ImpliedType()
-	if s == nil {
-		return cty.NullVal(ty), nil
-	}
-	return ctyjson.Unmarshal(s.ConfigRaw, ty)
-}
-
-// SetConfig replaces (in-place) the type-specific configuration object using
-// the provided value and associated schema.
-//
-// An error is returned if the given value does not conform to the implied
-// type of the schema.
-func (s *BackendState) SetConfig(val cty.Value, schema *configschema.Block) error {
-	ty := schema.ImpliedType()
-	buf, err := ctyjson.Marshal(val, ty)
-	if err != nil {
-		return err
-	}
-	s.ConfigRaw = buf
-	return nil
-}
-
-// ForPlan produces an alternative representation of the reciever that is
-// suitable for storing in a plan. The current workspace must additionally
-// be provided, to be stored alongside the backend configuration.
-//
-// The backend configuration schema is required in order to properly
-// encode the backend-specific configuration settings.
-func (s *BackendState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
-	if s == nil {
-		return nil, nil
-	}
-
-	configVal, err := s.Config(schema)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode backend config: %w", err)
-	}
-	return plans.NewBackend(s.Type, configVal, schema, workspaceName)
-}
-
-func (s *BackendState) DeepCopy() *BackendState {
-	if s == nil {
-		return nil
-	}
-	ret := &BackendState{
-		Type: s.Type,
-		Hash: s.Hash,
-	}
-
-	if s.ConfigRaw != nil {
-		ret.ConfigRaw = make([]byte, len(s.ConfigRaw))
-		copy(ret.ConfigRaw, s.ConfigRaw)
 	}
 	return ret
 }

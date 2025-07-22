@@ -4,6 +4,12 @@ description: >-
   Use the `backend` block to control where Terraform stores state. Learn about the available state backends, the backend block, initializing backends, partial backend configuration, changing backend configuration, and unconfiguring a backend.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Backend block configuration overview 
 
 This topic provides an overview of how to configure the `backend` block in your Terraform configuration. The `backend` defines where Terraform stores its [state](/terraform/language/state) data files.
@@ -182,6 +188,16 @@ scheme  = "https"
 naming pattern. Terraform will not prevent you from using other names but following
 this convention will help your editor understand the content and likely provide
 better editing experience as a result.
+
+You can use the `-backend-config` argument on the CLI to provide a partial backend configuration. You can either specify a file containing a partial configuration or specify a set of key-value pairs. The configuration must already include a `backend` block to use this argument. Terraform applies the configurations to the arguments in the `backend` block, but it does not change the backend type. In the following example, Terraform stores state in the default backend using the arguments supplied in the `-backend-config` argument:
+
+```hcl
+terraform {
+  backend {
+    # values provided by backend-config file
+  }
+}
+```
 
 ### Command-line key/value pairs
 

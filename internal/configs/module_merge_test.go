@@ -9,8 +9,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestModuleOverrideVariable(t *testing.T) {
@@ -352,4 +353,70 @@ func TestModuleOverrideIgnoreAllChanges(t *testing.T) {
 	if !r.Managed.IgnoreAllChanges {
 		t.Fatalf("wrong result: expected r.Managed.IgnoreAllChanges to be true")
 	}
+}
+
+// This tests the override behavior of action blocks and action_triggers inside resources.
+func TestModuleOverride_action_and_trigger(t *testing.T) {
+	mod, diags := testModuleFromDirWithExperiments("testdata/valid-modules/override-action-and-trigger")
+	assertNoDiagnostics(t, diags)
+
+	if len(mod.Actions) != 2 {
+		t.Fatalf("wrong number of actions: %d\n", len(mod.Actions))
+	}
+
+	// verify that the action has attr foo = baz (override)
+	got := mod.Actions["action.test_action.test"]
+	want := &Action{
+		Name:              "test",
+		Type:              "test_action",
+		Config:            nil,
+		Count:             nil,
+		ForEach:           nil,
+		ProviderConfigRef: nil,
+		Provider:          addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+		DeclRange: hcl.Range{
+			Filename: "testdata/valid-modules/override-action-and-trigger/main.tf",
+			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+			End:      hcl.Pos{Line: 1, Column: 28, Byte: 27},
+		},
+		TypeRange: hcl.Range{
+			Filename: "testdata/valid-modules/override-action-and-trigger/main.tf",
+			Start:    hcl.Pos{Line: 1, Column: 8, Byte: 7},
+			End:      hcl.Pos{Line: 1, Column: 21, Byte: 20},
+		},
+	}
+
+	// We're going to extract and nil out our hcl.Body here because DeepEqual
+	// is not a useful way to assert on that.
+	gotConfig := got.Config
+	got.Config = nil
+
+	assertResultDeepEqual(t, got, want)
+
+	// now to check that config
+	type content struct {
+		Foo *string `hcl:"foo"`
+	}
+	var gotArgs content
+	diags = gohcl.DecodeBody(gotConfig, nil, &gotArgs)
+	assertNoDiagnostics(t, diags)
+
+	wantArgs := content{
+		Foo: stringPtr("baz"),
+	}
+	assertResultDeepEqual(t, gotArgs, wantArgs)
+
+	if _, exists := mod.ManagedResources["test_instance.test"]; !exists {
+		t.Fatalf("no resource 'test_instance.test'")
+	}
+	if len(mod.ManagedResources) != 1 {
+		t.Fatalf("wrong number of managed resources in result %d; want 1", len(mod.ManagedResources))
+	}
+
+	r := mod.ManagedResources["test_instance.test"].Managed
+	assertResultDeepEqual(t, len(r.ActionTriggers), 1)
+
+	// verify the resource action trigger event changed
+	at := mod.ManagedResources["test_instance.test"].Managed.ActionTriggers[0]
+	assertResultDeepEqual(t, at.Events, []ActionTriggerEvent{BeforeCreate})
 }

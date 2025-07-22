@@ -206,6 +206,8 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 	case addrs.EphemeralResourceMode:
 		modeAdjective = "ephemeral"
 		modeArticleUpper = "An"
+	case addrs.ListResourceMode:
+		modeAdjective = "list"
 	default:
 		// should never happen
 		modeAdjective = "<invalid-mode>"
@@ -221,6 +223,21 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 			candidateAddr.Mode = addrs.DataResourceMode
 			if candidateCfg := modCfg.Module.ResourceByAddr(candidateAddr); candidateCfg != nil {
 				suggestion = fmt.Sprintf("\n\nDid you mean the data resource %s?", candidateAddr)
+			}
+		}
+
+		// If the address is a list resource, it may be that the user
+		// intended to reference a managed resource of type "list". Such
+		// resources are not supported in the current version of Terraform,
+		// but we can give the user a hint about it.
+		if addr.Mode == addrs.ListResourceMode {
+			candidateAddr := addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "list",
+				Name: addr.Type,
+			}
+			if candidateCfg := modCfg.Module.ResourceByAddr(candidateAddr); candidateCfg != nil {
+				suggestion = fmt.Sprintf("\n\nDid you mean the managed resource %s? If so, please use the fully qualified name of the resource, e.g. resource.%s", candidateAddr, candidateAddr)
 			}
 		}
 
@@ -260,6 +277,78 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 			Detail:   fmt.Sprintf(`Couldn't load schema for %s resource type %q in %s: %s.`, modeAdjective, addr.Type, providerFqn.String(), err),
 			Subject:  rng.ToHCL().Ptr(),
 		})
+	}
+
+	// If this is a list resource, then we need to look up the schema for the
+	// managed resource type instead, and validate that the referenced traversal
+	// matches that schema.
+	if addr.Mode == addrs.ListResourceMode {
+		schema, err = plugins.ResourceTypeSchema(providerFqn, addrs.ManagedResourceMode, addr.Type)
+		if err != nil {
+			// Prior validation should've taken care of a schema lookup error,
+			// so we should never get here but we'll handle it here anyway for
+			// robustness.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Failed provider schema lookup`,
+				Detail:   fmt.Sprintf(`Couldn't load schema for %s resource type %q in %s: %s.`, modeAdjective, addr.Type, providerFqn.String(), err),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		}
+
+		if len(remain) > 0 { // i.e list.aws_instance.foo.data
+			// The first step in the traversal must be an attribute called "data"
+			data, ok := remain[0].(hcl.TraverseAttr)
+			if !ok || data.Name != "data" {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid list resource traversal`,
+					Detail:   fmt.Sprintf(`The first step in the traversal for a %s resource must be an attribute "data", but got %q instead.`, modeAdjective, remain[0]),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+				return diags
+			}
+			remain = remain[1:]
+		}
+		if len(remain) > 0 { // i.e list.aws_instance.foo.data[count.index] or list.aws_instance.foo.data[each.key]
+			if _, ok := remain[0].(hcl.TraverseIndex); !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid list resource traversal`,
+					Detail:   fmt.Sprintf(`The second step in the traversal for a %s resource must be an index, but got %q instead.`, modeAdjective, remain[0]),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+				return diags
+			}
+			// remove the index, and now we have the rest of the traversal,
+			// which we can validate against the schema
+			remain = remain[1:]
+		}
+
+		if len(remain) > 0 { // i.e list.aws_instance.foo.data[count.index].state
+			stateOrIdent, ok := remain[0].(hcl.TraverseAttr)
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid list resource traversal`,
+					Detail:   fmt.Sprintf(`The third step in the traversal for a %s resource must be an attribute "state" or "identity", but got %q instead.`, modeAdjective, remain[0]),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+				return diags
+			}
+			if stateOrIdent.Name != "state" && stateOrIdent.Name != "identity" {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid list resource traversal`,
+					Detail:   fmt.Sprintf(`The third step in the traversal for a %s resource must be an attribute "state" or "identity", but got %q instead.`, modeAdjective, stateOrIdent.Name),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+				return diags
+			}
+			// remove the index, and now we have the rest of the traversal,
+			// which we can validate against the schema
+			remain = remain[1:]
+		}
 	}
 
 	if schema.Body == nil {

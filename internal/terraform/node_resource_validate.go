@@ -470,6 +470,47 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		resp := provider.ValidateEphemeralResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	case addrs.ListResourceMode:
+		schema := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
+		if schema.Body == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid list resource",
+				Detail:   fmt.Sprintf("The provider %s does not support list resource %q.", n.Provider().ForDisplay(), n.Config.Type),
+				Subject:  &n.Config.TypeRange,
+			})
+			return diags
+		}
+
+		blockVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
+		diags = diags.Append(valDiags)
+		if valDiags.HasErrors() {
+			return diags
+		}
+
+		limit, _, limitDiags := newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
+		diags = diags.Append(limitDiags)
+		if limitDiags.HasErrors() {
+			return diags
+		}
+
+		includeResource, _, includeDiags := newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
+		diags = diags.Append(includeDiags)
+		if includeDiags.HasErrors() {
+			return diags
+		}
+
+		// Use unmarked value for validate request
+		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
+		req := providers.ValidateListResourceConfigRequest{
+			TypeName:              n.Config.Type,
+			Config:                unmarkedBlockVal,
+			IncludeResourceObject: includeResource,
+			Limit:                 limit,
+		}
+
+		resp := provider.ValidateListResourceConfig(req)
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	}
 
 	return diags

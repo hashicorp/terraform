@@ -4,6 +4,12 @@ description: >-
   Import and manage existing resources with Terraform using configuration-driven import.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Import
 
 -> **Note:** Import blocks are only available in Terraform v1.5.0 and later.
@@ -36,7 +42,8 @@ The above `import` block defines an import of the AWS instance with the ID "i-ab
 
 The `import` block has the following arguments:
  - `to` - The instance address this resource will have in your state file.
- - `id` - A string with the [import ID](#import-id) of the resource, or an expression that evaluates to a string.
+ - `id` - A string with the [import ID](#import-id) of the resource, or an expression that evaluates to a string. This argument is mutually exclusive with `identity`.
+ - `identity` - A resource identity object that uniquely identifies a resource. It is mutually exclusive with `id`.
  - `provider` (optional) - An optional custom resource provider, see [The Resource provider Meta-Argument](/terraform/language/meta-arguments/resource-provider) for details.
 
 If you do not set the `provider` argument, Terraform attempts to import from the default provider. 
@@ -48,6 +55,8 @@ The import block's `id` argument can be a literal string of your resource's impo
 The import ID must be known at plan time for planning to succeed. If the value of `id` is only known after apply, `terraform plan` will fail with an error.
 
 The identifier you use for a resource's import ID is resource-specific. You can find the required ID in the [provider documentation](https://registry.terraform.io/browse/providers) for the resource you wish to import.
+
+Instead of the `id` argument you can also use the `identity` argument, which represents a resource's identity. The `identity` argument is an object of key-value pairs that uniquely identify a resource. The keys and values are specific to the resource type and provider.
 
 ### Import multiple instances with `for_each`
 

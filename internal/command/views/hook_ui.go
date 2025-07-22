@@ -12,10 +12,12 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -31,6 +33,7 @@ func NewUiHook(view *View) *UiHook {
 		view:            view,
 		periodicUiTimer: defaultPeriodicUiTimer,
 		resources:       make(map[string]uiResourceState),
+		log:             logging.HCLogger(),
 	}
 }
 
@@ -44,6 +47,8 @@ type UiHook struct {
 
 	resources     map[string]uiResourceState
 	resourcesLock sync.Mutex
+
+	log hclog.Logger
 }
 
 var _ terraform.Hook = (*UiHook)(nil)
@@ -342,19 +347,71 @@ func (h *UiHook) PrePlanImport(id terraform.HookResourceIdentity, importTarget c
 }
 
 func (h *UiHook) PreApplyImport(id terraform.HookResourceIdentity, importing plans.ImportingSrc) (terraform.HookAction, error) {
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: Importing... [id=%s]"),
-		id.Addr, importing.ID,
-	))
+	if importing.Identity != nil {
+		ty, err := importing.Identity.ImpliedType()
+		if err != nil {
+			h.log.Debug("UiHook: PreApplyImport failed to get identity ImpliedType", err)
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][bold]%s: Importing... [identity=(type error)]"),
+				id.Addr,
+			))
+			return terraform.HookActionContinue, nil
+		}
+		val, err := importing.Identity.Decode(ty)
+		if err != nil {
+			h.log.Debug("UiHook: PreApplyImport failed to decode identity", err)
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][bold]%s: Importing... [identity=(decode error)]"),
+				id.Addr,
+			))
+			return terraform.HookActionContinue, nil
+		}
+
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Importing... [identity=%s]"),
+			id.Addr, tfdiags.ObjectToString(val),
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Importing... [id=%s]"),
+			id.Addr, importing.ID,
+		))
+	}
 
 	return terraform.HookActionContinue, nil
 }
 
 func (h *UiHook) PostApplyImport(id terraform.HookResourceIdentity, importing plans.ImportingSrc) (terraform.HookAction, error) {
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: Import complete [id=%s]"),
-		id.Addr, importing.ID,
-	))
+	if importing.Identity != nil {
+		ty, err := importing.Identity.ImpliedType()
+		if err != nil {
+			h.log.Debug("UiHook: PostApplyImport failed to get identity ImpliedType", err)
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][bold]%s: Import complete [identity=(type error)]"),
+				id.Addr,
+			))
+			return terraform.HookActionContinue, nil
+		}
+		val, err := importing.Identity.Decode(ty)
+		if err != nil {
+			h.log.Debug("UiHook: PostApplyImport failed to decode identity", err)
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][bold]%s: Import complete [identity=(decode error)]"),
+				id.Addr,
+			))
+			return terraform.HookActionContinue, nil
+		}
+
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Import complete [identity=%s]"),
+			id.Addr, tfdiags.ObjectToString(val),
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Import complete [id=%s]"),
+			id.Addr, importing.ID,
+		))
+	}
 
 	return terraform.HookActionContinue, nil
 }
@@ -447,6 +504,60 @@ func (h *UiHook) PostEphemeralOp(rId terraform.HookResourceIdentity, action plan
 		rId.Addr, msg, elapsedTime,
 	))
 
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value) (terraform.HookAction, error) {
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults) (terraform.HookAction, error) {
+	addr := id.Addr
+	data := results.Value.GetAttr("data")
+	for it := data.ElementIterator(); it.Next(); {
+		_, value := it.Element()
+
+		h.println(fmt.Sprintf(
+			"%s\t%s\t%s",
+			addr.String(),
+			// TODO maybe deduplicate common identity attributes?
+			tfdiags.ObjectToString(value.GetAttr("identity")),
+			value.GetAttr("display_name").AsString(),
+		))
+	}
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]Action started: %s[reset]"),
+		id.String(),
+	))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]Action %s:[reset] %s[reset]"),
+		id.String(),
+		progress,
+	))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+	if err != nil {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold][red]Action failed: %s - %v[reset]"),
+			id.String(),
+			err,
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold][green]Action complete: %s[reset]"),
+			id.String(),
+		))
+	}
 	return terraform.HookActionContinue, nil
 }
 

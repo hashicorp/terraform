@@ -7,20 +7,22 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
+	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -84,7 +86,7 @@ type Main struct {
 	mainStackConfig         *StackConfig
 	mainStack               *Stack
 	providerTypes           map[addrs.Provider]*ProviderType
-	providerFunctionResults *providers.FunctionResults
+	providerFunctionResults *lang.FunctionResults
 	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
 }
 
@@ -116,7 +118,7 @@ func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
 		},
 		providerFactories:       opts.ProviderFactories,
 		providerTypes:           make(map[addrs.Provider]*ProviderType),
-		providerFunctionResults: providers.NewFunctionResultsTable(nil),
+		providerFunctionResults: lang.NewFunctionResultsTable(nil),
 	}
 }
 
@@ -134,7 +136,7 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 		},
 		providerFactories:       opts.ProviderFactories,
 		providerTypes:           make(map[addrs.Provider]*ProviderType),
-		providerFunctionResults: providers.NewFunctionResultsTable(nil),
+		providerFunctionResults: lang.NewFunctionResultsTable(nil),
 	}
 }
 
@@ -148,7 +150,7 @@ func NewForApplying(config *stackconfig.Config, plan *stackplan.Plan, execResult
 		},
 		providerFactories:       opts.ProviderFactories,
 		providerTypes:           make(map[addrs.Provider]*ProviderType),
-		providerFunctionResults: providers.NewFunctionResultsTable(plan.ProviderFunctionResults),
+		providerFunctionResults: lang.NewFunctionResultsTable(plan.FunctionResults),
 	}
 }
 
@@ -161,7 +163,7 @@ func NewForInspecting(config *stackconfig.Config, state *stackstate.State, opts 
 		},
 		providerFactories:       opts.ProviderFactories,
 		providerTypes:           make(map[addrs.Provider]*ProviderType),
-		providerFunctionResults: providers.NewFunctionResultsTable(nil),
+		providerFunctionResults: lang.NewFunctionResultsTable(nil),
 		testOnlyGlobals:         opts.TestOnlyGlobals,
 	}
 }
@@ -310,7 +312,7 @@ func (m *Main) MainStack() *Stack {
 	defer m.mu.Unlock()
 
 	if m.mainStack == nil {
-		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent](), false)
+		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, newRemoved(), m.PlanningMode(), false)
 	}
 	return m.mainStack
 }
@@ -347,7 +349,15 @@ func (m *Main) Stack(ctx context.Context, addr stackaddrs.StackInstance, phase E
 // ProviderFactories returns the collection of factory functions for providers
 // that are available to this instance of the evaluation runtime.
 func (m *Main) ProviderFactories() ProviderFactories {
-	return m.providerFactories
+	// Built-in provider factories are always present
+	resultProviderFactories := ProviderFactories{}
+	for k, v := range builtinProviders.BuiltInProviders() {
+		resultProviderFactories[addrs.NewBuiltInProvider(k)] = v
+	}
+
+	maps.Copy(resultProviderFactories, m.providerFactories)
+
+	return resultProviderFactories
 }
 
 // ProviderFunctions returns the collection of externally defined provider
@@ -613,6 +623,16 @@ func (m *Main) PlanTimestamp() time.Time {
 
 	// This is the default case, we are not planning / applying
 	return time.Now().UTC()
+}
+
+func (m *Main) PlanningMode() plans.Mode {
+	if m.applying != nil {
+		return m.applying.plan.Mode
+	}
+	if m.planning != nil {
+		return m.planning.opts.PlanningMode
+	}
+	return plans.NormalMode
 }
 
 // DependencyLocks returns the dependency locks for the given phase.

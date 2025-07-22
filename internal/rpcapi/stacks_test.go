@@ -1182,7 +1182,7 @@ func TestStacksMigrateTerraformState(t *testing.T) {
 		Mapping: &stacks.MigrateTerraformState_Request_Simple{
 			Simple: &stacks.MigrateTerraformState_Request_Mapping{
 				ResourceAddressMap: map[string]string{
-					"testing_deferred_resource.resource": "self",
+					"testing_deferred_resource.resource": "component.self",
 				},
 			},
 		},

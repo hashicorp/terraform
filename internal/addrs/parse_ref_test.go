@@ -171,7 +171,6 @@ func TestParseRef(t *testing.T) {
 		Want    *Reference
 		WantErr string
 	}{
-
 		// count
 		{
 			`count.index`,
@@ -1012,6 +1011,47 @@ func TestParseRef(t *testing.T) {
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 					End:   tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
+				},
+			},
+			``,
+		},
+
+		// Actions
+		{
+			`action`, nil,
+			`The "action" object must be followed by two attribute names: the action type and the action name.`,
+		},
+		{
+			`action.foo`, nil,
+			`The "action" object must be followed by two attribute names: the action type and the action name.`,
+		},
+		{
+			`action.foo.bar`,
+			&Reference{
+				Subject: Action{
+					Type: "foo",
+					Name: "bar",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 15, Byte: 14},
+				},
+			},
+			``,
+		},
+		{
+			`action.foo.bar[1]`,
+			&Reference{
+				Subject: ActionInstance{
+					Action: Action{
+						Type: "foo",
+						Name: "bar",
+					},
+					Key: IntKey(1),
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 18, Byte: 17},
 				},
 			},
 			``,

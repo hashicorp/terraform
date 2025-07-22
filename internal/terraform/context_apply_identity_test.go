@@ -22,8 +22,10 @@ func TestContext2Apply_identity(t *testing.T) {
 		prevRunState    *states.State
 		requiresReplace []cty.Path
 		plannedIdentity cty.Value
+		appliedIdentity cty.Value
 
-		expectedIdentity cty.Value
+		expectedIdentity  cty.Value
+		expectDiagnostics tfdiags.Diagnostics
 	}{
 		"create": {
 			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
@@ -32,6 +34,17 @@ func TestContext2Apply_identity(t *testing.T) {
 			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("foo"),
 			}),
+		},
+		"create - invalid applied identity schema": {
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			appliedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.BoolVal(false),
+			}),
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Provider produced an identity that doesn't match the schema", "Provider \"registry.terraform.io/hashicorp/test\" returned an identity for test_resource.test that doesn't match the identity schema: .id: string required, but received bool. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			},
 		},
 
 		"update": {
@@ -165,10 +178,23 @@ func TestContext2Apply_identity(t *testing.T) {
 				}
 			}
 
+			if !tc.appliedIdentity.IsNull() {
+				p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+					resp := providers.ApplyResourceChangeResponse{}
+					resp.NewState = req.PlannedState
+					resp.NewIdentity = tc.appliedIdentity
+					return resp
+				}
+			}
+
 			plan, diags := ctx.Plan(m, tc.prevRunState, &PlanOpts{Mode: tc.mode})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			state, diags := ctx.Apply(plan, m, nil)
+			if tc.expectDiagnostics.HasErrors() {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics)
+				return
+			}
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			if !tc.expectedIdentity.IsNull() {

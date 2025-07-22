@@ -7,10 +7,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -73,7 +75,7 @@ type graphWalkOpts struct {
 
 	MoveResults refactoring.MoveResults
 
-	ProviderFuncResults *providers.FunctionResults
+	FunctionResults *lang.FunctionResults
 
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
@@ -196,7 +198,8 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		Operation:               operation,
 		StopContext:             c.runContext,
 		PlanTimestamp:           opts.PlanTimeTimestamp,
-		providerFuncResults:     opts.ProviderFuncResults,
+		functionResults:         opts.FunctionResults,
 		Forget:                  opts.Forget,
+		Actions:                 actions.NewActions(),
 	}
 }

@@ -3,6 +3,12 @@ page_title: 'Backend Type: s3'
 description: Terraform can store and lock state remotely in Amazon S3.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # S3
 
 Stores the state as a given key in a given bucket on [Amazon S3](https://aws.amazon.com/s3/).
@@ -86,7 +92,7 @@ This is seen in the following AWS IAM Statement:
       "Resource": "arn:aws:s3:::mybucket",
       "Condition": {
         "StringEquals": {
-          "s3:prefix": "mybucket/path/to/my/key"
+          "s3:prefix": "path/to/my/key"
         }
       }
     },

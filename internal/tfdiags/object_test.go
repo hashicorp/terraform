@@ -50,6 +50,14 @@ func Test_ObjectToString(t *testing.T) {
 			}),
 			expected: "list=[a,b,c],string=hello",
 		},
+		{
+			name: "with null value",
+			value: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal("hello"),
+				"null":   cty.NullVal(cty.String),
+			}),
+			expected: "null=<null>,string=hello",
+		},
 	}
 
 	for _, tc := range testCases {

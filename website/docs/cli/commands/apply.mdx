@@ -4,6 +4,12 @@ description: The `terraform apply` command executes the actions proposed in a Te
   to create, update, or destroy infrastructure.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # `terraform apply` command
 
 The `terraform apply` command executes the actions proposed in a Terraform
@@ -85,6 +91,9 @@ The following options change how the apply command executes and reports on the a
 - `-parallelism=n` - Limit the number of concurrent operations as Terraform
   [walks the graph](/terraform/internals/graph#walking-the-graph). Defaults to
   10\.
+
+- `-replace=resource` - Terraform will plan to replace this resource instance
+   instead of doing an update or no-op action.
 
 - All [planning modes](/terraform/cli/commands/plan#planning-modes) and
 [planning options](/terraform/cli/commands/plan#planning-options) for

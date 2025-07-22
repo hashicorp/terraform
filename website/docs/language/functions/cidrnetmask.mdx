@@ -5,6 +5,12 @@ description: |-
   notation into a subnet mask address.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # `cidrnetmask` Function
 
 `cidrnetmask` converts an IPv4 address prefix given in CIDR notation into
@@ -20,8 +26,8 @@ cidrnetmask(prefix)
 The result is a subnet address formatted in the conventional dotted-decimal
 IPv4 address syntax, as expected by some software.
 
-CIDR notation is the only valid notation for IPv6 addresses, so `cidrnetmask`
-produces an error if given an IPv6 address.
+The `cidrnetmask` function only accepts IPv4 addresses in CIDR notation.
+If you use an IPv6 address, `cidrnetmask` returns an error. 
 
 -> **Note:** As a historical accident, this function interprets IPv4 address
 octets that have leading zeros as decimal numbers, which is contrary to some

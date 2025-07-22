@@ -4,6 +4,7 @@
 package providercache
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -54,7 +55,166 @@ func TestEnsureProviderVersions(t *testing.T) {
 	beepProviderHash := getproviders.HashScheme1.New("2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=")
 	terraformProvider := addrs.MustParseProviderSourceString("terraform.io/builtin/terraform")
 
+	// Testing a provider with invalid semver version using a registry source,
+	// so that we can test the behavior of the installer when it encounters
+	// a provider with an invalid semver version from the registry.
+	signedProviderPkg := createTestProvider(t, "invalidsemver", "1.2.0")
+	services, baseDir, closeFn := testServices(t, signedProviderPkg)
+	defer closeFn()
+	wantVersion := getproviders.MustParseVersion("1.2.0")
+	invalidSemverProvider := addrs.MustParseProviderSourceString("example.com/awesomesauce/invalidsemver")
+	invalidSemverProviderDir := getproviders.PackageHTTPURL(fmt.Sprintf("%s/pkg/awesomesauce/invalidsemver_1.2.0.zip", baseDir))
+	h1Hash := getproviders.HashScheme1.New("z+Ic+uNhBTO9zbYfr9tAfhYw4R+rxOq8n7ivKlCOgPI=")
+	zipHash := getproviders.HashSchemeZip.New("d595832bf433c79cd90b447872d250be213d443080120899e965ab2b2cce0d4b")
+
 	tests := map[string]Test{
+		// The registry returns a mix of valid and invalid semver,
+		// but we will only care about the valid ones.
+		"success: registry response with mix of valid and invalid semver versions": {
+			Source: getproviders.NewRegistrySource(services),
+			Mode:   InstallNewProvidersOnly,
+			Reqs: getproviders.Requirements{
+				invalidSemverProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
+			},
+			Check: func(t *testing.T, dir *Dir, locks *depsfile.Locks) {
+				if allCached := dir.AllAvailablePackages(); len(allCached) != 1 {
+					t.Errorf("wrong number of cache directory entries; want only one\n%s", spew.Sdump(allCached))
+				}
+				if allLocked := locks.AllProviders(); len(allLocked) != 1 {
+					t.Errorf("wrong number of provider lock entries; want only one\n%s", spew.Sdump(allLocked))
+				}
+
+				gotLock := locks.Provider(invalidSemverProvider)
+				wantLock := depsfile.NewProviderLock(
+					invalidSemverProvider,
+					wantVersion,
+					getproviders.MustParseVersionConstraints(">= 1.0.0"),
+					[]getproviders.Hash{h1Hash, zipHash},
+				)
+				if diff := cmp.Diff(wantLock, gotLock, depsfile.ProviderLockComparer); diff != "" {
+					t.Errorf("wrong lock entry\n%s", diff)
+				}
+
+				gotEntry := dir.ProviderLatestVersion(invalidSemverProvider)
+				wantEntry := &CachedProvider{
+					Provider:   invalidSemverProvider,
+					Version:    getproviders.MustParseVersion("1.2.0"),
+					PackageDir: filepath.Join(dir.BasePath(), "example.com/awesomesauce/invalidsemver/1.2.0/bleep_bloop"),
+				}
+				if diff := cmp.Diff(wantEntry, gotEntry); diff != "" {
+					t.Errorf("wrong cache entry\n%s", diff)
+				}
+			},
+			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
+				return map[addrs.Provider][]*testInstallerEventLogItem{
+					noProvider: {
+						{
+							Event: "PendingProviders",
+							Args: map[addrs.Provider]getproviders.VersionConstraints{
+								invalidSemverProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
+							},
+						},
+						{
+							Event: "ProvidersFetched",
+							Args: map[addrs.Provider]*getproviders.PackageAuthenticationResult{
+								invalidSemverProvider: getproviders.NewPackageAuthenticationResult(3, signedProviderPkg.keyID),
+							},
+						},
+					},
+					invalidSemverProvider: {
+						{
+							Event:    "QueryPackagesBegin",
+							Provider: invalidSemverProvider,
+							Args: struct {
+								Constraints string
+								Locked      bool
+							}{">= 1.0.0", false},
+						},
+						{
+							Event:    "QueryPackagesSuccess",
+							Provider: invalidSemverProvider,
+							Args:     "1.2.0",
+						},
+						{
+							Event:    "FetchPackageMeta",
+							Provider: invalidSemverProvider,
+							Args:     "1.2.0",
+						},
+						{
+							Event:    "FetchPackageBegin",
+							Provider: invalidSemverProvider,
+							Args: struct {
+								Version  string
+								Location getproviders.PackageLocation
+							}{"1.2.0", invalidSemverProviderDir},
+						},
+						{
+							Event:    "ProvidersLockUpdated",
+							Provider: invalidSemverProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"1.2.0",
+								[]getproviders.Hash{h1Hash},
+								[]getproviders.Hash{zipHash},
+								nil,
+							},
+						},
+						{
+							Event:    "FetchPackageSuccess",
+							Provider: invalidSemverProvider,
+							Args: struct {
+								Version    string
+								LocalDir   string
+								AuthResult string
+							}{
+								"1.2.0",
+								filepath.Join(dir.BasePath(), "example.com/awesomesauce/invalidsemver/1.2.0/bleep_bloop"),
+								"self-signed",
+							},
+						},
+					},
+				}
+			},
+		},
+		"error: no valid version matches the constraint": {
+			Source: getproviders.NewRegistrySource(services),
+			Mode:   InstallNewProvidersOnly,
+			Reqs: getproviders.Requirements{
+				invalidSemverProvider: getproviders.MustParseVersionConstraints(">= 1.5.0"),
+			},
+			WantErr: `example.com/awesomesauce/invalidsemver: no available releases match the given constraints >= 1.5.0`,
+			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
+				return map[addrs.Provider][]*testInstallerEventLogItem{
+					noProvider: {
+						{
+							Event: "PendingProviders",
+							Args: map[addrs.Provider]getproviders.VersionConstraints{
+								invalidSemverProvider: getproviders.MustParseVersionConstraints(">= 1.5.0"),
+							},
+						},
+					},
+					invalidSemverProvider: {
+						{
+							Event:    "QueryPackagesBegin",
+							Provider: invalidSemverProvider,
+							Args: struct {
+								Constraints string
+								Locked      bool
+							}{">= 1.5.0", false},
+						},
+						{
+							Event:    "QueryPackagesFailure",
+							Provider: invalidSemverProvider,
+							Args:     "no available releases match the given constraints >= 1.5.0",
+						},
+					},
+				}
+			},
+		},
 		"no dependencies": {
 			Mode: InstallNewProvidersOnly,
 			Check: func(t *testing.T, dir *Dir, locks *depsfile.Locks) {
@@ -2264,7 +2424,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 
 			if test.WantEvents != nil {
 				wantEvents := test.WantEvents(inst, outputDir)
-				if diff := cmp.Diff(wantEvents, providerEvents); diff != "" {
+				if diff := cmp.Diff(wantEvents, providerEvents, cmp.AllowUnexported(getproviders.PackageAuthenticationResult{})); diff != "" {
 					t.Errorf("wrong installer events\n%s", diff)
 				}
 			}
@@ -2371,7 +2531,9 @@ func TestEnsureProviderVersions_local_source(t *testing.T) {
 // installation (at the time of writing, the test files aren't signed so the
 // signature verification fails); that's left to the e2e tests.
 func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
-	source, _, close := testRegistrySource(t)
+	signedProviderPkg := createTestProvider(t, "happycloud", "1.2.0")
+	services, _, close := testServices(t, signedProviderPkg)
+	source := getproviders.NewRegistrySource(services)
 	defer close()
 
 	// create a temporary workdir
@@ -2454,8 +2616,10 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 // The second return value is a function to call at the end of a test function
 // to shut down the test server. After you call that function, the discovery
 // object becomes useless.
-func testServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup func()) {
-	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
+func testServices(t *testing.T, signedProviderPkg *providerPkg) (services *disco.Disco, baseURL string, cleanup func()) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fakeRegistryHandler(signedProviderPkg, w, r)
+	}))
 
 	services = disco.New()
 	services.ForceHostServices(svchost.Hostname("example.com"), map[string]interface{}{
@@ -2485,19 +2649,7 @@ func testServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup 
 	}
 }
 
-// testRegistrySource is a wrapper around testServices that uses the created
-// discovery object to produce a Source instance that is ready to use with the
-// fake registry services.
-//
-// As with testServices, the second return value is a function to call at the end
-// of your test in order to shut down the test server.
-func testRegistrySource(t *testing.T) (source *getproviders.RegistrySource, baseURL string, cleanup func()) {
-	services, baseURL, close := testServices(t)
-	source = getproviders.NewRegistrySource(services)
-	return source, baseURL, close
-}
-
-func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
+func fakeRegistryHandler(providerPackage *providerPkg, resp http.ResponseWriter, req *http.Request) {
 	path := req.URL.EscapedPath()
 	if strings.HasPrefix(path, "/fails-immediately/") {
 		// Here we take over the socket and just close it immediately, to
@@ -2522,12 +2674,12 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 
 	if strings.HasPrefix(path, "/pkg/") {
 		switch path {
-		case "/pkg/awesomesauce/happycloud_1.2.0.zip":
-			resp.Write([]byte("some zip file"))
-		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS":
-			resp.Write([]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"))
-		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS.sig":
-			resp.Write([]byte("GPG signature"))
+		case fmt.Sprintf("/pkg/awesomesauce/%s.zip", providerPackage.filePrefix):
+			resp.Write(providerPackage.zipContent)
+		case fmt.Sprintf("/pkg/awesomesauce/%s_SHA256SUMS", providerPackage.filePrefix):
+			resp.Write(providerPackage.shaSumContent)
+		case fmt.Sprintf("/pkg/awesomesauce/%s_SHA256SUMS.sig", providerPackage.filePrefix):
+			resp.Write(providerPackage.sigContent)
 		default:
 			resp.WriteHeader(404)
 			resp.Write([]byte("unknown package file download"))
@@ -2586,6 +2738,11 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 			// so we can test that the client-side code places them in the
 			// correct order (lowest precedence first).
 			resp.Write([]byte(`{"versions":[{"version":"0.1.0","protocols":["1.0"]},{"version":"2.0.0","protocols":["99.0"]},{"version":"1.2.0","protocols":["5.0"]}, {"version":"1.0.0","protocols":["5.0"]}]}`))
+		case "awesomesauce/invalidsemver":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			// This response includes an invalid semver version to test that the client properly ignores it
+			resp.Write([]byte(`{"versions":[{"version":"1.2.0","protocols":["5.0"]},{"version":"2.0.not-a-semver","protocols":["5.0"]},{"version":"1.0.0","protocols":["5.0"]}]}`))
 		case "weaksauce/unsupported-protocol":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
@@ -2602,7 +2759,7 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(pathParts) == 6 && pathParts[3] == "download" {
-		switch pathParts[0] + "/" + pathParts[1] {
+		switch fmt.Sprintf("%s/%s", pathParts[0], pathParts[1]) {
 		case "awesomesauce/happycloud":
 			if pathParts[4] == "nonexist" {
 				resp.WriteHeader(404)
@@ -2623,6 +2780,39 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 					"gpg_public_keys": []map[string]interface{}{
 						{
 							"ascii_armor": getproviders.HashicorpPublicKey,
+						},
+					},
+				},
+			}
+			enc, err := json.Marshal(body)
+			if err != nil {
+				resp.WriteHeader(500)
+				resp.Write([]byte("failed to encode body"))
+			}
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			resp.Write(enc)
+
+		case "awesomesauce/invalidsemver":
+			version := pathParts[2]
+			fileSha := bytes.Split(providerPackage.shaSumContent, []byte("  "))
+			if len(fileSha) < 2 {
+				resp.WriteHeader(500)
+				resp.Write([]byte("invalid split size: failed to encode body"))
+			}
+			body := map[string]any{
+				"protocols":             []string{"5.0"},
+				"os":                    pathParts[4],
+				"arch":                  pathParts[5],
+				"filename":              fmt.Sprintf("%s_%s.zip", pathParts[1], version),
+				"shasum":                string(fileSha[0]),
+				"download_url":          fmt.Sprintf("/pkg/awesomesauce/%s_%s.zip", pathParts[1], version),
+				"shasums_url":           fmt.Sprintf("/pkg/awesomesauce/%s_%s_SHA256SUMS", pathParts[1], version),
+				"shasums_signature_url": fmt.Sprintf("/pkg/awesomesauce/%s_%s_SHA256SUMS.sig", pathParts[1], version),
+				"signing_keys": map[string]any{
+					"gpg_public_keys": []map[string]any{
+						{
+							"ascii_armor": providerPackage.key.String(),
 						},
 					},
 				},

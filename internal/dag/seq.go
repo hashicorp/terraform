@@ -14,14 +14,25 @@ func (seq VertexSeq[T]) Collect() []T {
 	return slices.Collect(iter.Seq[T](seq))
 }
 
+func (seq VertexSeq[T]) AsGeneric() VertexSeq[Vertex] {
+	return func(yield func(Vertex) bool) {
+		for v := range seq {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 // Vertices returns an iterator over all the vertices in the graph.
 func (g *Graph) VerticesSeq() VertexSeq[Vertex] {
 	return func(yield func(v Vertex) bool) {
 		for _, v := range g.vertices {
-			if _, ok := v.(Vertex); !ok {
+			v, ok := v.(Vertex)
+			if !ok {
 				continue
 			}
-			if !yield(v.(Vertex)) {
+			if !yield(v) {
 				return
 			}
 		}
@@ -31,7 +42,7 @@ func (g *Graph) VerticesSeq() VertexSeq[Vertex] {
 // SelectSeq filters a sequence to include only elements that can be type-asserted to type U.
 // It returns a new sequence containing only the matching elements.
 // The yield function can return false to stop iteration early.
-func SelectSeq[T Vertex, U Vertex](seq VertexSeq[T], filter func(U)) VertexSeq[U] {
+func SelectSeq[U Vertex](seq VertexSeq[Vertex]) VertexSeq[U] {
 	return func(yield func(U) bool) {
 		for v := range seq {
 			// if the item is not of the type we're looking for, skip it
@@ -49,8 +60,8 @@ func SelectSeq[T Vertex, U Vertex](seq VertexSeq[T], filter func(U)) VertexSeq[U
 // ExcludeSeq filters a sequence to exclude elements that can be type-asserted to type U.
 // It returns a new sequence containing only the non-matching elements.
 // The yield function can return false to stop iteration early.
-func ExcludeSeq[T Vertex, U Vertex](seq VertexSeq[T], filter func(U)) VertexSeq[T] {
-	return func(yield func(T) bool) {
+func ExcludeSeq[U Vertex](seq VertexSeq[Vertex]) VertexSeq[Vertex] {
+	return func(yield func(Vertex) bool) {
 		for v := range seq {
 			if _, ok := any(v).(U); ok {
 				continue

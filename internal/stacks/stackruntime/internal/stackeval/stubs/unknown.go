@@ -62,6 +62,12 @@ func (u *unknownProvider) ValidateDataResourceConfig(request providers.ValidateD
 	return u.unconfiguredClient.ValidateDataResourceConfig(request)
 }
 
+func (u *unknownProvider) ValidateListResourceConfig(request providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	// This is offline functionality, so we can hand it off to the unconfigured
+	// client.
+	return u.unconfiguredClient.ValidateListResourceConfig(request)
+}
+
 // ValidateEphemeralResourceConfig implements providers.Interface.
 func (p *unknownProvider) ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
 	return providers.ValidateEphemeralResourceConfigResponse{
@@ -288,6 +294,102 @@ func (u *unknownProvider) CloseEphemeralResource(providers.CloseEphemeralResourc
 func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) providers.CallFunctionResponse {
 	return providers.CallFunctionResponse{
 		Err: fmt.Errorf("CallFunction shouldn't be called on an unknown provider; this is a bug in Terraform - please report this error"),
+	}
+}
+
+func (u *unknownProvider) ListResource(providers.ListResourceRequest) providers.ListResourceResponse {
+	var resp providers.ListResourceResponse
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ListResource on an unknown provider",
+		"Terraform called ListResource on an unknown provider. This is a bug in Terraform - please report this error.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return resp
+}
+
+// ValidateStateStoreConfig implements providers.Interface.
+func (u *unknownProvider) ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot validate this state store because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateStateStoreConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
+// ConfigureStateStore implements providers.Interface.
+func (u *unknownProvider) ConfigureStateStore(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot configure this state store because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ConfigureStateStoreResponse{
+		Diagnostics: diags,
+	}
+}
+
+// GetStates implements providers.Interface.
+func (u *unknownProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot list states managed by this state store because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.GetStatesResponse{
+		Diagnostics: diags,
+	}
+}
+
+// DeleteState implements providers.Interface.
+func (u *unknownProvider) DeleteState(providers.DeleteStateRequest) providers.DeleteStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot use this state store to delete a state because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.DeleteStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+// PlanAction implements providers.Interface.
+func (u *unknownProvider) PlanAction(request providers.PlanActionRequest) providers.PlanActionResponse {
+	// TODO: Once actions support deferrals we can implement this
+	return providers.PlanActionResponse{
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot plan this action because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
+	}
+}
+
+// InvokeAction implements providers.Interface.
+func (u *unknownProvider) InvokeAction(request providers.InvokeActionRequest) providers.InvokeActionResponse {
+	return providers.InvokeActionResponse{
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot invoke this action because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
 	}
 }
 

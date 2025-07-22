@@ -6,6 +6,12 @@ description: >-
   Git, Mercurial, S3, and GCS.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Module Sources
 
 The `source` argument in [a `module` block](/terraform/language/modules/syntax)
@@ -461,7 +467,7 @@ When the source of a module is a version control repository or archive file
 (generically, a "package"), the module itself may be in a sub-directory relative
 to the root of the package.
 
-A special double-slash syntax is interpreted by Terraform to indicate that
+A special double-slash syntax `//` is interpreted by Terraform to indicate that
 the remaining path after that point is a sub-directory within the package.
 For example:
 

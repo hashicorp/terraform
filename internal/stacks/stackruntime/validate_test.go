@@ -79,7 +79,7 @@ var (
 					Summary:  "Reference to undeclared input variable",
 					Detail:   `There is no variable "a" block declared in this stack.`,
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("validate-undeclared-variable/validate-undeclared-variable.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("validate-undeclared-variable/validate-undeclared-variable.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 3, Column: 11, Byte: 40},
 						End:      hcl.Pos{Line: 3, Column: 16, Byte: 45},
 					},
@@ -111,7 +111,7 @@ var (
 					Summary:  "Reference to undeclared provider configuration",
 					Detail:   "There is no provider \"testing\" \"default\" block declared in this stack.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-provider/undeclared-provider.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-provider/undeclared-provider.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 10, Column: 15, Byte: 163},
 						End:      hcl.Pos{Line: 10, Column: 39, Byte: 187},
 					},
@@ -121,7 +121,7 @@ var (
 					Summary:  "Reference to undeclared provider configuration",
 					Detail:   "There is no provider \"testing\" \"default\" block declared in this stack.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-provider/undeclared-provider.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-provider/undeclared-provider.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 25, Column: 15, Byte: 379},
 						End:      hcl.Pos{Line: 25, Column: 39, Byte: 403},
 					},
@@ -137,7 +137,7 @@ var (
 					Summary:  "Missing required provider configuration",
 					Detail:   "The root module for component.removed requires a provider configuration named \"testing\" for provider \"hashicorp/testing\", which is not assigned in the block's \"providers\" argument.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/missing-provider/missing-provider.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/missing-provider/missing-provider.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 25, Column: 1, Byte: 337},
 						End:      hcl.Pos{Line: 25, Column: 8, Byte: 344},
 					},
@@ -147,7 +147,7 @@ var (
 					Summary:  "Missing required provider configuration",
 					Detail:   "The root module for component.self requires a provider configuration named \"testing\" for provider \"hashicorp/testing\", which is not assigned in the block's \"providers\" argument.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/missing-provider/missing-provider.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/missing-provider/missing-provider.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 14, Column: 1, Byte: 169},
 						End:      hcl.Pos{Line: 14, Column: 17, Byte: 185},
 					},
@@ -163,7 +163,7 @@ var (
 					Summary:  "Invalid provider configuration",
 					Detail:   "The provider configuration slot \"testing\" requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"terraform.io/builtin/testing\".",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 22, Column: 15, Byte: 378},
 						End:      hcl.Pos{Line: 22, Column: 39, Byte: 402},
 					},
@@ -173,7 +173,7 @@ var (
 					Summary:  "Invalid provider configuration",
 					Detail:   "The provider configuration slot \"testing\" requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"terraform.io/builtin/testing\".",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 37, Column: 15, Byte: 614},
 						End:      hcl.Pos{Line: 37, Column: 39, Byte: 638},
 					},
@@ -189,7 +189,7 @@ var (
 					Summary:  "Unsupported argument",
 					Detail:   "An argument named \"imaginary\" is not expected here.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-config/invalid-provider-config.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-config/invalid-provider-config.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 11, Column: 5, Byte: 218},
 						End:      hcl.Pos{Line: 11, Column: 14, Byte: 227},
 					},
@@ -205,7 +205,7 @@ var (
 					Summary:  "Reference to undeclared input variable",
 					Detail:   `There is no variable "input" block declared in this stack.`,
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-variable/undeclared-variable.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-variable/undeclared-variable.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 19, Column: 13, Byte: 284},
 						End:      hcl.Pos{Line: 19, Column: 22, Byte: 293},
 					},
@@ -221,7 +221,7 @@ var (
 					Summary:  "Invalid inputs for component",
 					Detail:   "Invalid input variable definition object: attribute \"input\" is required.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/missing-variable/missing-variable.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/missing-variable/missing-variable.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 22, Column: 12, Byte: 338},
 						End:      hcl.Pos{Line: 22, Column: 14, Byte: 340},
 					},
@@ -237,7 +237,7 @@ var (
 					Summary:  "Reference to undeclared component",
 					Detail:   "There is no component \"output\" block declared in this stack.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/input-from-missing-component/input-from-missing-component.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/input-from-missing-component/input-from-missing-component.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 19, Column: 13, Byte: 314},
 						End:      hcl.Pos{Line: 19, Column: 29, Byte: 330},
 					},
@@ -251,9 +251,9 @@ var (
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid inputs for component",
-					Detail:   "Invalid input variable definition object: attribute \"input\": string required.",
+					Detail:   "Invalid input variable definition object: attribute \"input\": string required, but have configuration for hashicorp/testing provider.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/input-from-provider/input-from-provider.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/input-from-provider/input-from-provider.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 17, Column: 12, Byte: 239},
 						End:      hcl.Pos{Line: 20, Column: 4, Byte: 339},
 					},
@@ -269,7 +269,7 @@ var (
 					Summary:  "Invalid depends_on target",
 					Detail:   "The depends_on argument must refer to an embedded stack or component, but this reference refers to \"var.input\".",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 22, Column: 17, Byte: 293},
 						End:      hcl.Pos{Line: 22, Column: 26, Byte: 302},
 					},
@@ -279,7 +279,7 @@ var (
 					Summary:  "Invalid depends_on target",
 					Detail:   "The depends_on argument must refer to an embedded stack or component, but this reference refers to \"var.input\".",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 37, Column: 17, Byte: 509},
 						End:      hcl.Pos{Line: 37, Column: 26, Byte: 518},
 					},
@@ -289,7 +289,7 @@ var (
 					Summary:  "Invalid depends_on target",
 					Detail:   "The depends_on reference \"component.missing\" does not exist.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 22, Column: 28, Byte: 304},
 						End:      hcl.Pos{Line: 22, Column: 45, Byte: 321},
 					},
@@ -299,7 +299,7 @@ var (
 					Summary:  "Invalid depends_on target",
 					Detail:   "The depends_on reference \"stack.missing\" does not exist.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 37, Column: 28, Byte: 520},
 						End:      hcl.Pos{Line: 37, Column: 41, Byte: 533},
 					},
@@ -310,7 +310,7 @@ var (
 					Detail: "The depends_on argument should refer directly to an embedded stack or component in configuration, but this reference is too deep.\n\n" +
 						"Terraform Stacks has simplified the reference to the nearest valid target, \"component.first\". To remove this warning, update the configuration to the same target.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 52, Column: 17, Byte: 722},
 						End:      hcl.Pos{Line: 52, Column: 32, Byte: 737},
 					},
@@ -480,7 +480,7 @@ Terraform uses references to decide a suitable order for performing operations, 
 					Summary:  "Provider missing from lockfile",
 					Detail:   "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
 					Subject: &hcl.Range{
-						Filename: "git::https://example.com/test.git//with-single-input/input-from-component/input-from-component.tfstack.hcl",
+						Filename: "git::https://example.com/test.git//with-single-input/input-from-component/input-from-component.tfcomponent.hcl",
 						Start:    hcl.Pos{Line: 8, Column: 1, Byte: 98},
 						End:      hcl.Pos{Line: 8, Column: 29, Byte: 126},
 					},
@@ -509,7 +509,7 @@ Terraform uses references to decide a suitable order for performing operations, 
 					Detail: "The provider configuration slot \"testing\" requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"registry.terraform.io/other/testing\"." +
 						"\n\nThe module does not declare a source address for \"testing\" in its required_providers block, so Terraform assumed \"hashicorp/testing\" for backward-compatibility with older versions of Terraform",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("legacy-module/with-non-hashicorp-provider/with-non-hashicorp-provider.tfstack.hcl"),
+						Filename: mainBundleSourceAddrStr("legacy-module/with-non-hashicorp-provider/with-non-hashicorp-provider.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 21, Column: 15, Byte: 447},
 						End:      hcl.Pos{Line: 21, Column: 39, Byte: 471},
 					},

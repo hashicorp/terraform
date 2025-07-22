@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -21,6 +22,12 @@ import (
 type Changes struct {
 	// Resources tracks planned changes to resource instance objects.
 	Resources []*ResourceInstanceChange
+
+	Queries []*QueryInstance
+
+	// ActionInvocations tracks planned action invocations, which may have
+	// embedded resource instance changes.
+	ActionInvocations ActionInvocationInstances
 
 	// Outputs tracks planned changes output values.
 	//
@@ -56,6 +63,8 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 			schema = p.ResourceTypes[rc.Addr.Resource.Resource.Type]
 		case addrs.DataResourceMode:
 			schema = p.DataSources[rc.Addr.Resource.Resource.Type]
+		case addrs.ListResourceMode:
+			schema = p.ListResourceTypes[rc.Addr.Resource.Resource.Type]
 		default:
 			panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
 		}
@@ -69,6 +78,24 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 		}
 
 		changesSrc.Resources = append(changesSrc.Resources, rcs)
+	}
+
+	for _, qi := range c.Queries {
+		p, ok := schemas.Providers[qi.ProviderAddr.Provider]
+		if !ok {
+			return changesSrc, fmt.Errorf("Changes.Encode: missing provider %s for %s", qi.ProviderAddr, qi.Addr)
+		}
+
+		schema := p.ListResourceTypes[qi.Addr.Resource.Resource.Type]
+		if schema.Body == nil {
+			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", qi.Addr)
+		}
+		rcs, err := qi.Encode(schema)
+		if err != nil {
+			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
+		}
+
+		changesSrc.Queries = append(changesSrc.Queries, rcs)
 	}
 
 	for _, ocs := range c.Outputs {
@@ -109,6 +136,18 @@ func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceIns
 	}
 
 	return changes
+}
+
+func (c *Changes) QueriesForAbsResource(addr addrs.AbsResource) []*QueryInstance {
+	var queries []*QueryInstance
+	for _, q := range c.Queries {
+		qAddr := q.Addr.ContainingResource()
+		if qAddr.Equal(addr) {
+			queries = append(queries, q)
+		}
+	}
+
+	return queries
 }
 
 // InstancesForConfigResource returns the planned change for the current objects
@@ -208,6 +247,65 @@ func (c *Changes) SyncWrapper() *ChangesSync {
 	}
 }
 
+// ActionInvocations returns planned action invocations for all module instances
+// that reside in the parent path.  Returns nil if no changes are planned.
+func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.ModuleCall) []*ActionInvocationInstance {
+	var ret []*ActionInvocationInstance
+
+	for _, a := range c.ActionInvocations {
+		changeMod, changeCall := a.Addr.Module.Call()
+		// this does not reside on our parent instance path
+		if !changeMod.Equal(parent) {
+			continue
+		}
+
+		// this is not the module you're looking for
+		if changeCall.Name != module.Name {
+			continue
+		}
+
+		ret = append(ret, a)
+	}
+
+	return ret
+}
+
+type QueryInstance struct {
+	Addr addrs.AbsResourceInstance
+
+	ProviderAddr addrs.AbsProviderConfig
+
+	Results QueryResults
+}
+
+type QueryResults struct {
+	Value     cty.Value
+	Generated *genconfig.Resource
+}
+
+func (qi *QueryInstance) DeepCopy() *QueryInstance {
+	if qi == nil {
+		return qi
+	}
+
+	ret := *qi
+	return &ret
+}
+
+func (rc *QueryInstance) Encode(schema providers.Schema) (*QueryInstanceSrc, error) {
+	results, err := NewDynamicValue(rc.Results.Value, schema.Body.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return &QueryInstanceSrc{
+		Addr:         rc.Addr,
+		Results:      results,
+		ProviderAddr: rc.ProviderAddr,
+		Generated:    rc.Results.Generated,
+	}, nil
+}
+
 // ResourceInstanceChange describes a change to a particular resource instance
 // object.
 type ResourceInstanceChange struct {
@@ -276,7 +374,7 @@ type ResourceInstanceChange struct {
 	Private []byte
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInstanceChangeSrc, error) {
@@ -291,7 +389,6 @@ func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInst
 		prevRunAddr = rc.Addr
 	}
 	return &ResourceInstanceChangeSrc{
-
 		Addr:            rc.Addr,
 		PrevRunAddr:     prevRunAddr,
 		DeposedKey:      rc.DeposedKey,
@@ -317,7 +414,7 @@ func (rc *ResourceInstanceChange) Moved() bool {
 }
 
 // Simplify will, where possible, produce a change with a simpler action than
-// the receiever given a flag indicating whether the caller is dealing with
+// the receiver given a flag indicating whether the caller is dealing with
 // a normal apply or a destroy. This flag deals with the fact that Terraform
 // Core uses a specialized graph node type for destroying; only that
 // specialized node should set "destroying" to true.
@@ -531,7 +628,7 @@ type OutputChange struct {
 	Sensitive bool
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file.
 func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	cs, err := oc.Change.Encode(nil)
@@ -556,14 +653,18 @@ type Importing struct {
 
 // Encode converts the Importing object into a form suitable for serialization
 // to a plan file.
-func (i *Importing) Encode() *ImportingSrc {
+func (i *Importing) Encode(identityTy cty.Type) *ImportingSrc {
 	if i == nil {
 		return nil
 	}
 	if i.Target.IsWhollyKnown() {
 		if i.Target.Type().IsObjectType() {
+			identity, err := NewDynamicValue(i.Target, identityTy)
+			if err != nil {
+				return nil
+			}
 			return &ImportingSrc{
-				Identity: i.Target,
+				Identity: identity,
 			}
 		} else {
 			return &ImportingSrc{
@@ -615,7 +716,7 @@ type Change struct {
 	GeneratedConfig string
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the type constraint
 // that the values are expected to conform to; to properly decode the values
 // later an identical type constraint must be provided at that time.
@@ -692,7 +793,7 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 		AfterSensitivePaths:  sensitiveAttrsAfter,
 		BeforeIdentity:       beforeIdentityDV,
 		AfterIdentity:        afterIdentityDV,
-		Importing:            c.Importing.Encode(),
+		Importing:            c.Importing.Encode(identityTy),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil
 }

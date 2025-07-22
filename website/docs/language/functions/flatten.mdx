@@ -3,6 +3,12 @@ page_title: flatten - Functions - Configuration Language
 description: The flatten function eliminates nested lists from a list.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # `flatten` Function
 
 `flatten` takes a list and replaces any elements that are lists with a
@@ -51,34 +57,35 @@ variable "networks" {
       cidr_block = "10.1.0.0/16"
       subnets = {
         "db1" = {
-          cidr_block = "10.1.0.1/16"
+          cidr_block = "10.1.0.0/24"
         }
         "db2" = {
-          cidr_block = "10.1.0.2/16"
+          cidr_block = "10.1.1.0/24"
         }
       }
     },
     "public" = {
-      cidr_block = "10.1.1.0/16"
+      cidr_block = "10.2.0.0/16"
       subnets = {
         "webserver" = {
-          cidr_block = "10.1.1.1/16"
+          cidr_block = "10.2.1.0/24"
         }
         "email_server" = {
-          cidr_block = "10.1.1.2/16"
+          cidr_block = "10.2.2.0/24"
         }
       }
     }
     "dmz" = {
-      cidr_block = "10.1.2.0/16"
+      cidr_block = "10.3.0.0/16"
       subnets = {
         "firewall" = {
-          cidr_block = "10.1.2.1/16"
+          cidr_block = "10.3.1.0/24"
         }
       }
     }
   }
 }
+
 ```
 
 The above is a reasonable way to model objects that naturally form a tree,

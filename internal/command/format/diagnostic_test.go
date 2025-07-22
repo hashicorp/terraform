@@ -344,6 +344,69 @@ func TestDiagnostic(t *testing.T) {
 [red]╵[reset]
 `,
 		},
+		"error originating from failed wrapped test assertion by function": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Test assertion failed",
+				Detail:   "Example crash",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: &hclsyntax.FunctionCallExpr{
+					Name: "tobool",
+					Args: []hclsyntax.Expression{
+						&hclsyntax.BinaryOpExpr{
+							Op: hclsyntax.OpEqual,
+							LHS: &hclsyntax.LiteralValueExpr{
+								Val: cty.ObjectVal(map[string]cty.Value{
+									"inner": cty.StringVal("str1"),
+									"extra": cty.StringVal("str2"),
+								}),
+							},
+							RHS: &hclsyntax.LiteralValueExpr{
+								Val: cty.ObjectVal(map[string]cty.Value{
+									"inner": cty.StringVal("str11"),
+									"extra": cty.StringVal("str21"),
+								}),
+							},
+							SrcRange: hcl.Range{
+								Filename: "test.tf",
+								Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+								End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+							},
+						},
+					},
+				},
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{},
+					Functions: map[string]function.Function{
+						"tobool": function.New(&function.Spec{
+							Params: []function.Parameter{
+								{
+									Name: "param_0",
+									Type: cty.String,
+								},
+							},
+						}),
+					},
+				},
+				// This is simulating what the test assertion expression
+				// type would generate on evaluation, by implementing the
+				// same interface it uses.
+				Extra: diagnosticCausedByTestFailure{true},
+			},
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]Test assertion failed[reset]
+[red]│[reset]
+[red]│[reset]   on test.tf line 1:
+[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]
+[red]│[reset] Example crash
+[red]╵[reset]
+`,
+		},
 	}
 
 	sources := map[string][]byte{

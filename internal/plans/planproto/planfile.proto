@@ -5,7 +5,7 @@ syntax = "proto3";
 package tfplan;
 
 // For Terraform's own parsing, the proto stub types go into an internal Go
-// package. The public API is in github.com/hashicorp/terraform/plans/planfile .
+// package. The public API is in github.com/hashicorp/terraform/internal/plans/planfile .
 option go_package = "github.com/hashicorp/terraform/internal/plans/planproto";
 
 // Plan is the root message type for the tfplan file
@@ -93,6 +93,10 @@ message Plan {
     // the checks were applied to nested within.
     repeated CheckResults check_results = 19;
 
+    // An unordered set of proposed action invocations. This includes any
+    // embedded ResourceInstanceActionChanges for LinkedResources
+    repeated ActionInvocation action_invocations = 30;
+
     // An unordered set of target addresses to include when applying. If no
     // target addresses are present, the plan applies to the whole
     // configuration.
@@ -111,6 +115,10 @@ message Plan {
     // settings at the time the plan was created.
     Backend backend = 13;
 
+    // StateStore is a description of the state_store configuration and other related
+    // settings at the time the plan was created.
+    StateStore state_store = 29;
+
     message resource_attr {
        string resource = 1;
        Path attr= 2;
@@ -123,7 +131,7 @@ message Plan {
     // timestamp is the record of truth for when the plan happened.
     string timestamp = 21;
 
-    repeated ProviderFunctionCallHash provider_function_results = 22;
+    repeated FunctionCallHash function_results = 22;
 }
 
 // Mode describes the planning mode that created the plan.
@@ -138,6 +146,19 @@ message Backend {
     string type = 1;
     DynamicValue config = 2;
     string workspace = 3;
+}
+
+// StateStore is a description of state_store configuration and other related settings.
+message StateStore {
+    string type = 1;
+    DynamicValue config = 2;
+    string workspace = 3;
+    Provider provider = 4;
+}
+
+message Provider {
+    string source = 1;
+    string version = 2;
 }
 
 // Action describes the type of action planned for an object.
@@ -189,6 +210,12 @@ message Change {
     // GeneratedConfig contains any configuration that was generated as part of
     // the change, as an HCL string.
     string generated_config = 6;
+
+    // The resource identity before the plan operation
+    DynamicValue before_identity = 7;
+
+    // The resource identity after the plan operation
+    DynamicValue after_identity = 8;
 }
 
 // ResourceInstanceActionReason sometimes provides some additional user-facing
@@ -226,7 +253,7 @@ message ResourceInstanceChange {
     string prev_run_addr = 14;
 
     // NOTE: Earlier versions of this format had fields 1 through 6 describing
-    // various indivdual parts of "addr". We're now using our standard compact
+    // various individual parts of "addr". We're now using our standard compact
     // string representation to capture the same information. We don't support
     // preserving plan files from one Terraform version to the next, so we
     // no longer declare nor accept those fields.
@@ -327,10 +354,10 @@ message CheckResults {
     repeated ObjectResult objects = 4;
 }
 
-// ProviderFunctionCallHash stores a record of a hashed function call and
+// FunctionCallHash stores a record of a hashed function call and
 // result. This is used internally to ensure that providers return consistent
 // values between plan and apply given the same arguments.
-message ProviderFunctionCallHash {
+message FunctionCallHash {
     bytes key = 1;
     bytes result = 2;
 }
@@ -377,6 +404,9 @@ message Importing {
 
     // unknown is true if the original ID of the resource is unknown.
     bool unknown = 2;
+
+    // Identity can be used to import instead of id
+    DynamicValue identity = 3;
 }
 
 // DeferredReason describes the reason why a resource instance change was
@@ -394,4 +424,32 @@ enum DeferredReason {
 // instance change.
 message Deferred {
     DeferredReason reason = 1;
+}
+
+// ActionInvocationInstance contains a planned action invocation and any embedded ResourceInstanceActionChanges
+message ActionInvocationInstance {
+    // addr is a string representation of the action invocation instance address of this change
+    string addr = 1;
+
+    // provider is the address of the provider configuration that this change
+    // was planned with, and thus the configuration that must be used to
+    // apply it.
+    string provider = 2;
+
+    repeated ResourceInstanceActionChange linked_resources = 3;
+}
+
+message ResourceInstanceActionChange {
+    // addr is a string representation of the resource instance address that
+    // this change will apply to.
+    string addr = 1;
+
+    // deposed_key, if set, indicates that this change applies to a deposed
+    // object for the indicated instance with the given deposed key. If not
+    // set, the change applies to the instance's current object.
+    string deposed_key = 2;
+
+    // Description of the proposed change. 
+    // May use "update", "replace", "delete" and "no-op" actions.
+    Change change = 3;
 }

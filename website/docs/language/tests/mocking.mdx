@@ -4,6 +4,12 @@ description: >-
   Provide mocked data for providers and resources in your tests.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Mocks
 
 -> **Note**: Test mocking is available in Terraform v1.7.0 and later.
@@ -137,7 +143,7 @@ mock_provider "aws" {
 }
 ```
 
-In the above example, Terraform uses the supplied value for `arn` attributes in S3 buckets instead of generating a random string. Computed attributes not provided an explicit default will simply fall back to the generic data generation rules. You can also use the `override_during` attribute in the `mock_resource` and `mock_data` blocks to specify when Terraform should generate the values for an individual resource. If you do not not specify the `override_during` attribute, Terraform generates the values using the rules inherited from the `mock_provider` block. If specified, the local value overrides any value specified in the `mock_provider` block.
+In the above example, Terraform uses the supplied value for `arn` attributes in S3 buckets instead of generating a random string. Computed attributes not provided an explicit default will simply fall back to the generic data generation rules. You can also use the `override_during` attribute in the `mock_resource` and `mock_data` blocks to specify when Terraform should generate the values for an individual resource. If you do not specify the `override_during` attribute, Terraform generates the values using the rules inherited from the `mock_provider` block. If specified, the local value overrides any value specified in the `mock_provider` block.
 
 You can also share mock provider data between tests by writing dedicated mock data files and using the `source` attribute in the `mock_provider` block. Mock data files have `.tfmock.hcl` or `.tfmock.json` extension, and can contain `mock_resource` and `mock_data` blocks as if they were defined in the `mock_provider` block directly.
 

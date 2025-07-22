@@ -5,6 +5,12 @@ description: |-
   matching substrings.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # `regex` Function
 
 `regex` applies a
@@ -86,7 +92,7 @@ of the pattern must be escaped as `\\`.
 | `(x)`                  | unnamed capture group for sub-pattern `x`                                        |
 | `(?P<name>x)`          | named capture group, named `name`, for sub-pattern `x`                           |
 | `(?:x)`                | non-capturing sub-pattern `x`                                                    |
-| `\*`                   | Literal `*` for any punctuation character `*`                                    |
+| `\*`                   | Literal `*` for any punctuation character `*` For example, `\.` is a literal `.` |
 | `\Q...\E`              | Literal `...` for any text `...` as long as it does not include literally `\E`   |
 
 In addition to the above matching operators that consume the characters they

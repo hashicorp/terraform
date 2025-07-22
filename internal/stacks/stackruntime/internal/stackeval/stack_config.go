@@ -37,15 +37,16 @@ type StackConfig struct {
 
 	// The remaining fields are where we memoize related objects that we've
 	// constructed and returned. Must lock "mu" before interacting with these.
-	mu             sync.Mutex
-	children       map[stackaddrs.StackStep]*StackConfig
-	inputVariables map[stackaddrs.InputVariable]*InputVariableConfig
-	localValues    map[stackaddrs.LocalValue]*LocalValueConfig
-	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
-	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
-	components     map[stackaddrs.Component]*ComponentConfig
-	removed        collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig]
-	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
+	mu                sync.Mutex
+	children          map[stackaddrs.StackStep]*StackConfig
+	inputVariables    map[stackaddrs.InputVariable]*InputVariableConfig
+	localValues       map[stackaddrs.LocalValue]*LocalValueConfig
+	outputValues      map[stackaddrs.OutputValue]*OutputValueConfig
+	stackCalls        map[stackaddrs.StackCall]*StackCallConfig
+	removedStackCalls collections.Map[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig]
+	components        map[stackaddrs.Component]*ComponentConfig
+	removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig]
+	providers         map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
 var (
@@ -59,14 +60,15 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, parent *StackConfig, conf
 		config: config,
 		main:   main,
 
-		children:       make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
-		inputVariables: make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
-		localValues:    make(map[stackaddrs.LocalValue]*LocalValueConfig, len(config.Stack.Declarations.LocalValues)),
-		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
-		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
-		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
-		removed:        collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig](),
-		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
+		children:          make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
+		inputVariables:    make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
+		localValues:       make(map[stackaddrs.LocalValue]*LocalValueConfig, len(config.Stack.Declarations.LocalValues)),
+		outputValues:      make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
+		stackCalls:        make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
+		removedStackCalls: collections.NewMap[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig](),
+		components:        make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
+		removedComponents: collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig](),
+		providers:         make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
 
@@ -352,9 +354,32 @@ func (s *StackConfig) StackCalls() map[stackaddrs.StackCall]*StackCallConfig {
 		return nil
 	}
 	ret := make(map[stackaddrs.StackCall]*StackCallConfig, len(s.config.Children))
-	for n := range s.config.Children {
+	for n := range s.config.Stack.EmbeddedStacks {
 		stepAddr := stackaddrs.StackCall{Name: n}
 		ret[stepAddr] = s.StackCall(stepAddr)
+	}
+	return ret
+}
+
+func (s *StackConfig) RemovedStackCall(addr stackaddrs.ConfigStackCall) []*RemovedStackCallConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.removedStackCalls.GetOk(addr)
+	if !ok {
+		for _, cfg := range s.config.Stack.RemovedEmbeddedStacks.Get(addr) {
+			removed := newRemovedStackCallConfig(s.main, addr, s, cfg)
+			ret = append(ret, removed)
+		}
+		s.removedStackCalls.Put(addr, ret)
+	}
+	return ret
+}
+
+func (s *StackConfig) RemovedStackCalls() collections.Map[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig] {
+	ret := collections.NewMap[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig]()
+	for addr := range s.config.Stack.RemovedEmbeddedStacks.All() {
+		ret.Put(addr, s.RemovedStackCall(addr))
 	}
 	return ret
 }
@@ -400,9 +425,9 @@ func (s *StackConfig) RemovedComponent(addr stackaddrs.ConfigComponent) []*Remov
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ret, ok := s.removed.GetOk(addr)
+	ret, ok := s.removedComponents.GetOk(addr)
 	if !ok {
-		for _, cfg := range s.config.Stack.Removed.Get(addr) {
+		for _, cfg := range s.config.Stack.RemovedComponents.Get(addr) {
 			cfgAddr := stackaddrs.ConfigComponent{
 				Stack: append(s.addr, addr.Stack...),
 				Item:  addr.Item,
@@ -410,7 +435,7 @@ func (s *StackConfig) RemovedComponent(addr stackaddrs.ConfigComponent) []*Remov
 			removed := newRemovedComponentConfig(s.main, cfgAddr, s, cfg)
 			ret = append(ret, removed)
 		}
-		s.removed.Put(addr, ret)
+		s.removedComponents.Put(addr, ret)
 	}
 	return ret
 }
@@ -419,7 +444,7 @@ func (s *StackConfig) RemovedComponent(addr stackaddrs.ConfigComponent) []*Remov
 // removed calls declared inside this stack configuration.
 func (s *StackConfig) RemovedComponents() collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig] {
 	ret := collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig]()
-	for addr := range s.config.Stack.Removed.All() {
+	for addr := range s.config.Stack.RemovedComponents.All() {
 		ret.Put(addr, s.RemovedComponent(addr))
 	}
 	return ret

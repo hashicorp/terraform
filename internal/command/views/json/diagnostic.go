@@ -446,7 +446,9 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					// If the test assertion is a binary expression, we'll include the human-readable
 					// formatted LHS and RHS values in the diagnostic snippet.
 					diagnostic.Snippet.TestAssertionExpr = formatRunBinaryDiag(ctx, fromExpr.Expression)
-					diagnostic.Snippet.TestAssertionExpr.ShowVerbose = testDiag.IsTestVerboseMode()
+					if diagnostic.Snippet.TestAssertionExpr != nil {
+						diagnostic.Snippet.TestAssertionExpr.ShowVerbose = testDiag.IsTestVerboseMode()
+					}
 				}
 
 			}

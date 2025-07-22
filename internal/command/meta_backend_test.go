@@ -16,12 +16,15 @@ import (
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -34,7 +37,7 @@ func TestMetaBackend_emptyDir(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Get the backend
 	m := testMetaBackend(t, nil)
@@ -89,7 +92,7 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Write the legacy state
 	statePath := DefaultStateFilename
@@ -156,7 +159,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Create another directory to store our state
 	stateDir := t.TempDir()
@@ -227,7 +230,7 @@ func TestMetaBackend_configureInterpolation(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-interp"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -243,7 +246,7 @@ func TestMetaBackend_configureInterpolation(t *testing.T) {
 func TestMetaBackend_configureNew(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -307,7 +310,7 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Ask input
 	defer testInteractiveInput(t, []string{"yes"})()
@@ -384,7 +387,7 @@ func TestMetaBackend_configureNewWithoutCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	if err := copy.CopyFile(DefaultStateFilename, "local-state.tfstate"); err != nil {
 		t.Fatal(err)
@@ -434,7 +437,7 @@ func TestMetaBackend_configureNewWithStateNoMigrate(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Ask input
 	defer testInteractiveInput(t, []string{"no"})()
@@ -478,7 +481,7 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate-existing"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -549,7 +552,7 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-new-migrate-existing"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Ask input
 	defer testInteractiveInput(t, []string{"no"})()
@@ -617,7 +620,9 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 
 // Saved backend state matching config
 func TestMetaBackend_configuredUnchanged(t *testing.T) {
-	defer testChdir(t, testFixturePath("backend-unchanged"))()
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("backend-unchanged"), td)
+	t.Chdir(td)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -660,7 +665,7 @@ func TestMetaBackend_configuredChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Ask input
 	defer testInteractiveInput(t, []string{"no"})()
@@ -739,7 +744,7 @@ func TestMetaBackend_reconfigureChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-single-to-single"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Register the single-state backend
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
@@ -792,7 +797,7 @@ func TestMetaBackend_initSelectedWorkspaceDoesNotExist(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-multi"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -825,7 +830,7 @@ func TestMetaBackend_initSelectedWorkspaceDoesNotExistAutoSelect(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-single"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -866,7 +871,7 @@ func TestMetaBackend_initSelectedWorkspaceDoesNotExistInputFalse(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-multi"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -886,7 +891,7 @@ func TestMetaBackend_configuredChangeCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Ask input
 	defer testInteractiveInput(t, []string{"yes", "yes"})()
@@ -933,7 +938,7 @@ func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-single-to-single"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Register the single-state backend
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
@@ -987,7 +992,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-default-to-single"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Register the single-state backend
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
@@ -1040,7 +1045,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-single"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Register the single-state backend
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
@@ -1109,7 +1114,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-single"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Register the single-state backend
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
@@ -1174,7 +1179,7 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-multi"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Ask input
 	defer testInputMap(t, map[string]string{
@@ -1267,7 +1272,7 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithDefault(t *testing
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-no-default-with-default"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Register the single-state backend
 	backendInit.Set("local-no-default", backendLocal.TestNewLocalNoDefault)
@@ -1342,7 +1347,7 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithoutDefault(t *test
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change-multi-to-no-default-without-default"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Register the single-state backend
 	backendInit.Set("local-no-default", backendLocal.TestNewLocalNoDefault)
@@ -1414,7 +1419,7 @@ func TestMetaBackend_configuredUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unset"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Ask input
 	defer testInteractiveInput(t, []string{"no"})()
@@ -1476,7 +1481,7 @@ func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unset"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Ask input
 	defer testInteractiveInput(t, []string{"yes", "yes"})()
@@ -1533,7 +1538,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-plan-local"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	backendConfigBlock := cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.NullVal(cty.String),
@@ -1621,7 +1626,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-plan-local"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	original := testState()
 	markStateForMatching(original, "hello")
@@ -1723,7 +1728,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-plan-local-match"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	backendConfigBlock := cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.NullVal(cty.String),
@@ -1810,7 +1815,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-empty"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	extras := map[string]cty.Value{"path": cty.StringVal("hello")}
 	m := testMetaBackend(t, nil)
@@ -1861,7 +1866,7 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-empty"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// // create our local state
 	orig := states.NewState()
@@ -1891,7 +1896,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// init the backend
 	m := testMetaBackend(t, nil)
@@ -1934,7 +1939,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 // no config; return inmem backend stored in state
 func TestBackendFromState(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "backend-from-state")
-	defer testChdir(t, wd.RootModuleDir())()
+	t.Chdir(wd.RootModuleDir())
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1953,6 +1958,105 @@ func TestBackendFromState(t *testing.T) {
 
 	if _, ok := stateBackend.(*backendInmem.Backend); !ok {
 		t.Fatal("did not get expected inmem backend")
+	}
+}
+
+func Test_determineInitReason(t *testing.T) {
+
+	cases := map[string]struct {
+		cloudMode     cloud.ConfigChangeMode
+		backendState  workdir.BackendStateFile
+		backendConfig configs.Backend
+
+		wantErr string
+	}{
+		// All scenarios involving Cloud backend
+		"change in cloud config": {
+			cloudMode: cloud.ConfigChangeInPlace,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "cloud",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "cloud",
+				// Other fields unnecessary
+			},
+			wantErr: `HCP Terraform configuration block has changed`,
+		},
+		"migrate backend to cloud": {
+			cloudMode: cloud.ConfigMigrationIn,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "foobar",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "cloud",
+				// Other fields unnecessary
+			},
+			wantErr: `Changed from backend "foobar" to HCP Terraform`,
+		},
+		"migrate cloud to backend": {
+			cloudMode: cloud.ConfigMigrationOut,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "cloud",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "foobar",
+				// Other fields unnecessary
+			},
+			wantErr: `Changed from HCP Terraform to backend "foobar"`,
+		},
+
+		// Changes within the backend config block
+		"backend type changed": {
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "foobar1",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "foobar2",
+				// Other fields unnecessary
+			},
+			wantErr: `Backend type changed from "foobar1" to "foobar2`,
+		},
+		"backend config changed": {
+			// Note that we don't need to include differing config to trigger this
+			// scenario, as we're hitting the default case. If the types match, then
+			// only the config is left to differ.
+			// See the comment above determineInitReason for more info.
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "foobar",
+					// Other fields unnecessary
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "foobar",
+				// Other fields unnecessary
+			},
+			wantErr: `Backend configuration block has changed`,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			m := Meta{}
+			diags := m.determineInitReason(tc.backendState.Backend.Type, tc.backendConfig.Type, tc.cloudMode)
+			if !strings.Contains(diags.Err().Error(), tc.wantErr) {
+				t.Fatalf("expected error diagnostic detail to include \"%s\" but it's missing: %s", tc.wantErr, diags.Err())
+			}
+		})
 	}
 }
 

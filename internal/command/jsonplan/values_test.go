@@ -17,6 +17,10 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
+func ptrOf[T any](v T) *T {
+	return &v
+}
+
 func TestMarshalAttributeValues(t *testing.T) {
 	tests := []struct {
 		Attr   cty.Value
@@ -105,7 +109,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := marshalAttributeValues(test.Attr, test.Schema)
+		got := marshalAttributeValues(test.Attr)
 		eq := reflect.DeepEqual(got, test.Want)
 		if !eq {
 			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
@@ -185,11 +189,13 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 
 func TestMarshalPlanResources(t *testing.T) {
 	tests := map[string]struct {
-		Action plans.Action
-		Before cty.Value
-		After  cty.Value
-		Want   []resource
-		Err    bool
+		Action         plans.Action
+		Before         cty.Value
+		After          cty.Value
+		Want           []resource
+		Err            bool
+		BeforeIdentity cty.Value
+		AfterIdentity  cty.Value
 	}{
 		"create with unknowns": {
 			Action: plans.Create,
@@ -257,6 +263,37 @@ func TestMarshalPlanResources(t *testing.T) {
 			}},
 			Err: false,
 		},
+		"with identity": {
+			Action: plans.Create,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"woozles": cty.StringVal("woo"),
+				"foozles": cty.NullVal(cty.String),
+			}),
+			BeforeIdentity: cty.NullVal(cty.EmptyObject),
+			AfterIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("someId"),
+			}),
+			Want: []resource{{
+				Address:       "test_thing.example",
+				Mode:          "managed",
+				Type:          "test_thing",
+				Name:          "example",
+				Index:         addrs.InstanceKey(nil),
+				ProviderName:  "registry.terraform.io/hashicorp/test",
+				SchemaVersion: 1,
+				AttributeValues: attributeValues{
+					"woozles": json.RawMessage(`"woo"`),
+					"foozles": json.RawMessage(`null`),
+				},
+				SensitiveValues:       json.RawMessage("{}"),
+				IdentitySchemaVersion: ptrOf[uint64](2),
+				IdentityValues: attributeValues{
+					"id": json.RawMessage(`"someId"`),
+				},
+			}},
+			Err: false,
+		},
 	}
 
 	for name, test := range tests {
@@ -270,6 +307,23 @@ func TestMarshalPlanResources(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			var beforeIdentity, afterIdentity plans.DynamicValue
+			if !test.BeforeIdentity.IsNull() {
+				var err error
+				beforeIdentity, err = plans.NewDynamicValue(test.BeforeIdentity, test.BeforeIdentity.Type())
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if !test.AfterIdentity.IsNull() {
+				var err error
+				afterIdentity, err = plans.NewDynamicValue(test.AfterIdentity, test.AfterIdentity.Type())
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
 			testChange := &plans.ChangesSrc{
 				Resources: []*plans.ResourceInstanceChangeSrc{
 					{
@@ -283,9 +337,11 @@ func TestMarshalPlanResources(t *testing.T) {
 							Module:   addrs.RootModule,
 						},
 						ChangeSrc: plans.ChangeSrc{
-							Action: test.Action,
-							Before: before,
-							After:  after,
+							Action:         test.Action,
+							Before:         before,
+							After:          after,
+							BeforeIdentity: beforeIdentity,
+							AfterIdentity:  afterIdentity,
 						},
 					},
 				},
@@ -356,6 +412,13 @@ func testSchemas() *terraform.Schemas {
 								"woozles": {Type: cty.String, Optional: true, Computed: true},
 								"foozles": {Type: cty.String, Optional: true},
 							},
+						},
+						IdentityVersion: 2,
+						Identity: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {Type: cty.String, Required: true},
+							},
+							Nesting: configschema.NestingSingle,
 						},
 					},
 				},

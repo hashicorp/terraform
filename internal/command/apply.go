@@ -229,8 +229,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 		}
 
 		be, beDiags = c.Backend(&BackendOpts{
-			Config:   backendConfig,
-			ViewType: viewType,
+			BackendConfig: backendConfig,
+			ViewType:      viewType,
 		})
 	}
 
@@ -378,6 +378,9 @@ Options:
 
   -parallelism=n         Limit the number of parallel resource operations.
                          Defaults to 10.
+
+  -replace=resource      Terraform will plan to replace this resource instance
+                         instead of doing an update or no-op action. 
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".

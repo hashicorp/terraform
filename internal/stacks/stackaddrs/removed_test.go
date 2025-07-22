@@ -14,16 +14,78 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestParseRemovedFrom(t *testing.T) {
-
-	mustExpr := func(t *testing.T, expr string) hcl.Expression {
-		ret, diags := hclsyntax.ParseExpression([]byte(expr), "", hcl.InitialPos)
-		if diags.HasErrors() {
-			t.Fatal(diags.Error())
-		}
-		return ret
+func TestParseRemovedFrom_Stacks(t *testing.T) {
+	tcs := []struct {
+		from       string
+		want       StackInstance
+		vars       map[string]cty.Value
+		parseDiags func() tfdiags.Diagnostics
+		addrDiags  func() tfdiags.Diagnostics
+	}{
+		{
+			from: "stack.stack_name",
+			want: mustStackInstance(t, "stack.stack_name"),
+		},
+		{
+			from: "stack.parent.stack.child",
+			want: mustStackInstance(t, "stack.parent.stack.child"),
+		},
+		{
+			from: "stack.parent[each.key].stack.child",
+			want: mustStackInstance(t, "stack.parent[\"parent\"].stack.child"),
+			vars: map[string]cty.Value{
+				"each": cty.MapVal(map[string]cty.Value{
+					"key": cty.StringVal("parent"),
+				}),
+			},
+		},
+		{
+			from: "stack.parent.stack.child[each.key]",
+			want: mustStackInstance(t, "stack.parent.stack.child[\"child\"]"),
+			vars: map[string]cty.Value{
+				"each": cty.MapVal(map[string]cty.Value{
+					"key": cty.StringVal("child"),
+				}),
+			},
+		},
 	}
+	for _, tc := range tcs {
+		t.Run(tc.from, func(t *testing.T) {
+			expr := mustExpr(t, tc.from)
+			from, parseDiags := ParseRemovedFrom(expr)
 
+			var wantParseDiags tfdiags.Diagnostics
+			if tc.parseDiags != nil {
+				wantParseDiags = tc.parseDiags()
+			}
+			tfdiags.AssertDiagnosticsMatch(t, parseDiags, wantParseDiags)
+
+			if from.Component != nil {
+				t.Fatal("from.Component should be empty")
+			}
+
+			configAddress := from.TargetStack()
+			instanceAddress, addrDiags := from.TargetStackInstance(&hcl.EvalContext{
+				Variables: tc.vars,
+			}, RootStackInstance)
+			var wantAddrDiags tfdiags.Diagnostics
+			if tc.addrDiags != nil {
+				wantAddrDiags = tc.addrDiags()
+			}
+			tfdiags.AssertDiagnosticsMatch(t, addrDiags, wantAddrDiags)
+
+			wantConfigAddress := tc.want.ConfigAddr()
+			if diff := cmp.Diff(configAddress.String(), wantConfigAddress.String()); len(diff) > 0 {
+				t.Errorf("wrong config address; %s", diff)
+			}
+			if diff := cmp.Diff(instanceAddress.String(), tc.want.String()); len(diff) > 0 {
+				t.Errorf("wrong instance address: %s", diff)
+			}
+		})
+	}
+}
+
+func TestParseRemovedFrom_Components(t *testing.T) {
 	tcs := []struct {
 		from       string
 		want       AbsComponentInstance
@@ -230,7 +292,7 @@ func TestParseRemovedFrom(t *testing.T) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
+					Detail:   "The 'from' attribute must designate a component or stack that has been removed, in the form of an address such as `component.component_name` or `stack.stack_name`.",
 					Subject: &hcl.Range{
 						Start: hcl.Pos{Line: 1, Column: 1, Byte: 0},
 						End:   hcl.Pos{Line: 1, Column: 39, Byte: 38},
@@ -246,7 +308,7 @@ func TestParseRemovedFrom(t *testing.T) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
+					Detail:   "The 'from' attribute must designate a component or stack that has been removed, in the form of an address such as `component.component_name` or `stack.stack_name`.",
 					Subject: &hcl.Range{
 						Start: hcl.Pos{Line: 1, Column: 1, Byte: 0},
 						End:   hcl.Pos{Line: 1, Column: 42, Byte: 41},
@@ -262,7 +324,7 @@ func TestParseRemovedFrom(t *testing.T) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
+					Detail:   "The 'from' attribute must designate a component or stack that has been removed, in the form of an address such as `component.component_name` or `stack.stack_name`.",
 					Subject: &hcl.Range{
 						Start: hcl.Pos{Line: 1, Column: 1, Byte: 0},
 						End:   hcl.Pos{Line: 1, Column: 46, Byte: 45},
@@ -278,7 +340,7 @@ func TestParseRemovedFrom(t *testing.T) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
+					Detail:   "The 'from' attribute must designate a component or stack that has been removed, in the form of an address such as `component.component_name` or `stack.stack_name`.",
 					Subject: &hcl.Range{
 						Start: hcl.Pos{Line: 1, Column: 1, Byte: 0},
 						End:   hcl.Pos{Line: 1, Column: 49, Byte: 48},
@@ -294,7 +356,7 @@ func TestParseRemovedFrom(t *testing.T) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
+					Detail:   "The 'from' attribute must designate a component or stack that has been removed, in the form of an address such as `component.component_name` or `stack.stack_name`.",
 					Subject: &hcl.Range{
 						Start: hcl.Pos{Line: 1, Column: 1, Byte: 0},
 						End:   hcl.Pos{Line: 1, Column: 42, Byte: 41},
@@ -310,7 +372,7 @@ func TestParseRemovedFrom(t *testing.T) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
+					Detail:   "The 'from' attribute must designate a component or stack that has been removed, in the form of an address such as `component.component_name` or `stack.stack_name`.",
 					Subject: &hcl.Range{
 						Start: hcl.Pos{Line: 1, Column: 1, Byte: 0},
 						End:   hcl.Pos{Line: 1, Column: 28, Byte: 27},
@@ -331,9 +393,16 @@ func TestParseRemovedFrom(t *testing.T) {
 				wantParseDiags = tc.parseDiags()
 			}
 			tfdiags.AssertDiagnosticsMatch(t, parseDiags, wantParseDiags)
+			if len(wantParseDiags) > 0 {
+				return // don't do the rest of the test if we expected to fail here
+			}
 
-			configAddress := from.ConfigComponent()
-			instanceAddress, addrDiags := from.AbsComponentInstance(&hcl.EvalContext{
+			if from.Component == nil {
+				t.Fatal("from.Component should not be empty")
+			}
+
+			configAddress := from.TargetConfigComponent()
+			instanceAddress, addrDiags := from.TargetAbsComponentInstance(&hcl.EvalContext{
 				Variables: tc.vars,
 			}, RootStackInstance)
 			var wantAddrDiags tfdiags.Diagnostics
@@ -357,10 +426,34 @@ func TestParseRemovedFrom(t *testing.T) {
 
 }
 
+func mustStackInstance(t *testing.T, str string) StackInstance {
+	traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(str), "", hcl.InitialPos)
+	if len(hclDiags) > 0 {
+		t.Fatal(hclDiags.Error())
+	}
+	inst, rest, diags := parseInStackInstancePrefix(traversal)
+	if len(diags) > 0 {
+		t.Fatal(diags.Err())
+	}
+
+	if len(rest) > 0 {
+		t.Fatal("invalid stack instance, has extra steps")
+	}
+	return inst
+}
+
 func mustAbsComponentInstance(t *testing.T, str string) AbsComponentInstance {
 	inst, diags := ParseAbsComponentInstanceStr(str)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
 	return inst
+}
+
+func mustExpr(t *testing.T, expr string) hcl.Expression {
+	ret, diags := hclsyntax.ParseExpression([]byte(expr), "", hcl.InitialPos)
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+	return ret
 }

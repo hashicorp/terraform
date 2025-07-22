@@ -27,6 +27,7 @@ var (
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
+	parallel bool
 
 	// If customCleanupRun is provided, it will be applied to the state file instead
 	// of running the default destroy operation during cleanup.
@@ -37,16 +38,11 @@ func (n *NodeStateCleanup) Name() string {
 	return fmt.Sprintf("cleanup.%s", n.stateKey)
 }
 
-// Execute performs the cleanup of resources defined in the state file.
-// This function should never return non-fatal error diagnostics, as doing so
-// would prevent further cleanup of other states. Instead, any diagnostics
-// will be rendered directly to ensure the cleanup process continues.
-func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	n.execute(evalCtx)
-	return nil
-}
-
-func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
+// Execute destroys the resources created in the state file.
+// This function should never return non-fatal error diagnostics, as that would
+// prevent further cleanup from happening. Instead, the diagnostics
+// will be rendered directly.
+func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	var diags tfdiags.Diagnostics
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
@@ -56,14 +52,16 @@ func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	}
 
 	if n.shouldSkipCleanup(evalCtx, state, file) {
-		return nil
+		return
 	}
 
 	// If the state is empty, we still write it so we can store the
 	// output values, but we don't need to run a destroy operation.
 	if n.emptyState(state.State) {
+		// TODO(liamcervante): No diagnostics here!
 		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
-		return diags
+		evalCtx.Renderer().DestroySummary(diags, state.Run, file, state.State)
+		return
 	}
 
 	if state.Run == nil {
@@ -75,18 +73,16 @@ func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		// above. If we do reach here, then something has gone badly wrong
 		// and we can't really recover from it.
 
-		diags := diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
 		file.UpdateStatus(moduletest.Error)
 		state.Reason = ReasonError
 		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
-
-		return diags
+		return
 	}
-	TransformConfigForRun(evalCtx, state.Run, file)
 
-	n.performCleanup(evalCtx, state)
-	return nil
+	diags = diags.Append(n.performCleanup(evalCtx, state))
+	evalCtx.Renderer().DestroySummary(diags, state.Run, file, state.State)
 }
 
 func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileState) tfdiags.Diagnostics {
@@ -101,7 +97,6 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
 	}
-	evalCtx.Renderer().DestroySummary(diags, state.Run, n.opts.File, updated)
 
 	// Update the statefile's resources and return the test file status
 	n.updateStateResources(runNode, state, updated)
@@ -109,14 +104,11 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 	if state.Run.Config.Backend != nil && !diags.HasErrors() {
 		// We don't create a state artefact when the node state's corresponding run block has a backend,
 		// UNLESS an error occurs when returning the state to match that run block's config during cleanup.
-		return nil
+		return diags
 	}
 
 	diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
-	// We don't return destroyDiags here because the calling code sets the return code for the test operation
-	// based on whether the tests passed or not; cleanup is not a factor.
-	// Users will be aware of issues with cleanup due to destroyDiags being rendered to the View.
-	return nil
+	return diags
 }
 
 func (n *NodeStateCleanup) updateStateResources(runNode *NodeTestRun, fileState *TestFileState, updated *states.State) {
@@ -155,17 +147,20 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 
 	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
 
-	var diags tfdiags.Diagnostics
-	variables, variableDiags := runNode.GetVariables(ctx, false)
-	diags = diags.Append(variableDiags)
+	variables, diags := runNode.GetVariables(ctx, false)
 	if diags.HasErrors() {
 		return state, diags
 	}
 
+	// we ignore the diagnostics from here, because we will have reported them
+	// during the initial execution of the run block and we would not have
+	// executed the run block if there were any errors.
+	providers, mocks, _ := runNode.getProviders(ctx)
+
 	// If an apply override is provided, we can skip the destroy operation
 	// and directly apply the override to the state file.
 	if n.customCleanupRun != nil {
-		runNode.testApply(ctx, variables, waiter)
+		runNode.testApply(ctx, variables, providers, mocks, waiter)
 		return ctx.GetFileState(stateKey).State, runNode.run.Diagnostics
 	}
 
@@ -176,16 +171,13 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 	setVariables, _, _ := runNode.FilterVariablesToModule(variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:         plans.DestroyMode,
-		SetVariables: setVariables,
-		Overrides:    mocking.PackageOverrides(run.Config, file.Config, run.ModuleConfig),
+		Mode:              plans.DestroyMode,
+		SetVariables:      setVariables,
+		Overrides:         mocking.PackageOverrides(run.Config, file.Config, mocks),
+		ExternalProviders: providers,
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(n.opts.ContextOpts)
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		return state, diags
-	}
+	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	waiter.update(tfCtx, moduletest.TearDown, nil)
 	plan, planDiags := tfCtx.Plan(run.ModuleConfig, state, planOpts)
@@ -194,7 +186,7 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 		return state, diags
 	}
 
-	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, waiter)
+	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, providers, waiter)
 	diags = diags.Append(applyDiags)
 	return updated, diags
 }

@@ -5,6 +5,7 @@ package stackconfig
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -74,6 +75,11 @@ func (config *Config) Component(component stackaddrs.ConfigComponent) *Component
 type ConfigNode struct {
 	// Stack is the definition of this node in the stack tree.
 	Stack *Stack
+
+	// Source is the source address of this stack. This is mainly used to
+	// ensure consistency in places where a stack might be initialised in
+	// multiple places (like in different source blocks).
+	Source sourceaddrs.FinalSource
 
 	// Children describes all of the embedded stacks nested directly beneath
 	// this node in the stack tree. The keys match the labels on the "stack"
@@ -149,6 +155,7 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 
 	ret := &ConfigNode{
 		Stack:    stack,
+		Source:   sourceAddr,
 		Children: make(map[string]*ConfigNode),
 	}
 	for _, call := range stack.EmbeddedStacks {
@@ -165,6 +172,7 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 			})
 			continue
 		}
+		call.FinalSourceAddr = effectiveSourceAddr
 
 		if len(callers) == maxEmbeddedStackNesting {
 			var callersBuf strings.Builder
@@ -190,6 +198,85 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		}
 	}
 
+	var removedTargets []stackaddrs.ConfigStackCall
+	for target := range stack.RemovedEmbeddedStacks.All() {
+		// removed embedded stacks can point to deeply embedded stacks,
+		// which we actually want to load into the embedded stacks if they
+		// naturally exist. But, the parents of those deeply embedded stacks
+		// will only exist if we have already added their parents to the
+		// tree of objects. So, we're going to store all our removed blocks
+		// in a flattened list and sort them so we add children before
+		// grandchildren and onwards and properly build the list to place
+		// everything in the correct place.
+		removedTargets = append(removedTargets, target)
+	}
+
+	sort.Slice(removedTargets, func(i, j int) bool {
+		return len(removedTargets[i].Stack) < len(removedTargets[j].Stack)
+	})
+
+	for _, target := range removedTargets {
+		for _, block := range stack.RemovedEmbeddedStacks.Get(target) {
+			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, block.SourceAddr, block.VersionConstraints, sources)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid source address",
+					Detail: fmt.Sprintf(
+						"Cannot use %q as a source address here: %s.",
+						block.SourceAddr, err,
+					),
+					Subject: block.SourceAddrRange.ToHCL().Ptr(),
+				})
+				continue
+			}
+			block.FinalSourceAddr = effectiveSourceAddr
+
+			current := ret
+			for _, step := range target.Stack {
+				current = current.Children[step.Name]
+				if current == nil {
+					// this is invalid, we can't have orphaned removed blocks
+					// so we'll just return an error and skip this block.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid removed block",
+						Detail:   "The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
+						Subject:  block.DeclRange.ToHCL().Ptr(),
+					})
+					break
+				}
+			}
+
+			if current != nil {
+				next := target.Item.Name
+				if childNode, ok := current.Children[next]; ok {
+					// Then we've already loaded the configuration for this
+					// stack in the direct stack call or in another removed
+					// block.
+
+					if childNode.Source != block.FinalSourceAddr {
+						// but apparently the blocks don't agree on what the
+						// source should be here, so that is an error
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid source address",
+							Detail:   fmt.Sprintf("Cannot use %q as a source address here: the target stack is already initialised with another source %q.", block.FinalSourceAddr, childNode.Source),
+							Subject:  block.SourceAddrRange.ToHCL().Ptr(),
+						})
+					}
+					continue
+				}
+
+				childNode, moreDiags := loadConfigDir(effectiveSourceAddr, sources, append(callers, sourceAddr))
+				diags = diags.Append(moreDiags)
+				if childNode != nil {
+					current.Children[next] = childNode
+				}
+			}
+		}
+	}
+
 	// We'll also populate the FinalSourceAddr field on each component,
 	// so that callers can know the final absolute address of this
 	// component's root module without having to retrace through our
@@ -212,7 +299,15 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		cmpn.FinalSourceAddr = effectiveSourceAddr
 	}
 
-	for _, blocks := range stack.Removed.All() {
+	for addr, blocks := range stack.RemovedComponents.All() {
+
+		var source sourceaddrs.FinalSource
+		if len(addr.Stack) == 0 {
+			if cmpn, ok := stack.Components[addr.Item.Name]; ok {
+				source = cmpn.FinalSourceAddr
+			}
+		}
+
 		for _, rmvd := range blocks {
 			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
 			if err != nil {
@@ -226,6 +321,17 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 					Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
 				})
 				continue
+			}
+
+			if source == nil {
+				source = effectiveSourceAddr
+			} else if source != effectiveSourceAddr {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid source address",
+					Detail:   fmt.Sprintf("Cannot use %q as a source address here: the target stack is already initialised with another source %q.", effectiveSourceAddr, source),
+					Subject:  rmvd.SourceAddrRange.ToHCL().Ptr(),
+				})
 			}
 
 			rmvd.FinalSourceAddr = effectiveSourceAddr

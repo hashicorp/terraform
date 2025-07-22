@@ -59,6 +59,10 @@ type Scope struct {
 	// this data structure and will assume this entire structure is immutable.
 	ExternalFuncs ExternalFuncs
 
+	// FunctionResults stores the results from possibly impure functions to
+	// check for consistency between plan and apply.
+	FunctionResults *FunctionResults
+
 	funcs     map[string]function.Function
 	funcsLock sync.Mutex
 

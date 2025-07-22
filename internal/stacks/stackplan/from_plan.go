@@ -70,7 +70,7 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 		PlannedInputValueMarks:         plan.VariableMarks,
 		PlannedOutputValues:            outputs,
 		PlannedCheckResults:            plan.Checks,
-		PlannedProviderFunctionResults: plan.ProviderFunctionResults,
+		PlannedProviderFunctionResults: plan.FunctionResults,
 
 		// We must remember the plan timestamp so that the plantimestamp
 		// function can return a consistent result during a later apply phase.

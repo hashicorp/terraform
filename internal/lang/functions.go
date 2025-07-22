@@ -91,16 +91,16 @@ func (s *Scope) Functions() map[string]function.Function {
 			"endswith":         funcs.EndsWithFunc,
 			"ephemeralasnull":  funcs.EphemeralAsNullFunc,
 			"chunklist":        stdlib.ChunklistFunc,
-			"file":             funcs.MakeFileFunc(s.BaseDir, false),
-			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir),
-			"fileset":          funcs.MakeFileSetFunc(s.BaseDir),
-			"filebase64":       funcs.MakeFileFunc(s.BaseDir, true),
-			"filebase64sha256": funcs.MakeFileBase64Sha256Func(s.BaseDir),
-			"filebase64sha512": funcs.MakeFileBase64Sha512Func(s.BaseDir),
-			"filemd5":          funcs.MakeFileMd5Func(s.BaseDir),
-			"filesha1":         funcs.MakeFileSha1Func(s.BaseDir),
-			"filesha256":       funcs.MakeFileSha256Func(s.BaseDir),
-			"filesha512":       funcs.MakeFileSha512Func(s.BaseDir),
+			"file":             funcs.MakeFileFunc(s.BaseDir, false, immutableResults("file", s.FunctionResults)),
+			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir, immutableResults("fileexists", s.FunctionResults)),
+			"fileset":          funcs.MakeFileSetFunc(s.BaseDir, immutableResults("fileset", s.FunctionResults)),
+			"filebase64":       funcs.MakeFileFunc(s.BaseDir, true, immutableResults("filebase64", s.FunctionResults)),
+			"filebase64sha256": funcs.MakeFileBase64Sha256Func(s.BaseDir, immutableResults("filebase64sha256", s.FunctionResults)),
+			"filebase64sha512": funcs.MakeFileBase64Sha512Func(s.BaseDir, immutableResults("filebase64sha512", s.FunctionResults)),
+			"filemd5":          funcs.MakeFileMd5Func(s.BaseDir, immutableResults("filemd5", s.FunctionResults)),
+			"filesha1":         funcs.MakeFileSha1Func(s.BaseDir, immutableResults("filesha1", s.FunctionResults)),
+			"filesha256":       funcs.MakeFileSha256Func(s.BaseDir, immutableResults("filesha256", s.FunctionResults)),
+			"filesha512":       funcs.MakeFileSha512Func(s.BaseDir, immutableResults("filesha512", s.FunctionResults)),
 			"flatten":          stdlib.FlattenFunc,
 			"floor":            stdlib.FloorFunc,
 			"format":           stdlib.FormatFunc,
@@ -190,7 +190,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			// overwriting the relevant entries.
 			return s.funcs, filesystemFunctions, templateFunctions
 		}
-		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc)
+		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc, immutableResults("templatefile", s.FunctionResults))
 		coreFuncs["templatestring"] = funcs.MakeTemplateStringFunc(funcsFunc)
 
 		if s.ConsoleMode {
@@ -301,16 +301,16 @@ func baseFunctions(baseDir string) map[string]function.Function {
 		"element":          stdlib.ElementFunc,
 		"endswith":         funcs.EndsWithFunc,
 		"chunklist":        stdlib.ChunklistFunc,
-		"file":             funcs.MakeFileFunc(baseDir, false),
-		"fileexists":       funcs.MakeFileExistsFunc(baseDir),
-		"fileset":          funcs.MakeFileSetFunc(baseDir),
-		"filebase64":       funcs.MakeFileFunc(baseDir, true),
-		"filebase64sha256": funcs.MakeFileBase64Sha256Func(baseDir),
-		"filebase64sha512": funcs.MakeFileBase64Sha512Func(baseDir),
-		"filemd5":          funcs.MakeFileMd5Func(baseDir),
-		"filesha1":         funcs.MakeFileSha1Func(baseDir),
-		"filesha256":       funcs.MakeFileSha256Func(baseDir),
-		"filesha512":       funcs.MakeFileSha512Func(baseDir),
+		"file":             funcs.MakeFileFunc(baseDir, false, noopWrapper),
+		"fileexists":       funcs.MakeFileExistsFunc(baseDir, noopWrapper),
+		"fileset":          funcs.MakeFileSetFunc(baseDir, noopWrapper),
+		"filebase64":       funcs.MakeFileFunc(baseDir, true, noopWrapper),
+		"filebase64sha256": funcs.MakeFileBase64Sha256Func(baseDir, noopWrapper),
+		"filebase64sha512": funcs.MakeFileBase64Sha512Func(baseDir, noopWrapper),
+		"filemd5":          funcs.MakeFileMd5Func(baseDir, noopWrapper),
+		"filesha1":         funcs.MakeFileSha1Func(baseDir, noopWrapper),
+		"filesha256":       funcs.MakeFileSha256Func(baseDir, noopWrapper),
+		"filesha512":       funcs.MakeFileSha512Func(baseDir, noopWrapper),
 		"flatten":          stdlib.FlattenFunc,
 		"floor":            stdlib.FloorFunc,
 		"format":           stdlib.FormatFunc,
@@ -394,7 +394,7 @@ func baseFunctions(baseDir string) map[string]function.Function {
 		// The templatefile function prevents recursive calls to itself
 		// by copying this map and overwriting the "templatefile" entry.
 		return fs, filesystemFunctions, templateFunctions
-	})
+	}, noopWrapper)
 
 	return fs
 }
@@ -440,4 +440,34 @@ func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn funct
 // to conform to the expected function return value conventions.
 type ExternalFuncs struct {
 	Provider map[string]map[string]function.Function
+}
+
+// immutableResults is a wrapper for cty function implementations which may
+// otherwise not return consistent results because they depends on data outside
+// of Terraform. Due to the fact that the cty functions are a concrete type, and
+// the implementation is hidden within a private struct field, we need to pass
+// along these closures to get the data to the actual call site.
+func immutableResults(name string, priorResults *FunctionResults) func(fn function.ImplFunc) function.ImplFunc {
+	if priorResults == nil {
+		return func(fn function.ImplFunc) function.ImplFunc {
+			return fn
+		}
+	}
+	return func(fn function.ImplFunc) function.ImplFunc {
+		return func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			res, err := fn(args, retType)
+			if err != nil {
+				return res, err
+			}
+			err = priorResults.CheckPrior(name, args, res)
+			if err != nil {
+				return cty.UnknownVal(retType), err
+			}
+			return res, err
+		}
+	}
+}
+
+func noopWrapper(fn function.ImplFunc) function.ImplFunc {
+	return fn
 }

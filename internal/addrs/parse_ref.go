@@ -23,7 +23,7 @@ type Reference struct {
 }
 
 // DisplayString returns a string that approximates the subject and remaining
-// traversal of the reciever in a way that resembles the Terraform language
+// traversal of the receiver in a way that resembles the Terraform language
 // syntax that could've produced it.
 //
 // It's not guaranteed to actually be a valid Terraform language expression,
@@ -59,7 +59,7 @@ func (r *Reference) DisplayString() string {
 	return ret.String()
 }
 
-// ParseRef attempts to extract a referencable address from the prefix of the
+// ParseRef attempts to extract a referenceable address from the prefix of the
 // given traversal, which must be an absolute traversal or this function
 // will panic.
 //
@@ -259,7 +259,18 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		}
 		remain := traversal[1:] // trim off "ephemeral" so we can use our shared resource reference parser
 		return parseResourceRef(EphemeralResourceMode, rootRange, remain)
-
+	case "list":
+		if len(traversal) < 3 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "list" object must be followed by two attribute names: the list resource type and the list resource name.`,
+				Subject:  traversal.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		remain := traversal[1:] // trim off "list" so we can use our shared resource reference parser
+		return parseResourceRef(ListResourceMode, rootRange, remain)
 	case "local":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{
@@ -384,6 +395,18 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		})
 		return nil, diags
 
+	case "action":
+		if len(traversal) < 3 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "action" object must be followed by two attribute names: the action type and the action name.`,
+				Subject:  traversal.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		remain := traversal[1:] // trim off "action"
+		return parseActionRef(rootRange, remain)
 	default:
 		return parseResourceRef(ManagedResourceMode, rootRange, traversal)
 	}
@@ -537,4 +560,91 @@ func parseSingleAttrRef(traversal hcl.Traversal) (string, hcl.Range, hcl.Travers
 		Subject:  traversal[1].SourceRange().Ptr(),
 	})
 	return "", hcl.Range{}, nil, diags
+}
+
+// similar to parseResourceRef, but for Actions (which don't have Modes, so it's simpler!)
+func parseActionRef(startRange hcl.Range, traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if len(traversal) < 2 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid reference",
+			Detail:   `A reference to an action type must be followed by at least one attribute access, specifying the action name.`,
+			Subject:  hcl.RangeBetween(traversal[0].SourceRange(), traversal[len(traversal)-1].SourceRange()).Ptr(),
+		})
+		return nil, diags
+	}
+
+	var typeName, name string
+	switch tt := traversal[0].(type) { // Could be either root or attr, depending on our resource mode
+	case hcl.TraverseRoot:
+		typeName = tt.Name
+	case hcl.TraverseAttr:
+		typeName = tt.Name
+	default:
+		// Shouldn't get here, but we'll still return a minimally-passable error
+		// message.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid reference",
+			Detail:   `The left operand does not support this operation.`,
+			Subject:  traversal[0].SourceRange().Ptr(),
+		})
+	}
+
+	attrTrav, ok := traversal[1].(hcl.TraverseAttr)
+	if !ok {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid reference",
+			Detail:   `A reference to an action must be followed by at least one attribute access, specifying the action name.`,
+			Subject:  traversal[1].SourceRange().Ptr(),
+		})
+		return nil, diags
+	}
+	name = attrTrav.Name
+	rng := hcl.RangeBetween(startRange, attrTrav.SrcRange)
+	remain := traversal[2:]
+
+	actionAddr := Action{
+		Type: typeName,
+		Name: name,
+	}
+	actionInstAddr := ActionInstance{
+		Action: actionAddr,
+		Key:    NoKey,
+	}
+
+	if len(remain) == 0 {
+		// This might actually be a reference to the collection of all instances
+		// of the resource, but we don't have enough context here to decide
+		// so we'll let the caller resolve that ambiguity.
+		return &Reference{
+			Subject:     actionAddr,
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+		}, diags
+	}
+
+	if idxTrav, ok := remain[0].(hcl.TraverseIndex); ok {
+		var err error
+		actionInstAddr.Key, err = ParseInstanceKey(idxTrav.Key)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid index key",
+				Detail:   fmt.Sprintf("Invalid index for resource instance: %s.", err),
+				Subject:  &idxTrav.SrcRange,
+			})
+			return nil, diags
+		}
+		remain = remain[1:]
+		rng = hcl.RangeBetween(rng, idxTrav.SrcRange)
+	}
+
+	return &Reference{
+		Subject:     actionInstAddr,
+		SourceRange: tfdiags.SourceRangeFromHCL(rng),
+		Remaining:   remain,
+	}, diags
 }

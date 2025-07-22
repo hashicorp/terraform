@@ -17,9 +17,9 @@ import (
 
 const initialLanguageEdition = "TFStack2023"
 
-// File represents the content of a single .tfstack.hcl or .tfstack.json file
-// before it's been merged with its siblings in the same directory to produce
-// the overall [Stack] object.
+// File represents the content of a single .tfcomponent.hcl or .tfcomponent.json
+// file before it's been merged with its siblings in the same directory to
+// produce the overall [Stack] object.
 type File struct {
 	// SourceAddr is the source location for this particular file, meaning
 	// that the "sub-path" portion of the address should always be populated
@@ -30,7 +30,8 @@ type File struct {
 }
 
 // DecodeFileBody takes a body that is assumed to represent the root of a
-// .tfstack.hcl or .tfstack.json file and decodes the declarations inside.
+// .tfcomponent.hcl or .tfcomponent.json file and decodes the declarations
+// inside.
 //
 // If you have a []byte containing source code then consider using [ParseFile]
 // instead, which parses the source code and then delegates to this function.
@@ -154,28 +155,34 @@ func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfd
 	return ret, diags
 }
 
-// ParseFileSource parses the given source code as the content of either a
-// .tfstack.hcl or .tfstack.json file, and then delegates the result to
-// [DecodeFileBody] for analysis, returning that final result.
+// ParseFileSource parses the given source code as the content of a Stacks
+// component file and then delegates the result to [DecodeFileBody] for
+// analysis, returning that final result.
+//
+// For now, we support both the .tfstack. and .tfcomponent. file suffixes while
+// the former is still in the process of being deprecated. It is not valid for
+// a single stack to mix and match the two options. We are, therefore, accepting
+// a "prior suffix" argument which lets us know which suffix was used by other
+// files in this stack.
 //
 // ParseFileSource chooses between native vs. JSON syntax based on the suffix
 // of the filename in the given source address, which must be either
-// ".tfstack.hcl" or ".tfstack.json".
-func ParseFileSource(src []byte, fileAddr sourceaddrs.FinalSource) (*File, tfdiags.Diagnostics) {
+// ".[tfstack|tfcomponent].hcl" or ".[tfstack|tfcomponent].json".
+func ParseFileSource(src []byte, suffix string, fileAddr sourceaddrs.FinalSource) (*File, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	filename := sourceaddrs.FinalSourceFilename(fileAddr)
 
 	var body hcl.Body
-	switch validFilenameSuffix(filename) {
-	case ".tfstack.hcl":
+	switch {
+	case strings.HasSuffix(filename, fmt.Sprintf(".%s.hcl", suffix)):
 		hclFile, hclDiags := hclsyntax.ParseConfig(src, fileAddr.String(), hcl.InitialPos)
 		diags = diags.Append(hclDiags)
 		if diags.HasErrors() {
 			return nil, diags
 		}
 		body = hclFile.Body
-	case ".tfstack.json":
+	case strings.HasSuffix(filename, fmt.Sprintf(".%s.json", suffix)):
 		hclFile, hclDiags := hcljson.Parse(src, fileAddr.String())
 		diags = diags.Append(hclDiags)
 		if diags.HasErrors() {
@@ -187,8 +194,8 @@ func ParseFileSource(src []byte, fileAddr sourceaddrs.FinalSource) (*File, tfdia
 			tfdiags.Error,
 			"Unsupported file type",
 			fmt.Sprintf(
-				"Cannot load %s as a stack configuration file: filename must have either a .tfstack.hcl or .tfstack.json suffix.",
-				fileAddr,
+				"Cannot load %s as a stack configuration file: filename must have either a .%s.hcl or .%s.json suffix.",
+				fileAddr, suffix, suffix,
 			),
 		))
 		return nil, diags
@@ -199,18 +206,26 @@ func ParseFileSource(src []byte, fileAddr sourceaddrs.FinalSource) (*File, tfdia
 	return ret, diags
 }
 
-// validFilenameSuffix returns ".tfstack.hcl" or ".tfstack.json" if the
+// validFilenameSuffix returns ".tfcomponent.hcl" or ".tfcomponent.json" if the
 // given filename ends with that suffix, and otherwise returns an empty
 // string to indicate that the suffix was invalid.
+//
+// We still support the deprecated .tfstack suffix for the time being.
 func validFilenameSuffix(filename string) string {
-	const nativeSuffix = ".tfstack.hcl"
-	const jsonSuffix = ".tfstack.json"
+	const nativeSuffix = ".tfcomponent.hcl"
+	const jsonSuffix = ".tfcomponent.json"
+	const deprecatedNativeSuffix = ".tfstack.hcl"
+	const deprecatedJsonSuffix = ".tfstack.json"
 
 	switch {
+	case strings.HasSuffix(filename, deprecatedNativeSuffix):
+		return "tfstack"
+	case strings.HasSuffix(filename, deprecatedJsonSuffix):
+		return "tfstack"
 	case strings.HasSuffix(filename, nativeSuffix):
-		return nativeSuffix
+		return "tfcomponent"
 	case strings.HasSuffix(filename, jsonSuffix):
-		return jsonSuffix
+		return "tfcomponent"
 	default:
 		return ""
 	}

@@ -18,9 +18,9 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/cloudplugin"
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudplugin1"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/pluginshared"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -112,7 +112,7 @@ func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	// Proxy the request
 	// Note: future changes will need to determine the type of raw when
 	// multiple versions are possible.
-	cloud1, ok := raw.(cloudplugin.Cloud1)
+	cloud1, ok := raw.(pluginshared.CustomPluginClient)
 	if !ok {
 		c.Ui.Error("If more than one cloudplugin versions are available, they need to be added to the cloud command. This is a bug in Terraform.")
 		return ExitRPCError
@@ -133,7 +133,7 @@ func (c *CloudCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		return diags
 	}
 	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
+		BackendConfig: backendConfig,
 	})
 	diags = diags.Append(backendDiags)
 	if diags.HasErrors() {
@@ -217,7 +217,7 @@ func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
 
 	overridePath := os.Getenv("TF_CLOUD_PLUGIN_DEV_OVERRIDE")
 
-	bm, err := cloudplugin.NewBinaryManager(ctx, packagesPath, overridePath, c.pluginService, runtime.GOOS, runtime.GOARCH)
+	bm, err := pluginshared.NewCloudBinaryManager(ctx, packagesPath, overridePath, c.pluginService, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
 	}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -16,12 +16,16 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type GraphNodeExecutable interface {
+	Execute(ctx *EvalContext)
+}
+
 // TestGraphBuilder is a GraphBuilder implementation that builds a graph for
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
 type TestGraphBuilder struct {
+	Config         *configs.Config
 	File           *moduletest.File
-	GlobalVars     map[string]backendrun.UnparsedVariableValue
 	ContextOpts    *terraform.ContextOpts
 	BackendFactory func(string) backend.InitFn
 	StateManifest  *TestManifest
@@ -30,7 +34,6 @@ type TestGraphBuilder struct {
 
 type graphOptions struct {
 	File          *moduletest.File
-	GlobalVars    map[string]backendrun.UnparsedVariableValue
 	ContextOpts   *terraform.ContextOpts
 	StateManifest *TestManifest
 	CommandMode   moduletest.CommandMode
@@ -42,7 +45,6 @@ func (b *TestGraphBuilder) Build(ctx *EvalContext) (*terraform.Graph, tfdiags.Di
 	log.Printf("[TRACE] building graph for terraform test")
 	opts := &graphOptions{
 		File:          b.File,
-		GlobalVars:    b.GlobalVars,
 		ContextOpts:   b.ContextOpts,
 		StateManifest: b.StateManifest,
 		CommandMode:   b.CommandMode,
@@ -58,16 +60,15 @@ func (b *TestGraphBuilder) Build(ctx *EvalContext) (*terraform.Graph, tfdiags.Di
 func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts: opts, skip: b.CommandMode == moduletest.CleanupMode},
+		&TestVariablesTransformer{File: b.File},
 		&TestStateTransformer{graphOptions: opts, BackendFactory: b.BackendFactory},
-		terraform.DynamicTransformer(validateRunConfigs(opts)),
-		&TestProvidersTransformer{},
+		terraform.DynamicTransformer(validateRunConfigs),
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
-			cleanup := &CleanupSubGraph{opts: opts}
+			cleanup := &TeardownSubgraph{opts: opts, parent: g}
 			g.Add(cleanup)
 
-			// ensure that the cleanup node is connected to all nodes,
-			// so that it runs last.
-			for v := range dag.ExcludeSeq(g.VerticesSeq(), func(*CleanupSubGraph) {}) {
+			// ensure that the teardown node runs after all the run nodes
+			for v := range dag.ExcludeSeq[*TeardownSubgraph](g.VerticesSeq()) {
 				if g.UpEdges(v).Len() == 0 {
 					g.Connect(dag.BasicEdge(cleanup, v))
 				}
@@ -75,6 +76,12 @@ func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransforme
 
 			return nil
 		}),
+		&TestProvidersTransformer{
+			Config:    b.Config,
+			File:      b.File,
+			Providers: opts.ContextOpts.Providers,
+		},
+		&ReferenceTransformer{},
 		&CloseTestGraphTransformer{},
 		&terraform.TransitiveReductionTransformer{},
 	}
@@ -82,33 +89,29 @@ func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransforme
 	return steps
 }
 
-func validateRunConfigs(opts *graphOptions) func(g *terraform.Graph) error {
-	return func(g *terraform.Graph) error {
-		for _, run := range opts.File.Runs {
-			diags := run.Config.Validate(run.ModuleConfig)
-			run.Diagnostics = run.Diagnostics.Append(diags)
-			if diags.HasErrors() {
-				run.Status = moduletest.Error
-			}
+func validateRunConfigs(g *terraform.Graph) error {
+	for node := range dag.SelectSeq[*NodeTestRun](g.VerticesSeq()) {
+		diags := node.run.Config.Validate(node.run.ModuleConfig)
+		node.run.Diagnostics = node.run.Diagnostics.Append(diags)
+		if diags.HasErrors() {
+			node.run.Status = moduletest.Error
 		}
-		return nil
 	}
+	return nil
 }
 
 // dynamicNode is a helper node which can be added to the graph to execute
 // a dynamic function at some desired point in the graph.
 type dynamicNode struct {
-	eval func(*EvalContext) tfdiags.Diagnostics
+	eval func(*EvalContext)
 }
 
-func (n *dynamicNode) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	return n.eval(evalCtx)
+func (n *dynamicNode) Execute(evalCtx *EvalContext) {
+	n.eval(evalCtx)
 }
 
 func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
-
-	// Walk the graph.
-	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+	walkFn := func(v dag.Vertex) tfdiags.Diagnostics {
 		if ctx.Cancelled() {
 			// If the graph walk has been cancelled, the node should just return immediately.
 			// For now, this means a hard stop has been requested, in this case we don't
@@ -116,7 +119,7 @@ func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
 			// just show up as pending in the printed summary. We will quickly
 			// just mark the overall file status has having errored to indicate
 			// it was interrupted.
-			return
+			return nil
 		}
 
 		// the walkFn is called asynchronously, and needs to be recovered
@@ -133,28 +136,20 @@ func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
 				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
 				panic(r) // re-panic
 			}
-
-			if diags.HasErrors() {
-				for _, diag := range diags {
-					if diag.Severity() == tfdiags.Error {
-						desc := diag.Description()
-						log.Printf("[ERROR] vertex %q error: %s", dag.VertexName(v), desc.Summary)
-					}
-				}
-				log.Printf("[TRACE] vertex %q: visit complete, with errors", dag.VertexName(v))
-			} else {
-				log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
-			}
+			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
 		}()
 
-		// Acquire a lock on the semaphore
-		ctx.semaphore.Acquire()
-		defer ctx.semaphore.Release()
+		// expandable nodes are not executed, but they are walked and
+		// their children are executed, so they need not acquire the semaphore themselves.
+		if _, ok := v.(Subgrapher); !ok {
+			ctx.evalSem.Acquire()
+			defer ctx.evalSem.Release()
+		}
 
 		if executable, ok := v.(GraphNodeExecutable); ok {
-			diags = executable.Execute(ctx)
+			executable.Execute(ctx)
 		}
-		return
+		return nil
 	}
 
 	return g.AcyclicGraph.Walk(walkFn)

@@ -50,6 +50,8 @@ type ConfigTransformer struct {
 	// try to delete the imported resource unless the config is updated
 	// manually.
 	generateConfigPathForImportTargets string
+
+	resourceMatcher func(addrs.ResourceMode) bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -100,6 +102,9 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		for _, r := range module.DataResources {
 			allResources = append(allResources, r)
 		}
+		for _, r := range module.ListResources {
+			allResources = append(allResources, r)
+		}
 	}
 
 	// ephemeral resources act like temporary values and must be added to the
@@ -124,11 +129,28 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 	}
 
+	for _, a := range module.Actions {
+		if a != nil {
+			addr := a.Addr().InModule(path)
+			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
+			node := &nodeExpandActionDeclaration{
+				Addr:   addr,
+				Config: *a,
+			}
+			g.Add(node)
+		}
+	}
+
 	for _, r := range allResources {
 		relAddr := r.Addr()
 
 		if t.ModeFilter && relAddr.Mode != t.Mode {
 			// Skip non-matching modes
+			continue
+		}
+
+		if t.resourceMatcher != nil && !t.resourceMatcher(r.Mode) {
+			// Skip resources that do not match the filter
 			continue
 		}
 
@@ -164,11 +186,12 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 
 		abstract := &NodeAbstractResource{
-			Addr: addrs.ConfigResource{
-				Resource: relAddr,
-				Module:   path,
-			},
+			Addr:          configAddr,
 			importTargets: imports,
+		}
+
+		if r.List != nil {
+			abstract.generateConfigPath = t.generateConfigPathForImportTargets
 		}
 
 		var node dag.Vertex = abstract
@@ -182,6 +205,11 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// If any import targets were not claimed by resources we may be
 	// generating configuration. Add them to the graph for validation.
 	for _, i := range importTargets {
+		if t.resourceMatcher != nil && !t.resourceMatcher(i.Config.ToResource.Resource.Mode) {
+			// Skip resources that do not match the filter
+			continue
+		}
+
 		log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
 
 		// TODO: if config generation is ever supported for for_each

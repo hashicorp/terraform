@@ -45,41 +45,59 @@ func newInputVariable(main *Main, addr stackaddrs.AbsInputVariable, stack *Stack
 }
 
 // DefinedByStackCallInstance returns the stack call which ought to provide
-// the definition (i.e. the final value) of this input variable.
+// the definition (i.e. the final value) of this input variable. The source
+// of the stack could either be a regular stack call instance or a removed
+// stack call instance. One of the two will be returned. They are mutually
+// exclusive as it is an error for two blocks to create the same stack instance.
 //
 // Returns nil if this input variable belongs to the main stack, because
 // the main stack's input variables come from the planning options instead.
-// Also returns nil if the reciever belongs to a stack config instance
+//
+// Also returns nil if the receiver belongs to a stack config instance
 // that isn't actually declared in the configuration, which typically suggests
 // that we don't yet know the number of instances of one of the stack calls
 // along the chain.
-func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase EvalPhase) *StackCallInstance {
+func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase EvalPhase) (*StackCallInstance, *RemovedStackCallInstance) {
 	declarerAddr := v.addr.Stack
 	if declarerAddr.IsRoot() {
-		return nil
+		return nil, nil
 	}
 
 	callAddr := declarerAddr.Call()
-	callerCalls := v.stack.parent.EmbeddedStackCalls()
-	call := callerCalls[callAddr.Item]
-	if call == nil {
-		// Suggests that we're descended from a stack call that doesn't
-		// actually exist, which is odd but we'll tolerate it.
-		return nil
-	}
-	callInsts, unknown := call.Instances(ctx, phase)
-	if unknown {
-		// Return our static unknown instance for this variable.
-		return call.UnknownInstance(ctx, phase)
-	}
-	if callInsts == nil {
-		// Could get here if the call's for_each is invalid.
-		return nil
+
+	if call := v.stack.parent.EmbeddedStackCall(callAddr.Item); call != nil {
+		lastStep := declarerAddr[len(declarerAddr)-1]
+		instKey := lastStep.Key
+
+		callInsts, unknown := call.Instances(ctx, phase)
+		if unknown {
+			// Return our static unknown instance for this variable.
+			return call.UnknownInstance(ctx, instKey, phase), nil
+		}
+		if inst, ok := callInsts[instKey]; ok {
+			return inst, nil
+		}
+
+		// otherwise, let's check if we have any removed calls that match the
+		// target instance
 	}
 
-	lastStep := declarerAddr[len(declarerAddr)-1]
-	instKey := lastStep.Key
-	return callInsts[instKey]
+	if calls := v.stack.parent.RemovedEmbeddedStackCall(callAddr.Item); calls != nil {
+		for _, call := range calls {
+			callInsts, unknown := call.InstancesFor(ctx, v.stack.addr, phase)
+			if unknown {
+				return nil, call.UnknownInstance(ctx, v.stack.addr, phase)
+			}
+			for _, inst := range callInsts {
+				// because we used the exact v.stack.addr in InstancesFor above
+				// then we should have at most one entry here if there were any
+				// matches.
+				return nil, inst
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func (v *InputVariable) Value(ctx context.Context, phase EvalPhase) cty.Value {
@@ -173,8 +191,25 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 				return cfg.markValue(val), diags
 
 			default:
-				definedByCallInst := v.DefinedByStackCallInstance(ctx, phase)
-				if definedByCallInst == nil {
+				definedByCallInst, definedByRemovedCallInst := v.DefinedByStackCallInstance(ctx, phase)
+				switch {
+				case definedByCallInst != nil:
+					allVals := definedByCallInst.InputVariableValues(ctx, phase)
+					val := allVals.GetAttr(v.addr.Item.Name)
+
+					// TODO: check the value against any custom validation rules
+					// declared in the configuration.
+
+					return cfg.markValue(val), diags
+				case definedByRemovedCallInst != nil:
+					allVals, _ := definedByRemovedCallInst.InputVariableValues(ctx, phase)
+					val := allVals.GetAttr(v.addr.Item.Name)
+
+					// TODO: check the value against any custom validation rules
+					// declared in the configuration.
+
+					return cfg.markValue(val), diags
+				default:
 					// We seem to belong to a call instance that doesn't actually
 					// exist in the configuration. That either means that
 					// something's gone wrong or we are descended from a stack
@@ -182,14 +217,6 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					// the latter and return a placeholder.
 					return cfg.markValue(cty.UnknownVal(v.config.config.Type.Constraint)), diags
 				}
-
-				allVals := definedByCallInst.InputVariableValues(ctx, phase)
-				val := allVals.GetAttr(v.addr.Item.Name)
-
-				// TODO: check the value against any custom validation rules
-				// declared in the configuration.
-
-				return cfg.markValue(val), diags
 			}
 		},
 	)

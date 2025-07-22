@@ -554,6 +554,7 @@ type expanderModule struct {
 	moduleCalls    map[addrs.ModuleCall]expansion
 	resources      map[addrs.Resource]expansion
 	childInstances map[addrs.ModuleInstanceStep]*expanderModule
+	actions        map[addrs.Action]expansion
 
 	// overrides ensures that any overridden modules instances will not be
 	// returned as options for expansion. A nil overrides indicates there are
@@ -565,6 +566,7 @@ func newExpanderModule(overrides *mocking.Overrides) *expanderModule {
 	return &expanderModule{
 		moduleCalls:    make(map[addrs.ModuleCall]expansion),
 		resources:      make(map[addrs.Resource]expansion),
+		actions:        make(map[addrs.Action]expansion),
 		childInstances: make(map[addrs.ModuleInstanceStep]*expanderModule),
 		overrides:      overrides,
 	}
@@ -890,4 +892,143 @@ func (m *expanderModule) knowsResource(want addrs.AbsResource) bool {
 	}
 	_, ret := modInst.resources[want.Resource]
 	return ret
+}
+
+// SetActionSingle records that the given resource inside the given module
+// does not use any repetition arguments and is therefore a singleton.
+func (e *Expander) SetActionSingle(moduleAddr addrs.ModuleInstance, actionAddr addrs.Action) {
+	e.setActionExpansion(moduleAddr, actionAddr, expansionSingleVal)
+}
+
+// SetActionCount records that the given resource inside the given module
+// uses the "count" repetition argument, with the given value.
+func (e *Expander) SetActionCount(moduleAddr addrs.ModuleInstance, actionAddr addrs.Action, count int) {
+	e.setActionExpansion(moduleAddr, actionAddr, expansionCount(count))
+}
+
+// SetActionCountUnknown records that the given resource inside the given
+// module uses the "count" repetition argument but its value isn't yet known.
+func (e *Expander) SetActionCountUnknown(moduleAddr addrs.ModuleInstance, actionAddr addrs.Action) {
+	e.setActionExpansion(moduleAddr, actionAddr, expansionDeferredIntKey)
+}
+
+// SetActionForEach records that the given resource inside the given module
+// uses the "for_each" repetition argument, with the given map value.
+//
+// In the configuration language the for_each argument can also accept a set.
+// It's the caller's responsibility to convert that into an identity map before
+// calling this method.
+func (e *Expander) SetActionForEach(moduleAddr addrs.ModuleInstance, actionAddr addrs.Action, mapping map[string]cty.Value) {
+	e.setActionExpansion(moduleAddr, actionAddr, expansionForEach(mapping))
+}
+
+// SetResourceForEachUnknown records that the given resource inside the given
+// module uses the "for_each" repetition argument, but the map keys aren't
+// known yet.
+func (e *Expander) SetActionForEachUnknown(moduleAddr addrs.ModuleInstance, actionAddr addrs.Action) {
+	e.setActionExpansion(moduleAddr, actionAddr, expansionDeferredStringKey)
+}
+
+func (e *Expander) ExpandAction(actionAddr addrs.AbsAction) []addrs.AbsActionInstance {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	moduleInstanceAddr := make(addrs.ModuleInstance, 0, 4)
+	ret := e.exps.actionInstances(actionAddr.Module, actionAddr.Action, moduleInstanceAddr)
+	sort.SliceStable(ret, func(i, j int) bool {
+		return ret[i].Less(ret[j])
+	})
+	return ret
+}
+
+func (e *Expander) setActionExpansion(parentAddr addrs.ModuleInstance, actionAddr addrs.Action, exp expansion) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	mod, known := e.findModule(parentAddr)
+	if !known {
+		panic(fmt.Sprintf("can't register expansion in %s where path includes unknown expansion", parentAddr))
+	}
+	if _, exists := mod.actions[actionAddr]; exists {
+		panic(fmt.Sprintf("expansion already registered for %s", actionAddr.Absolute(parentAddr)))
+	}
+	mod.actions[actionAddr] = exp
+}
+
+func (m *expanderModule) actionInstances(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Action, parentAddr addrs.ModuleInstance) []addrs.AbsActionInstance {
+	if len(moduleAddr) > 0 {
+		// We need to traverse through the module levels first, using only the
+		// module instances for our specific resource, as the resource may not
+		// yet be expanded in all module instances.
+		step := moduleAddr[0]
+		callName := step.Name
+		if _, ok := m.moduleCalls[addrs.ModuleCall{Name: callName}]; !ok {
+			// This is a bug in the caller, because it should always register
+			// expansions for an object and all of its ancestors before requesting
+			// expansion of it.
+			panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(callName, addrs.NoKey)))
+		}
+
+		if inst, ok := m.childInstances[step]; ok {
+			moduleInstAddr := append(parentAddr, step)
+			return inst.actionInstances(moduleAddr[1:], resourceAddr, moduleInstAddr)
+		} else {
+			// If we have the module _call_ registered (as we checked above)
+			// but we don't have the given module _instance_ registered, that
+			// suggests that the module instance key in "step" is not declared
+			// by the current definition of this module call. That means the
+			// module instance doesn't exist at all, and therefore it can't
+			// possibly declare any resource instances either.
+			//
+			// For example, if we were asked about module.foo[0].aws_instance.bar
+			// but module.foo doesn't currently have count set, then there is no
+			// module.foo[0] at all, and therefore no aws_instance.bar
+			// instances inside it.
+			return nil
+		}
+	}
+	return m.onlyActionInstances(resourceAddr, parentAddr)
+}
+
+func (m *expanderModule) onlyActionInstances(actionAddr addrs.Action, parentAddr addrs.ModuleInstance) []addrs.AbsActionInstance {
+	var ret []addrs.AbsActionInstance
+	exp, ok := m.actions[actionAddr]
+	if !ok {
+		panic(fmt.Sprintf("no expansion has been registered for %s", actionAddr.Absolute(parentAddr)))
+	}
+	if expansionIsDeferred(exp) {
+		// We don't yet have enough information to determine the instance addresses.
+		return nil
+	}
+
+	_, knownKeys, _ := exp.instanceKeys()
+	for _, k := range knownKeys {
+		// We're reusing the buffer under parentAddr as we recurse through
+		// the structure, so we need to copy it here to produce a final
+		// immutable slice to return.
+		moduleAddr := make(addrs.ModuleInstance, len(parentAddr))
+		copy(moduleAddr, parentAddr)
+		ret = append(ret, actionAddr.Instance(k).Absolute(moduleAddr))
+	}
+	return ret
+}
+
+// GetActionInstanceRepetitionData returns an object describing the values
+// that should be available for each.key, each.value, and count.index within
+// the definition block for the given resource instance.
+func (e *Expander) GetActionInstanceRepetitionData(addr addrs.AbsActionInstance) RepetitionData {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	parentMod, known := e.findModule(addr.Module)
+	if !known {
+		// If we're nested inside something unexpanded then we don't even
+		// know what type of expansion we're doing.
+		return TotallyUnknownRepetitionData
+	}
+	exp, ok := parentMod.actions[addr.Action.Action]
+	if !ok {
+		panic(fmt.Sprintf("no expansion has been registered for %s", addr.ContainingAction()))
+	}
+	return exp.repetitionData(addr.Action.Key)
 }

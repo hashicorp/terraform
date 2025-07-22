@@ -8,13 +8,14 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func (m *migration) migrateComponents(components collections.Map[Instance, collections.Set[*stackResource]]) {
@@ -83,7 +84,7 @@ func (m *migration) calculateDependencies(components collections.Map[Instance, c
 	// First, we're going to work out the dependencies between components.
 	for addr, cmpnts := range cfgComponents.All() {
 		for resource := range cmpnts.All() {
-			instance := resource.AbsResource.Component
+			instance := resource.AbsResourceInstance.Component
 
 			compDepSet := collections.NewSet[AbsComponent]()
 

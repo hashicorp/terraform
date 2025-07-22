@@ -286,6 +286,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	dataResources := map[string]map[string]cty.Value{}
 	managedResources := map[string]map[string]cty.Value{}
 	ephemeralResources := map[string]map[string]cty.Value{}
+	listResources := map[string]map[string]cty.Value{}
 	wholeModules := map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
@@ -358,6 +359,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			rawSubj = addr.Call
 		case addrs.ModuleCallInstanceOutput:
 			rawSubj = addr.Call.Call
+		case addrs.ActionInstance:
+			rawSubj = addr.Action
 		}
 
 		switch subj := rawSubj.(type) {
@@ -370,6 +373,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				into = dataResources
 			case addrs.EphemeralResourceMode:
 				into = ephemeralResources
+			case addrs.ListResourceMode:
+				into = listResources
 			default:
 				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Mode))
 			}
@@ -433,6 +438,15 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			diags = diags.Append(valDiags)
 			runBlocks[subj.Name] = val
 
+		// Actions can not be accessed.
+		case addrs.Action:
+			return nil, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+				Subject:  rng.ToHCL().Ptr(),
+			})
+
 		default:
 			// Should never happen
 			panic(fmt.Errorf("Scope.buildEvalContext cannot handle address type %T", rawSubj))
@@ -475,6 +489,10 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	if self != cty.NilVal {
 		vals["self"] = self
+	}
+
+	if len(listResources) > 0 {
+		vals["list"] = cty.ObjectVal(buildResourceObjects(listResources))
 	}
 
 	return ctx, diags

@@ -141,7 +141,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Build Docker images
-        uses: hashicorp/actions-docker-build@11d43ef520c65f58683d048ce9b47d6617893c9a # v2
+        uses: hashicorp/actions-docker-build@200254326a30d7b747745592f8f4d226bbe4abe4 # v2.2.0
         with:
           pkg_name: "terraform_${{env.version}}"
           version: ${{env.version}}
@@ -190,7 +190,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Go toolchain
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
@@ -255,7 +255,7 @@ jobs:
           fail-on-cache-miss: true
           enableCrossOsArchive: true
       - name: "Download Terraform CLI package"
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         id: clipkg
         with:
           name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
@@ -300,11 +300,11 @@ jobs:
 
     steps:
       - name: Install Go toolchain
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - name: Download Terraform CLI package
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         id: clipkg
         with:
           name: terraform_${{ env.version }}_linux_amd64.zip

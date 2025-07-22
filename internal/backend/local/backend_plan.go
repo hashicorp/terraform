@@ -242,6 +242,21 @@ func maybeWriteGeneratedConfig(plan *plans.Plan, out string) (wroteConfig bool, 
 				return false, diags.Append(moreDiags)
 			}
 		}
+
+		// When running a list operation, the results are stored as queries and the
+		// resource changes above are not populated.
+		for _, q := range plan.Changes.Queries {
+			change := genconfig.Change{
+				Addr:            q.Addr.String(),
+				GeneratedConfig: q.Generated.String(),
+			}
+
+			var moreDiags tfdiags.Diagnostics
+			writer, _, moreDiags = change.MaybeWriteConfig(writer, out)
+			if moreDiags.HasErrors() {
+				return false, diags.Append(moreDiags)
+			}
+		}
 	}
 
 	if wroteConfig {

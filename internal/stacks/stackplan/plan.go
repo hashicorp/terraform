@@ -4,6 +4,7 @@
 package stackplan
 
 import (
+	"iter"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -11,8 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
@@ -39,6 +40,11 @@ type Plan struct {
 
 	// Mode is the original mode of the plan.
 	Mode plans.Mode
+
+	// Root is the root StackInstance for the configuration being planned.
+	// The StackInstance object wraps the specific components for each stack
+	// instance.
+	Root *StackInstance
 
 	// The raw representation of the raw state that was provided in the request
 	// to create the plan. We use this primarily to perform mundane state
@@ -70,62 +76,95 @@ type Plan struct {
 	// deleted will be recomputed during the apply so are not needed.
 	DeletedOutputValues collections.Set[stackaddrs.OutputValue]
 
-	// Components contains the separate plans for each of the compoonent
-	// instances defined in the overall stack configuration, including any
-	// nested component instances from embedded stacks.
-	Components collections.Map[stackaddrs.AbsComponentInstance, *Component]
-
 	// DeletedComponents are a set of components that are in the state that
 	// should just be removed without any apply operation. This is typically
 	// because they are not referenced in the configuration and have no
 	// associated resources.
 	DeletedComponents collections.Set[stackaddrs.AbsComponentInstance]
 
-	// ProviderFunctionResults is a shared table of results from calling
+	// FunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning
 	// stage to use during apply operations.
-	ProviderFunctionResults []providers.FunctionHash
+	FunctionResults []lang.FunctionResultHash
 
 	// PlanTimestamp is the time at which the plan was created.
 	PlanTimestamp time.Time
 }
 
-// ComponentInstances returns a set of the component instances that belong to
-// the given component.
-func (p *Plan) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set[stackaddrs.ComponentInstance] {
-	ret := collections.NewSet[stackaddrs.ComponentInstance]()
-	for elem := range p.Components.All() {
-		if elem.Stack.String() != addr.Stack.String() {
-			// Then
-			continue
-		}
-		if elem.Item.Component.Name != addr.Item.Name {
-			continue
-		}
-		ret.Add(elem.Item)
+func (p *Plan) AllComponents() iter.Seq2[stackaddrs.AbsComponentInstance, *Component] {
+	return func(yield func(stackaddrs.AbsComponentInstance, *Component) bool) {
+		p.Root.iterate(yield)
 	}
-	return ret
 }
 
-func (p *Plan) StackInstances(addr stackaddrs.AbsStackCall) map[stackaddrs.StackInstanceStep]bool {
-	ret := make(map[stackaddrs.StackInstanceStep]bool)
-	for key := range p.Components.All() {
-		if len(key.Stack) == 0 {
-			continue
+func (p *Plan) ComponentInstanceAddresses(addr stackaddrs.AbsComponent) iter.Seq[stackaddrs.ComponentInstance] {
+	return func(yield func(stackaddrs.ComponentInstance) bool) {
+		stack := p.Root.GetDescendentStack(addr.Stack)
+		if stack != nil {
+			components := stack.Components[addr.Item]
+			for key := range components {
+				proceed := yield(stackaddrs.ComponentInstance{
+					Component: addr.Item,
+					Key:       key,
+				})
+				if !proceed {
+					return
+				}
+			}
 		}
-
-		last := key.Stack[len(key.Stack)-1]
-		path := key.Stack[:len(key.Stack)-1]
-
-		if path.String() != addr.Stack.String() {
-			continue
-		}
-		if last.Name != addr.Item.Name {
-			continue
-		}
-		ret[last] = true
 	}
-	return ret
+}
+
+// ComponentInstances returns a set of the component instances that belong to
+// the given component.
+func (p *Plan) ComponentInstances(addr stackaddrs.AbsComponent) iter.Seq2[stackaddrs.ComponentInstance, *Component] {
+	return func(yield func(stackaddrs.ComponentInstance, *Component) bool) {
+		stack := p.Root.GetDescendentStack(addr.Stack)
+		if stack != nil {
+			components := stack.Components[addr.Item]
+			for key, component := range components {
+				proceed := yield(stackaddrs.ComponentInstance{
+					Component: addr.Item,
+					Key:       key,
+				}, component)
+				if !proceed {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (p *Plan) StackInstances(addr stackaddrs.AbsStackCall) iter.Seq[stackaddrs.StackInstance] {
+	return func(yield func(stackaddrs.StackInstance) bool) {
+		stack := p.Root.GetDescendentStack(addr.Stack)
+		if stack != nil {
+			stacks := stack.Children[addr.Item.Name]
+			for key := range stacks {
+				proceed := yield(append(addr.Stack, stackaddrs.StackInstanceStep{
+					Name: addr.Item.Name,
+					Key:  key,
+				}))
+				if !proceed {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (p *Plan) GetOrCreate(addr stackaddrs.AbsComponentInstance, component *Component) *Component {
+	targetStackInstance := p.Root.GetOrCreateDescendentStack(addr.Stack)
+	return targetStackInstance.GetOrCreateComponent(addr.Item, component)
+}
+
+func (p *Plan) GetComponent(addr stackaddrs.AbsComponentInstance) *Component {
+	targetStackInstance := p.Root.GetDescendentStack(addr.Stack)
+	return targetStackInstance.GetComponent(addr.Item)
+}
+
+func (p *Plan) GetStack(addr stackaddrs.StackInstance) *StackInstance {
+	return p.Root.GetDescendentStack(addr)
 }
 
 // RequiredProviderInstances returns a description of all of the provider
@@ -136,9 +175,156 @@ func (p *Plan) StackInstances(addr stackaddrs.AbsStackCall) map[stackaddrs.Stack
 // function that operates on the configuration of a component instance rather
 // than the plan of one.
 func (p *Plan) RequiredProviderInstances(addr stackaddrs.AbsComponentInstance) addrs.Set[addrs.RootProviderConfig] {
-	component, ok := p.Components.GetOk(addr)
+	stack := p.Root.GetDescendentStack(addr.Stack)
+	if stack == nil {
+		return addrs.MakeSet[addrs.RootProviderConfig]()
+	}
+
+	components, ok := stack.Components[addr.Item.Component]
+	if !ok {
+		return addrs.MakeSet[addrs.RootProviderConfig]()
+	}
+
+	component, ok := components[addr.Item.Key]
 	if !ok {
 		return addrs.MakeSet[addrs.RootProviderConfig]()
 	}
 	return component.RequiredProviderInstances()
+}
+
+// StackInstance stores the components and embedded stacks for a single stack
+// instance.
+type StackInstance struct {
+	Address    stackaddrs.StackInstance
+	Children   map[string]map[addrs.InstanceKey]*StackInstance
+	Components map[stackaddrs.Component]map[addrs.InstanceKey]*Component
+}
+
+func newStackInstance(address stackaddrs.StackInstance) *StackInstance {
+	return &StackInstance{
+		Address:    address,
+		Components: make(map[stackaddrs.Component]map[addrs.InstanceKey]*Component),
+		Children:   make(map[string]map[addrs.InstanceKey]*StackInstance),
+	}
+}
+
+func (stack *StackInstance) GetComponent(addr stackaddrs.ComponentInstance) *Component {
+	components, ok := stack.Components[addr.Component]
+	if !ok {
+		return nil
+	}
+	return components[addr.Key]
+}
+
+func (stack *StackInstance) GetOrCreateComponent(addr stackaddrs.ComponentInstance, component *Component) *Component {
+	components, ok := stack.Components[addr.Component]
+	if !ok {
+		components = make(map[addrs.InstanceKey]*Component)
+	}
+	existing, ok := components[addr.Key]
+	if ok {
+		return existing
+	}
+	components[addr.Key] = component
+	stack.Components[addr.Component] = components
+	return component
+}
+
+func (stack *StackInstance) GetOrCreateDescendentStack(addr stackaddrs.StackInstance) *StackInstance {
+	if len(addr) == 0 {
+		return stack
+	}
+	next := stack.GetOrCreateChildStack(addr[0])
+	return next.GetOrCreateDescendentStack(addr[1:])
+}
+
+func (stack *StackInstance) GetOrCreateChildStack(step stackaddrs.StackInstanceStep) *StackInstance {
+	child := stack.GetChildStack(step)
+	if child == nil {
+		child = stack.CreateChildStack(step)
+	}
+	return child
+}
+
+func (stack *StackInstance) GetDescendentStack(addr stackaddrs.StackInstance) *StackInstance {
+	if len(addr) == 0 {
+		return stack
+	}
+
+	next := stack.GetChildStack(addr[0])
+	if next == nil {
+		return nil
+	}
+	return next.GetDescendentStack(addr[1:])
+}
+
+func (stack *StackInstance) GetChildStack(step stackaddrs.StackInstanceStep) *StackInstance {
+	insts, ok := stack.Children[step.Name]
+	if !ok {
+		return nil
+	}
+	return insts[step.Key]
+}
+
+func (stack *StackInstance) CreateChildStack(step stackaddrs.StackInstanceStep) *StackInstance {
+	stacks, ok := stack.Children[step.Name]
+	if !ok {
+		stacks = make(map[addrs.InstanceKey]*StackInstance)
+	}
+	stacks[step.Key] = newStackInstance(append(stack.Address, step))
+	stack.Children[step.Name] = stacks
+	return stacks[step.Key]
+}
+
+func (stack *StackInstance) GetOk(addr stackaddrs.AbsComponentInstance) (*Component, bool) {
+	if len(addr.Stack) == 0 {
+		component, ok := stack.Components[addr.Item.Component]
+		if !ok {
+			return nil, false
+		}
+
+		instance, ok := component[addr.Item.Key]
+		return instance, ok
+	}
+
+	stacks, ok := stack.Children[addr.Stack[0].Name]
+	if !ok {
+		return nil, false
+	}
+	next, ok := stacks[addr.Stack[0].Key]
+	if !ok {
+		return nil, false
+	}
+	return next.GetOk(stackaddrs.AbsComponentInstance{
+		Stack: addr.Stack[1:],
+		Item:  addr.Item,
+	})
+}
+
+func (stack *StackInstance) iterate(yield func(stackaddrs.AbsComponentInstance, *Component) bool) bool {
+	for name, components := range stack.Components {
+		for key, component := range components {
+			proceed := yield(stackaddrs.AbsComponentInstance{
+				Stack: stack.Address,
+				Item: stackaddrs.ComponentInstance{
+					Component: name,
+					Key:       key,
+				},
+			}, component)
+			if !proceed {
+				return false
+			}
+		}
+	}
+
+	for _, stacks := range stack.Children {
+		for _, inst := range stacks {
+			proceed := inst.iterate(yield)
+			if !proceed {
+				return false
+			}
+		}
+	}
+
+	return true
 }

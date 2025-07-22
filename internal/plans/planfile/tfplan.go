@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
@@ -67,6 +68,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		DriftedResources:  []*plans.ResourceInstanceChangeSrc{},
 		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{},
 		Checks:            &states.CheckResults{},
+		ActionInvocations: []*plans.ActionInvocationInstanceSrc{},
 	}
 
 	plan.Applyable = rawPlan.Applyable
@@ -169,18 +171,36 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 	}
 
-	for _, hash := range rawPlan.ProviderFunctionResults {
-		plan.ProviderFunctionResults = append(plan.ProviderFunctionResults,
-			providers.FunctionHash{
+	for _, hash := range rawPlan.FunctionResults {
+		plan.FunctionResults = append(plan.FunctionResults,
+			lang.FunctionResultHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			},
 		)
 	}
 
-	if rawBackend := rawPlan.Backend; rawBackend == nil {
-		return nil, fmt.Errorf("plan file has no backend settings; backend settings are required")
-	} else {
+	for _, rawAction := range rawPlan.ActionInvocations {
+		action, err := actionInvocationFromTfplan(rawAction)
+		if err != nil {
+			// errors from actionInvocationFromTfplan already include context
+			return nil, err
+		}
+
+		plan.ActionInvocations = append(plan.ActionInvocations, action)
+	}
+
+	switch {
+	case rawPlan.Backend == nil && rawPlan.StateStore == nil:
+		// Similar validation in writeTfPlan should prevent this occurring
+		return nil,
+			fmt.Errorf("plan file has neither backend nor state_store settings; one of these settings is required. This is a bug in Terraform and should be reported.")
+	case rawPlan.Backend != nil && rawPlan.StateStore != nil:
+		// Similar validation in writeTfPlan should prevent this occurring
+		return nil,
+			fmt.Errorf("plan file contains both backend and state_store settings when only one of these settings should be set. This is a bug in Terraform and should be reported.")
+	case rawPlan.Backend != nil:
+		rawBackend := rawPlan.Backend
 		config, err := valueFromTfplan(rawBackend.Config)
 		if err != nil {
 			return nil, fmt.Errorf("plan file has invalid backend configuration: %s", err)
@@ -189,6 +209,28 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Type:      rawBackend.Type,
 			Config:    config,
 			Workspace: rawBackend.Workspace,
+		}
+	case rawPlan.StateStore != nil:
+		rawStateStore := rawPlan.StateStore
+		config, err := valueFromTfplan(rawStateStore.Config)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store configuration: %s", err)
+		}
+		provider := &plans.Provider{}
+		err = provider.SetSource(rawStateStore.Provider.Source)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store provider source: %s", err)
+		}
+		err = provider.SetVersion(rawStateStore.Provider.Version)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store provider version: %s", err)
+		}
+
+		plan.StateStore = plans.StateStore{
+			Type:      rawStateStore.Type,
+			Provider:  provider,
+			Config:    config,
+			Workspace: rawStateStore.Workspace,
 		}
 	}
 
@@ -421,9 +463,18 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	}
 
 	if rawChange.Importing != nil {
+		var identity plans.DynamicValue
+		if rawChange.Importing.Identity != nil {
+			var err error
+			identity, err = valueFromTfplan(rawChange.Importing.Identity)
+			if err != nil {
+				return nil, fmt.Errorf("invalid \"identity\" value: %s", err)
+			}
+		}
 		ret.Importing = &plans.ImportingSrc{
-			ID:      rawChange.Importing.Id,
-			Unknown: rawChange.Importing.Unknown,
+			ID:       rawChange.Importing.Id,
+			Unknown:  rawChange.Importing.Unknown,
+			Identity: identity,
 		}
 	}
 	ret.GeneratedConfig = rawChange.GeneratedConfig
@@ -441,6 +492,21 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	}
 	if len(afterValSensitiveAttrs) > 0 {
 		ret.AfterSensitivePaths = afterValSensitiveAttrs
+	}
+
+	if rawChange.BeforeIdentity != nil {
+		beforeIdentity, err := valueFromTfplan(rawChange.BeforeIdentity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode before identity: %s", err)
+		}
+		ret.BeforeIdentity = beforeIdentity
+	}
+	if rawChange.AfterIdentity != nil {
+		afterIdentity, err := valueFromTfplan(rawChange.AfterIdentity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode after identity: %s", err)
+		}
+		ret.AfterIdentity = afterIdentity
 	}
 
 	return ret, nil
@@ -506,12 +572,13 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
 
-		Variables:       map[string]*planproto.DynamicValue{},
-		OutputChanges:   []*planproto.OutputChange{},
-		CheckResults:    []*planproto.CheckResults{},
-		ResourceChanges: []*planproto.ResourceInstanceChange{},
-		ResourceDrift:   []*planproto.ResourceInstanceChange{},
-		DeferredChanges: []*planproto.DeferredResourceInstanceChange{},
+		Variables:         map[string]*planproto.DynamicValue{},
+		OutputChanges:     []*planproto.OutputChange{},
+		CheckResults:      []*planproto.CheckResults{},
+		ResourceChanges:   []*planproto.ResourceInstanceChange{},
+		ResourceDrift:     []*planproto.ResourceInstanceChange{},
+		DeferredChanges:   []*planproto.DeferredResourceInstanceChange{},
+		ActionInvocations: []*planproto.ActionInvocation{},
 	}
 
 	rawPlan.Applyable = plan.Applyable
@@ -602,26 +669,52 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.ApplyTimeVariables = slices.Collect(plan.ApplyTimeVariables.All())
 	}
 
-	for _, hash := range plan.ProviderFunctionResults {
-		rawPlan.ProviderFunctionResults = append(rawPlan.ProviderFunctionResults,
-			&planproto.ProviderFunctionCallHash{
+	for _, hash := range plan.FunctionResults {
+		rawPlan.FunctionResults = append(rawPlan.FunctionResults,
+			&planproto.FunctionCallHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			},
 		)
 	}
 
-	if plan.Backend.Type == "" || plan.Backend.Config == nil {
-		// This suggests a bug in the code that created the plan, since it
-		// ought to always have a backend populated, even if it's the default
-		// "local" backend with a local state file.
-		return fmt.Errorf("plan does not have a backend configuration")
+	for _, action := range plan.ActionInvocations {
+		rawAction, err := actionInvocationToTfPlan(action)
+		if err != nil {
+			return err
+		}
+		rawPlan.ActionInvocations = append(rawPlan.ActionInvocations, rawAction)
 	}
 
-	rawPlan.Backend = &planproto.Backend{
-		Type:      plan.Backend.Type,
-		Config:    valueToTfplan(plan.Backend.Config),
-		Workspace: plan.Backend.Workspace,
+	// Store details about accessing state
+	backendInUse := plan.Backend.Type != "" && plan.Backend.Config != nil
+	stateStoreInUse := plan.StateStore.Type != "" && plan.StateStore.Config != nil
+	switch {
+	case !backendInUse && !stateStoreInUse:
+		// This suggests a bug in the code that created the plan, since it
+		// ought to always have either a backend or state_store populated, even if it's the default
+		// "local" backend with a local state file.
+		return fmt.Errorf("plan does not have a backend or state_store configuration")
+	case backendInUse && stateStoreInUse:
+		// This suggests a bug in the code that created the plan, since it
+		// should never have both a backend and state_store populated.
+		return fmt.Errorf("plan contains both backend and state_store configurations, only one is expected")
+	case backendInUse:
+		rawPlan.Backend = &planproto.Backend{
+			Type:      plan.Backend.Type,
+			Config:    valueToTfplan(plan.Backend.Config),
+			Workspace: plan.Backend.Workspace,
+		}
+	case stateStoreInUse:
+		rawPlan.StateStore = &planproto.StateStore{
+			Type: plan.StateStore.Type,
+			Provider: &planproto.Provider{
+				Version: plan.StateStore.Provider.Version.String(),
+				Source:  plan.StateStore.Provider.Source.String(),
+			},
+			Config:    valueToTfplan(plan.StateStore.Config),
+			Workspace: plan.StateStore.Workspace,
+		}
 	}
 
 	rawPlan.Timestamp = plan.Timestamp.Format(time.RFC3339)
@@ -679,7 +772,7 @@ func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceA
 // in its own wire format while using a different overall container.
 func ResourceChangeToProto(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
 	if change == nil {
-		// We assume this represents the absense of a change, then.
+		// We assume this represents the absence of a change, then.
 		return nil, nil
 	}
 	return resourceChangeToTfplan(change)
@@ -809,13 +902,25 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	ret.AfterSensitivePaths = afterSensitivePaths
 
 	if change.Importing != nil {
+		var identity *planproto.DynamicValue
+		if change.Importing.Identity != nil {
+			identity = planproto.NewPlanDynamicValue(change.Importing.Identity)
+		}
 		ret.Importing = &planproto.Importing{
-			Id:      change.Importing.ID,
-			Unknown: change.Importing.Unknown,
+			Id:       change.Importing.ID,
+			Unknown:  change.Importing.Unknown,
+			Identity: identity,
 		}
 
 	}
 	ret.GeneratedConfig = change.GeneratedConfig
+
+	if change.BeforeIdentity != nil {
+		ret.BeforeIdentity = planproto.NewPlanDynamicValue(change.BeforeIdentity)
+	}
+	if change.AfterIdentity != nil {
+		ret.AfterIdentity = planproto.NewPlanDynamicValue(change.AfterIdentity)
+	}
 
 	ret.Action, err = ActionToProto(change.Action)
 	if err != nil {
@@ -1138,4 +1243,39 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	} else {
 		return nil, nil
 	}
+}
+
+func actionInvocationFromTfplan(rawAction *planproto.ActionInvocation) (*plans.ActionInvocationInstanceSrc, error) {
+	if rawAction == nil {
+		// Should never happen in practice, since protobuf can't represent
+		// a nil value in a list.
+		return nil, fmt.Errorf("action invocation object is absent")
+	}
+
+	ret := &plans.ActionInvocationInstanceSrc{}
+	actionAddr, diags := addrs.ParseAbsActionInstanceStr(rawAction.Addr)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("invalid resource instance address %q: %w", rawAction.Addr, diags.Err())
+	}
+	ret.Addr = actionAddr
+
+	providerAddr, diags := addrs.ParseAbsProviderConfigStr(rawAction.Provider)
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+	ret.ProviderAddr = providerAddr
+
+	return ret, nil
+}
+
+func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocation, error) {
+	if action == nil {
+		return nil, nil
+	}
+
+	ret := &planproto.ActionInvocation{
+		Addr:     action.Addr.String(),
+		Provider: action.ProviderAddr.String(),
+	}
+	return ret, nil
 }

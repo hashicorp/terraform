@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/backend"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -21,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
-	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -74,7 +71,6 @@ type TestSuiteRunner struct {
 	Verbose bool
 
 	Concurrency int
-	semaphore   terraform.Semaphore
 
 	CommandMode moduletest.CommandMode
 
@@ -103,7 +99,6 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	if runner.Concurrency < 1 {
 		runner.Concurrency = 10
 	}
-	runner.semaphore = terraform.NewSemaphore(runner.Concurrency)
 
 	suite, suiteDiags := runner.collectTests()
 	diags = diags.Append(suiteDiags)
@@ -152,30 +147,13 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	}
 	runner.Manifest = manifest
 
-	suite.Status = moduletest.Pass
+	suite.Status = moduletest.Pending
 	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
 		if runner.Cancelled {
 			return suite.Status, diags
 		}
 
 		file := suite.Files[name]
-		evalCtx := graph.NewEvalContext(&graph.EvalContextOpts{
-			CancelCtx: runner.CancelledCtx,
-			StopCtx:   runner.StoppedCtx,
-			Verbose:   runner.Verbose,
-			Repair:    runner.Repair,
-			Render:    runner.View,
-			Manifest:  manifest,
-			Semaphore: runner.semaphore,
-		})
-
-		for _, run := range file.Runs {
-			// Pre-initialize the prior outputs, so we can easily tell between
-			// a run block that doesn't exist and a run block that hasn't been
-			// executed yet.
-			// (moduletest.EvalContext treats cty.NilVal as "not visited yet")
-			evalCtx.SetOutput(run, cty.NilVal)
-		}
 
 		currentGlobalVariables := runner.GlobalVariables
 		if filepath.Dir(file.Name) == runner.TestingDirectory {
@@ -184,11 +162,22 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			currentGlobalVariables = testDirectoryGlobalVariables
 		}
 
-		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
-			maps.Copy(vc.GlobalVariables, currentGlobalVariables)
-			vc.FileVariables = file.Config.Variables
+		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
+			Config:      runner.Config,
+			CancelCtx:   runner.CancelledCtx,
+			StopCtx:     runner.StoppedCtx,
+			Verbose:     runner.Verbose,
+			Repair:      runner.Repair,
+			Render:      runner.View,
+			Concurrency: runner.Concurrency,
+
+			UnparsedVariables: currentGlobalVariables,
+			Manifest:          manifest,
 		})
-		fileRunner := &TestFileRunner{Suite: runner, EvalContext: evalCtx}
+		fileRunner := &TestFileRunner{
+			Suite:       runner,
+			EvalContext: evalCtx,
+		}
 
 		runner.View.File(file, moduletest.Starting)
 		fileRunner.Test(file)
@@ -303,8 +292,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// Build the graph for the file.
 	b := graph.TestGraphBuilder{
+		Config:         runner.Suite.Config,
 		File:           file,
-		GlobalVars:     runner.EvalContext.VariableCaches.GlobalVariables,
 		ContextOpts:    runner.Suite.Opts,
 		BackendFactory: runner.Suite.BackendFactory,
 		StateManifest:  runner.Suite.Manifest,
@@ -317,10 +306,11 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// walk and execute the graph
-	diags = graph.Walk(g, runner.EvalContext)
+	diags = diags.Append(graph.Walk(g, runner.EvalContext))
 
 	// Update the manifest file with the reason why each state file was created.
 	err := runner.Suite.Manifest.WriteManifest()
+	diags = diags.Append(err) // TODO(liamcervante): diagnostic?
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:
@@ -332,7 +322,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		return
 	}
 
-	file.Diagnostics = file.Diagnostics.Append(diags, err)
+	file.Diagnostics = file.Diagnostics.Append(diags)
 }
 
 func (runner *TestFileRunner) renderPreWalkDiags(file *moduletest.File) (walkCancelled bool) {

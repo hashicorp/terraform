@@ -46,7 +46,7 @@ type NodeAbstractResourceInstance struct {
 
 	preDestroyRefresh bool
 
-	// During import we may generate configuration for a resource, which needs
+	// During import (or query) we may generate configuration for a resource, which needs
 	// to be stored in the final change.
 	generatedConfigHCL string
 
@@ -396,6 +396,17 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return noop, deferred, nil
 	}
 
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return plan, deferred, diags.Append(err)
+	}
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
+		return nil, deferred, diags
+	}
+
 	// If we are in a context where we forget instead of destroying, we can
 	// just return the forget change without consulting the provider.
 	if ctx.Forget() {
@@ -416,6 +427,14 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return plan, deferred, diags
+	}
+
+	// Call pre-diff hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreDiff(n.HookResourceIdentity(), deposedKey, currentState.Value, nullVal)
+	}))
 	if diags.HasErrors() {
 		return plan, deferred, diags
 	}
@@ -453,7 +472,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		if !resp.PlannedIdentity.IsNull() {
 			// Destroying is an operation where we allow identity changes.
 			diags = diags.Append(n.validateIdentityKnown(resp.PlannedIdentity))
-			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity))
+			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity, schema.Identity))
 		}
 
 		// We may not have a config for all destroys, but we want to reference
@@ -479,6 +498,14 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			)
 			return plan, deferred, diags
 		}
+	}
+
+	// Call post-refresh hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal)
+	}))
+	if diags.HasErrors() {
+		return plan, deferred, diags
 	}
 
 	// Plan is always the same for a destroy.
@@ -659,8 +686,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 		if !resp.Identity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.Identity))
-			diags = diags.Append(n.validateIdentity(resp.Identity))
-			diags = diags.Append(n.validateIdentityDidNotChange(state, resp.Identity))
+			diags = diags.Append(n.validateIdentity(resp.Identity, schema.Identity))
 		}
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
@@ -1111,13 +1137,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	if !plannedIdentity.IsNull() {
 		if !action.IsReplace() && action != plans.Create {
 			diags = diags.Append(n.validateIdentityKnown(plannedIdentity))
-			// If the identity is not known we can not validate it did not change
-			if !diags.HasErrors() {
-				diags = diags.Append(n.validateIdentityDidNotChange(currentState, plannedIdentity))
-			}
 		}
 
-		diags = diags.Append(n.validateIdentity(plannedIdentity))
+		diags = diags.Append(n.validateIdentity(plannedIdentity, schema.Identity))
 	}
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1179,7 +1201,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 			if !resp.PlannedIdentity.IsNull() {
 				// On replace the identity is allowed to change and be unknown.
-				diags = diags.Append(n.validateIdentity(resp.PlannedIdentity))
+				diags = diags.Append(n.validateIdentity(resp.PlannedIdentity, schema.Identity))
 			}
 		}
 		// We need to tread carefully here, since if there are any warnings
@@ -2636,10 +2658,7 @@ func (n *NodeAbstractResourceInstance) apply(
 
 		if !resp.NewIdentity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.NewIdentity))
-			diags = diags.Append(n.validateIdentity(resp.NewIdentity))
-			if !change.Action.IsReplace() {
-				diags = diags.Append(n.validateIdentityDidNotChange(state, resp.NewIdentity))
-			}
+			diags = diags.Append(n.validateIdentity(resp.NewIdentity, schema.Identity))
 		}
 	}
 	applyDiags := resp.Diagnostics
@@ -2905,22 +2924,7 @@ func (n *NodeAbstractResourceInstance) validateIdentityKnown(newIdentity cty.Val
 	return diags
 }
 
-func (n *NodeAbstractResourceInstance) validateIdentityDidNotChange(state *states.ResourceInstanceObject, newIdentity cty.Value) (diags tfdiags.Diagnostics) {
-	if state != nil && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced different identity",
-			fmt.Sprintf(
-				"Provider %q returned a different identity for %s than the previously stored one. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, n.Addr,
-			),
-		))
-	}
-
-	return diags
-}
-
-func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value) (diags tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value, identitySchema *configschema.Object) (diags tfdiags.Diagnostics) {
 	if _, marks := newIdentity.UnmarkDeep(); len(marks) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -2930,6 +2934,35 @@ func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value) (
 				n.ResolvedProvider.Provider, n.Addr,
 			),
 		))
+	}
+
+	// The identity schema is always a single object, so we can check the
+	// nesting type here.
+	if identitySchema.Nesting != configschema.NestingSingle {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid identity",
+			fmt.Sprintf(
+				"Provider %q returned an identity with a nesting type of %s for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, identitySchema.Nesting, n.Addr,
+			),
+		))
+	}
+
+	newType := newIdentity.Type()
+	currentType := identitySchema.ImpliedType()
+	if errs := newType.TestConformance(currentType); len(errs) > 0 {
+		for _, err := range errs {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced an identity that doesn't match the schema",
+				fmt.Sprintf(
+					"Provider %q returned an identity for %s that doesn't match the identity schema: %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider.Provider, n.Addr, tfdiags.FormatError(err),
+				),
+			))
+		}
+		return diags
 	}
 
 	return diags

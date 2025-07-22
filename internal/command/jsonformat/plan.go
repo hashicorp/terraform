@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -31,6 +32,7 @@ type Plan struct {
 	ResourceDrift      []jsonplan.ResourceChange         `json:"resource_drift,omitempty"`
 	RelevantAttributes []jsonplan.ResourceAttr           `json:"relevant_attributes,omitempty"`
 	DeferredChanges    []jsonplan.DeferredResourceChange `json:"deferred_changes,omitempty"`
+	ActionInvocations  []jsonplan.ActionInvocation       `json:"action_invocations,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
@@ -49,12 +51,7 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 
 func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
 	checkOpts := func(target plans.Quality) bool {
-		for _, opt := range opts {
-			if opt == target {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(opts, target)
 	}
 
 	diffs := precomputeDiffs(plan, mode)

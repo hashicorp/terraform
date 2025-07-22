@@ -77,7 +77,7 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	// but in particular might be user-observable in the edge case where the
 	// literal value in config could've been converted to the overridden type
 	// constraint but the converted value cannot. In practice, this situation
-	// should be rare since most of our conversions are interchangable.
+	// should be rare since most of our conversions are interchangeable.
 	if v.Default != cty.NilVal {
 		val, err := convert.Convert(v.Default, v.ConstraintType)
 		if err != nil {
@@ -263,6 +263,9 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 		if len(or.Managed.Provisioners) != 0 {
 			r.Managed.Provisioners = or.Managed.Provisioners
 		}
+		if len(or.Managed.ActionTriggers) != 0 {
+			r.Managed.ActionTriggers = or.Managed.ActionTriggers
+		}
 	}
 
 	r.Config = MergeBodies(r.Config, or.Config)
@@ -277,6 +280,48 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 			Subject:  or.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
 		})
 	}
+
+	return diags
+}
+
+// Actions
+func (a *Action) merge(oa *Action, rps map[string]*RequiredProvider) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	if oa.Count != nil {
+		a.Count = oa.Count
+	}
+	if oa.ForEach != nil {
+		a.ForEach = oa.ForEach
+	}
+
+	if oa.ProviderConfigRef != nil {
+		a.ProviderConfigRef = oa.ProviderConfigRef
+		if existing, exists := rps[oa.ProviderConfigRef.Name]; exists {
+			a.Provider = existing.Type
+		} else {
+			a.Provider = addrs.ImpliedProviderForUnqualifiedType(a.ProviderConfigRef.Name)
+		}
+	}
+
+	if oa.LinkedResources != nil {
+		a.LinkedResources = oa.LinkedResources
+	}
+
+	a.Config = MergeBodies(a.Config, oa.Config)
+
+	/* depends_on: not yet supported in Actions
+	// We don't allow depends_on to be overridden because that is likely to
+	// cause confusing misbehavior.
+	if len(oa.DependsOn) != 0 {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported override",
+			Detail:   "The depends_on argument may not be overridden.",
+			Subject:  oa.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
+		})
+	}
+	*/
 
 	return diags
 }

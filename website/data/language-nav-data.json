@@ -319,6 +319,10 @@
         "path": "backend/kubernetes"
       },
       {
+        "title": "oci",
+        "path": "backend/oci"
+      },
+      {
         "title": "oss",
         "path": "backend/oss"
       },
@@ -1077,6 +1081,10 @@
       {
         "title": "Import Existing Resources",
         "path": "state/import"
+      },
+      {
+        "title": "Refactor state",
+        "path": "state/refactor"
       },
       { "title": "Locking", "path": "state/locking" },
       { "title": "Workspaces", "path": "state/workspaces" },

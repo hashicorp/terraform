@@ -4,14 +4,9 @@
 package graph
 
 import (
-	"fmt"
-
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestRunTransformer is a GraphTransformer that adds all the test runs,
@@ -28,15 +23,13 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 	// Create and add nodes for each run
 	var nodes []*NodeTestRun
 	for _, run := range t.opts.File.Runs {
-		node := &NodeTestRun{run: run, opts: t.opts}
+		node := &NodeTestRun{run: run, opts: t.opts, priorRuns: make(map[string]*moduletest.Run)}
 		g.Add(node)
 		nodes = append(nodes, node)
 	}
 
 	// Connect nodes based on dependencies
-	if diags := t.connectDependencies(g, nodes); diags.HasErrors() {
-		return tfdiags.DiagnosticsAsError{Diagnostics: diags}
-	}
+	ControlParallelism(g, nodes)
 
 	// Runs with the same state key inherently depend on each other, so we
 	// connect them sequentially.
@@ -45,73 +38,43 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 	return nil
 }
 
-func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*NodeTestRun) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	nodeMap := make(map[string]*NodeTestRun)
-	// add all nodes to the map. They are initialized to nil,
-	// and we will update them as we iterate through the nodes in the next loop.
+func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*NodeTestRun) {
+	stateRuns := make(map[string][]*NodeTestRun)
 	for _, node := range nodes {
-		nodeMap[node.run.Name] = nil
+		key := node.run.Config.StateKey
+		stateRuns[key] = append(stateRuns[key], node)
 	}
-
-	for _, node := range nodes {
-		nodeMap[node.run.Name] = node // node encountered, so update the map
-
-		// check for variable references
-		varRefs := t.getVariableNames(node.run)
-
-		refs, refDiags := node.run.GetReferences()
-		if refDiags.HasErrors() {
-			return diags.Append(refDiags)
-		}
-		for _, ref := range refs {
-			switch subj := ref.Subject.(type) {
-			case addrs.Run:
-				dependency, ok := nodeMap[subj.Name]
-				diagPrefix := "You can only reference run blocks that are in the same test file and will execute before the current run block."
-				// Then this is a made up run block, and it doesn't exist at all.
-				if !ok {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Reference to unknown run block",
-						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", subj.Name, diagPrefix),
-						Subject:  ref.SourceRange.ToHCL().Ptr(),
-					})
-					continue
-				}
-
-				// This run block exists, but it is after the current run block.
-				if dependency == nil {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Reference to unavailable run block",
-						Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", subj.Name, diagPrefix),
-						Subject:  ref.SourceRange.ToHCL().Ptr(),
-					})
-					continue
-				}
-
-				g.Connect(dag.BasicEdge(node, dependency))
-			case addrs.InputVariable:
-				if _, ok := varRefs[subj.Name]; !ok {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Reference to unavailable variable",
-						Detail:   fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels.", subj.Name),
-						Subject:  ref.SourceRange.ToHCL().Ptr(),
-					})
-				}
-			}
+	for _, runs := range stateRuns {
+		for i := 1; i < len(runs); i++ {
+			curr, prev := runs[i], runs[i-1]
+			curr.priorRuns[prev.run.Name] = prev.run
+			g.Connect(dag.BasicEdge(curr, prev))
 		}
 	}
+}
 
-	// If there is a run that has opted out of parallelism, we will connect it
-	// sequentially to all previous and subsequent runs. This effectively
-	// divides the parallelizable runs into separate groups, ensuring that
-	// non-parallelizable runs are executed in sequence with respect to all
-	// other runs.
+// ControlParallelism connects nodes in the graph based on their parallelism
+// settings. If a node opts out of parallelism, it will be connected sequentially
+// to all previous and subsequent nodes that are also part of the parallelism
+// control flow.
+func ControlParallelism[T any](g *terraform.Graph, nodes []T) {
 	for i, node := range nodes {
-		if node.run.Config.Parallel {
+		switch node := any(node).(type) {
+		case *NodeTestRun:
+			if node.run.Config.Parallel {
+				continue
+			}
+
+			for j := range i {
+				refNode := any(nodes[j]).(*NodeTestRun)
+				node.priorRuns[refNode.run.Name] = refNode.run
+			}
+		case *NodeStateCleanup:
+			if node.parallel {
+				continue
+			}
+		default:
+			// If the node type does not support parallelism, skip it.
 			continue
 		}
 
@@ -125,36 +88,4 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 			g.Connect(dag.BasicEdge(nodes[j], node))
 		}
 	}
-	return diags
-}
-
-func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*NodeTestRun) {
-	stateRuns := make(map[string][]*NodeTestRun)
-	for _, node := range nodes {
-		key := node.run.Config.StateKey
-		stateRuns[key] = append(stateRuns[key], node)
-	}
-	for _, runs := range stateRuns {
-		for i := 1; i < len(runs); i++ {
-			g.Connect(dag.BasicEdge(runs[i], runs[i-1]))
-		}
-	}
-}
-
-func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) map[string]struct{} {
-	set := make(map[string]struct{})
-	for name := range t.opts.GlobalVars {
-		set[name] = struct{}{}
-	}
-	for name := range run.Config.Variables {
-		set[name] = struct{}{}
-	}
-
-	for name := range t.opts.File.Config.Variables {
-		set[name] = struct{}{}
-	}
-	for name := range run.ModuleConfig.Module.Variables {
-		set[name] = struct{}{}
-	}
-	return set
 }

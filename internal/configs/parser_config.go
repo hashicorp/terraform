@@ -48,6 +48,17 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 	return test, diags
 }
 
+func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	query, queryDiags := loadQueryFile(body)
+	diags = append(diags, queryDiags...)
+	return query, diags
+}
+
 // LoadMockDataFile reads the file at the given path and parses it as a
 // Terraform mock data file.
 //
@@ -93,6 +104,14 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 		switch block.Type {
 
 		case "terraform":
+			// TODO: Update once pluggable state store is out of experimental phase
+			if allowExperiments {
+				terraformBlockSchema.Blocks = append(terraformBlockSchema.Blocks,
+					hcl.BlockHeaderSchema{
+						Type:       "state_store",
+						LabelNames: []string{"type"},
+					})
+			}
 			content, contentDiags := block.Body.Content(terraformBlockSchema)
 			diags = append(diags, contentDiags...)
 
@@ -110,6 +129,12 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 						file.Backends = append(file.Backends, backendCfg)
 					}
 
+				case "state_store":
+					stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
+					diags = append(diags, cfgDiags...)
+					if stateStoreCfg != nil {
+						file.StateStores = append(file.StateStores, stateStoreCfg)
+					}
 				case "cloud":
 					cloudCfg, cfgDiags := decodeCloudBlock(innerBlock)
 					diags = append(diags, cfgDiags...)
@@ -182,7 +207,7 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			}
 
 		case "resource":
-			cfg, cfgDiags := decodeResourceBlock(block, override)
+			cfg, cfgDiags := decodeResourceBlock(block, override, allowExperiments)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ManagedResources = append(file.ManagedResources, cfg)
@@ -228,6 +253,15 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Checks = append(file.Checks, cfg)
+			}
+
+		case "action":
+			if allowExperiments {
+				cfg, cfgDiags := decodeActionBlock(block)
+				diags = append(diags, cfgDiags...)
+				if cfg != nil {
+					file.Actions = append(file.Actions, cfg)
+				}
 			}
 
 		default:
@@ -322,6 +356,10 @@ var configFileSchema = &hcl.BodySchema{
 			LabelNames: []string{"type", "name"},
 		},
 		{
+			Type:       "action",
+			LabelNames: []string{"type", "name"},
+		},
+		{
 			Type: "moved",
 		},
 		{
@@ -356,6 +394,9 @@ var terraformBlockSchema = &hcl.BodySchema{
 		{
 			Type: "required_providers",
 		},
+		// NOTE: An entry for state_store is not present here
+		// because we conditionally add it in the calling code
+		// depending on whether experiments are enabled or not.
 		{
 			Type:       "provider_meta",
 			LabelNames: []string{"provider"},

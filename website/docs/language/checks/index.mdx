@@ -4,6 +4,12 @@ description: >-
   Check customized infrastructure requirements to provide ongoing and continuous verification.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Checks
 
 -> **Note:** Check blocks are only available in Terraform v1.5.0 and later.
@@ -83,7 +89,7 @@ There are major behavioral differences between check block assertions and other 
 
 ### Outputs and variables
 
-[Output postconditions](/terraform/language/expressions/custom-conditions#outputs) and [variable validations](/terraform/language/expressions/custom-conditions#input-variable-validation) both make assertions around inputs and outputs.
+[Output preconditions](/terraform/language/expressions/custom-conditions#outputs) and [variable validations](/terraform/language/expressions/custom-conditions#input-variable-validation) both make assertions around inputs and outputs.
 
 This is one of the cases where you might want Terraform to block further execution. 
 

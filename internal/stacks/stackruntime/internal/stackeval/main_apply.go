@@ -77,7 +77,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 		// can error rather than deadlock if something goes wrong and causes
 		// us to try to depend on a result that isn't coming.
 		results, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[*Main]) {
-			for key, elem := range plan.Components.All() {
+			for key, elem := range plan.AllComponents() {
 				addr := key
 				componentInstPlan := elem
 				action := componentInstPlan.PlannedAction

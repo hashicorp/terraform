@@ -3,6 +3,12 @@ page_title: 'Backend Type: oss'
 description: Terraform can store state remotely in OSS and lock that state with OSS.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # OSS
 
 Stores the state as a given key in a given bucket on Stores
@@ -75,17 +81,17 @@ data "terraform_remote_state" "network" {
 
 The following configuration options or environment variables are supported:
 
-* `access_key` - (Optional) Alibaba Cloud access key. It supports environment variables `ALICLOUD_ACCESS_KEY` and  `ALICLOUD_ACCESS_KEY_ID`.
+* `access_key` - (Optional) Alibaba Cloud access key. It supports environment variables `ALICLOUD_ACCESS_KEY` and  `ALIBABA_CLOUD_ACCESS_KEY_ID`(Recommended).
 
-* `secret_key` - (Optional) Alibaba Cloud secret access key. It supports environment variables `ALICLOUD_SECRET_KEY` and  `ALICLOUD_ACCESS_KEY_SECRET`.
+* `secret_key` - (Optional) Alibaba Cloud secret access key. It supports environment variables `ALICLOUD_SECRET_KEY` and  `ALIBABA_CLOUD_ACCESS_KEY_SECRET`(Recommended).
 
-* `security_token` - (Optional) STS access token. It supports environment variable `ALICLOUD_SECURITY_TOKEN`.
+* `security_token` - (Optional) STS access token. It supports environment variable `ALICLOUD_SECURITY_TOKEN` and `ALIBABA_CLOUD_SECURITY_TOKEN`(Recommended).
 
-* `ecs_role_name` - (Optional, Available in 0.12.14+) The RAM Role Name attached on a ECS instance for API operations. You can retrieve this from the 'Access Control' section of the Alibaba Cloud console.
+* `ecs_role_name` - (Optional) The RAM Role Name attached on a ECS instance for API operations. You can retrieve this from the 'Access Control' section of the Alibaba Cloud console.
 
-* `region` - (Optional) The region of the OSS bucket. It supports environment variables `ALICLOUD_REGION` and `ALICLOUD_DEFAULT_REGION`.
+* `region` - (Optional) The region of the OSS bucket. It supports environment variables `ALICLOUD_REGION` and `ALIBABA_CLOUD_REGION`(Recommended).
 
-* `endpoint` - (Optional) A custom endpoint for the OSS API. It supports environment variables `ALICLOUD_OSS_ENDPOINT` and `OSS_ENDPOINT`.
+* `endpoint` - (Optional) A custom endpoint for the OSS API. It supports environment variables `ALICLOUD_OSS_ENDPOINT` and `ALIBABA_CLOUD_OSS_ENDPOINT`(Recommended).
 
 * `bucket` - (Required) The name of the OSS bucket.
 
@@ -93,14 +99,14 @@ The following configuration options or environment variables are supported:
 
 * `key` - (Optional) The name of the state file. Defaults to `terraform.tfstate`.
 
-* `tablestore_endpoint` / `ALICLOUD_TABLESTORE_ENDPOINT` - (Optional) A custom endpoint for the TableStore API.
+* `tablestore_endpoint` - (Optional) A custom endpoint for the TableStore API. It supports environment variables `ALICLOUD_TABLESTORE_ENDPOINT` and `ALIBABA_CLOUD_TABLESTORE_ENDPOINT`(Recommended).
 
 * `tablestore_instance_name` - (Optional) Specifies the name of an instance that `TableStore` belongs to. By default, Terraform parses the name from `tablestore_endpoint`.
   You should set the access URL explicitly when the `tablestore` endpoint is a VPC access URL.
 
 * `tablestore_table` - (Optional) A TableStore table for state locking and consistency. The table must have a primary key named `LockID` of type `String`.
 
-* `sts_endpoint` - (Optional, Available in 1.0.11+) Custom endpoint for the AliCloud Security Token Service (STS) API. It supports environment variable `ALICLOUD_STS_ENDPOINT`.
+* `sts_endpoint` - (Optional) Custom endpoint for the AliCloud Security Token Service (STS) API. It supports environment variable `ALICLOUD_STS_ENDPOINT` and `ALIBABA_CLOUD_STS_ENDPOINT`(Recommended).
 
 * `encrypt` - (Optional) Whether to enable server side
   encryption of the state file. If it is true, OSS will use 'AES256' encryption algorithm to encrypt state file.
@@ -109,24 +115,24 @@ The following configuration options or environment variables are supported:
   ACL](https://www.alibabacloud.com/help/doc-detail/52284.htm)
   to be applied to the state file.
 
-* `shared_credentials_file` - (Optional, Available in 0.12.8+) This is the path to the shared credentials file. It can also be sourced from the `ALICLOUD_SHARED_CREDENTIALS_FILE` environment variable. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.
+* `shared_credentials_file` - (Optional) This is the path to the shared credentials file. It can also be sourced from the `ALICLOUD_SHARED_CREDENTIALS_FILE` or `ALIBABA_CLOUD_CREDENTIALS_FILE`(Recommended) environment variable. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.
 
-* `profile` - (Optional, Available in 0.12.8+)  This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.
+* `profile` - (Optional)  This is the Alibaba Cloud profile name as set in the shared credentials file. It supports environment variable `ALICLOUD_PROFILE` and `ALIBABA_CLOUD_PROFILE`(Recommended).
 
-* `assume_role_role_arn` - (Optional, Available in 1.1.0+) The ARN of the role to assume. If ARN is set to an empty string, it does not perform role switching. It supports the environment variable `ALICLOUD_ASSUME_ROLE_ARN`.
+* `assume_role_role_arn` - (Optional) The ARN of the role to assume. If ARN is set to an empty string, it does not perform role switching. It supports the environment variable `ALICLOUD_ASSUME_ROLE_ARN` and `ALIBABA_CLOUD_ROLE_ARN`(Recommended).
   Terraform executes configuration on account with provided credentials.
 
-* `assume_role_policy` - (Optional, Available in 1.1.0+) A more restrictive policy to apply to the temporary credentials. This gives you a way to further restrict the permissions for the resulting temporary security credentials. You cannot use this policy to grant permissions that exceed those of the role that is being assumed.
+* `assume_role_policy` - (Optional) A more restrictive policy to apply to the temporary credentials. This gives you a way to further restrict the permissions for the resulting temporary security credentials. You cannot use this policy to grant permissions that exceed those of the role that is being assumed.
 
-* `assume_role_session_name` - (Optional, Available in 1.1.0+) The session name to use when assuming the role. If omitted, 'terraform' is passed to the AssumeRole call as session name. It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_NAME`.
+* `assume_role_session_name` - (Optional) The session name to use when assuming the role. If omitted, 'terraform' is passed to the AssumeRole call as session name. It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_NAME` and `ALIBABA_CLOUD_ROLE_SESSION_NAME`(Recommended).
 
-* `assume_role_session_expiration` - (Optional, Available in 1.1.0+) The time after which the established session for assuming role expires. Valid value range: \[900-3600] seconds. Default to 3600 (in this case Alibaba Cloud uses its own default value). It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION`.
+* `assume_role_session_expiration` - (Optional) The time after which the established session for assuming role expires. Valid value range: \[900-3600] seconds. Default to 3600 (in this case Alibaba Cloud uses its own default value). It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION`.
 
-* `assume_role` - (**Deprecated as of 1.1.0+**, Available in 0.12.6+) If provided with a role ARN, will attempt to assume this role using the supplied credentials. It will be ignored when `assume_role_role_arn` is specified.
+* `assume_role` - (**Deprecated as of 1.1.0+**) If provided with a role ARN, will attempt to assume this role using the supplied credentials. It will be ignored when `assume_role_role_arn` is specified.
 
   **Deprecated in favor of flattening assume_role_\* options**
 
-  * `role_arn` - (Required) The ARN of the role to assume. If ARN is set to an empty string, it does not perform role switching. It supports the environment variable `ALICLOUD_ASSUME_ROLE_ARN`.
+  * `role_arn` - (Required) The ARN of the role to assume. If ARN is set to an empty string, it does not perform role switching. It supports the environment variable `ALICLOUD_ASSUME_ROLE_ARN` and `ALIBABA_CLOUD_ROLE_ARN`(Recommended).
     Terraform executes configuration on account with provided credentials.
 
   * `policy` - (Optional) A more restrictive policy to apply to the temporary credentials. This gives you a way to further restrict the permissions for the resulting temporary security credentials. You cannot use this policy to grant permissions that exceed those of the role that is being assumed.

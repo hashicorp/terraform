@@ -15,19 +15,27 @@ import (
 )
 
 type RemovedFrom struct {
-	Stack     []StackRemovedFrom
-	Component ComponentRemovedFrom
+	Stack []StackRemovedFrom
+
+	// Component to be removed. Optional, if not set then the whole stack
+	// should be removed.
+	Component *ComponentRemovedFrom
 }
 
-func (rf RemovedFrom) ConfigComponent() ConfigComponent {
+func (rf RemovedFrom) TargetStack() Stack {
+	stack := make(Stack, 0, len(rf.Stack))
+	for _, step := range rf.Stack {
+		stack = append(stack, StackStep{Name: step.Name})
+	}
+	return stack
+}
+
+func (rf RemovedFrom) TargetConfigComponent() ConfigComponent {
+	if rf.Component == nil {
+		panic("should call TargetStack() when no component was specified")
+	}
 	return ConfigComponent{
-		Stack: func() Stack {
-			stack := make(Stack, 0, len(rf.Stack))
-			for _, step := range rf.Stack {
-				stack = append(stack, StackStep{Name: step.Name})
-			}
-			return stack
-		}(),
+		Stack: rf.TargetStack(),
 		Item: Component{
 			rf.Component.Name,
 		},
@@ -41,15 +49,14 @@ func (rf RemovedFrom) Variables() []hcl.Traversal {
 			traversals = append(traversals, step.Index.Variables()...)
 		}
 	}
-	if rf.Component.Index != nil {
+	if rf.Component != nil && rf.Component.Index != nil {
 		traversals = append(traversals, rf.Component.Index.Variables()...)
 	}
 	return traversals
 }
 
-func (rf RemovedFrom) AbsComponentInstance(ctx *hcl.EvalContext, parent StackInstance) (AbsComponentInstance, tfdiags.Diagnostics) {
+func (rf RemovedFrom) TargetStackInstance(ctx *hcl.EvalContext, parent StackInstance) (StackInstance, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
 	var stackInstance StackInstance
 	for _, stack := range rf.Stack {
 		step, moreDiags := stack.StackInstanceStep(ctx)
@@ -57,11 +64,20 @@ func (rf RemovedFrom) AbsComponentInstance(ctx *hcl.EvalContext, parent StackIns
 
 		stackInstance = append(stackInstance, step)
 	}
+	return append(parent, stackInstance...), diags
+}
 
+func (rf RemovedFrom) TargetAbsComponentInstance(ctx *hcl.EvalContext, parent StackInstance) (AbsComponentInstance, tfdiags.Diagnostics) {
+	if rf.Component == nil {
+		panic("should call TargetStackInstance() when no component was specified")
+	}
+	var diags tfdiags.Diagnostics
+	stackInstance, moreDiags := rf.TargetStackInstance(ctx, parent)
+	diags = diags.Append(moreDiags)
 	componentInstance, moreDiags := rf.Component.ComponentInstance(ctx)
 	diags = diags.Append(moreDiags)
 
-	return AbsComponentInstance{Stack: append(parent, stackInstance...), Item: componentInstance}, diags
+	return AbsComponentInstance{Stack: stackInstance, Item: componentInstance}, diags
 }
 
 type StackRemovedFrom struct {
@@ -110,6 +126,15 @@ func (rf ComponentRemovedFrom) ComponentInstance(ctx *hcl.EvalContext) (Componen
 // represents the unparsed index within the from expression. Users can
 // optionally specify a specific index of a component to target.
 func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
+	// we always return the same diagnostic from this function when we
+	// error, so we'll encapsulate it here.
+	diag := &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Invalid 'from' attribute",
+		Detail:   "The 'from' attribute must designate a component or stack that has been removed, in the form of an address such as `component.component_name` or `stack.stack_name`.",
+		Subject:  expr.Range().Ptr(),
+	}
+
 	var diags tfdiags.Diagnostics
 
 	removedFrom := RemovedFrom{}
@@ -134,12 +159,7 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 			case len(nextTraversal) < 2:
 				// this is simply an error, we always need at least 2 values
 				// for either stack.name or component.name.
-				return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-					Subject:  expr.Range().Ptr(),
-				})
+				return RemovedFrom{}, diags.Append(diag)
 			case len(nextTraversal) == 2:
 				indexExpr = current.Index
 				currentTraversal = nextTraversal
@@ -149,12 +169,7 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 					// this is an error, the last traversal should be taking
 					// its index from the outer value if it exists, and to be
 					// exactly three means something is invalid somewhere.
-					return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid 'from' attribute",
-						Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-						Subject:  expr.Range().Ptr(),
-					})
+					return RemovedFrom{}, diags.Append(diag)
 				}
 
 				index, ok := nextTraversal[2].(hcl.TraverseIndex)
@@ -162,12 +177,7 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 					// This is an error, with exactly 3 we don't have another
 					// traversal to go to after this so the last entry must
 					// be the index.
-					return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid 'from' attribute",
-						Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-						Subject:  expr.Range().Ptr(),
-					})
+					return RemovedFrom{}, diags.Append(diag)
 				}
 
 				currentTraversal = nextTraversal
@@ -193,36 +203,21 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 			case hcl.TraverseAttr:
 				name = root.Name
 			default:
-				return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-					Subject:  expr.Range().Ptr(),
-				})
+				return RemovedFrom{}, diags.Append(diag)
 			}
 
 			switch name {
 			case "component":
 				name, ok := currentTraversal[1].(hcl.TraverseAttr)
 				if !ok {
-					return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid 'from' attribute",
-						Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-						Subject:  expr.Range().Ptr(),
-					})
+					return RemovedFrom{}, diags.Append(diag)
 				}
 
 				if len(nextTraversal) > 0 || current.Rest != nil {
-					return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid 'from' attribute",
-						Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-						Subject:  expr.Range().Ptr(),
-					})
+					return RemovedFrom{}, diags.Append(diag)
 				}
 
-				removedFrom.Component = ComponentRemovedFrom{
+				removedFrom.Component = &ComponentRemovedFrom{
 					Name:  name.Name,
 					Index: indexExpr,
 				}
@@ -230,12 +225,7 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 			case "stack":
 				name, ok := currentTraversal[1].(hcl.TraverseAttr)
 				if !ok {
-					return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid 'from' attribute",
-						Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-						Subject:  expr.Range().Ptr(),
-					})
+					return RemovedFrom{}, diags.Append(diag)
 				}
 
 				removedFrom.Stack = append(removedFrom.Stack, StackRemovedFrom{
@@ -244,24 +234,16 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 				})
 
 			default:
-				return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid 'from' attribute",
-					Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-					Subject:  expr.Range().Ptr(),
-				})
+				return RemovedFrom{}, diags.Append(diag)
 			}
 		}
 
 		current = current.Rest
 	}
 
-	return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
-		Severity: hcl.DiagError,
-		Summary:  "Invalid 'from' attribute",
-		Detail:   "The 'from' attribute must designate a component that has been removed, in the form `component.component_name` or `component.component_name[\"key\"].",
-		Subject:  expr.Range().Ptr(),
-	})
+	// if we fall out, then we're just targeting a stack directly instead of a
+	// component in a stack
+	return removedFrom, diags
 }
 
 type parsedFromExpr struct {

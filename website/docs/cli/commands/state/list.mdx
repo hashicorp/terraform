@@ -5,6 +5,12 @@ description: >-
   state.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # `terraform state list` command
 
 The `terraform state list` command lists resources within a
@@ -53,6 +59,18 @@ $ terraform state list aws_instance.bar
 aws_instance.bar[0]
 aws_instance.bar[1]
 ```
+
+## Example: Filtering with an index
+
+This example will show you how to filter when your filter includes an index:
+
+```
+$ terraform state list 'foo[0].bar'
+foo[0].bar.lorem
+foo[0].bar.ipsum
+```
+
+Use single quotes to prevent your command line from interpreting the square brackets as shell syntax.
 
 ## Example: Filtering by Module
 

@@ -119,23 +119,26 @@ func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
 // the type was refactored out with all the functionality handled within the
 // provider package, but we keep this here for a shim in existing tests.
 type providerSchema struct {
-	Provider                   *configschema.Block
-	ProviderMeta               *configschema.Block
-	ResourceTypes              map[string]*configschema.Block
-	ResourceTypeSchemaVersions map[string]uint64
-	DataSources                map[string]*configschema.Block
-	IdentityTypes              map[string]*configschema.Object
-	IdentityTypeSchemaVersions map[string]uint64
+	Provider                       *configschema.Block
+	ProviderMeta                   *configschema.Block
+	ResourceTypes                  map[string]*configschema.Block
+	ResourceTypeSchemaVersions     map[string]uint64
+	DataSources                    map[string]*configschema.Block
+	IdentityTypes                  map[string]*configschema.Object
+	IdentityTypeSchemaVersions     map[string]uint64
+	ListResourceTypes              map[string]*configschema.Block
+	ListResourceTypeSchemaVersions map[string]uint64
 }
 
 // getProviderSchemaResponseFromProviderSchema is a test helper to convert a
 // providerSchema to a GetProviderSchemaResponse for use when building a mock provider.
 func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema) *providers.GetProviderSchemaResponse {
 	resp := &providers.GetProviderSchemaResponse{
-		Provider:      providers.Schema{Body: providerSchema.Provider},
-		ProviderMeta:  providers.Schema{Body: providerSchema.ProviderMeta},
-		ResourceTypes: map[string]providers.Schema{},
-		DataSources:   map[string]providers.Schema{},
+		Provider:          providers.Schema{Body: providerSchema.Provider},
+		ProviderMeta:      providers.Schema{Body: providerSchema.ProviderMeta},
+		ResourceTypes:     map[string]providers.Schema{},
+		DataSources:       map[string]providers.Schema{},
+		ListResourceTypes: map[string]providers.Schema{},
 	}
 
 	for name, schema := range providerSchema.ResourceTypes {
@@ -155,6 +158,14 @@ func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema)
 
 	for name, schema := range providerSchema.DataSources {
 		resp.DataSources[name] = providers.Schema{Body: schema}
+	}
+
+	for name, schema := range providerSchema.ListResourceTypes {
+		ps := providers.Schema{
+			Body:    schema,
+			Version: int64(providerSchema.ListResourceTypeSchemaVersions[name]),
+		}
+		resp.ListResourceTypes[name] = ps
 	}
 
 	return resp

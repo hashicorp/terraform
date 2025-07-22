@@ -79,6 +79,8 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		return n.dataResourceExecute(ctx)
 	case addrs.EphemeralResourceMode:
 		return n.ephemeralResourceExecute(ctx)
+	case addrs.ListResourceMode:
+		return n.listResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
@@ -386,7 +388,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if importing {
-			change.Importing = &plans.Importing{Target: n.importTarget}
+			// There is a subtle difference between the import by identity
+			// and the import by ID. When importing by identity, we need to
+			// make sure to use the complete identity return by the provider
+			// instead of the (potential) incomplete one from the configuration.
+			if n.importTarget.Type().IsObjectType() {
+				change.Importing = &plans.Importing{Target: instanceRefreshState.Identity}
+			} else {
+				change.Importing = &plans.Importing{Target: n.importTarget}
+			}
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for
@@ -476,6 +486,13 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// instead of using the plan.
 			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
+
+		// TODO: Verify no non-error branches are skipped here
+		planActionDiags := n.planActionTriggers(ctx, change)
+		diags = diags.Append(planActionDiags)
+		if diags.HasErrors() {
+			return diags
+		}
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
@@ -531,6 +548,98 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					After:  instanceRefreshState.Value,
 				},
 			})
+		}
+	}
+
+	return diags
+}
+
+// planActionTriggers plans all actions (potentially) triggered by this
+// resource instance change sequentially, and returns any diagnostics
+func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.ActionTriggers == nil {
+		return diags
+	}
+
+	for i, at := range n.Config.Managed.ActionTriggers {
+		if !eventIncludesAction(at.Events, change.Action) {
+			continue
+		}
+
+		// TODO: Deal with conditions
+		for j, actionRef := range at.Actions {
+			absActionInstAddrs := []addrs.AbsActionInstance{}
+
+			ref, parseRefDiags := addrs.ParseRef(actionRef.Traversal)
+			diags = diags.Append(parseRefDiags)
+			if parseRefDiags.HasErrors() {
+				return diags
+			}
+
+			// We don't support accessing actions within modules right now, therefore we can just make the action absolute based on the current module path.
+			if a, ok := ref.Subject.(addrs.ActionInstance); ok {
+				absActionInstAddrs = append(absActionInstAddrs, a.Absolute(n.Path()))
+			} else if a, ok := ref.Subject.(addrs.Action); ok {
+				// If the reference action is expanded we get a single action address,
+				// otherwise all expanded action addresses. This auto-expansion feature is syntacic
+				// sugar for the user so that they can refer to all of an expanded action's
+				// instances
+				absActionInstAddrs = ctx.Actions().GetActionInstanceKeys(a.Absolute(n.Path()))
+			} else {
+				// TODO: Better diagnostic message
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("%s action trigger #%d refers to an invalid address", n.Addr, i),
+					fmt.Sprintf("actions list item #%d refers to a subject that is not an action or action instance.", j),
+				))
+				continue
+			}
+
+			if len(absActionInstAddrs) == 0 {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("%s action trigger #%d refers to a non-existent action %s", n.Addr, i, actionRef.Traversal),
+					fmt.Sprintf("action trigger #%d refers to a non-existent action %s", i, actionRef.Traversal),
+				))
+				return diags
+			}
+
+			for _, absActionAddr := range absActionInstAddrs {
+				actionInstance, ok := ctx.Actions().GetActionInstance(absActionAddr)
+
+				if !ok {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("action trigger #%d refers to a non-existent action instance %s", i, absActionAddr),
+						"Action instance not found in the current context.",
+					))
+					return diags
+				}
+
+				provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to get provider",
+						fmt.Sprintf("Failed to get provider: %s", err),
+					))
+					return diags
+				}
+
+				resp := provider.PlanAction(providers.PlanActionRequest{
+					ActionType:         absActionAddr.Action.Action.Type,
+					ProposedActionData: actionInstance.ConfigValue,
+					ClientCapabilities: ctx.ClientCapabilities(),
+				})
+
+				// TODO: Deal with deferred responses
+				diags = diags.Append(resp.Diagnostics)
+				if diags.HasErrors() {
+					return diags
+				}
+			}
 		}
 	}
 
@@ -745,6 +854,12 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
+	// Providers are supposed to return an identity when importing by identity
+	if importTarget.Type().IsObjectType() && imported[0].Identity.IsNull() {
+		diags = diags.Append(fmt.Errorf("import of %s didn't return an identity", n.Addr.String()))
+		return nil, deferred, diags
+	}
+
 	// Providers are supposed to return null values for all write-only attributes
 	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
 		"Import returned a non-null value for a write-only attribute",
@@ -764,7 +879,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}
 
 	importedState := states.NewResourceInstanceObjectFromIR(imported[0])
-	if deferred == nil && importedState.Value.IsNull() {
+	if deferred == nil && !importTarget.Type().IsObjectType() && importedState.Value.IsNull() {
 		// It's actually okay for a deferred import to have returned a null.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -774,7 +889,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 				importType, importValue,
 			),
 		))
-
 	}
 
 	// refresh
@@ -824,16 +938,15 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 
 		// Generate the HCL string first, then parse the HCL body from it.
-		// First we generate the contents of the resource block for use within
-		// the planning node. Then we wrap it in an enclosing resource block to
-		// pass into the plan for rendering.
-		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema.Body)
+		generatedResource, generatedDiags := n.generateHCLResourceDef(n.Addr, instanceRefreshState.Value, schema)
 		diags = diags.Append(generatedDiags)
 
-		n.generatedConfigHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
+		// This wraps the content of the resource block in an enclosing resource block
+		// to pass into the plan for rendering.
+		n.generatedConfigHCL = generatedResource.String()
 
-		// parse the "file" as HCL to get the hcl.Body
-		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), filepath.Base(n.generateConfigPath), hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		// parse the "file" body as HCL to get the hcl.Body
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig(generatedResource.Body, filepath.Base(n.generateConfigPath), hcl.Pos{Byte: 0, Line: 1, Column: 1})
 		diags = diags.Append(hclDiags)
 		if hclDiags.HasErrors() {
 			return instanceRefreshState, nil, diags
@@ -868,10 +981,11 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	return instanceRefreshState, deferred, diags
 }
 
-// generateHCLStringAttributes produces a string in HCL format for the given
-// resource state and schema without the surrounding block.
-func (n *NodePlannableResourceInstance) generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, tfdiags.Diagnostics) {
-	filteredSchema := schema.Filter(
+// generateHCLResourceDef generates the HCL definition for the resource
+// instance, including the surrounding block. This is used to generate the
+// configuration for the resource instance when importing or generating
+func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (*genconfig.Resource, tfdiags.Diagnostics) {
+	filteredSchema := schema.Body.Filter(
 		configschema.FilterOr(
 			configschema.FilterReadOnlyAttribute,
 			configschema.FilterDeprecatedAttribute,
@@ -896,7 +1010,15 @@ func (n *NodePlannableResourceInstance) generateHCLStringAttributes(addr addrs.A
 		Alias:     n.ResolvedProvider.Alias,
 	}
 
-	return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state.Value)
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state, false)
+	case addrs.ListResourceMode:
+		identitySchema := schema.Identity
+		return genconfig.GenerateListResourceContents(addr, filteredSchema, identitySchema, providerAddr, state)
+	default:
+		panic(fmt.Sprintf("unexpected resource mode %s for resource %s", addr.Resource.Resource.Mode, addr))
+	}
 }
 
 // mergeDeps returns the union of 2 sets of dependencies
@@ -954,4 +1076,32 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 		}
 	}
 	return true
+}
+
+func eventIncludesAction(events []configs.ActionTriggerEvent, action plans.Action) bool {
+	for _, event := range events {
+		switch event {
+		case configs.BeforeCreate, configs.AfterCreate:
+			if action.IsReplace() || action == plans.Create {
+				return true
+			} else {
+				continue
+			}
+		case configs.BeforeUpdate, configs.AfterUpdate:
+			if action == plans.Update {
+				return true
+			} else {
+				continue
+			}
+		case configs.BeforeDestroy, configs.AfterDestroy:
+			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
+				return true
+			} else {
+				continue
+			}
+		default:
+			panic(fmt.Sprintf("unknown action trigger event %s", event))
+		}
+	}
+	return false
 }

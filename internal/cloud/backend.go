@@ -227,6 +227,10 @@ func (b *Cloud) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	}, nil
 }
 
+func (b *Cloud) Services() *disco.Disco {
+	return b.services
+}
+
 // Configure implements backend.Backend (which is embedded in backendrun.OperationsBackend).
 func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
@@ -292,7 +296,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Get the token from the CLI Config File in the credentials section
 	// if no token was set in the configuration
 	if token == "" {
-		token, err = cliConfigToken(hostname, b.services)
+		token, err = CliConfigToken(hostname, b.services)
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
@@ -589,10 +593,10 @@ func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
 	return ret, diags
 }
 
-// cliConfigToken returns the token for this host as configured in the credentials
+// CliConfigToken returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func cliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
+func CliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
 	creds, err := services.CredentialsForHost(hostname)
 	if err != nil {
 		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", hostname.ForDisplay(), err)
@@ -1536,6 +1540,6 @@ is the primary and recommended strategy to use.  This option conflicts with "nam
 When configured, only the specified workspace can be used. This option conflicts with "tags"
 and with the TF_WORKSPACE environment variable.`
 
-	schemaDescriptionProject = `The name of an HCP Terraform or Terraform Enterpise project. Workspaces that need creating
+	schemaDescriptionProject = `The name of an HCP Terraform or Terraform Enterprise project. Workspaces that need creating
 will be created within this project.`
 )

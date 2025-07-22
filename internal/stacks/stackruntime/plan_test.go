@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
@@ -524,9 +523,9 @@ func TestPlan(t *testing.T) {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove component instance",
-						Detail:   "The component instance stack.for_each.component.self[\"foo\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/for-each-component/for-each-component.tfstack.hcl:15,1-17.",
+						Detail:   "The component instance stack.for_each.component.self[\"foo\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/for-each-component/for-each-component.tfcomponent.hcl:15,1-17.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 38, Column: 1, Byte: 505},
 							End:      hcl.Pos{Line: 38, Column: 8, Byte: 512},
 						},
@@ -534,9 +533,9 @@ func TestPlan(t *testing.T) {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove component instance",
-						Detail:   "The component instance stack.simple[\"foo\"].component.self is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/valid/valid.tfstack.hcl:19,1-17.",
+						Detail:   "The component instance stack.simple[\"foo\"].component.self is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/valid/valid.tfcomponent.hcl:19,1-17.",
 						Subject: &hcl.Range{
-							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfstack.hcl",
+							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfcomponent.hcl",
 							Start:    hcl.Pos{Line: 60, Column: 1, Byte: 811},
 							End:      hcl.Pos{Line: 60, Column: 8, Byte: 818},
 						},
@@ -596,7 +595,7 @@ func TestPlan(t *testing.T) {
 						PlanComplete:  false,
 						Action:        plans.Update,
 						PlannedInputValues: map[string]plans.DynamicValue{
-							"id":    mustPlanDynamicValueDynamicType(cty.UnknownVal(cty.String)),
+							"id":    mustPlanDynamicValueDynamicType(cty.StringVal("deferred")),
 							"input": mustPlanDynamicValueDynamicType(cty.UnknownVal(cty.String)),
 						},
 						PlannedOutputValues: map[string]cty.Value{},
@@ -644,18 +643,14 @@ func TestPlan(t *testing.T) {
 									Module:   addrs.RootModule,
 									Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
 								},
-								ActionReason: plans.ResourceInstanceReplaceBecauseCannotUpdate,
-								RequiredReplace: cty.NewPathSet(
-									cty.GetAttrPath("id"),
-								),
 								ChangeSrc: plans.ChangeSrc{
-									Action: plans.DeleteThenCreate,
+									Action: plans.Update,
 									Before: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 										"id":    cty.StringVal("deferred"),
 										"value": cty.StringVal("deferred"),
 									}), stacks_testing_provider.TestingResourceSchema.Body),
 									After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
-										"id":    cty.UnknownVal(cty.String),
+										"id":    cty.StringVal("deferred"),
 										"value": cty.UnknownVal(cty.String),
 									}), stacks_testing_provider.TestingResourceSchema.Body),
 									AfterSensitivePaths: nil,
@@ -879,6 +874,548 @@ func TestPlan(t *testing.T) {
 				},
 			},
 		},
+		"removed block targets stack not in configuration or state": {
+			path: filepath.Join("with-single-input", "removed-stack-instance-dynamic"),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"input": cty.MapValEmpty(cty.String),
+					"removed": cty.MapVal(map[string]cty.Value{
+						"component": cty.StringVal("component"),
+					}),
+				},
+				wantPlannedChanges: []stackplan.PlannedChange{
+					&stackplan.PlannedChangeApplyable{
+						Applyable: true,
+					},
+					&stackplan.PlannedChangeHeader{
+						TerraformVersion: version.SemVer,
+					},
+					&stackplan.PlannedChangePlannedTimestamp{
+						PlannedTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "input"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.MapValEmpty(cty.String),
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "removed"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After: cty.MapVal(map[string]cty.Value{
+							"component": cty.StringVal("component"),
+						}),
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "removed-direct"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.SetValEmpty(cty.String),
+					},
+				},
+			},
+		},
+		"embedded stack in state but not in configuration": {
+			path: filepath.Join("with-single-input", "valid"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.child.component.self"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.child.component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "leftover",
+							"value": "leftover",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("leftover", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("leftover"),
+					"value": cty.StringVal("leftover"),
+				})).
+				Build(),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"input": cty.StringVal("input"),
+				},
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unclaimed component instance",
+						Detail:   "The component instance stack.child.component.self is not claimed by any component or removed block in the configuration. Make sure it is instantiated by a component block, or targeted for removal by a removed block.",
+					})
+				}),
+			},
+		},
+		"removed and stack block target the same stack": {
+			path: filepath.Join("with-single-input", "removed-stack-instance-dynamic"),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"input": cty.MapVal(map[string]cty.Value{
+						"component": cty.StringVal("component"),
+					}),
+					"removed": cty.MapVal(map[string]cty.Value{
+						"component": cty.StringVal("component"),
+					}),
+				},
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Cannot remove stack instance",
+						Detail:   "The stack instance stack.simple[\"component\"] is targeted by an embedded stack block and cannot be removed. The relevant embedded stack is defined at git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfcomponent.hcl:25,1-15.",
+						Subject: &hcl.Range{
+							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfcomponent.hcl",
+							Start:    hcl.Pos{Line: 36, Column: 1, Byte: 441},
+							End:      hcl.Pos{Line: 36, Column: 8, Byte: 448},
+						},
+					})
+				}),
+			},
+		},
+		"removed targets stack block in embedded stack that exists": {
+			path: filepath.Join("with-single-input", "removed-stack-from-embedded-stack"),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"input": cty.MapVal(map[string]cty.Value{
+						"component": cty.MapVal(map[string]cty.Value{
+							"component": cty.StringVal("component"),
+						}),
+					}),
+					"removed": cty.MapVal(map[string]cty.Value{
+						"component": cty.MapVal(map[string]cty.Value{
+							"id":    cty.StringVal("component"),
+							"input": cty.StringVal("component"),
+						}),
+					}),
+				},
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Cannot remove stack instance",
+						Detail:   "The stack instance stack.embedded[\"component\"].stack.simple[\"component\"] is targeted by an embedded stack block and cannot be removed. The relevant embedded stack is defined at git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfcomponent.hcl:25,1-15.",
+						Subject: &hcl.Range{
+							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-from-embedded-stack/removed-stack-from-embedded-stack.tfcomponent.hcl",
+							Start:    hcl.Pos{Line: 28, Column: 1, Byte: 360},
+							End:      hcl.Pos{Line: 28, Column: 8, Byte: 367},
+						},
+					})
+				}),
+			},
+		},
+		"removed block targets component inside removed stack": {
+			path: filepath.Join("with-single-input", "removed-stack-instance-dynamic"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.simple[\"component\"].component.self")).
+					AddInputVariable("id", cty.StringVal("component")).
+					AddInputVariable("input", cty.StringVal("component"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.simple[\"component\"].component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "component",
+							"value": "component",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("component", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("component"),
+					"value": cty.StringVal("component"),
+				})).
+				Build(),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"removed": cty.MapVal(map[string]cty.Value{
+						"component": cty.StringVal("component"),
+					}),
+					"removed-direct": cty.SetVal([]cty.Value{
+						cty.StringVal("component"),
+					}),
+				},
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Cannot remove component instance",
+						Detail:   "The component instance stack.simple[\"component\"].component.self is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/valid/valid.tfcomponent.hcl:19,1-17.",
+						Subject: &hcl.Range{
+							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-instance-dynamic/removed-stack-instance-dynamic.tfcomponent.hcl",
+							Start:    hcl.Pos{Line: 51, Column: 1, Byte: 708},
+							End:      hcl.Pos{Line: 51, Column: 8, Byte: 715},
+						},
+					})
+				}),
+			},
+		},
+		"removed block targets orphaned component": {
+			path: filepath.Join("with-single-input", "removed-component-from-stack-dynamic"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.simple[\"component\"].component.self")).
+					AddInputVariable("id", cty.StringVal("component")).
+					AddInputVariable("input", cty.StringVal("component"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.simple[\"component\"].component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "component",
+							"value": "component",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("component", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("component"),
+					"value": cty.StringVal("component"),
+				})).
+				Build(),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"simple_input": cty.MapValEmpty(cty.String),
+					"simple_removed": cty.SetVal([]cty.Value{
+						cty.StringVal("component"),
+					}),
+				},
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid removed block",
+						Detail:   "The component instance stack.simple[\"component\"].component.self could not be removed. The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
+						Subject: &hcl.Range{
+							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfcomponent.hcl",
+							Start:    hcl.Pos{Line: 60, Column: 1, Byte: 811},
+							End:      hcl.Pos{Line: 60, Column: 8, Byte: 818},
+						},
+					})
+				}),
+				wantPlannedChanges: []stackplan.PlannedChange{
+					&stackplan.PlannedChangeApplyable{
+						Applyable: false,
+					},
+					&stackplan.PlannedChangeHeader{
+						TerraformVersion: version.SemVer,
+					},
+					&stackplan.PlannedChangePlannedTimestamp{
+						PlannedTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "for_each_input"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.MapValEmpty(cty.String),
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "for_each_removed"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.SetValEmpty(cty.String),
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "simple_input"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.MapValEmpty(cty.String),
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "simple_removed"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After: cty.SetVal([]cty.Value{
+							cty.StringVal("component"),
+						}),
+					},
+				},
+			},
+		},
+		"removed block targets orphaned stack": {
+			path: filepath.Join("with-single-input", "removed-stack-from-embedded-stack"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.embedded[\"component\"].stack.simple[\"component\"].component.self")).
+					AddInputVariable("id", cty.StringVal("component")).
+					AddInputVariable("input", cty.StringVal("component"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.embedded[\"component\"].stack.simple[\"component\"].component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "component",
+							"value": "component",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("component", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("component"),
+					"value": cty.StringVal("component"),
+				})).
+				Build(),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"input": cty.MapValEmpty(cty.Map(cty.String)),
+					"removed": cty.MapVal(map[string]cty.Value{
+						"component": cty.MapVal(map[string]cty.Value{
+							"id":    cty.StringVal("component"),
+							"input": cty.StringVal("component"),
+						}),
+					}),
+				},
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid removed block",
+						Detail:   "The component instance stack.embedded[\"component\"].stack.simple[\"component\"].component.self could not be removed. The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
+						Subject: &hcl.Range{
+							Filename: "git::https://example.com/test.git//with-single-input/removed-stack-from-embedded-stack/removed-stack-from-embedded-stack.tfcomponent.hcl",
+							Start:    hcl.Pos{Line: 28, Column: 1, Byte: 360},
+							End:      hcl.Pos{Line: 28, Column: 8, Byte: 367},
+						},
+					})
+				}),
+			},
+		},
+		"removed block targets orphaned component without config definition": {
+			path: filepath.Join("with-single-input", "orphaned-component"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.embedded.component.self")).
+					AddInputVariable("id", cty.StringVal("component")).
+					AddInputVariable("input", cty.StringVal("component"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.embedded.component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "component",
+							"value": "component",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("component", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("component"),
+					"value": cty.StringVal("component"),
+				})).
+				Build(),
+			cycle: TestCycle{
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid removed block",
+						Detail:   "The component instance stack.embedded.component.self could not be removed. The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
+						Subject: &hcl.Range{
+							Filename: "git::https://example.com/test.git//with-single-input/orphaned-component/orphaned-component.tfcomponent.hcl",
+							Start:    hcl.Pos{Line: 10, Column: 1, Byte: 131},
+							End:      hcl.Pos{Line: 10, Column: 8, Byte: 138},
+						},
+					})
+				}),
+			},
+		},
+		"unknown embedded stack with internal component targeted by concrete removed block": {
+			path: filepath.Join("with-single-input", "removed-stack-instance-dynamic"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.simple[\"component\"].component.self")).
+					AddInputVariable("id", cty.StringVal("component")).
+					AddInputVariable("input", cty.StringVal("component"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.simple[\"component\"].component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "component",
+							"value": "component",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("component", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("component"),
+					"value": cty.StringVal("component"),
+				})).
+				Build(),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"removed": cty.UnknownVal(cty.Map(cty.String)),
+				},
+				wantPlannedChanges: []stackplan.PlannedChange{
+					&stackplan.PlannedChangeApplyable{
+						Applyable: true,
+					},
+					&stackplan.PlannedChangeHeader{
+						TerraformVersion: version.SemVer,
+					},
+					&stackplan.PlannedChangePlannedTimestamp{
+						PlannedTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeComponentInstance{
+						Addr:   mustAbsComponentInstance("stack.simple[\"component\"].component.self"),
+						Action: plans.Delete,
+						Mode:   plans.DestroyMode,
+						PlannedInputValues: map[string]plans.DynamicValue{
+							"id":    mustPlanDynamicValueDynamicType(cty.UnknownVal(cty.String)),
+							"input": mustPlanDynamicValueDynamicType(cty.UnknownVal(cty.String)),
+						},
+						PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+							"id":    nil,
+							"input": nil,
+						},
+						PlannedOutputValues: make(map[string]cty.Value),
+						PlannedCheckResults: &states.CheckResults{},
+						PlanTimestamp:       fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+						ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.simple[\"component\"].component.self.testing_resource.data"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.data"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.data"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Delete,
+									Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("component"),
+										"value": cty.StringVal("component"),
+									})),
+									After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+								},
+							},
+							PriorStateSrc: &states.ResourceInstanceObjectSrc{
+								Status: states.ObjectReady,
+								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+									"id":    "component",
+									"value": "component",
+								}),
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						DeferredReason: providers.DeferredReasonDeferredPrereq,
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "input"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.MapValEmpty(cty.String),
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "removed"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.UnknownVal(cty.Map(cty.String)),
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "removed-direct"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.SetValEmpty(cty.String),
+					},
+				},
+			},
+		},
+		"remove partial stack": {
+			path: filepath.Join("with-single-input", "multiple-components", "removed"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.multiple.component.one")).
+					AddInputVariable("id", cty.StringVal("one")).
+					AddInputVariable("input", cty.StringVal("one"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.multiple.component.one.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "one",
+							"value": "one",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("one", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("one"),
+					"value": cty.StringVal("one"),
+				})).
+				Build(),
+			cycle: TestCycle{
+				wantPlannedChanges: []stackplan.PlannedChange{
+					&stackplan.PlannedChangeApplyable{
+						Applyable: true,
+					},
+					&stackplan.PlannedChangeHeader{
+						TerraformVersion: version.SemVer,
+					},
+					&stackplan.PlannedChangePlannedTimestamp{
+						PlannedTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeComponentInstance{
+						Addr:          mustAbsComponentInstance("stack.multiple.component.one"),
+						PlanApplyable: true,
+						PlanComplete:  true,
+						Action:        plans.Delete,
+						Mode:          plans.DestroyMode,
+						PlannedInputValues: map[string]plans.DynamicValue{
+							"id":    mustPlanDynamicValueDynamicType(cty.StringVal("one")),
+							"input": mustPlanDynamicValueDynamicType(cty.StringVal("one")),
+						},
+						PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+							"id":    nil,
+							"input": nil,
+						},
+						PlannedOutputValues: make(map[string]cty.Value),
+						PlannedCheckResults: &states.CheckResults{},
+						PlanTimestamp:       fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeResourceInstancePlanned{
+						ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.multiple.component.one.testing_resource.data"),
+						ChangeSrc: &plans.ResourceInstanceChangeSrc{
+							Addr:         mustAbsResourceInstance("testing_resource.data"),
+							PrevRunAddr:  mustAbsResourceInstance("testing_resource.data"),
+							ProviderAddr: mustDefaultRootProvider("testing"),
+							ChangeSrc: plans.ChangeSrc{
+								Action: plans.Delete,
+								Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+									"id":    cty.StringVal("one"),
+									"value": cty.StringVal("one"),
+								})),
+								After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+									"id":    cty.String,
+									"value": cty.String,
+								}))),
+							},
+						},
+						PriorStateSrc: &states.ResourceInstanceObjectSrc{
+							Status: states.ObjectReady,
+							AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+								"id":    "one",
+								"value": "one",
+							}),
+							Dependencies: make([]addrs.ConfigResource, 0),
+						},
+						ProviderConfigAddr: mustDefaultRootProvider("testing"),
+						Schema:             stacks_testing_provider.TestingResourceSchema,
+					},
+					&stackplan.PlannedChangeComponentInstance{
+						Addr:                mustAbsComponentInstance("stack.multiple.component.two"),
+						PlanApplyable:       true,
+						PlanComplete:        true,
+						Action:              plans.Delete,
+						Mode:                plans.DestroyMode,
+						PlannedOutputValues: make(map[string]cty.Value),
+						PlanTimestamp:       fakePlanTimestamp,
+					},
+				},
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -952,7 +1489,7 @@ func TestPlanWithMissingInputVariable(t *testing.T) {
 		Summary:  "Reference to undeclared input variable",
 		Detail:   `There is no variable "input" block declared in this stack.`,
 		Subject: &hcl.Range{
-			Filename: mainBundleSourceAddrStr("plan-undeclared-variable-in-component/undeclared-variable.tfstack.hcl"),
+			Filename: mainBundleSourceAddrStr("plan-undeclared-variable-in-component/undeclared-variable.tfcomponent.hcl"),
 			Start:    hcl.Pos{Line: 17, Column: 13, Byte: 250},
 			End:      hcl.Pos{Line: 17, Column: 22, Byte: 259},
 		},
@@ -1003,7 +1540,7 @@ func TestPlanWithNoValueForRequiredVariable(t *testing.T) {
 		Summary:  "No value for required variable",
 		Detail:   `The root input variable "var.beep" is not set, and has no default value.`,
 		Subject: &hcl.Range{
-			Filename: mainBundleSourceAddrStr("plan-no-value-for-required-variable/unset-variable.tfstack.hcl"),
+			Filename: mainBundleSourceAddrStr("plan-no-value-for-required-variable/unset-variable.tfcomponent.hcl"),
 			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
 			End:      hcl.Pos{Line: 1, Column: 16, Byte: 15},
 		},
@@ -1028,7 +1565,7 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 			inputs: map[stackaddrs.InputVariable]ExternalInputValue{
 				{Name: "beep"}: {
 					Value:    cty.NullVal(cty.DynamicPseudoType),
-					DefRange: tfdiags.SourceRange{Filename: "fake.tfstack.hcl"},
+					DefRange: tfdiags.SourceRange{Filename: "fake.tfcomponent.hcl"},
 				},
 			},
 		},
@@ -5581,7 +6118,7 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 				{
 					severity: tfdiags.Error,
 					summary:  "Cannot remove component instance",
-					detail:   "The component instance component.self[\"a\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/removed-component-instance/removed-component-instance.tfstack.hcl:18,1-17.",
+					detail:   "The component instance component.self[\"a\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/removed-component-instance/removed-component-instance.tfcomponent.hcl:18,1-17.",
 				},
 			},
 		},
@@ -5628,7 +6165,7 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 			sort.SliceStable(gotPlanDiags, diagnosticSortFunc(gotPlanDiags))
 
 			expectDiagnosticsForTest(t, gotPlanDiags, tc.wantPlanDiags...)
-			if diff := cmp.Diff(tc.wantPlanChanges, gotPlanChanges, ctydebug.CmpOptions, cmpCollectionsSet, cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{})); diff != "" {
+			if diff := cmp.Diff(tc.wantPlanChanges, gotPlanChanges, changesCmpOpts); diff != "" {
 				t.Errorf("wrong changes\n%s", diff)
 			}
 		})
@@ -5780,17 +6317,3 @@ func expectOutput(t *testing.T, name string, changes []stackplan.PlannedChange) 
 	t.Fatalf("expected output value %q", name)
 	return nil
 }
-
-var cmpCollectionsSet = cmp.Comparer(func(x, y collections.Set[stackaddrs.AbsComponent]) bool {
-	if x.Len() != y.Len() {
-		return false
-	}
-
-	for v := range x.All() {
-		if !y.Has(v) {
-			return false
-		}
-	}
-
-	return true
-})

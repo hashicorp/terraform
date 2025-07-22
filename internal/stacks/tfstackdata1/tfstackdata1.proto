@@ -96,11 +96,11 @@ message DeletedComponent {
     string component_instance_addr = 1;
 }
 
-// ProviderFunctionResults stores a record of the results of provider functions
+// FunctionResults stores a record of the results of provider functions
 // that were called during the planning phase. This is used to ensure that the
 // same results are returned during the apply phase.
-message ProviderFunctionResults {
-    repeated tfplan.ProviderFunctionCallHash provider_function_results = 1;
+message FunctionResults {
+    repeated tfplan.FunctionCallHash function_results = 1;
 }
 
 // Represents the existence of a particular component instance, and so must
@@ -214,7 +214,7 @@ message PlanComponentInstance {
     // The set of provider function results that were produced during the
     // planning phase for this component instance. These results are used
     // to ensure that the same results are returned during the apply phase.
-    repeated tfplan.ProviderFunctionCallHash provider_function_results = 11;
+    repeated tfplan.FunctionCallHash function_results = 11;
 }
 
 // Represents a planned change to a particular resource instance within a

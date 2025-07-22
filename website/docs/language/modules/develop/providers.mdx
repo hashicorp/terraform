@@ -4,6 +4,12 @@ description: >-
   Use providers within Terraform modules. Learn about version constraints, aliases, implicit inheritance, and passing providers to Terraform modules.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Providers Within Modules
 
 [inpage-providers]: #providers-within-modules
@@ -182,10 +188,7 @@ The keys of the `providers` map are provider configuration names as expected by
 the child module, and the values are the names of corresponding configurations
 in the _current_ module.
 
-Once the `providers` argument is used in a `module` block, it overrides all of
-the default inheritance behavior, so it is necessary to enumerate mappings
-for _all_ of the required providers. This is to avoid confusion and surprises
-that may result when mixing both implicit and explicit provider passing.
+Modules implicitly inherit default providers. Setting a `providers` argument within a `module` block overrides the default inheritance behavior for that provider.
 
 Additional provider configurations (those with the `alias` argument set) are
 _never_ inherited automatically by child modules, and so must always be passed

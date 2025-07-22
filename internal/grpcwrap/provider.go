@@ -45,6 +45,8 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		ResourceSchemas:          make(map[string]*tfplugin5.Schema),
 		DataSourceSchemas:        make(map[string]*tfplugin5.Schema),
 		EphemeralResourceSchemas: make(map[string]*tfplugin5.Schema),
+		ListResourceSchemas:      make(map[string]*tfplugin5.Schema),
+		ActionSchemas:            make(map[string]*tfplugin5.ActionSchema),
 	}
 
 	resp.Provider = &tfplugin5.Schema{
@@ -73,11 +75,49 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
 	}
+	for typ, dat := range p.schema.EphemeralResourceTypes {
+		resp.EphemeralResourceSchemas[typ] = &tfplugin5.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
+	for typ, dat := range p.schema.ListResourceTypes {
+		resp.ListResourceSchemas[typ] = &tfplugin5.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
 	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
 		resp.Functions = decls
 	} else {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
+	}
+
+	for typ, act := range p.schema.Actions {
+		newAct := tfplugin5.ActionSchema{
+			Schema: &tfplugin5.Schema{
+				Block: convert.ConfigSchemaToProto(act.ConfigSchema),
+			},
+		}
+
+		if act.Unlinked != nil {
+			newAct.Type = &tfplugin5.ActionSchema_Unlinked_{}
+		} else if act.Lifecycle != nil {
+			newAct.Type = &tfplugin5.ActionSchema_Lifecycle_{
+				Lifecycle: &tfplugin5.ActionSchema_Lifecycle{
+					Executes:       convert.ExecutionOrderToProto(act.Lifecycle.Executes),
+					LinkedResource: convert.LinkedResourceToProto(act.Lifecycle.LinkedResource),
+				},
+			}
+		} else if act.Linked != nil {
+			newAct.Type = &tfplugin5.ActionSchema_Linked_{
+				Linked: &tfplugin5.ActionSchema_Linked{
+					LinkedResources: convert.LinkedResourcesToProto(act.Linked.LinkedResources),
+				},
+			}
+		}
+		resp.ActionSchemas[typ] = &newAct
 	}
 
 	resp.ServerCapabilities = &tfplugin5.ServerCapabilities{
@@ -164,6 +204,25 @@ func (p *provider) ValidateEphemeralResourceConfig(_ context.Context, req *tfplu
 	}
 
 	validateResp := p.provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
+func (p *provider) ValidateListResourceConfig(_ context.Context, req *tfplugin5.ValidateListResourceConfig_Request) (*tfplugin5.ValidateListResourceConfig_Response, error) {
+	resp := &tfplugin5.ValidateListResourceConfig_Response{}
+	ty := p.schema.ListResourceTypes[req.TypeName].Body.ImpliedType()
+
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	validateResp := p.provider.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -728,6 +787,290 @@ func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.Upg
 		IdentityData: dv,
 	}
 	return resp, nil
+}
+
+func (p *provider) ListResource(req *tfplugin5.ListResource_Request, res tfplugin5.Provider_ListResourceServer) error {
+	resourceSchema, ok := p.schema.ResourceTypes[req.TypeName]
+	if !ok {
+		return fmt.Errorf("resource schema not found for type %q", req.TypeName)
+	}
+	listSchema, ok := p.schema.ListResourceTypes[req.TypeName]
+	if !ok {
+		return fmt.Errorf("list resource schema not found for type %q", req.TypeName)
+	}
+	cfg, err := decodeDynamicValue(req.Config, listSchema.Body.ImpliedType())
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to decode config: %v", err)
+	}
+	resp := p.provider.ListResource(providers.ListResourceRequest{
+		TypeName:              req.TypeName,
+		Config:                cfg,
+		Limit:                 req.Limit,
+		IncludeResourceObject: req.IncludeResourceObject,
+	})
+	if resp.Diagnostics.HasErrors() {
+		return resp.Diagnostics.Err()
+	}
+	if !resp.Result.Type().HasAttribute("data") {
+		return status.Errorf(codes.Internal, "list resource response missing 'data' attribute")
+	}
+	data := resp.Result.GetAttr("data")
+	if data.IsNull() || !data.CanIterateElements() {
+		return status.Errorf(codes.Internal, "list resource response 'data' attribute is invalid or null")
+	}
+
+	for iter := data.ElementIterator(); iter.Next(); {
+		_, item := iter.Element()
+		var stateVal *tfplugin5.DynamicValue
+		if item.Type().HasAttribute("state") {
+			state := item.GetAttr("state")
+			var err error
+			stateVal, err = encodeDynamicValue(state, resourceSchema.Body.ImpliedType())
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to encode list resource item state: %v", err)
+			}
+		}
+		if !item.Type().HasAttribute("identity") {
+			return status.Errorf(codes.Internal, "list resource item missing 'identity' attribute")
+		}
+		identity := item.GetAttr("identity")
+		var identityVal *tfplugin5.DynamicValue
+		identityVal, err = encodeDynamicValue(identity, resourceSchema.Identity.ImpliedType())
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to encode list resource item identity: %v", err)
+		}
+
+		var displayName string
+		if item.Type().HasAttribute("display_name") {
+			displayName = item.GetAttr("display_name").AsString()
+		}
+
+		res.Send(&tfplugin5.ListResource_Event{
+			Identity:       &tfplugin5.ResourceIdentityData{IdentityData: identityVal},
+			ResourceObject: stateVal,
+			DisplayName:    displayName,
+		})
+	}
+
+	return nil
+}
+
+func (p *provider) PlanAction(_ context.Context, req *tfplugin5.PlanAction_Request) (*tfplugin5.PlanAction_Response, error) {
+	resp := &tfplugin5.PlanAction_Response{}
+
+	actionSchema, ok := p.schema.Actions[req.ActionType]
+	if !ok {
+		return nil, fmt.Errorf("action schema not found for action %q", req.ActionType)
+	}
+
+	ty := actionSchema.ConfigSchema.ImpliedType()
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	linkedResouceSchemas := actionSchema.LinkedResources()
+	inputLinkedResources := make([]providers.LinkedResourcePlanData, 0, len(req.LinkedResources))
+
+	for i, lr := range req.LinkedResources {
+		resourceSchema, ok := p.schema.ResourceTypes[linkedResouceSchemas[i].TypeName]
+		if !ok {
+			return nil, fmt.Errorf("linked resource schema not found for type %q in action %q", linkedResouceSchemas[i].TypeName, req.ActionType)
+		}
+
+		linkedResourceTy := resourceSchema.Body.ImpliedType()
+		linkedResourceIdentityTy := resourceSchema.Identity.ImpliedType()
+
+		priorState, err := decodeDynamicValue(lr.PriorState, linkedResourceTy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode prior state for linked resource #%d (%q) in action %q: %w", i, linkedResouceSchemas[i].TypeName, req.ActionType, err)
+		}
+
+		config, err := decodeDynamicValue(lr.Config, linkedResourceTy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode config for linked resource #%d (%q) in action %q: %w", i, linkedResouceSchemas[i].TypeName, req.ActionType, err)
+		}
+
+		var priorIdentity cty.Value
+		if lr.PriorIdentity != nil && lr.PriorIdentity.IdentityData != nil {
+			priorIdentity, err = decodeDynamicValue(lr.PriorIdentity.IdentityData, linkedResourceIdentityTy)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode prior identity for linked resource #%d (%q) in action %q: %w", i, linkedResouceSchemas[i].TypeName, req.ActionType, err)
+			}
+		} else {
+			priorIdentity = cty.NullVal(linkedResourceIdentityTy)
+		}
+
+		plannedState, err := decodeDynamicValue(lr.PlannedState, linkedResourceTy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode planned state for linked resource #%d (%q) in action %q: %w", i, linkedResouceSchemas[i].TypeName, req.ActionType, err)
+		}
+
+		inputLinkedResources = append(inputLinkedResources, providers.LinkedResourcePlanData{
+			PriorState:    priorState,
+			Config:        config,
+			PriorIdentity: priorIdentity,
+			PlannedState:  plannedState,
+		})
+	}
+
+	planResp := p.provider.PlanAction(providers.PlanActionRequest{
+		ActionType:         req.ActionType,
+		ProposedActionData: configVal,
+		LinkedResources:    inputLinkedResources,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, planResp.Diagnostics)
+	if planResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	resp.Deferred = convert.DeferredToProto(planResp.Deferred)
+
+	linkedResources := make([]*tfplugin5.PlanAction_Response_LinkedResource, 0, len(planResp.LinkedResources))
+	for _, linked := range planResp.LinkedResources {
+		plannedState, err := encodeDynamicValue(linked.PlannedState, linked.PlannedState.Type())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			continue
+		}
+
+		plannedIdentity, err := encodeDynamicValue(linked.PlannedIdentity, linked.PlannedIdentity.Type())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			continue
+		}
+		linkedResources = append(linkedResources, &tfplugin5.PlanAction_Response_LinkedResource{
+			PlannedState: plannedState,
+			PlannedIdentity: &tfplugin5.ResourceIdentityData{
+				IdentityData: plannedIdentity,
+			},
+		})
+	}
+	resp.LinkedResources = linkedResources
+
+	return resp, nil
+}
+
+func (p *provider) InvokeAction(req *tfplugin5.InvokeAction_Request, server tfplugin5.Provider_InvokeActionServer) error {
+
+	actionSchema, ok := p.schema.Actions[req.ActionType]
+	if !ok {
+		return fmt.Errorf("action schema not found for action %q", req.ActionType)
+	}
+
+	ty := actionSchema.ConfigSchema.ImpliedType()
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		return err
+	}
+
+	linkedResourceData := make([]providers.LinkedResourceInvokeData, 0, len(req.LinkedResources))
+	linkedResourceSchemas := actionSchema.LinkedResources()
+	if len(linkedResourceSchemas) != len(req.LinkedResources) {
+		return fmt.Errorf("expected %d linked resources for action %q, got %d", len(linkedResourceSchemas), req.ActionType, len(req.LinkedResources))
+	}
+	for i, lr := range req.LinkedResources {
+		resourceSchema, ok := p.schema.ResourceTypes[linkedResourceSchemas[i].TypeName]
+		if !ok {
+			return fmt.Errorf("linked resource schema not found for type %q in action %q", linkedResourceSchemas[i].TypeName, req.ActionType)
+		}
+
+		linkedResourceTy := resourceSchema.Body.ImpliedType()
+		linkedResourceIdentityTy := resourceSchema.Identity.ImpliedType()
+
+		priorState, err := decodeDynamicValue(lr.PriorState, linkedResourceTy)
+		if err != nil {
+			return fmt.Errorf("failed to decode prior state for linked resource #%d (%q) in action %q: %w", i, linkedResourceSchemas[i].TypeName, req.ActionType, err)
+		}
+
+		plannedState, err := decodeDynamicValue(lr.PlannedState, linkedResourceTy)
+		if err != nil {
+			return fmt.Errorf("failed to decode planned state for linked resource #%d (%q) in action %q: %w", i, linkedResourceSchemas[i].TypeName, req.ActionType, err)
+		}
+
+		config, err := decodeDynamicValue(lr.Config, linkedResourceTy)
+		if err != nil {
+			return fmt.Errorf("failed to decode config for linked resource #%d (%q) in action %q: %w", i, linkedResourceSchemas[i].TypeName, req.ActionType, err)
+		}
+
+		plannedIdentity := cty.NullVal(linkedResourceIdentityTy)
+		if lr.PlannedIdentity != nil && lr.PlannedIdentity.IdentityData != nil {
+			plannedIdentity, err = decodeDynamicValue(lr.PlannedIdentity.IdentityData, linkedResourceIdentityTy)
+			if err != nil {
+				return fmt.Errorf("failed to decode planned identity for linked resource #%d (%q) in action %q: %w", i, linkedResourceSchemas[i].TypeName, req.ActionType, err)
+			}
+		}
+
+		linkedResourceData = append(linkedResourceData, providers.LinkedResourceInvokeData{
+			PriorState:      priorState,
+			PlannedState:    plannedState,
+			Config:          config,
+			PlannedIdentity: plannedIdentity,
+		})
+	}
+
+	invokeResp := p.provider.InvokeAction(providers.InvokeActionRequest{
+		ActionType:        req.ActionType,
+		PlannedActionData: configVal,
+		LinkedResources:   linkedResourceData,
+	})
+
+	if invokeResp.Diagnostics.HasErrors() {
+		return invokeResp.Diagnostics.Err()
+	}
+
+	for invokeEvent := range invokeResp.Events {
+		switch invokeEvt := invokeEvent.(type) {
+		case providers.InvokeActionEvent_Progress:
+			server.Send(&tfplugin5.InvokeAction_Event{
+				Type: &tfplugin5.InvokeAction_Event_Progress_{
+					Progress: &tfplugin5.InvokeAction_Event_Progress{
+						Message: invokeEvt.Message,
+					},
+				},
+			})
+
+		case providers.InvokeActionEvent_Completed:
+			completed := &tfplugin5.InvokeAction_Event_Completed{
+				LinkedResources: []*tfplugin5.InvokeAction_Event_Completed_LinkedResource{},
+			}
+			completed.Diagnostics = convert.AppendProtoDiag(completed.Diagnostics, invokeEvt.Diagnostics)
+
+			for _, lr := range invokeEvt.LinkedResources {
+				newState, err := encodeDynamicValue(lr.NewState, lr.NewState.Type())
+				if err != nil {
+					return fmt.Errorf("failed to encode new state for linked resource: %w", err)
+				}
+
+				newIdentity, err := encodeDynamicValue(lr.NewIdentity, lr.NewIdentity.Type())
+				if err != nil {
+					return fmt.Errorf("failed to encode new identity for linked resource: %w", err)
+				}
+
+				completed.LinkedResources = append(completed.LinkedResources, &tfplugin5.InvokeAction_Event_Completed_LinkedResource{
+					NewState: newState,
+					NewIdentity: &tfplugin5.ResourceIdentityData{
+						IdentityData: newIdentity,
+					},
+					RequiresReplace: lr.RequiresReplace,
+				})
+			}
+
+			err := server.Send(&tfplugin5.InvokeAction_Event{
+				Type: &tfplugin5.InvokeAction_Event_Completed_{
+					Completed: completed,
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send completed event: %w", err)
+			}
+		}
+
+	}
+
+	return nil
 }
 
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {

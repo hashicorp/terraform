@@ -135,6 +135,10 @@ type PlanOpts struct {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	Forget bool
+
+	// Query is a boolean that indicates whether the plan is being
+	// generated for a query operation.
+	Query bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -714,7 +718,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 
 	// Initialize the results table to validate provider function calls.
 	// Hold reference to this so we can store the table data in the plan file.
-	providerFuncResults := providers.NewFunctionResultsTable(nil)
+	funcResults := lang.NewFunctionResultsTable(nil)
 
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                     config,
@@ -726,7 +730,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		MoveResults:                moveResults,
 		Overrides:                  opts.Overrides,
 		PlanTimeTimestamp:          timestamp,
-		ProviderFuncResults:        providerFuncResults,
+		FunctionResults:            funcResults,
 		Forget:                     opts.Forget,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
@@ -799,17 +803,17 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 
 	plan := &plans.Plan{
-		UIMode:                  opts.Mode,
-		Changes:                 changesSrc,
-		DriftedResources:        driftedResources,
-		DeferredResources:       deferredResources,
-		PrevRunState:            prevRunState,
-		PriorState:              priorState,
-		ExternalReferences:      opts.ExternalReferences,
-		Overrides:               opts.Overrides,
-		Checks:                  states.NewCheckResults(walker.Checks),
-		Timestamp:               timestamp,
-		ProviderFunctionResults: providerFuncResults.GetHashes(),
+		UIMode:             opts.Mode,
+		Changes:            changesSrc,
+		DriftedResources:   driftedResources,
+		DeferredResources:  deferredResources,
+		PrevRunState:       prevRunState,
+		PriorState:         priorState,
+		ExternalReferences: opts.ExternalReferences,
+		Overrides:          opts.Overrides,
+		Checks:             states.NewCheckResults(walker.Checks),
+		Timestamp:          timestamp,
+		FunctionResults:    funcResults.GetHashes(),
 
 		// Other fields get populated by Context.Plan after we return
 	}
@@ -915,6 +919,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			forgetModules:           forgetModules,
 			GenerateConfigPath:      opts.GenerateConfigPath,
 			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			queryPlan:               opts.Query,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:

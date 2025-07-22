@@ -5,6 +5,12 @@ description: >-
   map. Also learn about complex types and type conversion.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
 # Types and Values
 
 The result of an expression is a _value_. All values have a _type_, which
@@ -173,9 +179,10 @@ child modules. In these cases, the argument has an expected type and the given
 expression must produce a value of that type.
 
 Where possible, Terraform automatically converts values from one type to
-another in order to produce the expected type. If this isn't possible, Terraform
-will produce a type mismatch error and you must update the configuration with a
-more suitable expression.
+another to produce the expected type. If this conversion is impossible, Terraform
+produces a type mismatch error and you must update the configuration with a
+more suitable expression. Automatic type conversion does not occur when using 
+the [equality operator](/terraform/language/expressions/operators.mdx#equality-operators).
 
 Terraform automatically converts number and bool values to strings when needed.
 It also converts strings to numbers or bools, as long as the string contains a
@@ -184,3 +191,4 @@ valid representation of a number or bool value.
 * `true` converts to `"true"`, and vice-versa
 * `false` converts to `"false"`, and vice-versa
 * `15` converts to `"15"`, and vice-versa
+

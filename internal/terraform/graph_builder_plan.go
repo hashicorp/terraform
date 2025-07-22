@@ -110,6 +110,10 @@ type PlanGraphBuilder struct {
 	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
 	SkipGraphValidation bool
+
+	// If true, the graph builder will generate a query plan instead of a
+	// normal plan. This is used for the "terraform query" command.
+	queryPlan bool
 }
 
 // See GraphBuilder
@@ -143,10 +147,17 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Concrete: b.ConcreteResource,
 			Config:   b.Config,
 			destroy:  b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			resourceMatcher: func(mode addrs.ResourceMode) bool {
+				// all resources are included during validation.
+				if b.Operation == walkValidate {
+					return true
+				}
+
+				return b.queryPlan == (mode == addrs.ListResourceMode)
+			},
 
 			importTargets: b.ImportTargets,
 
-			// We only want to generate config during a plan operation.
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
 

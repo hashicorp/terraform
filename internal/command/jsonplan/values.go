@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -30,7 +29,7 @@ type stateValues struct {
 // resource, whose structure depends on the resource type schema.
 type attributeValues map[string]interface{}
 
-func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+func marshalAttributeValues(value cty.Value) attributeValues {
 	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
@@ -220,10 +219,10 @@ func marshalPlanResources(changes *plans.ChangesSrc, ris []addrs.AbsResourceInst
 
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
-				resource.AttributeValues = marshalAttributeValues(changeV.After, schema.Body)
+				resource.AttributeValues = marshalAttributeValues(changeV.After)
 			} else {
 				knowns := omitUnknowns(changeV.After)
-				resource.AttributeValues = marshalAttributeValues(knowns, schema.Body)
+				resource.AttributeValues = marshalAttributeValues(knowns)
 			}
 		}
 
@@ -233,6 +232,12 @@ func marshalPlanResources(changes *plans.ChangesSrc, ris []addrs.AbsResourceInst
 			return nil, err
 		}
 		resource.SensitiveValues = v
+
+		if schema.Identity != nil && !changeV.AfterIdentity.IsNull() {
+			identityVersion := uint64(schema.IdentityVersion)
+			resource.IdentitySchemaVersion = &identityVersion
+			resource.IdentityValues = marshalAttributeValues(changeV.AfterIdentity)
+		}
 
 		ret = append(ret, resource)
 	}

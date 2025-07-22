@@ -180,6 +180,12 @@ func (cp *Plugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema
 		}
 	}
 
+	for t, r := range resp.ListResourceTypes {
+		if err := r.Body.InternalValidate(); err != nil {
+			return resp, fmt.Errorf("provider %s has invalid schema for list resource type %q, which is a bug in the provider: %q", addr, t, err)
+		}
+	}
+
 	for n, f := range resp.Functions {
 		if !hclsyntax.ValidIdentifier(n) {
 			return resp, fmt.Errorf("provider %s declares function with invalid name %q", addr, n)
@@ -259,6 +265,20 @@ func (cp *Plugins) ProvisionerSchema(typ string) (*configschema.Block, error) {
 	}
 
 	return resp.Provisioner, nil
+}
+
+func (cp *Plugins) ActionTypeSchema(providerAddr addrs.Provider, actionType string) (*providers.ActionSchema, error) {
+	providerSchema, err := cp.ProviderSchema(providerAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	actionSchema, ok := providerSchema.Actions[actionType]
+	if !ok {
+		return nil, fmt.Errorf("provider %s does not have an action schema for %s", providerAddr, actionType)
+	}
+
+	return &actionSchema, nil
 }
 
 // ProviderFunctionDecls is a helper wrapper around ProviderSchema which first
