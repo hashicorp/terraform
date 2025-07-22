@@ -7,8 +7,6 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -37,32 +35,15 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	runRefMap := make(map[addrs.Run][]string)
 
 	if b.opts.CommandMode == moduletest.CleanupMode {
-		// In cleanup mode, the test run blocks are not executed.
-		// Instead, the state file associated with each run is revisited to
-		// extract its output values. These output values are then set in the
-		// context so that they can be accessed by subsequent cleanup nodes.
-		// This is necessary because cleaning up the state file for a run may
-		// depend on the output values of previous runs.
-		for _, run := range b.opts.File.Runs {
-			state := ctx.GetFileState(run.Config.StateKey).State
-			if state == nil {
-				return
+		for runNode := range dag.SelectSeq[*NodeTestRunCleanup](b.parent.VerticesSeq()) {
+			refs := b.parent.Ancestors(runNode)
+			for _, ref := range refs {
+				if ref, ok := ref.(*NodeTestRunCleanup); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
+					runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
+				}
 			}
-			outputVals := make(map[string]cty.Value, len(state.RootOutputValues))
-			for name, out := range state.RootOutputValues {
-				outputVals[name] = out.Value
-			}
-			run.Outputs = cty.ObjectVal(outputVals)
-			run.Status = moduletest.Pass
-			ctx.AddRunBlock(run)
 		}
-
-		// we also need to work out the state dependencies
-
 	} else {
-		// work out the transitive state dependencies for each run node in the
-		// parent graph. since we have a normal execution, we can use the
-		// existing graph to work everything out here
 		for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
 			refs := b.parent.Ancestors(runNode)
 			for _, ref := range refs {

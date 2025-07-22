@@ -368,8 +368,8 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	tf := &TestFile{
 		VariableDefinitions: make(map[string]*Variable),
 		Providers:           make(map[string]*Provider),
-		BackendConfigs: make(map[string]RunBlockBackend),
-		Overrides:      addrs.MakeMap[addrs.Targetable, *Override](),
+		BackendConfigs:      make(map[string]RunBlockBackend),
+		Overrides:           addrs.MakeMap[addrs.Targetable, *Override](),
 	}
 
 	// we need to retrieve the file config block first, because the run blocks
@@ -875,17 +875,6 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		r.StateKey = r.Module.Source.String()
 	} else {
 		r.StateKey = TestMainStateIdentifier // redundant, but let's be explicit
-	}
-	// If there's no user-supplied state_key value, set it based on config
-	// under test.
-	if r.StateKey == "" {
-		if r.Module != nil {
-			// If the run is using an alternate module under test, the source of
-			// that module is returned as the state key.
-			r.StateKey = r.Module.Source.String()
-		}
-		// Otherwise, we leave r.StateKey as an empty string. This denotes that the
-		// run is using the root module under test.
 	}
 
 	if attr, exists := content.Attributes["parallel"]; exists {

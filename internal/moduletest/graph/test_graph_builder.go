@@ -59,7 +59,7 @@ func (b *TestGraphBuilder) Build(ctx *EvalContext) (*terraform.Graph, tfdiags.Di
 // See GraphBuilder
 func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
-		&TestRunTransformer{opts: opts, skip: b.CommandMode == moduletest.CleanupMode},
+		&TestRunTransformer{opts: opts, mode: b.CommandMode},
 		&TestVariablesTransformer{File: b.File},
 		&TestStateTransformer{graphOptions: opts, BackendFactory: b.BackendFactory},
 		terraform.DynamicTransformer(validateRunConfigs),
