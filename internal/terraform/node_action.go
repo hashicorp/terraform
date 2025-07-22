@@ -30,11 +30,12 @@ type nodeExpandActionDeclaration struct {
 }
 
 var (
-	_ GraphNodeConfigAction      = (*nodeExpandActionDeclaration)(nil)
-	_ GraphNodeReferenceable     = (*nodeExpandActionDeclaration)(nil)
-	_ GraphNodeReferencer        = (*nodeExpandActionDeclaration)(nil)
-	_ GraphNodeDynamicExpandable = (*nodeExpandActionDeclaration)(nil)
-	_ GraphNodeProviderConsumer  = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeConfigAction       = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeReferenceable      = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeReferencer         = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeDynamicExpandable  = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeProviderConsumer   = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeAttachActionSchema = (*nodeExpandActionDeclaration)(nil)
 )
 
 func (n *nodeExpandActionDeclaration) Name() string {
@@ -54,7 +55,7 @@ func (n *nodeExpandActionDeclaration) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
-// GraphNodeAttachActionSchema impl
+// GraphNodeAttachActionSchema
 func (n *nodeExpandActionDeclaration) AttachActionSchema(schema *providers.ActionSchema) {
 	n.Schema = schema
 }

@@ -60,7 +60,7 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Failed to get provider",
+			fmt.Sprintf("Failed to get provider for %s", n.Addr),
 			fmt.Sprintf("Failed to get provider: %s", err),
 		))
 		return diags
