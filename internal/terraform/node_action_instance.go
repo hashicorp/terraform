@@ -32,6 +32,7 @@ var (
 	_ GraphNodeExecutable     = (*NodeActionDeclarationInstance)(nil)
 	_ GraphNodeReferencer     = (*NodeActionDeclarationInstance)(nil)
 	_ GraphNodeReferenceable  = (*NodeActionDeclarationInstance)(nil)
+	_ dag.GraphNodeDotter     = (*NodeActionDeclarationInstance)(nil)
 )
 
 func (n *NodeActionDeclarationInstance) Name() string {

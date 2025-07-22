@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -22,7 +23,18 @@ type nodeActionApply struct {
 var (
 	_ GraphNodeExecutable = (*nodeActionApply)(nil)
 	_ GraphNodeReferencer = (*nodeActionApply)(nil)
+	_ dag.GraphNodeDotter = (*nodeActionApply)(nil)
 )
+
+func (n *nodeActionApply) Name() string {
+	return fmt.Sprintf("%s after actions", n.TriggeringResourceaddrs)
+}
+
+func (n *nodeActionApply) DotNode(string, *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: n.Name(),
+	}
+}
 
 func (n *nodeActionApply) Execute(ctx EvalContext, _ walkOperation) (diags tfdiags.Diagnostics) {
 	return invokeActions(ctx, n.ActionInvocations)
