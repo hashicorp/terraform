@@ -24,7 +24,7 @@ func (e *EvalContextTransformer) Transform(graph *terraform.Graph) error {
 			for _, run := range e.File.Runs {
 				// initialise all the state keys before the graph starts
 				// properly
-				key := run.GetStateKey()
+				key := run.Config.StateKey
 				if state := ctx.GetFileState(key); state == nil {
 					ctx.SetFileState(key, &TestFileState{
 						Run:   nil,
