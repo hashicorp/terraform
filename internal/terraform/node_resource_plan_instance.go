@@ -589,21 +589,23 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				// instances
 				absActionInstAddrs = ctx.Actions().GetActionInstanceKeys(a.Absolute(n.Path()))
 			} else {
-				// TODO: Better diagnostic message
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					fmt.Sprintf("%s action trigger #%d refers to an invalid address", n.Addr, i),
-					fmt.Sprintf("actions list item #%d refers to a subject that is not an action or action instance.", j),
-				))
+				diags = diags.Append(
+					hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid address",
+						Detail:   "Expected a reference to an action or an action instance",
+						Subject:  actionRef.Traversal.SourceRange().Ptr(),
+					})
 				continue
 			}
 
 			if len(absActionInstAddrs) == 0 {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					fmt.Sprintf("%s action trigger #%d refers to a non-existent action %s", n.Addr, i, actionRef.Traversal),
-					fmt.Sprintf("action trigger #%d refers to a non-existent action %s", i, actionRef.Traversal),
-				))
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "No action reference found",
+					Detail:   "Expected a reference to an action or an action instance, but none was found",
+					Subject:  actionRef.Traversal.SourceRange().Ptr(),
+				})
 				return diags
 			}
 
@@ -611,21 +613,24 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				actionInstance, ok := ctx.Actions().GetActionInstance(absActionAddr)
 
 				if !ok {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						fmt.Sprintf("action trigger #%d refers to a non-existent action instance %s", i, absActionAddr),
-						"Action instance not found in the current context.",
-					))
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to non-existant action instance",
+						Detail:   "Action instance was not found in the current context.",
+						Subject:  actionRef.Traversal.SourceRange().Ptr(),
+					})
 					return diags
 				}
 
 				provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
 				if err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						fmt.Sprintf("Failed to get provider for action %s", absActionAddr),
-						fmt.Sprintf("Failed to get provider: %s", err),
-					))
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to get provider",
+						Detail:   fmt.Sprintf("Failed to get provider: %s", err),
+						Subject:  actionRef.Traversal.SourceRange().Ptr(),
+					})
+
 					return diags
 				}
 

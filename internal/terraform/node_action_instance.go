@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -59,21 +60,23 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			fmt.Sprintf("Failed to get provider for %s", n.Addr),
-			fmt.Sprintf("Failed to get provider: %s", err),
-		))
+		diags = diags.Append(hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to get provider schema",
+			Detail:   fmt.Sprintf("Could not get provider schema for %s: %s", n.ResolvedProvider, err),
+			Subject:  &n.Config.DeclRange,
+		})
 		return diags
 	}
 
 	schema, ok := providerSchema.Actions[n.Config.Type]
 	if !ok {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Action not found in provider schema",
-			fmt.Sprintf("Action not found: %s", n.Config.Type),
-		))
+		diags = diags.Append(hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action not found in provider schema",
+			Detail:   fmt.Sprintf("The action %q was not found in the provider schema for %s", n.Config.Type, n.ResolvedProvider),
+			Subject:  &n.Config.DeclRange,
+		})
 		return diags
 	}
 
