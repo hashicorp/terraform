@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"path"
 	"strings"
 	"sync"
@@ -19,22 +18,46 @@ var (
 	singletonThreadID = 1
 )
 
+type DebugState struct {
+	Run     string
+	State   map[string]any
+	Outputs map[string]any
+}
+
 type DebugSession struct {
-	RootDir    string // root directory where the terraform test debug server is running
-	Source     string
-	Step       int
-	Debugger   *Debugger
-	WriteCh    chan DapMsg
-	LaunchArgs *LaunchArgs
-	Conn       io.ReadWriteCloser
-	State      map[string]any
-	State2     struct {
-		Run       string
-		Outputs   map[string]any
-		Variables map[string]any
-	}
+	RootDir         string // root directory where the terraform test debug server is running
+	Source          string
+	Step            int
+	Debugger        *Debugger
+	WriteCh         chan DapMsg
+	LaunchArgs      *LaunchArgs
+	Conn            io.ReadWriteCloser
+	DebugState      DebugState
+	VariablesStore  map[int]any
+	variableCounter int
+
+	currentFrame int
 
 	Context *graph.DebugContext
+}
+
+func NewSession(ctx *graph.DebugContext) *DebugSession {
+	return &DebugSession{
+		Step:           1,
+		Context:        ctx,
+		VariablesStore: make(map[int]any),
+		WriteCh:        make(chan DapMsg),
+	}
+}
+
+// storeVariable stores a composite variable (map or slice) and returns a reference id for it.
+func (h *DebugSession) storeVariable(value any) int {
+	h.variableCounter++
+	if h.VariablesStore == nil {
+		h.VariablesStore = make(map[int]any)
+	}
+	h.VariablesStore[h.variableCounter] = value
+	return h.variableCounter
 }
 
 func (h *DebugSession) Initialize(ctx context.Context, req *dap.InitializeRequest) (*dap.InitializeResponse, error) {
@@ -102,10 +125,11 @@ func (h *DebugSession) Launch(ctx context.Context, req *dap.LaunchRequest) (*dap
 		return nil, fmt.Errorf("program not in debug server directory: %s", h.RootDir)
 	}
 	h.Source = args.Program
+	h.variableCounter = 1
+	h.currentFrame = 1
 	h.Debugger = &Debugger{
 		Breakpoints: make([]dap.Breakpoint, 0),
 		sess:        h,
-		activate:    make(chan bool),
 		breakMap:    make(map[int]dap.Breakpoint),
 		stateMu:     sync.Mutex{},
 		Context:     h.Context,
@@ -166,9 +190,9 @@ func (h *DebugSession) SetBreakpoints(ctx context.Context, req *dap.SetBreakpoin
 			Offset:    sourceBp.Line,
 		}
 		if _, foundLine := runs[sourceBp.Line]; foundLine {
+			bp.Verified = true
+			bps = append(bps, bp)
 		}
-		bp.Verified = true
-		bps = append(bps, bp)
 		resp.Body.Breakpoints = append(resp.Body.Breakpoints, bp)
 	}
 	go func() {
@@ -203,7 +227,7 @@ func (h *DebugSession) Threads(ctx context.Context, req *dap.ThreadsRequest) (*d
 		Body: dap.ThreadsResponseBody{
 			Threads: []dap.Thread{
 				{
-					Id:   1,
+					Id:   singletonThreadID,
 					Name: "main",
 				},
 			},
@@ -227,7 +251,7 @@ func (h *DebugSession) StackTrace(ctx context.Context, req *dap.StackTraceReques
 			TotalFrames: 1,
 			StackFrames: []dap.StackFrame{
 				{
-					Id:     1000,
+					Id:     h.currentFrame,
 					Source: &dap.Source{Name: path.Base(h.Source), Path: h.Source, SourceReference: 0},
 					Line:   h.Step,
 					Column: 0,
@@ -236,6 +260,10 @@ func (h *DebugSession) StackTrace(ctx context.Context, req *dap.StackTraceReques
 			},
 		},
 	}
+
+	// New frame!. Increment the frame counter to be after all current variables
+	h.currentFrame = h.currentFrame + h.variableCounter
+	h.variableCounter = h.currentFrame
 	h.send(req, resp)
 	return resp, nil
 }
@@ -292,23 +320,80 @@ func (h *DebugSession) Evaluate(ctx context.Context, req *dap.EvaluateRequest) (
 
 func (h *DebugSession) SourceReq(ctx context.Context, req *dap.SourceRequest) (*dap.SourceResponse, error) {
 	resp := &dap.SourceResponse{}
-	file, err := os.ReadFile(h.Source)
-	if err != nil {
-		return resp, err
-	}
-	resp.Body.Content = string(file)
 	h.send(req, resp)
 	return resp, nil
 }
 
 func (h *DebugSession) Variables(ctx context.Context, req *dap.VariablesRequest) (*dap.VariablesResponse, error) {
-	fmt.Printf("Variables called: %#v\n", req.Arguments)
-	resp := &dap.VariablesResponse{}
-	resp.Body = dap.VariablesResponseBody{
-		Variables: []dap.Variable{},
+	var vars []dap.Variable
+	// If the reference is the first variable in this frame, return Top-level variables: Run, State, Outputs from DebugState
+	if req.Arguments.VariablesReference == h.currentFrame {
+		vars = append(vars, dap.Variable{
+			Name:               "Run",
+			Value:              h.DebugState.Run,
+			VariablesReference: 0,
+		})
+		stateRef := h.storeVariable(h.DebugState.State)
+
+		vars = append(vars, dap.Variable{
+			Name:               "State",
+			Value:              "<object>",
+			VariablesReference: stateRef,
+		})
+		outputsRef := h.storeVariable(h.DebugState.Outputs)
+		vars = append(vars, dap.Variable{
+			Name:               "Outputs",
+			Value:              "<object>",
+			VariablesReference: outputsRef,
+		})
+	} else {
+		composite, found := h.VariablesStore[req.Arguments.VariablesReference]
+		if !found {
+			return nil, fmt.Errorf("no variables found for reference %d", req.Arguments.VariablesReference)
+		}
+		switch comp := composite.(type) {
+		case map[string]any:
+			for key, val := range comp {
+				switch v := val.(type) {
+				case map[string]any, []any:
+					ref := h.storeVariable(v)
+					vars = append(vars, dap.Variable{
+						Name:               key,
+						Value:              "<object>",
+						VariablesReference: ref,
+					})
+				default:
+					vars = append(vars, dap.Variable{
+						Name:               key,
+						Value:              fmt.Sprintf("%v", v),
+						VariablesReference: 0,
+					})
+				}
+			}
+		case []any:
+			for idx, val := range comp {
+				switch v := val.(type) {
+				case map[string]any, []any:
+					ref := h.storeVariable(v)
+					vars = append(vars, dap.Variable{
+						Name:               fmt.Sprintf("[%d]", idx),
+						Value:              "<object>",
+						VariablesReference: ref,
+					})
+				default:
+					vars = append(vars, dap.Variable{
+						Name:               fmt.Sprintf("[%d]", idx),
+						Value:              fmt.Sprintf("%v", v),
+						VariablesReference: 0,
+					})
+				}
+			}
+		default:
+			return nil, fmt.Errorf("variable reference %d is not composite", req.Arguments.VariablesReference)
+		}
 	}
-	for key, value := range h.State {
-		resp.Body.Variables = append(resp.Body.Variables, dap.Variable{Name: key, VariablesReference: 0, Value: fmt.Sprintf("%v", value)})
+	resp := &dap.VariablesResponse{
+		Body: dap.VariablesResponseBody{Variables: vars},
 	}
 	h.send(req, resp)
 	return resp, nil
@@ -318,8 +403,7 @@ func (h *DebugSession) Scopes(ctx context.Context, req *dap.ScopesRequest) (*dap
 	resp := &dap.ScopesResponse{}
 	resp.Body = dap.ScopesResponseBody{
 		Scopes: []dap.Scope{
-			{Name: "Local", VariablesReference: 1000},
-			{Name: "Global", VariablesReference: 1001, Expensive: true},
+			{Name: "Local", VariablesReference: h.variableCounter},
 		},
 	}
 	h.send(req, resp)

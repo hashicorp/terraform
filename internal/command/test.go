@@ -262,7 +262,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 				status, testDiags = c.RunInConsole(runner)
 				return
 			}
-			if args.Debug {
+			if args.Debug > 0 {
 				status, testDiags = c.Debug(stopCtx, runner, args)
 				return
 			}
@@ -330,7 +330,7 @@ func (c *TestCommand) Debug(stopCtx context.Context, runner *local.TestSuiteRunn
 	dbgCtx := runner.Debug()
 
 	// start the debugger server
-	listener, err := net.Listen("tcp", ":5368")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", args.Debug))
 	if err != nil {
 		return moduletest.Error, testDiags.Append(
 			tfdiags.Sourceless(
@@ -343,25 +343,24 @@ func (c *TestCommand) Debug(stopCtx context.Context, runner *local.TestSuiteRunn
 	defer listener.Close()
 	fmt.Printf("Debugger server listening on %s\n", listener.Addr())
 
+	cancelCtx, cancel := context.WithCancel(stopCtx)
+	defer cancel()
+
 	errgroup := errgroup.Group{}
 	errgroup.Go(func() error {
-		fullPath, err := filepath.Abs(c.WorkingDir.RootModuleDir())
-		if err != nil {
-			return err
-		}
-		srv := debugger.NewServer(dbgCtx, fullPath)
-		err = srv.Serve(stopCtx, listener)
+		srv := debugger.NewServer(dbgCtx)
+		err = srv.Serve(cancelCtx, listener)
 		close(dbgCtx.ErrCh)
 		return err
 	})
 
 	errgroup.Go(func() error {
 		status = moduletest.Pending
-		for diags := range dbgCtx.ErrCh {
-			testDiags = testDiags.Append(diags)
-			if diags.HasErrors() {
-				status = moduletest.Error
-			}
+		diags := <-dbgCtx.ErrCh
+		testDiags = testDiags.Append(diags)
+		if diags.HasErrors() {
+			status = moduletest.Error
+			cancel()
 		}
 		return nil
 	})

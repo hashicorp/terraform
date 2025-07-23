@@ -16,10 +16,9 @@ import (
 )
 
 type Debugger struct {
-	Breakpoints []dap.Breakpoint // Todo; map by source
+	Breakpoints []dap.Breakpoint
 	breakMap    map[int]dap.Breakpoint
 	sess        *DebugSession
-	activate    chan bool
 	breakIndex  int
 
 	// stateMu must be held when changing the state
@@ -32,36 +31,30 @@ type Debugger struct {
 
 func (e *Debugger) Work() {
 	errgh := errgroup.Group{}
-	errgh.Go(func() error {
-		for range e.activate {
-			e.Break()
-		}
-		return nil
-	})
 
 	errgh.Go(func() error {
 		for run := range e.Context.RunCh {
+			// all breakpoints processed
 			if e.breakIndex > len(e.Breakpoints)-1 {
-				fmt.Println("No more breakpoints")
 				continue
 			}
+
 			e.Break()
-			e.sess.State["run"] = run.Name
-			e.sess.State["state"] = e.extractStateMap(run)
+			e.sess.DebugState.Run = run.Name
+			e.sess.DebugState.State = e.runStateMap(run)
 
 			ctyjsonBytes, err := ctyjson.Marshal(run.Outputs, run.Outputs.Type())
 			if err != nil {
 				fmt.Println("error marshaling outputs:", err)
 				continue
 			}
-			e.sess.State["outputs"] = string(ctyjsonBytes)
-
-			//---------------------
-			e.sess.State2.Run = run.Name
-			err = json.Unmarshal(ctyjsonBytes, &e.sess.State2.Outputs)
+			var outputs map[string]any
+			err = json.Unmarshal(ctyjsonBytes, &outputs)
 			if err != nil {
 				fmt.Println("error unmarshaling outputs:", err)
+				continue
 			}
+			e.sess.DebugState.Outputs = outputs
 		}
 		return nil
 	})
@@ -110,7 +103,7 @@ func (e *Debugger) fileRuns() (runs map[int]hcl.Pos, diags tfdiags.Diagnostics) 
 	return runs, diags
 }
 
-func (e *Debugger) extractStateMap(run *moduletest.Run) map[string]any {
+func (e *Debugger) runStateMap(run *moduletest.Run) map[string]any {
 	mp := map[string]any{}
 	for _, module := range e.Context.ActiveEvalContext.GetFileState(run.Config.StateKey).State.Modules {
 		nestedMap := map[string]any{}
@@ -121,7 +114,12 @@ func (e *Debugger) extractStateMap(run *moduletest.Run) map[string]any {
 				if key != addrs.NoKey {
 					keyStr = key.String()
 				}
-				instanceMap[keyStr] = string(instance.Current.AttrsJSON)
+				var attrs map[string]any
+				if err := json.Unmarshal(instance.Current.AttrsJSON, &attrs); err != nil {
+					instanceMap[keyStr] = string(instance.Current.AttrsJSON)
+				} else {
+					instanceMap[keyStr] = attrs
+				}
 			}
 			nestedMap[resource.Addr.String()] = instanceMap
 		}
@@ -129,27 +127,3 @@ func (e *Debugger) extractStateMap(run *moduletest.Run) map[string]any {
 	}
 	return mp
 }
-
-// func (e *Debugger) convertValueToDAPVariable(name string, value cadence.Value) dap.Variable {
-// 	referenceHandle := 0
-// 	switch value.(type) {
-// 	case cadence.Dictionary, cadence.Array, cadence.Struct, cadence.Resource:
-// 		referenceHandle = e.storeVariable(value)
-// 	}
-// 	return dap.Variable{
-// 		Name:  name,
-// 		Value: value.String(),
-// 		Type:  value.Type().ID(),
-// 		PresentationHint: &dap.VariablePresentationHint{
-// 			Kind:       "property",
-// 			Visibility: "private",
-// 		},
-// 		VariablesReference: referenceHandle,
-// 	}
-// }
-
-// func (e *Debugger) storeVariable(value any) int {
-// 	e.variableHandleCounter++
-// 	e.variables[e.variableHandleCounter] = value
-// 	return e.variableHandleCounter
-// }

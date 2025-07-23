@@ -78,7 +78,7 @@ func (runner *TestSuiteRunner) Debug() *graph.DebugContext {
 		RunCh:             make(chan *moduletest.Run),
 		ErrCh:             make(chan tfdiags.Diagnostics, 1),
 		BeforeBreakpoints: make(map[string]dap.Breakpoint),
-		Breakpoints:       make(map[string]dap.Breakpoint),
+		AfterBreakpoints:  make(map[string]dap.Breakpoint),
 	}
 
 	// TODO: If debug mode does not run tests sequentially, functions like

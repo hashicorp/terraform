@@ -31,8 +31,11 @@ type DebugContext struct {
 
 	ExecutionPoint string // The current execution point in the test run, e.g., "before", "after", etc.
 
+	// BeforeBreakpoints is a map of runs names to breakpoints that will be hit before the run starts.
 	BeforeBreakpoints map[string]dap.Breakpoint
-	Breakpoints       map[string]dap.Breakpoint
+
+	// AfterBreakpoints is a map of runs names to breakpoints that will be hit after the run.
+	AfterBreakpoints map[string]dap.Breakpoint
 }
 
 func (ctx *DebugContext) Resume() {
@@ -159,7 +162,7 @@ func (ctx *DebugContext) AddBreakpoint(br dap.Breakpoint) tfdiags.Diagnostics {
 			ctx.BeforeBreakpoints[run.Name] = br
 			return nil
 		} else if run.Config.DeclRange.Start.Line == br.Line {
-			ctx.Breakpoints[run.Name] = br
+			ctx.AfterBreakpoints[run.Name] = br
 			return nil
 		}
 	}

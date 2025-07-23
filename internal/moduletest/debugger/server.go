@@ -35,13 +35,8 @@ type Server struct {
 	conn net.Conn
 }
 
-func NewServer(ctx *graph.DebugContext, dir string) *Server {
-	sess := &DebugSession{
-		Step:    1,
-		State:   make(map[string]any),
-		Context: ctx,
-	}
-	sess.WriteCh = make(chan DapMsg)
+func NewServer(ctx *graph.DebugContext) *Server {
+	sess := NewSession(ctx)
 	return &Server{sess: sess}
 }
 
@@ -99,8 +94,7 @@ func (s *Server) HandleDAPRequests() error {
 				fmt.Println("client disconnected")
 				return nil
 			}
-			fmt.Printf("error reading message: %v\n", err)
-			return err
+			return fmt.Errorf("error reading message: %w", err)
 		}
 
 		if _, ok := msg.(*dap.DisconnectRequest); ok {
@@ -109,14 +103,11 @@ func (s *Server) HandleDAPRequests() error {
 			return nil
 		}
 
-		switch msg := msg.(type) {
-		case dap.RequestMessage:
+		if _, ok := msg.(dap.RequestMessage); ok {
 			s.eg.Go(func() error {
 				_, err := s.handleMessage(s.ctx, msg)
 				return err
 			})
-		default:
-			fmt.Printf("Non-request message type: %T", msg)
 		}
 	}
 }

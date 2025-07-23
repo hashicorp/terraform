@@ -66,6 +66,7 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 // based on the result of the execution.
 func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 	file, run := n.File(), n.run
+	// break before execution?
 	if _, ok := evalCtx.DebugContext.BeforeBreakpoints[run.Name]; ok {
 		evalCtx.BreakUntilContinue(run)
 	}
@@ -79,7 +80,8 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 		file.UpdateStatus(run.Status)
 		evalCtx.AddRunBlock(run)
 
-		if _, ok := evalCtx.DebugContext.Breakpoints[run.Name]; ok {
+		// break after execution?
+		if _, ok := evalCtx.DebugContext.AfterBreakpoints[run.Name]; ok {
 			evalCtx.BreakUntilContinue(run)
 		}
 	}()
