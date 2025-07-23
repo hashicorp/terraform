@@ -49,6 +49,7 @@ type Test struct {
 	Verbose bool
 
 	Console bool
+	Debug   bool
 }
 
 func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
@@ -66,6 +67,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.StringVar(&test.JUnitXMLFile, "junit-xml", "", "junit-xml")
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
 	cmdFlags.BoolVar(&test.Console, "console", false, "console")
+	cmdFlags.BoolVar(&test.Debug, "debug", false, "debug")
 	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.IntVar(&test.RunParallelism, "run-parallelism", DefaultParallelism, "run-parallelism")
 

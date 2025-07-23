@@ -6,6 +6,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,8 +23,10 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/moduletest/debugger"
 	"github.com/hashicorp/terraform/internal/repl"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"golang.org/x/sync/errgroup"
 )
 
 type TestCommand struct {
@@ -254,11 +257,17 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
-		if runner, ok := runner.(*local.TestSuiteRunner); ok && args.Console {
-			status, testDiags = c.RunInConsole(runner)
-		} else {
-			status, testDiags = runner.Test()
+		if runner, ok := runner.(*local.TestSuiteRunner); ok {
+			if args.Console {
+				status, testDiags = c.RunInConsole(runner)
+				return
+			}
+			if args.Debug {
+				status, testDiags = c.Debug(stopCtx, runner, args)
+				return
+			}
 		}
+		status, testDiags = runner.Test()
 	}()
 
 	// Wait for the operation to complete, or for an interrupt to occur.
@@ -317,6 +326,54 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	return 0
 }
 
+func (c *TestCommand) Debug(stopCtx context.Context, runner *local.TestSuiteRunner, args *arguments.Test) (status moduletest.Status, testDiags tfdiags.Diagnostics) {
+	dbgCtx := runner.Debug()
+
+	// start the debugger server
+	listener, err := net.Listen("tcp", ":5368")
+	if err != nil {
+		return moduletest.Error, testDiags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to start test listener",
+				fmt.Sprintf("Failed to start test listener: %s", err),
+			),
+		)
+	}
+	defer listener.Close()
+	fmt.Printf("Debugger server listening on %s\n", listener.Addr())
+
+	errgroup := errgroup.Group{}
+	errgroup.Go(func() error {
+		fullPath, err := filepath.Abs(c.WorkingDir.RootModuleDir())
+		if err != nil {
+			return err
+		}
+		srv := debugger.NewServer(dbgCtx, fullPath)
+		err = srv.Serve(stopCtx, listener)
+		close(dbgCtx.ErrCh)
+		return err
+	})
+
+	errgroup.Go(func() error {
+		status = moduletest.Pending
+		for diags := range dbgCtx.ErrCh {
+			testDiags = testDiags.Append(diags)
+			if diags.HasErrors() {
+				status = moduletest.Error
+			}
+		}
+		return nil
+	})
+
+	// Wait for the debugger server to start
+	errgroup.Wait()
+
+	for _, file := range dbgCtx.Suite.Files {
+		status = status.Merge(file.Status)
+	}
+	return status, testDiags
+}
 func (c *TestCommand) RunInConsole(runner *local.TestSuiteRunner) (status moduletest.Status, testDiags tfdiags.Diagnostics) {
 	console := &ConsoleCommand{Meta: c.Meta}
 	dbgCtx := runner.Debug()

@@ -376,6 +376,7 @@ func (ec *EvalContext) RunScope(run *moduletest.Run, resultScope *lang.Scope, ex
 	return scope, diags
 }
 
+// EmitScope sends the run to the receiver's channel.
 func (ec *EvalContext) EmitScope(run *moduletest.Run) {
 	select {
 	case ec.RunCh <- run:

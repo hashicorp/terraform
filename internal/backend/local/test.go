@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/google/go-dap"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -74,8 +75,10 @@ func (runner *TestSuiteRunner) Stop() {
 func (runner *TestSuiteRunner) Debug() *graph.DebugContext {
 	var diags tfdiags.Diagnostics
 	ctx := &graph.DebugContext{
-		RunCh: make(chan *moduletest.Run),
-		ErrCh: make(chan tfdiags.Diagnostics, 1),
+		RunCh:             make(chan *moduletest.Run),
+		ErrCh:             make(chan tfdiags.Diagnostics, 1),
+		BeforeBreakpoints: make(map[string]dap.Breakpoint),
+		Breakpoints:       make(map[string]dap.Breakpoint),
 	}
 
 	// TODO: If debug mode does not run tests sequentially, functions like
@@ -93,12 +96,6 @@ func (runner *TestSuiteRunner) Debug() *graph.DebugContext {
 			return
 		}
 		ctx.Suite = suite
-
-		// Attach the source code to each run in the suite.
-		for _, file := range suite.Files {
-			hdiags := file.WithSourceCode()
-			diags = diags.Append(hdiags)
-		}
 
 		if diags.HasErrors() {
 			ctx.ErrCh <- diags
@@ -157,6 +154,12 @@ func (runner *TestSuiteRunner) test(dbgCtx *graph.DebugContext, suite *moduletes
 
 		file := suite.Files[name]
 
+		// Attach the source code to each run in the suite.
+		diags = diags.Append(file.WithSourceCode())
+		if diags.HasErrors() {
+			return moduletest.Error, diags
+		}
+
 		currentGlobalVariables := runner.GlobalVariables
 		if filepath.Dir(file.Name) == runner.TestingDirectory {
 			// If the file is in the test directory, we'll use the union of the
@@ -180,6 +183,9 @@ func (runner *TestSuiteRunner) test(dbgCtx *graph.DebugContext, suite *moduletes
 			// set the current file runner's eval context as the active eval context, so that the caller
 			// can resume the test execution within this eval context.
 			dbgCtx.ActiveEvalContext = evalCtx
+
+			// Pause immediately if the debugger is active. TODO: Pause outside of here
+			evalCtx.Pause(true)
 		}
 
 		fileRunner := &TestFileRunner{

@@ -65,19 +65,11 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 // Execute executes the test run block and update the status of the run block
 // based on the result of the execution.
 func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
-	// emit scope if there is a breakpoint
 	file, run := n.File(), n.run
-	if run.HasBreakPoint("before") {
-		if evalCtx.RecentRun != nil {
-			// use the current run scope, which will get updated later
-			// when this run block is executed.
-			run.Scope = evalCtx.RecentRun.Scope
-			evalCtx.DebugContext.ExecutionPoint = "before"
-			evalCtx.BreakUntilContinue(run)
-		}
+	if _, ok := evalCtx.DebugContext.BeforeBreakpoints[run.Name]; ok {
+		evalCtx.BreakUntilContinue(run)
 	}
-
-	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", n.File().Name, n.run.Name)
+	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s\n", n.File().Name, n.run.Name)
 	startTime := time.Now().UTC()
 
 	// At the end of the function, we'll update the status of the file based on
@@ -87,9 +79,7 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 		file.UpdateStatus(run.Status)
 		evalCtx.AddRunBlock(run)
 
-		// emit scope if there is a breakpoint
-		if run.HasBreakPoint("after") {
-			evalCtx.DebugContext.ExecutionPoint = "after"
+		if _, ok := evalCtx.DebugContext.Breakpoints[run.Name]; ok {
 			evalCtx.BreakUntilContinue(run)
 		}
 	}()

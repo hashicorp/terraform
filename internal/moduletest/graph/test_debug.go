@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/go-dap"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -29,6 +30,9 @@ type DebugContext struct {
 	ActiveEvalContext *EvalContext
 
 	ExecutionPoint string // The current execution point in the test run, e.g., "before", "after", etc.
+
+	BeforeBreakpoints map[string]dap.Breakpoint
+	Breakpoints       map[string]dap.Breakpoint
 }
 
 func (ctx *DebugContext) Resume() {
@@ -119,30 +123,6 @@ func (ctx *DebugContext) breakFunc() function.Function {
 
 func (ctx *DebugContext) EvalExpr(s *lang.Scope, expr hcl.Expression, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
 	ctx.parseRef(s)
-	// switch hcl.ExprAsKeyword(expr) {
-	// case "run":
-
-	// }
-
-	// switch expr := expr.(type) {
-	// case *BreakExpr:
-	// 	runNameVal, diags := s.EvalExpr(expr.Expr, cty.String)
-	// 	if diags.HasErrors() {
-	// 		return cty.NullVal(cty.DynamicPseudoType), diags
-	// 	}
-	// 	runName := runNameVal.AsString()
-
-	// 	fileName := ctx.ActiveEvalContext.File.Name
-	// 	runs := ctx.Suite.Files[fileName].Runs
-	// 	for _, r := range runs {
-	// 		if r.Name == runName {
-	// 			r.SetBreakPoint("after")
-	// 			break
-	// 		}
-	// 	}
-
-	// default:
-	// }
 	return ctx.ActiveEvalContext.EvalExpr(s, expr, wantType)
 }
 
@@ -172,35 +152,16 @@ func (ctx *DebugContext) parseRef(s *lang.Scope) {
 	s.ParseRef = parseObjectRef
 }
 
-// var _ hcl.Expression = (*BreakExpr)(nil)
-
-// type BreakExpr struct {
-// 	Expr hcl.Expression
-// }
-
-// func (b *BreakExpr) Range() hcl.Range {
-// 	if b.Expr == nil {
-// 		return hcl.Range{}
-// 	}
-// 	return b.Expr.Range()
-// }
-// func (b *BreakExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
-// 	if b.Expr == nil {
-// 		return cty.NullVal(cty.DynamicPseudoType), nil
-// 	}
-// 	return b.Expr.Value(ctx)
-// }
-
-// func (b *BreakExpr) Variables() []hcl.Traversal {
-// 	if b.Expr == nil {
-// 		return nil
-// 	}
-// 	return b.Expr.Variables()
-// }
-
-// func (b *BreakExpr) StartRange() hcl.Range {
-// 	if b.Expr == nil {
-// 		return hcl.Range{}
-// 	}
-// 	return b.Expr.Range()
-// }
+func (ctx *DebugContext) AddBreakpoint(br dap.Breakpoint) tfdiags.Diagnostics {
+	file := ctx.Suite.Files[br.Source.Name]
+	for _, run := range file.Runs {
+		if run.Config.DeclRange.Start.Line-1 == br.Line {
+			ctx.BeforeBreakpoints[run.Name] = br
+			return nil
+		} else if run.Config.DeclRange.Start.Line == br.Line {
+			ctx.Breakpoints[run.Name] = br
+			return nil
+		}
+	}
+	return nil
+}

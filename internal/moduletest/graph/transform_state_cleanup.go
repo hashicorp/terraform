@@ -29,7 +29,7 @@ type TeardownSubgraph struct {
 }
 
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
-	// Break with the last run that was executed.
+	// Before starting teardown, break with the last run that was executed
 	ctx.BreakUntilContinue(ctx.RecentRun)
 
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
