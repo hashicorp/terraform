@@ -27,7 +27,6 @@ var (
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
-	parallel bool
 
 	// If customCleanupRun is provided, it will be applied to the state file instead
 	// of running the default destroy operation during cleanup.

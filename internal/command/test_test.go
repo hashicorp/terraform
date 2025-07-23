@@ -576,8 +576,9 @@ func TestTest_DestroyFail(t *testing.T) {
 
 	c.Run([]string{"-no-color"})
 	output := done(t)
+	err := output.Stderr()
 
-	message := `main.tftest.hcl... in progress
+	cleanupMessage := `main.tftest.hcl... in progress
   run "setup"... pass
   run "single"... pass
   run "double"... pass
@@ -587,7 +588,7 @@ main.tftest.hcl... fail
 Failure! 3 passed, 0 failed.
 `
 
-	outputErr := `Terraform encountered an error destroying resources created while executing
+	cleanupErr := `Terraform encountered an error destroying resources created while executing
 main.tftest.hcl/double.
 
 Error: Failed to destroy resource
@@ -621,11 +622,11 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 
 	// It's really important that the above message is printed, so we're testing
 	// for it specifically and making sure it contains all the resources.
-	if diff := cmp.Diff(outputErr, output.Stderr()); diff != "" {
-		t.Errorf("expected err to be\n%s\n\nbut got\n%s\n\n diff:\n%s\n", outputErr, output.Stderr(), diff)
+	if diff := cmp.Diff(cleanupErr, err); diff != "" {
+		t.Errorf("expected err to be\n%s\n\nbut got\n%s\n\n diff:\n%s\n", cleanupErr, err, diff)
 	}
-	if diff := cmp.Diff(message, output.Stdout()); diff != "" {
-		t.Errorf("expected output to be\n%s\n\nbut got\n%s\n\n diff:\n%s\n", message, output.Stdout(), diff)
+	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
+		t.Errorf("expected output to be \n%s\n\nbut got \n%s\n\n diff:\n%s\n", cleanupMessage, output.Stdout(), diff)
 	}
 
 	if provider.ResourceCount() != 4 {

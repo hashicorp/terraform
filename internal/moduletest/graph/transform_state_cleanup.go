@@ -111,7 +111,6 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			node := &NodeStateCleanup{
 				stateKey: key,
 				opts:     t.opts,
-				parallel: run.Config.Parallel,
 			}
 			cleanupMap[key] = node
 			arr = append(arr, node)
@@ -122,10 +121,6 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			depStateKeys[key] = t.runStateRefs[run.Addr()]
 			continue
 		}
-
-		// if one of the runs for this state key is not parallel, then
-		// the cleanup node should not be parallel either.
-		cleanupMap[key].parallel = cleanupMap[key].parallel && run.Config.Parallel
 	}
 
 	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
