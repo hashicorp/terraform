@@ -440,11 +440,16 @@ resource "test_object" "a" {
 			},
 			expectPlanActionCalled: false,
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
-				return diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					`action trigger #0 refers to a non-existent action instance action.test_unlinked.hello["c"]`,
-					"Action instance not found in the current context.",
-				))
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to non-existant action instance",
+					Detail:   "Action instance was not found in the current context.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 13, Column: 18, Byte: 226},
+						End:      hcl.Pos{Line: 13, Column: 49, Byte: 257},
+					},
+				})
 			},
 		},
 
@@ -470,11 +475,16 @@ resource "test_object" "a" {
 			},
 			expectPlanActionCalled: false,
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
-				return diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					`action trigger #0 refers to a non-existent action instance action.test_unlinked.hello[2]`,
-					"Action instance not found in the current context.",
-				))
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to non-existant action instance",
+					Detail:   "Action instance was not found in the current context.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 13, Column: 18, Byte: 210},
+						End:      hcl.Pos{Line: 13, Column: 47, Byte: 239},
+					},
+				})
 			},
 		},
 
