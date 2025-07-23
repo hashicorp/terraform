@@ -357,6 +357,10 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Invalid condition run"},
 			code:        1,
 		},
+		"prevent-destroy": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

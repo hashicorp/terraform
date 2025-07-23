@@ -139,6 +139,12 @@ type PlanOpts struct {
 	// Query is a boolean that indicates whether the plan is being
 	// generated for a query operation.
 	Query bool
+
+	// OverridePreventDestroy will override any prevent_destroy attributes
+	// allowing Terraform to destroy resources even if the prevent_destroy
+	// attribute is set. This can only be set during a destroy plan, and should
+	// only be set during the test command.
+	OverridePreventDestroy bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -494,6 +500,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		refreshOpts := *opts
 		refreshOpts.Mode = plans.NormalMode
 		refreshOpts.PreDestroyRefresh = true
+		refreshOpts.OverridePreventDestroy = false
 
 		// FIXME: A normal plan is required here to refresh the state, because
 		// the state and configuration may not match during a destroy, and a
@@ -893,6 +900,10 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		externalProviderConfigs = opts.ExternalProviders
 	}
 
+	if opts != nil && opts.OverridePreventDestroy && opts.Mode != plans.DestroyMode {
+		panic("you can only set OverridePreventDestroy during destroy operations.")
+	}
+
 	switch mode := opts.Mode; mode {
 	case plans.NormalMode:
 		// In Normal mode we need to pay attention to import and removed blocks
@@ -950,6 +961,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Operation:               walkPlanDestroy,
 			Overrides:               opts.Overrides,
 			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			overridePreventDestroy:  opts.OverridePreventDestroy,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:
