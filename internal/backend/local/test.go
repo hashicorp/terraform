@@ -310,7 +310,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// Update the manifest file with the reason why each state file was created.
 	err := runner.Suite.Manifest.WriteManifest()
-	diags = diags.Append(err) // TODO(liamcervante): diagnostic?
+	diags = diags.Append(err)
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:

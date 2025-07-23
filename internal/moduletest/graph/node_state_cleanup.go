@@ -57,7 +57,6 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	// If the state is empty, we still write it so we can store the
 	// output values, but we don't need to run a destroy operation.
 	if n.emptyState(state.State) {
-		// TODO(liamcervante): No diagnostics here!
 		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
 		evalCtx.Renderer().DestroySummary(diags, state.Run, file, state.State)
 		return
