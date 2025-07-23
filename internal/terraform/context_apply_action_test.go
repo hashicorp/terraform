@@ -34,7 +34,7 @@ func TestContext2Apply_actions(t *testing.T) {
 		"unreferenced": {
 			module: map[string]string{
 				"main.tf": `
-action "test_unlinked" "hello" {}
+action "act_unlinked" "hello" {}
 		`,
 			},
 			expectInvokeActionCalled: false,
@@ -43,12 +43,12 @@ action "test_unlinked" "hello" {}
 		"before_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "test_unlinked" "hello" {}
+action "act_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -60,12 +60,12 @@ resource "test_object" "a" {
 		"after_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "test_unlinked" "hello" {}
+action "act_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -77,13 +77,13 @@ resource "test_object" "a" {
 		"before_update triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "test_unlinked" "hello" {}
+action "act_unlinked" "hello" {}
 resource "test_object" "a" {
   name = "new name"
   lifecycle {
     action_trigger {
       events = [before_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -112,13 +112,13 @@ resource "test_object" "a" {
 		"after_update triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "test_unlinked" "hello" {}
+action "act_unlinked" "hello" {}
 resource "test_object" "a" {
   name = "new name"
   lifecycle {
     action_trigger {
       events = [after_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -147,12 +147,12 @@ resource "test_object" "a" {
 		"before_create failing": {
 			module: map[string]string{
 				"main.tf": `
-action "test_unlinked" "hello" {}
+action "act_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -183,12 +183,12 @@ resource "test_object" "a" {
 		"before_create failing to call invoke": {
 			module: map[string]string{
 				"main.tf": `
-action "test_unlinked" "hello" {}
+action "act_unlinked" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -217,7 +217,7 @@ resource "test_object" "a" {
 resource "test_object" "a" {
   name = "foo"
 }
-action "test_unlinked" "hello" {
+action "act_unlinked" "hello" {
   config {
     attr = resource.test_object.a.name
   }
@@ -226,7 +226,7 @@ resource "test_object" "b" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -234,7 +234,7 @@ resource "test_object" "b" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "test_unlinked",
+				ActionType: "act_unlinked",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("foo"),
 				}),
@@ -248,7 +248,7 @@ resource "test_object" "b" {
 variable "unknown_value" {
   type = string
 }
-action "test_unlinked" "hello" {
+action "act_unlinked" "hello" {
   config {
     attr = var.unknown_value
   }
@@ -257,7 +257,7 @@ resource "test_object" "b" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -271,7 +271,7 @@ resource "test_object" "b" {
 
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "test_unlinked",
+				ActionType: "act_unlinked",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.UnknownVal(cty.String),
 				}),
@@ -285,7 +285,7 @@ variable "secret_value" {
   type = string
   sensitive = true
 }
-action "test_unlinked" "hello" {
+action "act_unlinked" "hello" {
   config {
     attr = var.secret_value
   }
@@ -294,7 +294,7 @@ resource "test_object" "b" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.act_unlinked.hello]
     }
   }
 }
@@ -308,7 +308,7 @@ resource "test_object" "b" {
 
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "test_unlinked",
+				ActionType: "act_unlinked",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("psst, I'm secret"),
 				}),
@@ -320,22 +320,8 @@ resource "test_object" "b" {
 
 			invokeActionCalls := []providers.InvokeActionRequest{}
 
-			p := &testing_provider.MockProvider{
+			testProvider := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					Actions: map[string]providers.ActionSchema{
-						"test_unlinked": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
-							},
-
-							Unlinked: &providers.UnlinkedAction{},
-						},
-					},
 					ResourceTypes: map[string]providers.Schema{
 						"test_object": {
 							Body: &configschema.Block{
@@ -348,6 +334,26 @@ resource "test_object" "b" {
 							},
 						},
 					},
+				},
+			}
+
+			actionProvider := &testing_provider.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					Actions: map[string]providers.ActionSchema{
+						"act_unlinked": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+
+							Unlinked: &providers.UnlinkedAction{},
+						},
+					},
+					ResourceTypes: map[string]providers.Schema{},
 				},
 				InvokeActionFn: func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
 					invokeActionCalls = append(invokeActionCalls, req)
@@ -383,9 +389,8 @@ resource "test_object" "b" {
 
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					// The providers never actually going to get called here, we should
-					// catch the error long before anything happens.
-					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+					addrs.NewDefaultProvider("act"):  testProviderFuncFixed(actionProvider),
 				},
 			})
 
