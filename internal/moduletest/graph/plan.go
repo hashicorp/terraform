@@ -114,7 +114,7 @@ func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables
 
 	waiter.update(tfCtx, moduletest.Running, nil)
 	log.Printf("[DEBUG] TestFileRunner: starting plan for %s/%s", file.Name, run.Name)
-	state := ctx.GetFileState(run.GetStateKey()).State
+	state := ctx.GetFileState(run.Config.StateKey).State
 	plan, planScope, planDiags := tfCtx.PlanAndEval(config, state, planOpts)
 	log.Printf("[DEBUG] TestFileRunner: completed plan for %s/%s", file.Name, run.Name)
 	diags = diags.Append(planDiags)

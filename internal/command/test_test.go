@@ -357,6 +357,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Invalid condition run"},
 			code:        1,
 		},
+		"write-into-default-state": {
+			args:        []string{"-verbose"},
+			expectedOut: []string{"test_resource.two will be destroyed"},
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -609,10 +614,10 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 	// It's really important that the above message is printed, so we're testing
 	// for it specifically and making sure it contains all the resources.
 	if diff := cmp.Diff(cleanupErr, err); diff != "" {
-		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", cleanupErr, err, diff)
+		t.Errorf("expected err to be\n%s\n\nbut got\n%s\n\n diff:\n%s\n", cleanupErr, err, diff)
 	}
 	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
-		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
+		t.Errorf("expected output to be \n%s\n\nbut got \n%s\n\n diff:\n%s\n", cleanupMessage, output.Stdout(), diff)
 	}
 
 	// This time the test command shouldn't have cleaned up the resource because
