@@ -24,7 +24,6 @@ var (
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
-	parallel bool
 }
 
 func (n *NodeStateCleanup) Name() string {
