@@ -149,7 +149,7 @@ func (n *nodeActionApply) References() []*addrs.Reference {
 	for _, invocation := range n.ActionInvocations {
 		// TODO: Think about how to get a source range
 		refs = append(refs, &addrs.Reference{
-			Subject: invocation.Addr,
+			Subject: invocation.Addr.Action,
 		})
 	}
 
