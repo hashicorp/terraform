@@ -1,4 +1,4 @@
-## 1.13.0 (Unreleased)
+## 1.13.0-beta2 (July 23, 2025)
 
 
 NEW FEATURES:
@@ -51,12 +51,6 @@ UPGRADE NOTES:
 
 * `terraform test`: External variables referenced within test files should now be accompanied by a `variable` definition block within the test file. This is optional, but users with complex external variables may see error diagnostics without the additional variable definition. ([#37195](https://github.com/hashicorp/terraform/issues/37195))
 
-
-EXPERIMENTS:
-
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
 
 ## Previous Releases
 
