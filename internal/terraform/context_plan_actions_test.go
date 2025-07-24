@@ -824,6 +824,45 @@ resource "test_object" "a" {
 				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 			},
 		},
+		// We don't yet support these action types yet
+		"fails with lifecycle actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_lifecycle" "hello" {}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Lifecycle actions are not supported",
+					Detail:   "This versio of Terraform does not support lifecycle actions",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
+					},
+				})
+			},
+		},
+		"fails with linked actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_linked" "hello" {}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Linked actions are not supported",
+					Detail:   "This versio of Terraform does not support linked actions",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 29, Byte: 29},
+					},
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -846,6 +885,42 @@ resource "test_object" "a" {
 							},
 
 							Unlinked: &providers.UnlinkedAction{},
+						},
+
+						"test_lifecycle": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+
+							Lifecycle: &providers.LifecycleAction{
+								LinkedResource: providers.LinkedResourceSchema{
+									TypeName: "test_object",
+								},
+							},
+						},
+
+						"test_linked": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+
+							Linked: &providers.LinkedAction{
+								LinkedResources: []providers.LinkedResourceSchema{
+									{
+										TypeName: "test_object",
+									},
+								},
+							},
 						},
 					},
 					ResourceTypes: map[string]providers.Schema{
