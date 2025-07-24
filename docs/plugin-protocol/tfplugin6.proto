@@ -974,9 +974,9 @@ message PlanAction {
         // linked resources, this should match the order the resources are specified in the schema.
         repeated LinkedResource linked_resources = 2;
         // config of the action, based on the schema of the actual action
-        DynamicValue config = 6;
+        DynamicValue config = 3;
         // metadata
-        ClientCapabilities client_capabilities = 8;
+        ClientCapabilities client_capabilities = 4;
     }
 
     message Response {
