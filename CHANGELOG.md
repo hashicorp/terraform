@@ -1,4 +1,9 @@
-## 1.14.0 (Unreleased)
+## 1.14.0-alpha20250724 (July 24, 2025)
+
+
+ENHANCEMENTS:
+
+* terraform test: expected diagnostics will be included in test output when running in verbose mode" ([#37362](https://github.com/hashicorp/terraform/issues/37362))
 
 
 EXPERIMENTS:
