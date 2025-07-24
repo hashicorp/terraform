@@ -134,6 +134,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 		SetVariables:      setVariables,
 		Overrides:         mocking.PackageOverrides(run.Config, file.Config, mocks),
 		ExternalProviders: providers,
+		DeferralAllowed:   ctx.deferralAllowed,
 	}
 
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
@@ -142,8 +143,16 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 	waiter.update(tfCtx, moduletest.TearDown, nil)
 	plan, planDiags := tfCtx.Plan(run.ModuleConfig, state, planOpts)
 	diags = diags.Append(planDiags)
-	if diags.HasErrors() {
+	if diags.HasErrors() || plan.Errored {
 		return state, diags
+	}
+
+	if !plan.Complete {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Incomplete destroy plan",
+			fmt.Sprintf("The destroy plan for %s/%s was reported as incomplete."+
+				" This means some of the cleanup operations were deferred due to unknown values, please check the rest of the output to see which resources could not be destroyed.", file.Name, run.Name)))
 	}
 
 	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, providers, waiter)
