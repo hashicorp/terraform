@@ -4,8 +4,6 @@
 package terraform
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -58,24 +56,23 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 		panic("NodeActionDeclarationInstance.Execute called without a schema")
 	}
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		diags = diags.Append(hcl.Diagnostic{
+	// We currently only support unlinked actions, so we send a diagnostic for other types
+	if n.Schema.Lifecycle != nil {
+		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to get provider schema",
-			Detail:   fmt.Sprintf("Could not get provider schema for %s: %s", n.ResolvedProvider, err),
-			Subject:  &n.Config.DeclRange,
+			Summary:  "Lifecycle actions are not supported",
+			Detail:   "This versio of Terraform does not support lifecycle actions",
+			Subject:  n.Config.DeclRange.Ptr(),
 		})
 		return diags
 	}
 
-	schema, ok := providerSchema.Actions[n.Config.Type]
-	if !ok {
-		diags = diags.Append(hcl.Diagnostic{
+	if n.Schema.Linked != nil {
+		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Action not found in provider schema",
-			Detail:   fmt.Sprintf("The action %q was not found in the provider schema for %s", n.Config.Type, n.ResolvedProvider),
-			Subject:  &n.Config.DeclRange,
+			Summary:  "Linked actions are not supported",
+			Detail:   "This versio of Terraform does not support linked actions",
+			Subject:  n.Config.DeclRange.Ptr(),
 		})
 		return diags
 	}
@@ -83,10 +80,10 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 	allInsts := ctx.InstanceExpander()
 	keyData := allInsts.GetActionInstanceRepetitionData(n.Addr)
 
-	configVal := cty.NullVal(schema.ConfigSchema.ImpliedType())
+	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
 	if n.Config.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema.ConfigSchema.DeepCopy(), nil, keyData)
+		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, keyData)
 
 		diags = diags.Append(configDiags)
 		if diags.HasErrors() {
