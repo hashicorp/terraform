@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: The terraform test command now supports a override_provision block in test runs. This feature allows to skip or mock provisioners on entire resources.
+time: 2025-02-11T16:48:24.83763+01:00
+custom:
+    Issue: "35459"
