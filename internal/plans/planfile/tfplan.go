@@ -69,7 +69,6 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		DriftedResources:  []*plans.ResourceInstanceChangeSrc{},
 		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{},
 		Checks:            &states.CheckResults{},
-		ActionInvocations: []*plans.ActionInvocationInstanceSrc{},
 	}
 
 	plan.Applyable = rawPlan.Applyable
@@ -188,7 +187,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, err
 		}
 
-		plan.ActionInvocations = append(plan.ActionInvocations, action)
+		plan.Changes.ActionInvocations = append(plan.Changes.ActionInvocations, action)
 	}
 
 	switch {
@@ -679,7 +678,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		)
 	}
 
-	for _, action := range plan.ActionInvocations {
+	for _, action := range plan.Changes.ActionInvocations {
 		rawAction, err := actionInvocationToTfPlan(action)
 		if err != nil {
 			return err
