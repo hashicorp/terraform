@@ -4,7 +4,6 @@
 package graph
 
 import (
-	"maps"
 	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -126,7 +125,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
 	// If an edge would create a cycle, we skip it.
 	visited := make(map[string]bool)
-	for node := range maps.Values(cleanupMap) {
+	for _, node := range arr {
 		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
 	}
 	return nil
