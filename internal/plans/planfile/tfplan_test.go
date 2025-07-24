@@ -303,6 +303,20 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 					},
 				},
 			},
+			ActionInvocations: []*plans.ActionInvocationInstanceSrc{
+				{
+					Addr:                    addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr:            provider,
+					TriggerEvent:            configs.BeforeCreate,
+					ActionTriggerBlockIndex: 2,
+					ActionsListIndex:        0,
+					TriggeringResourceAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				},
+			},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{
 			{
@@ -461,20 +475,6 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				}),
 			),
 			Workspace: "default",
-		},
-		ActionInvocations: []*plans.ActionInvocationInstanceSrc{
-			{
-				Addr:                    addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr:            provider,
-				TriggerEvent:            configs.BeforeCreate,
-				ActionTriggerBlockIndex: 2,
-				ActionsListIndex:        0,
-				TriggeringResourceAddr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "test_thing",
-					Name: "woot",
-				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
-			},
 		},
 	}
 }
