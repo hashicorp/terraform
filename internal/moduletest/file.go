@@ -25,13 +25,30 @@ type File struct {
 	sync.Mutex
 }
 
-func NewFile(name string, config *configs.TestFile, runs []*Run) *File {
-	return &File{
+func NewFile(name string, config *configs.TestFile, runs []*Run) (*File, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	hfile, hdiags := hclwrite.ParseConfig(config.Source, name, hcl.InitialPos)
+	diags = diags.Append(hdiags)
+	if hdiags.HasErrors() {
+		return nil, diags
+	}
+	idx := 0
+	for _, bl := range hfile.Body().Blocks() {
+		if bl.Type() == "run" && idx < len(runs) {
+			run := runs[idx]
+			tokens := bl.BuildTokens(nil)
+			codeStr := string(tokens.Bytes())
+			run.Source = codeStr
+			idx++
+		}
+	}
+	ret := &File{
 		Name:   name,
 		Config: config,
 		Runs:   runs,
 		Mutex:  sync.Mutex{},
 	}
+	return ret, diags
 }
 
 func (f *File) UpdateStatus(status Status) {
@@ -54,25 +71,4 @@ func (f *File) AppendDiagnostics(diags tfdiags.Diagnostics) {
 	if diags.HasErrors() {
 		f.Status = f.Status.Merge(Error)
 	}
-}
-
-// WithSourceCode updates the file's runs with their source code
-// extracted from the HCL file.
-func (f *File) WithSourceCode() (diags tfdiags.Diagnostics) {
-	hfile, hdiags := hclwrite.ParseConfig(f.Config.Source, f.Name, hcl.InitialPos)
-	diags = diags.Append(hdiags)
-	if hdiags.HasErrors() {
-		return diags
-	}
-	idx := 0
-	for _, bl := range hfile.Body().Blocks() {
-		if bl.Type() == "run" {
-			run := f.Runs[idx]
-			tokens := bl.BuildTokens(nil)
-			codeStr := string(tokens.Bytes())
-			run.Source = codeStr
-			idx++
-		}
-	}
-	return diags
 }

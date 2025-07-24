@@ -154,12 +154,6 @@ func (runner *TestSuiteRunner) test(dbgCtx *graph.DebugContext, suite *moduletes
 
 		file := suite.Files[name]
 
-		// Attach the source code to each run in the suite.
-		diags = diags.Append(file.WithSourceCode())
-		if diags.HasErrors() {
-			return moduletest.Error, diags
-		}
-
 		currentGlobalVariables := runner.GlobalVariables
 		if filepath.Dir(file.Name) == runner.TestingDirectory {
 			// If the file is in the test directory, we'll use the union of the
@@ -249,7 +243,12 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 					}
 
 					runCount += len(runs)
-					files[name] = moduletest.NewFile(name, file, runs)
+					mfile, mdiags := moduletest.NewFile(name, file, runs)
+					if mdiags.HasErrors() {
+						diags.Append(mdiags)
+						continue
+					}
+					files[name] = mfile
 				}
 
 				return files
@@ -269,7 +268,12 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 				}
 
 				runCount += len(runs)
-				files[name] = moduletest.NewFile(name, file, runs)
+				mfile, mdiags := moduletest.NewFile(name, file, runs)
+				if mdiags.HasErrors() {
+					diags.Append(mdiags)
+					continue
+				}
+				files[name] = mfile
 			}
 			return files
 		}(),

@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	singletonThreadID = 1
+	singletonThreadID   = 1
+	startVariableHandle = 1
 )
 
 type DebugState struct {
@@ -26,16 +27,15 @@ type DebugState struct {
 }
 
 type DebugSession struct {
-	RootDir         string // root directory where the terraform test debug server is running
-	Source          string
-	Step            int
-	Debugger        *Debugger
-	WriteCh         chan DapMsg
-	LaunchArgs      *LaunchArgs
-	Conn            io.ReadWriteCloser
-	DebugState      DebugState
-	VariablesStore  map[int]any
-	variableCounter int
+	RootDir        string // root directory where the terraform test debug server is running
+	Source         string
+	Step           int
+	Debugger       *Debugger
+	WriteCh        chan DapMsg
+	LaunchArgs     *LaunchArgs
+	Conn           io.ReadWriteCloser
+	DebugState     DebugState
+	VariablesStore *handle[any]
 
 	currentFrame int
 
@@ -46,21 +46,10 @@ func NewSession(ctx *graph.DebugContext) *DebugSession {
 	return &DebugSession{
 		Step:           1,
 		Context:        ctx,
-		VariablesStore: make(map[int]any),
+		VariablesStore: newHandle[any](1),
 		WriteCh:        make(chan DapMsg),
 	}
 }
-
-// storeVariable stores a composite variable (map or slice) and returns a reference id for it.
-func (h *DebugSession) storeVariable(value any) int {
-	h.variableCounter++
-	if h.VariablesStore == nil {
-		h.VariablesStore = make(map[int]any)
-	}
-	h.VariablesStore[h.variableCounter] = value
-	return h.variableCounter
-}
-
 func (h *DebugSession) Initialize(ctx context.Context, req *dap.InitializeRequest) (*dap.InitializeResponse, error) {
 	resp := &dap.InitializeResponse{}
 
@@ -126,7 +115,7 @@ func (h *DebugSession) Launch(ctx context.Context, req *dap.LaunchRequest) (*dap
 		return nil, fmt.Errorf("program not in debug server directory: %s", h.RootDir)
 	}
 	h.Source = args.Program
-	h.variableCounter = 1
+	h.VariablesStore = newHandle[any](startVariableHandle)
 	h.currentFrame = 1
 	h.Debugger = &Debugger{
 		Breakpoints: make([]dap.Breakpoint, 0),
@@ -262,9 +251,7 @@ func (h *DebugSession) StackTrace(ctx context.Context, req *dap.StackTraceReques
 		},
 	}
 
-	// New frame!. Increment the frame counter to be after all current variables
-	h.currentFrame = h.currentFrame + h.variableCounter
-	h.variableCounter = h.currentFrame
+	h.currentFrame++
 	h.send(req, resp)
 	return resp, nil
 }
@@ -328,27 +315,27 @@ func (h *DebugSession) SourceReq(ctx context.Context, req *dap.SourceRequest) (*
 func (h *DebugSession) Variables(ctx context.Context, req *dap.VariablesRequest) (*dap.VariablesResponse, error) {
 	var vars []dap.Variable
 	// If the reference is the first variable in this frame, return Top-level variables: Run, State, Outputs from DebugState
-	if req.Arguments.VariablesReference == h.currentFrame {
+	if req.Arguments.VariablesReference == 1 {
 		vars = append(vars, dap.Variable{
 			Name:               "Run",
 			Value:              h.DebugState.Run,
 			VariablesReference: 0,
 		})
-		stateRef := h.storeVariable(h.DebugState.State)
+		stateRef := h.VariablesStore.store(h.DebugState.State)
 
 		vars = append(vars, dap.Variable{
 			Name:               "State",
 			Value:              spew.Sprintf("<object>: %v", h.DebugState.State),
 			VariablesReference: stateRef,
 		})
-		outputsRef := h.storeVariable(h.DebugState.Outputs)
+		outputsRef := h.VariablesStore.store(h.DebugState.Outputs)
 		vars = append(vars, dap.Variable{
 			Name:               "Outputs",
 			Value:              spew.Sprintf("<object>: %v", h.DebugState.Outputs),
 			VariablesReference: outputsRef,
 		})
 	} else {
-		composite, found := h.VariablesStore[req.Arguments.VariablesReference]
+		composite, found := h.VariablesStore.load(req.Arguments.VariablesReference)
 		if !found {
 			return nil, fmt.Errorf("no variables found for reference %d", req.Arguments.VariablesReference)
 		}
@@ -357,7 +344,7 @@ func (h *DebugSession) Variables(ctx context.Context, req *dap.VariablesRequest)
 			for key, val := range comp {
 				switch v := val.(type) {
 				case map[string]any, []any:
-					ref := h.storeVariable(v)
+					ref := h.VariablesStore.store(v)
 					vars = append(vars, dap.Variable{
 						Name:               key,
 						Value:              spew.Sprintf("<object>: %v", v),
@@ -375,7 +362,7 @@ func (h *DebugSession) Variables(ctx context.Context, req *dap.VariablesRequest)
 			for idx, val := range comp {
 				switch v := val.(type) {
 				case map[string]any, []any:
-					ref := h.storeVariable(v)
+					ref := h.VariablesStore.store(v)
 					vars = append(vars, dap.Variable{
 						Name:               fmt.Sprintf("[%d]", idx),
 						Value:              spew.Sprintf("<object>: %v", v),
@@ -401,10 +388,14 @@ func (h *DebugSession) Variables(ctx context.Context, req *dap.VariablesRequest)
 }
 
 func (h *DebugSession) Scopes(ctx context.Context, req *dap.ScopesRequest) (*dap.ScopesResponse, error) {
+	// New ScopesRequest means a new set of variables
+	// For now, we discard the old variables
+	h.VariablesStore = newHandle[any](startVariableHandle)
+
 	resp := &dap.ScopesResponse{}
 	resp.Body = dap.ScopesResponseBody{
 		Scopes: []dap.Scope{
-			{Name: "Local", VariablesReference: h.variableCounter},
+			{Name: "Local", VariablesReference: startVariableHandle},
 		},
 	}
 	h.send(req, resp)
@@ -436,4 +427,27 @@ func newEvent(evt string) dap.Event {
 		},
 		Event: evt,
 	}
+}
+
+type handle[T any] struct {
+	next  int
+	state map[int]T
+}
+
+func newHandle[T any](start int) *handle[T] {
+	return &handle[T]{
+		next:  start,
+		state: make(map[int]T),
+	}
+}
+
+func (h *handle[T]) store(obj T) int {
+	h.next++
+	h.state[h.next] = obj
+	return h.next
+}
+
+func (h *handle[T]) load(id int) (T, bool) {
+	composite, found := h.state[id]
+	return composite, found
 }

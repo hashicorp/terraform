@@ -67,8 +67,10 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 	file, run := n.File(), n.run
 	// break before execution?
-	if _, ok := evalCtx.DebugContext.BeforeBreakpoints[run.Name]; ok {
-		evalCtx.BreakUntilContinue(run)
+	if evalCtx.DebugContext != nil {
+		if _, ok := evalCtx.DebugContext.BeforeBreakpoints[run.Name]; ok {
+			evalCtx.BreakUntilContinue(run)
+		}
 	}
 	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s\n", n.File().Name, n.run.Name)
 	startTime := time.Now().UTC()
@@ -81,8 +83,10 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 		evalCtx.AddRunBlock(run)
 
 		// break after execution?
-		if _, ok := evalCtx.DebugContext.AfterBreakpoints[run.Name]; ok {
-			evalCtx.BreakUntilContinue(run)
+		if evalCtx.DebugContext != nil {
+			if _, ok := evalCtx.DebugContext.AfterBreakpoints[run.Name]; ok {
+				evalCtx.BreakUntilContinue(run)
+			}
 		}
 	}()
 

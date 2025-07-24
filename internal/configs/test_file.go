@@ -312,10 +312,6 @@ func (run *TestRun) Validate(config *Config) tfdiags.Diagnostics {
 	return diags
 }
 
-// func (run *TestRun) Content(config *Config) (string, hcl.Diagnostics) {
-// 	hclparse.NewParser().Sources()
-// }
-
 // TestRunModuleCall specifies which module should be executed by a given run
 // block.
 type TestRunModuleCall struct {

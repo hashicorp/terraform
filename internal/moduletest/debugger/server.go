@@ -3,6 +3,7 @@ package debugger
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -40,9 +41,7 @@ func NewServer(ctx *graph.DebugContext) *Server {
 	return &Server{sess: sess}
 }
 
-type Listener net.Listener
-
-func (s *Server) Serve(ctx context.Context, ls Listener) error {
+func (s *Server) Serve(ctx context.Context, ls net.Listener) error {
 	s.ch = s.sess.WriteCh
 	s.ctx, s.cancel = context.WithCancelCause(ctx)
 
@@ -113,6 +112,8 @@ func (s *Server) HandleDAPRequests() error {
 }
 
 func (s *Server) handleMessage(c context.Context, m dap.Message) (dap.ResponseMessage, error) {
+	msg, _ := json.Marshal(m)
+	fmt.Printf("[-> server recvd msg] %s", string(msg))
 	switch req := m.(type) {
 	case *dap.InitializeRequest:
 		if s.initialized {
