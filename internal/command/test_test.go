@@ -3928,7 +3928,7 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 func TestTest_Console(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "variable_references")), td)
-	defer testChdir(t, td)()
+	defer t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
 	providerSource, close := newMockProviderSource(t, map[string][]string{

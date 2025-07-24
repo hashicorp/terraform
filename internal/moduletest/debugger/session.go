@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-dap"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 )
@@ -337,13 +338,13 @@ func (h *DebugSession) Variables(ctx context.Context, req *dap.VariablesRequest)
 
 		vars = append(vars, dap.Variable{
 			Name:               "State",
-			Value:              "<object>",
+			Value:              spew.Sprintf("<object>: %v", h.DebugState.State),
 			VariablesReference: stateRef,
 		})
 		outputsRef := h.storeVariable(h.DebugState.Outputs)
 		vars = append(vars, dap.Variable{
 			Name:               "Outputs",
-			Value:              "<object>",
+			Value:              spew.Sprintf("<object>: %v", h.DebugState.Outputs),
 			VariablesReference: outputsRef,
 		})
 	} else {
@@ -359,7 +360,7 @@ func (h *DebugSession) Variables(ctx context.Context, req *dap.VariablesRequest)
 					ref := h.storeVariable(v)
 					vars = append(vars, dap.Variable{
 						Name:               key,
-						Value:              "<object>",
+						Value:              spew.Sprintf("<object>: %v", v),
 						VariablesReference: ref,
 					})
 				default:
@@ -377,7 +378,7 @@ func (h *DebugSession) Variables(ctx context.Context, req *dap.VariablesRequest)
 					ref := h.storeVariable(v)
 					vars = append(vars, dap.Variable{
 						Name:               fmt.Sprintf("[%d]", idx),
-						Value:              "<object>",
+						Value:              spew.Sprintf("<object>: %v", v),
 						VariablesReference: ref,
 					})
 				default:
