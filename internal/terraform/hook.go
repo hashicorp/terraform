@@ -40,9 +40,7 @@ type HookActionIdentity struct {
 
 	// If run as part of a plan / apply we also have the values below
 	// (if CLI triggered they are not applicable)
-
-	TriggeringResourceAddr addrs.AbsResourceInstance
-
+	TriggeringResourceAddr  addrs.AbsResourceInstance
 	ActionTriggerBlockIndex int
 	ActionsListIndex        int
 }

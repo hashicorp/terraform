@@ -147,7 +147,6 @@ func (n *nodeActionApply) References() []*addrs.Reference {
 
 	// We reference each action instance that we are going to execute.
 	for _, invocation := range n.ActionInvocations {
-		// TODO: Think about how to get a source range
 		refs = append(refs, &addrs.Reference{
 			Subject: invocation.Addr.Action,
 		})

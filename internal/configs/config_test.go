@@ -35,7 +35,6 @@ func TestConfigProviderTypes(t *testing.T) {
 	}
 
 	got = cfg.ProviderTypes()
-
 	want := []addrs.Provider{
 		addrs.NewDefaultProvider("aws"),
 		addrs.NewDefaultProvider("external"),
