@@ -48,7 +48,7 @@ func (b *Local) opPlan(
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"No configuration files",
-				"Query Plan requires a query configuration to be present. Create a Terraform query configuration file (.tfquery.hcl file) and try again.",
+				"Query requires a query configuration to be present. Create a Terraform query configuration file (.tfquery.hcl file) and try again.",
 			))
 			op.ReportResult(runningOp, diags)
 			return

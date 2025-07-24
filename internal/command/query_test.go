@@ -5,7 +5,6 @@ package command
 
 import (
 	"path"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -26,14 +25,18 @@ func TestQuery(t *testing.T) {
 		{
 			name:      "basic query",
 			directory: "basic",
-			expectedOut: `list.test_instance.example	id=test-instance-1	Test Instance 1
-				list.test_instance.example	id=test-instance-2	Test Instance 2`,
+			expectedOut: `list.test_instance.example   id=test-instance-1   Test Instance 1
+list.test_instance.example   id=test-instance-2   Test Instance 2
+
+`,
 		},
 		{
 			name:      "query referencing local variable",
 			directory: "with-locals",
-			expectedOut: `list.test_instance.example	id=test-instance-1	Test Instance 1
-						list.test_instance.example	id=test-instance-2	Test Instance 2`,
+			expectedOut: `list.test_instance.example   id=test-instance-1   Test Instance 1
+list.test_instance.example   id=test-instance-2   Test Instance 2
+
+`,
 		},
 		{
 			name:        "config with no query block",
@@ -62,8 +65,8 @@ The configuration does not contain any resources that can be queried.
 			expectedErr: []string{`
 Error: No configuration files
 
-Query Plan requires a query configuration to be present. Create a Terraform
-query configuration file (.tfquery.hcl file) and try again.
+Query requires a query configuration to be present. Create a Terraform query
+configuration file (.tfquery.hcl file) and try again.
 `},
 		},
 		{
@@ -117,18 +120,19 @@ Blocks of type "resource" are not expected here.
 			output = done(t)
 			actual := output.All()
 			if len(ts.expectedErr) == 0 {
-				if code != 0 && len(ts.expectedErr) == 0 {
+				if code != 0 {
 					t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
-
-					// Check that we have query output
-					if !strings.Contains(actual, ts.expectedOut) {
-						t.Errorf("expected query output to contain '%s', got: %s", ts.expectedOut, actual)
-					}
 				}
+
+				// Check that we have query output
+				if diff := cmp.Diff(ts.expectedOut, actual); diff != "" {
+					t.Errorf("expected query output to contain %q, \ngot: %q, \ndiff: %s", ts.expectedOut, actual, diff)
+				}
+
 			} else {
 				for _, expected := range ts.expectedErr {
 					if diff := cmp.Diff(expected, actual); diff != "" {
-						t.Errorf("expected error message to contain '%s', \ngot: %s, diff: %s", expected, actual, diff)
+						t.Errorf("expected error message to contain '%s', \ngot: %s, \ndiff: %s", expected, actual, diff)
 					}
 				}
 			}
