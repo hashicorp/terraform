@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/hashicorp/terraform/internal/backend"
+
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -24,6 +26,15 @@ import (
 type TestSuiteRunner struct {
 	Config *configs.Config
 
+	// BackendFactory is used to enable initializing multiple backend types,
+	// depending on which backends are used in a test suite.
+	//
+	// Note: This is currently necessary because the source of the init functions,
+	// the backend/init package, experiences import cycles if used in other test-related
+	// packages. We set this field on a TestSuiteRunner when making runners in the
+	// command package, which is the main place where backend/init has previously been used.
+	BackendFactory func(string) backend.InitFn
+
 	TestingDirectory string
 
 	// Global variables comes from the main configuration directory,
@@ -33,8 +44,9 @@ type TestSuiteRunner struct {
 
 	Opts *terraform.ContextOpts
 
-	View  views.Test
-	JUnit junit.JUnit
+	View     views.Test
+	JUnit    junit.JUnit
+	Manifest *graph.TestManifest
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still
@@ -59,6 +71,14 @@ type TestSuiteRunner struct {
 	Verbose bool
 
 	Concurrency int
+
+	CommandMode moduletest.CommandMode
+
+	// Repair is used to indicate whether the test cleanup command should run in
+	// "repair" mode. In this mode, the cleanup command will only remove state
+	// files that are a result of failed destroy operations, leaving any
+	// state due to skip_cleanup in place.
+	Repair bool
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -98,6 +118,35 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	// collisions, as the test directory variables should take precedence.
 	maps.Copy(testDirectoryGlobalVariables, runner.GlobalTestVariables)
 
+	// Generate a manifest that will be used to track the state files created
+	// during the test runs.
+	manifest, err := func() (*graph.TestManifest, tfdiags.Diagnostics) {
+		manifest, err := graph.BuildStateManifest(".", suite.Files)
+		if err != nil {
+			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to build state manifest", err.Error()))
+		}
+
+		empty, err := manifest.Empty()
+		if err != nil {
+			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Error checking state manifest", err.Error()))
+		}
+
+		// Unless we're in cleanup mode, we expect the manifest to be empty.
+		if !empty && runner.CommandMode != moduletest.CleanupMode {
+			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "State manifest not empty", ``+
+				"The state manifest should be empty before running tests. This could be due to a previous test run not cleaning up after itself."+
+				"Please ensure that all state files are cleaned up before running tests."))
+		}
+		return manifest, nil
+	}()
+
+	if err != nil {
+		suite.Status = moduletest.Error
+		runner.View.Conclusion(suite)
+		return moduletest.Error, diags
+	}
+	runner.Manifest = manifest
+
 	suite.Status = moduletest.Pending
 	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
 		if runner.Cancelled {
@@ -114,15 +163,17 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
-			Config:            runner.Config,
-			CancelCtx:         runner.CancelledCtx,
-			StopCtx:           runner.StoppedCtx,
-			Verbose:           runner.Verbose,
-			Render:            runner.View,
-			UnparsedVariables: currentGlobalVariables,
-			Concurrency:       runner.Concurrency,
-		})
+			Config:      runner.Config,
+			CancelCtx:   runner.CancelledCtx,
+			StopCtx:     runner.StoppedCtx,
+			Verbose:     runner.Verbose,
+			Repair:      runner.Repair,
+			Render:      runner.View,
+			Concurrency: runner.Concurrency,
 
+			UnparsedVariables: currentGlobalVariables,
+			Manifest:          manifest,
+		})
 		fileRunner := &TestFileRunner{
 			Suite:       runner,
 			EvalContext: evalCtx,
@@ -153,6 +204,7 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 
 	var diags tfdiags.Diagnostics
 	suite := &moduletest.Suite{
+		CommandMode: runner.CommandMode,
 		Files: func() map[string]*moduletest.File {
 			files := make(map[string]*moduletest.File)
 
@@ -240,11 +292,14 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// Build the graph for the file.
 	b := graph.TestGraphBuilder{
-		Config:      runner.Suite.Config,
-		File:        file,
-		ContextOpts: runner.Suite.Opts,
+		Config:         runner.Suite.Config,
+		File:           file,
+		ContextOpts:    runner.Suite.Opts,
+		BackendFactory: runner.Suite.BackendFactory,
+		StateManifest:  runner.Suite.Manifest,
+		CommandMode:    runner.Suite.CommandMode,
 	}
-	g, diags := b.Build()
+	g, diags := b.Build(runner.EvalContext)
 	file.Diagnostics = file.Diagnostics.Append(diags)
 	if walkCancelled := runner.renderPreWalkDiags(file); walkCancelled {
 		return
@@ -252,6 +307,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// walk and execute the graph
 	diags = diags.Append(graph.Walk(g, runner.EvalContext))
+
+	// Update the manifest file with the reason why each state file was created.
+	err := runner.Suite.Manifest.WriteManifest()
+	diags = diags.Append(err)
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:

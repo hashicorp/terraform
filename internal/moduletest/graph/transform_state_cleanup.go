@@ -31,13 +31,24 @@ type TeardownSubgraph struct {
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
-	// work out the transitive state dependencies for each run node in the parent graph
 	runRefMap := make(map[addrs.Run][]string)
-	for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
-		refs := b.parent.Ancestors(runNode)
-		for _, ref := range refs {
-			if ref, ok := ref.(*NodeTestRun); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
-				runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
+
+	if b.opts.CommandMode == moduletest.CleanupMode {
+		for runNode := range dag.SelectSeq[*NodeTestRunCleanup](b.parent.VerticesSeq()) {
+			refs := b.parent.Ancestors(runNode)
+			for _, ref := range refs {
+				if ref, ok := ref.(*NodeTestRunCleanup); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
+					runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
+				}
+			}
+		}
+	} else {
+		for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
+			refs := b.parent.Ancestors(runNode)
+			for _, ref := range refs {
+				if ref, ok := ref.(*NodeTestRun); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
+					runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
+				}
 			}
 		}
 	}
@@ -72,7 +83,19 @@ type TestStateCleanupTransformer struct {
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
-	arr := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
+	overrideMap := make(map[string]*moduletest.Run)
+	var arr []*NodeStateCleanup
+
+	for _, run := range t.opts.File.Runs {
+		key := run.Config.StateKey
+
+		// If a run is marked as skip_cleanup, that run's apply
+		// will be the final state in the state file.
+		// This is only relevant to the default test mode.
+		if run.Config.SkipCleanup && t.opts.CommandMode != moduletest.CleanupMode {
+			overrideMap[key] = run
+		}
+	}
 
 	// dependency map for state keys, which will be used to traverse
 	// the cleanup nodes in a depth-first manner.
@@ -90,6 +113,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			}
 			cleanupMap[key] = node
 			arr = append(arr, node)
+			node.customCleanupRun = overrideMap[key]
 			g.Add(node)
 
 			// The dependency map for the state's last run will be used for the cleanup node.
