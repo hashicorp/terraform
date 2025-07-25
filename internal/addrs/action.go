@@ -140,9 +140,14 @@ func (a ActionInstance) Absolute(module ModuleInstance) AbsActionInstance {
 
 // AbsAction is an absolute address for an action under a given module path.
 type AbsAction struct {
+	targetable
 	Module ModuleInstance
 	Action Action
 }
+
+var (
+	_ Targetable = AbsAction{}
+)
 
 // Action returns the address of a particular action within the receiver.
 func (m ModuleInstance) Action(typeName string, name string) AbsAction {
@@ -200,6 +205,19 @@ func (a AbsAction) Less(o AbsAction) bool {
 	return false
 }
 
+func (a AbsAction) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+	case AbsAction:
+		return a.Equal(to)
+	default:
+		return false
+	}
+}
+
+func (a AbsAction) AddrType() TargetableAddrType {
+	return AbsActionAddrType
+}
+
 type absActionKey string
 
 func (a absActionKey) uniqueKeySigil() {}
@@ -214,6 +232,10 @@ type AbsActionInstance struct {
 	Module ModuleInstance
 	Action ActionInstance
 }
+
+var (
+	_ Targetable = AbsActionInstance{}
+)
 
 // ActionInstance returns the address of a particular action instance within the receiver.
 func (m ModuleInstance) ActionInstance(typeName string, name string, key InstanceKey) AbsActionInstance {
@@ -288,6 +310,18 @@ func (a AbsActionInstance) UniqueKey() UniqueKey {
 }
 
 func (a absActionInstanceKey) uniqueKeySigil() {}
+
+func (a AbsActionInstance) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+	// TODO: Continue here
+	default:
+		return false
+	}
+}
+
+func (a AbsActionInstance) AddrType() TargetableAddrType {
+	return AbsActionInstanceAddrType
+}
 
 // ConfigAction is the address for an action within the configuration.
 type ConfigAction struct {

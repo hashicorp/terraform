@@ -400,6 +400,64 @@ func TestParseTarget(t *testing.T) {
 			},
 			``,
 		},
+		{
+			`action.aws_lambda.foo`,
+			&Target{
+				Subject: AbsAction{
+					Action: Action{
+						Type: "aws_lambda",
+						Name: "foo",
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+				},
+			},
+			``,
+		},
+		{
+			`action.aws_lambda.foo[0]`,
+			&Target{
+				Subject: AbsActionInstance{
+					Action: ActionInstance{
+						Action: Action{
+							Type: "aws_lambda",
+							Name: "foo",
+						},
+						Key: IntKey(0),
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+				},
+			},
+			``,
+		},
+		{
+			`action.aws_lambda.foo["hi"]`,
+			&Target{
+				Subject: AbsActionInstance{
+					Action: ActionInstance{
+						Action: Action{
+							Type: "aws_lambda",
+							Name: "foo",
+						},
+						Key: StringKey("hi"),
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+				},
+			},
+			``,
+		},
+		// TODO: Add tests for modules
 
 		{
 			`aws_instance`,

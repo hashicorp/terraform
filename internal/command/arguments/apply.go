@@ -6,6 +6,9 @@ package arguments
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -163,8 +166,29 @@ func ParseApplyDestroy(args []string) (*Apply, tfdiags.Diagnostics) {
 func ParseApplyInvoke(args []string) (*Apply, tfdiags.Diagnostics) {
 	apply, diags := ParseApply(args)
 
+	tr := apply.PlanPath
+	traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
+	if syntaxDiags.HasErrors() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Invalid target %q", tr),
+			syntaxDiags[0].Detail,
+		))
+		return apply, diags
+	}
+
+	target, targetDiags := addrs.ParseTarget(traversal)
+	if targetDiags.HasErrors() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Invalid target %q", tr),
+			targetDiags[0].Description().Detail,
+		))
+		return apply, diags
+	}
+	apply.Operation.Targets = []addrs.Targetable{target.Subject}
+
 	// TODO: Don't hack like this :D
-	apply.ActionAddr = apply.PlanPath
 	apply.PlanPath = ""
 
 	return apply, diags

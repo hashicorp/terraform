@@ -52,7 +52,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		args, diags = arguments.ParseApply(rawArgs)
 	}
 
-	fmt.Printf("\n\t args.ActionAddr --> %#v \n", args.ActionAddr)
+	fmt.Printf("\n\t args.Operation.Targets --> %#v \n", args.Operation.Targets)
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
