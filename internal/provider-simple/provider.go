@@ -149,6 +149,10 @@ func (s simple) ReadResource(req providers.ReadResourceRequest) (resp providers.
 	return resp
 }
 
+func (s simple) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
+	panic("not implemented")
+}
+
 func (s simple) PlanResourceChange(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	if req.ProposedNewState.IsNull() {
 		// destroy op
