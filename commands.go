@@ -456,6 +456,13 @@ func initCommands(
 				Meta: meta,
 			}, nil
 		}
+
+		Commands["invoke"] = func() (cli.Command, error) {
+			return &command.ApplyCommand{
+				Meta:   meta,
+				Invoke: true,
+			}, nil
+		}
 	}
 
 	PrimaryCommands = []string{

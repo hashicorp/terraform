@@ -22,6 +22,10 @@ type ApplyCommand struct {
 	// If true, then this apply command will become the "destroy"
 	// command. It is just like apply but only processes a destroy.
 	Destroy bool
+
+	// If true then we run an action apply command instead of the
+	// regular "apply".
+	Invoke bool
 }
 
 func (c *ApplyCommand) Run(rawArgs []string) int {
@@ -42,9 +46,13 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	switch {
 	case c.Destroy:
 		args, diags = arguments.ParseApplyDestroy(rawArgs)
+	case c.Invoke:
+		args, diags = arguments.ParseApplyInvoke(rawArgs)
 	default:
 		args, diags = arguments.ParseApply(rawArgs)
 	}
+
+	fmt.Printf("\n\t args.ActionAddr --> %#v \n", args.ActionAddr)
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -380,7 +388,7 @@ Options:
                          Defaults to 10.
 
   -replace=resource      Terraform will plan to replace this resource instance
-                         instead of doing an update or no-op action. 
+                         instead of doing an update or no-op action.
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
@@ -388,7 +396,7 @@ Options:
   -state-out=path        Path to write state to that is different than
                          "-state". This can be used to preserve the old
                          state.
-                         
+
   -var 'foo=bar'         Set a value for one of the input variables in the root
                          module of the configuration. Use this option more than
                          once to set more than one variable.

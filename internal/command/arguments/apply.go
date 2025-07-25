@@ -27,6 +27,9 @@ type Apply struct {
 	// PlanPath contains an optional path to a stored plan file
 	PlanPath string
 
+	// ActionAddr contains the action to be run if this is invoke
+	ActionAddr string
+
 	// ViewType specifies which output format to use
 	ViewType ViewType
 }
@@ -153,6 +156,16 @@ func ParseApplyDestroy(args []string) (*Apply, tfdiags.Diagnostics) {
 	// message depending on whether the given path seems to refer to a saved
 	// plan file or to a configuration directory. The apply command
 	// implementation itself therefore handles this situation.
+
+	return apply, diags
+}
+
+func ParseApplyInvoke(args []string) (*Apply, tfdiags.Diagnostics) {
+	apply, diags := ParseApply(args)
+
+	// TODO: Don't hack like this :D
+	apply.ActionAddr = apply.PlanPath
+	apply.PlanPath = ""
 
 	return apply, diags
 }
