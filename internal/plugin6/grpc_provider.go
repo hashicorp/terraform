@@ -211,6 +211,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 		resp.ServerCapabilities.GetProviderSchemaOptional = protoResp.ServerCapabilities.GetProviderSchemaOptional
 		resp.ServerCapabilities.MoveResourceState = protoResp.ServerCapabilities.MoveResourceState
+		resp.ServerCapabilities.GenerateResourceConfig = protoResp.ServerCapabilities.GenerateResourceConfig
 	}
 
 	// set the global cache if we can
