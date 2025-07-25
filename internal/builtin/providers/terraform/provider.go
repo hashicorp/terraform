@@ -149,6 +149,10 @@ func (p *Provider) ReadDataSource(req providers.ReadDataSourceRequest) providers
 	return res
 }
 
+func (p *Provider) GenerateResourceConfig(providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+	panic("not implemented")
+}
+
 // Stop is called when the provider should halt any in-flight actions.
 func (p *Provider) Stop() error {
 	log.Println("[DEBUG] terraform provider cannot Stop")
