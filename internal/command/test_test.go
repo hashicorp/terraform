@@ -393,6 +393,10 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"test_resource.two will be destroyed"},
 			code:        0,
 		},
+		"prevent-destroy": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
 		"deferred_changes": {
 			args:        []string{"-allow-deferral"},
 			expectedOut: []string{"3 passed, 0 failed."},
