@@ -161,6 +161,11 @@ func (o *offlineProvider) ReadResource(_ providers.ReadResourceRequest) provider
 	}
 }
 
+// GenerateResourceConfig implements providers.Interface
+func (p *offlineProvider) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+	panic("not implemented")
+}
+
 func (o *offlineProvider) PlanResourceChange(_ providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
