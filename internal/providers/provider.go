@@ -285,6 +285,11 @@ type ServerCapabilities struct {
 	// The MoveResourceState capability indicates that this provider supports
 	// the MoveResourceState RPC.
 	MoveResourceState bool
+
+	// GenerateResourceConfig indicates that the provider can take an existing
+	// state for a resource instance, and return the subset of the state which
+	// can be used as configuration.
+	GenerateResourceConfig bool
 }
 
 // ClientCapabilities allows Terraform to publish information regarding
