@@ -121,6 +121,11 @@ func (u *unknownProvider) ReadResource(request providers.ReadResourceRequest) pr
 	}
 }
 
+// GenerateResourceConfig implements providers.Interface
+func (p *unknownProvider) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+	panic("not implemented")
+}
+
 func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	if request.ClientCapabilities.DeferralAllowed {
 		// For PlanResourceChange, we'll kind of abuse the mocking library to
