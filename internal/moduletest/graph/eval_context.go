@@ -510,37 +510,6 @@ func (ec *EvalContext) AddRunBlock(run *moduletest.Run) {
 func (ec *EvalContext) GetOutput(name string) (cty.Value, bool) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-
-	//if ec.mode == moduletest.CleanupMode {
-	//	var target *configs.TestRun
-	//	for _, run := range ec.config.Runs {
-	//		if run.Name == name {
-	//			target = run
-	//			break
-	//		}
-	//	}
-	//
-	//	if target == nil {
-	//		return cty.NilVal, false
-	//	}
-	//
-	//	state := ec.GetFileState(target.StateKey)
-	//	if state == nil {
-	//		return cty.NilVal, false
-	//	}
-	//
-	//	outputs := make(map[string]cty.Value, len(state.State.RootOutputValues))
-	//	for name, output := range state.State.RootOutputValues {
-	//		if output.Sensitive {
-	//			outputs[name] = output.Value.Mark(marks.Sensitive)
-	//			continue
-	//		}
-	//		outputs[name] = output.Value
-	//	}
-	//
-	//	return cty.ObjectVal(outputs), true
-	//}
-
 	output, ok := ec.runBlocks[name]
 	if !ok {
 		return cty.NilVal, false
