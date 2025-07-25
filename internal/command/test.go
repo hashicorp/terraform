@@ -111,6 +111,17 @@ func (c *TestCommand) Run(rawArgs []string) int {
 
 	view := views.NewTest(args.ViewType, c.View)
 
+	// EXPERIMENTAL: maybe enable deferred actions
+	if !c.AllowExperimentalFeatures && args.DeferralAllowed {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		view.Diagnostics(nil, nil, diags)
+		return 1
+	}
+
 	// The specified testing directory must be a relative path, and it must
 	// point to a directory that is a descendant of the configuration directory.
 	if !filepath.IsLocal(args.TestDirectory) {
@@ -228,6 +239,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Filter:              args.Filter,
 			Verbose:             args.Verbose,
 			Concurrency:         args.RunParallelism,
+			DeferralAllowed:     args.DeferralAllowed,
 		}
 
 		// JUnit output is only compatible with local test execution

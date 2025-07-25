@@ -40,6 +40,7 @@ var (
 						"create_wait_seconds":  {Type: cty.Number, Optional: true},
 						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
 						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
+						"defer":                {Type: cty.Bool, Optional: true},
 					},
 				},
 			},
@@ -61,6 +62,7 @@ var (
 						"destroy_fail":         {Type: cty.Bool, Computed: true},
 						"create_wait_seconds":  {Type: cty.Number, Computed: true},
 						"destroy_wait_seconds": {Type: cty.Number, Computed: true},
+						"defer":                {Type: cty.Bool, Computed: true},
 					},
 				},
 			},
@@ -227,9 +229,18 @@ func (provider *TestProvider) ConfigureProvider(request providers.ConfigureProvi
 
 func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	if request.ProposedNewState.IsNull() {
+
+		var deferred *providers.Deferred
+		if shouldBeDeferred := request.PriorState.GetAttr("defer"); !shouldBeDeferred.IsNull() && shouldBeDeferred.True() {
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonResourceConfigUnknown,
+			}
+		}
+
 		// Then this is a delete operation.
 		return providers.PlanResourceChangeResponse{
 			PlannedState: request.ProposedNewState,
+			Deferred:     deferred,
 		}
 	}
 
@@ -252,8 +263,16 @@ func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceC
 		resource = cty.ObjectVal(vals)
 	}
 
+	var deferred *providers.Deferred
+	if shouldBeDeferred := resource.GetAttr("defer"); !shouldBeDeferred.IsKnown() || (!shouldBeDeferred.IsNull() && shouldBeDeferred.True()) {
+		deferred = &providers.Deferred{
+			Reason: providers.DeferredReasonResourceConfigUnknown,
+		}
+	}
+
 	return providers.PlanResourceChangeResponse{
 		PlannedState: resource,
+		Deferred:     deferred,
 	}
 }
 

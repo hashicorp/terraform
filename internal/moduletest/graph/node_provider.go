@@ -90,7 +90,7 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 		TerraformVersion: version.SemVer.String(),
 		Config:           unmarkedBody,
 		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed:            false, // TODO: Enable deferrals in test framework.
+			DeferralAllowed:            ctx.deferralAllowed,
 			WriteOnlyAttributesAllowed: true,
 		},
 	})

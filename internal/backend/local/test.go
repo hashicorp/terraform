@@ -58,7 +58,8 @@ type TestSuiteRunner struct {
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
 
-	Concurrency int
+	Concurrency     int
+	DeferralAllowed bool
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -121,6 +122,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			Render:            runner.View,
 			UnparsedVariables: currentGlobalVariables,
 			Concurrency:       runner.Concurrency,
+			DeferralAllowed:   runner.DeferralAllowed,
 		})
 
 		fileRunner := &TestFileRunner{
