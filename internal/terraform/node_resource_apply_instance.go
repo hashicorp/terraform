@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -213,8 +214,28 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
 
-	diags = diags.Append(invokeActions(ctx, n.beforeActionInvocations))
+	finishedActions, actionDiags := invokeActions(ctx, n.beforeActionInvocations)
+	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
+		// Since an action failed we will not continue with the apply.
+		// This means if the user retries the apply, the actions will be
+		// re-run as well, including the already successful ones.
+		if len(finishedActions) > 0 {
+			finishedActionAddrs := []string{}
+			for _, ai := range finishedActions {
+				finishedActionAddrs = append(finishedActionAddrs, fmt.Sprintf("  - %s", ai.Addr.String()))
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Actions failed before resource apply of %s", n.Addr),
+				fmt.Sprintf(
+					"An action running before the resource apply failed, therefore we will not apply the resource. Please fix the action and re-run the apply. The following actions were run before the resource apply:\n%s. They will be re-run on the next apply.",
+					strings.Join(finishedActionAddrs, "\n"),
+				),
+			))
+		}
+
 		return diags
 	}
 

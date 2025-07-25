@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -37,11 +38,39 @@ func (n *nodeActionApply) DotNode(string, *dag.DotOpts) *dag.DotNode {
 	}
 }
 
-func (n *nodeActionApply) Execute(ctx EvalContext, _ walkOperation) (diags tfdiags.Diagnostics) {
-	return invokeActions(ctx, n.ActionInvocations)
+func (n *nodeActionApply) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
+	finishedActionInvocations, diags := invokeActions(ctx, n.ActionInvocations)
+	if diags.HasErrors() {
+		// Since the actions running after the resource apply have failed, we want to give the user
+		// directions on how to recover from this. In this case we want to give the user a list of
+		// actions to re-run using the `terraform invoke` command.
+
+		// Since the actions are run in order, we can remove however many actions we have already
+		// run from the list of action invocations.
+		numberOfMissingActions := len(n.ActionInvocations) - len(finishedActionInvocations)
+		// This should always be the case, but we check just to be sure.
+		if numberOfMissingActions > 0 {
+			// We want to give the user a list of actions to re-run.
+			actionsToReRun := []string{}
+			for _, invocation := range n.ActionInvocations[:numberOfMissingActions] {
+				actionsToReRun = append(actionsToReRun, fmt.Sprintf("  - %s", invocation.Addr.String()))
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Actions failed for %s", n.TriggeringResourceaddrs),
+				fmt.Sprintf(
+					"The following actions failed: \n%s\nYou can re-run them using the `terraform invoke <action address>` command.",
+					strings.Join(actionsToReRun, "\n"),
+				),
+			))
+		}
+	}
+	return diags
 }
 
-func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationInstance) tfdiags.Diagnostics {
+func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationInstance) ([]*plans.ActionInvocationInstance, tfdiags.Diagnostics) {
+	var finishedActionInvocations []*plans.ActionInvocationInstance
 	var diags tfdiags.Diagnostics
 	// First we order the action invocations by their trigger block index and events list index.
 	// This way we have the correct order of execution.
@@ -64,7 +93,7 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 				"Action instance not found",
 				"Could not find action instance for address "+invocation.Addr.String(),
 			))
-			return diags
+			return finishedActionInvocations, diags
 		}
 
 		orderedActionData[i] = ai
@@ -85,7 +114,7 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 				fmt.Sprintf("Failed to get provider for %s", ai.Addr),
 				fmt.Sprintf("Failed to get provider: %s", err),
 			))
-			return diags
+			return finishedActionInvocations, diags
 		}
 
 		// We don't want to send the marks, but all marks are okay in the context of an action invocation.
@@ -108,7 +137,7 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 
 		diags = diags.Append(resp.Diagnostics)
 		if resp.Diagnostics.HasErrors() {
-			return diags
+			return finishedActionInvocations, diags
 		}
 
 		for event := range resp.Events {
@@ -127,7 +156,9 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 					// from this, or maybe attach this info to the diagnostics sent by the provider.
 					// For now we just return the diagnostics.
 
-					return diags
+					return finishedActionInvocations, diags
+				} else {
+					finishedActionInvocations = append(finishedActionInvocations, ai)
 				}
 			default:
 				panic(fmt.Sprintf("unexpected action event type %T", ev))
@@ -135,7 +166,7 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 		}
 	}
 
-	return diags
+	return finishedActionInvocations, diags
 }
 
 func (n *nodeActionApply) ModulePath() addrs.Module {

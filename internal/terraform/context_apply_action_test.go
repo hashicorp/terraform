@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -236,7 +237,8 @@ resource "test_object" "b" {
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "act_unlinked",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-					"attr": cty.StringVal("foo"),
+					"attr":  cty.StringVal("foo"),
+					"fails": cty.NullVal(cty.Bool), // Default value for optional attributes
 				}),
 			}},
 		},
@@ -273,7 +275,8 @@ resource "test_object" "b" {
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "act_unlinked",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-					"attr": cty.UnknownVal(cty.String),
+					"attr":  cty.UnknownVal(cty.String),
+					"fails": cty.NullVal(cty.Bool), // Default value for optional attributes
 				}),
 			}},
 		},
@@ -310,9 +313,87 @@ resource "test_object" "b" {
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "act_unlinked",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-					"attr": cty.StringVal("psst, I'm secret"),
+					"attr":  cty.StringVal("psst, I'm secret"),
+					"fails": cty.NullVal(cty.Bool), // Default value for optional attributes
 				}),
 			}},
+		},
+
+		"failing before action with no previously run action": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+    config {
+      fails = true
+    }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "test case for failing", "this simulates a provider failing"),
+			},
+		},
+
+		"failing before action with previously run action": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+action "act_unlinked" "goodbye" {}
+action "act_unlinked" "nevercalled" {}
+action "act_unlinked" "boom" {
+    config {
+      fails = true
+    }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello, action.act_unlinked.goodbye,  action.act_unlinked.boom, action.act_unlinked.nevercalled]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "test case for failing", "this simulates a provider failing"),
+				tfdiags.Sourceless(tfdiags.Error, "Actions failed before resource apply of test_object.a", "An action running before the resource apply failed, therefore we will not apply the resource. Please fix the action and re-run the apply. The following actions were run before the resource apply:\n  - action.act_unlinked.hello\n  - action.act_unlinked.goodbye. They will be re-run on the next apply."),
+			},
+		},
+
+		"failing after action with no following actions to run": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "before" {}
+action "act_unlinked" "hello" {
+    config {
+      fails = true
+    }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.before, action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "test case for failing", "this simulates a provider failing"),
+			},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -347,6 +428,10 @@ resource "test_object" "b" {
 										Type:     cty.String,
 										Optional: true,
 									},
+									"fails": {
+										Type:     cty.Bool,
+										Optional: true,
+									},
 								},
 							},
 
@@ -361,6 +446,26 @@ resource "test_object" "b" {
 					if len(tc.callingInvokeReturnsDiagnostics) > 0 {
 						return providers.InvokeActionResponse{
 							Diagnostics: tc.callingInvokeReturnsDiagnostics,
+						}
+					}
+
+					if !req.PlannedActionData.IsNull() {
+						if val := req.PlannedActionData.GetAttr("fails"); !val.IsNull() {
+							if val.True() {
+								return providers.InvokeActionResponse{
+									Events: func(yield func(providers.InvokeActionEvent) bool) {
+										yield(providers.InvokeActionEvent_Completed{
+											Diagnostics: tfdiags.Diagnostics{
+												tfdiags.Sourceless(
+													tfdiags.Error,
+													"test case for failing",
+													"this simulates a provider failing",
+												),
+											},
+										})
+									},
+								}
+							}
 						}
 					}
 
@@ -407,6 +512,9 @@ resource "test_object" "b" {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			_, diags = ctx.Apply(plan, m, nil)
+
+			fmt.Printf("\n\t diags --> %#v \n", diags)
+
 			if tc.expectDiagnostics.HasErrors() {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics)
 			} else {
