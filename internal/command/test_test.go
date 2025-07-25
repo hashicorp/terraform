@@ -130,6 +130,37 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
+		"expect_failures_outputs": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"expect_failures_checks_verbose": {
+			override:    "expect_failures_checks",
+			args:        []string{"-verbose"},
+			expectedOut: []string{"1 passed, 0 failed.", "Warning: Check block assertion failed"},
+			code:        0,
+		},
+		"expect_failures_inputs_verbose": {
+			override:    "expect_failures_inputs",
+			args:        []string{"-verbose"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			expectedErr: []string{"Error: Invalid value for variable"},
+			code:        0,
+		},
+		"expect_failures_resources_verbose": {
+			override:    "expect_failures_resources",
+			args:        []string{"-verbose"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			expectedErr: []string{"Error: Resource postcondition failed"},
+			code:        0,
+		},
+		"expect_failures_outputs_verbose": {
+			override:    "expect_failures_outputs",
+			args:        []string{"-verbose"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			expectedErr: []string{"Error: Module output value precondition failed"},
+			code:        0,
+		},
 		"multiple_files": {
 			expectedOut: []string{"2 passed, 0 failed"},
 			code:        0,
@@ -356,6 +387,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 1 failed, 1 skipped."},
 			expectedErr: []string{"Invalid condition run"},
 			code:        1,
+		},
+		"write-into-default-state": {
+			args:        []string{"-verbose"},
+			expectedOut: []string{"test_resource.two will be destroyed"},
+			code:        0,
 		},
 		"prevent-destroy": {
 			expectedOut: []string{"1 passed, 0 failed."},
@@ -613,10 +649,10 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 	// It's really important that the above message is printed, so we're testing
 	// for it specifically and making sure it contains all the resources.
 	if diff := cmp.Diff(cleanupErr, err); diff != "" {
-		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", cleanupErr, err, diff)
+		t.Errorf("expected err to be\n%s\n\nbut got\n%s\n\n diff:\n%s\n", cleanupErr, err, diff)
 	}
 	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
-		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
+		t.Errorf("expected output to be \n%s\n\nbut got \n%s\n\n diff:\n%s\n", cleanupMessage, output.Stdout(), diff)
 	}
 
 	// This time the test command shouldn't have cleaned up the resource because

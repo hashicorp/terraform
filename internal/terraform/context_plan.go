@@ -276,6 +276,25 @@ The -target option is not for routine use, and is provided only for exceptional 
 		))
 	}
 
+	if opts.Query {
+		var hasQuery bool
+		for c := range config.AllModules() {
+			if len(c.Module.ListResources) > 0 {
+				hasQuery = true
+				break
+			}
+		}
+
+		if !hasQuery {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No resources to query",
+				`The configuration does not contain any resources that can be queried.`,
+			))
+			return nil, nil, diags
+		}
+	}
+
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	var evalScope *lang.Scope

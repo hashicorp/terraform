@@ -36,8 +36,8 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
 		refs := b.parent.Ancestors(runNode)
 		for _, ref := range refs {
-			if ref, ok := ref.(*NodeTestRun); ok && ref.run.GetStateKey() != runNode.run.GetStateKey() {
-				runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.GetStateKey())
+			if ref, ok := ref.(*NodeTestRun); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
+				runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
 			}
 		}
 	}
@@ -81,13 +81,12 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// iterate in reverse order of the run index, so that the last run for each state key
 	// is attached to the cleanup node.
 	for _, run := range slices.Backward(t.opts.File.Runs) {
-		key := run.GetStateKey()
+		key := run.Config.StateKey
 
 		if _, exists := cleanupMap[key]; !exists {
 			node := &NodeStateCleanup{
 				stateKey: key,
 				opts:     t.opts,
-				parallel: run.Config.Parallel,
 			}
 			cleanupMap[key] = node
 			arr = append(arr, node)
@@ -97,10 +96,6 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			depStateKeys[key] = t.runStateRefs[run.Addr()]
 			continue
 		}
-
-		// if one of the runs for this state key is not parallel, then
-		// the cleanup node should not be parallel either.
-		cleanupMap[key].parallel = cleanupMap[key].parallel && run.Config.Parallel
 	}
 
 	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
@@ -109,8 +104,6 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	for _, node := range arr {
 		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
 	}
-
-	ControlParallelism(g, arr)
 	return nil
 }
 
@@ -126,11 +119,7 @@ func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, nod
 			continue
 		}
 		refNode := cleanupNodes[refStateKey]
-		// leave non-parallel nodes out of this. Their sequential connections
-		// will be handled later.
-		if node.parallel && refNode.parallel {
-			g.Connect(dag.BasicEdge(refNode, node))
-		}
+		g.Connect(dag.BasicEdge(refNode, node))
 		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
 	}
 }

@@ -5,6 +5,7 @@ package configs
 
 import (
 	"fmt"
+	"iter"
 	"log"
 	"maps"
 	"slices"
@@ -143,15 +144,19 @@ func (c *Config) DeepEach(cb func(c *Config)) {
 	}
 }
 
-// AllModules returns a slice of all the receiver and all of its descendant
-// nodes in the module tree, in the same order they would be visited by
-// DeepEach.
-func (c *Config) AllModules() []*Config {
-	var ret []*Config
-	c.DeepEach(func(c *Config) {
-		ret = append(ret, c)
-	})
-	return ret
+// AllModules returns an iterator of all the receiver and all of its descendant
+// nodes in the module tree until the iterator is exhausted or terminated.
+func (c *Config) AllModules() iter.Seq[*Config] {
+	return func(yield func(*Config) bool) {
+		if !yield(c) {
+			return
+		}
+		for _, ch := range c.Children {
+			if !yield(ch) {
+				return
+			}
+		}
+	}
 }
 
 // Descendant returns the descendant config that has the given path beneath
@@ -475,6 +480,15 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 	}
 
 	for _, rc := range c.Module.EphemeralResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
+	for _, rc := range c.Module.Actions {
 		fqn := rc.Provider
 		if _, exists := reqs[fqn]; exists {
 			// Explicit dependency already present
@@ -1020,6 +1034,9 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProvider
 		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
 	for _, rc := range c.Module.DataResources {
+		maybePutLocal(rc.ProviderConfigAddr(), false)
+	}
+	for _, rc := range c.Module.Actions {
 		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
 	for _, ic := range c.Module.Import {

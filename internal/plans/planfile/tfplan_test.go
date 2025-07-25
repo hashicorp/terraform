@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -302,6 +303,20 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 					},
 				},
 			},
+			ActionInvocations: []*plans.ActionInvocationInstanceSrc{
+				{
+					Addr:                    addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr:            provider,
+					TriggerEvent:            configs.BeforeCreate,
+					ActionTriggerBlockIndex: 2,
+					ActionsListIndex:        0,
+					TriggeringResourceAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				},
+			},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{
 			{
@@ -460,12 +475,6 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				}),
 			),
 			Workspace: "default",
-		},
-		ActionInvocations: []*plans.ActionInvocationInstanceSrc{
-			{
-				Addr:         addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr: provider,
-			},
 		},
 	}
 }

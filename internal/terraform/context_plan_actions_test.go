@@ -100,7 +100,23 @@ resource "test_object" "a" {
 					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				// TODO: Test that action the triggering resource address is set correctly
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+					t.Fatal("expected action to have a triggering resource address, but it is nil")
+				}
+
+				if action.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				}
+				if action.TriggerEvent != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+				}
+				if action.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				}
+
+				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
+					t.Fatalf("expected action to have a provider address of 'provider[\"registry.terraform.io/hashicorp/test\"]', got '%s'", action.ProviderAddr)
+				}
 			},
 		},
 
@@ -424,11 +440,16 @@ resource "test_object" "a" {
 			},
 			expectPlanActionCalled: false,
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
-				return diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					`action trigger #0 refers to a non-existent action instance action.test_unlinked.hello["c"]`,
-					"Action instance not found in the current context.",
-				))
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to non-existant action instance",
+					Detail:   "Action instance was not found in the current context.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 13, Column: 18, Byte: 226},
+						End:      hcl.Pos{Line: 13, Column: 49, Byte: 257},
+					},
+				})
 			},
 		},
 
@@ -454,11 +475,16 @@ resource "test_object" "a" {
 			},
 			expectPlanActionCalled: false,
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
-				return diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					`action trigger #0 refers to a non-existent action instance action.test_unlinked.hello[2]`,
-					"Action instance not found in the current context.",
-				))
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to non-existant action instance",
+					Detail:   "Action instance was not found in the current context.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 13, Column: 18, Byte: 210},
+						End:      hcl.Pos{Line: 13, Column: 47, Byte: 239},
+					},
+				})
 			},
 		},
 
@@ -798,6 +824,45 @@ resource "test_object" "a" {
 				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 			},
 		},
+		// We don't yet support these action types yet
+		"fails with lifecycle actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_lifecycle" "hello" {}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Lifecycle actions are not supported",
+					Detail:   "This versio of Terraform does not support lifecycle actions",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
+					},
+				})
+			},
+		},
+		"fails with linked actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_linked" "hello" {}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Linked actions are not supported",
+					Detail:   "This versio of Terraform does not support linked actions",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 29, Byte: 29},
+					},
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -820,6 +885,42 @@ resource "test_object" "a" {
 							},
 
 							Unlinked: &providers.UnlinkedAction{},
+						},
+
+						"test_lifecycle": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+
+							Lifecycle: &providers.LifecycleAction{
+								LinkedResource: providers.LinkedResourceSchema{
+									TypeName: "test_object",
+								},
+							},
+						},
+
+						"test_linked": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+
+							Linked: &providers.LinkedAction{
+								LinkedResources: []providers.LinkedResourceSchema{
+									{
+										TypeName: "test_object",
+									},
+								},
+							},
 						},
 					},
 					ResourceTypes: map[string]providers.Schema{
