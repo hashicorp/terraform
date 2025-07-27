@@ -643,11 +643,7 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 
 // starting August, 2025 TFE will use X.Y.Z versioning scheme
 func tfeXYZVersion(version string) bool {
-	if len(strings.Split(version, ".")) == 3 {
-		return true
-	}
-
-	return false
+	return len(strings.Split(version, ".")) == 3
 }
 
 func shouldRenderPlan(run *tfe.Run) bool {
