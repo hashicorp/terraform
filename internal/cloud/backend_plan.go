@@ -621,6 +621,7 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 				return run.Workspace.StructuredRunOutputEnabled, nil
 			}
 
+			// if the version is v<ReleaseDate>-<ReleaseNumber>, we need to parse the version
 			v := strings.Split(tfeVersion[1:], "-")
 			releaseDate, err := strconv.Atoi(v[0])
 			if err != nil {
