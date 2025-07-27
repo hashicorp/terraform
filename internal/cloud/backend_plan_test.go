@@ -1525,6 +1525,38 @@ func TestCloud_planShouldRenderSRO(t *testing.T) {
 		})
 	})
 
+	t.Run("when instance is TFE and version schema is X.Y.Z", func(t *testing.T) {
+		handlers := map[string]func(http.ResponseWriter, *http.Request){
+			"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("TFP-API-Version", "2.5")
+				w.Header().Set("TFP-AppName", "Terraform Enterprise")
+				w.Header().Set("X-TFE-Version", "v1.0.0-alpha")
+			},
+		}
+		b, bCleanup := testBackendWithHandlers(t, handlers)
+		t.Cleanup(bCleanup)
+		b.renderer = &jsonformat.Renderer{}
+
+		t.Run("and SRO is enabled", func(t *testing.T) {
+			r := &tfe.Run{
+				Workspace: &tfe.Workspace{
+					StructuredRunOutputEnabled: true,
+				},
+			}
+			assertSRORendered(t, b, r, true)
+		})
+
+		t.Run("and SRO is not enabled", func(t *testing.T) {
+			r := &tfe.Run{
+				Workspace: &tfe.Workspace{
+					StructuredRunOutputEnabled: false,
+				},
+			}
+			assertSRORendered(t, b, r, false)
+		})
+	})
+
 	t.Run("when instance is a known unsupported TFE release", func(t *testing.T) {
 		handlers := map[string]func(http.ResponseWriter, *http.Request){
 			"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {

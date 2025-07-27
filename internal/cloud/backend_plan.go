@@ -615,6 +615,12 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 	if b.client.IsEnterprise() {
 		tfeVersion := b.client.RemoteTFEVersion()
 		if tfeVersion != "" {
+			xyzVersion := tfeXYZVersion(tfeVersion)
+			if xyzVersion {
+				// if the version is in the X.Y.Z format, we can safely assume SRO is supported
+				return run.Workspace.StructuredRunOutputEnabled, nil
+			}
+
 			v := strings.Split(tfeVersion[1:], "-")
 			releaseDate, err := strconv.Atoi(v[0])
 			if err != nil {
@@ -633,6 +639,15 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 
 	// Version of TFE is unknowable
 	return false, nil
+}
+
+// starting August, 2025 TFE will use X.Y.Z versioning scheme
+func tfeXYZVersion(version string) bool {
+	if len(strings.Split(version, ".")) == 3 {
+		return true
+	}
+
+	return false
 }
 
 func shouldRenderPlan(run *tfe.Run) bool {
