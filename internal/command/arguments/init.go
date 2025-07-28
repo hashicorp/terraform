@@ -74,7 +74,7 @@ type Init struct {
 
 	Args []string
 
-	// The -enable-pss flag is used in control flow logic in the init command.
+	// The -enable-pluggable-state-storage-experiment flag is used in control flow logic in the init command.
 	// TODO(SarahFrench/radeksimko): Remove this once the feature is no longer
 	// experimental
 	EnablePssExperiment bool
@@ -113,7 +113,7 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
 
 	// Used for enabling experimental code that's invoked before configuration is parsed.
-	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pss", false, "Enable the PSS experiment")
+	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
