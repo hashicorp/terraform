@@ -615,8 +615,8 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 	if b.client.IsEnterprise() {
 		tfeVersion := b.client.RemoteTFEVersion()
 		if tfeVersion != "" {
-			xyzVersion := tfeSemVersion(tfeVersion)
-			if xyzVersion {
+			semVersion := tfeSemVersion(tfeVersion)
+			if semVersion {
 				// if semantic versioning format, we can safely assume SRO is supported
 				return run.Workspace.StructuredRunOutputEnabled, nil
 			}
