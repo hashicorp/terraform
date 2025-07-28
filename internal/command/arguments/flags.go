@@ -56,6 +56,13 @@ func (f FlagNameValueSlice) AllItems() []FlagNameValue {
 	return *f.Items
 }
 
+func (f FlagNameValueSlice) Len() int {
+	if f.Items == nil {
+		return 0
+	}
+	return len(*f.Items)
+}
+
 func (f FlagNameValueSlice) Alias(flagName string) FlagNameValueSlice {
 	return FlagNameValueSlice{
 		FlagName: flagName,

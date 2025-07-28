@@ -481,7 +481,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 
 		// If overrides supplied by -backend-config CLI flag, process them
 		var configOverride hcl.Body
-		if extraConfig.Items != nil && len(*extraConfig.Items) > 0 {
+		if extraConfig.Len() > 0 {
 			// We need to launch an instance of the provider to get the config of the state store for processing any overrides.
 			provider, err := factory()
 			defer provider.Close() // Stop the child process once we're done with it here.
