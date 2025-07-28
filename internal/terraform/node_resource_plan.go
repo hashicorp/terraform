@@ -710,7 +710,7 @@ func (n *nodeExpandPlannableResource) ActionProviders() []addrs.ProviderConfig {
 
 			providers = append(providers, addrs.AbsProviderConfig{
 				Provider: provider,
-				Module:   n.ModulePath(),
+				Module:   addrs.RootModule,
 			})
 		}
 	}
