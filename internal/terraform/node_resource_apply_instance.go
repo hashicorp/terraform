@@ -475,8 +475,8 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 	return diags
 }
 
-func (n *NodeApplyableResourceInstance) ActionProviders() []addrs.AbsProviderConfig {
-	ret := []addrs.AbsProviderConfig{}
+func (n *NodeApplyableResourceInstance) ActionProviders() []addrs.ProviderConfig {
+	ret := []addrs.ProviderConfig{}
 	for _, ai := range n.beforeActionInvocations {
 		ret = append(ret, ai.ProviderAddr)
 	}

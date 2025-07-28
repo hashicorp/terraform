@@ -69,7 +69,7 @@ func AssertDiagnosticCount(t *testing.T, diags Diagnostics, want int) {
 	if len(diags) != want {
 		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
 		for _, diag := range diags {
-			t.Logf("- %#v", diag)
+			t.Logf("- [%s] %s: %s", diag.Severity(), diag.Description().Summary, diag.Description().Detail)
 		}
 		t.FailNow()
 	}

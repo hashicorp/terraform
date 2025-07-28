@@ -88,7 +88,7 @@ type GraphNodeProviderConsumer interface {
 }
 
 type GraphNodeActionProviders interface {
-	ActionProviders() []addrs.AbsProviderConfig
+	ActionProviders() []addrs.ProviderConfig
 }
 
 // ProviderTransformer is a GraphTransformer that maps resources to providers
@@ -317,7 +317,12 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		for _, provider := range apc.ActionProviders() {
+		for _, p := range apc.ActionProviders() {
+			provider, ok := p.(addrs.AbsProviderConfig)
+			if !ok {
+				return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(apc))
+			}
+
 			closer, ok := cpm[provider.String()]
 			if !ok {
 				return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
