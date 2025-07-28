@@ -1,0 +1,26 @@
+---
+page_title: cidrcollapse - Functions - Configuration Language
+description: |-
+  The cidrcollapse function takes a list of CIDR ranges and collapses them into a
+  list of strings of superset ranges
+---
+
+# `cidrcollapse` Function
+
+`cidrcollapse` takes a list of CIDR ranges and collapses them into a list
+  of superset ranges.
+
+```hcl
+cidrcollapse(cidrs)
+```
+
+`cidrs` must be given as a list of valid CIDR ranges.
+
+The result is a string list value of superset ranges.
+
+## Examples
+
+```
+> cidrcollapse(["192.168.0.0/16", "167.123.0.42/32", "167.123.0.0/16"])
+["167.123.0.0/16","192.168.0.0/16"]
+```

@@ -6,6 +6,7 @@ package funcs
 import (
 	"fmt"
 	"math/big"
+	"sort"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform/internal/ipaddr"
@@ -13,6 +14,57 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
+
+// CidrCollapseFunc contructs a function that collapses input CIDRs
+var CidrCollapseFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "cidrs",
+			Type: cty.List(cty.String),
+		},
+	},
+	Type:         function.StaticReturnType(cty.List(cty.String)),
+	RefineResult: refineNotNull,
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		var cidrsInput []string
+		if err := gocty.FromCtyValue(args[0], &cidrsInput); err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+
+		// confirm proper cidr notation
+		cidrs := make(map[string]*ipaddr.IPNet)
+		for _, c := range cidrsInput {
+			parsedIP, parsedNet, err := ipaddr.ParseCIDR(c)
+			if err != nil {
+				return cty.UnknownVal(cty.String), err
+			}
+			cidrs[parsedIP.String()] = parsedNet
+		}
+
+		// collapse the cidr ranges
+		for iIP, iNet := range cidrs {
+			for jIP, jNet := range cidrs {
+				if iIP == jIP {
+					continue
+				}
+				if iNet.Contains(jNet.IP) {
+					delete(cidrs, jIP)
+					continue
+				}
+			}
+		}
+
+		retVals := []cty.Value{}
+		for _, net := range cidrs {
+			retVals = append(retVals, cty.StringVal(net.String()))
+		}
+		sort.Slice(retVals, func(i, j int) bool {
+			return i > j
+		})
+
+		return cty.ListVal(retVals), nil
+	},
+})
 
 // CidrHostFunc contructs a function that calculates a full host IP address
 // within a given IP network address prefix.
@@ -196,6 +248,11 @@ var CidrSubnetsFunc = function.New(&function.Spec{
 		return cty.ListVal(retVals), nil
 	},
 })
+
+// CidrCollapse collapses input CIDRs
+func CidrCollapse(cidrs cty.Value) (cty.Value, error) {
+	return CidrCollapseFunc.Call([]cty.Value{cidrs})
+}
 
 // CidrHost calculates a full host IP address within a given IP network address prefix.
 func CidrHost(prefix, hostnum cty.Value) (cty.Value, error) {
