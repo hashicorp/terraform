@@ -393,7 +393,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 
 func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize HCP Terraform")
-	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
 	view.Output(views.InitializingTerraformCloudMessage)
@@ -422,7 +422,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 
 func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
-	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
 	if root.StateStore != nil {
@@ -1018,7 +1018,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	if !newLocks.Equal(previousLocks) {
 		// if readonly mode
 		if flagLockfile == "readonly" {
-			// check if required provider dependences change
+			// check if required provider dependencies change
 			if !newLocks.EqualProviderAddress(previousLocks) {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -1236,7 +1236,7 @@ Options:
                           itself.
 
   -force-copy             Suppress prompts about copying state data when
-                          initializating a new state backend. This is
+                          initializing a new state backend. This is
                           equivalent to providing a "yes" to all confirmation
                           prompts.
 
