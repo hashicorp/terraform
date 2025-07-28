@@ -917,7 +917,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		}
 
 		// Jump in here and add a warning if any of the providers are incomplete.
-		if len(incompleteProviders) > 0 {
+		if len(incompleteProviders) > 0 && !inst.GlobalCacheDirMayBreakDependencyLockFile() {
 			// We don't really care about the order here, we just want the
 			// output to be deterministic.
 			sort.Slice(incompleteProviders, func(i, j int) bool {
