@@ -1531,7 +1531,7 @@ func TestCloud_planShouldRenderSRO(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("TFP-API-Version", "2.5")
 				w.Header().Set("TFP-AppName", "Terraform Enterprise")
-				w.Header().Set("X-TFE-Version", "v1.0.0-alpha")
+				w.Header().Set("X-TFE-Version", "1.0.0-alpha")
 			},
 		}
 		b, bCleanup := testBackendWithHandlers(t, handlers)

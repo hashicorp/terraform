@@ -615,9 +615,8 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 	if b.client.IsEnterprise() {
 		tfeVersion := b.client.RemoteTFEVersion()
 		if tfeVersion != "" {
-			semVersion := tfeSemVersion(tfeVersion)
-			if semVersion {
-				// if semantic versioning format, we can safely assume SRO is supported
+			if numericVersion(tfeVersion) {
+				// if numeric versioning format, we can safely assume SRO is supported
 				return run.Workspace.StructuredRunOutputEnabled, nil
 			}
 
@@ -642,10 +641,20 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 	return false, nil
 }
 
-// tfeSemVersion check whether TFE is using Semantic Versioning (X.Y.Z).
+// numericVersion check whether TFE is using Numeric Versioning (X.Y.Z, X.Y.Z-*).
 // starting August, 2025 TFE will use X.Y.Z versioning scheme
-func tfeSemVersion(version string) bool {
-	return len(strings.Split(version, ".")) == 3
+func numericVersion(v string) bool {
+	if strings.HasPrefix(v, "v") || !strings.Contains(v, ".") {
+		return false
+	}
+
+	_, err := version.NewVersion(v)
+	if err != nil {
+		log.Printf("[ERROR] backend/cloud: TFE version %q is not a numeric version", v)
+		return false
+	}
+
+	return true
 }
 
 func shouldRenderPlan(run *tfe.Run) bool {
