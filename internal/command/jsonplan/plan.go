@@ -239,7 +239,7 @@ func MarshalForRenderer(
 		return nil, nil, nil, nil, nil, err
 	}
 
-	if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations); err != nil {
+	if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations, schemas); err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
 
@@ -338,7 +338,7 @@ func Marshal(
 
 	// output.Changes.ActionInvocations
 	if p.Changes.ActionInvocations != nil {
-		if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations); err != nil {
+		if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations, schemas); err != nil {
 			return nil, fmt.Errorf("error marshaling action invocations: %s", err)
 		}
 	}

@@ -4,12 +4,23 @@
 package jsonplan
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ActionInvocation struct {
 	// Address is the absolute action address
 	Address string `json:"address,omitempty"`
+	// Type is the type of the action
+	Type string `json:"type,omitempty"`
+	// Name is the name of the action
+	Name string `json:"name,omitempty"`
+
+	// ConfigValues is the JSON representation of the values in the config block of the action
+	ConfigValues attributeValues `json:"config_values,omitempty"`
 
 	// ProviderName allows the property "type" to be interpreted unambiguously
 	// in the unusual situation where a provider offers a type whose
@@ -30,13 +41,55 @@ type ActionInvocation struct {
 	TriggerEvent string `json:"trigger_event,omitempty"`
 }
 
-func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc) ([]ActionInvocation, error) {
+func ActionInvocationCompare(a, b ActionInvocation) int {
+	if a.TriggeringResourceAddress < b.TriggeringResourceAddress {
+		return -1
+	} else if a.TriggeringResourceAddress > b.TriggeringResourceAddress {
+		return 1
+	}
+
+	if a.ActionTriggerBlockIndex != nil && b.ActionTriggerBlockIndex != nil {
+		if *a.ActionTriggerBlockIndex < *b.ActionTriggerBlockIndex {
+			return -1
+		} else if *a.ActionTriggerBlockIndex > *b.ActionTriggerBlockIndex {
+			return 1
+		}
+	}
+
+	if a.ActionsListIndex != nil && b.ActionsListIndex != nil {
+		if *a.ActionsListIndex < *b.ActionsListIndex {
+			return -1
+
+		} else if *a.ActionsListIndex > *b.ActionsListIndex {
+			return 1
+		}
+	}
+
+	return 0
+}
+
+func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, schemas *terraform.Schemas) ([]ActionInvocation, error) {
 	ret := make([]ActionInvocation, 0, len(actions))
 
 	for _, action := range actions {
 
+		schema := schemas.ActionTypeConfig(
+			action.ProviderAddr.Provider,
+			action.Addr.Action.Action.Type,
+		)
+		if schema.ConfigSchema == nil {
+			return ret, fmt.Errorf("no schema found for %s (in provider %s)", action.Addr.Action.Action.Type, action.ProviderAddr.Provider)
+		}
+
+		actionDec, err := action.Decode(&schema)
+		if err != nil {
+			return ret, fmt.Errorf("failed to decode action %s: %w", action.Addr, err)
+		}
+
 		ai := ActionInvocation{
 			Address:      action.Addr.String(),
+			Type:         action.Addr.Action.Action.Type,
+			Name:         action.Addr.Action.Action.Name,
 			ProviderName: action.ProviderAddr.String(),
 
 			// These fields are only used for non-CLI actions. We will need to find another format
@@ -47,6 +100,14 @@ func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc) ([]A
 			TriggerEvent:              action.TriggerEvent.String(),
 		}
 
+		if actionDec.ConfigValue != cty.NilVal {
+			if actionDec.ConfigValue.IsWhollyKnown() {
+				ai.ConfigValues = marshalAttributeValues(actionDec.ConfigValue)
+			} else {
+				knowns := omitUnknowns(actionDec.ConfigValue)
+				ai.ConfigValues = marshalAttributeValues(knowns)
+			}
+		}
 		ret = append(ret, ai)
 	}
 

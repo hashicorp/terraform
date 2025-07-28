@@ -4,6 +4,9 @@
 package jsonformat
 
 import (
+	"fmt"
+	"slices"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
@@ -56,9 +59,34 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	for _, change := range plan.ResourceChanges {
 		schema := plan.getSchema(change)
 		structuredChange := structured.FromJsonChange(change.Change, attribute_path.AlwaysMatcher())
+
+		beforeActionsTriggered := []jsonplan.ActionInvocation{}
+		afterActionsTriggered := []jsonplan.ActionInvocation{}
+
+		for _, action := range plan.ActionInvocations {
+			if action.TriggeringResourceAddress != change.Address {
+				continue
+			}
+
+			switch action.TriggerEvent {
+			case "BeforeCreate", "BeforeUpdate", "BeforeDestroy":
+				beforeActionsTriggered = append(beforeActionsTriggered, action)
+			case "AfterCreate", "AfterUpdate", "AfterDestroy":
+				afterActionsTriggered = append(afterActionsTriggered, action)
+			default:
+				// The switch should be exhaustive.
+				panic(fmt.Sprintf("Unexpected triggering event when rendering action %s", action.TriggerEvent))
+			}
+		}
+
+		slices.SortFunc(beforeActionsTriggered, jsonplan.ActionInvocationCompare)
+		slices.SortFunc(afterActionsTriggered, jsonplan.ActionInvocationCompare)
+
 		diffs.changes = append(diffs.changes, diff{
-			change: change,
-			diff:   differ.ComputeDiffForBlock(structuredChange, schema.Block),
+			change:                 change,
+			diff:                   differ.ComputeDiffForBlock(structuredChange, schema.Block),
+			beforeActionsTriggered: beforeActionsTriggered,
+			afterActionsTriggered:  afterActionsTriggered,
 		})
 	}
 
@@ -106,8 +134,10 @@ func (d diffs) Empty() bool {
 }
 
 type diff struct {
-	change jsonplan.ResourceChange
-	diff   computed.Diff
+	change                 jsonplan.ResourceChange
+	diff                   computed.Diff
+	beforeActionsTriggered []jsonplan.ActionInvocation
+	afterActionsTriggered  []jsonplan.ActionInvocation
 }
 
 func (d diff) Moved() bool {

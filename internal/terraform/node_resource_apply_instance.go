@@ -37,7 +37,7 @@ type NodeApplyableResourceInstance struct {
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
 
-	beforeActionInvocations []*plans.ActionInvocationInstance
+	beforeActionInvocations []*plans.ActionInvocationInstanceSrc
 }
 
 var (
