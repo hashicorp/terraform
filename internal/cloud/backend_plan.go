@@ -644,7 +644,7 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 // numericVersion check whether TFE is using Numeric Versioning (X.Y.Z, X.Y.Z-*).
 // starting August, 2025 TFE will use X.Y.Z versioning scheme
 func numericVersion(v string) bool {
-	if strings.HasPrefix(v, "v") || !strings.Contains(v, ".") {
+	if strings.HasPrefix(v, "v") {
 		return false
 	}
 
