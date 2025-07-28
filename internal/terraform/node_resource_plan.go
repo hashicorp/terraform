@@ -684,8 +684,8 @@ func (n *nodeExpandPlannableResource) validForceReplaceTargets(instanceAddrs []a
 }
 
 // GraphNodeActionProviders
-func (n *nodeExpandPlannableResource) ActionProviders() []addrs.AbsProviderConfig {
-	providers := []addrs.AbsProviderConfig{}
+func (n *nodeExpandPlannableResource) ActionProviders() []addrs.ProviderConfig {
+	providers := []addrs.ProviderConfig{}
 	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.ActionTriggers == nil {
 		return providers
 	}
