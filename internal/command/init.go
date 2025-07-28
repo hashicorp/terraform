@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -54,7 +55,11 @@ func (c *InitCommand) Run(args []string) int {
 	// The else condition below invokes the original logic of the init command.
 	// An experimental version of the init code will be used if:
 	// 	> The user uses an experimental version of TF (alpha or built from source)
-	//  > The flag -enable-pluggable-state-storage-experiment is passed to the init command.
+	//  > Either the flag -enable-pluggable-state-storage-experiment is passed to the init command.
+	//  > Or, the environment variable TF_ENABLE_PLUGGABLE_STATE_STORAGE is set to any value.
+	if v := os.Getenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE"); v != "" {
+		initArgs.EnablePssExperiment = true
+	}
 	if c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
 		panic("pss: experimental init code hasn't been added yet")
