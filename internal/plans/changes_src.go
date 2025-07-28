@@ -161,7 +161,16 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 	}
 
 	for _, ais := range c.ActionInvocations {
-		action, err := ais.Decode()
+		p, ok := schemas.Providers[ais.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", ais.ProviderAddr, ais.Addr)
+		}
+		schema, ok := p.Actions[ais.Addr.Action.Action.Type]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", ais.Addr.Action.Action.Type)
+		}
+
+		action, err := ais.Decode(&schema)
 		if err != nil {
 			return nil, err
 		}
@@ -563,11 +572,24 @@ type ActionInvocationInstanceSrc struct {
 	ActionTriggerBlockIndex int
 	ActionsListIndex        int
 
+	ConfigValue DynamicValue
+
 	ProviderAddr addrs.AbsProviderConfig
 }
 
 // Decode unmarshals the raw representation of any linked resources.
-func (acs *ActionInvocationInstanceSrc) Decode() (*ActionInvocationInstance, error) {
+func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (*ActionInvocationInstance, error) {
+
+	ty := cty.DynamicPseudoType
+	if schema != nil {
+		ty = schema.ConfigSchema.ImpliedType()
+	}
+
+	config, err := acs.ConfigValue.Decode(ty)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding 'config' value: %s", err)
+	}
+
 	ai := &ActionInvocationInstance{
 		Addr:                    acs.Addr,
 		TriggeringResourceAddr:  acs.TriggeringResourceAddr,
@@ -575,6 +597,7 @@ func (acs *ActionInvocationInstanceSrc) Decode() (*ActionInvocationInstance, err
 		ActionTriggerBlockIndex: acs.ActionTriggerBlockIndex,
 		ActionsListIndex:        acs.ActionsListIndex,
 		ProviderAddr:            acs.ProviderAddr,
+		ConfigValue:             config,
 	}
 	return ai, nil
 }
@@ -584,5 +607,6 @@ func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc 
 		return acs
 	}
 	ret := *acs
+	ret.ConfigValue = ret.ConfigValue.Copy()
 	return &ret
 }

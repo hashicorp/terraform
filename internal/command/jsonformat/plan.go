@@ -393,6 +393,31 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	opts.ShowUnchangedChildren = diff.Importing()
 
 	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, opts)))
+
+	if len(diff.beforeActionsTriggered) > 0 {
+		buf.WriteString(renderer.Colorize.Color("\n\n    [bold]# Actions to be invoked before this change in order:[reset]\n"))
+		for _, ai := range diff.beforeActionsTriggered {
+			buf.WriteString(fmt.Sprintf("    # - %s\n", ai.Address))
+		}
+	}
+
+	if len(diff.afterActionsTriggered) > 0 {
+		buf.WriteString(renderer.Colorize.Color("\n\n    [bold]# Actions to be invoked after this change in order:[reset]\n"))
+		for _, ai := range diff.afterActionsTriggered {
+			// TODO: Save the type and name in jsonplan.ActionInvocation for easy access
+			buf.WriteString(fmt.Sprintf("    %s {\n", ai.Address))
+			if len(ai.ConfigValues) > 0 {
+				buf.WriteString("      config {\n")
+				for key, value := range ai.ConfigValues {
+					// TODO: How do I properly render this?
+					buf.WriteString(fmt.Sprintf("        %s = %s\n", renderers.EnsureValidAttributeName(key), value))
+				}
+				buf.WriteString("      }")
+			}
+			buf.WriteString("    }\n")
+		}
+	}
+
 	return buf.String(), true
 }
 
@@ -438,16 +463,10 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 	return buf.String(), true
 }
 
+// All actions that run based on the resource lifecycle should be rendered as part of the resource
+// changes, therefore this function only renders actions that are invoked by the CLI
 func renderHumanActionInvocations(renderer Renderer, actionInvocations []jsonplan.ActionInvocation) string {
-	var buf bytes.Buffer
-	for _, action := range actionInvocations {
-		buf.WriteString(renderer.Colorize.Color(fmt.Sprintf(
-			"[bold]  # Triggered by %s[reset]\n",
-			action.TriggeringResourceAddress,
-		)))
-		buf.WriteString(fmt.Sprintf("  %s\n", action.Address))
-	}
-	return buf.String()
+	return "" // TODO: We will use this function once we support CLI invoked actions.
 }
 
 func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action, changeCause string) string {

@@ -449,11 +449,12 @@ message ActionInvocationInstance {
     string provider = 2;
 
     repeated ResourceInstanceActionChange linked_resources = 3;
+    DynamicValue config_value = 4;
 
-    string triggering_resource_addr = 4;
-    ActionTriggerEvent trigger_event = 5;
-    int64 action_trigger_block_index = 6;
-    int64 actions_list_index = 7;
+    string triggering_resource_addr = 5;
+    ActionTriggerEvent trigger_event = 6;
+    int64 action_trigger_block_index = 7;
+    int64 actions_list_index = 8;
 }
 
 message ResourceInstanceActionChange {
