@@ -615,9 +615,9 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 	if b.client.IsEnterprise() {
 		tfeVersion := b.client.RemoteTFEVersion()
 		if tfeVersion != "" {
-			xyzVersion := tfeXYZVersion(tfeVersion)
+			xyzVersion := tfeSemVersion(tfeVersion)
 			if xyzVersion {
-				// if the version is in the X.Y.Z format, we can safely assume SRO is supported
+				// if semantic versioning format, we can safely assume SRO is supported
 				return run.Workspace.StructuredRunOutputEnabled, nil
 			}
 
@@ -642,8 +642,9 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 	return false, nil
 }
 
+// tfeSemVersion check whether TFE is using Semantic Versioning (X.Y.Z).
 // starting August, 2025 TFE will use X.Y.Z versioning scheme
-func tfeXYZVersion(version string) bool {
+func tfeSemVersion(version string) bool {
 	return len(strings.Split(version, ".")) == 3
 }
 
