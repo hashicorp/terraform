@@ -85,11 +85,12 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 		}
 	}
 
-	// Precompute the outputs early, so we can make a decision about whether we
+	// Precompute the outputs and actions early, so we can make a decision about whether we
 	// display the "there are no changes messages".
 	outputs := renderHumanDiffOutputs(renderer, diffs.outputs)
+	actions := renderHumanActionInvocations(renderer, plan.ActionInvocations)
 
-	if len(changes) == 0 && len(outputs) == 0 {
+	if len(changes) == 0 && len(outputs) == 0 && len(actions) == 0 {
 		// If we didn't find any changes to report at all then this is a
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
@@ -246,6 +247,11 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 				counts[plans.Update],
 				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
 		}
+	}
+
+	if len(actions) > 0 {
+		renderer.Streams.Print("\nActions to be invoked:\n")
+		renderer.Streams.Printf("%s\n", actions)
 	}
 
 	if len(outputs) > 0 {
@@ -430,6 +436,18 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 
 	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(deferred.diff.change), deferred.diff.diff.RenderHuman(0, opts)))
 	return buf.String(), true
+}
+
+func renderHumanActionInvocations(renderer Renderer, actionInvocations []jsonplan.ActionInvocation) string {
+	var buf bytes.Buffer
+	for _, action := range actionInvocations {
+		buf.WriteString(renderer.Colorize.Color(fmt.Sprintf(
+			"[bold]  # Triggered by %s[reset]\n",
+			action.TriggeringResourceAddress,
+		)))
+		buf.WriteString(fmt.Sprintf("  %s\n", action.Address))
+	}
+	return buf.String()
 }
 
 func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action, changeCause string) string {
