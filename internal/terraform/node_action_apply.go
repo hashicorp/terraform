@@ -155,8 +155,8 @@ func (n *nodeActionApply) References() []*addrs.Reference {
 	return refs
 }
 
-func (n *nodeActionApply) ActionProviders() []addrs.AbsProviderConfig {
-	ret := []addrs.AbsProviderConfig{}
+func (n *nodeActionApply) ActionProviders() []addrs.ProviderConfig {
+	ret := []addrs.ProviderConfig{}
 	for _, invocation := range n.ActionInvocations {
 		ret = append(ret, invocation.ProviderAddr)
 	}
