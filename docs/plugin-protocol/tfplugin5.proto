@@ -987,7 +987,7 @@ message InvokeAction {
 
         // linked resources, matching the order they are specified in the schema
         repeated LinkedResource linked_resources = 1;
-        repeated Diagnostic diagnostics = 3;
+        repeated Diagnostic diagnostics = 2;
     }
 
     oneof type {
