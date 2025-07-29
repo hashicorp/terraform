@@ -83,10 +83,7 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	cmdFlags := c.Meta.defaultFlagSet("stacks")
 	cmdFlags.StringVar(&pluginCacheDirOverride, "plugin-cache-dir", "", "plugin cache directory")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
+	cmdFlags.Parse(args)
 
 	if pluginCacheDirOverride != "" {
 		err := c.storeStacksPluginPath(path.Join(pluginCacheDirOverride, StacksPluginDataDir))
