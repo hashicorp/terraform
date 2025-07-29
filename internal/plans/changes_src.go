@@ -579,7 +579,6 @@ type ActionInvocationInstanceSrc struct {
 
 // Decode unmarshals the raw representation of any linked resources.
 func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (*ActionInvocationInstance, error) {
-
 	ty := cty.DynamicPseudoType
 	if schema != nil {
 		ty = schema.ConfigSchema.ImpliedType()

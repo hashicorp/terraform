@@ -653,6 +653,7 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 					TriggerEvent:            *triggeringEvent,
 					ActionTriggerBlockIndex: i,
 					ActionsListIndex:        j,
+					ConfigValue:             actionInstance.ConfigValue,
 				})
 			}
 		}

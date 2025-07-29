@@ -4,11 +4,13 @@
 package jsonplan
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 type ActionInvocation struct {
@@ -20,7 +22,7 @@ type ActionInvocation struct {
 	Name string `json:"name,omitempty"`
 
 	// ConfigValues is the JSON representation of the values in the config block of the action
-	ConfigValues attributeValues `json:"config_values,omitempty"`
+	ConfigValues map[string]json.RawMessage `json:"config_values,omitempty"`
 
 	// ProviderName allows the property "type" to be interpreted unambiguously
 	// in the unusual situation where a provider offers a type whose
@@ -68,6 +70,24 @@ func ActionInvocationCompare(a, b ActionInvocation) int {
 	return 0
 }
 
+func marshalConfigValues(value cty.Value) map[string]json.RawMessage {
+	// unmark our value to show all values
+	v, _ := value.UnmarkDeep()
+
+	if v == cty.NilVal || v.IsNull() {
+		return nil
+	}
+
+	ret := make(map[string]json.RawMessage)
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		vJSON, _ := ctyjson.Marshal(v, v.Type())
+		ret[k.AsString()] = json.RawMessage(vJSON)
+	}
+	return ret
+}
+
 func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, schemas *terraform.Schemas) ([]ActionInvocation, error) {
 	ret := make([]ActionInvocation, 0, len(actions))
 
@@ -90,7 +110,7 @@ func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, sche
 			Address:      action.Addr.String(),
 			Type:         action.Addr.Action.Action.Type,
 			Name:         action.Addr.Action.Action.Name,
-			ProviderName: action.ProviderAddr.String(),
+			ProviderName: action.ProviderAddr.Provider.String(),
 
 			// These fields are only used for non-CLI actions. We will need to find another format
 			// once we support terraform invoke.
@@ -102,10 +122,10 @@ func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, sche
 
 		if actionDec.ConfigValue != cty.NilVal {
 			if actionDec.ConfigValue.IsWhollyKnown() {
-				ai.ConfigValues = marshalAttributeValues(actionDec.ConfigValue)
+				ai.ConfigValues = marshalConfigValues(actionDec.ConfigValue)
 			} else {
 				knowns := omitUnknowns(actionDec.ConfigValue)
-				ai.ConfigValues = marshalAttributeValues(knowns)
+				ai.ConfigValues = marshalConfigValues(knowns)
 			}
 		}
 		ret = append(ret, ai)

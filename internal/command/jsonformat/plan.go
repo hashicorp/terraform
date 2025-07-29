@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
@@ -47,6 +49,10 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 	default:
 		panic("found unrecognized resource mode: " + change.Mode)
 	}
+}
+
+func (plan Plan) getActionSchema(ai jsonplan.ActionInvocation) *jsonprovider.ActionSchema {
+	return plan.ProviderSchemas[ai.ProviderName].ActionSchemas[ai.Type]
 }
 
 func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
@@ -397,28 +403,59 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	if len(diff.beforeActionsTriggered) > 0 {
 		buf.WriteString(renderer.Colorize.Color("\n\n    [bold]# Actions to be invoked before this change in order:[reset]\n"))
 		for _, ai := range diff.beforeActionsTriggered {
-			buf.WriteString(fmt.Sprintf("    # - %s\n", ai.Address))
+			buf.WriteString(renderActionInvocation(renderer, ai))
 		}
 	}
 
 	if len(diff.afterActionsTriggered) > 0 {
 		buf.WriteString(renderer.Colorize.Color("\n\n    [bold]# Actions to be invoked after this change in order:[reset]\n"))
 		for _, ai := range diff.afterActionsTriggered {
-			// TODO: Save the type and name in jsonplan.ActionInvocation for easy access
-			buf.WriteString(fmt.Sprintf("    %s {\n", ai.Address))
-			if len(ai.ConfigValues) > 0 {
-				buf.WriteString("      config {\n")
-				for key, value := range ai.ConfigValues {
-					// TODO: How do I properly render this?
-					buf.WriteString(fmt.Sprintf("        %s = %s\n", renderers.EnsureValidAttributeName(key), value))
-				}
-				buf.WriteString("      }")
-			}
-			buf.WriteString("    }\n")
+			buf.WriteString(renderActionInvocation(renderer, ai))
 		}
 	}
 
 	return buf.String(), true
+}
+
+func renderActionInvocation(renderer Renderer, ai actionInvocation) string {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("    action %q %q {\n", ai.invocation.Type, ai.invocation.Name))
+	if len(ai.invocation.ConfigValues) > 0 {
+		buf.WriteString("        config ")
+
+		opts := computed.NewRenderHumanOpts(renderer.Colorize)
+		opts.ShowUnchangedChildren = true
+		opts.HideDiffActionSymbols = true
+		change := structured.FromJsonActionInvocation(ai.invocation)
+
+		buf.WriteString(indentExceptFirstLine(differ.ComputeDiffForBlock(change, ai.schema.ConfigSchema).RenderHuman(0, opts), 8))
+		buf.WriteString("\n")
+	}
+	buf.WriteString("    }\n")
+	return buf.String()
+}
+
+func indentExceptFirstLine(s string, indentation int) string {
+	lines := strings.Split(s, "\n")
+	if len(lines) == 0 {
+		return s
+	}
+	var buf bytes.Buffer
+	for i, line := range lines {
+		if i == 0 {
+			buf.WriteString(line)
+		} else {
+			// Indent all lines except the first one
+			buf.WriteString(strings.Repeat(" ", indentation))
+			buf.WriteString(line)
+		}
+
+		// Add a newline after each line except for the last one
+		if i < len(lines)-1 {
+			buf.WriteString("\n")
+		}
+	}
+	return buf.String()
 }
 
 func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, bool) {
