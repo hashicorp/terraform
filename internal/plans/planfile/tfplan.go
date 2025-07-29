@@ -1291,11 +1291,13 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 	}
 	ret.ProviderAddr = providerAddr
 
-	configVal, err := valueFromTfplan(rawAction.ConfigValue)
-	if err != nil {
-		return nil, fmt.Errorf("invalid config value: %s", err)
+	if rawAction.ConfigValue != nil {
+		configVal, err := valueFromTfplan(rawAction.ConfigValue)
+		if err != nil {
+			return nil, fmt.Errorf("invalid config value: %s", err)
+		}
+		ret.ConfigValue = configVal
 	}
-	ret.ConfigValue = configVal
 
 	return ret, nil
 }
@@ -1320,7 +1322,6 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 	case configs.AfterDestroy:
 		triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
 	}
-	configValue := valueToTfplan(action.ConfigValue)
 
 	ret := &planproto.ActionInvocationInstance{
 		Addr:                    action.Addr.String(),
@@ -1329,7 +1330,11 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		ActionsListIndex:        int64(action.ActionsListIndex),
 		ActionTriggerBlockIndex: int64(action.ActionTriggerBlockIndex),
 		TriggerEvent:            triggerEvent,
-		ConfigValue:             configValue,
 	}
+
+	if action.ConfigValue != nil {
+		ret.ConfigValue = valueToTfplan(action.ConfigValue)
+	}
+
 	return ret, nil
 }

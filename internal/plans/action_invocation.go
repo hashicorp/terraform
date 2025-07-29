@@ -34,25 +34,31 @@ type ActionInvocationInstance struct {
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*ActionInvocationInstanceSrc, error) {
-	ty := cty.DynamicPseudoType
-	if schema != nil {
-		ty = schema.ConfigSchema.ImpliedType()
-	}
 
-	configValue, err := NewDynamicValue(ai.ConfigValue, ty)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ActionInvocationInstanceSrc{
+	ret := &ActionInvocationInstanceSrc{
 		Addr:                    ai.Addr,
 		TriggeringResourceAddr:  ai.TriggeringResourceAddr,
 		TriggerEvent:            ai.TriggerEvent,
 		ActionTriggerBlockIndex: ai.ActionTriggerBlockIndex,
 		ActionsListIndex:        ai.ActionsListIndex,
 		ProviderAddr:            ai.ProviderAddr,
-		ConfigValue:             configValue,
-	}, nil
+	}
+
+	if ai.ConfigValue != cty.NilVal {
+		ty := cty.DynamicPseudoType
+		if schema != nil {
+			ty = schema.ConfigSchema.ImpliedType()
+		}
+
+		var err error
+		ret.ConfigValue, err = NewDynamicValue(ai.ConfigValue, ty)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ret, nil
+
 }
 
 type ActionInvocationInstances []*ActionInvocationInstance
