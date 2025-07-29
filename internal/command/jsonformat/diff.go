@@ -61,8 +61,8 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 		schema := plan.getSchema(change)
 		structuredChange := structured.FromJsonChange(change.Change, attribute_path.AlwaysMatcher())
 
-		beforeActionsTriggered := []jsonplan.ActionInvocation{}
-		afterActionsTriggered := []jsonplan.ActionInvocation{}
+		before := []jsonplan.ActionInvocation{}
+		after := []jsonplan.ActionInvocation{}
 
 		for _, action := range plan.ActionInvocations {
 			if action.TriggeringResourceAddress != change.Address {
@@ -71,17 +71,34 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 
 			switch action.TriggerEvent {
 			case "BeforeCreate", "BeforeUpdate", "BeforeDestroy":
-				beforeActionsTriggered = append(beforeActionsTriggered, action)
+				before = append(before, action)
 			case "AfterCreate", "AfterUpdate", "AfterDestroy":
-				afterActionsTriggered = append(afterActionsTriggered, action)
+				after = append(after, action)
 			default:
 				// The switch should be exhaustive.
 				panic(fmt.Sprintf("Unexpected triggering event when rendering action %s", action.TriggerEvent))
 			}
 		}
 
-		slices.SortFunc(beforeActionsTriggered, jsonplan.ActionInvocationCompare)
-		slices.SortFunc(afterActionsTriggered, jsonplan.ActionInvocationCompare)
+		slices.SortFunc(before, jsonplan.ActionInvocationCompare)
+		slices.SortFunc(after, jsonplan.ActionInvocationCompare)
+
+		beforeActionsTriggered := []actionInvocation{}
+		afterActionsTriggered := []actionInvocation{}
+		for _, action := range before {
+			schema := plan.getActionSchema(action)
+			beforeActionsTriggered = append(beforeActionsTriggered, actionInvocation{
+				invocation: action,
+				schema:     schema,
+			})
+		}
+		for _, action := range after {
+			schema := plan.getActionSchema(action)
+			afterActionsTriggered = append(afterActionsTriggered, actionInvocation{
+				invocation: action,
+				schema:     schema,
+			})
+		}
 
 		diffs.changes = append(diffs.changes, diff{
 			change:                 change,
@@ -137,13 +154,13 @@ func (d diffs) Empty() bool {
 type diff struct {
 	change                 jsonplan.ResourceChange
 	diff                   computed.Diff
-	beforeActionsTriggered []jsonplan.ActionInvocation
-	afterActionsTriggered  []jsonplan.ActionInvocation
+	beforeActionsTriggered []actionInvocation
+	afterActionsTriggered  []actionInvocation
 }
 
 type actionInvocation struct {
 	invocation jsonplan.ActionInvocation
-	schema     jsonprovider.ActionSchema
+	schema     *jsonprovider.ActionSchema
 }
 
 func (d diff) Moved() bool {
