@@ -161,6 +161,11 @@ type MockProvider struct {
 	InvokeActionRequest  providers.InvokeActionRequest
 	InvokeActionFn       func(providers.InvokeActionRequest) providers.InvokeActionResponse
 
+	ValidateActionCalled         bool
+	ValidateActionConfigRequest  providers.ValidateActionConfigRequest
+	ValidateActionConfigResponse *providers.ValidateActionConfigResponse
+	ValidateActionConfigFn       func(providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse
+
 	CloseCalled bool
 	CloseError  error
 }
@@ -1047,4 +1052,21 @@ func (p *MockProvider) Close() error {
 func (p *MockProvider) beginWrite() func() {
 	p.Lock()
 	return p.Unlock
+}
+
+func (p *MockProvider) ValidateActionConfig(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
+	defer p.beginWrite()
+
+	p.ValidateActionCalled = true
+	p.ValidateActionConfigRequest = r
+
+	if p.ValidateActionConfigFn != nil {
+		return p.ValidateActionConfigFn(r)
+	}
+
+	if p.ValidateActionConfigResponse != nil {
+		return *p.ValidateActionConfigResponse
+	}
+
+	return resp
 }

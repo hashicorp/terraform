@@ -238,3 +238,50 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 		return
 	}
 }
+
+// GetActionInvocation
+func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance) *ActionInvocationInstance {
+	if cs == nil {
+		panic("GetActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	for _, a := range cs.changes.ActionInvocations {
+		if a.Addr.Equal(addr) {
+			return a
+		}
+	}
+	return nil
+}
+
+// AppendActionInvocation
+func (cs *ChangesSync) AppendActionInvocation(action *ActionInvocationInstance) {
+	if cs == nil {
+		panic("AppendActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	cs.changes.ActionInvocations = append(cs.changes.ActionInvocations, action)
+}
+
+// RemoveActionInvocation searches the set of action invocations for one
+// matching the given address, and removes it from the set if it exists.
+func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInstance) {
+	if cs == nil {
+		panic("RemoveActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	addrStr := addr.String()
+	for i, a := range cs.changes.ActionInvocations {
+		if a.Addr.String() != addrStr {
+			continue
+		}
+		copy(cs.changes.ActionInvocations[i:], cs.changes.ActionInvocations[i+1:])
+		cs.changes.ActionInvocations = cs.changes.ActionInvocations[:len(cs.changes.ActionInvocations)-1]
+		return
+	}
+}

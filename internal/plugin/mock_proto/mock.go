@@ -482,6 +482,26 @@ func (mr *MockProviderClientMockRecorder) UpgradeResourceState(arg0, arg1 any, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpgradeResourceState", reflect.TypeOf((*MockProviderClient)(nil).UpgradeResourceState), varargs...)
 }
 
+// ValidateActionConfig mocks base method.
+func (m *MockProviderClient) ValidateActionConfig(arg0 context.Context, arg1 *tfplugin5.ValidateActionConfig_Request, arg2 ...grpc.CallOption) (*tfplugin5.ValidateActionConfig_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ValidateActionConfig", varargs...)
+	ret0, _ := ret[0].(*tfplugin5.ValidateActionConfig_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateActionConfig indicates an expected call of ValidateActionConfig.
+func (mr *MockProviderClientMockRecorder) ValidateActionConfig(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateActionConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateActionConfig), varargs...)
+}
+
 // ValidateDataSourceConfig mocks base method.
 func (m *MockProviderClient) ValidateDataSourceConfig(arg0 context.Context, arg1 *tfplugin5.ValidateDataSourceConfig_Request, arg2 ...grpc.CallOption) (*tfplugin5.ValidateDataSourceConfig_Response, error) {
 	m.ctrl.T.Helper()

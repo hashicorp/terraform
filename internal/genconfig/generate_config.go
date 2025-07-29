@@ -75,12 +75,16 @@ func (r *Resource) String() string {
 func GenerateResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
 	pc addrs.LocalProviderConfig,
-	stateVal cty.Value) (*Resource, tfdiags.Diagnostics) {
+	stateVal cty.Value,
+	forceProviderAddr bool,
+) (*Resource, tfdiags.Diagnostics) {
 	var buf strings.Builder
 
 	var diags tfdiags.Diagnostics
 
-	if pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != "" {
+	generateProviderAddr := pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != ""
+
+	if generateProviderAddr || forceProviderAddr {
 		buf.WriteString(strings.Repeat(" ", 2))
 		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
 	}
@@ -143,7 +147,7 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 		if val.Type().HasAttribute("state") {
 			stateVal = val.GetAttr("state")
 		}
-		content, gDiags := GenerateResourceContents(resAddr, schema, pc, stateVal)
+		content, gDiags := GenerateResourceContents(resAddr, schema, pc, stateVal, true)
 		if gDiags.HasErrors() {
 			diags = diags.Append(gDiags)
 			continue

@@ -10,9 +10,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/zclconf/go-cty/cty"
-
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -1554,6 +1553,66 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 		}
 	}
 
+	return resp
+}
+
+func (p *GRPCProvider) ValidateActionConfig(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
+	logger.Trace("GRPCProvider: ValidateActionConfig")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	actionSchema, ok := schema.Actions[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", r.TypeName))
+		return resp
+	}
+
+	mp, err := msgpack.Marshal(r.Config, actionSchema.ConfigSchema.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto.ValidateActionConfig_Request{
+		TypeName: r.TypeName,
+		Config:   &proto.DynamicValue{Msgpack: mp},
+	}
+
+	lrs := make([]*proto.LinkedResourceConfig, 0, len(r.LinkedResources))
+	for i, lr := range r.LinkedResources {
+		resourceSchema, ok := schema.ResourceTypes[lr.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
+		}
+
+		mp, err := msgpack.Marshal(r.Config, resourceSchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+
+		lrs[i] = &proto.LinkedResourceConfig{
+			TypeName: r.TypeName,
+			Config:   &proto.DynamicValue{Msgpack: mp},
+		}
+	}
+
+	if len(lrs) > 0 {
+		protoReq.LinkedResources = lrs
+	}
+
+	protoResp, err := p.client.ValidateActionConfig(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 

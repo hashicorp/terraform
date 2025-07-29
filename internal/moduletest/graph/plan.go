@@ -32,11 +32,19 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
-	planScope, plan, planDiags := n.plan(ctx, tfCtx, setVariables, providers, mocks, waiter)
+	planScope, plan, originalDiags := n.plan(ctx, tfCtx, setVariables, providers, mocks, waiter)
 	// We exclude the diagnostics that are expected to fail from the plan
 	// diagnostics, and if an expected failure is not found, we add a new error diagnostic.
-	planDiags = run.ValidateExpectedFailures(planDiags)
-	run.Diagnostics = run.Diagnostics.Append(planDiags)
+	planDiags := run.ValidateExpectedFailures(originalDiags)
+
+	if ctx.Verbose() {
+		// in verbose mode, we still add all the original diagnostics for
+		// display.
+		run.Diagnostics = run.Diagnostics.Append(originalDiags)
+	} else {
+		run.Diagnostics = run.Diagnostics.Append(planDiags)
+	}
+
 	if planDiags.HasErrors() {
 		run.Status = moduletest.Error
 		return
@@ -114,7 +122,7 @@ func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables
 
 	waiter.update(tfCtx, moduletest.Running, nil)
 	log.Printf("[DEBUG] TestFileRunner: starting plan for %s/%s", file.Name, run.Name)
-	state := ctx.GetFileState(run.GetStateKey()).State
+	state := ctx.GetFileState(run.Config.StateKey).State
 	plan, planScope, planDiags := tfCtx.PlanAndEval(config, state, planOpts)
 	log.Printf("[DEBUG] TestFileRunner: completed plan for %s/%s", file.Name, run.Name)
 	diags = diags.Append(planDiags)

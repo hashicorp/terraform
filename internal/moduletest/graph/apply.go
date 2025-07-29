@@ -22,7 +22,7 @@ import (
 func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
-	key := n.run.GetStateKey()
+	key := n.run.Config.StateKey
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
@@ -63,7 +63,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 
 	// Remove expected diagnostics, and add diagnostics in case anything that should have failed didn't.
 	// We'll also update the run status based on the presence of errors or missing expected failures.
-	failOrErr := n.checkForMissingExpectedFailures(run, applyDiags)
+	failOrErr := n.checkForMissingExpectedFailures(ctx, run, applyDiags)
 	if failOrErr {
 		// Even though the apply operation failed, the graph may have done
 		// partial updates and the returned state should reflect this.
@@ -172,11 +172,19 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 
 // checkForMissingExpectedFailures checks for missing expected failures in the diagnostics.
 // It updates the run status based on the presence of errors or missing expected failures.
-func (n *NodeTestRun) checkForMissingExpectedFailures(run *moduletest.Run, diags tfdiags.Diagnostics) (failOrErr bool) {
+func (n *NodeTestRun) checkForMissingExpectedFailures(ctx *EvalContext, run *moduletest.Run, diags tfdiags.Diagnostics) (failOrErr bool) {
 	// Retrieve and append diagnostics that are either unrelated to expected failures
 	// or report missing expected failures.
 	unexpectedDiags := run.ValidateExpectedFailures(diags)
-	run.Diagnostics = run.Diagnostics.Append(unexpectedDiags)
+
+	if ctx.Verbose() {
+		// in verbose mode, we still add all the original diagnostics for
+		// display even if they are expected.
+		run.Diagnostics = run.Diagnostics.Append(diags)
+	} else {
+		run.Diagnostics = run.Diagnostics.Append(unexpectedDiags)
+	}
+
 	for _, diag := range unexpectedDiags {
 		// // If any diagnostic indicates a missing expected failure, set the run status to fail.
 		if ok := moduletest.DiagnosticFromMissingExpectedFailure(diag); ok {

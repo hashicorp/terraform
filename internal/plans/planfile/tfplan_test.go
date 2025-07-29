@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -176,6 +177,11 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 	applyTimeVariables := collections.NewSetCmp[string]()
 	applyTimeVariables.Add("bar")
 
+	provider := addrs.AbsProviderConfig{
+		Provider: addrs.NewDefaultProvider("test"),
+		Module:   addrs.RootModule,
+	}
+
 	return &plans.Plan{
 		Applyable: true,
 		Complete:  true,
@@ -224,10 +230,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						Type: "test_thing",
 						Name: "woot",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					ProviderAddr: provider,
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.DeleteThenCreate,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -286,10 +289,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						Type: "test_thing",
 						Name: "importing",
 					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					ProviderAddr: provider,
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.NoOp,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -301,6 +301,20 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						Importing:       &plans.ImportingSrc{ID: "testing"},
 						GeneratedConfig: "resource \\\"test_thing\\\" \\\"importing\\\" {}",
 					},
+				},
+			},
+			ActionInvocations: []*plans.ActionInvocationInstanceSrc{
+				{
+					Addr:                    addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr:            provider,
+					TriggerEvent:            configs.BeforeCreate,
+					ActionTriggerBlockIndex: 2,
+					ActionsListIndex:        0,
+					TriggeringResourceAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 				},
 			},
 		},
@@ -316,10 +330,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 					Type: "test_thing",
 					Name: "woot",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr: addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("test"),
-					Module:   addrs.RootModule,
-				},
+				ProviderAddr: provider,
 				ChangeSrc: plans.ChangeSrc{
 					Action: plans.DeleteThenCreate,
 					Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -350,10 +361,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						Type: "test_thing",
 						Name: "woot",
 					}.Instance(addrs.WildcardKey).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					ProviderAddr: provider,
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
 						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
@@ -379,10 +387,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 							InstanceKey: addrs.WildcardKey,
 						},
 					}),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					ProviderAddr: provider,
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
 						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{

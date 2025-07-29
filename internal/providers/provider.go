@@ -129,7 +129,8 @@ type Interface interface {
 	// InvokeAction invokes an action, providers return a stream of events that update terraform
 	// about the status of the action.
 	InvokeAction(InvokeActionRequest) InvokeActionResponse
-	// CancelAction cancels an action, triggering a graceful shutdown of the action.
+	// ValidateActionConfig performs configuration validation
+	ValidateActionConfig(ValidateActionConfigRequest) ValidateActionConfigResponse
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
@@ -210,13 +211,16 @@ type LinkedResourceSchema struct {
 }
 
 type UnlinkedAction struct{}
+
 type LifecycleAction struct {
-	Exectues       ExecutionOrder
+	Executes       ExecutionOrder
 	LinkedResource LinkedResourceSchema
 }
+
 type LinkedAction struct {
 	LinkedResources []LinkedResourceSchema
 }
+
 type ActionSchema struct {
 	ConfigSchema *configschema.Block
 
@@ -237,6 +241,11 @@ func (a ActionSchema) LinkedResources() []LinkedResourceSchema {
 		return a.Linked.LinkedResources
 	}
 	panic("ActionSchema must have one of Unlinked, Lifecycle, or Linked set")
+}
+
+// IsNil() returns true is there is no action schema at all.
+func (a ActionSchema) IsNil() bool {
+	return a.ConfigSchema == nil && a.Unlinked == nil && a.Lifecycle == nil && a.Linked == nil
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
@@ -503,7 +512,7 @@ type ReadResourceResponse struct {
 	Private []byte
 
 	// Deferred if present signals that the provider was not able to fully
-	// complete this operation and a susequent run is required.
+	// complete this operation and a subsequent run is required.
 	Deferred *Deferred
 
 	// Identity is the object-typed value representing the identity of the remote
@@ -572,7 +581,7 @@ type PlanResourceChangeResponse struct {
 	LegacyTypeSystem bool
 
 	// Deferred if present signals that the provider was not able to fully
-	// complete this operation and a susequent run is required.
+	// complete this operation and a subsequent run is required.
 	Deferred *Deferred
 
 	// PlannedIdentity is the planned identity data of the resource.
@@ -659,7 +668,7 @@ type ImportResourceStateResponse struct {
 	Diagnostics tfdiags.Diagnostics
 
 	// Deferred if present signals that the provider was not able to fully
-	// complete this operation and a susequent run is required.
+	// complete this operation and a subsequent run is required.
 	Deferred *Deferred
 }
 
@@ -756,7 +765,7 @@ type ReadDataSourceResponse struct {
 	Diagnostics tfdiags.Diagnostics
 
 	// Deferred if present signals that the provider was not able to fully
-	// complete this operation and a susequent run is required.
+	// complete this operation and a subsequent run is required.
 	Deferred *Deferred
 }
 
@@ -785,7 +794,7 @@ type CallFunctionResponse struct {
 	// provider schema.
 	//
 	// If Diagnostics contains any errors, this field will be ignored and
-	// so can be left as cty.NilVal to represent the absense of a value.
+	// so can be left as cty.NilVal to represent the absence of a value.
 	Result cty.Value
 
 	// Err is the error value from the function call. This may be an instance
@@ -915,6 +924,7 @@ type InvokeActionResponse struct {
 	Events      iter.Seq[InvokeActionEvent]
 	Diagnostics tfdiags.Diagnostics
 }
+
 type InvokeActionEvent interface {
 	isInvokeActionEvent()
 }
@@ -937,3 +947,29 @@ type InvokeActionEvent_Progress struct {
 }
 
 func (e InvokeActionEvent_Progress) isInvokeActionEvent() {}
+
+type ValidateActionConfigRequest struct {
+	// TypeName is the name of the action type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate, which may contain unknown
+	// values.
+	Config cty.Value
+
+	// LinkedResources contains the configuration of any LinkedResources associated with the action.
+	LinkedResources []LinkedResourceConfig
+}
+
+type LinkedResourceConfig struct {
+	// TypeName is the name of the resource type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate, which may contain unknown
+	// values.
+	Config cty.Value
+}
+
+type ValidateActionConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}

@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -26,6 +27,10 @@ type ChangesSrc struct {
 	Resources []*ResourceInstanceChangeSrc
 
 	Queries []*QueryInstanceSrc
+
+	// ActionInvocations tracks planned action invocations, which may have
+	// embedded resource instance changes.
+	ActionInvocations []*ActionInvocationInstanceSrc
 
 	// Outputs tracks planned changes output values.
 	//
@@ -153,6 +158,15 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		}
 
 		changes.Queries = append(changes.Queries, query)
+	}
+
+	for _, ais := range c.ActionInvocations {
+		action, err := ais.Decode()
+		if err != nil {
+			return nil, err
+		}
+
+		changes.ActionInvocations = append(changes.ActionInvocations, action)
 	}
 
 	for _, ocs := range c.Outputs {
@@ -529,4 +543,46 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		Importing:       cs.Importing.Decode(identityType),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
+}
+
+// AppendResourceInstanceChange records the given resource instance change in
+// the set of planned resource changes.
+func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocationInstanceSrc) {
+	if c == nil {
+		panic("AppendResourceInstanceChange on nil ChangesSync")
+	}
+
+	a := action.DeepCopy()
+	c.ActionInvocations = append(c.ActionInvocations, a)
+}
+
+type ActionInvocationInstanceSrc struct {
+	Addr                    addrs.AbsActionInstance
+	TriggeringResourceAddr  addrs.AbsResourceInstance
+	TriggerEvent            configs.ActionTriggerEvent
+	ActionTriggerBlockIndex int
+	ActionsListIndex        int
+
+	ProviderAddr addrs.AbsProviderConfig
+}
+
+// Decode unmarshals the raw representation of any linked resources.
+func (acs *ActionInvocationInstanceSrc) Decode() (*ActionInvocationInstance, error) {
+	ai := &ActionInvocationInstance{
+		Addr:                    acs.Addr,
+		TriggeringResourceAddr:  acs.TriggeringResourceAddr,
+		TriggerEvent:            acs.TriggerEvent,
+		ActionTriggerBlockIndex: acs.ActionTriggerBlockIndex,
+		ActionsListIndex:        acs.ActionsListIndex,
+		ProviderAddr:            acs.ProviderAddr,
+	}
+	return ai, nil
+}
+
+func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc {
+	if acs == nil {
+		return acs
+	}
+	ret := *acs
+	return &ret
 }

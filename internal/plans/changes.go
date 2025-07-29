@@ -25,6 +25,10 @@ type Changes struct {
 
 	Queries []*QueryInstance
 
+	// ActionInvocations tracks planned action invocations, which may have
+	// embedded resource instance changes.
+	ActionInvocations ActionInvocationInstances
+
 	// Outputs tracks planned changes output values.
 	//
 	// Note that although an in-memory plan contains planned changes for
@@ -92,6 +96,14 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 		}
 
 		changesSrc.Queries = append(changesSrc.Queries, rcs)
+	}
+
+	for _, ai := range c.ActionInvocations {
+		a, err := ai.Encode()
+		if err != nil {
+			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
+		}
+		changesSrc.ActionInvocations = append(changesSrc.ActionInvocations, a)
 	}
 
 	for _, ocs := range c.Outputs {
@@ -243,6 +255,29 @@ func (c *Changes) SyncWrapper() *ChangesSync {
 	}
 }
 
+// ActionInvocations returns planned action invocations for all module instances
+// that reside in the parent path.  Returns nil if no changes are planned.
+func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.ModuleCall) []*ActionInvocationInstance {
+	var ret []*ActionInvocationInstance
+
+	for _, a := range c.ActionInvocations {
+		changeMod, changeCall := a.Addr.Module.Call()
+		// this does not reside on our parent instance path
+		if !changeMod.Equal(parent) {
+			continue
+		}
+
+		// this is not the module you're looking for
+		if changeCall.Name != module.Name {
+			continue
+		}
+
+		ret = append(ret, a)
+	}
+
+	return ret
+}
+
 type QueryInstance struct {
 	Addr addrs.AbsResourceInstance
 
@@ -347,7 +382,7 @@ type ResourceInstanceChange struct {
 	Private []byte
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInstanceChangeSrc, error) {
@@ -387,7 +422,7 @@ func (rc *ResourceInstanceChange) Moved() bool {
 }
 
 // Simplify will, where possible, produce a change with a simpler action than
-// the receiever given a flag indicating whether the caller is dealing with
+// the receiver given a flag indicating whether the caller is dealing with
 // a normal apply or a destroy. This flag deals with the fact that Terraform
 // Core uses a specialized graph node type for destroying; only that
 // specialized node should set "destroying" to true.
@@ -601,7 +636,7 @@ type OutputChange struct {
 	Sensitive bool
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file.
 func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	cs, err := oc.Change.Encode(nil)
@@ -689,7 +724,7 @@ type Change struct {
 	GeneratedConfig string
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the type constraint
 // that the values are expected to conform to; to properly decode the values
 // later an identical type constraint must be provided at that time.

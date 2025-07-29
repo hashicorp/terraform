@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -177,6 +178,16 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 				Result: hash.Result,
 			},
 		)
+	}
+
+	for _, rawAction := range rawPlan.ActionInvocations {
+		action, err := actionInvocationFromTfplan(rawAction)
+		if err != nil {
+			// errors from actionInvocationFromTfplan already include context
+			return nil, err
+		}
+
+		plan.Changes.ActionInvocations = append(plan.Changes.ActionInvocations, action)
 	}
 
 	switch {
@@ -561,12 +572,13 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
 
-		Variables:       map[string]*planproto.DynamicValue{},
-		OutputChanges:   []*planproto.OutputChange{},
-		CheckResults:    []*planproto.CheckResults{},
-		ResourceChanges: []*planproto.ResourceInstanceChange{},
-		ResourceDrift:   []*planproto.ResourceInstanceChange{},
-		DeferredChanges: []*planproto.DeferredResourceInstanceChange{},
+		Variables:         map[string]*planproto.DynamicValue{},
+		OutputChanges:     []*planproto.OutputChange{},
+		CheckResults:      []*planproto.CheckResults{},
+		ResourceChanges:   []*planproto.ResourceInstanceChange{},
+		ResourceDrift:     []*planproto.ResourceInstanceChange{},
+		DeferredChanges:   []*planproto.DeferredResourceInstanceChange{},
+		ActionInvocations: []*planproto.ActionInvocationInstance{},
 	}
 
 	rawPlan.Applyable = plan.Applyable
@@ -666,6 +678,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		)
 	}
 
+	for _, action := range plan.Changes.ActionInvocations {
+		rawAction, err := actionInvocationToTfPlan(action)
+		if err != nil {
+			return err
+		}
+		rawPlan.ActionInvocations = append(rawPlan.ActionInvocations, rawAction)
+	}
+
 	// Store details about accessing state
 	backendInUse := plan.Backend.Type != "" && plan.Backend.Config != nil
 	stateStoreInUse := plan.StateStore.Type != "" && plan.StateStore.Config != nil
@@ -752,7 +772,7 @@ func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceA
 // in its own wire format while using a different overall container.
 func ResourceChangeToProto(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
 	if change == nil {
-		// We assume this represents the absense of a change, then.
+		// We assume this represents the absence of a change, then.
 		return nil, nil
 	}
 	return resourceChangeToTfplan(change)
@@ -1223,4 +1243,85 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	} else {
 		return nil, nil
 	}
+}
+
+func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
+	if rawAction == nil {
+		// Should never happen in practice, since protobuf can't represent
+		// a nil value in a list.
+		return nil, fmt.Errorf("action invocation object is absent")
+	}
+
+	ret := &plans.ActionInvocationInstanceSrc{}
+	actionAddr, diags := addrs.ParseAbsActionInstanceStr(rawAction.Addr)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("invalid action instance address %q: %w", rawAction.Addr, diags.Err())
+	}
+	ret.Addr = actionAddr
+
+	ret.TriggeringResourceAddr, diags = addrs.ParseAbsResourceInstanceStr(rawAction.TriggeringResourceAddr)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("invalid resource instance address %q: %w", rawAction.TriggeringResourceAddr, diags.Err())
+	}
+
+	ret.ActionsListIndex = int(rawAction.ActionsListIndex)
+	ret.ActionTriggerBlockIndex = int(rawAction.ActionTriggerBlockIndex)
+
+	switch rawAction.TriggerEvent {
+	case planproto.ActionTriggerEvent_BEFORE_CERATE:
+		ret.TriggerEvent = configs.BeforeCreate
+	case planproto.ActionTriggerEvent_AFTER_CREATE:
+		ret.TriggerEvent = configs.AfterCreate
+	case planproto.ActionTriggerEvent_BEFORE_UPDATE:
+		ret.TriggerEvent = configs.BeforeUpdate
+	case planproto.ActionTriggerEvent_AFTER_UPDATE:
+		ret.TriggerEvent = configs.AfterUpdate
+	case planproto.ActionTriggerEvent_BEFORE_DESTROY:
+		ret.TriggerEvent = configs.BeforeDestroy
+	case planproto.ActionTriggerEvent_AFTER_DESTROY:
+		ret.TriggerEvent = configs.AfterDestroy
+
+	default:
+		return nil, fmt.Errorf("invalid action trigger event %s", rawAction.TriggerEvent)
+	}
+
+	providerAddr, diags := addrs.ParseAbsProviderConfigStr(rawAction.Provider)
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+	ret.ProviderAddr = providerAddr
+
+	return ret, nil
+}
+
+func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {
+	if action == nil {
+		return nil, nil
+	}
+
+	triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
+	switch action.TriggerEvent {
+	case configs.BeforeCreate:
+		triggerEvent = planproto.ActionTriggerEvent_BEFORE_CERATE
+	case configs.AfterCreate:
+		triggerEvent = planproto.ActionTriggerEvent_AFTER_CREATE
+	case configs.BeforeUpdate:
+		triggerEvent = planproto.ActionTriggerEvent_BEFORE_UPDATE
+	case configs.AfterUpdate:
+		triggerEvent = planproto.ActionTriggerEvent_AFTER_UPDATE
+	case configs.BeforeDestroy:
+		triggerEvent = planproto.ActionTriggerEvent_BEFORE_DESTROY
+	case configs.AfterDestroy:
+		triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
+	}
+
+	ret := &planproto.ActionInvocationInstance{
+		Addr:                    action.Addr.String(),
+		Provider:                action.ProviderAddr.String(),
+		TriggeringResourceAddr:  action.TriggeringResourceAddr.String(),
+		ActionsListIndex:        int64(action.ActionsListIndex),
+		ActionTriggerBlockIndex: int64(action.ActionTriggerBlockIndex),
+		TriggerEvent:            triggerEvent,
+	}
+	return ret, nil
 }

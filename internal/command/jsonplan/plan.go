@@ -68,6 +68,7 @@ type plan struct {
 	ResourceChanges    []ResourceChange         `json:"resource_changes,omitempty"`
 	DeferredChanges    []DeferredResourceChange `json:"deferred_changes,omitempty"`
 	OutputChanges      map[string]Change        `json:"output_changes,omitempty"`
+	ActionInvocations  []ActionInvocation       `json:"action_invocations,omitempty"`
 	PriorState         json.RawMessage          `json:"prior_state,omitempty"`
 	Config             json.RawMessage          `json:"configuration,omitempty"`
 	RelevantAttributes []ResourceAttr           `json:"relevant_attributes,omitempty"`
@@ -201,16 +202,16 @@ type variable struct {
 func MarshalForRenderer(
 	p *plans.Plan,
 	schemas *terraform.Schemas,
-) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, error) {
+) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, []ActionInvocation, error) {
 	output := newPlan()
 
 	var err error
 	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	if output.ResourceChanges, err = MarshalResourceChanges(p.Changes.Resources, schemas); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	if len(p.DriftedResources) > 0 {
@@ -230,15 +231,19 @@ func MarshalForRenderer(
 		}
 		output.ResourceDrift, err = MarshalResourceChanges(driftedResources, schemas)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 	}
 
 	if err := output.marshalRelevantAttrs(p); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
-	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, nil
+	if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations); err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+
+	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, output.ActionInvocations, nil
 }
 
 // Marshal returns the json encoding of a terraform plan.
@@ -329,6 +334,13 @@ func Marshal(
 	output.Config, err = jsonconfig.Marshal(config, schemas)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling config: %s", err)
+	}
+
+	// output.Changes.ActionInvocations
+	if p.Changes.ActionInvocations != nil {
+		if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations); err != nil {
+			return nil, fmt.Errorf("error marshaling action invocations: %s", err)
+		}
 	}
 
 	return json.Marshal(output)
