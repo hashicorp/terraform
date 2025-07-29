@@ -56,10 +56,6 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		return nil, fmt.Errorf("unsupported plan file format version %d; only version %d is supported", rawPlan.Version, tfplanFormatVersion)
 	}
 
-	if rawPlan.TerraformVersion != version.String() {
-		return nil, fmt.Errorf("plan file was created by Terraform %s, but this is %s; plan files cannot be transferred between different Terraform versions", rawPlan.TerraformVersion, version.String())
-	}
-
 	plan := &plans.Plan{
 		VariableValues: map[string]plans.DynamicValue{},
 		Changes: &plans.ChangesSrc{
