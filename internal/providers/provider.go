@@ -198,12 +198,12 @@ type IdentitySchema struct {
 	Body *configschema.Object
 }
 
-type ExecutionOrder int
+type ExecutionOrder string
 
 const (
-	ExecutionOrderInvalid ExecutionOrder = iota
-	ExecutionOrderBefore
-	ExecutionOrderAfter
+	ExecutionOrderInvalid ExecutionOrder = "invalid"
+	ExecutionOrderBefore  ExecutionOrder = "before"
+	ExecutionOrderAfter   ExecutionOrder = "after"
 )
 
 type LinkedResourceSchema struct {
