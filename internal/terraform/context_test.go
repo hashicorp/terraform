@@ -807,7 +807,7 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 		return nil, nil, nil, err
 	}
 
-	config, diags := pr.ReadConfig()
+	config, diags := pr.ReadConfig(false)
 	if diags.HasErrors() {
 		return nil, nil, nil, diags.Err()
 	}

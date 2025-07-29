@@ -196,7 +196,7 @@ func (r *Reader) ReadConfigSnapshot() (*configload.Snapshot, error) {
 // Internally this function delegates to the configs/configload package to
 // parse the embedded configuration and so it returns diagnostics (rather than
 // a native Go error as with other methods on Reader).
-func (r *Reader) ReadConfig() (*configs.Config, tfdiags.Diagnostics) {
+func (r *Reader) ReadConfig(allowLanguageExperiments bool) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	snap, err := r.ReadConfigSnapshot()
@@ -210,6 +210,7 @@ func (r *Reader) ReadConfig() (*configs.Config, tfdiags.Diagnostics) {
 	}
 
 	loader := configload.NewLoaderFromSnapshot(snap)
+	loader.AllowLanguageExperiments(allowLanguageExperiments)
 	rootDir := snap.Modules[""].Dir // Root module base directory
 	config, configDiags := loader.LoadConfig(rootDir)
 	diags = diags.Append(configDiags)
