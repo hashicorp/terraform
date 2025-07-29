@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/zclconf/go-cty/cty"
@@ -92,7 +93,6 @@ func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, sche
 	ret := make([]ActionInvocation, 0, len(actions))
 
 	for _, action := range actions {
-
 		schema := schemas.ActionTypeConfig(
 			action.ProviderAddr.Provider,
 			action.Addr.Action.Action.Type,
@@ -121,6 +121,20 @@ func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, sche
 		}
 
 		if actionDec.ConfigValue != cty.NilVal {
+			// TODO: Support sensitive and ephemeral values in action invocations.
+			_, pvms := actionDec.ConfigValue.UnmarkDeepWithPaths()
+			sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+			if len(sensitivePaths) > 0 {
+				return ret, fmt.Errorf("action %s has sensitive config values, which are not supported in action invocations", action.Addr)
+			}
+			ephemeralPaths, otherMarks := marks.PathsWithMark(otherMarks, marks.Ephemeral)
+			if len(ephemeralPaths) > 0 {
+				return ret, fmt.Errorf("action %s has ephemeral config values, which are not supported in action invocations", action.Addr)
+			}
+			if len(otherMarks) > 0 {
+				return ret, fmt.Errorf("action %s has config values with unsupported marks: %v", action.Addr, otherMarks)
+			}
+
 			if actionDec.ConfigValue.IsWhollyKnown() {
 				ai.ConfigValues = marshalConfigValues(actionDec.ConfigValue)
 			} else {
