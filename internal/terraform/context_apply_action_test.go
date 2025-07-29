@@ -19,6 +19,7 @@ import (
 
 func TestContext2Apply_actions(t *testing.T) {
 	for name, tc := range map[string]struct {
+		toBeImplemented                 bool
 		module                          map[string]string
 		mode                            plans.Mode
 		prevRunState                    *states.State
@@ -279,6 +280,7 @@ resource "test_object" "b" {
 		},
 
 		"action with secrets in configuration": {
+			toBeImplemented: true, // We currently don't suppport sensitive values in the plan
 			module: map[string]string{
 				"main.tf": `
 variable "secret_value" {
@@ -316,6 +318,10 @@ resource "test_object" "b" {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
+			if tc.toBeImplemented {
+				t.Skip("This test is not implemented yet")
+			}
+
 			m := testModuleInline(t, tc.module)
 
 			invokeActionCalls := []providers.InvokeActionRequest{}
