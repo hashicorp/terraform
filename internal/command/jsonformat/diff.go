@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -138,6 +139,11 @@ type diff struct {
 	diff                   computed.Diff
 	beforeActionsTriggered []jsonplan.ActionInvocation
 	afterActionsTriggered  []jsonplan.ActionInvocation
+}
+
+type actionInvocation struct {
+	invocation jsonplan.ActionInvocation
+	schema     jsonprovider.ActionSchema
 }
 
 func (d diff) Moved() bool {
