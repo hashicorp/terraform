@@ -189,6 +189,7 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 	return updated, diags
 }
 
+// shouldSkipCleanup determines whether the state cleanup should be skipped.
 func (n *NodeStateCleanup) shouldSkipCleanup(evalCtx *EvalContext, state *TestFileState, file *moduletest.File) bool {
 	// If the state was loaded as a result of an intentional skip, we
 	// don't need to clean it up when in repair mode.
@@ -209,7 +210,8 @@ func (n *NodeStateCleanup) shouldSkipCleanup(evalCtx *EvalContext, state *TestFi
 		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for state %q due to cancellation", n.stateKey)
 		return true
 	}
-
+	// If the node is marked as skip, we may need to override its state by applying that node, so
+	// we would return false here unless already matched by the branches above.
 	return false
 }
 
