@@ -65,7 +65,7 @@ type ActionTriggerEvent int
 //go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerEvent
 
 const (
-	Unkonwn ActionTriggerEvent = iota
+	Unknown ActionTriggerEvent = iota
 	BeforeCreate
 	AfterCreate
 	BeforeUpdate
