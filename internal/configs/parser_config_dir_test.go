@@ -304,7 +304,6 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 		},
 		"duplicate_backend_blocks_in_test": {
 			"duplicate_backend_blocks_in_test.tftest.hcl:12,1-11: Multiple backend blocks for internal state file; The run \"test\" already uses an internal state file that's loaded by a backend in the run \"setup\". Please ensure that a backend block is only in the first apply run block for a given internal state file.",
-			"duplicate_backend_blocks_in_test.tftest.hcl:12,1-11: Duplicate \"skip_cleanup\" block; The run \"test\" has a skip_cleanup attribute set, but shares state with a later run \"setup\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.",
 		},
 		"duplicate_backend_blocks_in_run": {
 			"duplicate_backend_blocks_in_run.tftest.hcl:3,3-18: Multiple backend blocks within a run; A backend block has already been defined inside the run \"setup\" at duplicate_backend_blocks_in_run.tftest.hcl:3,3-18.",
@@ -317,6 +316,9 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 		},
 		"non_state_storage_backend_in_test": {
 			"non_state_storage_backend_in_test.tftest.hcl:4,3-19: Only state storage backends can be used in a run; The \"remote\" backend type cannot be used in the backend block in run \"test\" at non_state_storage_backend_in_test.tftest.hcl:4,3-19.",
+		},
+		"skip_cleanup_after_backend": {
+			"skip_cleanup_after_backend.tftest.hcl:9,1-19: Conflicting \"skip_cleanup\" block; The run \"skip_cleanup\" has a skip_cleanup attribute set, but an earlier run block \"backend\" has a backend defined. The skip_cleanup attribute means the state backend will not be applied.",
 		},
 	}
 
