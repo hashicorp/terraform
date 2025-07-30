@@ -118,6 +118,7 @@ func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables
 		ExternalReferences: n.References(),
 		ExternalProviders:  providers,
 		Overrides:          mocking.PackageOverrides(run.Config, file.Config, mocks),
+		DeferralAllowed:    ctx.deferralAllowed,
 	}
 
 	waiter.update(tfCtx, moduletest.Running, nil)
