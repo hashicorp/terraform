@@ -81,7 +81,8 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 	}
 
 	if len(emptyBlocks) > 0 {
-		v.view.streams.Printf("Warning: list block(s) %v have 0 results.", emptyBlocks)
+		v.view.streams.Printf(
+			v.view.colorize.Color("[reset][yellow]Warning: list block(s) %v have 0 results.[reset]\n"), emptyBlocks)
 	}
 }
 

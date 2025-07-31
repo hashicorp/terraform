@@ -95,7 +95,7 @@ Warning: list block(s) [list.test_instance.example2] have 0 results.`,
 		},
 	}
 
-	for _, ts := range tests[len(tests)-1:] {
+	for _, ts := range tests {
 		t.Run(ts.name, func(t *testing.T) {
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("query", ts.directory)), td)
@@ -128,11 +128,11 @@ Warning: list block(s) [list.test_instance.example2] have 0 results.`,
 			args := []string{"-no-color"}
 			code = c.Run(args)
 			output = done(t)
-			actual := strings.TrimSpace(output.All())
 			if len(ts.expectedErr) == 0 {
 				if code != 0 {
 					t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 				}
+				actual := strings.TrimSpace(output.Stdout())
 
 				// Check that we have query output
 				expected := strings.TrimSpace(ts.expectedOut)
@@ -141,6 +141,7 @@ Warning: list block(s) [list.test_instance.example2] have 0 results.`,
 				}
 
 			} else {
+				actual := strings.TrimSpace(output.Stderr())
 				for _, expected := range ts.expectedErr {
 					expected := strings.TrimSpace(expected)
 					if diff := cmp.Diff(expected, actual); diff != "" {
