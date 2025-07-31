@@ -17,7 +17,7 @@ func _() {
 	_ = x[AfterDestroy-6]
 }
 
-const _ActionTriggerEvent_name = "UnkonwnBeforeCreateAfterCreateBeforeUpdateAfterUpdateBeforeDestroyAfterDestroy"
+const _ActionTriggerEvent_name = "UnknownBeforeCreateAfterCreateBeforeUpdateAfterUpdateBeforeDestroyAfterDestroy"
 
 var _ActionTriggerEvent_index = [...]uint8{0, 7, 19, 30, 42, 53, 66, 78}
 
