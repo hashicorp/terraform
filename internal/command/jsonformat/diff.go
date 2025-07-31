@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -70,9 +71,9 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			}
 
 			switch action.TriggerEvent {
-			case "BeforeCreate", "BeforeUpdate", "BeforeDestroy":
+			case configs.BeforeCreate.String(), configs.BeforeUpdate.String(), configs.BeforeDestroy.String():
 				before = append(before, action)
-			case "AfterCreate", "AfterUpdate", "AfterDestroy":
+			case configs.AfterCreate.String(), configs.AfterUpdate.String(), configs.AfterDestroy.String():
 				after = append(after, action)
 			default:
 				// The switch should be exhaustive.
