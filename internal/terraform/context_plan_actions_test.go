@@ -835,7 +835,7 @@ action "test_lifecycle" "hello" {}
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Lifecycle actions are not supported",
-					Detail:   "This versio of Terraform does not support lifecycle actions",
+					Detail:   "This version of Terraform does not support lifecycle actions",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
@@ -854,7 +854,7 @@ action "test_linked" "hello" {}
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Linked actions are not supported",
-					Detail:   "This versio of Terraform does not support linked actions",
+					Detail:   "This version of Terraform does not support linked actions",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
