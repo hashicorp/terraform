@@ -46,8 +46,21 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 	var diags tfdiags.Diagnostics
 	// First we order the action invocations by their trigger block index and events list index.
 	// This way we have the correct order of execution.
-	orderedActionInvocations := make([]*plans.ActionInvocationInstanceSrc, len(actionInvocations))
-	copy(orderedActionInvocations, actionInvocations)
+	orderedActionInvocations := make([]*plans.ActionInvocationInstance, 0, len(actionInvocations))
+	for _, invocation := range actionInvocations {
+		ai := ctx.Changes().GetActionInvocation(invocation.Addr, invocation.TriggeringResourceAddr, invocation.ActionTriggerBlockIndex, invocation.ActionsListIndex)
+
+		if ai == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Failed to find action invocation instance %s in changes.", ai.Addr),
+				fmt.Sprintf("The action invocation instance %s was not found in the changes for %s.", ai.Addr, ai.TriggeringResourceAddr.String()),
+			))
+			return diags
+		}
+
+		orderedActionInvocations = append(orderedActionInvocations, ai)
+	}
 	sort.Slice(orderedActionInvocations, func(i, j int) bool {
 		if orderedActionInvocations[i].ActionTriggerBlockIndex == orderedActionInvocations[j].ActionTriggerBlockIndex {
 			return orderedActionInvocations[i].ActionsListIndex < orderedActionInvocations[j].ActionsListIndex
@@ -100,20 +113,11 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 			return diags
 		}
 
-		ais, err := ai.Decode(&actionSchema)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				fmt.Sprintf("Failed to decode action data for %s", ai.Addr),
-				err.Error(),
-			))
-		}
-
 		// We don't want to send the marks, but all marks are okay in the context of an action invocation.
 		unmarkedConfigValue, _ := actionData.ConfigValue.UnmarkDeep()
 
 		// Validate that what we planned matches the action data we have.
-		errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ais.ConfigValue, unmarkedConfigValue)
+		errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, unmarkedConfigValue)
 		for _, err := range errs {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

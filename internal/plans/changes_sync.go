@@ -239,8 +239,9 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 	}
 }
 
-// GetActionInvocation
-func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance) *ActionInvocationInstance {
+// GetActionInvocation gets an action invocation based on the action address, the triggering
+// resource address, the action trigger block index, and the action list index.
+func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance, triggeringResourceAddr addrs.AbsResourceInstance, triggerBlockIndex, actionListIndex int) *ActionInvocationInstance {
 	if cs == nil {
 		panic("GetActionInvocation on nil ChangesSync")
 	}
@@ -248,7 +249,7 @@ func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance) *Action
 	defer cs.lock.Unlock()
 
 	for _, a := range cs.changes.ActionInvocations {
-		if a.Addr.Equal(addr) {
+		if a.Addr.Equal(addr) && a.TriggeringResourceAddr.Equal(triggeringResourceAddr) && a.ActionTriggerBlockIndex == triggerBlockIndex && a.ActionsListIndex == actionListIndex {
 			return a
 		}
 	}
