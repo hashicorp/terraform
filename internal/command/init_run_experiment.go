@@ -178,9 +178,9 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	// This is step one of a two-step provider download process
 	// Providers may be downloaded by this code, but the dependency lock file is only updated later in `init`
 	// after step two of provider download is complete.
-	configProvidersOutput, configProvidersOutcome, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	configProvidersOutput, changedConfigProviders, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
-	if configProvidersOutcome == ProviderDownloadAborted || configProviderDiags.HasErrors() {
+	if configProviderDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -244,17 +244,16 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 
 	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
 	// This is step two of a two-step provider download process
-	stateProvidersOutput, stateProvidersOutcome, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	stateProvidersOutput, changedStateProviders, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
-	if stateProvidersOutcome == ProviderDownloadAborted || stateProvidersDiags.HasErrors() {
+	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
 	if stateProvidersOutput {
 		header = true
 	}
-	if configProvidersOutcome == ProviderDownloadLocksChanged ||
-		stateProvidersOutcome == ProviderDownloadLocksChanged {
+	if changedConfigProviders || changedStateProviders {
 		// Only update the dependency lock file if locks differ.
 		// We update the lock file once, after all dependencies are collected,
 		// to avoid scenarios where Terraform is interrupted between partial updates.
