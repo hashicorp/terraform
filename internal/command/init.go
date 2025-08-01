@@ -362,8 +362,11 @@ the backend configuration is present and valid.
 	return back, true, diags
 }
 
-// Load the complete module tree, and fetch any missing providers.
-// This method outputs its own Ui.
+// getProviders determines what providers are required given configuration and state data. The method downloads any missing providers
+// and replaces the contents of the dependency lock file if any changes happen.
+// The calling code is expected to have loaded the complete module tree and read the state file, and passes that data into this method.
+//
+// This method outputs to the provided view. The returned `output` boolean lets calling code know if anything has been rendered via the view.
 func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output, abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
@@ -812,6 +815,10 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	return true, false, diags
 }
 
+// getProvidersFromConfig determines what providers are required by the given configuration data.
+// The method downloads any missing providers that aren't already downloaded and then returns
+// dependency lock data based on the configuration.
+// The dependency lock file itself isn't updated here.
 func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
@@ -903,6 +910,10 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	return true, configLocks, diags
 }
 
+// getProvidersFromState determines what providers are required by the given state data.
+// The method downloads any missing providers that aren't already downloaded and then returns
+// dependency lock data based on the state.
+// The dependency lock file itself isn't updated here.
 func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
