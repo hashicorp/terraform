@@ -24,7 +24,7 @@ func TestContext2Apply_actions(t *testing.T) {
 		mode                            plans.Mode
 		prevRunState                    *states.State
 		events                          []providers.InvokeActionEvent
-		callingInvokeReturnsDiagnostics tfdiags.Diagnostics
+		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
 		planOpts                        *PlanOpts
 
 		expectInvokeActionCalled bool
@@ -181,7 +181,7 @@ resource "test_object" "a" {
 			},
 		},
 
-		"before_create failing to call invoke": {
+		"before_create failing when calling invoke": {
 			module: map[string]string{
 				"main.tf": `
 action "act_unlinked" "hello" {}
@@ -196,12 +196,14 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-			callingInvokeReturnsDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"test case for failing",
-					"this simulates a provider failing before the action is invoked",
-				),
+			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"test case for failing",
+						"this simulates a provider failing before the action is invoked",
+					),
+				}
 			},
 			expectDiagnostics: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -210,6 +212,124 @@ resource "test_object" "a" {
 					"this simulates a provider failing before the action is invoked",
 				),
 			},
+		},
+
+		"failing an action stops next actions in list": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+action "act_unlinked" "failure" {
+  config {
+    attr = "failure"
+  }
+}
+action "act_unlinked" "goodbye" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello, action.act_unlinked.failure, action.act_unlinked.goodbye]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			callingInvokeReturnsDiagnostics: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {
+				if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
+					// Simulate a failure for the second action
+					return tfdiags.Diagnostics{
+						tfdiags.Sourceless(
+							tfdiags.Error,
+							"test case for failing",
+							"this simulates a provider failing before the action is invoked",
+						),
+					}
+				}
+				return tfdiags.Diagnostics{}
+			},
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"test case for failing",
+					"this simulates a provider failing before the action is invoked",
+				),
+			},
+			// We expect two calls but not the third one, because the second action fails
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("failure"),
+				}),
+			}},
+		},
+
+		"failing an action stops next action triggers": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+action "act_unlinked" "failure" {
+  config {
+    attr = "failure"
+  }
+}
+action "act_unlinked" "goodbye" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.failure]
+    }
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.goodbye]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			callingInvokeReturnsDiagnostics: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {
+				if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
+					// Simulate a failure for the second action
+					return tfdiags.Diagnostics{
+						tfdiags.Sourceless(
+							tfdiags.Error,
+							"test case for failing",
+							"this simulates a provider failing before the action is invoked",
+						),
+					}
+				}
+				return tfdiags.Diagnostics{}
+			},
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"test case for failing",
+					"this simulates a provider failing before the action is invoked",
+				),
+			},
+			// We expect two calls but not the third one, because the second action fails
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("failure"),
+				}),
+			}},
 		},
 
 		"action with configuration": {
@@ -364,9 +484,9 @@ resource "test_object" "b" {
 				InvokeActionFn: func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
 					invokeActionCalls = append(invokeActionCalls, req)
 
-					if len(tc.callingInvokeReturnsDiagnostics) > 0 {
+					if tc.callingInvokeReturnsDiagnostics != nil && len(tc.callingInvokeReturnsDiagnostics(req)) > 0 {
 						return providers.InvokeActionResponse{
-							Diagnostics: tc.callingInvokeReturnsDiagnostics,
+							Diagnostics: tc.callingInvokeReturnsDiagnostics(req),
 						}
 					}
 
@@ -428,11 +548,12 @@ resource "test_object" "b" {
 			}
 			for i, expectedCall := range tc.expectInvokeActionCalls {
 				actualCall := invokeActionCalls[i]
+
 				if actualCall.ActionType != expectedCall.ActionType {
 					t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
 				}
 				if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
-					t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData, actualCall.PlannedActionData)
+					t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
 				}
 			}
 		})
