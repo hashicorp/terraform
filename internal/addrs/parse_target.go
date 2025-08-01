@@ -54,21 +54,49 @@ func parseTarget(traversal hcl.Traversal, allowPartial bool) (*Target, tfdiags.D
 		}, diags
 	}
 
-	riAddr, moreDiags := parseResourceInstanceUnderModule(path, allowPartial, remain)
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return nil, diags
+	var parseAction bool
+	if tr, ok := traversal[0].(hcl.TraverseRoot); ok {
+		if tr.Name == "action" {
+			parseAction = true
+		}
 	}
 
 	var subject Targetable
-	switch {
-	case riAddr.Resource.Key == NoKey:
-		// We always assume that a no-key instance is meant to
-		// be referring to the whole resource, because the distinction
-		// doesn't really matter for targets anyway.
-		subject = riAddr.ContainingResource()
-	default:
-		subject = riAddr
+
+	if parseAction {
+		actionAddr, moreDiags := parseActionInstanceUnderModule(path, allowPartial, remain)
+
+		diags = diags.Append(moreDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		switch {
+		case actionAddr.Action.Key == NoKey:
+			// We always assume that a no-key instance is meant to
+			// be referring to the whole resource, because the distinction
+			// doesn't really matter for targets anyway.
+			subject = actionAddr.ContainingAction()
+		default:
+			subject = actionAddr
+		}
+	} else {
+		riAddr, moreDiags := parseResourceInstanceUnderModule(path, allowPartial, remain)
+
+		diags = diags.Append(moreDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		switch {
+		case riAddr.Resource.Key == NoKey:
+			// We always assume that a no-key instance is meant to
+			// be referring to the whole resource, because the distinction
+			// doesn't really matter for targets anyway.
+			subject = riAddr.ContainingResource()
+		default:
+			subject = riAddr
+		}
 	}
 
 	return &Target{
@@ -309,6 +337,109 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, allowPartial bo
 			Subject:  remain[1].SourceRange().Ptr(),
 		})
 		return AbsResourceInstance{}, diags
+	}
+}
+
+func parseActionInstanceUnderModule(
+	moduleAddr ModuleInstance,
+	allowPartial bool,
+	remain hcl.Traversal,
+) (AbsActionInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if remain.RootName() != "action" {
+		panic("expected action")
+	}
+
+	remain = remain[1:]
+
+	if len(remain) < 2 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   "Action specification must include an action type and name.",
+			Subject:  remain.SourceRange().Ptr(),
+		})
+		return AbsActionInstance{}, diags
+	}
+
+	var typeName, name string
+	switch tt := remain[0].(type) {
+	case hcl.TraverseRoot:
+		typeName = tt.Name
+	case hcl.TraverseAttr:
+		typeName = tt.Name
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   "Action type is required.",
+			Subject:  remain[0].SourceRange().Ptr(),
+		})
+	}
+
+	switch tt := remain[1].(type) {
+	case hcl.TraverseAttr:
+		name = tt.Name
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   "An action name is required.",
+			Subject:  remain[1].SourceRange().Ptr(),
+		})
+		return AbsActionInstance{}, diags
+	}
+
+	remain = remain[2:]
+	switch len(remain) {
+	case 0:
+		return moduleAddr.ActionInstance(typeName, name, NoKey), diags
+	case 1:
+		switch tt := remain[0].(type) {
+		case hcl.TraverseIndex:
+			key, err := ParseInstanceKey(tt.Key)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid address",
+					Detail:   fmt.Sprintf("Invalid action instance key: %s.", err),
+					Subject:  remain[0].SourceRange().Ptr(),
+				})
+				return AbsActionInstance{}, diags
+			}
+
+			return moduleAddr.ActionInstance(typeName, name, key), diags
+		case hcl.TraverseSplat:
+			if allowPartial {
+				return moduleAddr.ActionInstance(typeName, name, WildcardKey), diags
+			}
+
+			// Otherwise, return an error.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address",
+				Detail:   "Action instance key must be given in square brackets.",
+				Subject:  remain[0].SourceRange().Ptr(),
+			})
+			return AbsActionInstance{}, diags
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address",
+				Detail:   "Action instance key must be given in square brackets.",
+				Subject:  remain[0].SourceRange().Ptr(),
+			})
+			return AbsActionInstance{}, diags
+		}
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   "Unexpected extra operators after address.",
+			Subject:  remain[1].SourceRange().Ptr(),
+		})
+		return AbsActionInstance{}, diags
 	}
 }
 

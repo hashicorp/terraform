@@ -92,6 +92,7 @@ func (a Action) ImpliedProvider() string {
 // produces zero or more instances, which can be addressed using this type.
 type ActionInstance struct {
 	referenceable
+	targetable
 	Action Action
 	Key    InstanceKey
 }
@@ -229,6 +230,7 @@ func (a AbsAction) UniqueKey() UniqueKey {
 // AbsActionInstance is an absolute address for an action instance under a
 // given module path.
 type AbsActionInstance struct {
+	targetable
 	Module ModuleInstance
 	Action ActionInstance
 }
@@ -312,11 +314,7 @@ func (a AbsActionInstance) UniqueKey() UniqueKey {
 func (a absActionInstanceKey) uniqueKeySigil() {}
 
 func (a AbsActionInstance) TargetContains(other Targetable) bool {
-	switch to := other.(type) {
-	// TODO: Continue here
-	default:
-		return false
-	}
+	return false
 }
 
 func (a AbsActionInstance) AddrType() TargetableAddrType {
