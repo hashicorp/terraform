@@ -698,7 +698,6 @@ func (n *nodeExpandPlannableResource) Actions() []addrs.ConfigAction {
 				panic(fmt.Sprintf("failed to parse action trigger reference %s: %s", actionRef.Traversal, diags.Err()))
 			}
 			var action addrs.Action
-			// TODO: This needs to take the provider field into account once we support it
 			if a, ok := ref.Subject.(addrs.ActionInstance); ok {
 				action = a.Action
 			} else if a, ok := ref.Subject.(addrs.Action); ok {
