@@ -22,18 +22,12 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-// TestFileState is a helper struct that just maps a run block to the state that
-// was produced by the execution of that run block.
-type TestFileState struct {
-	Run   *moduletest.Run
-	State *states.State
-}
 
 // EvalContext is a container for context relating to the evaluation of a
 // particular .tftest.hcl file.
@@ -60,11 +54,9 @@ type EvalContext struct {
 	providersLock  sync.Mutex
 
 	// FileStates is a mapping of module keys to it's last applied state
-	// file.
-	//
-	// This is used to clean up the infrastructure created during the test after
-	// the test has finished.
-	FileStates map[string]*TestFileState
+	// file. This is tracked and returned to log state files of ongoing test
+	// operations.
+	FileStates map[string]*teststates.TestRunState
 	stateLock  sync.Mutex
 
 	// cancelContext and stopContext can be used to terminate the evaluation of the
@@ -91,6 +83,7 @@ type EvalContextOpts struct {
 	StopCtx           context.Context
 	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 	Config            *configs.Config
+	FileStates        map[string]*teststates.TestRunState
 	Concurrency       int
 	DeferralAllowed   bool
 }
@@ -112,7 +105,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		providers:         make(map[addrs.RootProviderConfig]providers.Interface),
 		providerStatus:    make(map[addrs.RootProviderConfig]moduletest.Status),
 		providersLock:     sync.Mutex{},
-		FileStates:        make(map[string]*TestFileState),
+		FileStates:        opts.FileStates,
 		stateLock:         sync.Mutex{},
 		cancelContext:     cancelCtx,
 		cancelFunc:        cancel,
@@ -556,16 +549,15 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 	return diags
 }
 
-func (ec *EvalContext) SetFileState(key string, state *TestFileState) {
+func (ec *EvalContext) SetFileState(key string, run *moduletest.Run, state *states.State, reason teststates.StateReason) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
-	ec.FileStates[key] = &TestFileState{
-		Run:   state.Run,
-		State: state.State,
-	}
+	ec.FileStates[key].Run = run
+	ec.FileStates[key].State = state
+	ec.FileStates[key].Manifest.Reason = reason
 }
 
-func (ec *EvalContext) GetFileState(key string) *TestFileState {
+func (ec *EvalContext) GetFileState(key string) *teststates.TestRunState {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
 	return ec.FileStates[key]

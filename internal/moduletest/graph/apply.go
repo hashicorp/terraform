@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -69,10 +70,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	if status == moduletest.Error {
 		// Even though the apply operation failed, the graph may have done
 		// partial updates and the returned state should reflect this.
-		ctx.SetFileState(key, &TestFileState{
-			Run:   run,
-			State: updated,
-		})
+		ctx.SetFileState(key, run, updated, teststates.StateReasonNone)
 		return
 	}
 
@@ -114,10 +112,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	// actually updated by this change. We want to use the run that
 	// most recently updated the tracked state as the cleanup
 	// configuration.
-	ctx.SetFileState(key, &TestFileState{
-		Run:   run,
-		State: updated,
-	})
+	ctx.SetFileState(key, run, updated, teststates.StateReasonNone)
 }
 
 func apply(tfCtx *terraform.Context, run *configs.TestRun, module *configs.Config, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {

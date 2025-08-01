@@ -70,7 +70,6 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 			File:      b.File,
 			Providers: opts.ContextOpts.Providers,
 		},
-		&EvalContextTransformer{File: b.File},
 		&ReferenceTransformer{},
 		&CloseTestGraphTransformer{},
 		&terraform.TransitiveReductionTransformer{},

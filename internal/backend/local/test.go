@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
+	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -87,6 +88,14 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		return moduletest.Error, diags
 	}
 
+	manifest, err := teststates.LoadManifest(".")
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to open state manifest",
+			fmt.Sprintf("The test state manifest file could not be opened: %s.", err)))
+	}
+
 	runner.View.Abstract(suite)
 
 	// We have two sets of variables that are available to different test files.
@@ -104,38 +113,24 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		if runner.Cancelled {
 			return suite.Status, diags
 		}
-
 		file := suite.Files[name]
-
-		currentGlobalVariables := runner.GlobalVariables
-		if filepath.Dir(file.Name) == runner.TestingDirectory {
-			// If the file is in the test directory, we'll use the union of the
-			// global variables and the global test variables.
-			currentGlobalVariables = testDirectoryGlobalVariables
-		}
-
-		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
-			Config:            runner.Config,
-			CancelCtx:         runner.CancelledCtx,
-			StopCtx:           runner.StoppedCtx,
-			Verbose:           runner.Verbose,
-			Render:            runner.View,
-			UnparsedVariables: currentGlobalVariables,
-			Concurrency:       runner.Concurrency,
-			DeferralAllowed:   runner.DeferralAllowed,
-		})
-
 		fileRunner := &TestFileRunner{
-			Suite:       runner,
-			EvalContext: evalCtx,
+			Suite:                        runner,
+			TestDirectoryGlobalVariables: testDirectoryGlobalVariables,
+			Manifest:                     manifest,
 		}
-
 		runner.View.File(file, moduletest.Starting)
 		fileRunner.Test(file)
 		runner.View.File(file, moduletest.Complete)
 		suite.Status = suite.Status.Merge(file.Status)
 	}
 
+	if err := manifest.Save(); err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save state manifest",
+			fmt.Sprintf("The test state manifest file could not be saved: %s.", err)))
+	}
 	runner.View.Conclusion(suite)
 
 	if runner.JUnit != nil {
@@ -219,8 +214,9 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 type TestFileRunner struct {
 	// Suite contains all the helpful metadata about the test that we need
 	// during the execution of a file.
-	Suite       *TestSuiteRunner
-	EvalContext *graph.EvalContext
+	Suite                        *TestSuiteRunner
+	TestDirectoryGlobalVariables map[string]backendrun.UnparsedVariableValue
+	Manifest                     *teststates.TestManifest
 }
 
 func (runner *TestFileRunner) Test(file *moduletest.File) {
@@ -229,6 +225,13 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// The file validation only returns warnings so we'll just add them without
 	// checking anything about them.
 	file.Diagnostics = file.Diagnostics.Append(file.Config.Validate(runner.Suite.Config))
+
+	states, stateDiags := runner.Manifest.LoadStates(file)
+	file.Diagnostics = file.Diagnostics.Append(stateDiags)
+	if stateDiags.HasErrors() {
+		file.Status = moduletest.Error
+		return
+	}
 
 	// We'll execute the tests in the file. First, mark the overall status as
 	// being skipped. This will ensure that if we've cancelled and the files not
@@ -239,6 +242,25 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		file.Status = file.Status.Merge(moduletest.Pass)
 		return
 	}
+
+	currentGlobalVariables := runner.Suite.GlobalVariables
+	if filepath.Dir(file.Name) == runner.Suite.TestingDirectory {
+		// If the file is in the test directory, we'll use the union of the
+		// global variables and the global test variables.
+		currentGlobalVariables = runner.TestDirectoryGlobalVariables
+	}
+
+	evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
+		Config:            runner.Suite.Config,
+		CancelCtx:         runner.Suite.CancelledCtx,
+		StopCtx:           runner.Suite.StoppedCtx,
+		Verbose:           runner.Suite.Verbose,
+		Render:            runner.Suite.View,
+		UnparsedVariables: currentGlobalVariables,
+		FileStates:        states,
+		Concurrency:       runner.Suite.Concurrency,
+		DeferralAllowed:   runner.Suite.DeferralAllowed,
+	})
 
 	// Build the graph for the file.
 	b := graph.TestGraphBuilder{
@@ -253,13 +275,16 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// walk and execute the graph
-	diags = diags.Append(graph.Walk(g, runner.EvalContext))
+	diags = diags.Append(graph.Walk(g, evalCtx))
+
+	// save any dangling state files
+	diags = diags.Append(runner.Manifest.SaveStates(file, states))
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:
 	// 			Failure! 0 passed, 1 failed.
 	// 			exit status 1
-	if runner.EvalContext.Cancelled() {
+	if evalCtx.Cancelled() {
 		file.UpdateStatus(moduletest.Error)
 		log.Printf("[TRACE] TestFileRunner: graph walk terminated for %s", file.Name)
 		return

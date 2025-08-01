@@ -135,6 +135,12 @@ func (d *Dir) DataDir() string {
 	return d.dataDir
 }
 
+// TestDataDir returns the path where the receiver keeps settings
+// and artifacts related to terraform tests.
+func (d *Dir) TestDataDir() string {
+	return filepath.Join(d.dataDir, "test")
+}
+
 // ensureDataDir creates the data directory and all of the necessary parent
 // directories that lead to it, if they don't already exist.
 //

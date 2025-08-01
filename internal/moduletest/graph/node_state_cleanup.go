@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -79,7 +80,6 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 		file.UpdateStatus(moduletest.Error)
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
 
-		// intentionally return nil to allow further cleanup
 		return
 	}
 
@@ -95,9 +95,10 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	}
 
 	if !updated.Empty() {
-		// Then we failed to adequately clean up the state, so mark success
-		// as false.
+		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonError)
 		file.UpdateStatus(moduletest.Error)
+	} else {
+		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonNone)
 	}
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
 }
