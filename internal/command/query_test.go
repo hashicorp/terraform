@@ -90,7 +90,7 @@ Blocks of type "resource" are not expected here.
 			expectedOut: `list.test_instance.example   id=test-instance-1   Test Instance 1
 list.test_instance.example   id=test-instance-2   Test Instance 2
 
-Warning: list block(s) [list.test_instance.example2] have 0 results.`,
+Warning: list block(s) [list.test_instance.example2] returned 0 results.`,
 			initCode: 0,
 		},
 	}

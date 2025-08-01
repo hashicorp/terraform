@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
@@ -81,8 +82,8 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 	}
 
 	if len(emptyBlocks) > 0 {
-		v.view.streams.Printf(
-			v.view.colorize.Color("[reset][yellow]Warning: list block(s) %v have 0 results.[reset]\n"), emptyBlocks)
+		msg := fmt.Sprintf(v.view.colorize.Color("[bold][yellow]Warning:[reset][bold] list block(s) [%s] returned 0 results.\n"), strings.Join(emptyBlocks, ", "))
+		v.view.streams.Println(format.WordWrap(msg, v.view.outputColumns()))
 	}
 }
 

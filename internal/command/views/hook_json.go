@@ -266,6 +266,7 @@ func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plan
 	h.view.log.Info(
 		fmt.Sprintf("%s: List complete", addr.String()),
 		"type", json.MessageListComplete,
+		"total", data.LengthInt(),
 	)
 	return terraform.HookActionContinue, nil
 }
