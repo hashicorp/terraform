@@ -143,6 +143,34 @@ The `ssh` connection also supports the following fields to facilitate connection
 | `proxy_port` | The port to use connect to the proxy host. | |
 | `proxy_user_name` | The username to use connect to the private proxy host. This argument should be specified only if authentication is required for the HTTP Proxy server. | |
 | `proxy_user_password` | The password to use connect to the private proxy host. This argument should be specified only if authentication is required for the HTTP Proxy server. | |
+| `proxy_command` | A command to execute that will pipe stdin and stdout through to establish the connection. This is useful for connecting through custom networking setups. | |
+
+-> **Note:** You should only specify one connection method at a time. If multiple connection methods are specified (proxy_command, proxy_host, bastion_host), Terraform will use them in the following order of precedence: proxy_command, proxy_host, bastion_host.
+
+### Example using proxy_command
+
+```hcl
+resource "aws_instance" "example" {
+  # ... instance configuration ...
+
+  # Use a provisioner with proxy_command
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Hello from the remote instance'",
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      host        = self.private_ip
+      private_key = file("~/.ssh/id_rsa")
+
+      # Use a proxy command to connect to a proxy through nc
+      proxy_command = "nc -X connect -x proxy.example.com:8080 ${self.private_ip} 22"
+    }
+  }
+}
+```
 
 ## How Provisioners Execute Remote Scripts
 
