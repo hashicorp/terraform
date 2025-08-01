@@ -285,8 +285,14 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		g.Connect(dag.BasicEdge(closer, p))
 	}
 
+	// We collect all action nodes to use later
+	actionNodes := []*nodeExpandActionDeclaration{}
+
 	// Now look for all provider consumers and connect them to the appropriate closers.
 	for _, v := range g.Vertices() {
+		if actionNode, ok := v.(*nodeExpandActionDeclaration); ok {
+			actionNodes = append(actionNodes, actionNode)
+		}
 		pc, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue
@@ -321,13 +327,11 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		// It should have been resolved already by the ProviderTransformer.
 		actions := apc.Actions()
 		actionProviders := []addrs.AbsProviderConfig{}
-		for _, v2 := range g.Vertices() {
-			if actionNode, ok := v2.(*nodeExpandActionDeclaration); ok {
-				// This is an action node, so check if it matches an action
-				for _, action := range actions {
-					if actionNode.ActionAddr().Equal(action) {
-						actionProviders = append(actionProviders, actionNode.ResolvedProvider)
-					}
+		for _, actionNode := range actionNodes {
+			// This is an action node, so check if it matches an action
+			for _, action := range actions {
+				if actionNode.ActionAddr().Equal(action) {
+					actionProviders = append(actionProviders, actionNode.ResolvedProvider)
 				}
 			}
 		}
