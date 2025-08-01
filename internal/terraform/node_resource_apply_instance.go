@@ -213,7 +213,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
 
-	diags = diags.Append(invokeActions(ctx, n.beforeActionInvocations))
+	diags = diags.Append(invokeActionsWithEnhancedDiagnostics(ctx, n.beforeActionInvocations, &n.Addr))
 	if diags.HasErrors() {
 		return diags
 	}
