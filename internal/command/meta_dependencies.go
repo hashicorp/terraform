@@ -73,13 +73,13 @@ func (m *Meta) replaceLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostic
 //
 // Any overlaps between the two sets of locks will be ignored; only new providers will
 // be appended.
-func (m *Meta) mergeLockedDependencies(state, config *depsfile.Locks) *depsfile.Locks {
+func (m *Meta) mergeLockedDependencies(stateLocks, configLocks *depsfile.Locks) *depsfile.Locks {
 
-	configCopy := *config
+	mergedLocks := configLocks.DeepCopy()
 
 	// Append locks derived from the state to locks derived from config.
-	for _, stateLock := range state.AllProviders() {
-		match := configCopy.Provider(stateLock.Provider())
+	for _, stateLock := range stateLocks.AllProviders() {
+		match := mergedLocks.Provider(stateLock.Provider())
 		if match != nil {
 			log.Printf("[TRACE] Ignoring provider %s version %s in appendLockedDependencies; lock file contains %s version %s already",
 				stateLock.Provider(),
@@ -90,12 +90,12 @@ func (m *Meta) mergeLockedDependencies(state, config *depsfile.Locks) *depsfile.
 		} else {
 			// This is a new provider now present in the lockfile yet
 			log.Printf("[DEBUG] Appending provider %s to the lock file", stateLock.Provider())
-			configCopy.SetProvider(stateLock.Provider(), stateLock.Version(), stateLock.VersionConstraints(), stateLock.AllHashes())
+			mergedLocks.SetProvider(stateLock.Provider(), stateLock.Version(), stateLock.VersionConstraints(), stateLock.AllHashes())
 		}
 	}
 
 	// Override the locks file with the new combination of locks
-	return &configCopy
+	return mergedLocks
 }
 
 // annotateDependencyLocksWithOverrides modifies the given Locks object in-place
