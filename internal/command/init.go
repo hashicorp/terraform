@@ -42,6 +42,8 @@ import (
 // module and clones it to the working directory.
 type InitCommand struct {
 	Meta
+
+	incompleteProviders []string
 }
 
 func (c *InitCommand) Run(args []string) int {
@@ -810,7 +812,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	return true, false, diags
 }
 
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, locksChanged bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -820,12 +822,11 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	// lock file called for.
 	diags = diags.Append(c.providerDevOverrideInitWarnings())
 
-	// First we'll collect all the provider dependencies we can see in the
-	// configuration and the state.
+	// Collect the provider dependencies from the configuration.
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return false, false, nil, diags
+		return false, nil, diags
 	}
 
 	for providerAddr := range reqs {
@@ -839,13 +840,6 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 				),
 			))
 		}
-	}
-
-	previousLocks, moreDiags := c.lockedDependencies()
-	diags = diags.Append(moreDiags)
-
-	if diags.HasErrors() {
-		return false, false, nil, diags
 	}
 
 	var inst *providercache.Installer
@@ -867,17 +861,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
-	// We want to print out a nice warning if we don't manage to pull
-	// checksums for all our providers. This is tracked via callbacks
-	// and incomplete providers are stored here for later analysis.
-	var incompleteProviders []string
-
-	// Because we're currently just streaming a series of events sequentially
-	// into the terminal, we're showing only a subset of the events to keep
-	// things relatively concise. Later it'd be nice to have a progress UI
-	// where statuses update in-place, but we can't do that as long as we
-	// are shimming our vt100 output to the legacy console API on Windows.
-	evts := c.prepareInstallerEvents(ctx, reqs, incompleteProviders, diags, inst, view, views.InitializingProviderPluginFromConfigMessage)
+	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromConfigMessage)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -885,16 +869,25 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		if flagLockfile == "readonly" {
 			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 			view.Diagnostics(diags)
-			return true, false, nil, diags
+			return true, nil, diags
 		}
 
 		mode = providercache.InstallUpgrades
 	}
-	newLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
+
+	previousLocks, moreDiags := c.lockedDependencies()
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		return false, nil, diags
+	}
+
+	// Determine which required providers are already downloaded, and download any
+	// new providers or newer versions of providers
+	configLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, false, nil, diags
+		return true, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -904,77 +897,13 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			diags = diags.Append(err)
 		}
 
-		return true, false, nil, diags
+		return true, nil, diags
 	}
 
-	// If the provider dependencies have changed since the last run then we'll
-	// say a little about that in case the reader wasn't expecting a change.
-	// (When we later integrate module dependencies into the lock file we'll
-	// probably want to refactor this so that we produce one lock-file related
-	// message for all changes together, but this is here for now just because
-	// it's the smallest change relative to what came before it, which was
-	// a hidden JSON file specifically for tracking providers.)
-	if !newLocks.Equal(previousLocks) {
-		// if readonly mode
-		if flagLockfile == "readonly" {
-			// check if required provider dependencies change
-			if !newLocks.EqualProviderAddress(previousLocks) {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					`Provider dependency changes detected`,
-					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
-				))
-				return true, false, nil, diags
-			}
-
-			// suppress updating the file to record any new information it learned,
-			// such as a hash using a new scheme.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				`Provider lock file not updated`,
-				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
-			))
-			return true, false, previousLocks, diags
-		}
-
-		// Jump in here and add a warning if any of the providers are incomplete.
-		if len(incompleteProviders) > 0 {
-			// We don't really care about the order here, we just want the
-			// output to be deterministic.
-			sort.Slice(incompleteProviders, func(i, j int) bool {
-				return incompleteProviders[i] < incompleteProviders[j]
-			})
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				incompleteLockFileInformationHeader,
-				fmt.Sprintf(
-					incompleteLockFileInformationBody,
-					strings.Join(incompleteProviders, "\n  - "),
-					getproviders.CurrentPlatform.String())))
-		}
-
-		if previousLocks.Empty() {
-			// A change from empty to non-empty is special because it suggests
-			// we're running "terraform init" for the first time against a
-			// new configuration. In that case we'll take the opportunity to
-			// say a little about what the dependency lock file is, for new
-			// users or those who are upgrading from a previous Terraform
-			// version that didn't have dependency lock files.
-			//
-			// As calling code controls saving dependencies, we report that
-			// a lock file _will_ be made.
-			view.Output(views.PendingLockInfo)
-		} else {
-			view.Output(views.DependenciesLockPendingChangesInfo)
-		}
-
-		return true, true, newLocks, diags
-	}
-
-	return true, false, previousLocks, diags
+	return true, configLocks, diags
 }
 
-func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, locksChanged bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -986,7 +915,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 
 	if state == nil {
 		// if there is no state there are no providers to get
-		return true, false, nil, nil
+		return true, nil, nil
 	}
 	reqs := state.ProviderRequirements()
 
@@ -1003,14 +932,11 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		}
 	}
 
-	// We start with the existing locks. If the state contains only providers that
-	// are described by the state then there will be no differences between previous and new
-	// locks. However if the state contains additional providers there will be a difference.
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
 	if diags.HasErrors() {
-		return false, false, nil, diags
+		return false, nil, diags
 	}
 
 	var inst *providercache.Installer
@@ -1032,17 +958,12 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
-	// We want to print out a nice warning if we don't manage to pull
-	// checksums for all our providers. This is tracked via callbacks
-	// and incomplete providers are stored here for later analysis.
-	var incompleteProviders []string
-
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
 	// where statuses update in-place, but we can't do that as long as we
 	// are shimming our vt100 output to the legacy console API on Windows.
-	evts := c.prepareInstallerEvents(ctx, reqs, incompleteProviders, diags, inst, view, views.InitializingProviderPluginFromStateMessage)
+	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromStateMessage)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -1050,7 +971,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		if flagLockfile == "readonly" {
 			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 			view.Diagnostics(diags)
-			return true, false, nil, diags
+			return true, nil, diags
 		}
 
 		mode = providercache.InstallUpgrades
@@ -1059,7 +980,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, false, nil, diags
+		return true, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -1069,8 +990,19 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 			diags = diags.Append(err)
 		}
 
-		return true, false, nil, diags
+		return true, nil, diags
 	}
+
+	return true, newLocks, diags
+}
+
+// saveDependencyLockFile overwrites the contents of the dependency lock file.
+// The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
+// configuration and state data.
+func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLocks *depsfile.Locks, flagLockfile string, view views.Init) (output bool, diags tfdiags.Diagnostics) {
+
+	// Get the combination of config and state locks
+	newLocks := c.mergeLockedDependencies(stateLocks, configLocks)
 
 	// If the provider dependencies have changed since the last run then we'll
 	// say a little about that in case the reader wasn't expecting a change.
@@ -1089,9 +1021,8 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 					`Provider dependency changes detected`,
 					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
 				))
-				return true, false, nil, diags
+				return output, diags
 			}
-
 			// suppress updating the file to record any new information it learned,
 			// such as a hash using a new scheme.
 			diags = diags.Append(tfdiags.Sourceless(
@@ -1099,25 +1030,23 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 				`Provider lock file not updated`,
 				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
 			))
-			return true, false, previousLocks, diags
+			return output, diags
 		}
-
 		// Jump in here and add a warning if any of the providers are incomplete.
-		if len(incompleteProviders) > 0 {
+		if len(c.incompleteProviders) > 0 {
 			// We don't really care about the order here, we just want the
 			// output to be deterministic.
-			sort.Slice(incompleteProviders, func(i, j int) bool {
-				return incompleteProviders[i] < incompleteProviders[j]
+			sort.Slice(c.incompleteProviders, func(i, j int) bool {
+				return c.incompleteProviders[i] < c.incompleteProviders[j]
 			})
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				incompleteLockFileInformationHeader,
 				fmt.Sprintf(
 					incompleteLockFileInformationBody,
-					strings.Join(incompleteProviders, "\n  - "),
+					strings.Join(c.incompleteProviders, "\n  - "),
 					getproviders.CurrentPlatform.String())))
 		}
-
 		if previousLocks.Empty() {
 			// A change from empty to non-empty is special because it suggests
 			// we're running "terraform init" for the first time against a
@@ -1126,29 +1055,27 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 			// users or those who are upgrading from a previous Terraform
 			// version that didn't have dependency lock files.
 			view.Output(views.LockInfo)
+			output = true
 		} else {
 			view.Output(views.DependenciesLockChangesInfo)
+			output = true
 		}
-
-		return true, true, newLocks, diags
+		lockFileDiags := c.replaceLockedDependencies(newLocks)
+		diags = diags.Append(lockFileDiags)
 	}
-
-	return true, false, previousLocks, diags
+	return output, diags
 }
 
 // prepareInstallerEvents returns an instance of *providercache.InstallerEvents. This struct defines callback functions that will be executed
 // when a specific type of event occurs during provider installation.
-// The calling code needs to provide a tfdiags.Diagnostics collection, so that provider installation code returns diags to the calling code using closures,
-// and similarly the calling code needs to provide a slice of strings that's used to report any providers that are installed in an "incomplete" way.
-//
-// This is an old code-comment linked to the original code this method was created from:
-/*	Because we're currently just streaming a series of events sequentially
-	into the terminal, we're showing only a subset of the events to keep
-	things relatively concise. Later it'd be nice to have a progress UI
-	where statuses update in-place, but we can't do that as long as we
-	are shimming our vt100 output to the legacy console API on Windows.
-*/
-func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, incompleteProviders []string, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode) *providercache.InstallerEvents {
+// The calling code needs to provide a tfdiags.Diagnostics collection, so that provider installation code returns diags to the calling code using closures
+func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode) *providercache.InstallerEvents {
+
+	// Because we're currently just streaming a series of events sequentially
+	// into the terminal, we're showing only a subset of the events to keep
+	// things relatively concise. Later it'd be nice to have a progress UI
+	// where statuses update in-place, but we can't do that as long as we
+	// are shimming our vt100 output to the legacy console API on Windows.
 	events := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
 			view.Output(views.InitializingProviderPluginFromConfigMessage)
@@ -1417,7 +1344,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 			// signedHashes previously.
 			//
 			// Either way, this is bad. Let's complain/warn.
-			incompleteProviders = append(incompleteProviders, provider.ForDisplay())
+			c.incompleteProviders = append(c.incompleteProviders, provider.ForDisplay())
 		},
 		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 			thirdPartySigned := false
