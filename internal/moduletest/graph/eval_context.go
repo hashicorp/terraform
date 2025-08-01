@@ -253,19 +253,14 @@ func (ec *EvalContext) HclContext(references []*addrs.Reference) (*hcl.EvalConte
 // already available in resultScope in case there are additional input
 // variables that were defined only for use in the test suite. Any variable
 // not defined in extraVariableVals will be evaluated through resultScope instead.
-func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
+func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	if run.ModuleConfig == nil {
-		// This should never happen, but if it does, we can't evaluate the run
-		return moduletest.Error, cty.NilVal, tfdiags.Diagnostics{}
-	}
 
-	mod := run.ModuleConfig.Module
 	// We need a derived evaluation scope that also supports referring to
 	// the prior run output values using the "run.NAME" syntax.
 	evalData := &evaluationData{
 		ctx:       ec,
-		module:    mod,
+		module:    module,
 		current:   resultScope.Data,
 		extraVars: extraVariableVals,
 	}
@@ -279,14 +274,14 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		ExternalFuncs: resultScope.ExternalFuncs,
 	}
 
-	log.Printf("[TRACE] EvalContext.Evaluate for %s", run.Addr())
+	log.Printf("[TRACE] EvalContext.Evaluate for %s", run.Name)
 
 	// We're going to assume the run has passed, and then if anything fails this
 	// value will be updated.
-	status := run.Status.Merge(moduletest.Pass)
+	status := moduletest.Pass
 
 	// Now validate all the assertions within this run block.
-	for i, rule := range run.Config.CheckRules {
+	for i, rule := range run.CheckRules {
 		var ruleDiags tfdiags.Diagnostics
 
 		refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, rule.Condition)
@@ -306,7 +301,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		if moreDiags.HasErrors() {
 			// if we can't evaluate the context properly, we can't evaulate the rule
 			// we add the diagnostics to the main diags and continue to the next rule
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, run.Name)
 			status = status.Merge(moduletest.Error)
 			diags = diags.Append(ruleDiags)
 			continue
@@ -320,7 +315,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 
 		diags = diags.Append(ruleDiags)
 		if ruleDiags.HasErrors() {
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, so cannot evaluate it", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, so cannot evaluate it", i, run.Name)
 			status = status.Merge(moduletest.Error)
 			continue
 		}
@@ -335,7 +330,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has null condition result", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has null condition result", i, run.Name)
 			continue
 		}
 
@@ -349,7 +344,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has unknown condition result", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has unknown condition result", i, run.Name)
 			continue
 		}
 
@@ -364,7 +359,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has non-boolean condition result", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has non-boolean condition result", i, run.Name)
 			continue
 		}
 
@@ -373,7 +368,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		runVal, _ = runVal.Unmark()
 
 		if runVal.False() {
-			log.Printf("[TRACE] EvalContext.Evaluate: test assertion failed for %s assertion %d", run.Addr(), i)
+			log.Printf("[TRACE] EvalContext.Evaluate: test assertion failed for %s assertion %d", run.Name, i)
 			status = status.Merge(moduletest.Fail)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
@@ -389,16 +384,16 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 			})
 			continue
 		} else {
-			log.Printf("[TRACE] EvalContext.Evaluate: test assertion succeeded for %s assertion %d", run.Addr(), i)
+			log.Printf("[TRACE] EvalContext.Evaluate: test assertion succeeded for %s assertion %d", run.Name, i)
 		}
 	}
 
 	// Our result includes an object representing all of the output values
 	// from the module we've just tested, which will then be available in
 	// any subsequent test cases in the same test suite.
-	outputVals := make(map[string]cty.Value, len(mod.Outputs))
-	runRng := tfdiags.SourceRangeFromHCL(run.Config.DeclRange)
-	for _, oc := range mod.Outputs {
+	outputVals := make(map[string]cty.Value, len(module.Outputs))
+	runRng := tfdiags.SourceRangeFromHCL(run.DeclRange)
+	for _, oc := range module.Outputs {
 		addr := oc.Addr()
 		v, moreDiags := scope.Data.GetOutput(addr, runRng)
 		diags = diags.Append(moreDiags)

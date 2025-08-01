@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -39,6 +40,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 
+	evalCtx.Renderer().Run(state.Run, file, moduletest.TearDown, 0)
 	if evalCtx.Cancelled() {
 		// Don't try and clean anything up if the execution has been cancelled.
 		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
@@ -81,13 +83,12 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 		return
 	}
 
-	runNode := &NodeTestRun{run: state.Run, opts: n.opts}
 	updated := state.State
 	startTime := time.Now().UTC()
-	waiter := NewOperationWaiter(nil, evalCtx, runNode, moduletest.Running, startTime.UnixMilli())
+	waiter := NewOperationWaiter(nil, evalCtx, file, state.Run, moduletest.Running, startTime.UnixMilli())
 	var destroyDiags tfdiags.Diagnostics
 	cancelled := waiter.Run(func() {
-		updated, destroyDiags = n.destroy(evalCtx, runNode, waiter)
+		updated, destroyDiags = n.destroy(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, waiter)
 	})
 	if cancelled {
 		destroyDiags = destroyDiags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -101,19 +102,17 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
 }
 
-func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
-	file := n.opts.File
+func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
 	fileState := ctx.GetFileState(n.stateKey)
 	state := fileState.State
-	run := runNode.run
-	log.Printf("[TRACE] TestFileRunner: called destroy for %s/%s", file.Name, run.Name)
+	log.Printf("[TRACE] TestFileRunner: called destroy for %s", run.Name)
 
 	if state.Empty() {
 		// Nothing to do!
 		return state, nil
 	}
 
-	variables, diags := runNode.GetVariables(ctx, false)
+	variables, diags := GetVariables(ctx, run, module, false)
 	if diags.HasErrors() {
 		return state, diags
 	}
@@ -121,18 +120,18 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 	// we ignore the diagnostics from here, because we will have reported them
 	// during the initial execution of the run block and we would not have
 	// executed the run block if there were any errors.
-	providers, mocks, _ := runNode.getProviders(ctx)
+	providers, mocks, _ := getProviders(ctx, file, run, module)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
 	// the original plan, and a successful destroy operation is the only thing
 	// we care about.
-	setVariables, _, _ := runNode.FilterVariablesToModule(variables)
+	setVariables, _, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:                   plans.DestroyMode,
+		Mode:                   plans.NormalMode,
 		SetVariables:           setVariables,
-		Overrides:              mocking.PackageOverrides(run.Config, file.Config, mocks),
+		Overrides:              mocking.PackageOverrides(run, file, mocks),
 		ExternalProviders:      providers,
 		SkipRefresh:            true,
 		OverridePreventDestroy: true,
@@ -140,10 +139,67 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 	}
 
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
-	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
 
 	waiter.update(tfCtx, moduletest.TearDown, nil)
-	plan, planDiags := tfCtx.Plan(run.ModuleConfig, state, planOpts)
+	plan, planDiags := tfCtx.Plan(module, state, planOpts)
+	diags = diags.Append(planDiags)
+	if diags.HasErrors() || plan.Errored {
+		return state, diags
+	}
+
+	if !plan.Complete {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Incomplete restore plan",
+			fmt.Sprintf("The restore plan for %s was reported as incomplete."+
+				" This means some of the cleanup operations were deferred due to unknown values, please check the rest of the output to see which resources could not be reverted.", run.Name)))
+	}
+
+	_, updated, applyDiags := apply(tfCtx, run, module, plan, moduletest.TearDown, variables, providers, waiter)
+	diags = diags.Append(applyDiags)
+	return updated, diags
+}
+
+func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
+	fileState := ctx.GetFileState(n.stateKey)
+	state := fileState.State
+	log.Printf("[TRACE] TestFileRunner: called destroy for %s", run.Name)
+
+	if state.Empty() {
+		// Nothing to do!
+		return state, nil
+	}
+
+	variables, diags := GetVariables(ctx, run, module, false)
+	if diags.HasErrors() {
+		return state, diags
+	}
+
+	// we ignore the diagnostics from here, because we will have reported them
+	// during the initial execution of the run block and we would not have
+	// executed the run block if there were any errors.
+	providers, mocks, _ := getProviders(ctx, file, run, module)
+
+	// During the destroy operation, we don't add warnings from this operation.
+	// Anything that would have been reported here was already reported during
+	// the original plan, and a successful destroy operation is the only thing
+	// we care about.
+	setVariables, _, _ := FilterVariablesToModule(module, variables)
+
+	planOpts := &terraform.PlanOpts{
+		Mode:                   plans.DestroyMode,
+		SetVariables:           setVariables,
+		Overrides:              mocking.PackageOverrides(run, file, mocks),
+		ExternalProviders:      providers,
+		SkipRefresh:            true,
+		OverridePreventDestroy: true,
+		DeferralAllowed:        ctx.deferralAllowed,
+	}
+
+	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
+
+	waiter.update(tfCtx, moduletest.TearDown, nil)
+	plan, planDiags := tfCtx.Plan(module, state, planOpts)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() || plan.Errored {
 		return state, diags
@@ -153,11 +209,11 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Incomplete destroy plan",
-			fmt.Sprintf("The destroy plan for %s/%s was reported as incomplete."+
-				" This means some of the cleanup operations were deferred due to unknown values, please check the rest of the output to see which resources could not be destroyed.", file.Name, run.Name)))
+			fmt.Sprintf("The destroy plan for %s was reported as incomplete."+
+				" This means some of the cleanup operations were deferred due to unknown values, please check the rest of the output to see which resources could not be destroyed.", run.Name)))
 	}
 
-	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, providers, waiter)
+	_, updated, applyDiags := apply(tfCtx, run, module, plan, moduletest.TearDown, variables, providers, waiter)
 	diags = diags.Append(applyDiags)
 	return updated, diags
 }

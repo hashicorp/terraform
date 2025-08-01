@@ -47,13 +47,13 @@ func (a *atomicProgress[T]) Store(progress T) {
 }
 
 // NewOperationWaiter creates a new operation waiter.
-func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTestRun,
+func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, file *moduletest.File, run *moduletest.Run,
 	progress moduletest.Progress, start int64) *operationWaiter {
 	identifier := "validate"
-	if n.File() != nil {
-		identifier = n.File().Name
-		if n.run != nil {
-			identifier = fmt.Sprintf("%s/%s", identifier, n.run.Name)
+	if file != nil {
+		identifier = file.Name
+		if run != nil {
+			identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
 		}
 	}
 
@@ -62,8 +62,8 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTes
 
 	return &operationWaiter{
 		ctx:        ctx,
-		run:        n.run,
-		file:       n.File(),
+		run:        run,
+		file:       file,
 		progress:   p,
 		start:      start,
 		identifier: identifier,
