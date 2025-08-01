@@ -50,6 +50,7 @@ const (
 	// List messages
 	MessageListStart         MessageType = "list_start"
 	MessageListResourceFound MessageType = "list_resource_found"
+	MessageListComplete      MessageType = "list_complete"
 
 	// Action messages
 	MessageActionStart    MessageType = "action_start"
