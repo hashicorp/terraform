@@ -230,11 +230,19 @@ the reinitialization process, Terraform will ask if you'd like to migrate
 your existing state to the new configuration. This allows you to easily
 switch from one backend to another.
 
-If you're using multiple [workspaces](/terraform/language/state/workspaces),
+If you are using multiple [workspaces](/terraform/language/state/workspaces),
 Terraform can copy all workspaces to the destination. If Terraform detects
 you have multiple workspaces, it will ask if this is what you want to do.
 
-If you're just reconfiguring the same backend, Terraform will still ask if you
+If you are migrating multiple root Terraform configurations to HCP Terraform,
+you can use the [Terraform migrate](/terraform/cloud-docs/migrate/tf-migrate)
+tool to migrate all of your configurations and workspaces in bulk.
+
+> **Hands On:** Complete the [Migrate to HCP Terraform in 
+bulk](/terraform/tutorials/cloud/bulk-migrate-hcp) tutorial to learn more
+about migrating multiple Terraform configuration to HCP Terraform.
+
+If you are reconfiguring the same backend, Terraform will still ask if you
 want to migrate your state. You can respond "no" in this scenario.
 
 ## Remove a backend configuration
