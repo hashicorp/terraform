@@ -178,7 +178,10 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	// This is step one of a two-step provider download process
 	// Providers may be downloaded by this code, but the dependency lock file is only updated later in `init`
 	// after step two of provider download is complete.
-	configProvidersOutput, changedConfigProviders, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	previousLocks, moreDiags := c.lockedDependencies()
+	diags = diags.Append(moreDiags)
+
+	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -202,7 +205,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		// TODO(SarahFrench/radeksimko) - pass information about config locks into initBackend to
+		// TODO(SarahFrench/radeksimko) - pass information about config locks (`configLocks`) into initBackend to
 		// enable PSS
 		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	default:
@@ -211,6 +214,11 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	}
 	if backendOutput {
 		header = true
+	}
+	if header {
+		// If we outputted information, then we need to output a newline
+		// so that our success message is nicely spaced out from prior text.
+		view.Output(views.EmptyMessage)
 	}
 
 	var state *states.State
@@ -244,7 +252,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 
 	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
 	// This is step two of a two-step provider download process
-	stateProvidersOutput, changedStateProviders, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -253,18 +261,25 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	if stateProvidersOutput {
 		header = true
 	}
-	if changedConfigProviders || changedStateProviders {
-		// Only update the dependency lock file if locks differ.
-		// We update the lock file once, after all dependencies are collected,
-		// to avoid scenarios where Terraform is interrupted between partial updates.
-		merged := c.mergeLockedDependencies(stateLocks, configLocks)
-		lockFileDiags := c.replaceLockedDependencies(merged)
-		diags = diags.Append(lockFileDiags)
+	if header {
+		// If we outputted information, then we need to output a newline
+		// so that our success message is nicely spaced out from prior text.
+		view.Output(views.EmptyMessage)
 	}
 
-	// If we outputted information, then we need to output a newline
-	// so that our success message is nicely spaced out from prior text.
+	// Now the two steps of provider download have happened, update the dependency lock file if it has changed.
+	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, configLocks, stateLocks, initArgs.Lockfile, view)
+	diags = diags.Append(lockFileDiags)
+	if lockFileDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+	if lockFileOutput {
+		header = true
+	}
 	if header {
+		// If we outputted information, then we need to output a newline
+		// so that our success message is nicely spaced out from prior text.
 		view.Output(views.EmptyMessage)
 	}
 
