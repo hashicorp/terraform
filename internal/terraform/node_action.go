@@ -183,16 +183,17 @@ func (n *nodeExpandActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool) 
 		return n.ResolvedProvider, true
 	}
 
-	return addrs.AbsProviderConfig{
-		Provider: n.Provider(),
-		Module:   n.ModulePath(),
+	// Since we always have a config, we can use it
+	relAddr := n.Config.ProviderConfigAddr()
+	return addrs.LocalProviderConfig{
+		LocalName: relAddr.LocalName,
+		Alias:     relAddr.Alias,
 	}, false
 }
 
 // GraphNodeProviderConsumer
 func (n *nodeExpandActionDeclaration) Provider() addrs.Provider {
-	// TODO: Handle provider field
-	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Action.ImpliedProvider())
+	return n.Config.Provider
 }
 
 // GraphNodeProviderConsumer

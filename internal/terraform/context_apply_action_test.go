@@ -436,6 +436,52 @@ resource "test_object" "b" {
 				}),
 			}},
 		},
+
+		"aliased provider": {
+			module: map[string]string{
+				"main.tf": `
+provider "act" {
+  alias = "aliased"
+}
+action "act_unlinked" "hello" {
+  provider = act.aliased
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"non-default namespace provider": {
+			module: map[string]string{
+				"main.tf": `
+terraform {
+  required_providers {
+    ecosystem = {
+      source = "danielmschmidt/ecosystem"
+    }
+  }
+}
+action "ecosystem_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.ecosystem_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -463,6 +509,35 @@ resource "test_object" "b" {
 				},
 			}
 
+			invokeActionFn := func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
+				invokeActionCalls = append(invokeActionCalls, req)
+				if tc.callingInvokeReturnsDiagnostics != nil && len(tc.callingInvokeReturnsDiagnostics(req)) > 0 {
+					return providers.InvokeActionResponse{
+						Diagnostics: tc.callingInvokeReturnsDiagnostics(req),
+					}
+				}
+
+				defaultEvents := []providers.InvokeActionEvent{}
+				defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Progress{
+					Message: "Hello world!",
+				})
+				defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Completed{})
+
+				events := defaultEvents
+				if len(tc.events) > 0 {
+					events = tc.events
+				}
+
+				return providers.InvokeActionResponse{
+					Events: func(yield func(providers.InvokeActionEvent) bool) {
+						for _, event := range events {
+							if !yield(event) {
+								return
+							}
+						}
+					},
+				}
+			}
 			actionProvider := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
@@ -481,42 +556,39 @@ resource "test_object" "b" {
 					},
 					ResourceTypes: map[string]providers.Schema{},
 				},
-				InvokeActionFn: func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
-					invokeActionCalls = append(invokeActionCalls, req)
+				InvokeActionFn: invokeActionFn,
+			}
 
-					if tc.callingInvokeReturnsDiagnostics != nil && len(tc.callingInvokeReturnsDiagnostics(req)) > 0 {
-						return providers.InvokeActionResponse{
-							Diagnostics: tc.callingInvokeReturnsDiagnostics(req),
-						}
-					}
+			ecosystem := &testing_provider.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					Actions: map[string]providers.ActionSchema{
+						"ecosystem_unlinked": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
 
-					defaultEvents := []providers.InvokeActionEvent{}
-					defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Progress{
-						Message: "Hello world!",
-					})
-					defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Completed{})
-
-					events := defaultEvents
-					if len(tc.events) > 0 {
-						events = tc.events
-					}
-
-					return providers.InvokeActionResponse{
-						Events: func(yield func(providers.InvokeActionEvent) bool) {
-							for _, event := range events {
-								if !yield(event) {
-									return
-								}
-							}
+							Unlinked: &providers.UnlinkedAction{},
 						},
-					}
+					},
+					ResourceTypes: map[string]providers.Schema{},
 				},
+				InvokeActionFn: invokeActionFn,
 			}
 
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
 					addrs.NewDefaultProvider("act"):  testProviderFuncFixed(actionProvider),
+					{
+						Type:      "ecosystem",
+						Namespace: "danielmschmidt",
+						Hostname:  addrs.DefaultProviderRegistryHost,
+					}: testProviderFuncFixed(ecosystem),
 				},
 			})
 
