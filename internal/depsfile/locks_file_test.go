@@ -158,6 +158,77 @@ func TestLoadLocksFromFile(t *testing.T) {
 						}
 					}
 				})
+
+			case "valid-module-locks.hcl":
+				// Check that we have both provider and module locks
+				if got, want := len(locks.providers), 1; got != want {
+					t.Errorf("wrong number of providers %d; want %d", got, want)
+				}
+				moduleKeys := locks.AllModules()
+				if got, want := len(moduleKeys), 3; got != want {
+					t.Errorf("wrong number of modules %d; want %d", got, want)
+				}
+
+				t.Run("registry-module-with-version", func(t *testing.T) {
+					modulePath := addrs.Module{"vpc"}
+					if lock := locks.Module(modulePath); lock != nil {
+						if got, want := lock.SourceAddr(), "terraform-aws-modules/vpc/aws"; got != want {
+							t.Errorf("wrong source address\ngot:  %s\nwant: %s", got, want)
+						}
+						if got, want := lock.Version().String(), "3.14.0"; got != want {
+							t.Errorf("wrong version\ngot:  %s\nwant: %s", got, want)
+						}
+						wantHashes := []providerreqs.Hash{
+							providerreqs.MustParseHash("h1:abc123def456"),
+							providerreqs.MustParseHash("h1:xyz789uvw012"),
+						}
+						if diff := cmp.Diff(wantHashes, lock.AllHashes()); diff != "" {
+							t.Errorf("wrong hashes\n%s", diff)
+						}
+					} else {
+						t.Error("expected module lock for vpc not found")
+					}
+				})
+
+				t.Run("git-module-without-version", func(t *testing.T) {
+					modulePath := addrs.Module{"subnet", "private"}
+					if lock := locks.Module(modulePath); lock != nil {
+						if got, want := lock.SourceAddr(), "git::https://github.com/example/terraform-modules.git//subnet"; got != want {
+							t.Errorf("wrong source address\ngot:  %s\nwant: %s", got, want)
+						}
+						if lock.Version() != nil {
+							t.Errorf("expected nil version for git module, got %s", lock.Version())
+						}
+						wantHashes := []providerreqs.Hash{
+							providerreqs.MustParseHash("h1:git-module-hash"),
+						}
+						if diff := cmp.Diff(wantHashes, lock.AllHashes()); diff != "" {
+							t.Errorf("wrong hashes\n%s", diff)
+						}
+					} else {
+						t.Error("expected module lock for subnet.private not found")
+					}
+				})
+
+				t.Run("local-module", func(t *testing.T) {
+					modulePath := addrs.Module{"local"}
+					if lock := locks.Module(modulePath); lock != nil {
+						if got, want := lock.SourceAddr(), "./modules/local"; got != want {
+							t.Errorf("wrong source address\ngot:  %s\nwant: %s", got, want)
+						}
+						if lock.Version() != nil {
+							t.Errorf("expected nil version for local module, got %s", lock.Version())
+						}
+						wantHashes := []providerreqs.Hash{
+							providerreqs.MustParseHash("h1:local-module-hash"),
+						}
+						if diff := cmp.Diff(wantHashes, lock.AllHashes()); diff != "" {
+							t.Errorf("wrong hashes\n%s", diff)
+						}
+					} else {
+						t.Error("expected module lock for local not found")
+					}
+				})
 			}
 		})
 	}

@@ -17,12 +17,15 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"golang.org/x/mod/sumdb/dirhash"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getmodules"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
@@ -34,6 +37,7 @@ type ModuleInstaller struct {
 	modsDir string
 	loader  *configload.Loader
 	reg     *registry.Client
+	locks   *depsfile.Locks
 
 	// The keys in moduleVersions are resolved and trimmed registry source
 	// addresses and the values are the registry response.
@@ -54,9 +58,27 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 		modsDir:                 modsDir,
 		loader:                  loader,
 		reg:                     reg,
+		locks:                   depsfile.NewLocks(),
 		registryPackageVersions: make(map[addrs.ModuleRegistryPackage]*response.ModuleVersions),
 		registryPackageSources:  make(map[moduleVersion]addrs.ModuleSourceRemote),
 	}
+}
+
+// SetModuleLocks sets the dependency locks object that the installer should
+// use to record module hashes. This must be called before InstallModules.
+func (i *ModuleInstaller) SetModuleLocks(locks *depsfile.Locks) {
+	i.locks = locks
+}
+
+// calculateModuleHash computes the hash of a module directory using the same
+// algorithm as provider packages for consistency.
+func calculateModuleHash(moduleDir string) (providerreqs.Hash, error) {
+	// Use the same hash algorithm as providers (h1:...)
+	hashStr, err := dirhash.HashDir(moduleDir, "", dirhash.Hash1)
+	if err != nil {
+		return "", fmt.Errorf("failed to calculate module hash: %w", err)
+	}
+	return providerreqs.Hash(hashStr), nil
 }
 
 // InstallModules analyses the root module in the given directory and installs
@@ -714,6 +736,18 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		Dir:        modDir,
 		SourceAddr: req.SourceAddr.String(),
 	}
+
+	// Calculate and record module hash in the lock file
+	if i.locks != nil {
+		hash, err := calculateModuleHash(modDir)
+		if err != nil {
+			log.Printf("[WARN] Failed to calculate hash for module %s: %s", key, err)
+		} else {
+			log.Printf("[DEBUG] Module installer: calculated hash %s for %s at %s", hash, key, modDir)
+			i.locks.SetModule(req.Path, req.SourceAddr.String(), latestMatch, []providerreqs.Hash{hash})
+		}
+	}
+
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
 	hooks.Install(key, latestMatch, modDir)
 
@@ -814,6 +848,18 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 		Dir:        modDir,
 		SourceAddr: req.SourceAddr.String(),
 	}
+
+	// Calculate and record module hash in the lock file
+	if i.locks != nil {
+		hash, err := calculateModuleHash(modDir)
+		if err != nil {
+			log.Printf("[WARN] Failed to calculate hash for module %s: %s", key, err)
+		} else {
+			log.Printf("[DEBUG] Module installer: calculated hash %s for %s at %s", hash, key, modDir)
+			i.locks.SetModule(req.Path, req.SourceAddr.String(), nil, []providerreqs.Hash{hash})
+		}
+	}
+
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
 	hooks.Install(key, nil, modDir)
 

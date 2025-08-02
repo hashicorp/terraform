@@ -201,10 +201,21 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 		return true, diags
 	}
 
+	// Load existing locks before installing modules so we can update them
+	locks, lockDiags := m.lockedDependencies()
+	diags = diags.Append(lockDiags)
+
 	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
+	inst.SetModuleLocks(locks)
 
 	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
 	diags = diags.Append(moreDiags)
+
+	// Save updated locks after module installation
+	if !diags.HasErrors() {
+		saveDiags := m.replaceLockedDependencies(locks)
+		diags = diags.Append(saveDiags)
+	}
 
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)

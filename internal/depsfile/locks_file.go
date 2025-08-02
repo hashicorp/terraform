@@ -9,6 +9,7 @@ import (
 	"slices"
 	"sort"
 
+	gover "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
@@ -20,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/replacefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/version"
 )
 
 // LoadLocksFromFile reads locks from the given file, expecting it to be a
@@ -160,6 +160,25 @@ func SaveLocksToBytes(locks *Locks) ([]byte, tfdiags.Diagnostics) {
 		}
 	}
 
+	// Now write module locks
+	moduleKeys := slices.Collect(maps.Keys(locks.modules))
+	sort.Strings(moduleKeys)
+
+	for _, key := range moduleKeys {
+		lock := locks.modules[key]
+		rootBody.AppendNewline()
+		block := rootBody.AppendNewBlock("module", []string{lock.path})
+		body := block.Body()
+		body.SetAttributeValue("source", cty.StringVal(lock.sourceAddr))
+		if lock.version != nil {
+			body.SetAttributeValue("version", cty.StringVal(lock.version.String()))
+		}
+		if len(lock.hashes) != 0 {
+			hashToks := encodeHashSetTokens(lock.hashes)
+			body.SetAttributeRaw("hashes", hashToks)
+		}
+	}
+
 	return f.Bytes(), diags
 }
 
@@ -186,7 +205,6 @@ func decodeLocksFromHCL(locks *Locks, body hcl.Body) tfdiags.Diagnostics {
 	diags = diags.Append(hclDiags)
 
 	seenProviders := make(map[addrs.Provider]hcl.Range)
-	seenModule := false
 	for _, block := range content.Blocks {
 
 		switch block.Type {
@@ -209,19 +227,21 @@ func decodeLocksFromHCL(locks *Locks, body hcl.Body) tfdiags.Diagnostics {
 			seenProviders[lock.addr] = block.DefRange
 
 		case "module":
-			// We'll just take the first module block to use for a single warning,
-			// because that's sufficient to get the point across without swamping
-			// the output with warning noise.
-			if !seenModule {
-				currentVersion := version.SemVer.String()
+			lock, moreDiags := decodeModuleLockFromHCL(block)
+			diags = diags.Append(moreDiags)
+			if lock == nil {
+				continue
+			}
+			if _, exists := locks.modules[lock.path]; exists {
 				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "Dependency locks for modules are not yet supported",
-					Detail:   fmt.Sprintf("Terraform v%s only supports dependency locks for providers, not for modules. This configuration may be intended for a later version of Terraform that also supports dependency locks for modules.", currentVersion),
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate module lock",
+					Detail:   fmt.Sprintf("This lockfile already declared a lock for module %s.", lock.path),
 					Subject:  block.TypeRange.Ptr(),
 				})
-				seenModule = true
+				continue
 			}
+			locks.modules[lock.path] = lock
 
 		default:
 			// Shouldn't get here because this should be exhaustive for
@@ -441,8 +461,123 @@ func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) 
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid provider hash string",
-				Detail:   fmt.Sprintf("Cannot interpret %q as a provider hash: %s.", raw, err),
+				Detail:   fmt.Sprintf("Cannot interpret %q as a hash for provider %s: %s.", raw, provider.ForDisplay(), err),
 				Subject:  expr.Range().Ptr(),
+			})
+			continue
+		}
+
+		ret = append(ret, hash)
+	}
+
+	return ret, diags
+}
+
+func decodeModuleLockFromHCL(block *hcl.Block) (*ModuleLock, tfdiags.Diagnostics) {
+	ret := &ModuleLock{}
+	var diags tfdiags.Diagnostics
+
+	// Module path is the label
+	modulePath := block.Labels[0]
+	ret.path = modulePath
+
+	content, hclDiags := block.Body.Content(&hcl.BodySchema{
+		Attributes: []hcl.AttributeSchema{
+			{Name: "source", Required: true},
+			{Name: "version"},
+			{Name: "hashes"},
+		},
+	})
+	diags = diags.Append(hclDiags)
+
+	// Source address is required
+	if attr, ok := content.Attributes["source"]; ok {
+		var source string
+		hclDiags := gohcl.DecodeExpression(attr.Expr, nil, &source)
+		diags = diags.Append(hclDiags)
+		if !hclDiags.HasErrors() {
+			if source == "" {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid module source address",
+					Detail:   fmt.Sprintf("The source address for module %s cannot be empty", modulePath),
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+			} else {
+				ret.sourceAddr = source
+			}
+		}
+	}
+
+	// Version is optional (only for registry modules)
+	if attr, ok := content.Attributes["version"]; ok {
+		var versionStr string
+		hclDiags := gohcl.DecodeExpression(attr.Expr, nil, &versionStr)
+		diags = diags.Append(hclDiags)
+		if !hclDiags.HasErrors() && versionStr != "" {
+			v, err := gover.NewVersion(versionStr)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid module version",
+					Detail:   fmt.Sprintf("The version %q for module %s is invalid: %s", versionStr, modulePath, err),
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+			} else {
+				ret.version = v
+			}
+		}
+	}
+
+	// Hashes
+	hashes, moreDiags := decodeModuleHashesArgument(modulePath, content.Attributes["hashes"])
+	diags = diags.Append(moreDiags)
+	ret.hashes = hashes
+
+	return ret, diags
+}
+
+func decodeModuleHashesArgument(modulePath string, attr *hcl.Attribute) ([]providerreqs.Hash, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if attr == nil {
+		// It's okay to omit this argument.
+		return nil, diags
+	}
+	expr := attr.Expr
+
+	hashExprs, hclDiags := hcl.ExprList(expr)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return nil, diags
+	}
+	if len(hashExprs) == 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid module hash set",
+			Detail:   "The \"hashes\" argument must either be omitted or contain at least one hash value.",
+			Subject:  expr.Range().Ptr(),
+		})
+		return nil, diags
+	}
+
+	ret := make([]providerreqs.Hash, 0, len(hashExprs))
+	for _, hashExpr := range hashExprs {
+		var raw string
+		hclDiags := gohcl.DecodeExpression(hashExpr, nil, &raw)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			// If we can't extract a string then we'll just skip this one
+			// and let the other diagnostics stand.
+			continue
+		}
+
+		hash, err := providerreqs.ParseHash(raw)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid module hash string",
+				Detail:   fmt.Sprintf("Cannot interpret %q as a hash for module %s: %s.", raw, modulePath, err),
+				Subject:  hashExpr.Range().Ptr(),
 			})
 			continue
 		}
