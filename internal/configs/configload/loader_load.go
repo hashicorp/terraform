@@ -5,11 +5,17 @@ package configload
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"golang.org/x/mod/sumdb/dirhash"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
 // LoadConfig reads the Terraform module in the given directory and uses it as the
@@ -135,4 +141,87 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 	}
 
 	return mod, record.Version, diags
+}
+
+// VerifyModuleHashes checks that all installed modules match the hashes
+// recorded in the dependency lock file. This should be called after LoadConfig
+// to ensure module integrity.
+func (l *Loader) VerifyModuleHashes(locks *depsfile.Locks) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	if locks == nil {
+		return diags
+	}
+
+	// Check each module in the manifest against the lock file
+	for key, record := range l.modules.manifest {
+		if key == "" {
+			// Skip root module
+			continue
+		}
+
+		// Look up the module lock
+		moduleLock := locks.Module(parseModuleKeyToPath(key))
+		if moduleLock == nil {
+			// Module not in lock file - this is okay, it means no hash was recorded
+			continue
+		}
+
+		// Verify the hash
+		expectedHashes := moduleLock.PreferredHashes()
+		if len(expectedHashes) == 0 {
+			// No hashes to verify
+			continue
+		}
+
+		// Calculate actual hash
+		actualHash, err := calculateModuleHashForDir(record.Dir)
+		if err != nil {
+			log.Printf("[WARN] Failed to calculate hash for module %s: %s", key, err)
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Failed to verify module integrity",
+				Detail:   fmt.Sprintf("Could not calculate hash for module at %s: %s", record.Dir, err),
+			})
+			continue
+		}
+
+		// Check if actual hash matches any expected hash
+		hashMatches := false
+		for _, expectedHash := range expectedHashes {
+			if actualHash == expectedHash {
+				hashMatches = true
+				break
+			}
+		}
+
+		if !hashMatches {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Module integrity check failed",
+				Detail:   fmt.Sprintf("The installed module at %s has been modified or corrupted. The calculated hash %s does not match any of the expected hashes in the dependency lock file. Run \"terraform init\" to reinstall this module.", record.Dir, actualHash),
+			})
+		} else {
+			log.Printf("[DEBUG] Module %s hash verification passed: %s", key, actualHash)
+		}
+	}
+
+	return diags
+}
+
+// calculateModuleHashForDir computes the hash of a module directory
+func calculateModuleHashForDir(moduleDir string) (providerreqs.Hash, error) {
+	hashStr, err := dirhash.HashDir(moduleDir, "", dirhash.Hash1)
+	if err != nil {
+		return "", fmt.Errorf("failed to calculate module hash: %w", err)
+	}
+	return providerreqs.Hash(hashStr), nil
+}
+
+// parseModuleKeyToPath converts a module key like "vpc.subnet" back to addrs.Module
+func parseModuleKeyToPath(key string) addrs.Module {
+	if key == "" {
+		return addrs.RootModule
+	}
+	return addrs.Module(strings.Split(key, "."))
 }
