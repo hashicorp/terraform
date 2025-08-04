@@ -136,11 +136,15 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 		t.view.streams.Print(t.view.colorize.Color("[red]Failure![reset]"))
 	}
 
-	t.view.streams.Printf(" %d passed, %d failed", counts[moduletest.Pass], counts[moduletest.Fail]+counts[moduletest.Error])
-	if counts[moduletest.Skip] > 0 {
-		t.view.streams.Printf(", %d skipped.\n", counts[moduletest.Skip])
+	if suite.CommandMode != moduletest.CleanupMode {
+		t.view.streams.Printf(" %d passed, %d failed", counts[moduletest.Pass], counts[moduletest.Fail]+counts[moduletest.Error])
+		if counts[moduletest.Skip] > 0 {
+			t.view.streams.Printf(", %d skipped.\n", counts[moduletest.Skip])
+		} else {
+			t.view.streams.Println(".")
+		}
 	} else {
-		t.view.streams.Println(".")
+		t.view.streams.Println()
 	}
 }
 
@@ -444,11 +448,15 @@ func (t *TestJSON) Conclusion(suite *moduletest.Suite) {
 			message.WriteString("Failure!")
 		}
 
-		message.WriteString(fmt.Sprintf(" %d passed, %d failed", summary.Passed, summary.Failed+summary.Errored))
-		if summary.Skipped > 0 {
-			message.WriteString(fmt.Sprintf(", %d skipped.", summary.Skipped))
-		} else {
-			message.WriteString(".")
+		if suite.CommandMode != moduletest.CleanupMode {
+			// don't print test summaries during cleanup mode.
+
+			message.WriteString(fmt.Sprintf(" %d passed, %d failed", summary.Passed, summary.Failed+summary.Errored))
+			if summary.Skipped > 0 {
+				message.WriteString(fmt.Sprintf(", %d skipped.", summary.Skipped))
+			} else {
+				message.WriteString(".")
+			}
 		}
 	}
 

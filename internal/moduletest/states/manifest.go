@@ -120,9 +120,12 @@ func (manifest *TestManifest) LoadStates(file *moduletest.File) (map[string]*Tes
 			}
 
 			allStates[key] = &TestRunState{
-				Run:      run,
-				Manifest: existing,
-				State:    state,
+				Run: run,
+				Manifest: &TestRunManifest{ // copy this, so we can edit without affecting the original
+					ID:     existing.ID,
+					Reason: existing.Reason,
+				},
+				State: state,
 			}
 		} else {
 			allStates[key] = &TestRunState{
@@ -134,7 +137,20 @@ func (manifest *TestManifest) LoadStates(file *moduletest.File) (map[string]*Tes
 				State: states.NewState(),
 			}
 		}
+	}
 
+	for key := range existingStates {
+		if _, exists := allStates[key]; !exists {
+			stateKey := key
+			if stateKey == configs.TestMainStateIdentifier {
+				stateKey = "for the module under test"
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Orphaned state",
+				fmt.Sprintf("The state key %s is stored in the state manifest indicating a failed cleanup operation, but the state key is not claimed by any run blocks within the current test file. Either restore a run block that manages the specified state, or manually cleanup this state file.", stateKey)))
+		}
 	}
 
 	return allStates, diags
@@ -178,22 +194,27 @@ func (manifest *TestManifest) SaveStates(file *moduletest.File, states map[strin
 					}
 					existingStates.States[key] = state.Manifest
 					continue
+				} else {
+
+					// If no reason to be saved, then it means we managed to
+					// clean everything up properly. So we'll delete the
+					// existing state file and remove any mention of it.
+
+					if err := manifest.deleteState(existingState); err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Failed to delete state",
+							Detail:   fmt.Sprintf("Failed to delete state file for key %s: %s.", key, err),
+						})
+						continue
+					}
+					delete(existingStates.States, key) // remove the state from the manifest file
 				}
 			}
 
-			// Otherwise, we either (a) don't have a new state for this existing
-			// state or (b) the new state no longer has a reason to be saved so
-			// we'll delete the state saved on disk.
-
-			if err := manifest.deleteState(existingState); err != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Failed to delete state",
-					Detail:   fmt.Sprintf("Failed to delete state file for key %s: %s.", key, err),
-				})
-				continue
-			}
-			delete(existingStates.States, key) // remove the state from the manifest file
+			// Otherwise, we just leave the state file as is. We don't want to
+			// remove it prematurely, as users might still need it to tidy
+			// something up.
 
 		}
 

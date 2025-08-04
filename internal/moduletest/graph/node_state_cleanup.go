@@ -47,22 +47,13 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 		return
 	}
 
-	empty := true
-	if !state.State.Empty() {
-		for _, module := range state.State.Modules {
-			for _, resource := range module.Resources {
-				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
-					empty = false
-					break
-				}
-			}
-		}
-	}
-
-	if empty {
+	if emptyState(state.State) {
 		// The state can be empty for a run block that just executed a plan
 		// command, or a run block that only read data sources. We'll just
-		// skip empty run blocks.
+		// skip empty run blocks. We do reset the state reason to None for this
+		// just to make sure we are indicating externally this state file
+		// doesn't need to be saved.
+		evalCtx.SetFileState(n.stateKey, state.Run, state.State, teststates.StateReasonNone)
 		return
 	}
 
@@ -91,6 +82,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 			updated, destroyDiags = n.restore(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, waiter)
 		} else {
 			updated, destroyDiags = n.destroy(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, waiter)
+			updated.RootOutputValues = state.State.RootOutputValues // we're going to preserve the output values in case we need to tidy up
 		}
 	})
 	if cancelled {
@@ -103,7 +95,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonError)
 	case state.RestoreState:
 		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonSkip)
-	case !updated.Empty():
+	case !emptyState(updated):
 		file.UpdateStatus(moduletest.Error)
 		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonError)
 	default:
@@ -221,4 +213,18 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	_, updated, applyDiags := apply(tfCtx, run, module, plan, moduletest.TearDown, variables, providers, waiter)
 	diags = diags.Append(applyDiags)
 	return updated, diags
+}
+
+func emptyState(state *states.State) bool {
+	if state.Empty() {
+		return true
+	}
+	for _, module := range state.Modules {
+		for _, resource := range module.Resources {
+			if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
+				return false
+			}
+		}
+	}
+	return true
 }

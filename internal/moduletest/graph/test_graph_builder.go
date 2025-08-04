@@ -26,6 +26,7 @@ type TestGraphBuilder struct {
 	Config      *configs.Config
 	File        *moduletest.File
 	ContextOpts *terraform.ContextOpts
+	CommandMode moduletest.CommandMode
 }
 
 type graphOptions struct {
@@ -49,7 +50,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		ContextOpts: b.ContextOpts,
 	}
 	steps := []terraform.GraphTransformer{
-		&TestRunTransformer{opts},
+		&TestRunTransformer{opts: opts, mode: b.CommandMode},
 		&TestVariablesTransformer{File: b.File},
 		terraform.DynamicTransformer(validateRunConfigs),
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {

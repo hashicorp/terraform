@@ -61,6 +61,14 @@ type TestSuiteRunner struct {
 
 	Concurrency     int
 	DeferralAllowed bool
+
+	CommandMode moduletest.CommandMode
+
+	// Repair is used to indicate whether the test cleanup command should run in
+	// "repair" mode. In this mode, the cleanup command will only remove state
+	// files that are a result of failed destroy operations, leaving any
+	// state due to skip_cleanup in place.
+	Repair bool
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -150,6 +158,8 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 
 	var diags tfdiags.Diagnostics
 	suite := &moduletest.Suite{
+		Status:      moduletest.Pending,
+		CommandMode: runner.CommandMode,
 		Files: func() map[string]*moduletest.File {
 			files := make(map[string]*moduletest.File)
 
@@ -230,7 +240,19 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	file.Diagnostics = file.Diagnostics.Append(stateDiags)
 	if stateDiags.HasErrors() {
 		file.Status = moduletest.Error
-		return
+	}
+
+	if runner.Suite.CommandMode != moduletest.CleanupMode {
+		// then we can't have any state files pending cleanup
+		for _, state := range states {
+			if state.Manifest.Reason != teststates.StateReasonNone {
+				file.Diagnostics = file.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"State manifest not empty",
+					fmt.Sprintf("The state manifest for %s should be empty before running tests. This could be due to a previous test run not cleaning up after itself. Please ensure that all state files are cleaned up before running tests.", file.Name)))
+				file.Status = moduletest.Error
+			}
+		}
 	}
 
 	// We'll execute the tests in the file. First, mark the overall status as
@@ -241,6 +263,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		// If we have zero run blocks then we'll just mark the file as passed.
 		file.Status = file.Status.Merge(moduletest.Pass)
 		return
+	} else if runner.Suite.CommandMode == moduletest.CleanupMode {
+		// In cleanup mode, we don't actually execute the run blocks so we'll
+		// start with the assumption they have all passed.
+		file.Status = file.Status.Merge(moduletest.Pass)
 	}
 
 	currentGlobalVariables := runner.Suite.GlobalVariables
@@ -260,6 +286,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		FileStates:        states,
 		Concurrency:       runner.Suite.Concurrency,
 		DeferralAllowed:   runner.Suite.DeferralAllowed,
+		Mode:              runner.Suite.CommandMode,
+		Repair:            runner.Suite.Repair,
 	})
 
 	// Build the graph for the file.
@@ -267,6 +295,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		Config:      runner.Suite.Config,
 		File:        file,
 		ContextOpts: runner.Suite.Opts,
+		CommandMode: runner.Suite.CommandMode,
 	}
 	g, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)
@@ -277,7 +306,28 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// walk and execute the graph
 	diags = diags.Append(graph.Walk(g, evalCtx))
 
-	// save any dangling state files
+	// save any dangling state files. we'll check all the states we have in
+	// memory, and if any are skipped or errored it means we might want to do
+	// a cleanup command in the future. this means we need to save the other
+	// state files as dependencies in case they are needed during the cleanup.
+
+	saveDependencies := false
+	for _, state := range states {
+		if state.Manifest.Reason == teststates.StateReasonSkip || state.Manifest.Reason == teststates.StateReasonError {
+			saveDependencies = true // at least one state file does have resources left over
+			break
+		}
+	}
+	if saveDependencies {
+		for _, state := range states {
+			if state.Manifest.Reason == teststates.StateReasonNone {
+				// any states that have no reason to be saved, will be updated
+				// to the dependency reason and this will tell the manifest to
+				// save those state files as well.
+				state.Manifest.Reason = teststates.StateReasonDep
+			}
+		}
+	}
 	diags = diags.Append(runner.Manifest.SaveStates(file, states))
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.

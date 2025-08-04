@@ -9,14 +9,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -89,91 +92,17 @@ func (c *TestCommand) Synopsis() string {
 }
 
 func (c *TestCommand) Run(rawArgs []string) int {
-	var diags tfdiags.Diagnostics
-
-	common, rawArgs := arguments.ParseView(rawArgs)
-	c.View.Configure(common)
-
-	// Since we build the colorizer for the cloud runner outside the views
-	// package we need to propagate our no-color setting manually. Once the
-	// cloud package is fully migrated over to the new streams IO we should be
-	// able to remove this.
-	c.Meta.color = !common.NoColor
-	c.Meta.Color = c.Meta.color
-
-	args, diags := arguments.ParseTest(rawArgs)
+	preparation, diags := c.setupTestExecution(moduletest.NormalMode, "test", rawArgs)
 	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
-		c.View.HelpPrompt("test")
-		return 1
-	}
-	c.Meta.parallelism = args.OperationParallelism
-
-	view := views.NewTest(args.ViewType, c.View)
-
-	// EXPERIMENTAL: maybe enable deferred actions
-	if !c.AllowExperimentalFeatures && args.DeferralAllowed {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
-		))
-		view.Diagnostics(nil, nil, diags)
 		return 1
 	}
 
-	// The specified testing directory must be a relative path, and it must
-	// point to a directory that is a descendant of the configuration directory.
-	if !filepath.IsLocal(args.TestDirectory) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid testing directory",
-			"The testing directory must be a relative path pointing to a directory local to the configuration directory."))
-
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-
-	config, configDiags := c.loadConfigWithTests(".", args.TestDirectory)
-	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-
-	// Users can also specify variables via the command line, so we'll parse
-	// all that here.
-	var items []arguments.FlagNameValue
-	for _, variable := range args.Vars.All() {
-		items = append(items, arguments.FlagNameValue{
-			Name:  variable.Name,
-			Value: variable.Value,
-		})
-	}
-	c.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-
-	// Collect variables for "terraform test"
-	testVariables, variableDiags := c.collectVariableValuesForTests(args.TestDirectory)
-	diags = diags.Append(variableDiags)
-
-	variables, variableDiags := c.collectVariableValues()
-	diags = diags.Append(variableDiags)
-	if variableDiags.HasErrors() {
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-
-	opts, err := c.contextOpts()
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-
-	// Print out all the diagnostics we have from the setup. These will just be
-	// warnings, and we want them out of the way before we start the actual
-	// testing.
-	view.Diagnostics(nil, nil, diags)
+	args := preparation.Args
+	view := preparation.View
+	config := preparation.Config
+	variables := preparation.Variables
+	testVariables := preparation.TestVariables
+	opts := preparation.Opts
 
 	// We have two levels of interrupt here. A 'stop' and a 'cancel'. A 'stop'
 	// is a soft request to stop. We'll finish the current test, do the tidy up,
@@ -317,4 +246,114 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 	return 0
+}
+
+type TestRunnerSetup struct {
+	Args          *arguments.Test
+	View          views.Test
+	Config        *configs.Config
+	Variables     map[string]backendrun.UnparsedVariableValue
+	TestVariables map[string]backendrun.UnparsedVariableValue
+	Opts          *terraform.ContextOpts
+}
+
+func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, rawArgs []string) (preparation TestRunnerSetup, diags tfdiags.Diagnostics) {
+	common, rawArgs := arguments.ParseView(rawArgs)
+	m.View.Configure(common)
+
+	var moreDiags tfdiags.Diagnostics
+
+	// Since we build the colorizer for the cloud runner outside the views
+	// package we need to propagate our no-color setting manually. Once the
+	// cloud package is fully migrated over to the new streams IO we should be
+	// able to remove this.
+	m.color = !common.NoColor
+	m.Color = m.color
+
+	preparation.Args, moreDiags = arguments.ParseTest(rawArgs)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		m.View.Diagnostics(diags)
+		m.View.HelpPrompt(command)
+		return
+	}
+	if preparation.Args.Repair && mode != moduletest.CleanupMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid command mode",
+			"The -repair flag is only valid for the 'test cleanup' command."))
+		m.View.Diagnostics(diags)
+		return preparation, diags
+	}
+
+	m.parallelism = preparation.Args.OperationParallelism
+
+	view := views.NewTest(preparation.Args.ViewType, m.View)
+	preparation.View = view
+
+	// EXPERIMENTAL: maybe enable deferred actions
+	if !m.AllowExperimentalFeatures && preparation.Args.DeferralAllowed {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+
+	// The specified testing directory must be a relative path, and it must
+	// point to a directory that is a descendant of the configuration directory.
+	if !filepath.IsLocal(preparation.Args.TestDirectory) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid testing directory",
+			"The testing directory must be a relative path pointing to a directory local to the configuration directory."))
+
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+
+	preparation.Config, moreDiags = m.loadConfigWithTests(".", preparation.Args.TestDirectory)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+
+	// Users can also specify variables via the command line, so we'll parse
+	// all that here.
+	var items []arguments.FlagNameValue
+	for _, variable := range preparation.Args.Vars.All() {
+		items = append(items, arguments.FlagNameValue{
+			Name:  variable.Name,
+			Value: variable.Value,
+		})
+	}
+	m.variableArgs = arguments.FlagNameValueSlice{Items: &items}
+
+	// Collect variables for "terraform test"
+	preparation.TestVariables, moreDiags = m.collectVariableValuesForTests(preparation.Args.TestDirectory)
+	diags = diags.Append(moreDiags)
+
+	preparation.Variables, moreDiags = m.collectVariableValues()
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+
+	opts, err := m.contextOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+	preparation.Opts = opts
+
+	// Print out all the diagnostics we have from the setup. These will just be
+	// warnings, and we want them out of the way before we start the actual
+	// testing.
+	view.Diagnostics(nil, nil, diags)
+	return
 }

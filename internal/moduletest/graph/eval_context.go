@@ -72,6 +72,18 @@ type EvalContext struct {
 	renderer views.Test
 	verbose  bool
 
+	// mode and repair affect the behaviour of the cleanup process of the graph.
+	//
+	// in cleanup mode, the tests will actually be skipped and the cleanup nodes
+	// are executed immediately. Normally, the skip_cleanup attributes will
+	// be skipped in cleanup mode with all states being destroyed completely.
+	//
+	// in repair mode, the skip_cleanup attributes are still respected. this
+	// means only states that were left behind due to an error will be
+	// destroyed.
+	mode   moduletest.CommandMode
+	repair bool
+
 	deferralAllowed bool
 	evalSem         terraform.Semaphore
 }
@@ -86,6 +98,8 @@ type EvalContextOpts struct {
 	FileStates        map[string]*teststates.TestRunState
 	Concurrency       int
 	DeferralAllowed   bool
+	Mode              moduletest.CommandMode
+	Repair            bool
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -111,9 +125,11 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		cancelFunc:        cancel,
 		stopContext:       stopCtx,
 		stopFunc:          stop,
-		verbose:           opts.Verbose,
-		renderer:          opts.Render,
 		config:            opts.Config,
+		renderer:          opts.Render,
+		verbose:           opts.Verbose,
+		mode:              opts.Mode,
+		repair:            opts.Repair,
 		deferralAllowed:   opts.DeferralAllowed,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
 	}
@@ -563,7 +579,12 @@ func (ec *EvalContext) SetFileState(key string, run *moduletest.Run, state *stat
 		// if skip cleanup is set on the run block, we're going to track it
 		// as the thing to target regardless of what else might be true.
 		current.Run = run
-		current.RestoreState = true
+
+		// we'll mark the state as being restored to the current run block
+		// if (a) we're not in cleanup mode (meaning everything should be
+		// destroyed) or (b) we are in cleanup mode but with the repair flag
+		// which means that only errored states should be destroyed.
+		current.RestoreState = ec.mode != moduletest.CleanupMode || ec.repair
 	} else if !current.RestoreState {
 		// otherwise, only set the new run block if we haven't been told the
 		// earlier run block is more relevant.
