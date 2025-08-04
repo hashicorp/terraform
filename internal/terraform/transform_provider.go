@@ -286,12 +286,12 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	}
 
 	// We collect all action nodes to use later
-	actionNodes := []*nodeExpandActionDeclaration{}
+	actionNodes := addrs.MakeMap[addrs.ConfigAction, addrs.AbsProviderConfig]()
 
 	// Now look for all provider consumers and connect them to the appropriate closers.
 	for _, v := range g.Vertices() {
 		if actionNode, ok := v.(*nodeExpandActionDeclaration); ok {
-			actionNodes = append(actionNodes, actionNode)
+			actionNodes.Put(actionNode.ActionAddr(), actionNode.ResolvedProvider)
 		}
 		pc, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
@@ -325,14 +325,11 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 
 		// For each action, find the node and ask the node for its provider configuration.
 		// It should have been resolved already by the ProviderTransformer.
-		actions := apc.Actions()
-		actionProviders := []addrs.AbsProviderConfig{}
-		for _, actionNode := range actionNodes {
-			// This is an action node, so check if it matches an action
-			for _, action := range actions {
-				if actionNode.ActionAddr().Equal(action) {
-					actionProviders = append(actionProviders, actionNode.ResolvedProvider)
-				}
+		var actionProviders []addrs.AbsProviderConfig
+		// This is an action node, so check if it matches an action
+		for _, action := range apc.Actions() {
+			if provider, ok := actionNodes.GetOk(action); ok {
+				actionProviders = append(actionProviders, provider)
 			}
 		}
 
