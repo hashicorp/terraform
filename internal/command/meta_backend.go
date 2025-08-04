@@ -1639,32 +1639,57 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	}
 
 	// Verify that selected workspace exists in the state store.
-	// TODO (SarahFrench/radeksimko) - TF core should be responsible for creating the new workspace.
-	//  > Is this the correct place to do so?
-	//  > Should we prompt the user to approve creating a new workspace?
 	if opts.Init && b != nil {
 		err := m.selectWorkspace(b)
 		if strings.Contains(err.Error(), "No existing workspaces") {
-			// Make the default workspace. All other workspaces are user-created via the workspace commands.
-			bStateMgr, sDiags := b.StateMgr(backend.DefaultStateName)
-			diags = diags.Append(sDiags)
-			if sDiags.HasErrors() {
-				diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug and should be reported: %w",
-					c.Type,
-					c.Provider.Name,
-					c.ProviderAddr,
-					sDiags.Err()))
+			ws, err := m.Workspace()
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
 				return nil, diags
 			}
-			emptyState := states.NewState()
-			if err := bStateMgr.WriteState(emptyState); err != nil {
-				diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
-				return nil, diags
+
+			if m.Input() && ws == backend.DefaultStateName {
+				input := m.UIInput()
+				desc := fmt.Sprintf("Terraform will create the %q workspace via %q.\n"+
+					"Only 'yes' will be accepted to approve.", backend.DefaultStateName, c.Type)
+				v, err := input.Input(context.Background(), &terraform.InputOpts{
+					Id:          "approve",
+					Query:       fmt.Sprintf("Workspace %q does not exit, would you like to create one?", backend.DefaultStateName),
+					Description: desc,
+				})
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("Failed to confirm default workspace creation: %w", err))
+					return nil, diags
+				}
+				if v != "yes" {
+					diags = diags.Append(errors.New("Failed to create default workspace"))
+					return nil, diags
+				}
+
+				// TODO: Confirm if defaulting to creation on first use (rather than error) is a good idea
+				// Make the default workspace. All other workspaces are user-created via the workspace commands.
+				bStateMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+				diags = diags.Append(sDiags)
+				if sDiags.HasErrors() {
+					diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
+						c.Type,
+						c.Provider.Name,
+						c.ProviderAddr,
+						sDiags.Err()))
+					return nil, diags
+				}
+				emptyState := states.NewState()
+				if err := bStateMgr.WriteState(emptyState); err != nil {
+					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
+					return nil, diags
+				}
+				if err := sMgr.PersistState(); err != nil {
+					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
+					return nil, diags
+				}
 			}
-			if err := sMgr.PersistState(); err != nil {
-				diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
-				return nil, diags
-			}
+			// TODO: handle if input is not enabled
+			// TODO: handle if non-default workspace is not used
 		} else if err != nil {
 			diags = diags.Append(err)
 		}
