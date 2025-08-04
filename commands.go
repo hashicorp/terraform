@@ -459,8 +459,8 @@ func initCommands(
 
 		Commands["invoke"] = func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				Meta:   meta,
-				Invoke: true,
+				Meta:         meta,
+				ActionInvoke: true,
 			}, nil
 		}
 	}

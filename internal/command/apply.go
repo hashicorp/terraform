@@ -25,7 +25,7 @@ type ApplyCommand struct {
 
 	// If true then we run an action apply command instead of the
 	// regular "apply".
-	Invoke bool
+	ActionInvoke bool
 }
 
 func (c *ApplyCommand) Run(rawArgs []string) int {
@@ -46,7 +46,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	switch {
 	case c.Destroy:
 		args, diags = arguments.ParseApplyDestroy(rawArgs)
-	case c.Invoke:
+	case c.ActionInvoke:
 		args, diags = arguments.ParseApplyInvoke(rawArgs)
 	default:
 		args, diags = arguments.ParseApply(rawArgs)
@@ -103,7 +103,14 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove)
+	opReq, opDiags := c.OperationRequest(
+		be,
+		view,
+		args.ViewType,
+		planFile,
+		args.Operation,
+		args.AutoApprove,
+	)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -282,6 +289,7 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
+	opReq.ActionInvoke = c.ActionInvoke
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {

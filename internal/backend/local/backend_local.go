@@ -208,6 +208,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		GenerateConfigPath: op.GenerateConfigOut,
 		DeferralAllowed:    op.DeferralAllowed,
 		Query:              op.Query,
+		ActionInvoke:       op.ActionInvoke,
 	}
 	run.PlanOpts = planOpts
 

@@ -145,6 +145,8 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 		vertexAddr = r.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
+	case *nodeActionInvoke:
+		vertexAddr = r.Target
 
 	default:
 		// Only partial nodes and resource and resource instance nodes can be

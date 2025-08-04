@@ -35,6 +35,9 @@ type Apply struct {
 
 	// ViewType specifies which output format to use
 	ViewType ViewType
+
+	// ActionInvoke is set to true if we want to invoke an action.
+	ActionInvoke bool
 }
 
 // ParseApply processes CLI arguments, returning an Apply value and errors.
@@ -190,6 +193,7 @@ func ParseApplyInvoke(args []string) (*Apply, tfdiags.Diagnostics) {
 
 	// TODO: Don't hack like this :D
 	apply.PlanPath = ""
+	apply.ActionInvoke = true
 
 	return apply, diags
 }

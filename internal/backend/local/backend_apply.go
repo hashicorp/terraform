@@ -412,6 +412,7 @@ func (b *Local) opApply(
 		log.Printf("[INFO] backend/local: apply calling Apply")
 		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, &terraform.ApplyOpts{
 			SetVariables: applyTimeValues,
+			ActionInvoke: op.ActionInvoke,
 		})
 	}()
 

@@ -39,6 +39,8 @@ type ApplyOpts struct {
 	// values that were declared as ephemeral, because all other input
 	// values must retain the values that were specified during planning.
 	SetVariables InputValues
+
+	ActionInvoke bool
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that
@@ -217,7 +219,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		newState.PruneResourceHusks()
 	}
 
-	if len(plan.TargetAddrs) > 0 {
+	if !opts.ActionInvoke && len(plan.TargetAddrs) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Applied changes may be incomplete",

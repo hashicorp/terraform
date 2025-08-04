@@ -145,6 +145,9 @@ type PlanOpts struct {
 	// attribute is set. This can only be set during a destroy plan, and should
 	// only be set during the test command.
 	OverridePreventDestroy bool
+
+	// ActionInvoke TODO: add description
+	ActionInvoke bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -266,7 +269,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 	diags = diags.Append(varDiags)
 
-	if len(opts.Targets) > 0 {
+	if !opts.ActionInvoke && len(opts.Targets) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Resource targeting is in effect",

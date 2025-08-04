@@ -158,8 +158,8 @@ type Operation struct {
 	// Query is true if the operation should be a query operation
 	Query bool
 
-	Invoke     bool
-	ActionAddr string
+	ActionInvoke bool
+	ActionAddr   string
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value

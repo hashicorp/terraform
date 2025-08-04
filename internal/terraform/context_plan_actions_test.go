@@ -1116,6 +1116,33 @@ resource "other_object" "a" {
 				}
 			},
 		},
+
+		"targeted unreferenced action": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("Unexpected number of action invocations: %d", len(plan.Changes.ActionInvocations))
+				}
+			},
+			expectPlanActionCalled: true,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {

@@ -314,7 +314,14 @@ func (a AbsActionInstance) UniqueKey() UniqueKey {
 func (a absActionInstanceKey) uniqueKeySigil() {}
 
 func (a AbsActionInstance) TargetContains(other Targetable) bool {
-	return false
+	switch to := other.(type) {
+	case AbsActionInstance:
+		return a.Equal(to)
+	case AbsAction:
+		return a.ContainingAction().Equal(to)
+	default:
+		return false
+	}
 }
 
 func (a AbsActionInstance) AddrType() TargetableAddrType {
