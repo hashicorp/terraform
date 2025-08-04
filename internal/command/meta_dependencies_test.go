@@ -140,7 +140,7 @@ func Test_mergeLockedDependencies(t *testing.T) {
 			}
 
 			// Code under test - combine deps from state with prior deps from config
-			mergedLocks := m.mergeLockedDependencies(tc.stateLocks, tc.configLocks)
+			mergedLocks := m.mergeLockedDependencies(tc.configLocks, tc.stateLocks)
 
 			if !mergedLocks.Equal(tc.expectedLocks) {
 				// Something is wrong - try to get useful feedback to show in the UI when running tests
