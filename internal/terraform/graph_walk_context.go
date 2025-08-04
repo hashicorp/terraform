@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -54,8 +53,7 @@ type ContextGraphWalker struct {
 	Overrides               *mocking.Overrides
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
-	Forget  bool
-	Actions *actions.Actions
+	Forget bool
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -143,7 +141,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
-		ActionsValue:            w.Actions,
 	}
 
 	return ctx

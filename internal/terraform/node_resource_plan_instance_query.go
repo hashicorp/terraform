@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
@@ -70,12 +69,6 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
 	})
-
-	// if we are generating config, we implicitly set include_resource to true
-	if n.generateConfigPath != "" {
-		includeRscCty = cty.True
-		includeRsc = true
-	}
 
 	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
 	validateResp := provider.ValidateListResourceConfig(

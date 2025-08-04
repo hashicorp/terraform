@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'static validation: detect invalid static references via indexes on objects.'
+time: 2025-07-07T16:14:50.162197+02:00
+custom:
+    Issue: "37298"

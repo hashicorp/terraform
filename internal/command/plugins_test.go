@@ -12,7 +12,7 @@ import (
 func TestPluginPath(t *testing.T) {
 	td := testTempDir(t)
 	defer os.RemoveAll(td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	pluginPath := []string{"a", "b", "c"}
 

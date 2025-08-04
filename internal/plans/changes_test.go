@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestChangeEncodeSensitive(t *testing.T) {
@@ -99,7 +98,7 @@ func TestChangeEncodeError(t *testing.T) {
 				Change: Change{
 					Before: cty.NullVal(cty.DynamicPseudoType),
 					// can't encode a marked value
-					After: cty.StringVal("test").Mark("should not be here"),
+					After: cty.StringVal("test").Mark("shoult not be here"),
 				},
 			},
 		},

@@ -1,0 +1,5 @@
+kind: NOTES
+body: The command `terraform rpcapi` is now generally available. It is not intended for public consumption, but exposes certain Terraform operations through an RPC interface compatible with [go-plugin](https://github.com/hashicorp/go-plugin).
+time: 2025-05-15T15:19:22.219798+02:00
+custom:
+    Issue: "37067"

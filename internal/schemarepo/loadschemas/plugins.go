@@ -267,20 +267,6 @@ func (cp *Plugins) ProvisionerSchema(typ string) (*configschema.Block, error) {
 	return resp.Provisioner, nil
 }
 
-func (cp *Plugins) ActionTypeSchema(providerAddr addrs.Provider, actionType string) (*providers.ActionSchema, error) {
-	providerSchema, err := cp.ProviderSchema(providerAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	actionSchema, ok := providerSchema.Actions[actionType]
-	if !ok {
-		return nil, fmt.Errorf("provider %s does not have an action schema for %s", providerAddr, actionType)
-	}
-
-	return &actionSchema, nil
-}
-
 // ProviderFunctionDecls is a helper wrapper around ProviderSchema which first
 // reads the schema of the given provider and then returns all of the
 // functions it declares, if any.

@@ -20,6 +20,10 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+const (
+	MainStateIdentifier = ""
+)
+
 type Run struct {
 	Config *configs.TestRun
 
@@ -185,6 +189,24 @@ func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
 	}
 
 	return references, diagnostics
+}
+
+// GetStateKey returns the run's state key. If an explicit state key is set in
+// the run's configuration, that key is returned. Otherwise, if the run is using
+// an alternate module under test, the source of that module is returned as the
+// state key. If neither of these conditions are met, an empty string is
+// returned, and this denotes that the run is using the root module under test.
+func (run *Run) GetStateKey() string {
+	if run.Config.StateKey != "" {
+		return run.Config.StateKey
+	}
+
+	// The run has an alternate module under test, so we can use the module's source
+	if run.Config.ConfigUnderTest != nil {
+		return run.Config.Module.Source.String()
+	}
+
+	return MainStateIdentifier
 }
 
 // GetModuleConfigID returns the identifier for the module configuration that

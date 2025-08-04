@@ -105,8 +105,7 @@ func TestTaint_lockedState(t *testing.T) {
 
 func TestTaint_backup(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -150,8 +149,7 @@ func TestTaint_backup(t *testing.T) {
 
 func TestTaint_backupDisable(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -218,8 +216,7 @@ func TestTaint_badState(t *testing.T) {
 
 func TestTaint_defaultState(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -262,8 +259,7 @@ func TestTaint_defaultState(t *testing.T) {
 
 func TestTaint_defaultWorkspaceState(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -395,8 +391,7 @@ because -allow-missing was set.
 
 func TestTaint_stateOut(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -498,7 +493,7 @@ func TestTaint_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {

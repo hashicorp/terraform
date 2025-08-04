@@ -54,7 +54,7 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 		}
 
 		b, diags := m.Backend(&BackendOpts{
-			BackendConfig: backendConfig,
+			Config: backendConfig,
 		})
 		if diags.HasErrors() {
 			return nil

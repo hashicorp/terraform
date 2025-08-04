@@ -46,7 +46,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	// Load the backend
 	b, backendDiags := c.Backend(&BackendOpts{
-		BackendConfig: backendConfig,
+		Config: backendConfig,
 	})
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {

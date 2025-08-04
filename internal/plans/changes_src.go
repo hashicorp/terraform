@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -27,10 +26,6 @@ type ChangesSrc struct {
 	Resources []*ResourceInstanceChangeSrc
 
 	Queries []*QueryInstanceSrc
-
-	// ActionInvocations tracks planned action invocations, which may have
-	// embedded resource instance changes.
-	ActionInvocations []*ActionInvocationInstanceSrc
 
 	// Outputs tracks planned changes output values.
 	//
@@ -158,24 +153,6 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		}
 
 		changes.Queries = append(changes.Queries, query)
-	}
-
-	for _, ais := range c.ActionInvocations {
-		p, ok := schemas.Providers[ais.ProviderAddr.Provider]
-		if !ok {
-			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", ais.ProviderAddr, ais.Addr)
-		}
-		schema, ok := p.Actions[ais.Addr.Action.Action.Type]
-		if !ok {
-			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", ais.Addr.Action.Action.Type)
-		}
-
-		action, err := ais.Decode(&schema)
-		if err != nil {
-			return nil, err
-		}
-
-		changes.ActionInvocations = append(changes.ActionInvocations, action)
 	}
 
 	for _, ocs := range c.Outputs {
@@ -552,60 +529,4 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		Importing:       cs.Importing.Decode(identityType),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
-}
-
-// AppendResourceInstanceChange records the given resource instance change in
-// the set of planned resource changes.
-func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocationInstanceSrc) {
-	if c == nil {
-		panic("AppendResourceInstanceChange on nil ChangesSync")
-	}
-
-	a := action.DeepCopy()
-	c.ActionInvocations = append(c.ActionInvocations, a)
-}
-
-type ActionInvocationInstanceSrc struct {
-	Addr                    addrs.AbsActionInstance
-	TriggeringResourceAddr  addrs.AbsResourceInstance
-	TriggerEvent            configs.ActionTriggerEvent
-	ActionTriggerBlockIndex int
-	ActionsListIndex        int
-
-	ConfigValue DynamicValue
-
-	ProviderAddr addrs.AbsProviderConfig
-}
-
-// Decode unmarshals the raw representation of any linked resources.
-func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (*ActionInvocationInstance, error) {
-	ty := cty.DynamicPseudoType
-	if schema != nil {
-		ty = schema.ConfigSchema.ImpliedType()
-	}
-
-	config, err := acs.ConfigValue.Decode(ty)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding 'config' value: %s", err)
-	}
-
-	ai := &ActionInvocationInstance{
-		Addr:                    acs.Addr,
-		TriggeringResourceAddr:  acs.TriggeringResourceAddr,
-		TriggerEvent:            acs.TriggerEvent,
-		ActionTriggerBlockIndex: acs.ActionTriggerBlockIndex,
-		ActionsListIndex:        acs.ActionsListIndex,
-		ProviderAddr:            acs.ProviderAddr,
-		ConfigValue:             config,
-	}
-	return ai, nil
-}
-
-func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc {
-	if acs == nil {
-		return acs
-	}
-	ret := *acs
-	ret.ConfigValue = ret.ConfigValue.Copy()
-	return &ret
 }

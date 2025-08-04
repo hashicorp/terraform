@@ -3,8 +3,6 @@
 
 package addrs
 
-import "iter"
-
 // Map represents a mapping whose keys are address types that implement
 // UniqueKeyer.
 //
@@ -136,14 +134,4 @@ func (m Map[K, V]) Values() []V {
 		ret = append(ret, elem.Value)
 	}
 	return ret
-}
-
-func (m Map[K, V]) Iter() iter.Seq2[K, V] {
-	return func(yield func(K, V) bool) {
-		for _, elem := range m.Elements() {
-			if !yield(elem.Key, elem.Value) {
-				return
-			}
-		}
-	}
 }

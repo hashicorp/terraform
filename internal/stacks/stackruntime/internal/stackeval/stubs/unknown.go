@@ -364,48 +364,6 @@ func (u *unknownProvider) DeleteState(providers.DeleteStateRequest) providers.De
 	}
 }
 
-// PlanAction implements providers.Interface.
-func (u *unknownProvider) PlanAction(request providers.PlanActionRequest) providers.PlanActionResponse {
-	// TODO: Once actions support deferrals we can implement this
-	return providers.PlanActionResponse{
-		Diagnostics: []tfdiags.Diagnostic{
-			tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Provider configuration is unknown",
-				"Cannot plan this action because its associated provider configuration is unknown.",
-				nil, // nil attribute path means the overall configuration block
-			),
-		},
-	}
-}
-
-// InvokeAction implements providers.Interface.
-func (u *unknownProvider) InvokeAction(request providers.InvokeActionRequest) providers.InvokeActionResponse {
-	return providers.InvokeActionResponse{
-		Diagnostics: []tfdiags.Diagnostic{
-			tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Provider configuration is unknown",
-				"Cannot invoke this action because its associated provider configuration is unknown.",
-				nil, // nil attribute path means the overall configuration block
-			),
-		},
-	}
-}
-
-func (u *unknownProvider) ValidateActionConfig(request providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
-	return providers.ValidateActionConfigResponse{
-		Diagnostics: []tfdiags.Diagnostic{
-			tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Provider configuration is unknown",
-				"Cannot validate this action configuration because its associated provider configuration is unknown.",
-				nil, // nil attribute path means the overall configuration block
-			),
-		},
-	}
-}
-
 func (u *unknownProvider) Close() error {
 	// the underlying unconfiguredClient is managed elsewhere.
 	return nil

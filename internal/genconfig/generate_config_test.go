@@ -825,7 +825,7 @@ resource "tfcoremock_sensitive_values" "values" {
 			if err != nil {
 				t.Fatalf("schema failed InternalValidate: %s", err)
 			}
-			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value, false)
+			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value)
 			if len(diags) > 0 {
 				t.Errorf("expected no diagnostics but found %s", diags)
 			}
@@ -962,8 +962,7 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
 
 	// Check the generated content
 	expectedContent := `resource "aws_instance" "example_0" {
-  provider = aws
-  name     = "instance-1"
+  name = "instance-1"
   tags = {
     Environment = "Dev"
     Owner       = "Team1"
@@ -982,8 +981,7 @@ import {
 }
 
 resource "aws_instance" "example_1" {
-  provider = aws
-  name     = "instance-2"
+  name = "instance-2"
   tags = {
     Environment = "Prod"
     Owner       = "Team2"

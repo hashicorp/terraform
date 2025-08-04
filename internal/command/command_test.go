@@ -98,10 +98,10 @@ func TestMain(m *testing.M) {
 // similar to the following when initializing your test:
 //
 //	wd := tempWorkingDir(t)
-//	t.Chdir(wd.RootModuleDir())
+//	defer testChdir(t, wd.RootModuleDir())()
 //
-// Note that t.Chdir() modifies global state for the test process, and so a
-// test using this pattern is incompatible with use of t.Parallel().
+// Note that testChdir modifies global state for the test process, and so a
+// test using this pattern must never call t.Parallel().
 func tempWorkingDir(t *testing.T) *workdir.Dir {
 	t.Helper()
 
@@ -116,8 +116,8 @@ func tempWorkingDir(t *testing.T) *workdir.Dir {
 //
 // The same caveats about working directory apply as for testWorkingDir. See
 // the testWorkingDir commentary for an example of how to use this function
-// along with t.TempDir and t.Chdir from the testing library to meet the
-// expectations of command.Meta legacy functionality.
+// along with testChdir to meet the expectations of command.Meta legacy
+// functionality.
 func tempWorkingDirFixture(t *testing.T, fixtureName string) *workdir.Dir {
 	t.Helper()
 
@@ -463,14 +463,7 @@ func testStateFile(t *testing.T, s *states.State) string {
 }
 
 // testStateFileDefault writes the state out to the default statefile
-// in the cwd.
-//
-// Before calling this, use:
-//
-//	tmp := t.TempDir()
-//	t.Chdir(tmp)
-//
-// to change into a temp working directory
+// in the cwd. Use `testCwd` to change into a temp cwd.
 func testStateFileDefault(t *testing.T, s *states.State) {
 	t.Helper()
 
@@ -486,14 +479,7 @@ func testStateFileDefault(t *testing.T, s *states.State) {
 }
 
 // testStateFileWorkspaceDefault writes the state out to the default statefile
-// for the given workspace in the cwd.
-//
-// Before calling this, use:
-//
-//	tmp := t.TempDir()
-//	t.Chdir(tmp)
-//
-// to change into a temp working directory
+// for the given workspace in the cwd. Use `testCwd` to change into a temp cwd.
 func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.State) string {
 	t.Helper()
 
@@ -518,14 +504,7 @@ func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.Sta
 }
 
 // testStateFileRemote writes the state out to the remote statefile
-// in the cwd.
-//
-// Before calling this, use:
-//
-//	tmp := t.TempDir()
-//	t.Chdir(tmp)
-//
-// to change into a temp working directory
+// in the cwd. Use `testCwd` to change into a temp cwd.
 func testStateFileRemote(t *testing.T, s *workdir.BackendStateFile) string {
 	t.Helper()
 
@@ -635,6 +614,52 @@ func testTempDir(t *testing.T) string {
 	}
 
 	return d
+}
+
+// testChdir changes the directory and returns a function to defer to
+// revert the old cwd.
+func testChdir(t *testing.T, new string) func() {
+	t.Helper()
+
+	old, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := os.Chdir(new); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	return func() {
+		// Re-run the function ignoring the defer result
+		testChdir(t, old)
+	}
+}
+
+// testCwd is used to change the current working directory into a temporary
+// directory. The cleanup is performed automatically after the test and all its
+// subtests complete.
+func testCwd(t *testing.T) string {
+	t.Helper()
+
+	tmp := t.TempDir()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if err := os.Chdir(cwd); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
+
+	return tmp
 }
 
 // testStdinPipe changes os.Stdin to be a pipe that sends the data from

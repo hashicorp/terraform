@@ -47,10 +47,6 @@ type Test struct {
 	// human-readable format or JSON for each run step depending on the
 	// ViewType.
 	Verbose bool
-
-	// DeferralAllowed enables deferrals during test operations. This matches
-	// the same-named flag in the Operation struct.
-	DeferralAllowed bool
 }
 
 func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
@@ -69,7 +65,6 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
 	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.IntVar(&test.RunParallelism, "run-parallelism", DefaultParallelism, "run-parallelism")
-	cmdFlags.BoolVar(&test.DeferralAllowed, "allow-deferral", false, "allow-deferral")
 
 	// TODO: Finalise the name of this flag.
 	cmdFlags.StringVar(&test.CloudRunSource, "cloud-run", "", "cloud-run")

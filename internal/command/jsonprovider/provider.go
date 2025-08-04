@@ -30,7 +30,6 @@ type Provider struct {
 	ListResourceSchemas      map[string]*Schema                         `json:"list_resource_schemas,omitempty"`
 	Functions                map[string]*jsonfunction.FunctionSignature `json:"functions,omitempty"`
 	ResourceIdentitySchemas  map[string]*IdentitySchema                 `json:"resource_identity_schemas,omitempty"`
-	ActionSchemas            map[string]*ActionSchema                   `json:"action_schemas,omitempty"`
 }
 
 func newProviders() *Providers {
@@ -68,7 +67,6 @@ func marshalProvider(tps providers.ProviderSchema, includeExperimentalSchemas bo
 		EphemeralResourceSchemas: marshalSchemas(tps.EphemeralResourceTypes),
 		Functions:                jsonfunction.MarshalProviderFunctions(tps.Functions),
 		ResourceIdentitySchemas:  marshalIdentitySchemas(tps.ResourceTypes),
-		ActionSchemas:            marshalActionSchemas(tps.Actions),
 	}
 
 	if includeExperimentalSchemas {

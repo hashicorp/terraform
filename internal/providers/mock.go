@@ -107,13 +107,6 @@ func (m *Mock) ValidateListResourceConfig(request ValidateListResourceConfigRequ
 	return m.Provider.ValidateListResourceConfig(request)
 }
 
-func (m *Mock) ValidateActionConfig(request ValidateActionConfigRequest) ValidateActionConfigResponse {
-	// We'll just pass this through to the underlying provider. The mock should
-	// support the same data source syntax as the original provider and we can
-	// call validate without needing to configure the provider first.
-	return m.Provider.ValidateActionConfig(request)
-}
-
 func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (response UpgradeResourceStateResponse) {
 	// We can't do this from a mocked provider, so we just return whatever state
 	// is in the request back unchanged.
@@ -438,39 +431,6 @@ func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
 
 func (m *Mock) DeleteState(req DeleteStateRequest) DeleteStateResponse {
 	return m.Provider.DeleteState(req)
-}
-
-func (m *Mock) PlanAction(request PlanActionRequest) PlanActionResponse {
-	plannedLinkedResources := make([]LinkedResourcePlan, 0, len(request.LinkedResources))
-	for i, linkedResource := range request.LinkedResources {
-		plannedLinkedResources[i] = LinkedResourcePlan{
-			PlannedState:    linkedResource.PlannedState,
-			PlannedIdentity: linkedResource.PriorIdentity,
-		}
-	}
-
-	return PlanActionResponse{
-		LinkedResources: plannedLinkedResources,
-		Diagnostics:     nil,
-	}
-}
-
-func (m *Mock) InvokeAction(request InvokeActionRequest) InvokeActionResponse {
-	linkedResources := make([]LinkedResourceResult, 0, len(request.LinkedResources))
-	for i, linkedResource := range request.LinkedResources {
-		linkedResources[i] = LinkedResourceResult{
-			NewState:    linkedResource.PlannedState,
-			NewIdentity: linkedResource.PlannedIdentity,
-		}
-	}
-	return InvokeActionResponse{
-		Events: func(yield func(InvokeActionEvent) bool) {
-			yield(InvokeActionEvent_Completed{
-				LinkedResources: linkedResources,
-			})
-		},
-		Diagnostics: nil,
-	}
 }
 
 func (m *Mock) Close() error {

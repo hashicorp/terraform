@@ -58,7 +58,7 @@ func TestMeta_Workspace_override(t *testing.T) {
 // existing workflows with invalid workspace names.
 func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	td := t.TempDir()
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	// this is an invalid workspace name
 	workspace := "test workspace"
@@ -84,5 +84,25 @@ func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	}
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
+	}
+}
+
+// testChdir changes the directory and returns a function to defer to
+// revert the old cwd.
+func testChdir(t *testing.T, new string) func() {
+	t.Helper()
+
+	old, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := os.Chdir(new); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	return func() {
+		// Re-run the function ignoring the defer result
+		testChdir(t, old)
 	}
 }

@@ -8,11 +8,10 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ConfigSchemaToProto takes a *configschema.Block and converts it to a
@@ -109,29 +108,6 @@ func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) pr
 		schema.Identity = ProtoToIdentitySchema(id.IdentityAttributes)
 	}
 
-	return schema
-}
-
-func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
-	schema := providers.ActionSchema{
-		ConfigSchema: ProtoToConfigSchema(s.Schema.Block),
-	}
-
-	switch t := s.Type.(type) {
-	case *proto.ActionSchema_Unlinked_:
-		schema.Unlinked = &providers.UnlinkedAction{}
-	case *proto.ActionSchema_Lifecycle_:
-		schema.Lifecycle = &providers.LifecycleAction{
-			Executes:       ProtoToExecutionOrder(t.Lifecycle.Executes),
-			LinkedResource: ProtoToLinkedResource(t.Lifecycle.LinkedResource),
-		}
-	case *proto.ActionSchema_Linked_:
-		schema.Linked = &providers.LinkedAction{
-			LinkedResources: ProtoToLinkedResources(t.Linked.LinkedResources),
-		}
-	default:
-		panic("Unknown Action Type. Expected schema to contain either Unlinked, Lifecycle, or Linked")
-	}
 	return schema
 }
 
@@ -386,62 +362,4 @@ func ResourceIdentitySchemaToProto(schema providers.IdentitySchema) *proto.Resou
 		Version:            schema.Version,
 		IdentityAttributes: identityAttributes,
 	}
-}
-
-func ExecutionOrderToProto(s providers.ExecutionOrder) proto.ActionSchema_Lifecycle_ExecutionOrder {
-	switch s {
-	case providers.ExecutionOrderInvalid:
-		return proto.ActionSchema_Lifecycle_INVALID
-	case providers.ExecutionOrderBefore:
-		return proto.ActionSchema_Lifecycle_BEFORE
-	case providers.ExecutionOrderAfter:
-		return proto.ActionSchema_Lifecycle_AFTER
-	default:
-		panic("Unknown Execution Order, expected Invalid, Before, or After")
-	}
-}
-
-func ProtoToExecutionOrder(s proto.ActionSchema_Lifecycle_ExecutionOrder) providers.ExecutionOrder {
-	switch s {
-	case proto.ActionSchema_Lifecycle_INVALID:
-		return providers.ExecutionOrderInvalid
-	case proto.ActionSchema_Lifecycle_BEFORE:
-		return providers.ExecutionOrderBefore
-	case proto.ActionSchema_Lifecycle_AFTER:
-		return providers.ExecutionOrderAfter
-	default:
-		panic("Unknown Execution Order, expected Invalid, Before, or After")
-	}
-}
-
-func ProtoToLinkedResource(lr *proto.ActionSchema_LinkedResource) providers.LinkedResourceSchema {
-	if lr == nil {
-		return providers.LinkedResourceSchema{}
-	}
-
-	return providers.LinkedResourceSchema{
-		TypeName: lr.TypeName,
-	}
-}
-
-func LinkedResourceToProto(lr providers.LinkedResourceSchema) *proto.ActionSchema_LinkedResource {
-	return &proto.ActionSchema_LinkedResource{
-		TypeName: lr.TypeName,
-	}
-}
-
-func ProtoToLinkedResources(lrs []*proto.ActionSchema_LinkedResource) []providers.LinkedResourceSchema {
-	linkedResources := make([]providers.LinkedResourceSchema, len(lrs))
-	for i, lr := range lrs {
-		linkedResources[i] = ProtoToLinkedResource(lr)
-	}
-	return linkedResources
-}
-
-func LinkedResourcesToProto(lrs []providers.LinkedResourceSchema) []*proto.ActionSchema_LinkedResource {
-	linkedResources := make([]*proto.ActionSchema_LinkedResource, len(lrs))
-	for i, lr := range lrs {
-		linkedResources[i] = LinkedResourceToProto(lr)
-	}
-	return linkedResources
 }

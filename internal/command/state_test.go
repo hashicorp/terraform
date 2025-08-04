@@ -28,8 +28,7 @@ func testStateBackups(t *testing.T, dir string) []string {
 }
 
 func TestStateDefaultBackupExtension(t *testing.T) {
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	s, err := (&StateMeta{}).State()
 	if err != nil {

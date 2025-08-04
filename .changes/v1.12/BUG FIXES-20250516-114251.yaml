@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Avoid crash on test failure in comparison in function call
+time: 2025-05-16T11:42:51.289379+01:00
+custom:
+    Issue: "37071"

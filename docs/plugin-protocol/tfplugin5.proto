@@ -144,52 +144,6 @@ message ResourceIdentityData {
     DynamicValue identity_data = 1;
 }
 
-// ActionSchema defines the schema for an action that can be invoked by Terraform.
-message ActionSchema {
-    message LinkedResource {
-        string type_name = 1;
-        // description is a human-readable description of the role of the linked resource.
-        // For lifecycle actions this is most likely just the resource being acted upon.
-        // For linked actions where multiple resources are linked, this description should
-        // help the user understand what the resource is used for.
-        // We expect markdown formatting for the description.
-        string description = 2;
-    }
-
-    // An Unlinked action is an action that is not linked to any resources. It may contain
-    // references to resources but it can not change the resource state of any resource.
-    message Unlinked {}
-    
-    // A Lifecycle action is an action that is linked to a resources lifecycle. It runs as part of 
-    // the lifecycle and may change the resource state of the resource it is linked to to a degree. 
-    // It can only affect computed attributes of the resource it is linked to.
-    message Lifecycle {
-        // ExecutionOrder defines if the action should be executed before or after the resource,
-        // in whose lifecycle the action runs, applies
-        enum ExecutionOrder {
-            INVALID = 0;
-            BEFORE = 1;
-            AFTER = 2;
-        }
-
-        ExecutionOrder executes = 1; 
-        LinkedResource linked_resource = 2;
-    }
-    
-    // A linked action can be linked to multiple resources and can change the resource state of those resources. It can not be run as part of plan and apply.
-    message Linked {
-        repeated LinkedResource linked_resources = 1;
-    }
-
-    Schema schema = 1; // of the action itself
-
-    oneof type {
-        Unlinked unlinked = 2;
-        Lifecycle lifecycle = 3;
-        Linked linked = 4;
-    }
-}
-
 // Schema is the configuration schema for a Resource, Provider, or Provisioner.
 message Schema {
     message Block {
@@ -402,11 +356,6 @@ service Provider {
     //////// Provider-contributed Functions
     rpc CallFunction(CallFunction.Request) returns (CallFunction.Response);
 
-    //////// Actions
-    rpc PlanAction(PlanAction.Request) returns (PlanAction.Response);
-    rpc InvokeAction(InvokeAction.Request) returns (stream InvokeAction.Event);
-    rpc ValidateActionConfig(ValidateActionConfig.Request) returns (ValidateActionConfig.Response);
-
     //////// Graceful Shutdown
     rpc Stop(Stop.Request) returns (Stop.Response);
 }
@@ -424,7 +373,6 @@ message GetMetadata {
         repeated FunctionMetadata functions = 5;
         repeated EphemeralMetadata ephemeral_resources = 6;
         repeated ListResourceMetadata list_resources = 7;
-        repeated ActionMetadata actions = 8;
     }
 
     message EphemeralMetadata {
@@ -447,10 +395,6 @@ message GetMetadata {
     message ListResourceMetadata {
         string type_name = 1;
     }
-    
-    message ActionMetadata {
-        string type_name = 1;
-    }
 }
 
 message GetProviderSchema {
@@ -463,8 +407,6 @@ message GetProviderSchema {
         map<string, Function> functions = 7;
         map<string, Schema> ephemeral_resource_schemas = 8;
         map<string, Schema> list_resource_schemas = 9;
-        reserved 10; // Field number 10 is used by state stores in version 6
-        map<string, ActionSchema> action_schemas = 11;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
@@ -920,95 +862,4 @@ message ValidateListResourceConfig {
     message Response {
         repeated Diagnostic diagnostics = 1;
     }
-}
-
-message PlanAction {
-    message Request {
-        message LinkedResource {
-            // prior_state is the state of the linked resource before the action is planned.
-            DynamicValue prior_state = 1; 
-            // planned_state describes the value the linked resource has been last planned with.
-            // This could also be the output of a predecessor action.
-            DynamicValue planned_state = 2;
-            DynamicValue config = 3;
-            ResourceIdentityData prior_identity = 4;
-        }
-        string action_type = 1;
-        // linked resources, this should match the order the resources are specified in the schema.
-        repeated LinkedResource linked_resources = 2;
-        // config of the action, based on the schema of the actual action
-        DynamicValue config = 3;
-        // metadata
-        ClientCapabilities client_capabilities = 4;
-    }
-
-    message Response {
-        message LinkedResource {
-            DynamicValue planned_state = 1;
-            ResourceIdentityData planned_identity = 2;
-        }
-        // planned changes to the linked resources in the order they are specified in the schema.
-        repeated LinkedResource linked_resources = 1;
-        repeated Diagnostic diagnostics = 2;
-        // metadata
-        Deferred deferred = 3;
-    }
-}
-
-message InvokeAction {
-    message Request {
-        message LinkedResource {
-            DynamicValue prior_state = 1; 
-            // planned_state describes the value the linked resource has been last planned 
-            // with. This could also be the output of a predecessor action.
-            DynamicValue planned_state = 2;
-            DynamicValue config = 3;
-            ResourceIdentityData planned_identity = 4;
-        }
-        string action_type = 1;
-        // linked resources, matching the order they are specified in the schema
-        repeated LinkedResource linked_resources = 2;
-        // response from the plan
-        DynamicValue config = 3;
-    }
-
-    message Event {
-      message Progress {
-        // message to be printed in the console / HCPT
-        string message = 1;
-      }
-      message Completed {
-        message LinkedResource {
-            DynamicValue new_state = 1;
-            ResourceIdentityData new_identity = 2;
-            // Can only be set if error diagnostics are present. 
-            bool requires_replace = 3;
-        }
-
-        // linked resources, matching the order they are specified in the schema
-        repeated LinkedResource linked_resources = 1;
-        repeated Diagnostic diagnostics = 2;
-    }
-
-    oneof type {
-      Progress progress = 1;
-      Completed completed = 2;
-    }
-  }
-}
-
-message ValidateActionConfig {
-    message Request {
-        string type_name = 1;
-        DynamicValue config = 2;
-        repeated LinkedResourceConfig linked_resources = 3;
-    }
-    message Response {
-        repeated Diagnostic diagnostics = 1;
-    }
-}
-
-message LinkedResourceConfig {
-    string type_name = 1;
-    DynamicValue config = 2;
 }

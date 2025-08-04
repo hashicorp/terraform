@@ -185,17 +185,6 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 	}
 }
 
-func FromJsonActionInvocation(actionInvocation jsonplan.ActionInvocation) Change {
-	return Change{
-		Before:  unwrapAttributeValues(actionInvocation.ConfigValues),
-		After:   unwrapAttributeValues(actionInvocation.ConfigValues),
-		Unknown: false,
-
-		ReplacePaths:       attribute_path.Empty(false),
-		RelevantAttributes: attribute_path.AlwaysMatcher(),
-	}
-}
-
 // CalculateAction does a very simple analysis to make the best guess at the
 // action this change describes. For complex types such as objects, maps, lists,
 // or sets it is likely more efficient to work out the action directly instead

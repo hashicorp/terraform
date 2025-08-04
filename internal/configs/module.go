@@ -190,10 +190,6 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	// Generate the FQN -> LocalProviderName map
 	mod.gatherProviderLocalNames()
 
-	if mod.StateStore != nil {
-		diags = append(diags, mod.resolveStateStoreProviderType()...)
-	}
-
 	return mod, diags
 }
 
@@ -893,26 +889,6 @@ func (m *Module) gatherProviderLocalNames() {
 		providers[v.Type] = k
 	}
 	m.ProviderLocalNames = providers
-}
-
-// resolveStateStoreProviderType uses the processed module to get tfaddr.Provider data for the provider
-// used for pluggable state storage, and assigns it to the ProviderAddr field in the module's state store data.
-//
-// See the reused function resolveStateStoreProviderType for details about logic.
-// If no match is found, an error diagnostic is returned.
-func (m *Module) resolveStateStoreProviderType() hcl.Diagnostics {
-	var diags hcl.Diagnostics
-
-	providerType, typeDiags := resolveStateStoreProviderType(m.ProviderRequirements.RequiredProviders,
-		*m.StateStore)
-
-	if typeDiags.HasErrors() {
-		diags = append(diags, typeDiags...)
-		return diags
-	}
-
-	m.StateStore.ProviderAddr = providerType
-	return diags
 }
 
 // LocalNameForProvider returns the module-specific user-supplied local name for

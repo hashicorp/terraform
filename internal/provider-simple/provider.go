@@ -70,7 +70,6 @@ func Provider() providers.Interface {
 					},
 				},
 			},
-			Actions: map[string]providers.ActionSchema{},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
 			},
@@ -279,24 +278,6 @@ func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesRes
 func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
 	// provider-simple uses protocol version 5, which does not include the RPC that maps to this method
 	panic("not implemented")
-}
-
-func (s simple) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
-	// Our schema doesn't include any actions, so it should be
-	// impossible to get here.
-	panic("PlanAction on provider that didn't declare any actions")
-}
-
-func (s simple) InvokeAction(providers.InvokeActionRequest) providers.InvokeActionResponse {
-	// Our schema doesn't include any actions, so it should be
-	// impossible to get here.
-	panic("InvokeAction on provider that didn't declare any actions")
-}
-
-func (s simple) ValidateActionConfig(providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
-	// Our schema doesn't include any actions, so it should be
-	// impossible to get here.
-	panic("ValidateActionConfig on provider that didn't declare any actions")
 }
 
 func (s simple) Close() error {

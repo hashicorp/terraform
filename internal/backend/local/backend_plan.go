@@ -41,30 +41,18 @@ func (b *Local) opPlan(
 		return
 	}
 
-	if !op.HasConfig() {
-		switch {
-		case op.Query:
-			// Special diag for terraform query command
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"No configuration files",
-				"Query requires a query configuration to be present. Create a Terraform query configuration file (.tfquery.hcl file) and try again.",
-			))
-			op.ReportResult(runningOp, diags)
-			return
-		case op.PlanMode != plans.DestroyMode:
-			// Local planning requires a config, unless we're planning to destroy.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"No configuration files",
-				"Plan requires configuration to be present. Planning without a configuration would "+
-					"mark everything for destruction, which is normally not what is desired. If you "+
-					"would like to destroy everything, run plan with the -destroy option. Otherwise, "+
-					"create a Terraform configuration file (.tf file) and try again.",
-			))
-			op.ReportResult(runningOp, diags)
-			return
-		}
+	// Local planning requires a config, unless we're planning to destroy.
+	if op.PlanMode != plans.DestroyMode && !op.HasConfig() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No configuration files",
+			"Plan requires configuration to be present. Planning without a configuration would "+
+				"mark everything for destruction, which is normally not what is desired. If you "+
+				"would like to destroy everything, run plan with the -destroy option. Otherwise, "+
+				"create a Terraform configuration file (.tf file) and try again.",
+		))
+		op.ReportResult(runningOp, diags)
+		return
 	}
 
 	if len(op.GenerateConfigOut) > 0 {

@@ -33,7 +33,6 @@ func TestMarshalProvider(t *testing.T) {
 				DataSourceSchemas:        map[string]*Schema{},
 				EphemeralResourceSchemas: map[string]*Schema{},
 				ResourceIdentitySchemas:  map[string]*IdentitySchema{},
-				ActionSchemas:            map[string]*ActionSchema{},
 			},
 		},
 		{
@@ -213,7 +212,6 @@ func TestMarshalProvider(t *testing.T) {
 					},
 				},
 				ResourceIdentitySchemas: map[string]*IdentitySchema{},
-				ActionSchemas:           map[string]*ActionSchema{},
 			},
 		},
 		{
@@ -226,49 +224,6 @@ func TestMarshalProvider(t *testing.T) {
 								"filter": {Type: cty.String, Optional: true},
 								"items":  {Type: cty.List(cty.String), Required: true},
 							},
-						},
-					},
-				},
-				Actions: map[string]providers.ActionSchema{
-					"test_unlinked_action": {
-						ConfigSchema: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"opt_attr": {Type: cty.String, Optional: true},
-								"req_attr": {Type: cty.List(cty.String), Required: true},
-							},
-						},
-						Unlinked: &providers.UnlinkedAction{},
-					},
-					"test_linked_action": {
-						ConfigSchema: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"opt_attr": {Type: cty.String, Optional: true},
-								"req_attr": {Type: cty.List(cty.String), Required: true},
-							},
-						},
-						Linked: &providers.LinkedAction{
-							LinkedResources: []providers.LinkedResourceSchema{
-								{
-									TypeName: "test_resource_a",
-								},
-								{
-									TypeName: "test_resource_b",
-								},
-							},
-						},
-					},
-					"test_lifecycle_action": {
-						ConfigSchema: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"opt_attr": {Type: cty.String, Optional: true},
-								"req_attr": {Type: cty.List(cty.String), Required: true},
-							},
-						},
-						Lifecycle: &providers.LifecycleAction{
-							LinkedResource: providers.LinkedResourceSchema{
-								TypeName: "test_resource_c",
-							},
-							Executes: providers.ExecutionOrderBefore,
 						},
 					},
 				},
@@ -300,76 +255,6 @@ func TestMarshalProvider(t *testing.T) {
 					},
 				},
 				ResourceIdentitySchemas: map[string]*IdentitySchema{},
-				ActionSchemas: map[string]*ActionSchema{
-					"test_unlinked_action": {
-						ConfigSchema: &Block{
-							Attributes: map[string]*Attribute{
-								"opt_attr": {
-									AttributeType:   json.RawMessage(`"string"`),
-									Optional:        true,
-									DescriptionKind: "plain",
-								},
-								"req_attr": {
-									AttributeType:   json.RawMessage(`["list","string"]`),
-									Required:        true,
-									DescriptionKind: "plain",
-								},
-							},
-							DescriptionKind: "plain",
-						},
-						Unlinked: &UnlinkedAction{},
-					},
-					"test_linked_action": {
-						ConfigSchema: &Block{
-							Attributes: map[string]*Attribute{
-								"opt_attr": {
-									AttributeType:   json.RawMessage(`"string"`),
-									Optional:        true,
-									DescriptionKind: "plain",
-								},
-								"req_attr": {
-									AttributeType:   json.RawMessage(`["list","string"]`),
-									Required:        true,
-									DescriptionKind: "plain",
-								},
-							},
-							DescriptionKind: "plain",
-						},
-						Linked: &LinkedAction{
-							LinkedResources: []LinkedResourceSchema{
-								{
-									TypeName: "test_resource_a",
-								},
-								{
-									TypeName: "test_resource_b",
-								},
-							},
-						},
-					},
-					"test_lifecycle_action": {
-						ConfigSchema: &Block{
-							Attributes: map[string]*Attribute{
-								"opt_attr": {
-									AttributeType:   json.RawMessage(`"string"`),
-									Optional:        true,
-									DescriptionKind: "plain",
-								},
-								"req_attr": {
-									AttributeType:   json.RawMessage(`["list","string"]`),
-									Required:        true,
-									DescriptionKind: "plain",
-								},
-							},
-							DescriptionKind: "plain",
-						},
-						Lifecycle: &LifecycleAction{
-							LinkedResource: LinkedResourceSchema{
-								TypeName: "test_resource_c",
-							},
-							ExecutionOrder: "before",
-						},
-					},
-				},
 			},
 		},
 	}

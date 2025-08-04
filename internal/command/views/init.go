@@ -186,10 +186,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
 	},
-	"initializing_state_store_message": {
-		HumanValue: "\n[reset][bold]Initializing the state store...",
-		JSONValue:  "Initializing the state store...",
-	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
@@ -262,7 +258,6 @@ const (
 	InitializingTerraformCloudMessage   InitMessageCode = "initializing_terraform_cloud_message"
 	InitializingModulesMessage          InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage          InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage       InitMessageCode = "initializing_state_store_message"
 	InitializingProviderPluginMessage   InitMessageCode = "initializing_provider_plugin_message"
 	LockInfo                            InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo         InitMessageCode = "dependencies_lock_changes_info"

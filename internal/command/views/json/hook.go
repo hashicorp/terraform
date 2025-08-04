@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 type Hook interface {
@@ -358,7 +357,6 @@ func NewRefreshComplete(addr addrs.AbsResourceInstance, idKey, idValue string) H
 type actionStart struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
-	ActionsIndex       int          `json:"actions_index"`
 	Action             ActionAddr   `json:"action"`
 }
 
@@ -372,19 +370,17 @@ func (h *actionStart) String() string {
 	return fmt.Sprintf("%s.trigger[%d]: Action Started: %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr)
 }
 
-func NewActionStart(id terraform.HookActionIdentity) Hook {
+func NewActionStart(addr addrs.AbsActionInvocationInstance) Hook {
 	return &actionStart{
-		TriggeringResource: newResourceAddr(id.TriggeringResourceAddr),
-		TriggerIndex:       id.ActionTriggerBlockIndex,
-		ActionsIndex:       id.ActionsListIndex,
-		Action:             newActionAddr(id.Addr),
+		TriggeringResource: newResourceAddr(addr.TriggeringResource),
+		TriggerIndex:       addr.TriggerIndex,
+		Action:             newActionAddr(addr.Action),
 	}
 }
 
 type actionProgress struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
-	ActionsIndex       int          `json:"actions_index"`
 	Action             ActionAddr   `json:"action"`
 	Message            string       `json:"message"`
 }
@@ -399,12 +395,11 @@ func (h *actionProgress) String() string {
 	return fmt.Sprintf("%s (%d): %s - %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr, h.Message)
 }
 
-func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
+func NewActionProgress(addr addrs.AbsActionInvocationInstance, message string) Hook {
 	return &actionProgress{
-		TriggeringResource: newResourceAddr(id.TriggeringResourceAddr),
-		TriggerIndex:       id.ActionTriggerBlockIndex,
-		ActionsIndex:       id.ActionsListIndex,
-		Action:             newActionAddr(id.Addr),
+		TriggeringResource: newResourceAddr(addr.TriggeringResource),
+		TriggerIndex:       addr.TriggerIndex,
+		Action:             newActionAddr(addr.Action),
 		Message:            message,
 	}
 }
@@ -412,7 +407,6 @@ func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
 type actionComplete struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
-	ActionsIndex       int          `json:"actions_index"`
 	Action             ActionAddr   `json:"action"`
 }
 
@@ -426,19 +420,17 @@ func (h *actionComplete) String() string {
 	return fmt.Sprintf("%s (%d): Action Complete: %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr)
 }
 
-func NewActionComplete(id terraform.HookActionIdentity) Hook {
+func NewActionComplete(addr addrs.AbsActionInvocationInstance) Hook {
 	return &actionComplete{
-		TriggeringResource: newResourceAddr(id.TriggeringResourceAddr),
-		TriggerIndex:       id.ActionTriggerBlockIndex,
-		ActionsIndex:       id.ActionsListIndex,
-		Action:             newActionAddr(id.Addr),
+		TriggeringResource: newResourceAddr(addr.TriggeringResource),
+		TriggerIndex:       addr.TriggerIndex,
+		Action:             newActionAddr(addr.Action),
 	}
 }
 
 type actionErrored struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
-	ActionsIndex       int          `json:"actions_index"`
 	Action             ActionAddr   `json:"action"`
 	Error              string       `json:"error"`
 }
@@ -453,12 +445,11 @@ func (h *actionErrored) String() string {
 	return fmt.Sprintf("%s (%d): Action Errored: %s - %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr, h.Error)
 }
 
-func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
+func NewActionErrored(addr addrs.AbsActionInvocationInstance, err error) Hook {
 	return &actionErrored{
-		TriggeringResource: newResourceAddr(id.TriggeringResourceAddr),
-		TriggerIndex:       id.ActionTriggerBlockIndex,
-		ActionsIndex:       id.ActionsListIndex,
-		Action:             newActionAddr(id.Addr),
+		TriggeringResource: newResourceAddr(addr.TriggeringResource),
+		TriggerIndex:       addr.TriggerIndex,
+		Action:             newActionAddr(addr.Action),
 		Error:              err.Error(),
 	}
 }

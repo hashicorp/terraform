@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: 'The new command `terraform stacks` exposes some stack operations through the cli. The available subcommands depend on the stacks plugin implementation. Use `terraform stacks -help` to see available commands.'
+time: 2025-05-13T13:29:53.189733-04:00
+custom:
+    Issue: "36931"
