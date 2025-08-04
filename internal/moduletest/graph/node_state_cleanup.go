@@ -29,10 +29,6 @@ var (
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
-
-	// If applyOverride is provided, it will be applied to the state file to reach
-	// the final state, instead of running the destroy operation.
-	applyOverride *moduletest.Run
 }
 
 func (n *NodeStateCleanup) Name() string {
@@ -44,11 +40,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
-	if n.applyOverride != nil {
-		state.Run = n.applyOverride
-	}
 
-	evalCtx.Renderer().Run(state.Run, file, moduletest.TearDown, 0)
 	if evalCtx.Cancelled() {
 		// Don't try and clean anything up if the execution has been cancelled.
 		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
@@ -86,7 +78,6 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 		diags := tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name))}
 		file.UpdateStatus(moduletest.Error)
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
-
 		return
 	}
 
@@ -94,17 +85,28 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	startTime := time.Now().UTC()
 	waiter := NewOperationWaiter(nil, evalCtx, file, state.Run, moduletest.Running, startTime.UnixMilli())
 	var destroyDiags tfdiags.Diagnostics
+	evalCtx.Renderer().Run(state.Run, file, moduletest.TearDown, 0)
 	cancelled := waiter.Run(func() {
-		updated, destroyDiags = n.destroy(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, waiter)
+		if state.RestoreState {
+			updated, destroyDiags = n.restore(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, waiter)
+		} else {
+			updated, destroyDiags = n.destroy(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, waiter)
+		}
 	})
 	if cancelled {
 		destroyDiags = destroyDiags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
 	}
 
-	if !updated.Empty() {
-		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonError)
+	switch {
+	case destroyDiags.HasErrors():
 		file.UpdateStatus(moduletest.Error)
-	} else {
+		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonError)
+	case state.RestoreState:
+		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonSkip)
+	case !updated.Empty():
+		file.UpdateStatus(moduletest.Error)
+		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonError)
+	default:
 		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonNone)
 	}
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
@@ -173,8 +175,6 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	state := fileState.State
 	log.Printf("[TRACE] TestFileRunner: called destroy for %s", run.Name)
 
-	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
-
 	variables, diags := GetVariables(ctx, run, module, false)
 	if diags.HasErrors() {
 		return state, diags
@@ -184,13 +184,6 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	// during the initial execution of the run block and we would not have
 	// executed the run block if there were any errors.
 	providers, mocks, _ := getProviders(ctx, file, run, module)
-
-	// If the run block has an override, we don't need to run the destroy
-	// operation. We can just apply the override to the state file and return.
-	if n.applyOverride != nil {
-		runNode.testApply(ctx, variables, waiter)
-		return ctx.GetFileState(n.stateKey).State, nil
-	}
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
@@ -227,11 +220,5 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 
 	_, updated, applyDiags := apply(tfCtx, run, module, plan, moduletest.TearDown, variables, providers, waiter)
 	diags = diags.Append(applyDiags)
-
-	if !updated.Empty() {
-		// Then we failed to adequately clean up the state, so mark as errored.
-		file.UpdateStatus(moduletest.Error)
-	}
-
 	return updated, diags
 }

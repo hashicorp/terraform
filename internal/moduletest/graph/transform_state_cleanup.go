@@ -4,7 +4,6 @@
 package graph
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"

@@ -134,14 +134,13 @@ func (w *operationWaiter) updateProgress() {
 // handleCancelled is called when the test execution is hard cancelled.
 func (w *operationWaiter) handleCancelled() bool {
 	log.Printf("[DEBUG] TestFileRunner: test execution cancelled during %s", w.identifier)
-	states := make(map[*moduletest.Run]*states.State)
-	mainKey := configs.TestMainStateIdentifier
-	states[nil] = w.evalCtx.GetFileState(mainKey).State
+	states := make(map[string]*states.State)
+	states[configs.TestMainStateIdentifier] = w.evalCtx.GetFileState(configs.TestMainStateIdentifier).State
 	for key, module := range w.evalCtx.FileStates {
-		if key == mainKey {
+		if key == configs.TestMainStateIdentifier {
 			continue
 		}
-		states[module.Run] = module.State
+		states[key] = module.State
 	}
 	w.renderer.FatalInterruptSummary(w.run, w.file, states, w.created)
 

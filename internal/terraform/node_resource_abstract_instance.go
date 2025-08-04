@@ -46,11 +46,6 @@ type NodeAbstractResourceInstance struct {
 
 	preDestroyRefresh bool
 
-	// overridePreventDestroy is set during test cleanup operations to allow
-	// tests to clean up any created infrastructure regardless of this setting
-	// in the configuration.
-	overridePreventDestroy bool
-
 	// During import (or query) we may generate configuration for a resource, which needs
 	// to be stored in the final change.
 	generatedConfigHCL string

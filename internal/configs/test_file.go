@@ -371,6 +371,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	diags = append(diags, contentDiags...)
 
 	runBlockNames := make(map[string]hcl.Range)
+	skipCleanups := make(map[string]string)
 
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -391,6 +392,18 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				continue
 			}
 			runBlockNames[run.Name] = run.DeclRange
+
+			if run.SkipCleanup && run.SkipCleanupSet {
+				if _, found := skipCleanups[run.StateKey]; found {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Duplicate \"skip_cleanup\" block",
+						Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but shares state with an earlier run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.", run.Name, skipCleanups[run.StateKey]),
+						Subject:  block.DefRange.Ptr(),
+					})
+				}
+				skipCleanups[run.StateKey] = run.Name
+			}
 
 		case "variable":
 			variable, variableDiags := decodeVariableBlock(block, false)

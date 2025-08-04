@@ -6,9 +6,16 @@ import (
 )
 
 type TestRunState struct {
-	File *moduletest.File
-	Run  *moduletest.Run
+	// Run and RestoreState represent the run block to use to either destroy
+	// or restore the state to. If RestoreState is false, then the state will
+	// destroyed, if true it will be restored to the config of the relevant
+	// run block.
+	Run          *moduletest.Run
+	RestoreState bool
 
+	// Manifest is the underlying state manifest for this state.
 	Manifest *TestRunManifest
-	State    *states.State
+
+	// State is the actual state.
+	State *states.State
 }

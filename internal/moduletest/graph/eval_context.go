@@ -552,9 +552,23 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 func (ec *EvalContext) SetFileState(key string, run *moduletest.Run, state *states.State, reason teststates.StateReason) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
-	ec.FileStates[key].Run = run
-	ec.FileStates[key].State = state
-	ec.FileStates[key].Manifest.Reason = reason
+
+	current := ec.FileStates[key]
+
+	// Whatever happens we're going to record the latest state for this key.
+	current.State = state
+	current.Manifest.Reason = reason
+
+	if run.Config.SkipCleanup {
+		// if skip cleanup is set on the run block, we're going to track it
+		// as the thing to target regardless of what else might be true.
+		current.Run = run
+		current.RestoreState = true
+	} else if !current.RestoreState {
+		// otherwise, only set the new run block if we haven't been told the
+		// earlier run block is more relevant.
+		current.Run = run
+	}
 }
 
 func (ec *EvalContext) GetFileState(key string) *teststates.TestRunState {

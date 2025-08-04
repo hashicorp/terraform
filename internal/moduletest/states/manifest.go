@@ -120,15 +120,13 @@ func (manifest *TestManifest) LoadStates(file *moduletest.File) (map[string]*Tes
 			}
 
 			allStates[key] = &TestRunState{
-				File:     file,
 				Run:      run,
 				Manifest: existing,
 				State:    state,
 			}
 		} else {
 			allStates[key] = &TestRunState{
-				File: file,
-				Run:  run,
+				Run: run,
 				Manifest: &TestRunManifest{
 					ID:     manifest.generateID(),
 					Reason: StateReasonNone,
