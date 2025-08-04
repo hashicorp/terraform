@@ -111,6 +111,114 @@ func TestInit_only_test_files(t *testing.T) {
 	}
 }
 
+func TestInit_two_step_provider_download(t *testing.T) {
+	cases := map[string]struct {
+		workDirPath          string
+		expectedDownloadMsgs []string
+	}{
+		"providers required by only the state file": {
+			// TODO - should the output indicate that no providers were found in config?
+			workDirPath: "init-provider-download/state-file-only",
+			expectedDownloadMsgs: []string{
+				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
+				`Initializing provider plugins found in the configuration...
+				Initializing the backend...`, // No providers found in the configuration so next output is backend-related
+				`Initializing provider plugins found in the state...
+				- Finding latest version of hashicorp/random...
+				- Installing hashicorp/random v9.9.9...`, // The latest version is expected, as state has no version constraints
+			},
+		},
+		"different providers required by config and state": {
+			workDirPath: "init-provider-download/config-and-state-different-providers",
+			expectedDownloadMsgs: []string{
+				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
+
+				// Config - this provider is affected by a version constraint
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/null versions matching "< 9.0.0"...
+				- Installing hashicorp/null v1.0.0...
+				- Installed hashicorp/null v1.0.0`,
+
+				// State - the latest version of this provider is expected, as state has no version constraints
+				`Initializing provider plugins found in the state...
+				- Finding latest version of hashicorp/random...
+				- Installing hashicorp/random v9.9.9...`,
+			},
+		},
+		"does not re-download providers that are present in both config and state": {
+			workDirPath: "init-provider-download/config-and-state-same-providers",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/random versions matching "< 9.0.0"...
+				- Installing hashicorp/random v1.0.0...
+				- Installed hashicorp/random v1.0.0`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Using previously-installed hashicorp/random v1.0.0`,
+			},
+		},
+		"reuses providers already represented in a dependency lock file": {
+			workDirPath: "init-provider-download/config-state-file-and-lockfile",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Installing hashicorp/random v1.0.0...
+				- Installed hashicorp/random v1.0.0`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Using previously-installed hashicorp/random v1.0.0`,
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+
+			// Create a temporary working directory no tf configuration but has state
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(tc.workDirPath), td)
+			os.MkdirAll(td, 0755)
+			t.Chdir(td)
+
+			// A provider source containing the random and null providers
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"hashicorp/random": {"1.0.0", "9.9.9"},
+				"hashicorp/null":   {"1.0.0", "9.9.9"},
+			})
+			defer close()
+
+			ui := new(cli.MockUi)
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					ProviderSource:   providerSource,
+
+					AllowExperimentalFeatures: true, // Needed to test init changes for PSS project
+				},
+			}
+
+			args := []string{"-enable-pluggable-state-storage-experiment"} // Needed to test init changes for PSS project
+			if code := c.Run(args); code != 0 {
+				t.Fatalf("bad: \n%s", done(t).All())
+			}
+
+			actual := cleanString(done(t).All())
+			for _, downloadMsg := range tc.expectedDownloadMsgs {
+				if !strings.Contains(cleanString(actual), cleanString(downloadMsg)) {
+					t.Fatalf("expected output to contain %q\n, got %q", cleanString(downloadMsg), cleanString(actual))
+				}
+			}
+		})
+	}
+}
+
 func TestInit_multipleArgs(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
