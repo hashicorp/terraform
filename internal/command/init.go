@@ -882,6 +882,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		mode = providercache.InstallUpgrades
 	}
 
+	// Previous locks from dep locks file are needed so we don't re-download any providers
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
@@ -913,8 +914,10 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 // getProvidersFromState determines what providers are required by the given state data.
 // The method downloads any missing providers that aren't already downloaded and then returns
 // dependency lock data based on the state.
+// The calling code is assumed to have already called getProvidersFromConfig, which is used to
+// supply the configLocks argument.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -943,8 +946,12 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		}
 	}
 
+	// Previous locks from dep locks file are needed so we don't re-download any providers
+	// Here we also need to incorporate the locks derived from the config, to avoid downloading
+	// a provider twice.
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
+	inProgressLocks := c.mergeLockedDependencies(configLocks, previousLocks)
 
 	if diags.HasErrors() {
 		return false, nil, diags
@@ -987,7 +994,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 
 		mode = providercache.InstallUpgrades
 	}
-	newLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
+	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
