@@ -1089,7 +1089,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 	// are shimming our vt100 output to the legacy console API on Windows.
 	events := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingProviderPluginFromConfigMessage)
+			view.Output(initMsg)
 		},
 		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
 			view.LogInitMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
