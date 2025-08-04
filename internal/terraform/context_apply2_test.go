@@ -4082,3 +4082,98 @@ func TestContext2Apply_excludeListResources(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestContext2Apply_errorDestroyWithIdentity(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("test")
+
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	})
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		// Should actually be called for this test, because Terraform Core
+		// constructs the plan for a destroy operation itself.
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	value := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("baz"),
+	})
+	identity := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("baz"),
+	})
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// The apply (in this case, a destroy) always fails, so we can verify
+		// that the object stays in the state after a destroy fails even though
+		// we aren't returning a new state object here.
+		return providers.ApplyResourceChangeResponse{
+			NewState:    value,
+			NewIdentity: identity,
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("failed")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_resource",
+				Name: "test",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:       states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"baz"}`),
+				IdentityJSON: []byte(`{"id":"baz"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("should have error")
+	}
+
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
+	resourceInstanceStateSrc := state.Modules[""].Resources["test_resource.test"].Instance(addrs.NoKey).Current
+	resourceInstanceState, err := resourceInstanceStateSrc.Decode(schema)
+	if err != nil {
+		t.Fatalf("failed to decode resource instance state: %s", err)
+	}
+
+	if !resourceInstanceState.Value.RawEquals(value) {
+		t.Fatalf("expected value to still be present in state, but got: %s", resourceInstanceState.Value.GoString())
+	}
+	if !resourceInstanceState.Identity.RawEquals(identity) {
+		t.Fatalf("expected identity to still be present in state, but got: %s", resourceInstanceState.Identity.GoString())
+	}
+}
