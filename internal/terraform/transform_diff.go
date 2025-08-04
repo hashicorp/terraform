@@ -86,20 +86,11 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// to be run as part of the apply phase.
 	// The after-triggered action invocations will be run as part of a separate node
 	// that will be connected to the resource instance nodes.
-	runBeforeNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstance]()
-	runAfterNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstance]()
-	for _, aiSrc := range changes.ActionInvocations {
-		ai, err := aiSrc.Decode()
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid action invocation",
-				fmt.Sprintf("The plan contains an invalid action invocation for %s: %s", aiSrc.Addr, err),
-			))
-			return diags.Err()
-		}
+	runBeforeNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
+	runAfterNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
+	for _, ai := range changes.ActionInvocations {
 
-		var targetMap addrs.Map[addrs.AbsResourceInstance, []*plans.ActionInvocationInstance]
+		var targetMap addrs.Map[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]
 		switch ai.TriggerEvent {
 		case configs.BeforeCreate, configs.BeforeUpdate, configs.BeforeDestroy:
 			targetMap = runBeforeNode
@@ -109,7 +100,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			panic("I don't know when to run this action invocation")
 		}
 
-		basis := []*plans.ActionInvocationInstance{}
+		basis := []*plans.ActionInvocationInstanceSrc{}
 		if targetMap.Has(ai.TriggeringResourceAddr) {
 			basis = targetMap.Get(ai.TriggeringResourceAddr)
 		}

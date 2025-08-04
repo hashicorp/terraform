@@ -6,6 +6,8 @@ package plans
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ActionInvocationInstance struct {
@@ -24,20 +26,39 @@ type ActionInvocationInstance struct {
 	// to plan this action, and thus the configuration that must also be
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
+
+	ConfigValue cty.Value
 }
 
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
-func (ai *ActionInvocationInstance) Encode() (*ActionInvocationInstanceSrc, error) {
-	return &ActionInvocationInstanceSrc{
+func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*ActionInvocationInstanceSrc, error) {
+
+	ret := &ActionInvocationInstanceSrc{
 		Addr:                    ai.Addr,
 		TriggeringResourceAddr:  ai.TriggeringResourceAddr,
 		TriggerEvent:            ai.TriggerEvent,
 		ActionTriggerBlockIndex: ai.ActionTriggerBlockIndex,
 		ActionsListIndex:        ai.ActionsListIndex,
 		ProviderAddr:            ai.ProviderAddr,
-	}, nil
+	}
+
+	if ai.ConfigValue != cty.NilVal {
+		ty := cty.DynamicPseudoType
+		if schema != nil {
+			ty = schema.ConfigSchema.ImpliedType()
+		}
+
+		var err error
+		ret.ConfigValue, err = NewDynamicValue(ai.ConfigValue, ty)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ret, nil
+
 }
 
 type ActionInvocationInstances []*ActionInvocationInstance

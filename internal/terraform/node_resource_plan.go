@@ -684,10 +684,10 @@ func (n *nodeExpandPlannableResource) validForceReplaceTargets(instanceAddrs []a
 }
 
 // GraphNodeActionProviders
-func (n *nodeExpandPlannableResource) ActionProviders() []addrs.AbsProviderConfig {
-	providers := []addrs.AbsProviderConfig{}
+func (n *nodeExpandPlannableResource) Actions() []addrs.ConfigAction {
+	configActions := []addrs.ConfigAction{}
 	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.ActionTriggers == nil {
-		return providers
+		return configActions
 	}
 
 	for _, at := range n.Config.Managed.ActionTriggers {
@@ -697,23 +697,19 @@ func (n *nodeExpandPlannableResource) ActionProviders() []addrs.AbsProviderConfi
 				// This should have been validated before, so we panic here
 				panic(fmt.Sprintf("failed to parse action trigger reference %s: %s", actionRef.Traversal, diags.Err()))
 			}
-			var provider addrs.Provider
-			// TODO: This needs to take the provider field into account once we support it
+			var action addrs.Action
 			if a, ok := ref.Subject.(addrs.ActionInstance); ok {
-				provider = addrs.ImpliedProviderForUnqualifiedType(a.Action.ImpliedProvider())
+				action = a.Action
 			} else if a, ok := ref.Subject.(addrs.Action); ok {
-				provider = addrs.ImpliedProviderForUnqualifiedType(a.ImpliedProvider())
+				action = a
 			} else {
 				// This should have been validated before, so we panic here
 				panic(fmt.Sprintf("action trigger %s refers to an invalid address", actionRef.Traversal))
 			}
 
-			providers = append(providers, addrs.AbsProviderConfig{
-				Provider: provider,
-				Module:   n.ModulePath(),
-			})
+			configActions = append(configActions, action.InModule(n.ModulePath()))
 		}
 	}
 
-	return providers
+	return configActions
 }

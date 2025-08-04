@@ -5,10 +5,12 @@ package command
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
+	"maps"
+	"os"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
@@ -17,21 +19,19 @@ import (
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -55,282 +55,20 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.forceInitCopy = initArgs.ForceInitCopy
-	c.Meta.stateLock = initArgs.StateLock
-	c.Meta.stateLockTimeout = initArgs.StateLockTimeout
-	c.reconfigure = initArgs.Reconfigure
-	c.migrateState = initArgs.MigrateState
-	c.Meta.ignoreRemoteVersion = initArgs.IgnoreRemoteVersion
-	c.Meta.input = initArgs.InputEnabled
-	c.Meta.targetFlags = initArgs.TargetFlags
-	c.Meta.compactWarnings = initArgs.CompactWarnings
-
-	varArgs := initArgs.Vars.All()
-	items := make([]arguments.FlagNameValue, len(varArgs))
-	for i := range varArgs {
-		items[i].Name = varArgs[i].Name
-		items[i].Value = varArgs[i].Value
+	// The else condition below invokes the original logic of the init command.
+	// An experimental version of the init code will be used if:
+	// 	> The user uses an experimental version of TF (alpha or built from source)
+	//  > Either the flag -enable-pluggable-state-storage-experiment is passed to the init command.
+	//  > Or, the environment variable TF_ENABLE_PLUGGABLE_STATE_STORAGE is set to any value.
+	if v := os.Getenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE"); v != "" {
+		initArgs.EnablePssExperiment = true
 	}
-	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-
-	// Copying the state only happens during backend migration, so setting
-	// -force-copy implies -migrate-state
-	if c.forceInitCopy {
-		c.migrateState = true
+	if c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment {
+		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
+		panic("This experiment is not available yet")
+	} else {
+		return c.run(initArgs, view)
 	}
-
-	if len(initArgs.PluginPath) > 0 {
-		c.pluginPath = initArgs.PluginPath
-	}
-
-	// Validate the arg count and get the working directory
-	path, err := ModulePath(initArgs.Args)
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	if err := c.storePluginPath(c.pluginPath); err != nil {
-		diags = diags.Append(fmt.Errorf("Error saving -plugin-dir to workspace directory: %s", err))
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	// Initialization can be aborted by interruption signals
-	ctx, done := c.InterruptibleContext(c.CommandContext())
-	defer done()
-
-	// This will track whether we outputted anything so that we know whether
-	// to output a newline before the success message
-	var header bool
-
-	if initArgs.FromModule != "" {
-		src := initArgs.FromModule
-
-		empty, err := configs.IsEmptyDir(path, initArgs.TestsDirectory)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Error validating destination directory: %s", err))
-			view.Diagnostics(diags)
-			return 1
-		}
-		if !empty {
-			diags = diags.Append(errors.New(strings.TrimSpace(errInitCopyNotEmpty)))
-			view.Diagnostics(diags)
-			return 1
-		}
-
-		view.Output(views.CopyingConfigurationMessage, src)
-		header = true
-
-		hooks := uiModuleInstallHooks{
-			Ui:             c.Ui,
-			ShowLocalPaths: false, // since they are in a weird location for init
-			View:           view,
-		}
-
-		ctx, span := tracer.Start(ctx, "-from-module=...", trace.WithAttributes(
-			attribute.String("module_source", src),
-		))
-
-		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(ctx, path, src, hooks)
-		diags = diags.Append(initDirFromModuleDiags)
-		if initDirFromModuleAbort || initDirFromModuleDiags.HasErrors() {
-			view.Diagnostics(diags)
-			span.SetStatus(codes.Error, "module installation failed")
-			span.End()
-			return 1
-		}
-		span.End()
-
-		view.Output(views.EmptyMessage)
-	}
-
-	// If our directory is empty, then we're done. We can't get or set up
-	// the backend with an empty directory.
-	empty, err := configs.IsEmptyDir(path, initArgs.TestsDirectory)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
-		view.Diagnostics(diags)
-		return 1
-	}
-	if empty {
-		view.Output(views.OutputInitEmptyMessage)
-		return 0
-	}
-
-	// Load just the root module to begin backend and module initialization
-	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
-
-	// There may be parsing errors in config loading but these will be shown later _after_
-	// checking for core version requirement errors. Not meeting the version requirement should
-	// be the first error displayed if that is an issue, but other operations are required
-	// before being able to check core version requirements.
-	if rootModEarly == nil {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
-		view.Diagnostics(diags)
-
-		return 1
-	}
-
-	var back backend.Backend
-
-	// There may be config errors or backend init errors but these will be shown later _after_
-	// checking for core version requirement errors.
-	var backDiags tfdiags.Diagnostics
-	var backendOutput bool
-
-	switch {
-	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
-		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
-	case initArgs.Backend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
-	default:
-		// load the previously-stored backend config
-		back, backDiags = c.Meta.backendFromState(ctx)
-	}
-	if backendOutput {
-		header = true
-	}
-
-	var state *states.State
-
-	// If we have a functional backend (either just initialized or initialized
-	// on a previous run) we'll use the current state as a potential source
-	// of provider dependencies.
-	if back != nil {
-		c.ignoreRemoteVersionConflict(back)
-		workspace, err := c.Workspace()
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Error selecting workspace: %s", err))
-			view.Diagnostics(diags)
-			return 1
-		}
-		sMgr, err := back.StateMgr(workspace)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Error loading state: %s", err))
-			view.Diagnostics(diags)
-			return 1
-		}
-
-		if err := sMgr.RefreshState(); err != nil {
-			diags = diags.Append(fmt.Errorf("Error refreshing state: %s", err))
-			view.Diagnostics(diags)
-			return 1
-		}
-
-		state = sMgr.State()
-	}
-
-	if initArgs.Get {
-		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
-		diags = diags.Append(modsDiags)
-		if modsAbort || modsDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-		if modsOutput {
-			header = true
-		}
-	}
-
-	// With all of the modules (hopefully) installed, we can now try to load the
-	// whole configuration tree.
-	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
-	// configDiags will be handled after the version constraint check, since an
-	// incorrect version of terraform may be producing errors for configuration
-	// constructs added in later versions.
-
-	// Before we go further, we'll check to make sure none of the modules in
-	// the configuration declare that they don't support this Terraform
-	// version, so we can produce a version-related error message rather than
-	// potentially-confusing downstream errors.
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	if versionDiags.HasErrors() {
-		view.Diagnostics(versionDiags)
-		return 1
-	}
-
-	// We've passed the core version check, now we can show errors from the
-	// configuration and backend initialisation.
-
-	// Now, we can check the diagnostics from the early configuration and the
-	// backend.
-	diags = diags.Append(earlyConfDiags)
-	diags = diags.Append(backDiags)
-	if earlyConfDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	// Now, we can show any errors from initializing the backend, but we won't
-	// show the InitConfigError preamble as we didn't detect problems with
-	// the early configuration.
-	if backDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	// If everything is ok with the core version check and backend initialization,
-	// show other errors from loading the full configuration tree.
-	diags = diags.Append(confDiags)
-	if confDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	if cb, ok := back.(*cloud.Cloud); ok {
-		if c.RunningInAutomation {
-			if err := cb.AssertImportCompatible(config); err != nil {
-				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Compatibility error", err.Error()))
-				view.Diagnostics(diags)
-				return 1
-			}
-		}
-	}
-
-	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
-	diags = diags.Append(providerDiags)
-	if providersAbort || providerDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-	if providersOutput {
-		header = true
-	}
-
-	// If we outputted information, then we need to output a newline
-	// so that our success message is nicely spaced out from prior text.
-	if header {
-		view.Output(views.EmptyMessage)
-	}
-
-	// If we accumulated any warnings along the way that weren't accompanied
-	// by errors then we'll output them here so that the success message is
-	// still the final thing shown.
-	view.Diagnostics(diags)
-	_, cloud := back.(*cloud.Cloud)
-	output := views.OutputInitSuccessMessage
-	if cloud {
-		output = views.OutputInitSuccessCloudMessage
-	}
-
-	view.Output(output)
-
-	if !c.RunningInAutomation {
-		// If we're not running in an automation wrapper, give the user
-		// some more detailed next steps that are appropriate for interactive
-		// shell usage.
-		output = views.OutputInitSuccessCLIMessage
-		if cloud {
-			output = views.OutputInitSuccessCLICloudMessage
-		}
-		view.Output(output)
-	}
-	return 0
 }
 
 func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, view views.Init) (output bool, abort bool, diags tfdiags.Diagnostics) {
@@ -390,7 +128,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 
 func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize HCP Terraform")
-	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
 	view.Output(views.InitializingTerraformCloudMessage)
@@ -419,14 +157,125 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 
 func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
-	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
-	view.Output(views.InitializingBackendMessage)
+	if root.StateStore != nil {
+		view.Output(views.InitializingStateStoreMessage)
+	} else {
+		view.Output(views.InitializingBackendMessage)
+	}
 
-	var backendConfig *configs.Backend
-	var backendConfigOverride hcl.Body
-	if root.Backend != nil {
+	var opts *BackendOpts
+	switch {
+	case root.StateStore != nil && root.Backend != nil:
+		// We expect validation during config parsing to prevent mutually exclusive backend and state_store blocks,
+		// but checking here just in case.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Conflicting backend and state_store configurations present during init",
+			Detail: fmt.Sprintf("When initializing the backend there was configuration data present for both backend %q and state store %q. This is a bug in Terraform and should be reported.",
+				root.Backend.Type,
+				root.StateStore.Type,
+			),
+			Subject: &root.Backend.TypeRange,
+		})
+		return nil, true, diags
+	case root.StateStore != nil:
+		// state_store config present
+		// Access provider factories
+		ctxOpts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, true, diags
+		}
+
+		if root.StateStore.ProviderAddr.IsZero() {
+			// This should not happen; this data is populated when parsing config,
+			// even for builtin providers
+			panic(fmt.Sprintf("unknown provider while beginning to initialize state store %q from provider %q",
+				root.StateStore.Type,
+				root.StateStore.Provider.Name))
+		}
+
+		var exists bool
+		factory, exists := ctxOpts.Providers[root.StateStore.ProviderAddr]
+		if !exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider unavailable",
+				Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+					root.StateStore.Provider.Name,
+					root.StateStore.ProviderAddr,
+					root.StateStore.Type,
+				),
+				Subject: &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
+		// If overrides supplied by -backend-config CLI flag, process them
+		var configOverride hcl.Body
+		if !extraConfig.Empty() {
+			// We need to launch an instance of the provider to get the config of the state store for processing any overrides.
+			provider, err := factory()
+			defer provider.Close() // Stop the child process once we're done with it here.
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
+				return nil, true, diags
+			}
+
+			resp := provider.GetProviderSchema()
+
+			if len(resp.StateStores) == 0 {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provider does not support pluggable state storage",
+					Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+						root.StateStore.Provider.Name,
+						root.StateStore.ProviderAddr),
+					Subject: &root.StateStore.DeclRange,
+				})
+				return nil, true, diags
+			}
+
+			stateStoreSchema, exists := resp.StateStores[root.StateStore.Type]
+			if !exists {
+				suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+				suggestion := didyoumean.NameSuggestion(root.StateStore.Type, suggestions)
+				if suggestion != "" {
+					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+				}
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "State store not implemented by the provider",
+					Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+						root.StateStore.Type, root.StateStore.Provider.Name,
+						root.StateStore.ProviderAddr, suggestion),
+					Subject: &root.StateStore.DeclRange,
+				})
+				return nil, true, diags
+			}
+
+			// Handle any overrides supplied via -backend-config CLI flags
+			var overrideDiags tfdiags.Diagnostics
+			configOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, stateStoreSchema.Body)
+			diags = diags.Append(overrideDiags)
+			if overrideDiags.HasErrors() {
+				return nil, true, diags
+			}
+		}
+
+		opts = &BackendOpts{
+			StateStoreConfig: root.StateStore,
+			ProviderFactory:  factory,
+			ConfigOverride:   configOverride,
+			Init:             true,
+			ViewType:         viewType,
+		}
+
+	case root.Backend != nil:
+		// backend config present
 		backendType := root.Backend.Type
 		if backendType == "cloud" {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -456,15 +305,24 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 
 		b := bf()
 		backendSchema := b.ConfigSchema()
-		backendConfig = root.Backend
+		backendConfig := root.Backend
 
-		var overrideDiags tfdiags.Diagnostics
-		backendConfigOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
+		backendConfigOverride, overrideDiags := c.backendConfigOverrideBody(extraConfig, backendSchema)
 		diags = diags.Append(overrideDiags)
 		if overrideDiags.HasErrors() {
 			return nil, true, diags
 		}
-	} else {
+
+		opts = &BackendOpts{
+			BackendConfig:  backendConfig,
+			ConfigOverride: backendConfigOverride,
+			Init:           true,
+			ViewType:       viewType,
+		}
+
+	default:
+		// No config; defaults to local state storage
+
 		// If the user supplied a -backend-config on the CLI but no backend
 		// block was found in the configuration, it's likely - but not
 		// necessarily - a mistake. Return a warning.
@@ -486,14 +344,13 @@ However, if you intended to override a defined backend, please verify that
 the backend configuration is present and valid.
 `,
 			))
-		}
-	}
 
-	opts := &BackendOpts{
-		BackendConfig:  backendConfig,
-		ConfigOverride: backendConfigOverride,
-		Init:           true,
-		ViewType:       viewType,
+		}
+
+		opts = &BackendOpts{
+			Init:     true,
+			ViewType: viewType,
+		}
 	}
 
 	back, backDiags := c.Backend(opts)
@@ -896,7 +753,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	if !newLocks.Equal(previousLocks) {
 		// if readonly mode
 		if flagLockfile == "readonly" {
-			// check if required provider dependences change
+			// check if required provider dependencies change
 			if !newLocks.EqualProviderAddress(previousLocks) {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -1114,7 +971,7 @@ Options:
                           itself.
 
   -force-copy             Suppress prompts about copying state data when
-                          initializating a new state backend. This is
+                          initializing a new state backend. This is
                           equivalent to providing a "yes" to all confirmation
                           prompts.
 

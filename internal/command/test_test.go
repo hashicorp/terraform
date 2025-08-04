@@ -397,6 +397,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
+		"deferred_changes": {
+			args:        []string{"-allow-deferral"},
+			expectedOut: []string{"3 passed, 0 failed."},
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -442,10 +447,11 @@ func TestTest_Runs(t *testing.T) {
 						},
 					},
 				},
-				Ui:             ui,
-				View:           view,
-				Streams:        streams,
-				ProviderSource: providerSource,
+				Ui:                        ui,
+				View:                      view,
+				Streams:                   streams,
+				ProviderSource:            providerSource,
+				AllowExperimentalFeatures: true,
 			}
 
 			init := &InitCommand{

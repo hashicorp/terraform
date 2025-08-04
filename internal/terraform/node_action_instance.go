@@ -61,7 +61,7 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Lifecycle actions are not supported",
-			Detail:   "This versio of Terraform does not support lifecycle actions",
+			Detail:   "This version of Terraform does not support lifecycle actions",
 			Subject:  n.Config.DeclRange.Ptr(),
 		})
 		return diags
@@ -71,7 +71,7 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Linked actions are not supported",
-			Detail:   "This versio of Terraform does not support linked actions",
+			Detail:   "This version of Terraform does not support linked actions",
 			Subject:  n.Config.DeclRange.Ptr(),
 		})
 		return diags

@@ -584,7 +584,7 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				absActionInstAddrs = append(absActionInstAddrs, a.Absolute(n.Path()))
 			} else if a, ok := ref.Subject.(addrs.Action); ok {
 				// If the reference action is expanded we get a single action address,
-				// otherwise all expanded action addresses. This auto-expansion feature is syntacic
+				// otherwise all expanded action addresses. This auto-expansion feature is syntactic
 				// sugar for the user so that they can refer to all of an expanded action's
 				// instances
 				absActionInstAddrs = ctx.Actions().GetActionInstanceKeys(a.Absolute(n.Path()))
@@ -653,6 +653,7 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 					TriggerEvent:            *triggeringEvent,
 					ActionTriggerBlockIndex: i,
 					ActionsListIndex:        j,
+					ConfigValue:             actionInstance.ConfigValue,
 				})
 			}
 		}

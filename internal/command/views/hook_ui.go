@@ -534,7 +534,9 @@ func (h *UiHook) PostListQuery(id terraform.HookResourceIdentity, results plans.
 		result.WriteString(fmt.Sprintf("%s   %-*s   %s\n", addr.String(), maxIdentityLen, identity, displayNames[i]))
 	}
 
-	h.println(result.String())
+	if result.Len() > 0 {
+		h.println(result.String())
+	}
 
 	return terraform.HookActionContinue, nil
 }

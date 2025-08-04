@@ -453,7 +453,7 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	needToLookupAccessKey := backendConfig.AccessKey == "" && backendConfig.SasToken == "" && !backendConfig.UseAzureADAuthentication
 	if backendConfig.ResourceGroupName == "" {
 		if needToLookupAccessKey {
-			return backendbase.ErrorAsDiagnostics(fmt.Errorf("One of `access_key`, `sas_token`, `use_azuread_auth` and `resource_group_name` must be specifieid"))
+			return backendbase.ErrorAsDiagnostics(fmt.Errorf("One of `access_key`, `sas_token`, `use_azuread_auth` and `resource_group_name` must be specified"))
 		}
 		if backendConfig.LookupBlobEndpoint {
 			return backendbase.ErrorAsDiagnostics(fmt.Errorf("`resource_group_name` is required when `lookup_blob_endpoint` is set"))

@@ -101,7 +101,7 @@ resource "test_object" "a" {
 				}
 
 				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
-					t.Fatal("expected action to have a triggering resource address, but it is nil")
+					t.Fatalf("expected action to have a triggering resource address 'test_object.a', got '%s'", action.TriggeringResourceAddr)
 				}
 
 				if action.ActionTriggerBlockIndex != 0 {
@@ -835,7 +835,7 @@ action "test_lifecycle" "hello" {}
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Lifecycle actions are not supported",
-					Detail:   "This versio of Terraform does not support lifecycle actions",
+					Detail:   "This version of Terraform does not support lifecycle actions",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
@@ -854,13 +854,266 @@ action "test_linked" "hello" {}
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Linked actions are not supported",
-					Detail:   "This versio of Terraform does not support linked actions",
+					Detail:   "This version of Terraform does not support linked actions",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
 						End:      hcl.Pos{Line: 2, Column: 29, Byte: 29},
 					},
 				})
+			},
+		},
+
+		"triggered within module": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+action "test_unlinked" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "module.mod.action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", action.TriggeringResourceAddr)
+				}
+
+				if action.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				}
+				if action.TriggerEvent != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+				}
+				if action.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				}
+
+				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
+					t.Fatalf("expected action to have a provider address of 'provider[\"registry.terraform.io/hashicorp/test\"]', got '%s'", action.ProviderAddr)
+				}
+			},
+		},
+
+		"triggered within module instance": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    count = 2
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+action "test_unlinked" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				// We know we are run within two child modules, so we can just sort by the triggering resource address
+				slices.SortFunc(p.Changes.ActionInvocations, func(a, b *plans.ActionInvocationInstanceSrc) int {
+					if a.TriggeringResourceAddr.String() < b.TriggeringResourceAddr.String() {
+						return -1
+					} else {
+						return 1
+					}
+				})
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "module.mod[0].action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'module.mod[0].action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[0].other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod[0].other_object.a', but it is %s", action.TriggeringResourceAddr)
+				}
+
+				if action.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				}
+				if action.TriggerEvent != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+				}
+				if action.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				}
+
+				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
+					t.Fatalf("expected action to have a provider address of 'provider[\"registry.terraform.io/hashicorp/test\"]', got '%s'", action.ProviderAddr)
+				}
+
+				action2 := p.Changes.ActionInvocations[1]
+				if action2.Addr.String() != "module.mod[1].action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'module.mod[1].action.test_unlinked.hello', got '%s'", action2.Addr)
+				}
+
+				if !action2.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[1].other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod[1].other_object.a', but it is %s", action2.TriggeringResourceAddr)
+				}
+			},
+		},
+
+		"provider is within module": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+provider "test" {
+    alias = "inthemodule"
+}
+action "test_unlinked" "hello" {
+  provider = test.inthemodule
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "module.mod.action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", action.TriggeringResourceAddr)
+				}
+
+				if action.ProviderAddr.Module.String() != "module.mod" {
+					t.Fatalf("expected action to have a provider module address of 'module.mod' got '%s'", action.ProviderAddr.Module.String())
+				}
+				if action.ProviderAddr.Alias != "inthemodule" {
+					t.Fatalf("expected action to have a provider alias of 'inthemodule', got '%s'", action.ProviderAddr.Alias)
+				}
+			},
+		},
+
+		"non-default provider namespace": {
+			module: map[string]string{
+				"main.tf": `
+terraform {
+  required_providers {
+    ecosystem = {
+      source = "danielmschmidt/ecosystem"
+    }
+  }
+}
+action "ecosystem_unlinked" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.ecosystem_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.ecosystem_unlinked.hello" {
+					t.Fatalf("expected action address to be 'action.ecosystem_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", action.TriggeringResourceAddr)
+				}
+
+				if action.ProviderAddr.Provider.Namespace != "danielmschmidt" {
+					t.Fatalf("expected action to have the namespace 'danielmschmidt', got '%s'", action.ProviderAddr.Provider.Namespace)
+				}
+			},
+		},
+
+		"aliased provider": {
+			module: map[string]string{
+				"main.tf": `
+provider "test" {
+  alias = "aliased"
+}
+action "test_unlinked" "hello" {
+  provider = test.aliased
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", action.TriggeringResourceAddr)
+				}
+
+				if action.ProviderAddr.Alias != "aliased" {
+					t.Fatalf("expected action to have a provider alias of 'aliased', got '%s'", action.ProviderAddr.Alias)
+				}
 			},
 		},
 	} {
@@ -938,6 +1191,42 @@ action "test_linked" "hello" {}
 				},
 			}
 
+			other := &testing_provider.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					ResourceTypes: map[string]providers.Schema{
+						"other_object": {
+							Body: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"name": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			ecosystem := &testing_provider.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					Actions: map[string]providers.ActionSchema{
+						"ecosystem_unlinked": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+
+							Unlinked: &providers.UnlinkedAction{},
+						},
+					},
+				},
+			}
+
 			if tc.planActionResponse != nil {
 				p.PlanActionResponse = *tc.planActionResponse
 			}
@@ -946,7 +1235,13 @@ action "test_linked" "hello" {}
 				Providers: map[addrs.Provider]providers.Factory{
 					// The providers never actually going to get called here, we should
 					// catch the error long before anything happens.
-					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+					addrs.NewDefaultProvider("test"):  testProviderFuncFixed(p),
+					addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
+					{
+						Type:      "ecosystem",
+						Namespace: "danielmschmidt",
+						Hostname:  addrs.DefaultProviderRegistryHost,
+					}: testProviderFuncFixed(ecosystem),
 				},
 			})
 

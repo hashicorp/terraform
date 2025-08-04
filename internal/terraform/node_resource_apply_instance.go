@@ -37,7 +37,7 @@ type NodeApplyableResourceInstance struct {
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
 
-	beforeActionInvocations []*plans.ActionInvocationInstance
+	beforeActionInvocations []*plans.ActionInvocationInstanceSrc
 }
 
 var (
@@ -475,10 +475,10 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 	return diags
 }
 
-func (n *NodeApplyableResourceInstance) ActionProviders() []addrs.AbsProviderConfig {
-	ret := []addrs.AbsProviderConfig{}
+func (n *NodeApplyableResourceInstance) Actions() []addrs.ConfigAction {
+	ret := []addrs.ConfigAction{}
 	for _, ai := range n.beforeActionInvocations {
-		ret = append(ret, ai.ProviderAddr)
+		ret = append(ret, ai.Addr.ConfigAction())
 	}
 	return ret
 }
