@@ -1013,7 +1013,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLocks *depsfile.Locks, flagLockfile string, view views.Init) (output bool, diags tfdiags.Diagnostics) {
 
 	// Get the combination of config and state locks
-	newLocks := c.mergeLockedDependencies(stateLocks, configLocks)
+	newLocks := c.mergeLockedDependencies(configLocks, stateLocks)
 
 	// If the provider dependencies have changed since the last run then we'll
 	// say a little about that in case the reader wasn't expecting a change.
