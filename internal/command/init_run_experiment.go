@@ -252,7 +252,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 
 	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
 	// This is step two of a two-step provider download process
-	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
