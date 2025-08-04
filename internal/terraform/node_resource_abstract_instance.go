@@ -2626,6 +2626,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Private:             state.Private,
 			Status:              state.Status,
 			Value:               change.After,
+			Identity:            change.AfterIdentity,
 		}
 		return newState, diags
 	}
