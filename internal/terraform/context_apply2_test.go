@@ -4177,3 +4177,97 @@ func TestContext2Apply_errorDestroyWithIdentity(t *testing.T) {
 		t.Fatalf("expected identity to still be present in state, but got: %s", resourceInstanceState.Identity.GoString())
 	}
 }
+
+func TestContext2Apply_SensitivityChangeWithIdentity(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "sensitive_var" {
+	default = "hello"
+	sensitive = true
+}
+
+resource "test_resource" "foo" {
+	value = var.sensitive_var
+}`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":              {Type: cty.String, Computed: true},
+					"value":           {Type: cty.String, Optional: true},
+					"sensitive_value": {Type: cty.String, Sensitive: true, Optional: true},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	})
+	p.PlanResourceChangeFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_resource",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:       states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"foo", "value":"hello"}`),
+				IdentityJSON: []byte(`{"id":"baz"}`),
+				// No AttrSensitivePaths present
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	tfdiags.AssertNoErrors(t, diags)
+
+	addr := mustResourceInstanceAddr("test_resource.foo")
+
+	state, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	fooState := state.ResourceInstance(addr)
+
+	if len(fooState.Current.AttrSensitivePaths) != 2 {
+		t.Fatalf("wrong number of sensitive paths, expected 2, got, %v", len(fooState.Current.AttrSensitivePaths))
+	}
+
+	for _, path := range fooState.Current.AttrSensitivePaths {
+		switch {
+		case path.Equals(cty.GetAttrPath("value")):
+		case path.Equals(cty.GetAttrPath("sensitive_value")):
+		default:
+			t.Errorf("unexpected sensitive path: %#v", path)
+			return
+		}
+	}
+
+	expectedIdentity := `{"id":"baz"}`
+	if string(fooState.Current.IdentityJSON) != expectedIdentity {
+		t.Fatalf("missing identity in state, got %q", fooState.Current.IdentityJSON)
+	}
+}
