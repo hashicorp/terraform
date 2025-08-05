@@ -140,8 +140,9 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 			return h.StartAction(hookIdentity)
 		})
 		resp := provider.InvokeAction(providers.InvokeActionRequest{
-			ActionType:        orderedActionInvocations[i].Addr.Action.Action.Type,
-			PlannedActionData: unmarkedConfigValue,
+			ActionType:         orderedActionInvocations[i].Addr.Action.Action.Type,
+			PlannedActionData:  unmarkedConfigValue,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 
 		diags = diags.Append(resp.Diagnostics)
