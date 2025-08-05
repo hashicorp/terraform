@@ -123,7 +123,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 				return mode != addrs.ListResourceMode
 			},
 		},
-
+		&ActionInvokeTransformer{
+			Targets: b.Targets,
+		},
 		// Add dynamic values
 		&RootVariableTransformer{
 			Config:       b.Config,

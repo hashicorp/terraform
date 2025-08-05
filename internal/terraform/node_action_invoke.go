@@ -34,8 +34,7 @@ func (n *nodeActionInvoke) DotNode(string, *dag.DotOpts) *dag.DotNode {
 	}
 }
 
-func (n *nodeActionInvoke) Execute(ctx EvalContext, _ walkOperation) (diags tfdiags.Diagnostics) {
-	fmt.Println("Hello node")
+func (n *nodeActionInvoke) Execute(ctx EvalContext, wo walkOperation) (diags tfdiags.Diagnostics) {
 	aaiAddr, ok := n.Target.(addrs.AbsActionInstance)
 	if !ok {
 		return diags.Append(tfdiags.Sourceless(
@@ -49,8 +48,8 @@ func (n *nodeActionInvoke) Execute(ctx EvalContext, _ walkOperation) (diags tfdi
 	if !ok {
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Hey error2",
-			"Hey details2",
+			"Action instance not found",
+			"Action instance not found",
 		))
 	}
 
@@ -63,29 +62,52 @@ func (n *nodeActionInvoke) Execute(ctx EvalContext, _ walkOperation) (diags tfdi
 		))
 	}
 
-	res := provider.PlanAction(providers.PlanActionRequest{
-		ActionType:         aaiAddr.Action.Action.Type,
-		ProposedActionData: ai.ConfigValue,
-		LinkedResources:    nil,
-		ClientCapabilities: providers.ClientCapabilities{},
-	})
+	switch wo {
+	case walkPlan:
+		res := provider.PlanAction(providers.PlanActionRequest{
+			ActionType:         aaiAddr.Action.Action.Type,
+			ProposedActionData: ai.ConfigValue,
+			LinkedResources:    nil,
+			ClientCapabilities: providers.ClientCapabilities{},
+		})
 
-	if res.Diagnostics.HasErrors() {
+		if res.Diagnostics.HasErrors() {
+			return diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Hey error4",
+				"Hey details4",
+			))
+		}
+
+		ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
+			Addr:                    aaiAddr,
+			TriggeringResourceAddr:  addrs.AbsResourceInstance{},
+			TriggerEvent:            0,
+			ActionTriggerBlockIndex: 0,
+			ActionsListIndex:        0,
+			ProviderAddr:            ai.ProviderAddr,
+		})
+	case walkApply:
+		res := provider.InvokeAction(providers.InvokeActionRequest{
+			ActionType:        aaiAddr.Action.Action.Type,
+			PlannedActionData: ai.ConfigValue,
+			LinkedResources:   nil,
+		})
+
+		if res.Diagnostics.HasErrors() {
+			return diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Error while invoking provider action",
+				"---TODO---",
+			))
+		}
+	default:
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Hey error4",
-			"Hey details4",
+			"Invalid walk operation",
+			fmt.Sprintf("Invalid walk operation: %s", wo),
 		))
 	}
-
-	ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-		Addr:                    aaiAddr,
-		TriggeringResourceAddr:  addrs.AbsResourceInstance{},
-		TriggerEvent:            0,
-		ActionTriggerBlockIndex: 0,
-		ActionsListIndex:        0,
-		ProviderAddr:            ai.ProviderAddr,
-	})
 
 	return nil
 }

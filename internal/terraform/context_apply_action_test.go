@@ -26,6 +26,7 @@ func TestContext2Apply_actions(t *testing.T) {
 		events                          []providers.InvokeActionEvent
 		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
 		planOpts                        *PlanOpts
+		applyOpts                       *ApplyOpts
 
 		expectInvokeActionCalled bool
 		expectInvokeActionCalls  []providers.InvokeActionRequest
@@ -482,6 +483,37 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 		},
+
+		"targeted unreferenced action": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "act_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+			applyOpts: &ApplyOpts{
+				ActionInvoke: true,
+			},
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+			expectInvokeActionCalled: true,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -604,7 +636,7 @@ resource "test_object" "a" {
 			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			_, diags = ctx.Apply(plan, m, nil)
+			_, diags = ctx.Apply(plan, m, tc.applyOpts)
 			if tc.expectDiagnostics.HasErrors() {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics)
 			} else {
@@ -624,6 +656,7 @@ resource "test_object" "a" {
 				if actualCall.ActionType != expectedCall.ActionType {
 					t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
 				}
+
 				if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
 					t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
 				}
