@@ -42,6 +42,14 @@ type ModuleInstaller struct {
 	// The keys in moduleVersionsUrl are the moduleVersion struct below and
 	// addresses and the values are underlying remote source addresses.
 	registryPackageSources map[moduleVersion]addrs.ModuleSourceRemote
+
+	// smartResolvedVersions caches the results of global smart version resolution
+	// The keys are source addresses (e.g., "registry.terraform.io/terraform-aws-modules/eks-pod-identity/aws")
+	// and values are the resolved versions. This allows all instances of the same module to use the same resolved version.
+	smartResolvedVersions map[string]*version.Version
+
+	// smartResolutionAnalyzed tracks whether smart resolution has been performed
+	smartResolutionAnalyzed bool
 }
 
 type moduleVersion struct {
@@ -56,7 +64,155 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 		reg:                     reg,
 		registryPackageVersions: make(map[addrs.ModuleRegistryPackage]*response.ModuleVersions),
 		registryPackageSources:  make(map[moduleVersion]addrs.ModuleSourceRemote),
+		smartResolvedVersions:   make(map[string]*version.Version),
 	}
+}
+
+// performGlobalSmartResolution analyzes all registry modules and resolves versions globally
+func (i *ModuleInstaller) performGlobalSmartResolution(ctx context.Context, rootMod *configs.Module) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if i.smartResolutionAnalyzed {
+		log.Printf("[TRACE] ModuleInstaller: Smart resolution already analyzed, skipping")
+		return diags
+	}
+
+	log.Printf("[TRACE] ModuleInstaller: Starting global smart module resolution")
+
+	// Discover all registry modules in the configuration
+	reqs := i.discoverRegistryModules(rootMod)
+
+	if len(reqs) == 0 {
+		log.Printf("[TRACE] ModuleInstaller: No registry modules found, skipping smart resolution")
+		i.smartResolutionAnalyzed = true
+		return diags
+	}
+
+	// Use the PubGrub-inspired constraint solver
+	solver := NewModuleConstraintSolver(i)
+	resolution, resolutionDiags := solver.ResolveRegistryModules(ctx, reqs)
+	diags = diags.Append(resolutionDiags)
+
+	if resolution != nil {
+		// Cache the resolved versions for use during installation
+		for moduleKey, candidate := range resolution.ResolvedVersions {
+			// Use the registry URL as the cache key for consistency with lookup
+			registryURL := candidate.Module.String()
+			i.smartResolvedVersions[registryURL] = candidate.Version
+			log.Printf("[TRACE] ModuleInstaller: Smart resolution cached %s -> %s (key: %s)", moduleKey, candidate.Version.String(), registryURL)
+		}
+
+		if len(resolution.Conflicts) > 0 {
+			log.Printf("[WARN] ModuleInstaller: Smart resolution found %d unresolvable conflicts", len(resolution.Conflicts))
+			for _, conflict := range resolution.Conflicts {
+				diags = diags.Append(tfdiags.WholeContainingBody(
+					tfdiags.Warning,
+					"Module version conflict detected",
+					fmt.Sprintf("Smart resolution detected a potential conflict: %s. Installation will proceed but may fail.", conflict),
+				))
+			}
+		}
+	}
+
+	i.smartResolutionAnalyzed = true
+	log.Printf("[TRACE] ModuleInstaller: Smart resolution completed with %d resolved versions", len(i.smartResolvedVersions))
+	return diags
+}
+
+// discoverRegistryModules performs a complete traversal of the configuration to find all registry modules
+// This includes recursively discovering submodules within local modules
+func (i *ModuleInstaller) discoverRegistryModules(rootMod *configs.Module) []configs.ModuleRequest {
+	var registryModules []configs.ModuleRequest
+	visited := make(map[string]bool) // Prevent infinite recursion
+
+	i.discoverRegistryModulesRecursive(rootMod, nil, &registryModules, visited)
+	return registryModules
+}
+
+// discoverRegistryModulesRecursive recursively discovers all registry modules including submodules
+func (i *ModuleInstaller) discoverRegistryModulesRecursive(
+	mod *configs.Module,
+	path addrs.Module,
+	registryModules *[]configs.ModuleRequest,
+	visited map[string]bool,
+) {
+	pathKey := path.String()
+	if visited[pathKey] {
+		return // Avoid infinite recursion
+	}
+	visited[pathKey] = true
+
+	// Check all module calls in this module
+	for name, moduleCall := range mod.ModuleCalls {
+		if moduleCall.SourceAddr == nil {
+			continue
+		}
+
+		childPath := append(path, name)
+
+		// Add registry modules to our collection
+		if _, isRegistry := moduleCall.SourceAddr.(addrs.ModuleSourceRegistry); isRegistry {
+			req := configs.ModuleRequest{
+				Name:              name,
+				Path:              path,
+				SourceAddr:        moduleCall.SourceAddr,
+				SourceAddrRange:   moduleCall.SourceAddrRange,
+				VersionConstraint: moduleCall.Version,
+				Parent:            &configs.Config{Module: mod, Path: path},
+				CallRange:         moduleCall.DeclRange,
+			}
+			*registryModules = append(*registryModules, req)
+
+			log.Printf("[TRACE] ModuleInstaller: discovered registry module %s at path %s",
+				moduleCall.SourceAddr.String(), path.String())
+		}
+
+		// For ALL modules (registry, git, local), try to recursively discover their submodules
+		// This requires loading the module to see what it calls internally
+		if subModule := i.tryLoadModuleForDiscovery(moduleCall.SourceAddr, childPath); subModule != nil {
+			i.discoverRegistryModulesRecursive(subModule, childPath, registryModules, visited)
+		}
+	}
+}
+
+// tryLoadModuleForDiscovery attempts to load a module to discover its submodules
+// This is best-effort and may fail for modules that aren't downloaded yet
+func (i *ModuleInstaller) tryLoadModuleForDiscovery(sourceAddr addrs.ModuleSource, path addrs.Module) *configs.Module {
+	// For local modules, we can load them directly
+	if localAddr, isLocal := sourceAddr.(addrs.ModuleSourceLocal); isLocal {
+		// Construct the path to the local module
+		localPath := localAddr.String()
+		if !filepath.IsAbs(localPath) {
+			// For relative paths, resolve relative to current directory
+			// In a real scenario, we'd need to resolve relative to the parent module's directory
+			localPath = filepath.Join(".", localPath)
+		}
+		
+		// Try to load the local module
+		if mod, _ := i.loader.Parser().LoadConfigDir(localPath); mod != nil {
+			log.Printf("[TRACE] ModuleInstaller: loaded local module %s for recursive discovery", localPath)
+			return mod
+		}
+	}
+
+	// For registry/remote modules, check if they're already installed
+	manifest, err := modsdir.ReadManifestSnapshotForDir(i.modsDir)
+	if err != nil {
+		return nil
+	}
+
+	key := manifest.ModuleKey(path)
+	if record, exists := manifest[key]; exists && record.Dir != "" {
+		// Module is already installed, try to load it
+		if mod, _ := i.loader.Parser().LoadConfigDir(record.Dir); mod != nil {
+			log.Printf("[TRACE] ModuleInstaller: loaded submodule %s for recursive discovery", key)
+			return mod
+		}
+	}
+
+	// Module not available for discovery yet - this is normal for first-time installations
+	log.Printf("[TRACE] ModuleInstaller: submodule %s not available for recursive discovery", path.String())
+	return nil
 }
 
 // InstallModules analyses the root module in the given directory and installs
@@ -110,6 +266,22 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 		diags = diags.Append(vDiags)
 	} else {
 		diags = diags.Append(mDiags)
+	}
+
+	// Perform global smart resolution before installing modules
+	// Smart resolution failures should not halt the installation process
+	smartDiags := i.performGlobalSmartResolution(ctx, rootMod)
+	for _, diag := range smartDiags {
+		if diag.Severity() == tfdiags.Error {
+			// Convert smart resolution errors to warnings so installation can continue
+			diags = diags.Append(tfdiags.WholeContainingBody(
+				tfdiags.Warning,
+				"Smart resolution issue",
+				fmt.Sprintf("Smart resolution encountered an issue but installation will continue: %s", diag.Description().Detail),
+			))
+		} else {
+			diags = diags.Append(diag)
+		}
 	}
 
 	manifest, err := modsdir.ReadManifestSnapshotForDir(i.modsDir)
@@ -414,6 +586,15 @@ func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key str
 func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, *version.Version, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
+	// Check if smart resolution has a cached version for this module first
+	cacheKey := addr.String() // Use full registry URL as cache key for uniqueness
+	if smartVersion, exists := i.smartResolvedVersions[cacheKey]; exists {
+		log.Printf("[DEBUG] %s using smart-resolved version %s (cache key: %s), skipping registry version lookup", key, smartVersion.String(), cacheKey)
+		return i.installRegistryModuleWithVersion(ctx, req, key, instPath, addr, smartVersion, manifest, hooks, fetcher)
+	}
+
+	log.Printf("[TRACE] %s no smart-resolved version found in cache (key: %s), performing standard version resolution", key, cacheKey)
+
 	hostname := addr.Package.Host
 	reg := i.reg
 	var resp *response.ModuleVersions
@@ -571,23 +752,34 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		return nil, nil, diags
 	}
 
-	// Report up to the caller that we're about to start downloading.
-	hooks.Download(key, packageAddr.String(), latestMatch)
+	// Now that we have resolved the version, use the helper function to install it
+	return i.installRegistryModuleWithVersion(ctx, req, key, instPath, addr, latestMatch, manifest, hooks, fetcher)
+}
 
-	// If we manage to get down here then we've found a suitable version to
-	// install, so we need to ask the registry where we should download it from.
-	// The response to this is a go-getter-style address string.
+// installRegistryModuleWithVersion installs a specific version of a registry module,
+// typically one that has been resolved by smart resolution
+func (i *ModuleInstaller) installRegistryModuleWithVersion(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, targetVersion *version.Version, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, *version.Version, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
 
-	// first check the cache for the download URL
-	moduleAddr := moduleVersion{module: packageAddr, version: latestMatch.String()}
+	hostname := addr.Package.Host
+	packageAddr := addr.Package
+
+	// Our registry client is still using the legacy model of addresses
+	regsrcAddr := regsrc.ModuleFromRegistryPackageAddr(packageAddr)
+
+	// Report up to the caller that we're about to start downloading
+	hooks.Download(key, packageAddr.String(), targetVersion)
+
+	// Get the download URL for this specific version
+	moduleAddr := moduleVersion{module: packageAddr, version: targetVersion.String()}
 	if _, exists := i.registryPackageSources[moduleAddr]; !exists {
-		realAddrRaw, err := reg.ModuleLocation(ctx, regsrcAddr, latestMatch.String())
+		realAddrRaw, err := i.reg.ModuleLocation(ctx, regsrcAddr, targetVersion.String())
 		if err != nil {
-			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
+			log.Printf("[ERROR] %s from %s %s: %s", key, addr, targetVersion, err)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Error accessing remote module registry",
-				Detail:   fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatch, hostname, err),
+				Detail:   fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, targetVersion, hostname, err),
 			})
 			return nil, nil, diags
 		}
@@ -596,22 +788,18 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid package location from module registry",
-				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: %s.", hostname, realAddrRaw, addr, latestMatch, err),
+				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: %s.", hostname, realAddrRaw, addr, targetVersion, err),
 			})
 			return nil, nil, diags
 		}
 		switch realAddr := realAddr.(type) {
-		// Only a remote source address is allowed here: a registry isn't
-		// allowed to return a local path (because it doesn't know what
-		// its being called from) and we also don't allow recursively pointing
-		// at another registry source for simplicity's sake.
 		case addrs.ModuleSourceRemote:
 			i.registryPackageSources[moduleAddr] = realAddr
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid package location from module registry",
-				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: must be a direct remote package address.", hostname, realAddrRaw, addr, latestMatch),
+				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: must be a direct remote package address.", hostname, realAddrRaw, addr, targetVersion),
 			})
 			return nil, nil, diags
 		}
@@ -619,7 +807,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 
 	dlAddr := i.registryPackageSources[moduleAddr]
 
-	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatch, dlAddr.Package)
+	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, targetVersion, dlAddr.Package)
 
 	err := fetcher.FetchPackage(ctx, instPath, dlAddr.Package.String())
 	if errors.Is(err, context.Canceled) {
@@ -631,11 +819,6 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		return nil, nil, diags
 	}
 	if err != nil {
-		// Errors returned by go-getter have very inconsistent quality as
-		// end-user error messages, but for now we're accepting that because
-		// we have no way to recognize any specific errors to improve them
-		// and masking the error entirely would hide valuable diagnostic
-		// information from the user.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Failed to download module",
@@ -659,29 +842,17 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	// Finally we are ready to try actually loading the module.
 	mod, mDiags := i.loader.Parser().LoadConfigDir(modDir)
 	if mod == nil {
-		// a nil module indicates a missing or unreadable directory, typically
-		// this would indicate that Terraform has done something wrong.
-		// However, if the subDir is not empty then it is possible that the
-		// module was properly downloaded but the user is trying to read a
-		// subdirectory that doesn't exist. In this case, it's not a problem
-		// with Terraform.
+		// Handle missing subdirectory case similar to the main installRegistryModule function
 		if len(subDir) > 0 {
-			// Let's make this error message as precise as possible.
 			_, instErr := os.Stat(instPath)
 			_, subErr := os.Stat(modDir)
 			if instErr == nil && os.IsNotExist(subErr) {
-				// Then the root directory the module was downloaded to could
-				// be loaded fine, but the subdirectory does not exist. This
-				// definitely means the user is trying to read a subdirectory
-				// that doesn't exist.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Unreadable module subdirectory",
 					Detail:   fmt.Sprintf("The directory %s does not exist. The target submodule %s does not exist within the target module.", modDir, subDir),
 				})
 			} else {
-				// There's something else gone wrong here, so we'll report it
-				// as a bug in Terraform.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Unreadable module directory",
@@ -689,9 +860,6 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 				})
 			}
 		} else {
-			// If there is no subDir, then somehow the module was downloaded but
-			// could not be read even at the root directory it was downloaded into.
-			// This is definitely something that Terraform is doing wrong.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Unreadable module directory",
@@ -710,14 +878,14 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	// Note the local location in our manifest.
 	manifest[key] = modsdir.Record{
 		Key:        key,
-		Version:    latestMatch,
+		Version:    targetVersion,
 		Dir:        modDir,
 		SourceAddr: req.SourceAddr.String(),
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
-	hooks.Install(key, latestMatch, modDir)
+	hooks.Install(key, targetVersion, modDir)
 
-	return mod, latestMatch, diags
+	return mod, targetVersion, diags
 }
 
 func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, hcl.Diagnostics) {

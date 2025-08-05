@@ -158,6 +158,7 @@ func (s ModuleSourceRemote) String() string {
 	return base
 }
 
+
 func (s ModuleSourceRemote) ForDisplay() string {
 	// The two string representations are identical for this address type.
 	// This isn't really entirely true to the idea of "ForDisplay" since
