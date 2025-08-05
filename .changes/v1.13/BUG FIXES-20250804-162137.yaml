@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixes resource identity being dropped from state in certain cases
+time: 2025-08-04T16:21:37.590435+02:00
+custom:
+    Issue: "37396"
