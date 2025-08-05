@@ -252,11 +252,12 @@ func TestJSONView_ChangeSummary(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"add":       float64(1),
-				"import":    float64(0),
-				"change":    float64(2),
-				"remove":    float64(3),
-				"operation": "apply",
+				"action_invocation": float64(0),
+				"add":               float64(1),
+				"import":            float64(0),
+				"change":            float64(2),
+				"remove":            float64(3),
+				"operation":         "apply",
 			},
 		},
 	}
@@ -282,11 +283,75 @@ func TestJSONView_ChangeSummaryWithImport(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"add":       float64(1),
-				"change":    float64(2),
-				"remove":    float64(3),
-				"import":    float64(1),
-				"operation": "apply",
+				"action_invocation": float64(0),
+				"add":               float64(1),
+				"change":            float64(2),
+				"remove":            float64(3),
+				"import":            float64(1),
+				"operation":         "apply",
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_ChangeSummaryWithActionInvocations(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	jv.ChangeSummary(&viewsjson.ChangeSummary{
+		Add:              1,
+		Change:           2,
+		Remove:           3,
+		ActionInvocation: 23,
+		Operation:        viewsjson.OperationApplied,
+	})
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Apply complete! Resources: 1 added, 2 changed, 3 destroyed. 23 actions invoked.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"action_invocation": float64(23),
+				"add":               float64(1),
+				"change":            float64(2),
+				"remove":            float64(3),
+				"import":            float64(0),
+				"operation":         "apply",
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_ChangeSummaryWithActionInvocationsAndImports(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	jv.ChangeSummary(&viewsjson.ChangeSummary{
+		Add:              1,
+		Change:           2,
+		Remove:           3,
+		Import:           2,
+		ActionInvocation: 23,
+		Operation:        viewsjson.OperationApplied,
+	})
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Apply complete! Resources: 2 imported, 1 added, 2 changed, 3 destroyed. 23 actions invoked.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"action_invocation": float64(23),
+				"add":               float64(1),
+				"change":            float64(2),
+				"remove":            float64(3),
+				"import":            float64(2),
+				"operation":         "apply",
 			},
 		},
 	}
