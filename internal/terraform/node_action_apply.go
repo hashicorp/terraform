@@ -47,7 +47,7 @@ func (n *nodeActionApply) Execute(ctx EvalContext, _ walkOperation) (diags tfdia
 
 func invokeActionsWithEnhancedDiagnostics(ctx EvalContext, actionInvocations []*plans.ActionInvocationInstanceSrc, triggeringResourceAddrs *addrs.AbsResourceInstance) tfdiags.Diagnostics {
 	finishedActionInvocations, diags := invokeActions(ctx, actionInvocations)
-	return betterDiags(finishedActionInvocations, actionInvocations, diags, triggeringResourceAddrs)
+	return enhanceActionDiagnostics(finishedActionInvocations, actionInvocations, diags, triggeringResourceAddrs)
 }
 
 func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationInstanceSrc) ([]*plans.ActionInvocationInstance, tfdiags.Diagnostics) {
@@ -208,7 +208,7 @@ func (n *nodeActionApply) Actions() []addrs.ConfigAction {
 	return ret
 }
 
-func betterDiags(finishedActionInvocations []*plans.ActionInvocationInstance, allActionInvocations []*plans.ActionInvocationInstanceSrc, diags tfdiags.Diagnostics, triggeringResourceAddrs *addrs.AbsResourceInstance) tfdiags.Diagnostics {
+func enhanceActionDiagnostics(finishedActionInvocations []*plans.ActionInvocationInstance, allActionInvocations []*plans.ActionInvocationInstanceSrc, diags tfdiags.Diagnostics, triggeringResourceAddrs *addrs.AbsResourceInstance) tfdiags.Diagnostics {
 	// If everything went well, we can return the diagnostics as is.
 	if !diags.HasErrors() {
 		return diags
