@@ -970,6 +970,8 @@ message InvokeAction {
         repeated LinkedResource linked_resources = 2;
         // response from the plan
         DynamicValue config = 3;
+        // metadata
+        ClientCapabilities client_capabilities = 4;
     }
 
     message Event {
