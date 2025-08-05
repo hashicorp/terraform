@@ -2878,6 +2878,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
+			Identity:            resp.NewIdentity,
 		}
 
 		// if the resource was being deleted, the dependencies are not going to
