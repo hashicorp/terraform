@@ -443,6 +443,7 @@ func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanRes
 	}
 
 	resp.PlannedState = cty.ObjectVal(planned)
+	resp.PlannedIdentity = req.PriorIdentity
 	return
 }
 
