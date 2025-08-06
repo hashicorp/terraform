@@ -100,16 +100,6 @@ func validateRunConfigs(g *terraform.Graph) error {
 	return nil
 }
 
-// dynamicNode is a helper node which can be added to the graph to execute
-// a dynamic function at some desired point in the graph.
-type dynamicNode struct {
-	eval func(*EvalContext)
-}
-
-func (n *dynamicNode) Execute(evalCtx *EvalContext) {
-	n.eval(evalCtx)
-}
-
 func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
 	walkFn := func(v dag.Vertex) tfdiags.Diagnostics {
 		if ctx.Cancelled() {

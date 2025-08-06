@@ -412,17 +412,31 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			}
 			runBlockNames[run.Name] = run.DeclRange
 
-			if run.SkipCleanup && run.SkipCleanupSet {
-				if _, found := skipCleanups[run.StateKey]; found {
+			// Validate the skip_cleanup attribute. If we have a backend set,
+			// then the skip_cleanup attribute is ignored. We'll validate the
+			// backend block later.
+
+			if run.SkipCleanup && run.Backend == nil {
+
+				if rb, found := tf.BackendConfigs[run.StateKey]; found {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Conflicting \"skip_cleanup\" block",
+						Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but an earlier run block %q has a backend defined. The skip_cleanup attribute means the state backend will not be applied.", run.Name, rb.Run.Name),
+						Subject:  block.DefRange.Ptr(),
+					})
+				}
+
+				if _, found := skipCleanups[run.StateKey]; run.SkipCleanupSet && found {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagWarning,
 						Summary:  "Duplicate \"skip_cleanup\" block",
-						Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but shares state with a later run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.", run.Name, skipCleanups[run.StateKey]),
+						Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but shares state with an earlier run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.", run.Name, skipCleanups[run.StateKey]),
 						Subject:  block.DefRange.Ptr(),
 					})
-				} else {
-					skipCleanups[run.StateKey] = run.Name
 				}
+
+				skipCleanups[run.StateKey] = run.Name // the latest run block with skip_cleanup set is always what we remember.
 			}
 
 			if run.Backend != nil {
@@ -818,7 +832,6 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 			backendRange = &block.DefRange
 			// Using a backend implies skipping cleanup for that run
 			r.SkipCleanup = true
-			r.SkipCleanupSet = true
 		}
 	}
 

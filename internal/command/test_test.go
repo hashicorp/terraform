@@ -2969,7 +2969,7 @@ Warning: Duplicate "skip_cleanup" block
   14: run "test_three" {
 
 The run "test_three" has a skip_cleanup attribute set, but shares state with
-a later run "test_two" that also has skip_cleanup set. The later run takes
+an earlier run "test_two" that also has skip_cleanup set. The later run takes
 precedence, and this attribute is ignored for the earlier run.
 main.tftest.hcl... in progress
   run "test"... pass
@@ -3255,7 +3255,7 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
 
 		expected := []string{
-			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with a later run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":146,"column":17,"line":14},"filename":"main.tftest.hcl","start":{"byte":130,"column":1,"line":14}},"severity":"warning","snippet":{"code":"run \"test_three\" {","context":null,"highlight_end_offset":16,"highlight_start_offset":0,"start_line":14,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
+			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with an earlier run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":146,"column":17,"line":14},"filename":"main.tftest.hcl","start":{"byte":130,"column":1,"line":14}},"severity":"warning","snippet":{"code":"run \"test_three\" {","context":null,"highlight_end_offset":16,"highlight_start_offset":0,"start_line":14,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
 			`{"@level":"info","@message":"Found 1 file and 5 run blocks","@module":"terraform.ui","test_abstract":{"main.tftest.hcl":["test","test_two","test_three","test_four","test_five"]},"type":"test_abstract"}`,
 			`{"@level":"info","@message":"main.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"starting"},"type":"test_file"}`,
 			`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test"},"type":"test_run"}`,
