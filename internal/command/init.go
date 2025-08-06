@@ -868,7 +868,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromConfigMessage)
+	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromConfigMessage, views.ReusingPreviousVersionInfo)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -982,7 +982,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	// things relatively concise. Later it'd be nice to have a progress UI
 	// where statuses update in-place, but we can't do that as long as we
 	// are shimming our vt100 output to the legacy console API on Windows.
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromStateMessage)
+	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromStateMessage, views.ReusingVersionIdentifiedFromConfig)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -1091,7 +1091,7 @@ func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLo
 // prepareInstallerEvents returns an instance of *providercache.InstallerEvents. This struct defines callback functions that will be executed
 // when a specific type of event occurs during provider installation.
 // The calling code needs to provide a tfdiags.Diagnostics collection, so that provider installation code returns diags to the calling code using closures
-func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode) *providercache.InstallerEvents {
+func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode) *providercache.InstallerEvents {
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
@@ -1117,7 +1117,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 		},
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				view.LogInitMessage(reuseMsg, provider.ForDisplay())
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
