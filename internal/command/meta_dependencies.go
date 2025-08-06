@@ -66,13 +66,18 @@ func (m *Meta) replaceLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostic
 	return depsfile.SaveLocksToFile(new, dependencyLockFilename)
 }
 
-// mergeLockedDependencies overwrites the existing lock file with a combination of
-// the old lock contents and new locks.
+// mergeLockedDependencies combines two sets of locks. The 'base' locks are copied, and any providers
+// present in the additional locks that aren't present in the base are added to that copy. The merged
+// combination is returned.
+//
+// If you're combining locks derived from config with other locks (from state or deps locks file), then
+// the config locks need to be the first argument to ensure that the merged locks contain any
+// version constraints. Version constraint data is only present in configuration.
 // This allows code in the init command to download providers in separate phases and
 // keep the lock file updated accurately after each phase.
 //
-// Any overlaps between the two sets of locks will be ignored; only new providers will
-// be appended.
+// This method supports downloading providers in 2 steps, and is used during the second download step and
+// while updating the dependency lock file.
 func (m *Meta) mergeLockedDependencies(baseLocks, additionalLocks *depsfile.Locks) *depsfile.Locks {
 
 	mergedLocks := baseLocks.DeepCopy()
