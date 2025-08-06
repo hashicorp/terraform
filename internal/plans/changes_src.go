@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -162,10 +163,14 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 	for _, ais := range c.ActionInvocations {
 		p, ok := schemas.Providers[ais.ProviderAddr.Provider]
 		if !ok {
-			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for action %s", ais.ProviderAddr, ais.Addr)
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", ais.ProviderAddr, ais.Addr)
+		}
+		schema, ok := p.Actions[ais.Addr.Action.Action.Type]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", ais.Addr.Action.Action.Type)
 		}
 
-		action, err := ais.Decode(p)
+		action, err := ais.Decode(&schema)
 		if err != nil {
 			return nil, err
 		}
@@ -561,21 +566,37 @@ func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocati
 }
 
 type ActionInvocationInstanceSrc struct {
-	Addr addrs.AbsActionInstance
+	Addr                    addrs.AbsActionInstance
+	TriggeringResourceAddr  addrs.AbsResourceInstance
+	TriggerEvent            configs.ActionTriggerEvent
+	ActionTriggerBlockIndex int
+	ActionsListIndex        int
+
+	ConfigValue DynamicValue
 
 	ProviderAddr addrs.AbsProviderConfig
 }
 
 // Decode unmarshals the raw representation of any linked resources.
-func (acs *ActionInvocationInstanceSrc) Decode(schema providers.ProviderSchema) (*ActionInvocationInstance, error) {
-	as := schema.Actions[acs.Addr.Action.Action.Type]
+func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (*ActionInvocationInstance, error) {
+	ty := cty.DynamicPseudoType
+	if schema != nil {
+		ty = schema.ConfigSchema.ImpliedType()
+	}
 
-	if as.IsNil() {
-		return nil, fmt.Errorf("ActionInstanceSrc.Decode: missing schema for %s", acs.Addr)
+	config, err := acs.ConfigValue.Decode(ty)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding 'config' value: %s", err)
 	}
 
 	ai := &ActionInvocationInstance{
-		Addr: acs.Addr,
+		Addr:                    acs.Addr,
+		TriggeringResourceAddr:  acs.TriggeringResourceAddr,
+		TriggerEvent:            acs.TriggerEvent,
+		ActionTriggerBlockIndex: acs.ActionTriggerBlockIndex,
+		ActionsListIndex:        acs.ActionsListIndex,
+		ProviderAddr:            acs.ProviderAddr,
+		ConfigValue:             config,
 	}
 	return ai, nil
 }
@@ -585,5 +606,6 @@ func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc 
 		return acs
 	}
 	ret := *acs
+	ret.ConfigValue = ret.ConfigValue.Copy()
 	return &ret
 }

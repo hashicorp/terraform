@@ -70,6 +70,8 @@ type TestSuiteRunner struct {
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
 
+	Concurrency     int
+	DeferralAllowed bool
 	Concurrency int
 
 	CommandMode moduletest.CommandMode
@@ -163,13 +165,16 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		evalCtx := graph.NewEvalContext(graph.EvalContextOpts{
-			Config:      runner.Config,
-			CancelCtx:   runner.CancelledCtx,
-			StopCtx:     runner.StoppedCtx,
-			Verbose:     runner.Verbose,
+			Config:            runner.Config,
+			CancelCtx:         runner.CancelledCtx,
+			StopCtx:           runner.StoppedCtx,
+			Verbose:           runner.Verbose,
 			Repair:      runner.Repair,
-			Render:      runner.View,
-			Concurrency: runner.Concurrency,
+			Render:            runner.View,
+			UnparsedVariables: currentGlobalVariables,
+			Concurrency:       runner.Concurrency,
+			DeferralAllowed:   runner.DeferralAllowed,
+		})
 
 			UnparsedVariables: currentGlobalVariables,
 			Manifest:          manifest,

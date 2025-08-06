@@ -7032,9 +7032,9 @@ type PlanAction_Request struct {
 	// linked resources, this should match the order the resources are specified in the schema.
 	LinkedResources []*PlanAction_Request_LinkedResource `protobuf:"bytes,2,rep,name=linked_resources,json=linkedResources,proto3" json:"linked_resources,omitempty"`
 	// config of the action, based on the schema of the actual action
-	Config *DynamicValue `protobuf:"bytes,6,opt,name=config,proto3" json:"config,omitempty"`
+	Config *DynamicValue `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
 	// metadata
-	ClientCapabilities *ClientCapabilities `protobuf:"bytes,8,opt,name=client_capabilities,json=clientCapabilities,proto3" json:"client_capabilities,omitempty"`
+	ClientCapabilities *ClientCapabilities `protobuf:"bytes,4,opt,name=client_capabilities,json=clientCapabilities,proto3" json:"client_capabilities,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -7288,9 +7288,11 @@ type InvokeAction_Request struct {
 	// linked resources, matching the order they are specified in the schema
 	LinkedResources []*InvokeAction_Request_LinkedResource `protobuf:"bytes,2,rep,name=linked_resources,json=linkedResources,proto3" json:"linked_resources,omitempty"`
 	// response from the plan
-	Config        *DynamicValue `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Config *DynamicValue `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
+	// metadata
+	ClientCapabilities *ClientCapabilities `protobuf:"bytes,4,opt,name=client_capabilities,json=clientCapabilities,proto3" json:"client_capabilities,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *InvokeAction_Request) Reset() {
@@ -7340,6 +7342,13 @@ func (x *InvokeAction_Request) GetLinkedResources() []*InvokeAction_Request_Link
 func (x *InvokeAction_Request) GetConfig() *DynamicValue {
 	if x != nil {
 		return x.Config
+	}
+	return nil
+}
+
+func (x *InvokeAction_Request) GetClientCapabilities() *ClientCapabilities {
+	if x != nil {
+		return x.ClientCapabilities
 	}
 	return nil
 }
@@ -7545,7 +7554,7 @@ type InvokeAction_Event_Completed struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// linked resources, matching the order they are specified in the schema
 	LinkedResources []*InvokeAction_Event_Completed_LinkedResource `protobuf:"bytes,1,rep,name=linked_resources,json=linkedResources,proto3" json:"linked_resources,omitempty"`
-	Diagnostics     []*Diagnostic                                  `protobuf:"bytes,3,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+	Diagnostics     []*Diagnostic                                  `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -8769,11 +8778,11 @@ var file_tfplugin6_proto_rawDesc = string([]byte{
 	0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x4c, 0x69, 0x6e,
 	0x6b, 0x65, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x0f, 0x6c, 0x69, 0x6e,
 	0x6b, 0x65, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x12, 0x2f, 0x0a, 0x06,
-	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74,
+	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74,
 	0x66, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x36, 0x2e, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63,
 	0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x4e, 0x0a,
 	0x13, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x5f, 0x63, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c, 0x69,
-	0x74, 0x69, 0x65, 0x73, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x74, 0x66, 0x70,
+	0x74, 0x69, 0x65, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x74, 0x66, 0x70,
 	0x6c, 0x75, 0x67, 0x69, 0x6e, 0x36, 0x2e, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x43, 0x61, 0x70,
 	0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65, 0x73, 0x52, 0x12, 0x63, 0x6c, 0x69, 0x65, 0x6e,
 	0x74, 0x43, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65, 0x73, 0x1a, 0x81, 0x02,
@@ -8816,8 +8825,8 @@ var file_tfplugin6_proto_rawDesc = string([]byte{
 	0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x36, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72,
 	0x63, 0x65, 0x49, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x44, 0x61, 0x74, 0x61, 0x52, 0x0f,
 	0x70, 0x6c, 0x61, 0x6e, 0x6e, 0x65, 0x64, 0x49, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x22,
-	0xf8, 0x07, 0x0a, 0x0c, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e,
-	0x1a, 0xbe, 0x03, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1f, 0x0a, 0x0b,
+	0xc8, 0x08, 0x0a, 0x0c, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e,
+	0x1a, 0x8e, 0x04, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1f, 0x0a, 0x0b,
 	0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x09, 0x52, 0x0a, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x54, 0x79, 0x70, 0x65, 0x12, 0x59, 0x0a,
 	0x10, 0x6c, 0x69, 0x6e, 0x6b, 0x65, 0x64, 0x5f, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
@@ -8828,7 +8837,12 @@ var file_tfplugin6_proto_rawDesc = string([]byte{
 	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x12, 0x2f, 0x0a, 0x06, 0x63, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75,
 	0x67, 0x69, 0x6e, 0x36, 0x2e, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x56, 0x61, 0x6c, 0x75,
-	0x65, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x1a, 0x85, 0x02, 0x0a, 0x0e, 0x4c, 0x69,
+	0x65, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x4e, 0x0a, 0x13, 0x63, 0x6c, 0x69,
+	0x65, 0x6e, 0x74, 0x5f, 0x63, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65, 0x73,
+	0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69,
+	0x6e, 0x36, 0x2e, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x43, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c,
+	0x69, 0x74, 0x69, 0x65, 0x73, 0x52, 0x12, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x43, 0x61, 0x70,
+	0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65, 0x73, 0x1a, 0x85, 0x02, 0x0a, 0x0e, 0x4c, 0x69,
 	0x6e, 0x6b, 0x65, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x38, 0x0a, 0x0b,
 	0x70, 0x72, 0x69, 0x6f, 0x72, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x0b, 0x32, 0x17, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x36, 0x2e, 0x44, 0x79,
@@ -8865,7 +8879,7 @@ var file_tfplugin6_proto_rawDesc = string([]byte{
 	0x64, 0x2e, 0x4c, 0x69, 0x6e, 0x6b, 0x65, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
 	0x52, 0x0f, 0x6c, 0x69, 0x6e, 0x6b, 0x65, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
 	0x73, 0x12, 0x37, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73,
-	0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69,
+	0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69,
 	0x6e, 0x36, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x52, 0x0b, 0x64,
 	0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x1a, 0xb5, 0x01, 0x0a, 0x0e, 0x4c,
 	0x69, 0x6e, 0x6b, 0x65, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x34, 0x0a,
@@ -9440,86 +9454,87 @@ var file_tfplugin6_proto_depIdxs = []int32{
 	13,  // 163: tfplugin6.PlanAction.Response.LinkedResource.planned_identity:type_name -> tfplugin6.ResourceIdentityData
 	143, // 164: tfplugin6.InvokeAction.Request.linked_resources:type_name -> tfplugin6.InvokeAction.Request.LinkedResource
 	6,   // 165: tfplugin6.InvokeAction.Request.config:type_name -> tfplugin6.DynamicValue
-	144, // 166: tfplugin6.InvokeAction.Event.progress:type_name -> tfplugin6.InvokeAction.Event.Progress
-	145, // 167: tfplugin6.InvokeAction.Event.completed:type_name -> tfplugin6.InvokeAction.Event.Completed
-	6,   // 168: tfplugin6.InvokeAction.Request.LinkedResource.prior_state:type_name -> tfplugin6.DynamicValue
-	6,   // 169: tfplugin6.InvokeAction.Request.LinkedResource.planned_state:type_name -> tfplugin6.DynamicValue
-	6,   // 170: tfplugin6.InvokeAction.Request.LinkedResource.config:type_name -> tfplugin6.DynamicValue
-	13,  // 171: tfplugin6.InvokeAction.Request.LinkedResource.planned_identity:type_name -> tfplugin6.ResourceIdentityData
-	146, // 172: tfplugin6.InvokeAction.Event.Completed.linked_resources:type_name -> tfplugin6.InvokeAction.Event.Completed.LinkedResource
-	7,   // 173: tfplugin6.InvokeAction.Event.Completed.diagnostics:type_name -> tfplugin6.Diagnostic
-	6,   // 174: tfplugin6.InvokeAction.Event.Completed.LinkedResource.new_state:type_name -> tfplugin6.DynamicValue
-	13,  // 175: tfplugin6.InvokeAction.Event.Completed.LinkedResource.new_identity:type_name -> tfplugin6.ResourceIdentityData
-	6,   // 176: tfplugin6.ValidateActionConfig.Request.config:type_name -> tfplugin6.DynamicValue
-	50,  // 177: tfplugin6.ValidateActionConfig.Request.linked_resources:type_name -> tfplugin6.LinkedResourceConfig
-	7,   // 178: tfplugin6.ValidateActionConfig.Response.diagnostics:type_name -> tfplugin6.Diagnostic
-	66,  // 179: tfplugin6.Provider.GetMetadata:input_type -> tfplugin6.GetMetadata.Request
-	75,  // 180: tfplugin6.Provider.GetProviderSchema:input_type -> tfplugin6.GetProviderSchema.Request
-	84,  // 181: tfplugin6.Provider.ValidateProviderConfig:input_type -> tfplugin6.ValidateProviderConfig.Request
-	93,  // 182: tfplugin6.Provider.ValidateResourceConfig:input_type -> tfplugin6.ValidateResourceConfig.Request
-	95,  // 183: tfplugin6.Provider.ValidateDataResourceConfig:input_type -> tfplugin6.ValidateDataResourceConfig.Request
-	86,  // 184: tfplugin6.Provider.UpgradeResourceState:input_type -> tfplugin6.UpgradeResourceState.Request
-	88,  // 185: tfplugin6.Provider.GetResourceIdentitySchemas:input_type -> tfplugin6.GetResourceIdentitySchemas.Request
-	91,  // 186: tfplugin6.Provider.UpgradeResourceIdentity:input_type -> tfplugin6.UpgradeResourceIdentity.Request
-	99,  // 187: tfplugin6.Provider.ConfigureProvider:input_type -> tfplugin6.ConfigureProvider.Request
-	101, // 188: tfplugin6.Provider.ReadResource:input_type -> tfplugin6.ReadResource.Request
-	103, // 189: tfplugin6.Provider.PlanResourceChange:input_type -> tfplugin6.PlanResourceChange.Request
-	105, // 190: tfplugin6.Provider.ApplyResourceChange:input_type -> tfplugin6.ApplyResourceChange.Request
-	107, // 191: tfplugin6.Provider.ImportResourceState:input_type -> tfplugin6.ImportResourceState.Request
-	110, // 192: tfplugin6.Provider.MoveResourceState:input_type -> tfplugin6.MoveResourceState.Request
-	112, // 193: tfplugin6.Provider.ReadDataSource:input_type -> tfplugin6.ReadDataSource.Request
-	97,  // 194: tfplugin6.Provider.ValidateEphemeralResourceConfig:input_type -> tfplugin6.ValidateEphemeralResourceConfig.Request
-	114, // 195: tfplugin6.Provider.OpenEphemeralResource:input_type -> tfplugin6.OpenEphemeralResource.Request
-	116, // 196: tfplugin6.Provider.RenewEphemeralResource:input_type -> tfplugin6.RenewEphemeralResource.Request
-	118, // 197: tfplugin6.Provider.CloseEphemeralResource:input_type -> tfplugin6.CloseEphemeralResource.Request
-	125, // 198: tfplugin6.Provider.ListResource:input_type -> tfplugin6.ListResource.Request
-	127, // 199: tfplugin6.Provider.ValidateListResourceConfig:input_type -> tfplugin6.ValidateListResourceConfig.Request
-	120, // 200: tfplugin6.Provider.GetFunctions:input_type -> tfplugin6.GetFunctions.Request
-	123, // 201: tfplugin6.Provider.CallFunction:input_type -> tfplugin6.CallFunction.Request
-	129, // 202: tfplugin6.Provider.ValidateStateStoreConfig:input_type -> tfplugin6.ValidateStateStore.Request
-	131, // 203: tfplugin6.Provider.ConfigureStateStore:input_type -> tfplugin6.ConfigureStateStore.Request
-	133, // 204: tfplugin6.Provider.GetStates:input_type -> tfplugin6.GetStates.Request
-	135, // 205: tfplugin6.Provider.DeleteState:input_type -> tfplugin6.DeleteState.Request
-	137, // 206: tfplugin6.Provider.PlanAction:input_type -> tfplugin6.PlanAction.Request
-	141, // 207: tfplugin6.Provider.InvokeAction:input_type -> tfplugin6.InvokeAction.Request
-	147, // 208: tfplugin6.Provider.ValidateActionConfig:input_type -> tfplugin6.ValidateActionConfig.Request
-	52,  // 209: tfplugin6.Provider.StopProvider:input_type -> tfplugin6.StopProvider.Request
-	67,  // 210: tfplugin6.Provider.GetMetadata:output_type -> tfplugin6.GetMetadata.Response
-	76,  // 211: tfplugin6.Provider.GetProviderSchema:output_type -> tfplugin6.GetProviderSchema.Response
-	85,  // 212: tfplugin6.Provider.ValidateProviderConfig:output_type -> tfplugin6.ValidateProviderConfig.Response
-	94,  // 213: tfplugin6.Provider.ValidateResourceConfig:output_type -> tfplugin6.ValidateResourceConfig.Response
-	96,  // 214: tfplugin6.Provider.ValidateDataResourceConfig:output_type -> tfplugin6.ValidateDataResourceConfig.Response
-	87,  // 215: tfplugin6.Provider.UpgradeResourceState:output_type -> tfplugin6.UpgradeResourceState.Response
-	89,  // 216: tfplugin6.Provider.GetResourceIdentitySchemas:output_type -> tfplugin6.GetResourceIdentitySchemas.Response
-	92,  // 217: tfplugin6.Provider.UpgradeResourceIdentity:output_type -> tfplugin6.UpgradeResourceIdentity.Response
-	100, // 218: tfplugin6.Provider.ConfigureProvider:output_type -> tfplugin6.ConfigureProvider.Response
-	102, // 219: tfplugin6.Provider.ReadResource:output_type -> tfplugin6.ReadResource.Response
-	104, // 220: tfplugin6.Provider.PlanResourceChange:output_type -> tfplugin6.PlanResourceChange.Response
-	106, // 221: tfplugin6.Provider.ApplyResourceChange:output_type -> tfplugin6.ApplyResourceChange.Response
-	109, // 222: tfplugin6.Provider.ImportResourceState:output_type -> tfplugin6.ImportResourceState.Response
-	111, // 223: tfplugin6.Provider.MoveResourceState:output_type -> tfplugin6.MoveResourceState.Response
-	113, // 224: tfplugin6.Provider.ReadDataSource:output_type -> tfplugin6.ReadDataSource.Response
-	98,  // 225: tfplugin6.Provider.ValidateEphemeralResourceConfig:output_type -> tfplugin6.ValidateEphemeralResourceConfig.Response
-	115, // 226: tfplugin6.Provider.OpenEphemeralResource:output_type -> tfplugin6.OpenEphemeralResource.Response
-	117, // 227: tfplugin6.Provider.RenewEphemeralResource:output_type -> tfplugin6.RenewEphemeralResource.Response
-	119, // 228: tfplugin6.Provider.CloseEphemeralResource:output_type -> tfplugin6.CloseEphemeralResource.Response
-	126, // 229: tfplugin6.Provider.ListResource:output_type -> tfplugin6.ListResource.Event
-	128, // 230: tfplugin6.Provider.ValidateListResourceConfig:output_type -> tfplugin6.ValidateListResourceConfig.Response
-	121, // 231: tfplugin6.Provider.GetFunctions:output_type -> tfplugin6.GetFunctions.Response
-	124, // 232: tfplugin6.Provider.CallFunction:output_type -> tfplugin6.CallFunction.Response
-	130, // 233: tfplugin6.Provider.ValidateStateStoreConfig:output_type -> tfplugin6.ValidateStateStore.Response
-	132, // 234: tfplugin6.Provider.ConfigureStateStore:output_type -> tfplugin6.ConfigureStateStore.Response
-	134, // 235: tfplugin6.Provider.GetStates:output_type -> tfplugin6.GetStates.Response
-	136, // 236: tfplugin6.Provider.DeleteState:output_type -> tfplugin6.DeleteState.Response
-	138, // 237: tfplugin6.Provider.PlanAction:output_type -> tfplugin6.PlanAction.Response
-	142, // 238: tfplugin6.Provider.InvokeAction:output_type -> tfplugin6.InvokeAction.Event
-	148, // 239: tfplugin6.Provider.ValidateActionConfig:output_type -> tfplugin6.ValidateActionConfig.Response
-	53,  // 240: tfplugin6.Provider.StopProvider:output_type -> tfplugin6.StopProvider.Response
-	210, // [210:241] is the sub-list for method output_type
-	179, // [179:210] is the sub-list for method input_type
-	179, // [179:179] is the sub-list for extension type_name
-	179, // [179:179] is the sub-list for extension extendee
-	0,   // [0:179] is the sub-list for field type_name
+	18,  // 166: tfplugin6.InvokeAction.Request.client_capabilities:type_name -> tfplugin6.ClientCapabilities
+	144, // 167: tfplugin6.InvokeAction.Event.progress:type_name -> tfplugin6.InvokeAction.Event.Progress
+	145, // 168: tfplugin6.InvokeAction.Event.completed:type_name -> tfplugin6.InvokeAction.Event.Completed
+	6,   // 169: tfplugin6.InvokeAction.Request.LinkedResource.prior_state:type_name -> tfplugin6.DynamicValue
+	6,   // 170: tfplugin6.InvokeAction.Request.LinkedResource.planned_state:type_name -> tfplugin6.DynamicValue
+	6,   // 171: tfplugin6.InvokeAction.Request.LinkedResource.config:type_name -> tfplugin6.DynamicValue
+	13,  // 172: tfplugin6.InvokeAction.Request.LinkedResource.planned_identity:type_name -> tfplugin6.ResourceIdentityData
+	146, // 173: tfplugin6.InvokeAction.Event.Completed.linked_resources:type_name -> tfplugin6.InvokeAction.Event.Completed.LinkedResource
+	7,   // 174: tfplugin6.InvokeAction.Event.Completed.diagnostics:type_name -> tfplugin6.Diagnostic
+	6,   // 175: tfplugin6.InvokeAction.Event.Completed.LinkedResource.new_state:type_name -> tfplugin6.DynamicValue
+	13,  // 176: tfplugin6.InvokeAction.Event.Completed.LinkedResource.new_identity:type_name -> tfplugin6.ResourceIdentityData
+	6,   // 177: tfplugin6.ValidateActionConfig.Request.config:type_name -> tfplugin6.DynamicValue
+	50,  // 178: tfplugin6.ValidateActionConfig.Request.linked_resources:type_name -> tfplugin6.LinkedResourceConfig
+	7,   // 179: tfplugin6.ValidateActionConfig.Response.diagnostics:type_name -> tfplugin6.Diagnostic
+	66,  // 180: tfplugin6.Provider.GetMetadata:input_type -> tfplugin6.GetMetadata.Request
+	75,  // 181: tfplugin6.Provider.GetProviderSchema:input_type -> tfplugin6.GetProviderSchema.Request
+	84,  // 182: tfplugin6.Provider.ValidateProviderConfig:input_type -> tfplugin6.ValidateProviderConfig.Request
+	93,  // 183: tfplugin6.Provider.ValidateResourceConfig:input_type -> tfplugin6.ValidateResourceConfig.Request
+	95,  // 184: tfplugin6.Provider.ValidateDataResourceConfig:input_type -> tfplugin6.ValidateDataResourceConfig.Request
+	86,  // 185: tfplugin6.Provider.UpgradeResourceState:input_type -> tfplugin6.UpgradeResourceState.Request
+	88,  // 186: tfplugin6.Provider.GetResourceIdentitySchemas:input_type -> tfplugin6.GetResourceIdentitySchemas.Request
+	91,  // 187: tfplugin6.Provider.UpgradeResourceIdentity:input_type -> tfplugin6.UpgradeResourceIdentity.Request
+	99,  // 188: tfplugin6.Provider.ConfigureProvider:input_type -> tfplugin6.ConfigureProvider.Request
+	101, // 189: tfplugin6.Provider.ReadResource:input_type -> tfplugin6.ReadResource.Request
+	103, // 190: tfplugin6.Provider.PlanResourceChange:input_type -> tfplugin6.PlanResourceChange.Request
+	105, // 191: tfplugin6.Provider.ApplyResourceChange:input_type -> tfplugin6.ApplyResourceChange.Request
+	107, // 192: tfplugin6.Provider.ImportResourceState:input_type -> tfplugin6.ImportResourceState.Request
+	110, // 193: tfplugin6.Provider.MoveResourceState:input_type -> tfplugin6.MoveResourceState.Request
+	112, // 194: tfplugin6.Provider.ReadDataSource:input_type -> tfplugin6.ReadDataSource.Request
+	97,  // 195: tfplugin6.Provider.ValidateEphemeralResourceConfig:input_type -> tfplugin6.ValidateEphemeralResourceConfig.Request
+	114, // 196: tfplugin6.Provider.OpenEphemeralResource:input_type -> tfplugin6.OpenEphemeralResource.Request
+	116, // 197: tfplugin6.Provider.RenewEphemeralResource:input_type -> tfplugin6.RenewEphemeralResource.Request
+	118, // 198: tfplugin6.Provider.CloseEphemeralResource:input_type -> tfplugin6.CloseEphemeralResource.Request
+	125, // 199: tfplugin6.Provider.ListResource:input_type -> tfplugin6.ListResource.Request
+	127, // 200: tfplugin6.Provider.ValidateListResourceConfig:input_type -> tfplugin6.ValidateListResourceConfig.Request
+	120, // 201: tfplugin6.Provider.GetFunctions:input_type -> tfplugin6.GetFunctions.Request
+	123, // 202: tfplugin6.Provider.CallFunction:input_type -> tfplugin6.CallFunction.Request
+	129, // 203: tfplugin6.Provider.ValidateStateStoreConfig:input_type -> tfplugin6.ValidateStateStore.Request
+	131, // 204: tfplugin6.Provider.ConfigureStateStore:input_type -> tfplugin6.ConfigureStateStore.Request
+	133, // 205: tfplugin6.Provider.GetStates:input_type -> tfplugin6.GetStates.Request
+	135, // 206: tfplugin6.Provider.DeleteState:input_type -> tfplugin6.DeleteState.Request
+	137, // 207: tfplugin6.Provider.PlanAction:input_type -> tfplugin6.PlanAction.Request
+	141, // 208: tfplugin6.Provider.InvokeAction:input_type -> tfplugin6.InvokeAction.Request
+	147, // 209: tfplugin6.Provider.ValidateActionConfig:input_type -> tfplugin6.ValidateActionConfig.Request
+	52,  // 210: tfplugin6.Provider.StopProvider:input_type -> tfplugin6.StopProvider.Request
+	67,  // 211: tfplugin6.Provider.GetMetadata:output_type -> tfplugin6.GetMetadata.Response
+	76,  // 212: tfplugin6.Provider.GetProviderSchema:output_type -> tfplugin6.GetProviderSchema.Response
+	85,  // 213: tfplugin6.Provider.ValidateProviderConfig:output_type -> tfplugin6.ValidateProviderConfig.Response
+	94,  // 214: tfplugin6.Provider.ValidateResourceConfig:output_type -> tfplugin6.ValidateResourceConfig.Response
+	96,  // 215: tfplugin6.Provider.ValidateDataResourceConfig:output_type -> tfplugin6.ValidateDataResourceConfig.Response
+	87,  // 216: tfplugin6.Provider.UpgradeResourceState:output_type -> tfplugin6.UpgradeResourceState.Response
+	89,  // 217: tfplugin6.Provider.GetResourceIdentitySchemas:output_type -> tfplugin6.GetResourceIdentitySchemas.Response
+	92,  // 218: tfplugin6.Provider.UpgradeResourceIdentity:output_type -> tfplugin6.UpgradeResourceIdentity.Response
+	100, // 219: tfplugin6.Provider.ConfigureProvider:output_type -> tfplugin6.ConfigureProvider.Response
+	102, // 220: tfplugin6.Provider.ReadResource:output_type -> tfplugin6.ReadResource.Response
+	104, // 221: tfplugin6.Provider.PlanResourceChange:output_type -> tfplugin6.PlanResourceChange.Response
+	106, // 222: tfplugin6.Provider.ApplyResourceChange:output_type -> tfplugin6.ApplyResourceChange.Response
+	109, // 223: tfplugin6.Provider.ImportResourceState:output_type -> tfplugin6.ImportResourceState.Response
+	111, // 224: tfplugin6.Provider.MoveResourceState:output_type -> tfplugin6.MoveResourceState.Response
+	113, // 225: tfplugin6.Provider.ReadDataSource:output_type -> tfplugin6.ReadDataSource.Response
+	98,  // 226: tfplugin6.Provider.ValidateEphemeralResourceConfig:output_type -> tfplugin6.ValidateEphemeralResourceConfig.Response
+	115, // 227: tfplugin6.Provider.OpenEphemeralResource:output_type -> tfplugin6.OpenEphemeralResource.Response
+	117, // 228: tfplugin6.Provider.RenewEphemeralResource:output_type -> tfplugin6.RenewEphemeralResource.Response
+	119, // 229: tfplugin6.Provider.CloseEphemeralResource:output_type -> tfplugin6.CloseEphemeralResource.Response
+	126, // 230: tfplugin6.Provider.ListResource:output_type -> tfplugin6.ListResource.Event
+	128, // 231: tfplugin6.Provider.ValidateListResourceConfig:output_type -> tfplugin6.ValidateListResourceConfig.Response
+	121, // 232: tfplugin6.Provider.GetFunctions:output_type -> tfplugin6.GetFunctions.Response
+	124, // 233: tfplugin6.Provider.CallFunction:output_type -> tfplugin6.CallFunction.Response
+	130, // 234: tfplugin6.Provider.ValidateStateStoreConfig:output_type -> tfplugin6.ValidateStateStore.Response
+	132, // 235: tfplugin6.Provider.ConfigureStateStore:output_type -> tfplugin6.ConfigureStateStore.Response
+	134, // 236: tfplugin6.Provider.GetStates:output_type -> tfplugin6.GetStates.Response
+	136, // 237: tfplugin6.Provider.DeleteState:output_type -> tfplugin6.DeleteState.Response
+	138, // 238: tfplugin6.Provider.PlanAction:output_type -> tfplugin6.PlanAction.Response
+	142, // 239: tfplugin6.Provider.InvokeAction:output_type -> tfplugin6.InvokeAction.Event
+	148, // 240: tfplugin6.Provider.ValidateActionConfig:output_type -> tfplugin6.ValidateActionConfig.Response
+	53,  // 241: tfplugin6.Provider.StopProvider:output_type -> tfplugin6.StopProvider.Response
+	211, // [211:242] is the sub-list for method output_type
+	180, // [180:211] is the sub-list for method input_type
+	180, // [180:180] is the sub-list for extension type_name
+	180, // [180:180] is the sub-list for extension extendee
+	0,   // [0:180] is the sub-list for field type_name
 }
 
 func init() { file_tfplugin6_proto_init() }

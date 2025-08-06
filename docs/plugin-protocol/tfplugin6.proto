@@ -974,9 +974,9 @@ message PlanAction {
         // linked resources, this should match the order the resources are specified in the schema.
         repeated LinkedResource linked_resources = 2;
         // config of the action, based on the schema of the actual action
-        DynamicValue config = 6;
+        DynamicValue config = 3;
         // metadata
-        ClientCapabilities client_capabilities = 8;
+        ClientCapabilities client_capabilities = 4;
     }
 
     message Response {
@@ -1008,6 +1008,8 @@ message InvokeAction {
         repeated LinkedResource linked_resources = 2;
         // response from the plan
         DynamicValue config = 3;
+        // metadata
+        ClientCapabilities client_capabilities = 4;
     }
 
     message Event {
@@ -1025,7 +1027,7 @@ message InvokeAction {
         }
         // linked resources, matching the order they are specified in the schema
         repeated LinkedResource linked_resources = 1;
-        repeated Diagnostic diagnostics = 3;
+        repeated Diagnostic diagnostics = 2;
     }
 
     oneof type {

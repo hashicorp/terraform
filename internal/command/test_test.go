@@ -137,6 +137,37 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
+		"expect_failures_outputs": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"expect_failures_checks_verbose": {
+			override:    "expect_failures_checks",
+			args:        []string{"-verbose"},
+			expectedOut: []string{"1 passed, 0 failed.", "Warning: Check block assertion failed"},
+			code:        0,
+		},
+		"expect_failures_inputs_verbose": {
+			override:    "expect_failures_inputs",
+			args:        []string{"-verbose"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			expectedErr: []string{"Error: Invalid value for variable"},
+			code:        0,
+		},
+		"expect_failures_resources_verbose": {
+			override:    "expect_failures_resources",
+			args:        []string{"-verbose"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			expectedErr: []string{"Error: Resource postcondition failed"},
+			code:        0,
+		},
+		"expect_failures_outputs_verbose": {
+			override:    "expect_failures_outputs",
+			args:        []string{"-verbose"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			expectedErr: []string{"Error: Module output value precondition failed"},
+			code:        0,
+		},
 		"multiple_files": {
 			expectedOut: []string{"2 passed, 0 failed"},
 			code:        0,
@@ -369,6 +400,15 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"test_resource.two will be destroyed"},
 			code:        0,
 		},
+		"prevent-destroy": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"deferred_changes": {
+			args:        []string{"-allow-deferral"},
+			expectedOut: []string{"3 passed, 0 failed."},
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -414,10 +454,11 @@ func TestTest_Runs(t *testing.T) {
 						},
 					},
 				},
-				Ui:             ui,
-				View:           view,
-				Streams:        streams,
-				ProviderSource: providerSource,
+				Ui:                        ui,
+				View:                      view,
+				Streams:                   streams,
+				ProviderSource:            providerSource,
+				AllowExperimentalFeatures: true,
 			}
 
 			init := &InitCommand{

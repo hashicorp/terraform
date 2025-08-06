@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -51,6 +50,10 @@ type FmtCommand struct {
 func (c *FmtCommand) Run(args []string) int {
 	if c.input == nil {
 		c.input = os.Stdin
+	}
+
+	if c.Meta.AllowExperimentalFeatures {
+		fmtSupportedExts = append(fmtSupportedExts, ".tfquery.hcl")
 	}
 
 	args = c.Meta.process(args)
@@ -174,7 +177,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 
 	log.Printf("[TRACE] terraform fmt: Formatting %s", path)
 
-	src, err := ioutil.ReadAll(r)
+	src, err := io.ReadAll(r)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to read %s", path))
 		return diags
@@ -201,7 +204,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 			fmt.Fprintln(w, path)
 		}
 		if c.write {
-			err := ioutil.WriteFile(path, result, 0644)
+			err := os.WriteFile(path, result, 0644)
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Failed to write %s", path))
 				return diags
@@ -232,7 +235,7 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 
 	log.Printf("[TRACE] terraform fmt: looking for files in %s", path)
 
-	entries, err := ioutil.ReadDir(path)
+	entries, err := os.ReadDir(path)
 	if err != nil {
 		switch {
 		case os.IsNotExist(err):
@@ -551,8 +554,8 @@ func (c *FmtCommand) Help() string {
 Usage: terraform [global options] fmt [options] [target...]
 
   Rewrites all Terraform configuration files to a canonical format. All
-  configuration files (.tf), variables files (.tfvars), and testing files 
-  (.tftest.hcl) are updated. JSON files (.tf.json, .tfvars.json, or 
+  configuration files (.tf), variables files (.tfvars), and testing files
+  (.tftest.hcl) are updated. JSON files (.tf.json, .tfvars.json, or
   .tftest.json) are not modified.
 
   By default, fmt scans the current directory for configuration files. If you
@@ -590,14 +593,14 @@ func (c *FmtCommand) Synopsis() string {
 }
 
 func bytesDiff(b1, b2 []byte, path string) (data []byte, err error) {
-	f1, err := ioutil.TempFile("", "")
+	f1, err := os.CreateTemp("", "")
 	if err != nil {
 		return
 	}
 	defer os.Remove(f1.Name())
 	defer f1.Close()
 
-	f2, err := ioutil.TempFile("", "")
+	f2, err := os.CreateTemp("", "")
 	if err != nil {
 		return
 	}

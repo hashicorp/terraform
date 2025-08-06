@@ -99,7 +99,15 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 	}
 
 	for _, ai := range c.ActionInvocations {
-		a, err := ai.Encode()
+		p, ok := schemas.Providers[ai.ProviderAddr.Provider]
+		if !ok {
+			return changesSrc, fmt.Errorf("Changes.Encode: missing provider %s for %s", ai.ProviderAddr, ai.Addr)
+		}
+		schema, ok := p.Actions[ai.Addr.Action.Action.Type]
+		if !ok {
+			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", ai.Addr.Action.Action.Type)
+		}
+		a, err := ai.Encode(&schema)
 		if err != nil {
 			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
 		}

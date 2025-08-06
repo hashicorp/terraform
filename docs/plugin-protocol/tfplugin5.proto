@@ -463,7 +463,8 @@ message GetProviderSchema {
         map<string, Function> functions = 7;
         map<string, Schema> ephemeral_resource_schemas = 8;
         map<string, Schema> list_resource_schemas = 9;
-        map<string, ActionSchema> action_schemas = 10;
+        reserved 10; // Field number 10 is used by state stores in version 6
+        map<string, ActionSchema> action_schemas = 11;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
@@ -936,9 +937,9 @@ message PlanAction {
         // linked resources, this should match the order the resources are specified in the schema.
         repeated LinkedResource linked_resources = 2;
         // config of the action, based on the schema of the actual action
-        DynamicValue config = 6;
+        DynamicValue config = 3;
         // metadata
-        ClientCapabilities client_capabilities = 8;
+        ClientCapabilities client_capabilities = 4;
     }
 
     message Response {
@@ -969,6 +970,8 @@ message InvokeAction {
         repeated LinkedResource linked_resources = 2;
         // response from the plan
         DynamicValue config = 3;
+        // metadata
+        ClientCapabilities client_capabilities = 4;
     }
 
     message Event {
@@ -986,7 +989,7 @@ message InvokeAction {
 
         // linked resources, matching the order they are specified in the schema
         repeated LinkedResource linked_resources = 1;
-        repeated Diagnostic diagnostics = 3;
+        repeated Diagnostic diagnostics = 2;
     }
 
     oneof type {

@@ -80,6 +80,34 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		resourceNodes.Put(rAddr, append(resourceNodes.Get(rAddr), rn))
 	}
 
+	// We will partition the action invocations into two groups based on if they are supposed to
+	// run before or after the resource change.
+	// We want to attach before-triggered action invocations to the triggering resource instance
+	// to be run as part of the apply phase.
+	// The after-triggered action invocations will be run as part of a separate node
+	// that will be connected to the resource instance nodes.
+	runBeforeNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
+	runAfterNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
+	for _, ai := range changes.ActionInvocations {
+
+		var targetMap addrs.Map[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]
+		switch ai.TriggerEvent {
+		case configs.BeforeCreate, configs.BeforeUpdate, configs.BeforeDestroy:
+			targetMap = runBeforeNode
+		case configs.AfterCreate, configs.AfterUpdate, configs.AfterDestroy:
+			targetMap = runAfterNode
+		default:
+			panic("I don't know when to run this action invocation")
+		}
+
+		basis := []*plans.ActionInvocationInstanceSrc{}
+		if targetMap.Has(ai.TriggeringResourceAddr) {
+			basis = targetMap.Get(ai.TriggeringResourceAddr)
+		}
+
+		targetMap.Put(ai.TriggeringResourceAddr, append(basis, ai))
+	}
+
 	for _, rc := range changes.Resources {
 		addr := rc.Addr
 		dk := rc.DeposedKey
@@ -179,6 +207,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, dag.VertexName(node))
 			}
 
+			// We only need to attach actions to updating nodes for now
+			// (until before_destroy & after destroy are added)
+			if beforeActions, ok := runBeforeNode.GetOk(addr); ok {
+				if attachBeforeActionsNode, ok := node.(*NodeApplyableResourceInstance); ok {
+					attachBeforeActionsNode.beforeActionInvocations = beforeActions
+				}
+			}
+
 			g.Add(node)
 			for _, rsrcNode := range resourceNodes.Get(addr.ConfigResource()) {
 				g.Connect(dag.BasicEdge(node, rsrcNode))
@@ -227,6 +263,38 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			g.Add(node)
 		}
 
+	}
+
+	// Create a node for each resource instance that invokes all the action invocations that are
+	// supposed to run after the resource change.
+	for key, value := range runAfterNode.Iter() {
+		if len(value) == 0 {
+			continue
+		}
+
+		log.Printf("[TRACE] DiffTransformer: adding action invocations to run after %s", key)
+		actionNode := &nodeActionApply{
+			TriggeringResourceaddrs: key,
+			ActionInvocations:       value,
+		}
+
+		// Find the config resource associated with this. While for each resource instance all
+		// actions need to run in sequence, for different resource instances they can run in
+		// parallel.
+		resourceNode, ok := resourceNodes.GetOk(key.ConfigResource())
+		if !ok {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Missing resource node for action invocations",
+				fmt.Sprintf("Could not find resource node for action invocations for %s", key),
+			))
+			continue
+		}
+
+		g.Add(actionNode)
+		for _, rNode := range resourceNode {
+			g.Connect(dag.BasicEdge(actionNode, rNode))
+		}
 	}
 
 	log.Printf("[TRACE] DiffTransformer complete")

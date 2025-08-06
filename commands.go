@@ -441,6 +441,12 @@ func initCommands(
 				},
 			}, nil
 		},
+
+		"stacks": func() (cli.Command, error) {
+			return &command.StacksCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 
 	if meta.AllowExperimentalFeatures {
@@ -452,12 +458,6 @@ func initCommands(
 
 		Commands["query"] = func() (cli.Command, error) {
 			return &command.QueryCommand{
-				Meta: meta,
-			}, nil
-		}
-
-		Commands["stacks"] = func() (cli.Command, error) {
-			return &command.StacksCommand{
 				Meta: meta,
 			}, nil
 		}

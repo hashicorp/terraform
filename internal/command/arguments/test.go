@@ -48,6 +48,10 @@ type Test struct {
 	// ViewType.
 	Verbose bool
 
+	// DeferralAllowed enables deferrals during test operations. This matches
+	// the same-named flag in the Operation struct.
+	DeferralAllowed bool
+
 	// These flags are only relevant to the "test cleanup" command.
 	Repair bool
 }
@@ -68,6 +72,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
 	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.IntVar(&test.RunParallelism, "run-parallelism", DefaultParallelism, "run-parallelism")
+	cmdFlags.BoolVar(&test.DeferralAllowed, "allow-deferral", false, "allow-deferral")
 	cmdFlags.BoolVar(&test.Repair, "repair", false, "repair")
 
 	// TODO: Finalise the name of this flag.

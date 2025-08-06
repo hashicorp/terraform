@@ -5,25 +5,60 @@ package plans
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ActionInvocationInstance struct {
-	Addr addrs.AbsActionInstance // mildwonkey TODO: this will be a *trigger* instance when that pr merges
+	Addr                   addrs.AbsActionInstance
+	TriggeringResourceAddr addrs.AbsResourceInstance
+
+	// Information about the trigger
+	// The event that triggered this action invocation.
+	TriggerEvent configs.ActionTriggerEvent
+	// The index of the action_trigger block that triggered this invocation.
+	ActionTriggerBlockIndex int
+	// The index of the action in the evens list of the action_trigger block
+	ActionsListIndex int
 
 	// Provider is the address of the provider configuration that was used
 	// to plan this action, and thus the configuration that must also be
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
+
+	ConfigValue cty.Value
 }
 
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
-func (ai *ActionInvocationInstance) Encode() (*ActionInvocationInstanceSrc, error) {
-	return &ActionInvocationInstanceSrc{
-		Addr:         ai.Addr,
-		ProviderAddr: ai.ProviderAddr,
-	}, nil
+func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*ActionInvocationInstanceSrc, error) {
+
+	ret := &ActionInvocationInstanceSrc{
+		Addr:                    ai.Addr,
+		TriggeringResourceAddr:  ai.TriggeringResourceAddr,
+		TriggerEvent:            ai.TriggerEvent,
+		ActionTriggerBlockIndex: ai.ActionTriggerBlockIndex,
+		ActionsListIndex:        ai.ActionsListIndex,
+		ProviderAddr:            ai.ProviderAddr,
+	}
+
+	if ai.ConfigValue != cty.NilVal {
+		ty := cty.DynamicPseudoType
+		if schema != nil {
+			ty = schema.ConfigSchema.ImpliedType()
+		}
+
+		var err error
+		ret.ConfigValue, err = NewDynamicValue(ai.ConfigValue, ty)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ret, nil
+
 }
 
 type ActionInvocationInstances []*ActionInvocationInstance

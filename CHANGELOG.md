@@ -1,6 +1,11 @@
 ## 1.14.0 (Unreleased)
 
 
+ENHANCEMENTS:
+
+* terraform test: expected diagnostics will be included in test output when running in verbose mode" ([#37362](https://github.com/hashicorp/terraform/issues/37362))
+
+
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.

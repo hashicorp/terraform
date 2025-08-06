@@ -198,12 +198,12 @@ type IdentitySchema struct {
 	Body *configschema.Object
 }
 
-type ExecutionOrder int
+type ExecutionOrder string
 
 const (
-	ExecutionOrderInvalid ExecutionOrder = iota
-	ExecutionOrderBefore
-	ExecutionOrderAfter
+	ExecutionOrderInvalid ExecutionOrder = "invalid"
+	ExecutionOrderBefore  ExecutionOrder = "before"
+	ExecutionOrderAfter   ExecutionOrder = "after"
 )
 
 type LinkedResourceSchema struct {
@@ -915,9 +915,10 @@ type PlanActionResponse struct {
 }
 
 type InvokeActionRequest struct {
-	ActionType        string
-	LinkedResources   []LinkedResourceInvokeData
-	PlannedActionData cty.Value
+	ActionType         string
+	LinkedResources    []LinkedResourceInvokeData
+	PlannedActionData  cty.Value
+	ClientCapabilities ClientCapabilities
 }
 
 type InvokeActionResponse struct {

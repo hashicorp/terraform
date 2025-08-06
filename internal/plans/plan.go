@@ -67,7 +67,6 @@ type Plan struct {
 	ApplyTimeVariables collections.Set[string]
 
 	Changes           *ChangesSrc
-	ActionInvocations []*ActionInvocationInstanceSrc
 	DriftedResources  []*ResourceInstanceChangeSrc
 	DeferredResources []*DeferredResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable

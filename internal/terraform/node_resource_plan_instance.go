@@ -564,7 +564,8 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 	}
 
 	for i, at := range n.Config.Managed.ActionTriggers {
-		if !eventIncludesAction(at.Events, change.Action) {
+		triggeringEvent, isTriggered := actionIsTriggeredByEvent(at.Events, change.Action)
+		if !isTriggered {
 			continue
 		}
 
@@ -583,26 +584,28 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				absActionInstAddrs = append(absActionInstAddrs, a.Absolute(n.Path()))
 			} else if a, ok := ref.Subject.(addrs.Action); ok {
 				// If the reference action is expanded we get a single action address,
-				// otherwise all expanded action addresses. This auto-expansion feature is syntacic
+				// otherwise all expanded action addresses. This auto-expansion feature is syntactic
 				// sugar for the user so that they can refer to all of an expanded action's
 				// instances
 				absActionInstAddrs = ctx.Actions().GetActionInstanceKeys(a.Absolute(n.Path()))
 			} else {
-				// TODO: Better diagnostic message
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					fmt.Sprintf("%s action trigger #%d refers to an invalid address", n.Addr, i),
-					fmt.Sprintf("actions list item #%d refers to a subject that is not an action or action instance.", j),
-				))
+				diags = diags.Append(
+					hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid address",
+						Detail:   "Expected a reference to an action or an action instance",
+						Subject:  actionRef.Traversal.SourceRange().Ptr(),
+					})
 				continue
 			}
 
 			if len(absActionInstAddrs) == 0 {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					fmt.Sprintf("%s action trigger #%d refers to a non-existent action %s", n.Addr, i, actionRef.Traversal),
-					fmt.Sprintf("action trigger #%d refers to a non-existent action %s", i, actionRef.Traversal),
-				))
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "No action reference found",
+					Detail:   "Expected a reference to an action or an action instance, but none was found",
+					Subject:  actionRef.Traversal.SourceRange().Ptr(),
+				})
 				return diags
 			}
 
@@ -610,21 +613,24 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				actionInstance, ok := ctx.Actions().GetActionInstance(absActionAddr)
 
 				if !ok {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						fmt.Sprintf("action trigger #%d refers to a non-existent action instance %s", i, absActionAddr),
-						"Action instance not found in the current context.",
-					))
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to non-existant action instance",
+						Detail:   "Action instance was not found in the current context.",
+						Subject:  actionRef.Traversal.SourceRange().Ptr(),
+					})
 					return diags
 				}
 
 				provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
 				if err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Failed to get provider",
-						fmt.Sprintf("Failed to get provider: %s", err),
-					))
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to get provider",
+						Detail:   fmt.Sprintf("Failed to get provider: %s", err),
+						Subject:  actionRef.Traversal.SourceRange().Ptr(),
+					})
+
 					return diags
 				}
 
@@ -641,8 +647,13 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				}
 
 				ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-					Addr:         absActionAddr,
-					ProviderAddr: actionInstance.ProviderAddr,
+					Addr:                    absActionAddr,
+					ProviderAddr:            actionInstance.ProviderAddr,
+					TriggeringResourceAddr:  n.Addr,
+					TriggerEvent:            *triggeringEvent,
+					ActionTriggerBlockIndex: i,
+					ActionsListIndex:        j,
+					ConfigValue:             actionInstance.ConfigValue,
 				})
 			}
 		}
@@ -1083,24 +1094,24 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	return true
 }
 
-func eventIncludesAction(events []configs.ActionTriggerEvent, action plans.Action) bool {
+func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) (*configs.ActionTriggerEvent, bool) {
 	for _, event := range events {
 		switch event {
 		case configs.BeforeCreate, configs.AfterCreate:
 			if action.IsReplace() || action == plans.Create {
-				return true
+				return &event, true
 			} else {
 				continue
 			}
 		case configs.BeforeUpdate, configs.AfterUpdate:
 			if action == plans.Update {
-				return true
+				return &event, true
 			} else {
 				continue
 			}
 		case configs.BeforeDestroy, configs.AfterDestroy:
 			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
-				return true
+				return &event, true
 			} else {
 				continue
 			}
@@ -1108,5 +1119,5 @@ func eventIncludesAction(events []configs.ActionTriggerEvent, action plans.Actio
 			panic(fmt.Sprintf("unknown action trigger event %s", event))
 		}
 	}
-	return false
+	return nil, false
 }

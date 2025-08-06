@@ -514,17 +514,30 @@ func (h *UiHook) PreListQuery(id terraform.HookResourceIdentity, input_config ct
 func (h *UiHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults) (terraform.HookAction, error) {
 	addr := id.Addr
 	data := results.Value.GetAttr("data")
+
+	identities := make([]string, 0, data.LengthInt())
+	displayNames := make([]string, 0, data.LengthInt())
+	maxIdentityLen := 0
 	for it := data.ElementIterator(); it.Next(); {
 		_, value := it.Element()
+		identity := tfdiags.ObjectToString(value.GetAttr("identity"))
+		if len(identity) > maxIdentityLen {
+			maxIdentityLen = len(identity)
+		}
+		identities = append(identities, identity)
 
-		h.println(fmt.Sprintf(
-			"%s\t%s\t%s",
-			addr.String(),
-			// TODO maybe deduplicate common identity attributes?
-			tfdiags.ObjectToString(value.GetAttr("identity")),
-			value.GetAttr("display_name").AsString(),
-		))
+		displayNames = append(displayNames, value.GetAttr("display_name").AsString())
 	}
+
+	result := strings.Builder{}
+	for i, identity := range identities {
+		result.WriteString(fmt.Sprintf("%s   %-*s   %s\n", addr.String(), maxIdentityLen, identity, displayNames[i]))
+	}
+
+	if result.Len() > 0 {
+		h.println(result.String())
+	}
+
 	return terraform.HookActionContinue, nil
 }
 

@@ -75,6 +75,8 @@ type EvalContext struct {
 	renderer      views.Test
 	verbose       bool
 
+	deferralAllowed bool
+	evalSem         terraform.Semaphore
 	evalSem terraform.Semaphore
 
 	// repair is true if the test suite is being run in cleanup repair mode.
@@ -92,6 +94,7 @@ type EvalContextOpts struct {
 	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 	Config            *configs.Config
 	Concurrency       int
+	DeferralAllowed   bool
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -121,6 +124,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		repair:            opts.Repair,
 		renderer:          opts.Render,
 		config:            opts.Config,
+		deferralAllowed:   opts.DeferralAllowed,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
 		manifest:          opts.Manifest,
 	}

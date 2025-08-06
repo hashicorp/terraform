@@ -68,3 +68,62 @@ func marshalIdentitySchemas(schemas map[string]providers.Schema) map[string]*Ide
 
 	return ret
 }
+
+type ActionSchema struct {
+	ConfigSchema *Block `json:"block,omitempty"`
+
+	// One of the following must be set
+	Unlinked  *UnlinkedAction  `json:"unlinked,omitempty"`
+	Linked    *LinkedAction    `json:"linked,omitempty"`
+	Lifecycle *LifecycleAction `json:"lifecycle,omitempty"`
+}
+
+type UnlinkedAction struct{}
+type LinkedAction struct {
+	LinkedResources []LinkedResourceSchema `json:"linked_resources,omitempty"`
+}
+type LinkedResourceSchema struct {
+	TypeName string `json:"type_name"`
+}
+
+type LifecycleAction struct {
+	LinkedResource LinkedResourceSchema `json:"linked_resource"`
+	ExecutionOrder string               `json:"execution_order"`
+}
+
+func marshalActionSchemas(schemas map[string]providers.ActionSchema) map[string]*ActionSchema {
+	ret := make(map[string]*ActionSchema, len(schemas))
+	for name, schema := range schemas {
+		ret[name] = marshalActionSchema(schema)
+	}
+	return ret
+}
+
+func marshalActionSchema(schema providers.ActionSchema) *ActionSchema {
+	ret := &ActionSchema{
+		ConfigSchema: marshalBlock(schema.ConfigSchema),
+	}
+
+	if schema.Unlinked != nil {
+		ret.Unlinked = &UnlinkedAction{}
+	} else if schema.Linked != nil {
+		linkedResources := []LinkedResourceSchema{}
+		for _, linkedResource := range schema.Linked.LinkedResources {
+			linkedResources = append(linkedResources, LinkedResourceSchema{
+				TypeName: linkedResource.TypeName,
+			})
+		}
+		ret.Linked = &LinkedAction{
+			LinkedResources: linkedResources,
+		}
+	} else if schema.Lifecycle != nil {
+		ret.Lifecycle = &LifecycleAction{
+			LinkedResource: LinkedResourceSchema{
+				TypeName: schema.Lifecycle.LinkedResource.TypeName,
+			},
+			ExecutionOrder: string(schema.Lifecycle.Executes),
+		}
+	}
+
+	return ret
+}

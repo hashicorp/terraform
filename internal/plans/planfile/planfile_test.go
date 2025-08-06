@@ -68,8 +68,7 @@ func TestRoundtrip(t *testing.T) {
 			Config:    plans.DynamicValue([]byte("config placeholder")),
 			Workspace: "default",
 		},
-		Checks:            &states.CheckResults{},
-		ActionInvocations: []*plans.ActionInvocationInstanceSrc{},
+		Checks: &states.CheckResults{},
 
 		// Due to some historical oddities in how we've changed modelling over
 		// time, we also include the states (without the corresponding file
@@ -160,7 +159,7 @@ func TestRoundtrip(t *testing.T) {
 		// Reading from snapshots is tested in the configload package, so
 		// here we'll just test that we can successfully do it, to see if the
 		// glue code in _this_ package is correct.
-		_, diags := pr.ReadConfig()
+		_, diags := pr.ReadConfig(false)
 		if diags.HasErrors() {
 			t.Errorf("when reading config: %s", diags.Err())
 		}

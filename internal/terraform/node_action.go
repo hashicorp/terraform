@@ -30,11 +30,12 @@ type nodeExpandActionDeclaration struct {
 }
 
 var (
-	_ GraphNodeConfigAction      = (*nodeExpandActionDeclaration)(nil)
-	_ GraphNodeReferenceable     = (*nodeExpandActionDeclaration)(nil)
-	_ GraphNodeReferencer        = (*nodeExpandActionDeclaration)(nil)
-	_ GraphNodeDynamicExpandable = (*nodeExpandActionDeclaration)(nil)
-	_ GraphNodeProviderConsumer  = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeConfigAction       = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeReferenceable      = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeReferencer         = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeDynamicExpandable  = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeProviderConsumer   = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeAttachActionSchema = (*nodeExpandActionDeclaration)(nil)
 )
 
 func (n *nodeExpandActionDeclaration) Name() string {
@@ -54,7 +55,7 @@ func (n *nodeExpandActionDeclaration) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
-// GraphNodeAttachActionSchema impl
+// GraphNodeAttachActionSchema
 func (n *nodeExpandActionDeclaration) AttachActionSchema(schema *providers.ActionSchema) {
 	n.Schema = schema
 }
@@ -182,16 +183,17 @@ func (n *nodeExpandActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool) 
 		return n.ResolvedProvider, true
 	}
 
-	return addrs.AbsProviderConfig{
-		Provider: n.Provider(),
-		Module:   addrs.RootModule, // TODO: Deal with modules
+	// Since we always have a config, we can use it
+	relAddr := n.Config.ProviderConfigAddr()
+	return addrs.LocalProviderConfig{
+		LocalName: relAddr.LocalName,
+		Alias:     relAddr.Alias,
 	}, false
 }
 
 // GraphNodeProviderConsumer
 func (n *nodeExpandActionDeclaration) Provider() addrs.Provider {
-	// TODO: Handle provider field
-	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Action.ImpliedProvider())
+	return n.Config.Provider
 }
 
 // GraphNodeProviderConsumer
