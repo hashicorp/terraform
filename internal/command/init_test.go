@@ -120,30 +120,57 @@ func TestInit_two_step_provider_download(t *testing.T) {
 		"providers required by only the state file": {
 			workDirPath: "init-provider-download/state-file-only",
 			expectedDownloadMsgs: []string{
-				"Initializing provider plugins found in the configuration... Initializing the backend...",                                                     // No providers found in the configuration
-				"Initializing provider plugins found in the state... - Finding latest version of hashicorp/random... - Installing hashicorp/random v9.9.9...", // The latest version is expected, as state has no version constraints
+				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
+				`Initializing provider plugins found in the configuration...
+				Initializing the backend...`, // No providers found in the configuration so next output is backend-related
+				`Initializing provider plugins found in the state...
+				- Finding latest version of hashicorp/random...
+				- Installing hashicorp/random v9.9.9...`, // The latest version is expected, as state has no version constraints
 			},
 		},
 		"different providers required by config and state": {
 			workDirPath: "init-provider-download/config-and-state-different-providers",
 			expectedDownloadMsgs: []string{
-				// Config - the provider is affected by a version constraint
-				"Initializing provider plugins found in the configuration... - Finding hashicorp/null versions matching \"< 9.0.0\"... - Installing hashicorp/null v1.0.0...",
+				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
 
-				// State - the latest version of the provider is expected, as state has no version constraints
-				"Initializing provider plugins found in the state... - Finding latest version of hashicorp/random... - Installing hashicorp/random v9.9.9...",
+				// Config - this provider is affected by a version constraint
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/null versions matching "< 9.0.0"...
+				- Installing hashicorp/null v1.0.0...
+				- Installed hashicorp/null v1.0.0`,
+
+				// State - the latest version of this provider is expected, as state has no version constraints
+				`Initializing provider plugins found in the state...
+				- Finding latest version of hashicorp/random...
+				- Installing hashicorp/random v9.9.9...`,
 			},
 		},
-		"reuses same provider download when required by both config and state": {
+		"does not re-download providers that are present in both config and state": {
 			workDirPath: "init-provider-download/config-and-state-same-providers",
 			expectedDownloadMsgs: []string{
-				// Config - version constraints affect the version pulled.
-				"Initializing provider plugins found in the configuration...",
-				"Finding hashicorp/random versions matching \"< 9.0.0\"",
-				"Installed hashicorp/random v1.0.0 ",
-
-				// State - this reuses the version of the provider downloaded above, instead of independently installing the latest version
-				"Initializing provider plugins found in the state... - Reusing previous version of hashicorp/random from the dependency lock file - Using previously-installed hashicorp/random v1.0.0",
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/random versions matching "< 9.0.0"...
+				- Installing hashicorp/random v1.0.0...
+				- Installed hashicorp/random v1.0.0`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Using previously-installed hashicorp/random v1.0.0`,
+			},
+		},
+		"reuses providers already represented in a dependency lock file": {
+			workDirPath: "init-provider-download/config-state-file-and-lockfile",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Installing hashicorp/random v1.0.0...
+				- Installed hashicorp/random v1.0.0`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
 	}
@@ -182,14 +209,9 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				t.Fatalf("bad: \n%s", done(t).All())
 			}
 
-			successMsg := views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue
 			actual := cleanString(done(t).All())
-			if !strings.Contains(cleanString(actual), cleanString(successMsg)) {
-				t.Fatalf("expected output to contain %q\n, got %q", cleanString(successMsg), cleanString(actual))
-			}
-
 			for _, downloadMsg := range tc.expectedDownloadMsgs {
-				if !strings.Contains(cleanString(actual), downloadMsg) {
+				if !strings.Contains(cleanString(actual), cleanString(downloadMsg)) {
 					t.Fatalf("expected output to contain %q\n, got %q", cleanString(downloadMsg), cleanString(actual))
 				}
 			}
