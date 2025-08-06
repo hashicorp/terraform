@@ -310,7 +310,7 @@ func TestJSONView_ChangeSummaryWithActionInvocations(t *testing.T) {
 	want := []map[string]interface{}{
 		{
 			"@level":   "info",
-			"@message": "Apply complete! Resources: 1 added, 2 changed, 3 destroyed. 23 actions invoked.",
+			"@message": "Apply complete! Resources: 1 added, 2 changed, 3 destroyed. Actions: 23 invoked.",
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
@@ -342,7 +342,7 @@ func TestJSONView_ChangeSummaryWithActionInvocationsAndImports(t *testing.T) {
 	want := []map[string]interface{}{
 		{
 			"@level":   "info",
-			"@message": "Apply complete! Resources: 2 imported, 1 added, 2 changed, 3 destroyed. 23 actions invoked.",
+			"@message": "Apply complete! Resources: 2 imported, 1 added, 2 changed, 3 destroyed. Actions: 23 invoked.",
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
