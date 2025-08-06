@@ -226,6 +226,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "- Reusing previous version of %s from the dependency lock file",
 		JSONValue:  "%s: Reusing previous version from the dependency lock file",
 	},
+	"reusing_version_during_state_provider_init": {
+		HumanValue: "- Reusing previous version of %s",
+		JSONValue:  "%s: Reusing previous version of %s",
+	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
 		JSONValue:  "Finding matching versions for provider: %s, version_constraint: %q",
@@ -292,6 +296,7 @@ const (
 	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
 	PendingLockInfo                             InitMessageCode = "pending_lock_info"
 	DependenciesLockPendingChangesInfo          InitMessageCode = "dependencies_lock_pending_changes_info"
+	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"
 
 	// InitConfigError indicates problems encountered during initialisation
 	InitConfigError InitMessageCode = "init_config_error"
