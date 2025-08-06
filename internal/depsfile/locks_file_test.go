@@ -5,7 +5,6 @@ package depsfile
 
 import (
 	"bufio"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +28,7 @@ func TestLoadLocksFromFile(t *testing.T) {
 	// Some of the files also have additional assertions that
 	// are encoded in the test code below. These must pass
 	// in addition to the standard diagnostics tests, if present.
-	files, err := ioutil.ReadDir("testdata/locks-files")
+	files, err := os.ReadDir("testdata/locks-files")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -158,6 +157,55 @@ func TestLoadLocksFromFile(t *testing.T) {
 						}
 					}
 				})
+
+			case "mixed-provider-module-locks.hcl":
+				if got, want := len(locks.providers), 1; got != want {
+					t.Errorf("wrong number of providers %d; want %d", got, want)
+				}
+				if got, want := len(locks.modules), 2; got != want {
+					t.Errorf("wrong number of modules %d; want %d", got, want)
+				}
+
+				t.Run("aws-provider", func(t *testing.T) {
+					if lock := locks.Provider(addrs.MustParseProviderSourceString("hashicorp/aws")); lock != nil {
+						if got, want := lock.Version().String(), "3.74.0"; got != want {
+							t.Errorf("wrong version\ngot:  %s\nwant: %s", got, want)
+						}
+						if got, want := len(lock.hashes), 2; got != want {
+							t.Errorf("wrong number of hashes %d; want %d", got, want)
+						}
+					} else {
+						t.Error("AWS provider lock not found")
+					}
+				})
+
+				t.Run("local-module", func(t *testing.T) {
+					moduleCall := addrs.ModuleCall{Name: "local_example"}.Absolute(addrs.RootModuleInstance)
+					if lock := locks.Module(moduleCall); lock != nil {
+						if got, want := lock.source, "./modules/local-example"; got != want {
+							t.Errorf("wrong source\ngot:  %s\nwant: %s", got, want)
+						}
+						if got, want := len(lock.hashes), 2; got != want {
+							t.Errorf("wrong number of hashes %d; want %d", got, want)
+						}
+					} else {
+						t.Error("Local module lock not found")
+					}
+				})
+
+				t.Run("registry-module", func(t *testing.T) {
+					moduleCall := addrs.ModuleCall{Name: "registry_example"}.Absolute(addrs.RootModuleInstance)
+					if lock := locks.Module(moduleCall); lock != nil {
+						if got, want := lock.source, "registry.terraform.io/terraform-aws-modules/vpc/aws"; got != want {
+							t.Errorf("wrong source\ngot:  %s\nwant: %s", got, want)
+						}
+						if got, want := len(lock.hashes), 1; got != want {
+							t.Errorf("wrong number of hashes %d; want %d", got, want)
+						}
+					} else {
+						t.Error("Registry module lock not found")
+					}
+				})
 			}
 		})
 	}
@@ -240,7 +288,7 @@ func TestSaveLocksToFile(t *testing.T) {
 		t.Fatalf("Expected lock file to be non-executable: %o", mode)
 	}
 
-	gotContentBytes, err := ioutil.ReadFile(filename)
+	gotContentBytes, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -274,5 +322,214 @@ provider "registry.terraform.io/test/foo" {
 `
 	if diff := cmp.Diff(wantContent, gotContent); diff != "" {
 		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestSaveLocksToFileWithModules(t *testing.T) {
+	locks := NewLocks()
+
+	// Add a provider and a module
+	fooProvider := addrs.MustParseProviderSourceString("test/foo")
+	oneDotOh := providerreqs.MustParseVersion("1.0.0")
+	locks.SetProvider(fooProvider, oneDotOh, nil, nil)
+
+	localModule := addrs.ModuleCall{Name: "example"}.Absolute(addrs.RootModuleInstance)
+	moduleHashes := []providerreqs.Hash{
+		providerreqs.MustParseHash("h1:cccccccccccccccccccccccccccccccccccccccccccccccc"),
+	}
+	locks.SetModule(localModule, "./modules/example", "", moduleHashes)
+
+	dir := t.TempDir()
+	filename := filepath.Join(dir, LockFilePath)
+	diags := SaveLocksToFile(locks, filename)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	gotContentBytes, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	gotContent := string(gotContentBytes)
+
+	// Check that both provider and module blocks are present
+	expected := []string{
+		`provider "registry.terraform.io/test/foo"`,
+		`module "module.example"`,
+		`source = "./modules/example"`,
+	}
+
+	for _, exp := range expected {
+		if !strings.Contains(gotContent, exp) {
+			t.Errorf("Expected %q in lock file", exp)
+		}
+	}
+}
+
+func TestLoadModuleLocks(t *testing.T) {
+	// Create a test lock file with both providers and modules
+	lockContent := `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/test/foo" {
+  version     = "1.0.0"
+  constraints = ">= 1.0.0"
+  hashes = [
+    "test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  ]
+}
+
+module "module.local_example" {
+  source = "./modules/local-example"
+  hashes = [
+    "h1:cccccccccccccccccccccccccccccccccccccccccccccccc",
+    "h1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  ]
+}
+
+module "module.registry_example" {
+  source = "registry.terraform.io/terraform-aws-modules/vpc/aws"
+  hashes = [
+    "h1:dddddddddddddddddddddddddddddddddddddddddddddddd",
+  ]
+}
+`
+
+	dir := t.TempDir()
+	filename := filepath.Join(dir, LockFilePath)
+
+	err := os.WriteFile(filename, []byte(lockContent), 0644)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	locks, diags := LoadLocksFromFile(filename)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// Verify provider was loaded
+	fooProvider := addrs.MustParseProviderSourceString("test/foo")
+	if providerLock := locks.Provider(fooProvider); providerLock == nil {
+		t.Error("Expected provider lock to be loaded")
+	} else {
+		if providerLock.Version().String() != "1.0.0" {
+			t.Errorf("Expected provider version 1.0.0, got %s", providerLock.Version().String())
+		}
+	}
+
+	// Verify modules were loaded
+	localModule := addrs.ModuleCall{Name: "local_example"}.Absolute(addrs.RootModuleInstance)
+	registryModule := addrs.ModuleCall{Name: "registry_example"}.Absolute(addrs.RootModuleInstance)
+
+	if moduleLock := locks.Module(localModule); moduleLock == nil {
+		t.Error("Expected local module lock to be loaded")
+	} else {
+		if moduleLock.source != "./modules/local-example" {
+			t.Errorf("Expected local module source './modules/local-example', got %s", moduleLock.source)
+		}
+		if len(moduleLock.hashes) != 2 {
+			t.Errorf("Expected 2 module hashes, got %d", len(moduleLock.hashes))
+		}
+	}
+
+	if moduleLock := locks.Module(registryModule); moduleLock == nil {
+		t.Error("Expected registry module lock to be loaded")
+	} else {
+		if moduleLock.source != "registry.terraform.io/terraform-aws-modules/vpc/aws" {
+			t.Errorf("Expected registry module source, got %s", moduleLock.source)
+		}
+		if len(moduleLock.hashes) != 1 {
+			t.Errorf("Expected 1 module hash, got %d", len(moduleLock.hashes))
+		}
+	}
+}
+
+func TestLoadLocksFromFile_corruptedModuleLocks(t *testing.T) {
+	testCases := []struct {
+		name        string
+		lockContent string
+		wantError   string
+	}{
+		{
+			name: "invalid module block name",
+			lockContent: `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+module "invalid-module-name" {
+  source = "./test-module"
+  hashes = [
+    "h1:test-hash",
+  ]
+}
+`,
+			wantError: "Module address must start with 'module.' prefix",
+		},
+		{
+			name: "missing source attribute",
+			lockContent: `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+module "module.test" {
+  hashes = [
+    "h1:test-hash",
+  ]
+}
+`,
+			wantError: "Missing required argument",
+		},
+		{
+			name: "invalid hash format",
+			lockContent: `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+module "module.test" {
+  source = "./test-module"
+  hashes = [
+    "invalid-hash-format",
+  ]
+}
+`,
+			wantError: "hash string must start with a scheme keyword followed by a colon",
+		},
+		{
+			name: "invalid HCL syntax",
+			lockContent: `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+module "module.test" {
+  source = "./test-module"
+  hashes = [
+    "h1:test-hash"
+    # Missing comma causes syntax error
+    "h1:test-hash-2",
+  ]
+}
+`,
+			wantError: "Missing item separator",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			filename := filepath.Join(dir, LockFilePath)
+
+			err := os.WriteFile(filename, []byte(tc.lockContent), 0644)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			locks, diags := LoadLocksFromFile(filename)
+
+			if !diags.HasErrors() {
+				t.Fatalf("expected error for corrupted lock file, but got none. Locks: %+v", locks)
+			}
+
+			errorStr := diags.Err().Error()
+			if !strings.Contains(errorStr, tc.wantError) {
+				t.Errorf("expected error containing %q, got %q", tc.wantError, errorStr)
+			}
+		})
 	}
 }

@@ -1,0 +1,12 @@
+kind: FEATURES
+body: |
+  Module dependency locking is now supported in .terraform.lock.hcl files alongside provider dependency locks.
+  
+  Modules are now validated with hash checks to ensure reproducible builds and detect module tampering. 
+  Multiple hashes are supported to handle registry inconsistencies, following the same pattern as providers.
+  
+  Hash validation prevents lock file updates when module content doesn't match expected hashes, unless 
+  using the -upgrade flag to explicitly allow new hashes to be accumulated.
+time: 2025-08-03T08:00:08.857939-05:00
+custom:
+    Issue: "31301"

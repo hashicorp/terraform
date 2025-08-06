@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -225,7 +226,7 @@ func TestGraph_resourcesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	inst := initwd.NewModuleInstaller(".terraform/modules", loader, registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	_, _, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false, initwd.ModuleInstallHooksImpl{}, depsfile.NewLocks())
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}

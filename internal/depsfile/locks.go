@@ -23,6 +23,7 @@ import (
 // with reads.
 type Locks struct {
 	providers map[addrs.Provider]*ProviderLock
+	modules   map[string]*ModuleLock
 
 	// overriddenProviders is a subset of providers which we might be tracking
 	// in field providers but whose lock information we're disregarding for
@@ -38,12 +39,6 @@ type Locks struct {
 	// settings, environment variables, or whatever similar sources.
 	overriddenProviders map[addrs.Provider]struct{}
 
-	// TODO: In future we'll also have module locks, but the design of that
-	// still needs some more work and we're deferring that to get the
-	// provider locking capability out sooner, because it's more common to
-	// directly depend on providers maintained outside your organization than
-	// modules maintained outside your organization.
-
 	// sources is a copy of the map of source buffers produced by the HCL
 	// parser during loading, which we retain only so that the caller can
 	// use it to produce source code snippets in error messages.
@@ -55,6 +50,7 @@ type Locks struct {
 func NewLocks() *Locks {
 	return &Locks{
 		providers: make(map[addrs.Provider]*ProviderLock),
+		modules:   make(map[string]*ModuleLock),
 
 		// no "sources" here, because that's only for locks objects loaded
 		// from files.
@@ -73,6 +69,20 @@ func (l *Locks) AllProviders() map[addrs.Provider]*ProviderLock {
 	// We return a copy of our internal map so that future calls to
 	// SetProvider won't modify the map we're returning, or vice-versa.
 	return maps.Clone(l.providers)
+}
+
+// Module returns the stored lock for the given module, or nil if that
+// module currently has no lock.
+func (l *Locks) Module(addr addrs.AbsModuleCall) *ModuleLock {
+	return l.modules[addr.String()]
+}
+
+// AllModules returns a map describing all of the module locks in the
+// receiver.
+func (l *Locks) AllModules() map[string]*ModuleLock {
+	// We return a copy of our internal map so that future calls to
+	// SetModule won't modify the map we're returning, or vice-versa.
+	return maps.Clone(l.modules)
 }
 
 // SetProvider creates a new lock or replaces the existing lock for the given
@@ -115,6 +125,30 @@ func (l *Locks) RemoveProvider(addr addrs.Provider) {
 	}
 
 	delete(l.providers, addr)
+}
+
+// SetModule creates a new lock or replaces the existing lock for the given
+// module.
+//
+// SetModule returns the newly-created module lock object, which
+// invalidates any ModuleLock object previously returned from Module or
+// SetModule for the given module address.
+//
+// The ownership of the backing array for the slice of hashes passes to this
+// function, and so the caller must not read or write that backing array after
+// calling SetModule.
+func (l *Locks) SetModule(addr addrs.AbsModuleCall, source string, version string, hashes []providerreqs.Hash) *ModuleLock {
+	new := NewModuleLock(addr, source, version, hashes)
+	l.modules[addr.String()] = new
+	return new
+}
+
+// RemoveModule removes any existing lock file entry for the given module.
+//
+// If the given module did not already have a lock entry, RemoveModule is
+// a no-op.
+func (l *Locks) RemoveModule(addr addrs.AbsModuleCall) {
+	delete(l.modules, addr.String())
 }
 
 // SetProviderOverridden records that this particular Terraform process will
@@ -275,6 +309,41 @@ func (l *Locks) Equal(other *Locks) bool {
 	// We don't need to worry about providers that are in "other" but not
 	// in the receiver, because we tested the lengths being equal above.
 
+	// Check module equality
+	if len(l.modules) != len(other.modules) {
+		return false
+	}
+	for addrStr, thisLock := range l.modules {
+		otherLock, ok := other.modules[addrStr]
+		if !ok {
+			return false
+		}
+
+		if !thisLock.addr.Equal(otherLock.addr) {
+			// It'd be weird to get here because we already looked these up
+			// by address above.
+			return false
+		}
+		if thisLock.source != otherLock.source {
+			return false
+		}
+
+		// Although "hashes" is declared as a slice, it's logically an
+		// unordered set. However, we normalize the slice of hashes when
+		// recieving it in NewModuleLock, so we can just do a simple
+		// item-by-item equality test here.
+		if len(thisLock.hashes) != len(otherLock.hashes) {
+			return false
+		}
+		for i := range thisLock.hashes {
+			if thisLock.hashes[i] != otherLock.hashes[i] {
+				return false
+			}
+		}
+	}
+	// We don't need to worry about modules that are in "other" but not
+	// in the receiver, because we tested the lengths being equal above.
+
 	return true
 }
 
@@ -295,12 +364,29 @@ func (l *Locks) EqualProviderAddress(other *Locks) bool {
 	return true
 }
 
+// EqualModuleAddress returns true if the given Locks have the same module
+// addresses as the receiver. This doesn't check version and hashes.
+func (l *Locks) EqualModuleAddress(other *Locks) bool {
+	if len(l.modules) != len(other.modules) {
+		return false
+	}
+
+	for addr := range l.modules {
+		_, ok := other.modules[addr]
+		if !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Empty returns true if the given Locks object contains no actual locks.
 //
 // UI code might wish to use this to distinguish a lock file being
 // written for the first time from subsequent updates to that lock file.
 func (l *Locks) Empty() bool {
-	return len(l.providers) == 0
+	return len(l.providers) == 0 && len(l.modules) == 0
 }
 
 // DeepCopy creates a new Locks that represents the same information as the
@@ -316,6 +402,10 @@ func (l *Locks) DeepCopy() *Locks {
 	for addr, lock := range l.providers {
 		hashes := slices.Clone(lock.hashes)
 		ret.SetProvider(addr, lock.version, lock.versionConstraints, hashes)
+	}
+	for _, lock := range l.modules {
+		hashes := slices.Clone(lock.hashes)
+		ret.SetModule(lock.addr, lock.source, lock.version, hashes)
 	}
 	return ret
 }
@@ -434,4 +524,89 @@ func (l *ProviderLock) ContainsAll(target *ProviderLock) bool {
 // valud.
 func (l *ProviderLock) PreferredHashes() []providerreqs.Hash {
 	return providerreqs.PreferredHashes(l.hashes)
+}
+
+// ModuleLock represents lock information for a specific module.
+type ModuleLock struct {
+	// addr is the address of the module this lock applies to.
+	addr addrs.AbsModuleCall
+
+	// source is the source address that was used to install this module.
+	source string
+
+	// version is the version that was selected for this module.
+	// For registry modules, this will be the exact version that was resolved (e.g., "1.2.3").
+	// For Git modules, this will be the ref/tag/commit (e.g., "v1.0.0", "main", "abc123").
+	// For local modules and other remote modules, this will be empty.
+	version string
+
+	// hashes contains zero or more hashes of the module contents
+	// for the selected version.
+	hashes []providerreqs.Hash
+}
+
+// ModuleCall returns the address of the module this lock applies to.
+func (l *ModuleLock) ModuleCall() addrs.AbsModuleCall {
+	return l.addr
+}
+
+// Source returns the source address that was used to install this module.
+func (l *ModuleLock) Source() string {
+	return l.source
+}
+
+// Version returns the version that was selected for this module.
+// For registry modules, this will be the exact version that was resolved (e.g., "1.2.3").
+// For Git modules, this will be the ref/tag/commit (e.g., "v1.0.0", "main", "abc123").
+// For local modules and other remote modules, this will be empty.
+func (l *ModuleLock) Version() string {
+	return l.version
+}
+
+// AllHashes returns all of the content hashes that were recorded when this
+// lock was created.
+func (l *ModuleLock) AllHashes() []providerreqs.Hash {
+	return l.hashes
+}
+
+// PreferredHashes returns the preferred hashes for this module.
+// This follows the same pattern as ProviderLock.PreferredHashes().
+func (l *ModuleLock) PreferredHashes() []providerreqs.Hash {
+	return l.hashes
+}
+
+// NewModuleLock creates a new ModuleLock object that isn't associated
+// with any Locks object.
+//
+// This is here primarily for testing. Most callers should use Locks.SetModule
+// to construct a new module lock and insert it into a Locks object at the
+// same time.
+//
+// The ownership of the backing array for the slice of hashes passes to this
+// function, and so the caller must not read or write that backing array after
+// calling NewModuleLock.
+func NewModuleLock(addr addrs.AbsModuleCall, source string, version string, hashes []providerreqs.Hash) *ModuleLock {
+	// Normalize the hashes into lexical order so that we can do straightforward
+	// equality tests between different locks for the same module. The
+	// hashes are logically a set, so the given order is insignificant.
+	sort.Slice(hashes, func(i, j int) bool {
+		return string(hashes[i]) < string(hashes[j])
+	})
+
+	// Dedupe hashes in the same way as provider locks
+	dedupeHashes := hashes[:0]
+	prevHash := providerreqs.NilHash
+	for _, hash := range hashes {
+		if hash != prevHash {
+			dedupeHashes = append(dedupeHashes, hash)
+			prevHash = hash
+		}
+	}
+
+	return &ModuleLock{
+		addr:    addr,
+		source:  source,
+		version: version,
+		hashes:  dedupeHashes,
+	}
 }

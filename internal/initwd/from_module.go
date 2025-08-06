@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getmodules"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 
@@ -166,8 +167,9 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 	fetcher := getmodules.NewPackageFetcher()
 
-	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
-	_, cDiags := inst.installDescendantModules(fakeRootModule, instManifest, walker, true)
+	locks := depsfile.NewLocks()
+	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher, locks)
+	_, _, cDiags := inst.installDescendantModules(fakeRootModule, instManifest, walker, true, locks)
 	if cDiags.HasErrors() {
 		return diags.Append(cDiags)
 	}

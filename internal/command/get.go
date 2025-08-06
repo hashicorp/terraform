@@ -90,5 +90,6 @@ func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgr
 		Ui:             m.Ui,
 		ShowLocalPaths: true,
 	}
-	return m.installModules(ctx, path, testsDir, upgrade, true, hooks)
+	abort, _, diags = m.installModules(ctx, path, testsDir, upgrade, true, hooks)
+	return abort, diags
 }

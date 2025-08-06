@@ -71,7 +71,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 }
 
-func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, view views.Init) (output bool, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, flagLockfile string, view views.Init) (output bool, abort bool, diags tfdiags.Diagnostics) {
 	testModules := false // We can also have modules buried in test files.
 	for _, file := range earlyRoot.Tests {
 		for _, run := range file.Runs {
@@ -92,6 +92,14 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	defer span.End()
 
 	if upgrade {
+		if flagLockfile == "readonly" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible command line options",
+				"The -upgrade flag conflicts with -lockfile=readonly.",
+			))
+			return true, true, diags
+		}
 		view.Output(views.UpgradingModulesMessage)
 	} else {
 		view.Output(views.InitializingModulesMessage)
@@ -103,12 +111,46 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		View:           view,
 	}
 
-	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
+	installAbort, updatedLocks, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
 	diags = diags.Append(installDiags)
 
 	// At this point, installModules may have generated error diags or been
-	// aborted by SIGINT. In any case we continue and the manifest as best
-	// we can.
+	// aborted by SIGINT. In any case we continue and update the manifest as best
+	// we can, to allow provider detection to proceed.
+
+	// Load previous locks for comparison
+	previousLocks, lockDiags := c.lockedDependencies()
+	diags = diags.Append(lockDiags)
+	if lockDiags.HasErrors() {
+		return true, true, diags
+	}
+
+	// Check for dependency changes in readonly mode (matches provider validation)
+	// updatedLocks can be nil if module installation failed
+	if updatedLocks != nil && !updatedLocks.Equal(previousLocks) {
+		if flagLockfile == "readonly" {
+			// check if required module dependencies changed (new modules)
+			if !updatedLocks.EqualModuleAddress(previousLocks) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					`Module dependency changes detected`,
+					`Changes to the required module dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
+				))
+				return true, true, diags
+			}
+
+			// suppress updating the file to record any new information it learned,
+			// such as a hash using a new scheme.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Lock file not updated",
+				`Changes to the lock file were detected, but not saved. To record these changes, run "terraform init" without the "-lockfile=readonly" flag.`,
+			))
+		} else {
+			// Write the updated locks to file
+			diags = diags.Append(c.replaceLockedDependencies(updatedLocks))
+		}
+	}
 
 	// Since module installer has modified the module manifest on disk, we need
 	// to refresh the cache of it in the loader.
@@ -125,6 +167,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 
 	return true, installAbort, diags
 }
+
 
 func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize HCP Terraform")

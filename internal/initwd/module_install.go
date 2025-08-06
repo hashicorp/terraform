@@ -21,8 +21,10 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getmodules"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
@@ -42,6 +44,13 @@ type ModuleInstaller struct {
 	// The keys in moduleVersionsUrl are the moduleVersion struct below and
 	// addresses and the values are underlying remote source addresses.
 	registryPackageSources map[moduleVersion]addrs.ModuleSourceRemote
+
+	// moduleVersionsInstalled tracks the resolved versions of modules that were installed.
+	// The keys are string representations of AbsModuleCall addresses and the values are resolved version strings.
+	// For registry modules, this will be the resolved semantic version.
+	// For Git modules, this will be the ref/tag/commit from the URL.
+	// For local modules, this will be empty.
+	moduleVersionsInstalled map[string]string
 }
 
 type moduleVersion struct {
@@ -56,7 +65,14 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 		reg:                     reg,
 		registryPackageVersions: make(map[addrs.ModuleRegistryPackage]*response.ModuleVersions),
 		registryPackageSources:  make(map[moduleVersion]addrs.ModuleSourceRemote),
+		moduleVersionsInstalled: make(map[string]string),
 	}
+}
+
+// InstalledModuleVersions returns a map of module call addresses to their resolved versions.
+// This should be called after InstallModules to get the versions that were resolved during installation.
+func (i *ModuleInstaller) InstalledModuleVersions() map[string]string {
+	return i.moduleVersionsInstalled
 }
 
 // InstallModules analyses the root module in the given directory and installs
@@ -93,16 +109,23 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 // If successful (the returned diagnostics contains no errors) then the
 // first return value is the early configuration tree that was constructed by
 // the installation process.
-func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ModuleInstallHooks, locks *depsfile.Locks) (*configs.Config, *depsfile.Locks, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
+
+	// Make a copy of the locks to track changes
+	if locks == nil {
+		locks = depsfile.NewLocks()
+	}
+
+	locks = locks.DeepCopy()
 
 	rootMod, mDiags := i.loader.Parser().LoadConfigDirWithTests(rootDir, testsDir)
 	if rootMod == nil {
 		// We drop the diagnostics here because we only want to report module
 		// loading errors after checking the core version constraints, which we
 		// can only do if the module can be at least partially loaded.
-		return nil, diags
+		return nil, locks, diags
 	} else if vDiags := rootMod.CheckCoreVersionRequirements(nil, nil); vDiags.HasErrors() {
 		// If the core version requirements are not met, we drop any other
 		// diagnostics, as they may reflect language changes from future
@@ -119,7 +142,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 			"Failed to read modules manifest file",
 			fmt.Sprintf("Error reading manifest for %s: %s.", i.modsDir, err),
 		))
-		return nil, diags
+		return nil, locks, diags
 	}
 
 	fetcher := getmodules.NewPackageFetcher()
@@ -135,15 +158,47 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 		Key: "",
 		Dir: rootDir,
 	}
-	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher)
+	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher, locks)
 
-	cfg, instDiags := i.installDescendantModules(rootMod, manifest, walker, installErrsOnly)
+	cfg, locks, instDiags := i.installDescendantModules(rootMod, manifest, walker, installErrsOnly, locks)
 	diags = append(diags, instDiags...)
 
-	return cfg, diags
+	// Clean up module locks for modules that are no longer in the configuration
+	// This follows the same pattern as provider lock cleanup in providercache/installer.go
+	// Build a set of all modules that should have locks
+	// We only look at what's declared in the root configuration file,
+	// not what's actually installed in .terraform/modules
+	requiredModules := make(map[string]bool)
+	
+	for _, mc := range rootMod.ModuleCalls {
+		moduleCall := addrs.ModuleCall{Name: mc.Name}.Absolute(addrs.RootModuleInstance)
+		requiredModules[moduleCall.String()] = true
+	}
+	
+	// Remove any locks for modules that are no longer required
+	for _, moduleLock := range locks.AllModules() {
+		moduleCall := moduleLock.ModuleCall()
+		moduleCallStr := moduleCall.String()
+		
+		// Check if this module or its parent is in the required modules
+		// We need to keep nested modules if their parent is still required
+		keepLock := false
+		for requiredModule := range requiredModules {
+			if moduleCallStr == requiredModule || strings.HasPrefix(moduleCallStr, requiredModule+".") {
+				keepLock = true
+				break
+			}
+		}
+		
+		if !keepLock {
+			locks.RemoveModule(moduleCall)
+		}
+	}
+
+	return cfg, locks, diags
 }
 
-func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) configs.ModuleWalker {
+func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher, locks *depsfile.Locks) configs.ModuleWalker {
 	return configs.ModuleWalkerFunc(
 		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 			var diags hcl.Diagnostics
@@ -273,13 +328,17 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 
 			case addrs.ModuleSourceRegistry:
 				log.Printf("[TRACE] ModuleInstaller: %s is a registry module at %s", key, addr.String())
-				mod, v, mDiags := i.installRegistryModule(ctx, req, key, instPath, addr, manifest, hooks, fetcher)
+				mod, version, mDiags := i.installRegistryModule(ctx, req, key, instPath, addr, manifest, hooks, fetcher, locks)
 				diags = append(diags, mDiags...)
-				return mod, v, diags
+				// Track the installed version
+				if version != nil {
+					i.moduleVersionsInstalled[key] = version.String()
+				}
+				return mod, version, diags
 
 			case addrs.ModuleSourceRemote:
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, addr.String())
-				mod, mDiags := i.installGoGetterModule(ctx, req, key, instPath, manifest, hooks, fetcher)
+				mod, mDiags := i.installGoGetterModule(ctx, req, key, instPath, manifest, hooks, fetcher, locks)
 				diags = append(diags, mDiags...)
 				return mod, nil, diags
 
@@ -292,7 +351,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 	)
 }
 
-func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool, locks *depsfile.Locks) (*configs.Config, *depsfile.Locks, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// When attempting to initialize the current directory with a module
@@ -320,7 +379,7 @@ func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, mani
 		// useful when debugging the problem. Any instDiags will be included in
 		// diags already.
 		if instDiags.HasErrors() {
-			return cfg, diags
+			return cfg, locks, diags
 		}
 
 		// If there are any errors here, they must be only from building the
@@ -341,7 +400,7 @@ func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, mani
 		))
 	}
 
-	return cfg, diags
+	return cfg, locks, diags
 }
 
 func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key string, manifest modsdir.Manifest, hooks ModuleInstallHooks) (*configs.Module, hcl.Diagnostics) {
@@ -411,7 +470,7 @@ func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key str
 	return mod, diags
 }
 
-func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, *version.Version, hcl.Diagnostics) {
+func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher, locks *depsfile.Locks) (*configs.Module, *version.Version, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	hostname := addr.Package.Host
@@ -717,10 +776,25 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
 	hooks.Install(key, latestMatch, modDir)
 
+	// Update module locks for registry modules
+	moduleCall := i.constructModuleCall(req)
+	source := req.SourceAddr.String()
+	if hash := i.calculateModuleHash(modDir); hash != nil {
+		// Follow provider pattern: accumulate hashes instead of replacing them
+		var newHashes []providerreqs.Hash
+		if existingLock := locks.Module(moduleCall); existingLock != nil {
+			// Add existing hashes first
+			newHashes = append(newHashes, existingLock.PreferredHashes()...)
+		}
+		// Add the new hash (SetModule will deduplicate automatically)
+		newHashes = append(newHashes, *hash)
+		locks.SetModule(moduleCall, source, latestMatch.String(), newHashes)
+	}
+
 	return mod, latestMatch, diags
 }
 
-func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, hcl.Diagnostics) {
+func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher, locks *depsfile.Locks) (*configs.Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// Report up to the caller that we're about to start downloading.
@@ -816,6 +890,30 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
 	hooks.Install(key, nil, modDir)
+
+	// Update module locks for remote modules
+	moduleCall := i.constructModuleCall(req)
+	source := req.SourceAddr.String()
+	version := ""
+	
+	// Try to get version from URL parameters if available
+	if addr, ok := req.SourceAddr.(addrs.ModuleSourceRemote); ok {
+		if urlVersion := addr.VersionHint(); urlVersion != "" {
+			version = urlVersion
+		}
+	}
+	
+	if hash := i.calculateModuleHash(modDir); hash != nil {
+		// Follow provider pattern: accumulate hashes instead of replacing them
+		var newHashes []providerreqs.Hash
+		if existingLock := locks.Module(moduleCall); existingLock != nil {
+			// Add existing hashes first
+			newHashes = append(newHashes, existingLock.PreferredHashes()...)
+		}
+		// Add the new hash (SetModule will deduplicate automatically)
+		newHashes = append(newHashes, *hash)
+		locks.SetModule(moduleCall, source, version, newHashes)
+	}
 
 	return mod, diags
 }
@@ -964,4 +1062,39 @@ func splitAddrSubdir(addr addrs.ModuleSource) (string, string) {
 	default:
 		return addr.String(), ""
 	}
+}
+
+// constructModuleCall creates an AbsModuleCall from a module request
+func (i *ModuleInstaller) constructModuleCall(req *configs.ModuleRequest) addrs.AbsModuleCall {
+	if len(req.Path) == 0 {
+		// This shouldn't happen for valid modules, but handle gracefully
+		return addrs.ModuleCall{Name: req.Name}.Absolute(addrs.RootModuleInstance)
+	} else if len(req.Path) == 1 {
+		// Direct child of root module
+		return addrs.ModuleCall{Name: req.Name}.Absolute(addrs.RootModuleInstance)
+	} else {
+		// Nested module - construct the path
+		var moduleInstance addrs.ModuleInstance = addrs.RootModuleInstance
+		for _, step := range req.Path[1:] { // Skip the root module
+			moduleInstance = moduleInstance.Child(step, addrs.NoKey)
+		}
+		return addrs.ModuleCall{Name: req.Name}.Absolute(moduleInstance)
+	}
+}
+
+// calculateModuleHash calculates the hash for a module directory using content-based hashing
+func (i *ModuleInstaller) calculateModuleHash(modulePath string) *providerreqs.Hash {
+	// Use content-based hashing that includes only relevant files (.tf, .sh, etc.)
+	hashStr, err := hashModuleContent(modulePath)
+	if err != nil {
+		log.Printf("[WARN] Failed to calculate module hash: %s", err)
+		return nil
+	}
+
+	hash, err := providerreqs.ParseHash(hashStr)
+	if err != nil {
+		log.Printf("[WARN] Failed to parse module hash: %s", err)
+		return nil
+	}
+	return &hash
 }

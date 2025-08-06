@@ -4,6 +4,7 @@
 package addrs
 
 import (
+	"net/url"
 	"path"
 	"strings"
 
@@ -156,6 +157,78 @@ func (s ModuleSourceRemote) String() string {
 		return base + "//" + s.Subdir
 	}
 	return base
+}
+
+// VersionHint extracts version information from git URL parameters.
+// It only works for git URLs and looks for the 'ref' parameter.
+// Returns an empty string if the URL is not a git URL or has no ref parameter.
+//
+// For git URLs, this extracts the ref parameter value that can be used for
+// version tracking in module locks. The ref parameter can specify a branch,
+// tag, or commit SHA that go-getter will use for the git clone operation.
+func (s ModuleSourceRemote) VersionHint() string {
+	// Only extract version info from git URLs
+	if !s.isGitURL() {
+		return ""
+	}
+
+	packageAddr := s.Package.String()
+
+	// Extract query string from URL (works for both SSH and HTTP URLs)
+	var queryString string
+	if idx := strings.Index(packageAddr, "?"); idx != -1 {
+		queryString = packageAddr[idx+1:]
+
+		// Remove fragment if present (everything after #)
+		// Fragments are not sent to git servers and should not affect version resolution
+		if fragIdx := strings.Index(queryString, "#"); fragIdx != -1 {
+			queryString = queryString[:fragIdx]
+		}
+	} else {
+		return "" // No query parameters
+	}
+
+	// Parse the query parameters
+	query, err := url.ParseQuery(queryString)
+	if err != nil {
+		return ""
+	}
+
+	// Check only the 'ref' parameter, which is the only version-related
+	// parameter that go-getter's git detector actually supports
+	return query.Get("ref")
+}
+
+// isGitURL determines if a URL refers to a git repository
+func (s ModuleSourceRemote) isGitURL() bool {
+	packageAddr := s.Package.String()
+
+	// Already has git:: prefix
+	if strings.HasPrefix(packageAddr, "git::") {
+		return true
+	}
+
+	// GitHub shorthand
+	if strings.HasPrefix(packageAddr, "github.com/") {
+		return true
+	}
+
+	// BitBucket shorthand
+	if strings.HasPrefix(packageAddr, "bitbucket.org/") {
+		return true
+	}
+
+	// SSH git URLs
+	if strings.HasPrefix(packageAddr, "git@") {
+		return true
+	}
+
+	// URLs ending with .git (before query parameters)
+	if u, err := url.Parse(packageAddr); err == nil {
+		return strings.HasSuffix(u.Path, ".git")
+	}
+
+	return false
 }
 
 func (s ModuleSourceRemote) ForDisplay() string {

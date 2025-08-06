@@ -15,6 +15,14 @@ import (
 // of the ProviderLock type.
 var ProviderLockComparer cmp.Option
 
+// ModuleLockComparer is an option for github.com/google/go-cmp/cmp that
+// specifies how to compare values of type depsfile.ModuleLock.
+//
+// Use this, rather than crafting comparison options yourself, in case the
+// comparison strategy needs to change in future due to implementation details
+// of the ModuleLock type.
+var ModuleLockComparer cmp.Option
+
 func init() {
 	// For now, direct comparison of the unexported fields is good enough
 	// because we store everything in a normalized form. If that changes
@@ -22,4 +30,5 @@ func init() {
 	// type with exported fields, so we can retain the ability for cmp to
 	// still report differences deeply.
 	ProviderLockComparer = cmp.AllowUnexported(ProviderLock{})
+	ModuleLockComparer = cmp.AllowUnexported(ModuleLock{})
 }
