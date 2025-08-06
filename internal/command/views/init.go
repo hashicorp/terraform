@@ -226,6 +226,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "- Reusing previous version of %s from the dependency lock file",
 		JSONValue:  "%s: Reusing previous version from the dependency lock file",
 	},
+	"reusing_version_during_state_provider_init": {
+		HumanValue: "- Reusing previous version of %s.",
+		JSONValue:  "%s: Reusing previous version of %s.",
+	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
 		JSONValue:  "Finding matching versions for provider: %s, version_constraint: %q",
@@ -289,6 +293,7 @@ const (
 	ProviderAlreadyInstalledMessage             InitMessageCode = "provider_already_installed_message"
 	BuiltInProviderAvailableMessage             InitMessageCode = "built_in_provider_available_message"
 	ReusingPreviousVersionInfo                  InitMessageCode = "reusing_previous_version_info"
+	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"
 	FindingMatchingVersionMessage               InitMessageCode = "finding_matching_version_message"
 	FindingLatestVersionMessage                 InitMessageCode = "finding_latest_version_message"
 	UsingProviderFromCacheDirInfo               InitMessageCode = "using_provider_from_cache_dir_info"

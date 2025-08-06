@@ -156,7 +156,7 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				- Installed hashicorp/random v1.0.0`,
 				// State
 				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Reusing previous version of hashicorp/random. 
 				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
@@ -170,7 +170,7 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				- Installed hashicorp/random v1.0.0`,
 				// State
 				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Reusing previous version of hashicorp/random. 
 				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
@@ -185,7 +185,7 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				- Installed hashicorp/random v1.0.0`,
 				// State - reuses the provider download from the config
 				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Reusing previous version of hashicorp/random. 
 				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
