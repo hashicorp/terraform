@@ -946,16 +946,17 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		}
 	}
 
-	// Previous locks from dep locks file are needed so we don't re-download any providers
-	// Here we also need to incorporate the locks derived from the config, to avoid downloading
-	// a provider twice.
+	// The locks below are used to avoid re-downloading any providers in the
+	// second download step.
+	// We combine any locks from the dependency lock file and locks identified
+	// from the configuration
+	var moreDiags tfdiags.Diagnostics
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
-	inProgressLocks := c.mergeLockedDependencies(configLocks, previousLocks)
-
 	if diags.HasErrors() {
 		return false, nil, diags
 	}
+	inProgressLocks := c.mergeLockedDependencies(configLocks, previousLocks)
 
 	var inst *providercache.Installer
 	if len(pluginDirs) == 0 {
@@ -992,7 +993,10 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 			return true, nil, diags
 		}
 
-		mode = providercache.InstallUpgrades
+		// We don't set `mode = providercache.InstallUpgrades` here when downloading providers from
+		// state, as it'll cause Terraform to download provider versions that don't match version
+		// constraints in the config.
+		// Instead, leave `mode` as `providercache.InstallNewProvidersOnly`.
 	}
 	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
