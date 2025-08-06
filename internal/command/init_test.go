@@ -114,6 +114,7 @@ func TestInit_only_test_files(t *testing.T) {
 func TestInit_two_step_provider_download(t *testing.T) {
 	cases := map[string]struct {
 		workDirPath          string
+		flags                []string
 		expectedDownloadMsgs []string
 	}{
 		"providers required by only the state file": {
@@ -173,6 +174,21 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
+		"using the -upgrade flag causes provider download to ignore the lock file": {
+			workDirPath: "init-provider-download/config-state-file-and-lockfile",
+			flags:       []string{"-upgrade"},
+			expectedDownloadMsgs: []string{
+				// Config - lock file is not mentioned due to the -upgrade flag
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/random versions matching "< 9.0.0"...
+				- Installing hashicorp/random v1.0.0...
+				- Installed hashicorp/random v1.0.0`,
+				// State - reuses the provider download from the config
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Using previously-installed hashicorp/random v1.0.0`,
+			},
+		},
 	}
 
 	for tn, tc := range cases {
@@ -204,7 +220,7 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				},
 			}
 
-			args := []string{"-enable-pluggable-state-storage-experiment"} // Needed to test init changes for PSS project
+			args := append(tc.flags, "-enable-pluggable-state-storage-experiment") // Needed to test init changes for PSS project
 			if code := c.Run(args); code != 0 {
 				t.Fatalf("bad: \n%s", done(t).All())
 			}
