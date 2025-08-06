@@ -38,12 +38,12 @@ func (cs *ChangeSummary) String() string {
 		}
 		buf.WriteString(fmt.Sprintf("%d added, %d changed, %d destroyed.", cs.Add, cs.Change, cs.Remove))
 		if cs.ActionInvocation > 0 {
-			buf.WriteString(fmt.Sprintf(" %d actions invoked.", cs.ActionInvocation))
+			buf.WriteString(fmt.Sprintf(" Actions: %d invoked.", cs.ActionInvocation))
 		}
 	case OperationDestroyed:
 		buf.WriteString(fmt.Sprintf("Destroy complete! Resources: %d destroyed.", cs.Remove))
 		if cs.ActionInvocation > 0 {
-			buf.WriteString(fmt.Sprintf(" %d actions invoked.", cs.ActionInvocation))
+			buf.WriteString(fmt.Sprintf(" Actions: %d invoked.", cs.ActionInvocation))
 		}
 	case OperationPlanned:
 		buf.WriteString("Plan: ")
@@ -52,7 +52,7 @@ func (cs *ChangeSummary) String() string {
 		}
 		buf.WriteString(fmt.Sprintf("%d to add, %d to change, %d to destroy.", cs.Add, cs.Change, cs.Remove))
 		if cs.ActionInvocation > 0 {
-			buf.WriteString(fmt.Sprintf(" %d actions to be invoked.", cs.ActionInvocation))
+			buf.WriteString(fmt.Sprintf(" Actions: %d to invoke.", cs.ActionInvocation))
 		}
 	default:
 		buf.WriteString(fmt.Sprintf("%s: %d add, %d change, %d destroy", cs.Operation, cs.Add, cs.Change, cs.Remove))
