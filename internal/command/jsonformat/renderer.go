@@ -84,6 +84,7 @@ const (
 	// Query Messages
 	LogListStart         JSONLogType = "list_start"
 	LogListResourceFound JSONLogType = "list_resource_found"
+	LogListComplete      JSONLogType = "list_complete"
 )
 
 func incompatibleVersions(localVersion, remoteVersion string) bool {
@@ -305,6 +306,10 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 			result.Address,
 			result.Identity,
 			result.DisplayName)
+
+	case LogListComplete:
+		// Print an empty line to separate the list output
+		renderer.Streams.Println("")
 
 	default:
 		// If the log type is not a known log type, we will just print the log message
