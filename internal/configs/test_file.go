@@ -72,6 +72,11 @@ type TestFile struct {
 	// test.
 	Providers map[string]*Provider
 
+	// BackendConfigs is a map of state keys to structs that contain backend
+	// configuration. This should be used to set the state for a given state key
+	// at the start of a test command.
+	BackendConfigs map[string]RunBlockBackend
+
 	// Overrides contains any specific overrides that should be applied for this
 	// test outside any mock providers.
 	Overrides addrs.Map[addrs.Targetable, *Override]
@@ -173,9 +178,11 @@ type TestRun struct {
 	// will be executed in parallel with other test runs.
 	Parallel bool
 
+	Backend *Backend
+
 	// SkipCleanup: Indicates if the test run should skip the cleanup phase.
-	SkipCleanup    bool
-	SkipCleanupSet bool
+	SkipCleanup      bool
+	SkipCleanupRange *hcl.Range
 
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
@@ -345,11 +352,22 @@ type TestRunOptions struct {
 	DeclRange hcl.Range
 }
 
+type RunBlockBackend struct {
+	Backend *Backend
+
+	// Run is the TestRun containing the backend block for this Backend.
+	// This is used in diagnostics to help avoid duplicate backends for a given
+	// internal state file or duplicated use of the same backend for multiple
+	// internal states.
+	Run *TestRun
+}
+
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	tf := &TestFile{
 		VariableDefinitions: make(map[string]*Variable),
 		Providers:           make(map[string]*Provider),
+		BackendConfigs:      make(map[string]RunBlockBackend),
 		Overrides:           addrs.MakeMap[addrs.Targetable, *Override](),
 	}
 
@@ -376,6 +394,8 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "run":
+			nextRunIndex := len(tf.Runs)
+
 			run, runDiags := decodeTestRunBlock(block, tf)
 			diags = append(diags, runDiags...)
 			if !runDiags.HasErrors() {
@@ -387,22 +407,70 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 					Severity: hcl.DiagError,
 					Summary:  "Duplicate \"run\" block names",
 					Detail:   fmt.Sprintf("This test file already has a run named %s block defined at %s.", run.Name, rng),
-					Subject:  block.DefRange.Ptr(),
+					Subject:  run.NameDeclRange.Ptr(),
 				})
-				continue
+			} else {
+				runBlockNames[run.Name] = run.DeclRange
 			}
-			runBlockNames[run.Name] = run.DeclRange
 
-			if run.SkipCleanup && run.SkipCleanupSet {
-				if _, found := skipCleanups[run.StateKey]; found {
+			if run.SkipCleanup && run.SkipCleanupRange != nil {
+				if backend, found := tf.BackendConfigs[run.StateKey]; found {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagWarning,
 						Summary:  "Duplicate \"skip_cleanup\" block",
-						Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but shares state with an earlier run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.", run.Name, skipCleanups[run.StateKey]),
-						Subject:  block.DefRange.Ptr(),
+						Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but shares state with an earlier run %q that has a backend defined. The later run takes precedence, but the backend will still be used to manage this state.", run.Name, backend.Run.Name),
+						Subject:  run.SkipCleanupRange,
 					})
+				} else {
+					if _, found := skipCleanups[run.StateKey]; found {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Duplicate \"skip_cleanup\" block",
+							Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but shares state with an earlier run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.", run.Name, skipCleanups[run.StateKey]),
+							Subject:  run.SkipCleanupRange,
+						})
+					}
+					skipCleanups[run.StateKey] = run.Name
 				}
-				skipCleanups[run.StateKey] = run.Name
+			}
+
+			if run.Backend != nil {
+				if existing, exists := tf.BackendConfigs[run.StateKey]; exists {
+					// then we definitely have two run blocks with the same
+					// state key trying to load backends
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid backend block",
+						Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, existing.Run.Name),
+						Subject:  run.Backend.DeclRange.Ptr(),
+					})
+					continue
+				} else {
+					// Record the backend block in the test file, under the related state key
+					tf.BackendConfigs[run.StateKey] = RunBlockBackend{
+						Backend: run.Backend,
+						Run:     run,
+					}
+				}
+
+				for ix := range nextRunIndex {
+					previousRun := tf.Runs[ix]
+
+					if previousRun.StateKey != run.StateKey {
+						continue
+					}
+
+					if previousRun.Command == ApplyTestCommand {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid backend block",
+							Detail:   fmt.Sprintf("The run %q cannot load in state using a backend block, because internal state has already been created by an apply command in run %q. Backend blocks can only be present in the first apply command for a given internal state.", run.Name, previousRun.Name),
+							Subject:  run.Backend.DeclRange.Ptr(),
+						})
+						break
+					}
+				}
+
 			}
 
 		case "variable":
@@ -614,6 +682,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		})
 	}
 
+	var backendRange *hcl.Range // Stored for validation once all blocks/attrs processed
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "assert":
@@ -723,6 +792,36 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				}
 				r.Overrides.Put(subject, override)
 			}
+		case "backend":
+			backend, backedDiags := decodeBackendBlock(block)
+			diags = append(diags, backedDiags...)
+
+			if backend.Type == "remote" {
+				// Enhanced backends are not in use
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Only state storage backends can be used in a run",
+					Detail:   fmt.Sprintf("The \"remote\" backend type cannot be used in the backend block in run %q at %s.", r.Name, block.DefRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
+			if r.Backend != nil {
+				// We've already encountered a backend for this run block
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple backend blocks within a run",
+					Detail:   fmt.Sprintf("A backend block has already been defined inside the run %q at %s.", r.Name, backendRange),
+					Subject:  backendRange.Ptr(),
+				})
+				continue
+			}
+
+			r.Backend = backend
+			backendRange = &block.DefRange
+			// Using a backend implies skipping cleanup for that run
+			r.SkipCleanup = true
 		}
 	}
 
@@ -786,10 +885,31 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		diags = append(diags, rawDiags...)
 	}
 
+	if r.Command != ApplyTestCommand && r.Backend != nil {
+		// Backend blocks must be used in the first _apply_ run block for a given internal state file.
+		// So, they cannot be present in a plan run block
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid backend block",
+			Detail:   "A backend block can only be used in the first apply run block for a given internal state file. It cannot be included in a block to run a plan command.",
+			Subject:  backendRange.Ptr(),
+		})
+	}
+
 	if attr, exists := content.Attributes["skip_cleanup"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.SkipCleanup)
 		diags = append(diags, rawDiags...)
-		r.SkipCleanupSet = true
+		r.SkipCleanupRange = attr.NameRange.Ptr()
+	}
+
+	if r.SkipCleanupRange != nil && !r.SkipCleanup && r.Backend != nil {
+		// Stop user attempting to clean up long-lived resources
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot use `skip_cleanup=false` in a run block that contains a backend block",
+			Detail:   "Backend blocks are used in tests to allow reuse of long-lived resources. Due to this, cleanup behavior is implicitly skipped and backend blocks are incompatible with setting `skip_cleanup=false`",
+			Subject:  r.SkipCleanupRange,
+		})
 	}
 
 	return &r, diags
@@ -1029,6 +1149,10 @@ var testRunBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "override_module",
+		},
+		{
+			Type:       "backend",
+			LabelNames: []string{"name"},
 		},
 	},
 }

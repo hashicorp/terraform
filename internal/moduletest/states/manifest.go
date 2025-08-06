@@ -39,6 +39,7 @@ type TestManifest struct {
 	Files   map[string]*TestFileManifest `json:"files"`
 
 	dataDir string // Directory where all test-related data is stored
+	ids     map[string]bool
 }
 
 // TestFileManifest represents a single file with its states keyed by the state
@@ -49,8 +50,12 @@ type TestFileManifest struct {
 
 // TestRunManifest represents an individual test run state.
 type TestRunManifest struct {
-	ID     string      `json:"id"`               // ID of the state file, used for identification.
-	Reason StateReason `json:"reason,omitempty"` // Reason for the state being left over
+	// ID of the state file, used for identification. This will be empty if the
+	// state was written to a real backend and not stored locally.
+	ID string `json:"id,omitempty"`
+
+	// Reason for the state being left over
+	Reason StateReason `json:"reason,omitempty"`
 }
 
 // LoadManifest loads the test manifest from the specified root directory.
@@ -61,6 +66,7 @@ func LoadManifest(rootDir string) (*TestManifest, error) {
 		Version: 0,
 		Files:   make(map[string]*TestFileManifest),
 		dataDir: wd.TestDataDir(),
+		ids:     make(map[string]bool),
 	}
 
 	// Create directory if it doesn't exist
@@ -78,6 +84,13 @@ func LoadManifest(rootDir string) (*TestManifest, error) {
 		return nil, err
 	}
 
+	for _, fileManifest := range manifest.Files {
+		for _, runManifest := range fileManifest.States {
+			// keep a cache of all known ids
+			manifest.ids[runManifest.ID] = true
+		}
+	}
+
 	return manifest, nil
 }
 
@@ -92,7 +105,7 @@ func (manifest *TestManifest) Save() error {
 }
 
 // LoadStates loads the states for the specified file.
-func (manifest *TestManifest) LoadStates(file *moduletest.File) (map[string]*TestRunState, tfdiags.Diagnostics) {
+func (manifest *TestManifest) LoadStates(file *moduletest.File, factory func(string) backend.InitFn) (map[string]*TestRunState, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	allStates := make(map[string]*TestRunState)
@@ -104,19 +117,84 @@ func (manifest *TestManifest) LoadStates(file *moduletest.File) (map[string]*Tes
 
 	for _, run := range file.Runs {
 		key := run.Config.StateKey
-		if _, exists := allStates[key]; exists {
-			// If we've already created / loaded a state for this key, skip it.
+		if existing, exists := allStates[key]; exists {
+
+			if run.Config.Backend != nil {
+				f := factory(run.Config.Backend.Type)
+				if f == nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unknown backend type",
+						Detail:   fmt.Sprintf("Backend type %q is not a recognised backend.", run.Config.Backend.Type),
+						Subject:  run.Config.Backend.DeclRange.Ptr(),
+					})
+					continue
+				}
+
+				be, err := getBackendInstance(run.Config.StateKey, run.Config.Backend, f)
+				if err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid backend configuration",
+						Detail:   fmt.Sprintf("Backend configuration was invalid: %s.", err),
+						Subject:  run.Config.Backend.DeclRange.Ptr(),
+					})
+					continue
+				}
+
+				// Save the backend for this state when we find it, even if the
+				// state was initialised first.
+				existing.Backend = be
+			}
+
 			continue
 		}
 
-		if existing := existingStates[key]; existing != nil {
-			state, err := manifest.loadState(existing)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to load state",
-					fmt.Sprintf("Failed to load state from manifest file for %s: %s", run.Name, err)))
+		var backend backend.Backend
+		if run.Config.Backend != nil {
+			// Then we have to load the state from the backend instead of
+			// locally or creating a new one.
+
+			f := factory(run.Config.Backend.Type)
+			if f == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown backend type",
+					Detail:   fmt.Sprintf("Backend type %q is not a recognised backend.", run.Config.Backend.Type),
+					Subject:  run.Config.Backend.DeclRange.Ptr(),
+				})
 				continue
+			}
+
+			be, err := getBackendInstance(run.Config.StateKey, run.Config.Backend, f)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid backend configuration",
+					Detail:   fmt.Sprintf("Backend configuration was invalid: %s.", err),
+					Subject:  run.Config.Backend.DeclRange.Ptr(),
+				})
+				continue
+			}
+
+			backend = be
+		}
+
+		if existing := existingStates[key]; existing != nil {
+
+			var state *states.State
+			if len(existing.ID) > 0 {
+				s, err := manifest.loadState(existing)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to load state",
+						fmt.Sprintf("Failed to load state from manifest file for %s: %s", run.Name, err)))
+					continue
+				}
+				state = s
+			} else {
+				state = states.NewState()
 			}
 
 			allStates[key] = &TestRunState{
@@ -125,16 +203,23 @@ func (manifest *TestManifest) LoadStates(file *moduletest.File) (map[string]*Tes
 					ID:     existing.ID,
 					Reason: existing.Reason,
 				},
-				State: state,
+				State:   state,
+				Backend: backend,
 			}
 		} else {
+			var id string
+			if backend == nil {
+				id = manifest.generateID()
+			}
+
 			allStates[key] = &TestRunState{
 				Run: run,
 				Manifest: &TestRunManifest{
-					ID:     manifest.generateID(),
+					ID:     id,
 					Reason: StateReasonNone,
 				},
-				State: states.NewState(),
+				State:   states.NewState(),
+				Backend: backend,
 			}
 		}
 	}
@@ -183,7 +268,38 @@ func (manifest *TestManifest) SaveStates(file *moduletest.File, states map[strin
 				// If we have a new state, then overwrite the existing one
 				// assuming that it has a reason to be saved.
 
-				if state.Manifest.Reason != StateReasonNone {
+				if state.Backend != nil {
+					// If we have a backend, regardless of the reason, then
+					// we'll save the state to the backend.
+
+					stmgr, err := state.Backend.StateMgr(backend.DefaultStateName)
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Failed to write state",
+							Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+						})
+						continue
+					}
+
+					if err := stmgr.WriteState(state.State); err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Failed to write state",
+							Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+						})
+						continue
+					}
+
+					// But, still keep the manifest file itself up-to-date.
+
+					if state.Manifest.Reason != StateReasonNone {
+						existingStates.States[key] = state.Manifest
+					} else {
+						delete(existingStates.States, key)
+					}
+
+				} else if state.Manifest.Reason != StateReasonNone {
 					if err := manifest.writeState(state); err != nil {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
@@ -228,7 +344,31 @@ func (manifest *TestManifest) SaveStates(file *moduletest.File, states map[strin
 				continue
 			}
 
-			if state.Manifest.Reason != StateReasonNone {
+			if state.Backend != nil {
+
+				stmgr, err := state.Backend.StateMgr(backend.DefaultStateName)
+				if err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to write state",
+						Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+					})
+					continue
+				}
+
+				if err := stmgr.WriteState(state.State); err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to write state",
+						Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+					})
+					continue
+				}
+
+				if state.Manifest.Reason != StateReasonNone {
+					existingStates.States[key] = state.Manifest
+				}
+			} else if state.Manifest.Reason != StateReasonNone {
 				if err := manifest.writeState(state); err != nil {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -254,7 +394,31 @@ func (manifest *TestManifest) SaveStates(file *moduletest.File, states map[strin
 
 		newStates := make(map[string]*TestRunManifest)
 		for key, state := range states {
-			if state.Manifest.Reason != StateReasonNone {
+			if state.Backend != nil {
+
+				stmgr, err := state.Backend.StateMgr(backend.DefaultStateName)
+				if err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to write state",
+						Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+					})
+					continue
+				}
+
+				if err := stmgr.WriteState(state.State); err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to write state",
+						Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+					})
+					continue
+				}
+
+				if state.Manifest.Reason != StateReasonNone {
+					newStates[key] = state.Manifest
+				}
+			} else if state.Manifest.Reason != StateReasonNone {
 				if err := manifest.writeState(state); err != nil {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -302,12 +466,25 @@ func (manifest *TestManifest) deleteState(runManifest *TestRunManifest) error {
 }
 
 func (manifest *TestManifest) generateID() string {
-	var b [8]byte
-	for i := range b {
-		n := rand.IntN(len(alphanumeric))
-		b[i] = alphanumeric[n]
+	const maxAttempts = 10
+
+	for ix := 0; ix < maxAttempts; ix++ {
+		var b [8]byte
+		for i := range b {
+			n := rand.IntN(len(alphanumeric))
+			b[i] = alphanumeric[n]
+		}
+
+		id := string(b[:])
+		if _, exists := manifest.ids[id]; exists {
+			continue // generate another one
+		}
+
+		manifest.ids[id] = true
+		return id
 	}
-	return string(b[:])
+
+	panic("failed to generate a unique id 10 times")
 }
 
 func (manifest *TestManifest) ensureDataDir() error {

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -24,6 +25,15 @@ import (
 
 type TestSuiteRunner struct {
 	Config *configs.Config
+
+	// BackendFactory is used to enable initializing multiple backend types,
+	// depending on which backends are used in a test suite.
+	//
+	// Note: This is currently necessary because the source of the init functions,
+	// the backend/init package, experiences import cycles if used in other test-related
+	// packages. We set this field on a TestSuiteRunner when making runners in the
+	// command package, which is the main place where backend/init has previously been used.
+	BackendFactory func(string) backend.InitFn
 
 	TestingDirectory string
 
@@ -236,7 +246,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// checking anything about them.
 	file.Diagnostics = file.Diagnostics.Append(file.Config.Validate(runner.Suite.Config))
 
-	states, stateDiags := runner.Manifest.LoadStates(file)
+	states, stateDiags := runner.Manifest.LoadStates(file, runner.Suite.BackendFactory)
 	file.Diagnostics = file.Diagnostics.Append(stateDiags)
 	if stateDiags.HasErrors() {
 		file.Status = moduletest.Error

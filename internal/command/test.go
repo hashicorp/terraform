@@ -5,11 +5,18 @@ package command
 
 import (
 	"context"
+	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -151,7 +158,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 	} else {
 		localRunner := &local.TestSuiteRunner{
-			Config: config,
+			BackendFactory: backendInit.Backend,
+			Config:         config,
 			// The GlobalVariables are loaded from the
 			// main configuration directory
 			// The GlobalTestVariables are loaded from the
@@ -321,6 +329,55 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		return
 	}
 
+	// Per file, ensure backends:
+	// * aren't reused
+	// * are valid types
+	var backendDiags tfdiags.Diagnostics
+	for _, tf := range preparation.Config.Module.Tests {
+		bucketHashes := make(map[int]string)
+		// Use an ordered list of backends, so that errors are raised by 2nd+ time
+		// that a backend config is used in a file.
+		for _, bc := range orderBackendsByDeclarationLine(tf.BackendConfigs) {
+			f := backendInit.Backend(bc.Backend.Type)
+			if f == nil {
+				detail := fmt.Sprintf("There is no backend type named %q.", bc.Backend.Type)
+				if msg, removed := backendInit.RemovedBackends[bc.Backend.Type]; removed {
+					detail = msg
+				}
+				backendDiags = backendDiags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported backend type",
+					Detail:   detail,
+					Subject:  &bc.Backend.TypeRange,
+				})
+				continue
+			}
+
+			b := f()
+			schema := b.ConfigSchema()
+			hash := bc.Backend.Hash(schema)
+
+			if runName, exists := bucketHashes[hash]; exists {
+				// This backend's been encountered before
+				backendDiags = backendDiags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Repeat use of the same backend block",
+						Detail:   fmt.Sprintf("The run %q contains a backend configuration that's already been used in run %q. Sharing the same backend configuration between separate runs will result in conflicting state updates.", bc.Run.Name, runName),
+						Subject:  bc.Backend.TypeRange.Ptr(),
+					},
+				)
+				continue
+			}
+			bucketHashes[bc.Backend.Hash(schema)] = bc.Run.Name
+		}
+	}
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+
 	// Users can also specify variables via the command line, so we'll parse
 	// all that here.
 	var items []arguments.FlagNameValue
@@ -356,4 +413,15 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	// testing.
 	view.Diagnostics(nil, nil, diags)
 	return
+}
+
+// orderBackendsByDeclarationLine takes in a map of state keys to backend configs and returns a list of
+// those backend configs, sorted by the line their declaration range starts on. This allows identification
+// of the 2nd+ time that a backend configuration is used in the same file.
+func orderBackendsByDeclarationLine(backendConfigs map[string]configs.RunBlockBackend) []configs.RunBlockBackend {
+	bcs := slices.Collect(maps.Values(backendConfigs))
+	sort.Slice(bcs, func(i, j int) bool {
+		return bcs[i].Run.DeclRange.Start.Line < bcs[j].Run.DeclRange.Start.Line
+	})
+	return bcs
 }

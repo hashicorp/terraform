@@ -135,7 +135,7 @@ func (w *operationWaiter) updateProgress() {
 func (w *operationWaiter) handleCancelled() bool {
 	log.Printf("[DEBUG] TestFileRunner: test execution cancelled during %s", w.identifier)
 	states := make(map[string]*states.State)
-	states[configs.TestMainStateIdentifier] = w.evalCtx.GetFileState(configs.TestMainStateIdentifier).State
+	states[configs.TestMainStateIdentifier] = w.evalCtx.GetState(configs.TestMainStateIdentifier).State
 	for key, module := range w.evalCtx.FileStates {
 		if key == configs.TestMainStateIdentifier {
 			continue

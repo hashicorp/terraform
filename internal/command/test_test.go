@@ -2928,8 +2928,8 @@ func TestTest_SkipCleanup(t *testing.T) {
 		expected := `
 Warning: Duplicate "skip_cleanup" block
 
-  on main.tftest.hcl line 14:
-  14: run "test_three" {
+  on main.tftest.hcl line 15, in run "test_three":
+  15:   skip_cleanup = true
 
 The run "test_three" has a skip_cleanup attribute set, but shares state with
 an earlier run "test_two" that also has skip_cleanup set. The later run takes
@@ -3195,7 +3195,7 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
 
 		expected := []string{
-			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with an earlier run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":146,"column":17,"line":14},"filename":"main.tftest.hcl","start":{"byte":130,"column":1,"line":14}},"severity":"warning","snippet":{"code":"run \"test_three\" {","context":null,"highlight_end_offset":16,"highlight_start_offset":0,"start_line":14,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
+			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with an earlier run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":163,"column":15,"line":15},"filename":"main.tftest.hcl","start":{"byte":151,"column":3,"line":15}},"severity":"warning","snippet":{"code":"  skip_cleanup = true","context":"run \"test_three\"","highlight_end_offset":14,"highlight_start_offset":2,"start_line":15,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
 			`{"@level":"info","@message":"Found 1 file and 5 run blocks","@module":"terraform.ui","test_abstract":{"main.tftest.hcl":["test","test_two","test_three","test_four","test_five"]},"type":"test_abstract"}`,
 			`{"@level":"info","@message":"main.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"starting"},"type":"test_file"}`,
 			`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test"},"type":"test_run"}`,
@@ -4546,8 +4546,6 @@ permission denied..
 // Backend validation performed in the command package is dependent on the internal/backend/init package,
 // which cannot be imported in configuration parsing packages without creating an import cycle.
 func TestTest_ReusedBackendConfiguration(t *testing.T) {
-	t.Skip() // TODO(liamcervante): Enable this once backends have been added.
-
 	testCases := map[string]struct {
 		dirName   string
 		expectErr string
@@ -4667,8 +4665,6 @@ There is no backend type named "foobar".
 
 // When there is no starting state, state is created by the run containing the backend block
 func TestTest_UseOfBackends_stateCreatedByBackend(t *testing.T) {
-	t.Skip() // TODO(liamcervante): Enable this once backends have been added.
-
 	dirName := "valid-use-local-backend/no-prior-state"
 
 	resourceId := "12345"
@@ -4762,8 +4758,6 @@ test_resource_id = 12345`
 
 // When there is pre-existing state, the state is used by the run containing the backend block
 func TestTest_UseOfBackends_priorStateUsedByBackend(t *testing.T) {
-	t.Skip() // TODO(liamcervante): Enable this once backends have been added.
-
 	dirName := "valid-use-local-backend/with-prior-state"
 	resourceId := "53d69028-477d-7ba0-83c3-ff3807e3756f" // This value needs to match the state file in the test fixtures
 	expectedState := fmt.Sprintf(`test_resource.foobar:
@@ -4795,6 +4789,7 @@ test_resource_id = %s`, resourceId, resourceId)
 				"create_wait_seconds":  cty.NullVal(cty.Number),
 				"destroy_fail":         cty.False,
 				"destroy_wait_seconds": cty.NullVal(cty.Number),
+				"defer":                cty.NullVal(cty.Bool),
 			})},
 	}
 	provider := testing_command.NewProvider(resourceStore)
@@ -4873,22 +4868,20 @@ test_resource_id = %s`, resourceId, resourceId)
 //
 // Artifacts are made when the cleanup operation errors.
 func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
-	t.Skip() // TODO(liamcervante): Enable this once backends have been added.
-
 	cases := map[string]struct {
-		forceError       bool
-		expectedCode     int
-		expectStateFiles bool
+		forceError          bool
+		expectedCode        int
+		expectStateManifest bool
 	}{
 		"no artifact made when there are no cleanup errors when processing a run block with a backend": {
-			forceError:       false,
-			expectedCode:     0,
-			expectStateFiles: false,
+			forceError:          false,
+			expectedCode:        0,
+			expectStateManifest: false,
 		},
 		"artifact made when a cleanup error is forced when processing a run block with a backend": {
-			forceError:       true,
-			expectedCode:     1,
-			expectStateFiles: true, // TODO(liamcervante): Change this.
+			forceError:          true,
+			expectedCode:        1,
+			expectStateManifest: true,
 		},
 	}
 
@@ -4979,21 +4972,14 @@ The apply resource change function was invoked %d times but we trigger an error 
 			}
 			foundIds := []string{}
 			for _, file := range manifest.Files {
-				for name, state := range file.States {
-					t.Logf("manifest.json describes state for %s is stored in %s", name, state.ID)
-					_, err := os.Stat(manifest.StateFilePath(state.ID))
-					if err != nil && !os.IsNotExist(err) {
-						t.Fatalf("unexpected error when checking for state artifacts: %s", err)
-					}
-					if err == nil {
-						foundIds = append(foundIds, state.ID)
-					}
+				for _, state := range file.States {
+					foundIds = append(foundIds, state.ID)
 				}
 			}
-			if len(foundIds) > 0 && !tc.expectStateFiles {
+			if len(foundIds) > 0 && !tc.expectStateManifest {
 				t.Fatalf("found %d state files in .terraform/test when none were expected", len(foundIds))
 			}
-			if len(foundIds) == 0 && tc.expectStateFiles {
+			if len(foundIds) == 0 && tc.expectStateManifest {
 				t.Fatalf("found 0 state files in .terraform/test when they were were expected")
 			}
 		})
@@ -5001,8 +4987,6 @@ The apply resource change function was invoked %d times but we trigger an error 
 }
 
 func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
-	t.Skip() // TODO(liamcervante): Enable this once backends are added.
-
 	cases := map[string]struct {
 		testDir    string
 		expectCode int
@@ -5074,8 +5058,6 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 }
 
 func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
-	t.Skip() // TODO(liamcervante): Enable this
-
 	// SETUP
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend/no-prior-state")), td)

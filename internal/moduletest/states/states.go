@@ -1,6 +1,7 @@
 package states
 
 import (
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -18,4 +19,8 @@ type TestRunState struct {
 
 	// State is the actual state.
 	State *states.State
+
+	// Backend is the backend where this state should be saved upon test
+	// completion.
+	Backend backend.Backend
 }

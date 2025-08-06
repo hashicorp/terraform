@@ -38,7 +38,7 @@ func (n *NodeStateCleanup) Name() string {
 // Execute destroys the resources created in the state file.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	file := n.opts.File
-	state := evalCtx.GetFileState(n.stateKey)
+	state := evalCtx.GetState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 
 	if evalCtx.Cancelled() {
@@ -79,9 +79,9 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	evalCtx.Renderer().Run(state.Run, file, moduletest.TearDown, 0)
 	cancelled := waiter.Run(func() {
 		if state.RestoreState {
-			updated, destroyDiags = n.restore(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, waiter)
+			updated, destroyDiags = n.restore(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, updated, waiter)
 		} else {
-			updated, destroyDiags = n.destroy(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, waiter)
+			updated, destroyDiags = n.destroy(evalCtx, file.Config, state.Run.Config, state.Run.ModuleConfig, updated, waiter)
 			updated.RootOutputValues = state.State.RootOutputValues // we're going to preserve the output values in case we need to tidy up
 		}
 	})
@@ -93,6 +93,8 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	case destroyDiags.HasErrors():
 		file.UpdateStatus(moduletest.Error)
 		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonError)
+	case state.Run.Config.Backend != nil:
+		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonNone)
 	case state.RestoreState:
 		evalCtx.SetFileState(n.stateKey, state.Run, updated, teststates.StateReasonSkip)
 	case !emptyState(updated):
@@ -104,9 +106,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
 }
 
-func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
-	fileState := ctx.GetFileState(n.stateKey)
-	state := fileState.State
+func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config, state *states.State, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called destroy for %s", run.Name)
 
 	if state.Empty() {
@@ -162,9 +162,7 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	return updated, diags
 }
 
-func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
-	fileState := ctx.GetFileState(n.stateKey)
-	state := fileState.State
+func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config, state *states.State, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called destroy for %s", run.Name)
 
 	variables, diags := GetVariables(ctx, run, module, false)

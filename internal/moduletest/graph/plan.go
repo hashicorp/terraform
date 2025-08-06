@@ -8,6 +8,8 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -99,6 +101,16 @@ func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, ru
 	references, referenceDiags := moduletest.GetRunReferences(run)
 	diags = diags.Append(referenceDiags)
 
+	state, err := ctx.LoadState(run)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to load state",
+			Detail:   fmt.Sprintf("Could not retrieve state for run %s: %s.", run.Name, err),
+			Subject:  run.Backend.DeclRange.Ptr(),
+		})
+	}
+
 	if diags.HasErrors() {
 		return nil, nil, diags
 	}
@@ -124,7 +136,6 @@ func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, ru
 
 	waiter.update(tfCtx, moduletest.Running, nil)
 	log.Printf("[DEBUG] TestFileRunner: starting plan for %s", run.Name)
-	state := ctx.GetFileState(run.StateKey).State
 	plan, scope, planDiags := tfCtx.PlanAndEval(module, state, planOpts)
 	log.Printf("[DEBUG] TestFileRunner: completed plan for %s", run.Name)
 	diags = diags.Append(planDiags)

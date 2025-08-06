@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -66,7 +67,8 @@ func (c *TestCleanupCommand) Run(rawArgs []string) int {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 
 	runner := &local.TestSuiteRunner{
-		Config: config,
+		BackendFactory: backendInit.Backend,
+		Config:         config,
 		// The GlobalVariables are loaded from the
 		// main configuration directory
 		// The GlobalTestVariables are loaded from the

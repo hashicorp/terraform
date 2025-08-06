@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -592,10 +593,53 @@ func (ec *EvalContext) SetFileState(key string, run *moduletest.Run, state *stat
 	}
 }
 
-func (ec *EvalContext) GetFileState(key string) *teststates.TestRunState {
+// GetState retrieves the current state for the specified key, exactly as it
+// specified within the current cache.
+func (ec *EvalContext) GetState(key string) *teststates.TestRunState {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
-	return ec.FileStates[key]
+	current := ec.FileStates[key]
+	if current == nil {
+		// this shouldn't happen, panic here so we now exactly where the origin
+		// of the bug is instead of returning a null state to panic later.
+		panic("null state found in test execution")
+	}
+	return current
+}
+
+// LoadState returns the correct state for the specified run block. This differs
+// from GetState in that it will load the state from any remote backend
+// specified within the run block rather than simply retrieve the cached state
+// (which might be empty for a run block with a backend if it hasn't executed
+// yet).
+func (ec *EvalContext) LoadState(run *configs.TestRun) (*states.State, error) {
+	ec.stateLock.Lock()
+	defer ec.stateLock.Unlock()
+
+	current := ec.FileStates[run.StateKey]
+	if current == nil {
+		// Should not be possible, all the file states should have been
+		// initialised before the test was started.
+		panic("null state found in test execution")
+	}
+
+	if run.Backend != nil {
+		// Then we'll load the state from the backend instead of just using
+		// whatever was in the state.
+
+		stmgr, err := current.Backend.StateMgr(backend.DefaultStateName)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := stmgr.RefreshState(); err != nil {
+			return nil, err
+		}
+
+		return stmgr.State(), nil
+	}
+
+	return current.State, nil
 }
 
 // ReferencesCompleted returns true if all the listed references were actually

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -77,19 +78,20 @@ func (n *NodeTestRunCleanup) Execute(ctx *EvalContext) {
 
 	n.run.Status = moduletest.Pass
 
-	state := ctx.GetFileState(n.run.Config.StateKey)
-	if state == nil {
-		// then we don't have a state for this run block in the manifest, which
-		// is okay - it means the states were partially cleaned up last time.
-		//
-		// we set nothing for this, on this basis that this since this state was
-		// successfully cleaned up so any state that might have relied on this
-		// one would have also been cleaned up so it should not be needed.
+	state, err := ctx.LoadState(n.run.Config)
+	if err != nil {
+		n.run.Status = moduletest.Fail
+		n.run.Diagnostics = n.run.Diagnostics.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to load state",
+			Detail:   fmt.Sprintf("Could not retrieve state for run %s: %s.", n.run.Name, err),
+			Subject:  n.run.Config.Backend.DeclRange.Ptr(),
+		})
 		return
 	}
 
 	outputs := make(map[string]cty.Value)
-	for name, output := range state.State.RootOutputValues {
+	for name, output := range state.RootOutputValues {
 		if output.Sensitive {
 			outputs[name] = output.Value.Mark(marks.Sensitive)
 			continue
@@ -98,6 +100,6 @@ func (n *NodeTestRunCleanup) Execute(ctx *EvalContext) {
 	}
 	n.run.Outputs = cty.ObjectVal(outputs)
 
-	ctx.SetFileState(n.run.Config.StateKey, n.run, state.State, teststates.StateReasonNone)
+	ctx.SetFileState(n.run.Config.StateKey, n.run, state, teststates.StateReasonNone)
 	ctx.AddRunBlock(n.run)
 }
