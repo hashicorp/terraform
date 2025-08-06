@@ -213,7 +213,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
 
-	diags = diags.Append(invokeActions(ctx, n.beforeActionInvocations))
+	diags = diags.Append(invokeActionsWithEnhancedDiagnostics(ctx, n.beforeActionInvocations, &n.Addr))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -475,10 +475,10 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 	return diags
 }
 
-func (n *NodeApplyableResourceInstance) ActionProviders() []addrs.ProviderConfig {
-	ret := []addrs.ProviderConfig{}
+func (n *NodeApplyableResourceInstance) Actions() []addrs.ConfigAction {
+	ret := []addrs.ConfigAction{}
 	for _, ai := range n.beforeActionInvocations {
-		ret = append(ret, ai.ProviderAddr)
+		ret = append(ret, ai.Addr.ConfigAction())
 	}
 	return ret
 }

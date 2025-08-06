@@ -27,6 +27,7 @@ run "test_four" {
 }
 
 run "test_five" {
+  skip_cleanup = false # This will be cleaned up, and test_four will not
   variables {
     id = "test_five"
   }

@@ -68,10 +68,9 @@ type EvalContext struct {
 	cancelFunc    context.CancelFunc
 	stopContext   context.Context
 	stopFunc      context.CancelFunc
-
-	config   *configs.Config
-	renderer views.Test
-	verbose  bool
+	config        *configs.Config
+	renderer      views.Test
+	verbose       bool
 
 	// mode and repair affect the behaviour of the cleanup process of the graph.
 	//
@@ -82,15 +81,19 @@ type EvalContext struct {
 	// in repair mode, the skip_cleanup attributes are still respected. this
 	// means only states that were left behind due to an error will be
 	// destroyed.
-	mode   moduletest.CommandMode
-	repair bool
+	mode moduletest.CommandMode
 
 	deferralAllowed bool
 	evalSem         terraform.Semaphore
+
+	// repair is true if the test suite is being run in cleanup repair mode.
+	// It is only set when in test cleanup mode.
+	repair bool
 }
 
 type EvalContextOpts struct {
 	Verbose           bool
+	Repair            bool
 	Render            views.Test
 	CancelCtx         context.Context
 	StopCtx           context.Context
@@ -100,7 +103,6 @@ type EvalContextOpts struct {
 	Concurrency       int
 	DeferralAllowed   bool
 	Mode              moduletest.CommandMode
-	Repair            bool
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -127,10 +129,10 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		stopContext:       stopCtx,
 		stopFunc:          stop,
 		config:            opts.Config,
-		renderer:          opts.Render,
 		verbose:           opts.Verbose,
-		mode:              opts.Mode,
 		repair:            opts.Repair,
+		renderer:          opts.Render,
+		mode:              opts.Mode,
 		deferralAllowed:   opts.DeferralAllowed,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
 	}
@@ -309,7 +311,7 @@ func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module,
 		hclCtx, moreDiags := scope.EvalContext(refs)
 		ruleDiags = ruleDiags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			// if we can't evaluate the context properly, we can't evaulate the rule
+			// if we can't evaluate the context properly, we can't evaluate the rule
 			// we add the diagnostics to the main diags and continue to the next rule
 			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, run.Name)
 			status = status.Merge(moduletest.Error)

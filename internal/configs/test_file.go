@@ -352,6 +352,8 @@ type TestRunOptions struct {
 	DeclRange hcl.Range
 }
 
+// RunBlockBackend records a backend block and which run block it was parsed
+// from.
 type RunBlockBackend struct {
 	Backend *Backend
 
@@ -440,7 +442,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 					// state key trying to load backends
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Invalid backend block",
+						Summary:  "Duplicate backend blocks",
 						Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, existing.Run.Name),
 						Subject:  run.Backend.DeclRange.Ptr(),
 					})
@@ -800,8 +802,8 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				// Enhanced backends are not in use
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Only state storage backends can be used in a run",
-					Detail:   fmt.Sprintf("The \"remote\" backend type cannot be used in the backend block in run %q at %s.", r.Name, block.DefRange),
+					Summary:  "Invalid backend block",
+					Detail:   fmt.Sprintf("The \"remote\" backend type cannot be used in the backend block in run %q at %s. Only state storage backends can be used in a test run.", r.Name, block.DefRange),
 					Subject:  block.DefRange.Ptr(),
 				})
 				continue
@@ -811,9 +813,9 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				// We've already encountered a backend for this run block
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Multiple backend blocks within a run",
+					Summary:  "Duplicate backend blocks",
 					Detail:   fmt.Sprintf("A backend block has already been defined inside the run %q at %s.", r.Name, backendRange),
-					Subject:  backendRange.Ptr(),
+					Subject:  block.DefRange.Ptr(),
 				})
 				continue
 			}

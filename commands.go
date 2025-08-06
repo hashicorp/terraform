@@ -310,6 +310,11 @@ func initCommands(
 				Meta: meta,
 			}, nil
 		},
+		"test cleanup": func() (cli.Command, error) {
+			return &command.TestCleanupCommand{
+				Meta: meta,
+			}, nil
+		},
 
 		"validate": func() (cli.Command, error) {
 			return &command.ValidateCommand{

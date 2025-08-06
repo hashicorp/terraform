@@ -919,6 +919,10 @@ func (p *provider) PlanAction(_ context.Context, req *tfplugin5.PlanAction_Reque
 		ActionType:         req.ActionType,
 		ProposedActionData: configVal,
 		LinkedResources:    inputLinkedResources,
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed:            true,
+			WriteOnlyAttributesAllowed: true,
+		},
 	})
 
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, planResp.Diagnostics)
@@ -1015,6 +1019,10 @@ func (p *provider) InvokeAction(req *tfplugin5.InvokeAction_Request, server tfpl
 		ActionType:        req.ActionType,
 		PlannedActionData: configVal,
 		LinkedResources:   linkedResourceData,
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed:            true,
+			WriteOnlyAttributesAllowed: true,
+		},
 	})
 
 	if invokeResp.Diagnostics.HasErrors() {

@@ -3,7 +3,9 @@
 
 package moduletest
 
-import "github.com/hashicorp/terraform/internal/tfdiags"
+import (
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
 
 type CommandMode int
 

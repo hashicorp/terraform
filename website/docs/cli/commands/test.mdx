@@ -52,9 +52,9 @@ Each Terraform test file will maintain all Terraform state it requires within me
 
 ### Terraform Test Cleanup
 
-The Terraform `terraform test` command creates _real_ infrastructure. Once Terraform fully executes each test file, Terraform attempts to destroy any remaining infrastructure. If it cannot do this, Terraform reports a list of resources it created but could not destroy.
+The Terraform `terraform test` command creates _real_ infrastructure. Once Terraform fully executes each test file, Terraform attempts to destroy any remaining infrastructure. If it cannot do this, Terraform writes the leftover state to the local file system and reports the resources it created but could not destroy.
 
-You should monitor the output of the test command closely to ensure Terraform removes the infrastructure it created or perform manual cleanup if not. We recommend creating dedicated testing accounts within the target providers that you can routinely and safely purge to ensure any accidental and costly resources aren't left behind.
+Subsequent `terraform test` commands will not be able to execute until the leftover state is removed. You can then remove the leftover state by running `terraform test cleanup` or manually removing the state files. Before removing the state files manually, ensure that you have removed the remote objects defined therein, otherwise subsequent `terraform test` commands may have unexpected results.
 
 Terraform also provides diagnostics explaining why it could not automatically clean up. You should review these diagnostics to ensure that future clean-up operations are successful.
 

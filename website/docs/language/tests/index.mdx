@@ -89,7 +89,9 @@ executes its runs. The block has the following fields:
 
 | Field or Block Name       | Description                                                                                                              | Default Value |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------- |
-| `parallel`                 | An optional boolean attribute. If `true`, Terraform executes all eligible `run` blocks simultaneously. Refer to [Parallel execution](#parallel-execution) for more information.             | `false`       |
+| `parallel`                 | An optional boolean attribute. If `true`, Terraform executes all eligible `run` blocks simultaneously. Each run within the file can override this globally set value. Refer to [Parallel execution](#parallel-execution) for more information.             | `false`       |
+| `skip_cleanup`             | An optional boolean attribute. If `true`, Terraform skips the cleanup of the state resources created during the test. Each run within the file can override this globally set value.             | `false`       |
+
 
 ### Example usage
 
@@ -117,7 +119,9 @@ Each `run` block has the following fields and blocks:
 | [`assert`](#assertions)   | Optional `assert` blocks.                                                                                                |               |
 | `expect_failures`         | An optional attribute.                                                                                                   |               |
 | `state_key`               | An optional attribute.                                                                                                   |               |
+| [`backend`](#backends)    | An optional `backend` block.                                                                                             |               |
 | `parallel`                | An optional boolean attribute.                                                                                           | `false`       |
+| `skip_cleanup`            | An optional boolean attribute.                                                                                           | `false`       |
 
 The `command` attribute and `plan_options` block tell Terraform which command and options to execute for each run block. The default operation, if you do not specify a `command` attribute or the `plan_options` block, is a normal Terraform apply operation.
 
@@ -128,6 +132,8 @@ The `plan_options` block allows test authors to customize the [planning mode](/t
 The `state_key` allows for fine-grained control over which internal state file Terraform uses for a given run block. Refer to [Modules State](#modules-state) for more information.
 
 The `parallel` attribute lets you run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform attempts to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true` and are not dependent on each other.
+
+The `skip_cleanup` attribute controls whether changes made to the state file during this run are cleaned up afterward. Refer to the [Skipping Cleanup](#skipping-cleanup) section for more information.
 
 ### Example usage
 
@@ -1016,3 +1022,152 @@ Run E (parallel: true)
 ```
 
 Runs A and B execute simultaneously. Run C waits until both A and B are done before starting. Finally, runs D and E run in parallel, but only after C completes.
+
+## Backends
+
+By default, Terraform tests start with an empty, in-memory state and provisions all resources defined in the configuration.
+However, if a `backend` block is used in a test file then the test can start with a non-empty state.
+This allows tests to reuse long-lived pieces of infrastructure and this feature can be used to reduce the duration of tests
+that include resources that are slow to provision, such as Kubernetes clusters.
+
+In the example test file below a `backend` block is used to load in state from a local file:
+
+```hcl
+# simple-example.tftest.hcl
+
+run "test_1" {
+  command = "plan"
+  # A backend block cannot be used here
+}
+
+run "test_2" {
+  # A backend can be used here because the run block represents
+  # an apply operation.
+  #
+  # The apply operation uses the state loaded from the backend
+  # when to create a plan that is then applied.
+
+  command = "apply"
+
+  backend "local" {
+    # state is saved locally, in the specified location
+    path = "./custom/location/for/terraform.tfstate"
+  }
+}
+
+run "test_3" {
+  # A backend block cannot be used here, because this run block uses the
+  # internal state created in run "test_2"
+
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+}
+```
+
+The `backend` block here is like the pre-existing `backend` block that can be included in the `terraform` block.
+Any of the current state-storage backends in Terraform can be used. Refer to the main [backend documentation](https://developer.hashicorp.com/terraform/language/backend)
+for a list of available backends and how to configure them.
+
+-> **Note:** Pay attention to any environment variables that you use to configure backends during `plan` and `apply`
+operations; these will also be used during tests. You may need to change your environment depending on which workflow
+you are performing.
+
+### Only one backend can be used per internal state
+
+A `backend` block is used to set the initial value of an internal, in-memory state used during test execution. Due to this,
+a `backend` block can only be used in the first run block that represents an `apply` operation for a given internal state.
+
+As described in the [Modules State](#modules-state) section, a run block's internal state is determined either by the module
+that's under test or by explicitly setting a `state_key` argument. The example test file below shows how separate `backend` blocks
+can be used in the same file as long as they are linked to different states. Those states may be implied or explicitly declared.
+
+
+```hcl
+# multiple-backends.tftest.hcl
+
+# Root module state
+## This backend block implicitly controls the internal state for testing the root module
+run "test-main-1" {
+  backend "local" {
+    path = "./state/test_A.tfstate"
+  }
+}
+
+run "test-main-2" {
+  # No backend block can be used here;
+  # this is the second apply run block for the root module's state
+}
+
+# Child module state
+## This backend block implicitly controls the internal state for the module "./modules/my-module"
+run "test-module-1" {
+  module {
+    source = "./modules/my-module"
+  }
+
+  backend "local" {
+    path = "./state/my-module.tfstate"
+  }
+}
+
+run "test-module-2" {
+  module {
+    source = "./modules/my-module"
+  }
+  # No backend block can be used here;
+  # this is the second apply run block for the "./modules/my-module" module's state
+}
+
+# State key state
+## This backend block controls the internal state for the explicitly-declared "different-state" state
+run "test-state-key-1" {
+  state_key = "different-state"
+
+  backend "local" {
+    path = "./state/state-key.tfstate"
+  }
+}
+
+run "test-state-key-2" {
+  state_key = "different-state"
+  # No backend block can be used here;
+  # this is the second apply run block for the state_key "different-state"
+}
+```
+
+In the example above there are two `run` blocks per internal state, and all `run` blocks represent an `apply` operation.
+Only the first `run` block in each pair can include the `backend` block. 
+
+-> **Note:** Terraform will stop you from trying to re-use the same state file for multiple internal states. This prevents
+multiple tests attempting to write to the same state.
+
+### Some backend features are not available during tests
+
+Although backends are configured similarly in both the `terraform` block and in `run` blocks, their behaviors are slightly
+different when used in the context of `test` versus `plan` and `apply` operations.
+
+Firstly, backends used in tests are initialized during the `test` command and are not initialized during an `init` command.
+Due to this, Terraform will not detect changes in how your test's backends are configured. As a result, Terraform will not
+prompt you about migrating state from one backend to another after the backend configuration has changed. If you need to move
+state artifacts used in your tests you will need to do this manually.
+
+Also due to the different initialization process, backend initialization during tests does not use
+[partial configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration)
+CLI flags like `-backend-config`, as those are only compatible with the `init` command. Configuration of backends used during
+testing only uses config from the test file's `backend` blocks and any applicable environment variables.
+
+Finally, [workspaces](https://developer.hashicorp.com/terraform/language/state/workspaces) cannot be used with backends
+used in the context of a test. Any backend used in a test will use the `default` workspace, regardless of
+what workspaces exist and have been selected for use during `plan` and `apply` operations.
+## Skipping Cleanup
+
+You can skip the default [cleanup process](#modules-cleanup) by setting the `skip_cleanup` attribute to `true` in the `test` or `run` block. This is useful for debugging or when you want to inspect the state files after a test run. 
+ When multiple `run` blocks that modify the same state file set this attribute, only the last `run` block with `skip_cleanup` set to `true` will take effect. This means the state file will reflect the state as of that last `run` block.
+ Any resources retained in the state due to this attribute will also be saved in the state file artifacts. Refer to the [Artifacts](#handling-leftover-state-artifacts) section for more information. This means that you have to cleanup the state before running any other tests.
+
+## Handling Leftover State Artifacts
+
+During the execution of a test file, Terraform automatically cleans up any in-memory state it generates. This cleanup involves destroying the created remote resources. However, if the cleanup process fails, Terraform will persist a manifest file that references state files containing the remaining resources. The generated files are located within the test directory of the terraform configuration (`.terraform/test`).
+These lingering resources will block future Terraform test operations and must be manually removed to proceed.

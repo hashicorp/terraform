@@ -21,6 +21,9 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// testPlan defines how to execute a run block representing a plan command
+//
+// See also: (n *NodeTestRun).testApply
 func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig

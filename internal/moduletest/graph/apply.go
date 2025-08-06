@@ -20,6 +20,9 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// testApply defines how to execute a run block representing an apply command
+//
+// See also: (n *NodeTestRun).testPlan
 func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig

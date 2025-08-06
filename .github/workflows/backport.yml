@@ -17,7 +17,7 @@ jobs:
   backport:
     if: github.event.pull_request
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.4.7@sha256:36f9d4fba82b9454f1f62bf76c8078fafe3ab0be71356cb96af6d56ac4482cd8
+    container: hashicorpdev/backport-assistant:0.5.8@sha256:b18bc289f405beb58aa22a1b4b3bdac42394fad602541ed94a0f9c5e3f66f954
     steps:
       - name: Run Backport Assistant
         run: |

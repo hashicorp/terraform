@@ -1518,9 +1518,10 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 	}
 
 	protoReq := &proto6.InvokeAction_Request{
-		ActionType:      r.ActionType,
-		Config:          &proto6.DynamicValue{Msgpack: configMP},
-		LinkedResources: linkedResources,
+		ActionType:         r.ActionType,
+		Config:             &proto6.DynamicValue{Msgpack: configMP},
+		LinkedResources:    linkedResources,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	protoClient, err := p.client.InvokeAction(p.ctx, protoReq)

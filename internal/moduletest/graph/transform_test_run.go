@@ -56,6 +56,5 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 			})
 		}
 	}
-
 	return nil
 }

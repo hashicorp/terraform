@@ -29,10 +29,17 @@ func TestContextPlan_actions(t *testing.T) {
 		planActionResponse *providers.PlanActionResponse
 		planOpts           *PlanOpts
 
-		expectPlanActionCalled    bool
+		expectPlanActionCalled bool
+
+		// Some tests can produce race-conditions in the error messages, so we
+		// have two ways of checking the diagnostics. Use expectValidateDiagnostics
+		// by default, if there is a race condition and you want to allow multiple
+		// versions, please use assertValidateDiagnostics.
 		expectValidateDiagnostics func(m *configs.Config) tfdiags.Diagnostics
-		expectPlanDiagnostics     func(m *configs.Config) tfdiags.Diagnostics
-		assertPlan                func(*testing.T, *plans.Plan)
+		assertValidateDiagnostics func(*testing.T, tfdiags.Diagnostics)
+
+		expectPlanDiagnostics func(m *configs.Config) tfdiags.Diagnostics
+		assertPlan            func(*testing.T, *plans.Plan)
 	}{
 		"unreferenced": {
 			module: map[string]string{
@@ -986,7 +993,6 @@ resource "other_object" "a" {
 		},
 
 		"provider is within module": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 module "mod" {
@@ -1031,6 +1037,153 @@ resource "other_object" "a" {
 				}
 				if action.ProviderAddr.Alias != "inthemodule" {
 					t.Fatalf("expected action to have a provider alias of 'inthemodule', got '%s'", action.ProviderAddr.Alias)
+				}
+			},
+		},
+
+		"non-default provider namespace": {
+			module: map[string]string{
+				"main.tf": `
+terraform {
+  required_providers {
+    ecosystem = {
+      source = "danielmschmidt/ecosystem"
+    }
+  }
+}
+action "ecosystem_unlinked" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.ecosystem_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.ecosystem_unlinked.hello" {
+					t.Fatalf("expected action address to be 'action.ecosystem_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", action.TriggeringResourceAddr)
+				}
+
+				if action.ProviderAddr.Provider.Namespace != "danielmschmidt" {
+					t.Fatalf("expected action to have the namespace 'danielmschmidt', got '%s'", action.ProviderAddr.Provider.Namespace)
+				}
+			},
+		},
+
+		"aliased provider": {
+			module: map[string]string{
+				"main.tf": `
+provider "test" {
+  alias = "aliased"
+}
+action "test_unlinked" "hello" {
+  provider = test.aliased
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", action.TriggeringResourceAddr)
+				}
+
+				if action.ProviderAddr.Alias != "aliased" {
+					t.Fatalf("expected action to have a provider alias of 'aliased', got '%s'", action.ProviderAddr.Alias)
+				}
+			},
+		},
+
+		"action config refers to before triggering resource leads to circular dependency": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+				if !diags.HasErrors() {
+					t.Fatalf("expected diagnostics to have errors, but it does not")
+				}
+				if len(diags) != 1 {
+					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+				}
+				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
+					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+				}
+			},
+		},
+
+		"action config refers to after triggering resource leads to circular dependency": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+				if !diags.HasErrors() {
+					t.Fatalf("expected diagnostics to have errors, but it does not")
+				}
+				if len(diags) != 1 {
+					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+				}
+				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
+					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
 				}
 			},
 		},
@@ -1126,6 +1279,25 @@ resource "other_object" "a" {
 				},
 			}
 
+			ecosystem := &testing_provider.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					Actions: map[string]providers.ActionSchema{
+						"ecosystem_unlinked": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+
+							Unlinked: &providers.UnlinkedAction{},
+						},
+					},
+				},
+			}
+
 			if tc.planActionResponse != nil {
 				p.PlanActionResponse = *tc.planActionResponse
 			}
@@ -1136,12 +1308,19 @@ resource "other_object" "a" {
 					// catch the error long before anything happens.
 					addrs.NewDefaultProvider("test"):  testProviderFuncFixed(p),
 					addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
+					{
+						Type:      "ecosystem",
+						Namespace: "danielmschmidt",
+						Hostname:  addrs.DefaultProviderRegistryHost,
+					}: testProviderFuncFixed(ecosystem),
 				},
 			})
 
 			diags := ctx.Validate(m, &ValidateOpts{})
 			if tc.expectValidateDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
+			} else if tc.assertValidateDiagnostics != nil {
+				tc.assertValidateDiagnostics(t, diags)
 			} else {
 				tfdiags.AssertNoDiagnostics(t, diags)
 			}
