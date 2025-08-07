@@ -1350,12 +1350,23 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 			break
 		}
 
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
+		if resp.Diagnostics.HasErrors() {
+			// If we have errors, we stop processing and return early
+			break
+		}
+
+		if resp.Diagnostics.HasWarnings() &&
+			(event.Identity == nil || event.Identity.IdentityData == nil) {
+			// If we have warnings but no identity data, we continue with the next event
+			continue
+		}
+
 		obj := map[string]cty.Value{
 			"display_name": cty.StringVal(event.DisplayName),
 			"state":        cty.NullVal(resourceSchema.Body.ImpliedType()),
 			"identity":     cty.NullVal(resourceSchema.Identity.ImpliedType()),
 		}
-		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
 
 		// Handle identity data - it must be present
 		if event.Identity == nil || event.Identity.IdentityData == nil {
@@ -1381,11 +1392,11 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		}
 
 		if resp.Diagnostics.HasErrors() {
+			// If validation errors occurred, we stop processing and return early
 			break
 		}
 
 		results = append(results, cty.ObjectVal(obj))
-
 	}
 
 	// The provider result of a list resource is always a list, but
