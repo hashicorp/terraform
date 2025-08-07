@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -21,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -2090,6 +2093,7 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
+	pssName := "foo_bar"
 	mock := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
@@ -2103,7 +2107,7 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			ResourceTypes:     map[string]providers.Schema{},
 			ListResourceTypes: map[string]providers.Schema{},
 			StateStores: map[string]providers.Schema{
-				"foo_bar": {
+				pssName: {
 					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"bar": {
@@ -2120,20 +2124,55 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 		return mock, nil
 	}
 
-	// Get the operations backend
+	// Create locks - these would normally be the locks derived from config
+	locks := depsfile.NewLocks()
+	constraint, err := providerreqs.ParseVersionConstraints(">9.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	expectedVersionString := "9.9.9"
+	expectedProviderSource := "registry.terraform.io/my-org/foo"
+	locks.SetProvider(
+		addrs.MustParseProviderSourceString(expectedProviderSource),
+		versions.MustParseVersion(expectedVersionString),
+		constraint,
+		[]providerreqs.Hash{"h1:foo"},
+	)
+
+	// Act - get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  factory,
+		Locks:            locks,
 	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Configuring a state store for the first time is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	if beDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", err)
 	}
 
+	// Check the backend state file exists & assert its contents
+	s := testDataStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
+	if s == nil {
+		t.Fatal("expected backend state file to be created, but it was missing")
+	}
+
+	if s.StateStore.Type != pssName {
+		t.Fatalf("backend state file contains unexpected state store type, want %q, got %q", pssName, s.StateStore.Type)
+	}
+	if s.StateStore.Provider.Version.String() != expectedVersionString {
+		t.Fatalf("backend state file contains unexpected version, want %q, got %q", expectedVersionString, s.StateStore.Provider.Version)
+	}
+	if s.StateStore.Provider.Source.String() != expectedProviderSource {
+		t.Fatalf("backend state file contains unexpected source, want %q, got %q", expectedProviderSource, s.StateStore.Provider.Source)
+	}
+	expectedProviderConfig := "{ \"region\": \"mars\" }"
+	expectedStoreConfig := "{ \"bar\": \"foobar\" }"
+	if cleanString(string(s.StateStore.Provider.ConfigRaw)) != expectedProviderConfig {
+		t.Fatalf("backend state file contains unexpected raw config data for the provider, want %q, got %q", expectedProviderConfig, cleanString(string(s.StateStore.Provider.ConfigRaw)))
+	}
+	if cleanString(string(s.StateStore.ConfigRaw)) != expectedStoreConfig {
+		t.Fatalf("backend state file contains unexpected raw config data for the state store, want %q, got %q", expectedStoreConfig, cleanString(string(s.StateStore.ConfigRaw)))
+	}
 }
 
 // Unsetting a saved state store
