@@ -1646,13 +1646,14 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 		err := m.selectWorkspace(b)
 		if strings.Contains(err.Error(), "No existing workspaces") {
 			// Make the default workspace. All other workspaces are user-created via the workspace commands.
-			bStateMgr, err := b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
+			bStateMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+			diags = diags.Append(sDiags)
+			if sDiags.HasErrors() {
+				diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug and should be reported: %w",
 					c.Type,
 					c.Provider.Name,
 					c.ProviderAddr,
-					err))
+					sDiags.Err()))
 				return nil, diags
 			}
 			emptyState := states.NewState()

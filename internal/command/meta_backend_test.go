@@ -2106,25 +2106,61 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
+	pssName := "test_store"
 	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
 
-	// Get the operations backend
+	// Create locks - these would normally be the locks derived from config
+	locks := depsfile.NewLocks()
+	constraint, err := providerreqs.ParseVersionConstraints(">9.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	expectedVersionString := "9.9.9"
+	expectedProviderSource := "registry.terraform.io/hashicorp/test"
+	locks.SetProvider(
+		addrs.MustParseProviderSourceString(expectedProviderSource),
+		versions.MustParseVersion(expectedVersionString),
+		constraint,
+		[]providerreqs.Hash{"h1:foo"},
+	)
+
+	// Act - get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  factory,
+		Locks:            locks,
 	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Configuring a state store for the first time is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	if beDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", beDiags.Err())
 	}
 
+	// Check the backend state file exists & assert its contents
+	s := testDataStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
+	if s == nil {
+		t.Fatal("expected backend state file to be created, but it was missing")
+	}
+
+	if s.StateStore.Type != pssName {
+		t.Fatalf("backend state file contains unexpected state store type, want %q, got %q", pssName, s.StateStore.Type)
+	}
+	if s.StateStore.Provider.Version.String() != expectedVersionString {
+		t.Fatalf("backend state file contains unexpected version, want %q, got %q", expectedVersionString, s.StateStore.Provider.Version)
+	}
+	if s.StateStore.Provider.Source.String() != expectedProviderSource {
+		t.Fatalf("backend state file contains unexpected source, want %q, got %q", expectedProviderSource, s.StateStore.Provider.Source)
+	}
+	expectedProviderConfig := "{ \"region\": \"mars\" }"
+	expectedStoreConfig := "{ \"value\": \"foobar\" }"
+	if cleanString(string(s.StateStore.Provider.ConfigRaw)) != expectedProviderConfig {
+		t.Fatalf("backend state file contains unexpected raw config data for the provider, want %q, got %q", expectedProviderConfig, cleanString(string(s.StateStore.Provider.ConfigRaw)))
+	}
+	if cleanString(string(s.StateStore.ConfigRaw)) != expectedStoreConfig {
+		t.Fatalf("backend state file contains unexpected raw config data for the state store, want %q, got %q", expectedStoreConfig, cleanString(string(s.StateStore.ConfigRaw)))
+	}
 }
 
 // Unsetting a saved state store
