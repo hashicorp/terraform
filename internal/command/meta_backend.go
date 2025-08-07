@@ -1544,7 +1544,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 
 	if len(localStates) > 0 {
 		// Migrate any local states into the new state store
-		err = m.backendMigrateState(&backendMigrateOpts{
+		err := m.backendMigrateState(&backendMigrateOpts{
 			SourceType:      "local",
 			DestinationType: c.Type,
 			Source:          localB,
@@ -1596,6 +1596,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 		// We must record a value into the backend state file, and we cannot include a value that changes (e.g. the Terraform core binary version) as migration
 		// is impossible with builtin providers.
 		// So, we use a hardcoded version number of 42.
+		var err error
 		pVersion, err = version.NewVersion("0.42.0")
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Error when creating a backend state file containing a builtin provider. This is a bug in Terraform and should be reported: %w",
@@ -1605,11 +1606,11 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	} else {
 		pLock := opts.Locks.Provider(c.ProviderAddr)
 		if pLock == nil {
-			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported: %w",
+			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported",
 				c.Provider.Name,
 				c.ProviderAddr,
 				c.Type,
-				err))
+			))
 			return nil, diags
 		}
 		var err error
@@ -1646,13 +1647,14 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 		err := m.selectWorkspace(b)
 		if strings.Contains(err.Error(), "No existing workspaces") {
 			// Make the default workspace. All other workspaces are user-created via the workspace commands.
-			bStateMgr, err := b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
+			bStateMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+			diags = diags.Append(sDiags)
+			if sDiags.HasErrors() {
+				diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug and should be reported: %w",
 					c.Type,
 					c.Provider.Name,
 					c.ProviderAddr,
-					err))
+					sDiags.Err()))
 				return nil, diags
 			}
 			emptyState := states.NewState()
