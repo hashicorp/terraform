@@ -6959,9 +6959,11 @@ type InvokeAction_Request struct {
 	// linked resources, matching the order they are specified in the schema
 	LinkedResources []*InvokeAction_Request_LinkedResource `protobuf:"bytes,2,rep,name=linked_resources,json=linkedResources,proto3" json:"linked_resources,omitempty"`
 	// response from the plan
-	Config        *DynamicValue `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Config *DynamicValue `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
+	// metadata
+	ClientCapabilities *ClientCapabilities `protobuf:"bytes,4,opt,name=client_capabilities,json=clientCapabilities,proto3" json:"client_capabilities,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *InvokeAction_Request) Reset() {
@@ -7011,6 +7013,13 @@ func (x *InvokeAction_Request) GetLinkedResources() []*InvokeAction_Request_Link
 func (x *InvokeAction_Request) GetConfig() *DynamicValue {
 	if x != nil {
 		return x.Config
+	}
+	return nil
+}
+
+func (x *InvokeAction_Request) GetClientCapabilities() *ClientCapabilities {
+	if x != nil {
+		return x.ClientCapabilities
 	}
 	return nil
 }
@@ -8442,8 +8451,8 @@ var file_tfplugin5_proto_rawDesc = string([]byte{
 	0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x35, 0x2e, 0x52,
 	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x44,
 	0x61, 0x74, 0x61, 0x52, 0x0f, 0x70, 0x6c, 0x61, 0x6e, 0x6e, 0x65, 0x64, 0x49, 0x64, 0x65, 0x6e,
-	0x74, 0x69, 0x74, 0x79, 0x22, 0xf8, 0x07, 0x0a, 0x0c, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x41,
-	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x1a, 0xbe, 0x03, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x69, 0x74, 0x79, 0x22, 0xc8, 0x08, 0x0a, 0x0c, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x41,
+	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x1a, 0x8e, 0x04, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
 	0x74, 0x12, 0x1f, 0x0a, 0x0b, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x74, 0x79, 0x70, 0x65,
 	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x54, 0x79,
 	0x70, 0x65, 0x12, 0x59, 0x0a, 0x10, 0x6c, 0x69, 0x6e, 0x6b, 0x65, 0x64, 0x5f, 0x72, 0x65, 0x73,
@@ -8454,7 +8463,12 @@ var file_tfplugin5_proto_rawDesc = string([]byte{
 	0x6e, 0x6b, 0x65, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x12, 0x2f, 0x0a,
 	0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e,
 	0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x35, 0x2e, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69,
-	0x63, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x1a, 0x85,
+	0x63, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x4e,
+	0x0a, 0x13, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x5f, 0x63, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c,
+	0x69, 0x74, 0x69, 0x65, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x74, 0x66,
+	0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x35, 0x2e, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x43, 0x61,
+	0x70, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65, 0x73, 0x52, 0x12, 0x63, 0x6c, 0x69, 0x65,
+	0x6e, 0x74, 0x43, 0x61, 0x70, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x69, 0x65, 0x73, 0x1a, 0x85,
 	0x02, 0x0a, 0x0e, 0x4c, 0x69, 0x6e, 0x6b, 0x65, 0x64, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
 	0x65, 0x12, 0x38, 0x0a, 0x0b, 0x70, 0x72, 0x69, 0x6f, 0x72, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x65,
 	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x75, 0x67, 0x69,
@@ -9053,86 +9067,87 @@ var file_tfplugin5_proto_depIdxs = []int32{
 	12,  // 159: tfplugin5.PlanAction.Response.LinkedResource.planned_identity:type_name -> tfplugin5.ResourceIdentityData
 	136, // 160: tfplugin5.InvokeAction.Request.linked_resources:type_name -> tfplugin5.InvokeAction.Request.LinkedResource
 	5,   // 161: tfplugin5.InvokeAction.Request.config:type_name -> tfplugin5.DynamicValue
-	137, // 162: tfplugin5.InvokeAction.Event.progress:type_name -> tfplugin5.InvokeAction.Event.Progress
-	138, // 163: tfplugin5.InvokeAction.Event.completed:type_name -> tfplugin5.InvokeAction.Event.Completed
-	5,   // 164: tfplugin5.InvokeAction.Request.LinkedResource.prior_state:type_name -> tfplugin5.DynamicValue
-	5,   // 165: tfplugin5.InvokeAction.Request.LinkedResource.planned_state:type_name -> tfplugin5.DynamicValue
-	5,   // 166: tfplugin5.InvokeAction.Request.LinkedResource.config:type_name -> tfplugin5.DynamicValue
-	12,  // 167: tfplugin5.InvokeAction.Request.LinkedResource.planned_identity:type_name -> tfplugin5.ResourceIdentityData
-	139, // 168: tfplugin5.InvokeAction.Event.Completed.linked_resources:type_name -> tfplugin5.InvokeAction.Event.Completed.LinkedResource
-	6,   // 169: tfplugin5.InvokeAction.Event.Completed.diagnostics:type_name -> tfplugin5.Diagnostic
-	5,   // 170: tfplugin5.InvokeAction.Event.Completed.LinkedResource.new_state:type_name -> tfplugin5.DynamicValue
-	12,  // 171: tfplugin5.InvokeAction.Event.Completed.LinkedResource.new_identity:type_name -> tfplugin5.ResourceIdentityData
-	5,   // 172: tfplugin5.ValidateActionConfig.Request.config:type_name -> tfplugin5.DynamicValue
-	48,  // 173: tfplugin5.ValidateActionConfig.Request.linked_resources:type_name -> tfplugin5.LinkedResourceConfig
-	6,   // 174: tfplugin5.ValidateActionConfig.Response.diagnostics:type_name -> tfplugin5.Diagnostic
-	63,  // 175: tfplugin5.Provider.GetMetadata:input_type -> tfplugin5.GetMetadata.Request
-	71,  // 176: tfplugin5.Provider.GetSchema:input_type -> tfplugin5.GetProviderSchema.Request
-	79,  // 177: tfplugin5.Provider.PrepareProviderConfig:input_type -> tfplugin5.PrepareProviderConfig.Request
-	88,  // 178: tfplugin5.Provider.ValidateResourceTypeConfig:input_type -> tfplugin5.ValidateResourceTypeConfig.Request
-	90,  // 179: tfplugin5.Provider.ValidateDataSourceConfig:input_type -> tfplugin5.ValidateDataSourceConfig.Request
-	81,  // 180: tfplugin5.Provider.UpgradeResourceState:input_type -> tfplugin5.UpgradeResourceState.Request
-	83,  // 181: tfplugin5.Provider.GetResourceIdentitySchemas:input_type -> tfplugin5.GetResourceIdentitySchemas.Request
-	86,  // 182: tfplugin5.Provider.UpgradeResourceIdentity:input_type -> tfplugin5.UpgradeResourceIdentity.Request
-	94,  // 183: tfplugin5.Provider.Configure:input_type -> tfplugin5.Configure.Request
-	96,  // 184: tfplugin5.Provider.ReadResource:input_type -> tfplugin5.ReadResource.Request
-	98,  // 185: tfplugin5.Provider.PlanResourceChange:input_type -> tfplugin5.PlanResourceChange.Request
-	100, // 186: tfplugin5.Provider.ApplyResourceChange:input_type -> tfplugin5.ApplyResourceChange.Request
-	102, // 187: tfplugin5.Provider.ImportResourceState:input_type -> tfplugin5.ImportResourceState.Request
-	105, // 188: tfplugin5.Provider.MoveResourceState:input_type -> tfplugin5.MoveResourceState.Request
-	107, // 189: tfplugin5.Provider.ReadDataSource:input_type -> tfplugin5.ReadDataSource.Request
-	92,  // 190: tfplugin5.Provider.ValidateEphemeralResourceConfig:input_type -> tfplugin5.ValidateEphemeralResourceConfig.Request
-	115, // 191: tfplugin5.Provider.OpenEphemeralResource:input_type -> tfplugin5.OpenEphemeralResource.Request
-	117, // 192: tfplugin5.Provider.RenewEphemeralResource:input_type -> tfplugin5.RenewEphemeralResource.Request
-	119, // 193: tfplugin5.Provider.CloseEphemeralResource:input_type -> tfplugin5.CloseEphemeralResource.Request
-	126, // 194: tfplugin5.Provider.ListResource:input_type -> tfplugin5.ListResource.Request
-	128, // 195: tfplugin5.Provider.ValidateListResourceConfig:input_type -> tfplugin5.ValidateListResourceConfig.Request
-	121, // 196: tfplugin5.Provider.GetFunctions:input_type -> tfplugin5.GetFunctions.Request
-	124, // 197: tfplugin5.Provider.CallFunction:input_type -> tfplugin5.CallFunction.Request
-	130, // 198: tfplugin5.Provider.PlanAction:input_type -> tfplugin5.PlanAction.Request
-	134, // 199: tfplugin5.Provider.InvokeAction:input_type -> tfplugin5.InvokeAction.Request
-	140, // 200: tfplugin5.Provider.ValidateActionConfig:input_type -> tfplugin5.ValidateActionConfig.Request
-	50,  // 201: tfplugin5.Provider.Stop:input_type -> tfplugin5.Stop.Request
-	109, // 202: tfplugin5.Provisioner.GetSchema:input_type -> tfplugin5.GetProvisionerSchema.Request
-	111, // 203: tfplugin5.Provisioner.ValidateProvisionerConfig:input_type -> tfplugin5.ValidateProvisionerConfig.Request
-	113, // 204: tfplugin5.Provisioner.ProvisionResource:input_type -> tfplugin5.ProvisionResource.Request
-	50,  // 205: tfplugin5.Provisioner.Stop:input_type -> tfplugin5.Stop.Request
-	64,  // 206: tfplugin5.Provider.GetMetadata:output_type -> tfplugin5.GetMetadata.Response
-	72,  // 207: tfplugin5.Provider.GetSchema:output_type -> tfplugin5.GetProviderSchema.Response
-	80,  // 208: tfplugin5.Provider.PrepareProviderConfig:output_type -> tfplugin5.PrepareProviderConfig.Response
-	89,  // 209: tfplugin5.Provider.ValidateResourceTypeConfig:output_type -> tfplugin5.ValidateResourceTypeConfig.Response
-	91,  // 210: tfplugin5.Provider.ValidateDataSourceConfig:output_type -> tfplugin5.ValidateDataSourceConfig.Response
-	82,  // 211: tfplugin5.Provider.UpgradeResourceState:output_type -> tfplugin5.UpgradeResourceState.Response
-	84,  // 212: tfplugin5.Provider.GetResourceIdentitySchemas:output_type -> tfplugin5.GetResourceIdentitySchemas.Response
-	87,  // 213: tfplugin5.Provider.UpgradeResourceIdentity:output_type -> tfplugin5.UpgradeResourceIdentity.Response
-	95,  // 214: tfplugin5.Provider.Configure:output_type -> tfplugin5.Configure.Response
-	97,  // 215: tfplugin5.Provider.ReadResource:output_type -> tfplugin5.ReadResource.Response
-	99,  // 216: tfplugin5.Provider.PlanResourceChange:output_type -> tfplugin5.PlanResourceChange.Response
-	101, // 217: tfplugin5.Provider.ApplyResourceChange:output_type -> tfplugin5.ApplyResourceChange.Response
-	104, // 218: tfplugin5.Provider.ImportResourceState:output_type -> tfplugin5.ImportResourceState.Response
-	106, // 219: tfplugin5.Provider.MoveResourceState:output_type -> tfplugin5.MoveResourceState.Response
-	108, // 220: tfplugin5.Provider.ReadDataSource:output_type -> tfplugin5.ReadDataSource.Response
-	93,  // 221: tfplugin5.Provider.ValidateEphemeralResourceConfig:output_type -> tfplugin5.ValidateEphemeralResourceConfig.Response
-	116, // 222: tfplugin5.Provider.OpenEphemeralResource:output_type -> tfplugin5.OpenEphemeralResource.Response
-	118, // 223: tfplugin5.Provider.RenewEphemeralResource:output_type -> tfplugin5.RenewEphemeralResource.Response
-	120, // 224: tfplugin5.Provider.CloseEphemeralResource:output_type -> tfplugin5.CloseEphemeralResource.Response
-	127, // 225: tfplugin5.Provider.ListResource:output_type -> tfplugin5.ListResource.Event
-	129, // 226: tfplugin5.Provider.ValidateListResourceConfig:output_type -> tfplugin5.ValidateListResourceConfig.Response
-	122, // 227: tfplugin5.Provider.GetFunctions:output_type -> tfplugin5.GetFunctions.Response
-	125, // 228: tfplugin5.Provider.CallFunction:output_type -> tfplugin5.CallFunction.Response
-	131, // 229: tfplugin5.Provider.PlanAction:output_type -> tfplugin5.PlanAction.Response
-	135, // 230: tfplugin5.Provider.InvokeAction:output_type -> tfplugin5.InvokeAction.Event
-	141, // 231: tfplugin5.Provider.ValidateActionConfig:output_type -> tfplugin5.ValidateActionConfig.Response
-	51,  // 232: tfplugin5.Provider.Stop:output_type -> tfplugin5.Stop.Response
-	110, // 233: tfplugin5.Provisioner.GetSchema:output_type -> tfplugin5.GetProvisionerSchema.Response
-	112, // 234: tfplugin5.Provisioner.ValidateProvisionerConfig:output_type -> tfplugin5.ValidateProvisionerConfig.Response
-	114, // 235: tfplugin5.Provisioner.ProvisionResource:output_type -> tfplugin5.ProvisionResource.Response
-	51,  // 236: tfplugin5.Provisioner.Stop:output_type -> tfplugin5.Stop.Response
-	206, // [206:237] is the sub-list for method output_type
-	175, // [175:206] is the sub-list for method input_type
-	175, // [175:175] is the sub-list for extension type_name
-	175, // [175:175] is the sub-list for extension extendee
-	0,   // [0:175] is the sub-list for field type_name
+	17,  // 162: tfplugin5.InvokeAction.Request.client_capabilities:type_name -> tfplugin5.ClientCapabilities
+	137, // 163: tfplugin5.InvokeAction.Event.progress:type_name -> tfplugin5.InvokeAction.Event.Progress
+	138, // 164: tfplugin5.InvokeAction.Event.completed:type_name -> tfplugin5.InvokeAction.Event.Completed
+	5,   // 165: tfplugin5.InvokeAction.Request.LinkedResource.prior_state:type_name -> tfplugin5.DynamicValue
+	5,   // 166: tfplugin5.InvokeAction.Request.LinkedResource.planned_state:type_name -> tfplugin5.DynamicValue
+	5,   // 167: tfplugin5.InvokeAction.Request.LinkedResource.config:type_name -> tfplugin5.DynamicValue
+	12,  // 168: tfplugin5.InvokeAction.Request.LinkedResource.planned_identity:type_name -> tfplugin5.ResourceIdentityData
+	139, // 169: tfplugin5.InvokeAction.Event.Completed.linked_resources:type_name -> tfplugin5.InvokeAction.Event.Completed.LinkedResource
+	6,   // 170: tfplugin5.InvokeAction.Event.Completed.diagnostics:type_name -> tfplugin5.Diagnostic
+	5,   // 171: tfplugin5.InvokeAction.Event.Completed.LinkedResource.new_state:type_name -> tfplugin5.DynamicValue
+	12,  // 172: tfplugin5.InvokeAction.Event.Completed.LinkedResource.new_identity:type_name -> tfplugin5.ResourceIdentityData
+	5,   // 173: tfplugin5.ValidateActionConfig.Request.config:type_name -> tfplugin5.DynamicValue
+	48,  // 174: tfplugin5.ValidateActionConfig.Request.linked_resources:type_name -> tfplugin5.LinkedResourceConfig
+	6,   // 175: tfplugin5.ValidateActionConfig.Response.diagnostics:type_name -> tfplugin5.Diagnostic
+	63,  // 176: tfplugin5.Provider.GetMetadata:input_type -> tfplugin5.GetMetadata.Request
+	71,  // 177: tfplugin5.Provider.GetSchema:input_type -> tfplugin5.GetProviderSchema.Request
+	79,  // 178: tfplugin5.Provider.PrepareProviderConfig:input_type -> tfplugin5.PrepareProviderConfig.Request
+	88,  // 179: tfplugin5.Provider.ValidateResourceTypeConfig:input_type -> tfplugin5.ValidateResourceTypeConfig.Request
+	90,  // 180: tfplugin5.Provider.ValidateDataSourceConfig:input_type -> tfplugin5.ValidateDataSourceConfig.Request
+	81,  // 181: tfplugin5.Provider.UpgradeResourceState:input_type -> tfplugin5.UpgradeResourceState.Request
+	83,  // 182: tfplugin5.Provider.GetResourceIdentitySchemas:input_type -> tfplugin5.GetResourceIdentitySchemas.Request
+	86,  // 183: tfplugin5.Provider.UpgradeResourceIdentity:input_type -> tfplugin5.UpgradeResourceIdentity.Request
+	94,  // 184: tfplugin5.Provider.Configure:input_type -> tfplugin5.Configure.Request
+	96,  // 185: tfplugin5.Provider.ReadResource:input_type -> tfplugin5.ReadResource.Request
+	98,  // 186: tfplugin5.Provider.PlanResourceChange:input_type -> tfplugin5.PlanResourceChange.Request
+	100, // 187: tfplugin5.Provider.ApplyResourceChange:input_type -> tfplugin5.ApplyResourceChange.Request
+	102, // 188: tfplugin5.Provider.ImportResourceState:input_type -> tfplugin5.ImportResourceState.Request
+	105, // 189: tfplugin5.Provider.MoveResourceState:input_type -> tfplugin5.MoveResourceState.Request
+	107, // 190: tfplugin5.Provider.ReadDataSource:input_type -> tfplugin5.ReadDataSource.Request
+	92,  // 191: tfplugin5.Provider.ValidateEphemeralResourceConfig:input_type -> tfplugin5.ValidateEphemeralResourceConfig.Request
+	115, // 192: tfplugin5.Provider.OpenEphemeralResource:input_type -> tfplugin5.OpenEphemeralResource.Request
+	117, // 193: tfplugin5.Provider.RenewEphemeralResource:input_type -> tfplugin5.RenewEphemeralResource.Request
+	119, // 194: tfplugin5.Provider.CloseEphemeralResource:input_type -> tfplugin5.CloseEphemeralResource.Request
+	126, // 195: tfplugin5.Provider.ListResource:input_type -> tfplugin5.ListResource.Request
+	128, // 196: tfplugin5.Provider.ValidateListResourceConfig:input_type -> tfplugin5.ValidateListResourceConfig.Request
+	121, // 197: tfplugin5.Provider.GetFunctions:input_type -> tfplugin5.GetFunctions.Request
+	124, // 198: tfplugin5.Provider.CallFunction:input_type -> tfplugin5.CallFunction.Request
+	130, // 199: tfplugin5.Provider.PlanAction:input_type -> tfplugin5.PlanAction.Request
+	134, // 200: tfplugin5.Provider.InvokeAction:input_type -> tfplugin5.InvokeAction.Request
+	140, // 201: tfplugin5.Provider.ValidateActionConfig:input_type -> tfplugin5.ValidateActionConfig.Request
+	50,  // 202: tfplugin5.Provider.Stop:input_type -> tfplugin5.Stop.Request
+	109, // 203: tfplugin5.Provisioner.GetSchema:input_type -> tfplugin5.GetProvisionerSchema.Request
+	111, // 204: tfplugin5.Provisioner.ValidateProvisionerConfig:input_type -> tfplugin5.ValidateProvisionerConfig.Request
+	113, // 205: tfplugin5.Provisioner.ProvisionResource:input_type -> tfplugin5.ProvisionResource.Request
+	50,  // 206: tfplugin5.Provisioner.Stop:input_type -> tfplugin5.Stop.Request
+	64,  // 207: tfplugin5.Provider.GetMetadata:output_type -> tfplugin5.GetMetadata.Response
+	72,  // 208: tfplugin5.Provider.GetSchema:output_type -> tfplugin5.GetProviderSchema.Response
+	80,  // 209: tfplugin5.Provider.PrepareProviderConfig:output_type -> tfplugin5.PrepareProviderConfig.Response
+	89,  // 210: tfplugin5.Provider.ValidateResourceTypeConfig:output_type -> tfplugin5.ValidateResourceTypeConfig.Response
+	91,  // 211: tfplugin5.Provider.ValidateDataSourceConfig:output_type -> tfplugin5.ValidateDataSourceConfig.Response
+	82,  // 212: tfplugin5.Provider.UpgradeResourceState:output_type -> tfplugin5.UpgradeResourceState.Response
+	84,  // 213: tfplugin5.Provider.GetResourceIdentitySchemas:output_type -> tfplugin5.GetResourceIdentitySchemas.Response
+	87,  // 214: tfplugin5.Provider.UpgradeResourceIdentity:output_type -> tfplugin5.UpgradeResourceIdentity.Response
+	95,  // 215: tfplugin5.Provider.Configure:output_type -> tfplugin5.Configure.Response
+	97,  // 216: tfplugin5.Provider.ReadResource:output_type -> tfplugin5.ReadResource.Response
+	99,  // 217: tfplugin5.Provider.PlanResourceChange:output_type -> tfplugin5.PlanResourceChange.Response
+	101, // 218: tfplugin5.Provider.ApplyResourceChange:output_type -> tfplugin5.ApplyResourceChange.Response
+	104, // 219: tfplugin5.Provider.ImportResourceState:output_type -> tfplugin5.ImportResourceState.Response
+	106, // 220: tfplugin5.Provider.MoveResourceState:output_type -> tfplugin5.MoveResourceState.Response
+	108, // 221: tfplugin5.Provider.ReadDataSource:output_type -> tfplugin5.ReadDataSource.Response
+	93,  // 222: tfplugin5.Provider.ValidateEphemeralResourceConfig:output_type -> tfplugin5.ValidateEphemeralResourceConfig.Response
+	116, // 223: tfplugin5.Provider.OpenEphemeralResource:output_type -> tfplugin5.OpenEphemeralResource.Response
+	118, // 224: tfplugin5.Provider.RenewEphemeralResource:output_type -> tfplugin5.RenewEphemeralResource.Response
+	120, // 225: tfplugin5.Provider.CloseEphemeralResource:output_type -> tfplugin5.CloseEphemeralResource.Response
+	127, // 226: tfplugin5.Provider.ListResource:output_type -> tfplugin5.ListResource.Event
+	129, // 227: tfplugin5.Provider.ValidateListResourceConfig:output_type -> tfplugin5.ValidateListResourceConfig.Response
+	122, // 228: tfplugin5.Provider.GetFunctions:output_type -> tfplugin5.GetFunctions.Response
+	125, // 229: tfplugin5.Provider.CallFunction:output_type -> tfplugin5.CallFunction.Response
+	131, // 230: tfplugin5.Provider.PlanAction:output_type -> tfplugin5.PlanAction.Response
+	135, // 231: tfplugin5.Provider.InvokeAction:output_type -> tfplugin5.InvokeAction.Event
+	141, // 232: tfplugin5.Provider.ValidateActionConfig:output_type -> tfplugin5.ValidateActionConfig.Response
+	51,  // 233: tfplugin5.Provider.Stop:output_type -> tfplugin5.Stop.Response
+	110, // 234: tfplugin5.Provisioner.GetSchema:output_type -> tfplugin5.GetProvisionerSchema.Response
+	112, // 235: tfplugin5.Provisioner.ValidateProvisionerConfig:output_type -> tfplugin5.ValidateProvisionerConfig.Response
+	114, // 236: tfplugin5.Provisioner.ProvisionResource:output_type -> tfplugin5.ProvisionResource.Response
+	51,  // 237: tfplugin5.Provisioner.Stop:output_type -> tfplugin5.Stop.Response
+	207, // [207:238] is the sub-list for method output_type
+	176, // [176:207] is the sub-list for method input_type
+	176, // [176:176] is the sub-list for extension type_name
+	176, // [176:176] is the sub-list for extension extendee
+	0,   // [0:176] is the sub-list for field type_name
 }
 
 func init() { file_tfplugin5_proto_init() }

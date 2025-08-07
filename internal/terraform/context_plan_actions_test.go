@@ -29,10 +29,17 @@ func TestContextPlan_actions(t *testing.T) {
 		planActionResponse *providers.PlanActionResponse
 		planOpts           *PlanOpts
 
-		expectPlanActionCalled    bool
+		expectPlanActionCalled bool
+
+		// Some tests can produce race-conditions in the error messages, so we
+		// have two ways of checking the diagnostics. Use expectValidateDiagnostics
+		// by default, if there is a race condition and you want to allow multiple
+		// versions, please use assertValidateDiagnostics.
 		expectValidateDiagnostics func(m *configs.Config) tfdiags.Diagnostics
-		expectPlanDiagnostics     func(m *configs.Config) tfdiags.Diagnostics
-		assertPlan                func(*testing.T, *plans.Plan)
+		assertValidateDiagnostics func(*testing.T, tfdiags.Diagnostics)
+
+		expectPlanDiagnostics func(m *configs.Config) tfdiags.Diagnostics
+		assertPlan            func(*testing.T, *plans.Plan)
 	}{
 		"unreferenced": {
 			module: map[string]string{
@@ -1116,7 +1123,6 @@ resource "other_object" "a" {
 				}
 			},
 		},
-
 		"targeted unreferenced action": {
 			module: map[string]string{
 				"main.tf": `
@@ -1142,6 +1148,69 @@ action "test_unlinked" "hello" {}
 				}
 			},
 			expectPlanActionCalled: true,
+		},
+		"action config refers to before triggering resource leads to circular dependency": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+				if !diags.HasErrors() {
+					t.Fatalf("expected diagnostics to have errors, but it does not")
+				}
+				if len(diags) != 1 {
+					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+				}
+				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
+					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+				}
+			},
+		},
+
+		"action config refers to after triggering resource leads to circular dependency": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+				if !diags.HasErrors() {
+					t.Fatalf("expected diagnostics to have errors, but it does not")
+				}
+				if len(diags) != 1 {
+					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+				}
+				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
+					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+				}
+			},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -1275,6 +1344,8 @@ action "test_unlinked" "hello" {}
 			diags := ctx.Validate(m, &ValidateOpts{})
 			if tc.expectValidateDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
+			} else if tc.assertValidateDiagnostics != nil {
+				tc.assertValidateDiagnostics(t, diags)
 			} else {
 				tfdiags.AssertNoDiagnostics(t, diags)
 			}

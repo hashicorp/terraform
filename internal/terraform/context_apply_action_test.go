@@ -23,8 +23,9 @@ func TestContext2Apply_actions(t *testing.T) {
 		module                          map[string]string
 		mode                            plans.Mode
 		prevRunState                    *states.State
-		events                          []providers.InvokeActionEvent
+		events                          func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
 		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
+
 		planOpts                        *PlanOpts
 		applyOpts                       *ApplyOpts
 
@@ -161,23 +162,79 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-			events: []providers.InvokeActionEvent{
-				providers.InvokeActionEvent_Completed{
-					Diagnostics: tfdiags.Diagnostics{
-						tfdiags.Sourceless(
-							tfdiags.Error,
-							"test case for failing",
-							"this simulates a provider failing",
-						),
+			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
+				return []providers.InvokeActionEvent{
+					providers.InvokeActionEvent_Completed{
+						Diagnostics: tfdiags.Diagnostics{
+							tfdiags.Sourceless(
+								tfdiags.Error,
+								"test case for failing",
+								"this simulates a provider failing",
+							),
+						},
 					},
-				},
+				}
 			},
 
 			expectDiagnostics: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
-					"test case for failing",
-					"this simulates a provider failing",
+					"Failed to apply actions before test_object.a",
+					"An error occured while invoking action action.act_unlinked.hello: test case for failing: this simulates a provider failing\n",
+				),
+			},
+		},
+
+		"before_create failing with successfully completed actions": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+action "act_unlinked" "world" {}
+action "act_unlinked" "failure" {
+  config {
+    attr = "failure"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello, action.act_unlinked.world, action.act_unlinked.failure]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
+				if !req.PlannedActionData.IsNull() && req.PlannedActionData.GetAttr("attr").AsString() == "failure" {
+					return []providers.InvokeActionEvent{
+						providers.InvokeActionEvent_Completed{
+							Diagnostics: tfdiags.Diagnostics{
+								tfdiags.Sourceless(
+									tfdiags.Error,
+									"test case for failing",
+									"this simulates a provider failing",
+								),
+							},
+						},
+					}
+				} else {
+					return []providers.InvokeActionEvent{
+						providers.InvokeActionEvent_Completed{},
+					}
+				}
+			},
+
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to apply actions before test_object.a",
+					`An error occured while invoking action action.act_unlinked.failure: test case for failing: this simulates a provider failing
+The following actions were successfully invoked:
+- action.act_unlinked.hello
+- action.act_unlinked.world
+As the resource did not change, these actions will be re-invoked in the next apply.`,
 				),
 			},
 		},
@@ -209,8 +266,104 @@ resource "test_object" "a" {
 			expectDiagnostics: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
-					"test case for failing",
-					"this simulates a provider failing before the action is invoked",
+					"Failed to apply actions before test_object.a",
+					"An error occured while invoking action action.act_unlinked.hello: test case for failing: this simulates a provider failing before the action is invoked\n",
+				),
+			},
+		},
+
+		"after_create failing": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
+				return []providers.InvokeActionEvent{
+					providers.InvokeActionEvent_Completed{
+						Diagnostics: tfdiags.Diagnostics{
+							tfdiags.Sourceless(
+								tfdiags.Error,
+								"test case for failing",
+								"this simulates a provider failing",
+							),
+						},
+					},
+				}
+			},
+
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to apply actions after test_object.a",
+					`An error occured while invoking action action.act_unlinked.hello: test case for failing: this simulates a provider failing
+
+The following actions were not yet invoked:
+- action.act_unlinked.hello
+These actions will not be triggered in the next apply, please run "terraform invoke" to invoke them.`,
+				),
+			},
+		},
+
+		"after_create failing with successfully completed actions": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+action "act_unlinked" "world" {}
+action "act_unlinked" "failure" {
+  config {
+    attr = "failure"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello, action.act_unlinked.world, action.act_unlinked.failure]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
+				if !req.PlannedActionData.IsNull() && req.PlannedActionData.GetAttr("attr").AsString() == "failure" {
+					return []providers.InvokeActionEvent{
+						providers.InvokeActionEvent_Completed{
+							Diagnostics: tfdiags.Diagnostics{
+								tfdiags.Sourceless(
+									tfdiags.Error,
+									"test case for failing",
+									"this simulates a provider failing",
+								),
+							},
+						},
+					}
+				} else {
+					return []providers.InvokeActionEvent{
+						providers.InvokeActionEvent_Completed{},
+					}
+				}
+			},
+
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to apply actions after test_object.a",
+					`An error occured while invoking action action.act_unlinked.failure: test case for failing: this simulates a provider failing
+
+The following actions were not yet invoked:
+- action.act_unlinked.failure
+These actions will not be triggered in the next apply, please run "terraform invoke" to invoke them.`,
 				),
 			},
 		},
@@ -243,7 +396,7 @@ resource "test_object" "a" {
 						tfdiags.Sourceless(
 							tfdiags.Error,
 							"test case for failing",
-							"this simulates a provider failing before the action is invoked",
+							"this simulates a provider failing",
 						),
 					}
 				}
@@ -252,10 +405,14 @@ resource "test_object" "a" {
 			expectDiagnostics: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
-					"test case for failing",
-					"this simulates a provider failing before the action is invoked",
+					"Failed to apply actions before test_object.a",
+					`An error occured while invoking action action.act_unlinked.failure: test case for failing: this simulates a provider failing
+The following actions were successfully invoked:
+- action.act_unlinked.hello
+As the resource did not change, these actions will be re-invoked in the next apply.`,
 				),
 			},
+
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "act_unlinked",
@@ -306,7 +463,7 @@ resource "test_object" "a" {
 						tfdiags.Sourceless(
 							tfdiags.Error,
 							"test case for failing",
-							"this simulates a provider failing before the action is invoked",
+							"this simulates a provider failing",
 						),
 					}
 				}
@@ -315,8 +472,11 @@ resource "test_object" "a" {
 			expectDiagnostics: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
-					"test case for failing",
-					"this simulates a provider failing before the action is invoked",
+					"Failed to apply actions before test_object.a",
+					`An error occured while invoking action action.act_unlinked.failure: test case for failing: this simulates a provider failing
+The following actions were successfully invoked:
+- action.act_unlinked.hello
+As the resource did not change, these actions will be re-invoked in the next apply.`,
 				),
 			},
 			// We expect two calls but not the third one, because the second action fails
@@ -556,8 +716,8 @@ action "act_unlinked" "hello" {}
 				defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Completed{})
 
 				events := defaultEvents
-				if len(tc.events) > 0 {
-					events = tc.events
+				if tc.events != nil {
+					events = tc.events(req)
 				}
 
 				return providers.InvokeActionResponse{
@@ -603,7 +763,6 @@ action "act_unlinked" "hello" {}
 									},
 								},
 							},
-
 							Unlinked: &providers.UnlinkedAction{},
 						},
 					},

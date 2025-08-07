@@ -915,9 +915,10 @@ type PlanActionResponse struct {
 }
 
 type InvokeActionRequest struct {
-	ActionType        string
-	LinkedResources   []LinkedResourceInvokeData
-	PlannedActionData cty.Value
+	ActionType         string
+	LinkedResources    []LinkedResourceInvokeData
+	PlannedActionData  cty.Value
+	ClientCapabilities ClientCapabilities
 }
 
 type InvokeActionResponse struct {

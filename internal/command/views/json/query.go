@@ -28,6 +28,12 @@ type QueryResult struct {
 	ImportConfig   string                     `json:"import_config,omitempty"`
 }
 
+type QueryComplete struct {
+	Address      string `json:"address"`
+	ResourceType string `json:"resource_type"`
+	Total        int    `json:"total"`
+}
+
 func NewQueryStart(addr addrs.AbsResourceInstance, input_config cty.Value) QueryStart {
 	return QueryStart{
 		Address:      addr.String(),
@@ -52,6 +58,14 @@ func NewQueryResult(listAddr addrs.AbsResourceInstance, value cty.Value, generat
 		ImportConfig:   importConfig,
 	}
 	return result
+}
+
+func NewQueryComplete(addr addrs.AbsResourceInstance, total int) QueryComplete {
+	return QueryComplete{
+		Address:      addr.String(),
+		ResourceType: addr.Resource.Resource.Type,
+		Total:        total,
+	}
 }
 
 func marshalValues(value cty.Value) map[string]json.RawMessage {
