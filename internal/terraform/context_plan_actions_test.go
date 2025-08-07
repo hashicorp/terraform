@@ -1149,6 +1149,402 @@ action "test_unlinked" "hello" {}
 			},
 			expectPlanActionCalled: true,
 		},
+		"targeted referenced action": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				// The action should not be triggered by the action_trigger block, but only through the targeted action invocation.
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("Unexpected number of action invocations: %d", len(plan.Changes.ActionInvocations))
+				}
+
+				// TODO: Assert that the action invocation is a CLI triggered one
+				if len(plan.Changes.Resources) > 0 {
+					t.Fatalf("Expected no resource changes, but got %d", len(plan.Changes.Resources))
+				}
+			},
+			expectPlanActionCalled: true,
+		},
+
+		"targeted expanded action with imprecise target": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  count = 3
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+			// TODO: Could also be validate diagnostics
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid action target",
+					Detail:   "Action 'action.test_unlinked.hello' is not a valid target. This action is expanded, please target the instance by using 'action.test_unlinked.hello[0]' or 'action.test_unlinked.hello[\"key\"]'.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
+					},
+				})
+			},
+
+			expectPlanActionCalled: false,
+		},
+
+		"targeted count action with precise target": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  count = 3
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.IntKey(1),
+					},
+				}},
+				ActionInvoke: true,
+			},
+
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("Unexpected number of action invocations: %d", len(plan.Changes.ActionInvocations))
+				}
+				action := plan.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.test_unlinked.hello[1]" {
+					t.Fatalf("Expected action address to be 'action.test_unlinked.hello[1]', got '%s'", action.Addr)
+				}
+			},
+			expectPlanActionCalled: true,
+		},
+		"targeted for_each action with precise target": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  for_each = toset(["a", "b", "c"])
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.StringKey("c"),
+					},
+				}},
+				ActionInvoke: true,
+			},
+
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("Unexpected number of action invocations: %d", len(plan.Changes.ActionInvocations))
+				}
+				action := plan.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.test_unlinked.hello[\"c\"]" {
+					t.Fatalf("Expected action address to be 'action.test_unlinked.hello[\"c\"]', got '%s'", action.Addr)
+				}
+			},
+			expectPlanActionCalled: true,
+		},
+
+		"targeted action with existing dependencies": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+    name = "config-value"
+}
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name": "state-value"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("Unexpected number of action invocations: %d", len(plan.Changes.ActionInvocations))
+				}
+				action := plan.Changes.ActionInvocations[0]
+				val, err := action.ConfigValue.Decode(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				}))
+				if err != nil {
+					t.Fatalf("Failed to decode action config value: %v", err)
+				}
+				if val.GetAttr("attr").AsString() != "state-value" {
+					t.Fatalf("Expected action config value to be 'state-value', got '%s'", val.GetAttr("attr").AsString())
+				}
+
+				if len(plan.Changes.Resources) != 0 {
+					t.Fatalf("Expected no resource changes, but got %d", len(plan.Changes.Resources))
+				}
+			},
+			expectPlanActionCalled: true,
+		},
+
+		"targeted action with not yet created resource": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+    name = "config-value"
+}
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Action uses resource non-existent in state",
+					Detail:   "Action 'action.test_unlinked.hello' references resource 'test_object.a' which is not present in the state. This action cannot be planned.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						// TODO: set this to reference in action.test_unlinked.hello.config.attr
+						Start: hcl.Pos{Line: 6, Column: 10, Byte: 112},
+						End:   hcl.Pos{Line: 6, Column: 40, Byte: 142},
+					},
+				})
+			},
+			expectPlanActionCalled: false,
+		},
+
+		"targeted action with dependency - dependency should be refreshed": {
+			toBeImplemented: true, // TODO: This could be done in a separate issue
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+    name = "config-value"
+}
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name": "state-value"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+
+			// TODO: expect refresh to be called on the resource
+			// TODO: Mock the refresh call to provide an updated value
+			// TODO: Validate the updated value makes it into state
+
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("Unexpected number of action invocations: %d", len(plan.Changes.ActionInvocations))
+				}
+				action := plan.Changes.ActionInvocations[0]
+				val, err := action.ConfigValue.Decode(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				}))
+				if err != nil {
+					t.Fatalf("Failed to decode action config value: %v", err)
+				}
+				if val.GetAttr("attr").AsString() != "refreshed-value" {
+					t.Fatalf("Expected action config value to be 'refreshed-value', got '%s'", val.GetAttr("attr").AsString())
+				}
+
+				if len(plan.Changes.Resources) != 0 {
+					t.Fatalf("Expected no resource changes, but got %d", len(plan.Changes.Resources))
+				}
+			},
+			expectPlanActionCalled: true,
+		},
+
+		"invoked action in module": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"mod/main.tf": `
+action "test_unlinked" "hello" {}
+			`,
+
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Module: addrs.RootModuleInstance.Child("mod", addrs.NoKey),
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected one action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+				action := p.Changes.ActionInvocations[0]
+
+				if action.Addr.String() != "module.mod.action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+			},
+		},
+
+		"invoked action in expanded module": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"mod/main.tf": `
+action "test_unlinked" "hello" {}
+			`,
+
+				"main.tf": `
+module "mod" {
+    count = 2
+    source = "./mod"
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{addrs.AbsActionInstance{
+					Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
+					Action: addrs.ActionInstance{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "hello",
+						},
+						Key: addrs.NoKey,
+					},
+				}},
+				ActionInvoke: true,
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected one action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+				action := p.Changes.ActionInvocations[0]
+
+				if action.Addr.String() != "module.mod[1].action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
+				}
+			},
+		},
+
 		"action config refers to before triggering resource leads to circular dependency": {
 			module: map[string]string{
 				"main.tf": `
