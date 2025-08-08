@@ -3228,6 +3228,8 @@ func TestInit_testsWithModule(t *testing.T) {
 }
 
 func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
+	t.Setenv("SARAH_DEBUG_ISSUE", "1")
+
 	// Create a temporary working directory with test config
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-with-state-store"), td)

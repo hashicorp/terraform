@@ -6,6 +6,7 @@ package command
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -148,7 +149,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		diags = diags.Append(earlyConfDiags)
 		view.Diagnostics(diags)
 		return 1
-	} else {
+	} else if os.Getenv("SARAH_DEBUG_ISSUE") == "1" {
 		fmt.Println("c.Meta.AllowExperimentalFeatures", c.Meta.AllowExperimentalFeatures)
 		fmt.Println("initArgs.EnablePssExperiment", initArgs.EnablePssExperiment)
 	}
