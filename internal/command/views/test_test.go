@@ -480,7 +480,7 @@ func TestTestHuman_Run(t *testing.T) {
 		StdErr   string
 	}{
 		"pass": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... pass\n",
 		},
@@ -502,19 +502,19 @@ some warning happened during this test
 		},
 
 		"pending": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pending},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pending},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... pending\n",
 		},
 
 		"skip": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Skip},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Skip},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... skip\n",
 		},
 
 		"fail": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Fail},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Fail},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... fail\n",
 		},
@@ -542,7 +542,7 @@ other details
 		},
 
 		"error": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Error},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Error},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... fail\n",
 		},
@@ -725,15 +725,15 @@ resource "test_resource" "creating" {
 		// These next three tests should print nothing, as we only report on
 		// progress complete.
 		"progress_starting": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			Progress: moduletest.Starting,
 		},
 		"progress_running": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			Progress: moduletest.Running,
 		},
 		"progress_teardown": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			Progress: moduletest.TearDown,
 		},
 	}
@@ -822,7 +822,7 @@ this time it is very bad
 			diags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(tfdiags.Error, "first error", "this time it is very bad"),
 			},
-			run:   &moduletest.Run{Name: "run_block"},
+			run:   &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}},
 			file:  &moduletest.File{Name: "main.tftest.hcl"},
 			state: states.NewState(),
 			stderr: `Terraform encountered an error destroying resources created while executing
@@ -1973,7 +1973,7 @@ func TestTestJSON_DestroySummary(t *testing.T) {
 		},
 		"state_from_run": {
 			file: &moduletest.File{Name: "main.tftest.hcl"},
-			run:  &moduletest.Run{Name: "run_block"},
+			run:  &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
 					addrs.Resource{
@@ -2380,7 +2380,7 @@ func TestTestJSON_Run(t *testing.T) {
 		want     []map[string]interface{}
 	}{
 		"starting": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			progress: moduletest.Starting,
 			want: []map[string]interface{}{
 				{
@@ -2401,7 +2401,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"running": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			progress: moduletest.Running,
 			elapsed:  2024,
 			want: []map[string]interface{}{
@@ -2423,7 +2423,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"teardown": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			progress: moduletest.TearDown,
 			want: []map[string]interface{}{
 				{
@@ -2444,7 +2444,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"pass": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2503,7 +2503,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"pending": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pending},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pending},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2524,7 +2524,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"skip": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Skip},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Skip},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2545,7 +2545,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"fail": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Fail},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Fail},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2620,7 +2620,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"error": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Error},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Error},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{

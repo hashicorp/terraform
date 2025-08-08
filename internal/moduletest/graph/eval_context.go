@@ -23,17 +23,9 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-// TestFileState is a helper struct that just maps a run block to the state that
-// was produced by the execution of that run block.
-type TestFileState struct {
-	Run   *moduletest.Run
-	State *states.State
-}
 
 // EvalContext is a container for context relating to the evaluation of a
 // particular .tftest.hcl file.
@@ -67,6 +59,10 @@ type EvalContext struct {
 	FileStates map[string]*TestFileState
 	stateLock  sync.Mutex
 
+	// This is a manifest that is used to keep track of the state files created
+	// during the test runs.
+	manifest *TestManifest
+
 	// cancelContext and stopContext can be used to terminate the evaluation of the
 	// test suite when a cancellation or stop signal is received.
 	// cancelFunc and stopFunc are the corresponding functions to call to signal
@@ -75,20 +71,26 @@ type EvalContext struct {
 	cancelFunc    context.CancelFunc
 	stopContext   context.Context
 	stopFunc      context.CancelFunc
-
-	config   *configs.Config
-	renderer views.Test
-	verbose  bool
+	config        *configs.Config
+	renderer      views.Test
+	verbose       bool
 
 	deferralAllowed bool
 	evalSem         terraform.Semaphore
+	evalSem terraform.Semaphore
+
+	// repair is true if the test suite is being run in cleanup repair mode.
+	// It is only set when in test cleanup mode.
+	repair bool
 }
 
 type EvalContextOpts struct {
 	Verbose           bool
+	Repair            bool
 	Render            views.Test
 	CancelCtx         context.Context
 	StopCtx           context.Context
+	Manifest          *TestManifest
 	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 	Config            *configs.Config
 	Concurrency       int
@@ -119,10 +121,12 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		stopContext:       stopCtx,
 		stopFunc:          stop,
 		verbose:           opts.Verbose,
+		repair:            opts.Repair,
 		renderer:          opts.Render,
 		config:            opts.Config,
 		deferralAllowed:   opts.DeferralAllowed,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
+		manifest:          opts.Manifest,
 	}
 }
 
@@ -304,9 +308,9 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		hclCtx, moreDiags := scope.EvalContext(refs)
 		ruleDiags = ruleDiags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			// if we can't evaluate the context properly, we can't evaulate the rule
+			// if we can't evaluate the context properly, we can't evaluate the rule
 			// we add the diagnostics to the main diags and continue to the next rule
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evaluate the context, so cannot evaluate it", i, run.Addr())
 			status = status.Merge(moduletest.Error)
 			diags = diags.Append(ruleDiags)
 			continue
@@ -561,12 +565,29 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 	return diags
 }
 
-func (ec *EvalContext) SetFileState(key string, state *TestFileState) {
+// UpdateStateFile updates the internal state file for a given state_key value.
+// The TestFileState argument is used to update only the exported fields in the
+// preexisting TestFileState value. Unexported fields' values are preserved
+// from when they are first set while building the test graph.
+//
+// If there isn't a state file for the given state_key then UpdateStateFile will use
+// the TestFileState argument to set its value.
+func (ec *EvalContext) UpdateStateFile(key string, state *TestFileState) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
+	oldState, exists := ec.FileStates[key]
+
+	if !exists {
+		ec.FileStates[key] = state
+	}
+
 	ec.FileStates[key] = &TestFileState{
-		Run:   state.Run,
-		State: state.State,
+		File:   state.File,
+		Run:    state.Run,
+		State:  state.State,
+		Reason: state.Reason,
+
+		backend: oldState.backend,
 	}
 }
 
@@ -574,6 +595,13 @@ func (ec *EvalContext) GetFileState(key string) *TestFileState {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
 	return ec.FileStates[key]
+}
+
+func (ec *EvalContext) WriteFileState(key string, state *TestFileState) error {
+	ec.UpdateStateFile(key, state)
+	ec.stateLock.Lock()
+	defer ec.stateLock.Unlock()
+	return ec.manifest.writeState(key, state)
 }
 
 // ReferencesCompleted returns true if all the listed references were actually
