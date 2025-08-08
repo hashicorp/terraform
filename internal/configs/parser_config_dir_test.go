@@ -144,6 +144,7 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 			}
 
 			parser := NewParser(nil)
+			parser.AllowLanguageExperiments(true)
 			mod, diags := parser.LoadConfigDir(directory, MatchTestFiles(testDirectory))
 			if len(diags) > 0 { // We don't want any warnings or errors.
 				t.Errorf("unexpected diagnostics")
@@ -332,6 +333,7 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 			parser := testParser(map[string]string{
 				fmt.Sprintf("%s.tftest.hcl", name): string(src),
 			})
+			parser.AllowLanguageExperiments(true)
 
 			_, actual := parser.LoadTestFile(fmt.Sprintf("%s.tftest.hcl", name))
 			assertExactDiagnostics(t, actual, expected)
