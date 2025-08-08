@@ -1686,7 +1686,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 
 				// TODO: Confirm if defaulting to creation on first use (rather than error) is a good idea
 				// Make the default workspace. All other workspaces are user-created via the workspace commands.
-				bStateMgr, err := b.StateMgr(backend.DefaultStateName)
+				defaultSMgr, err := b.StateMgr(backend.DefaultStateName)
 				if err != nil {
 					diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
 						c.Type,
@@ -1696,11 +1696,11 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 					return nil, diags
 				}
 				emptyState := states.NewState()
-				if err := bStateMgr.WriteState(emptyState); err != nil {
+				if err := defaultSMgr.WriteState(emptyState); err != nil {
 					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
 					return nil, diags
 				}
-				if err := backendSMgr.PersistState(); err != nil {
+				if err := defaultSMgr.PersistState(nil); err != nil {
 					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
 					return nil, diags
 				}
