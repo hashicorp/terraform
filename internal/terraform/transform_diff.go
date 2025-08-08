@@ -46,7 +46,7 @@ func (t *DiffTransformer) hasConfigConditions(addr addrs.AbsResourceInstance) bo
 }
 
 func (t *DiffTransformer) Transform(g *Graph) error {
-	if t.Changes == nil || len(t.Changes.Resources) == 0 {
+	if t.Changes == nil || (len(t.Changes.Resources) == 0 && len(t.Changes.ActionInvocations) == 0) {
 		// Nothing to do!
 		return nil
 	}
@@ -88,7 +88,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// that will be connected to the resource instance nodes.
 	runBeforeNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
 	runAfterNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
-	var cliTriggeredNode []*plans.ActionInvocationInstanceSrc
+	cliTriggeredNode := []*plans.ActionInvocationInstanceSrc{}
 	for _, ai := range changes.ActionInvocations {
 		if _, ok := ai.ActionTrigger.(plans.InvokeCmdActionTrigger); ok {
 			cliTriggeredNode = append(cliTriggeredNode, ai)

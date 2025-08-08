@@ -66,8 +66,8 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 		if ai == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				fmt.Sprintf("Failed to find action invocation instance %s in changes.", ai.Addr),
-				fmt.Sprintf("The action invocation instance %s was not found in the changes for %s.", ai.Addr, ai.ActionTrigger.String()),
+				fmt.Sprintf("Failed to find action invocation instance %s in changes.", invocation.Addr),
+				fmt.Sprintf("The action invocation instance %s was not found in the changes for %s.", invocation.Addr, invocation.ActionTrigger.String()),
 			))
 			return finishedActionInvocations, diags
 		}

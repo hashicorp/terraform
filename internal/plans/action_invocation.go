@@ -80,7 +80,7 @@ func (t InvokeCmdActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 }
 
 func (t InvokeCmdActionTrigger) Equals(other ActionTrigger) bool {
-	_, ok := other.(LifecycleActionTrigger)
+	_, ok := other.(InvokeCmdActionTrigger)
 	return ok
 }
 
