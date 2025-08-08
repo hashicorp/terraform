@@ -32,25 +32,3 @@
 builtin/provisioners/file               @hashicorp/terraform-core
 builtin/provisioners/local-exec         @hashicorp/terraform-core
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
-
-# engineering and web presence get notified of, and can approve changes to web tooling, but not content at developer.hashicorp.com/terraform/docs
-
-/website/               @hashicorp/web-presence @hashicorp/terraform-core
-/website/data/
-/website/public/
-/website/content/
-
-# education and engineering get notified of, and can approve changes to web content at developer.hashicorp.com/terraform/docs
-
-/website/data/          @hashicorp/terraform-education @hashicorp/terraform-core
-/website/docs/          @hashicorp/terraform-education @hashicorp/terraform-core
-/website/img/           @hashicorp/terraform-education @hashicorp/terraform-core
-/website/README.md      @hashicorp/terraform-education @hashicorp/terraform-core
-/website/public/        @hashicorp/terraform-education @hashicorp/terraform-core
-/website/content/       @hashicorp/terraform-education @hashicorp/terraform-core
-
-# Backend maintainers also get co-ownership of their backend docs pages
-/website/docs/language/backend/azurerm.mdx         @hashicorp/terraform-education @hashicorp/terraform-core @hashicorp/terraform-azure
-/website/docs/language/backend/gcs.mdx             @hashicorp/terraform-education @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
-/website/docs/language/backend/kubernetes.mdx      @hashicorp/terraform-education @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
-/website/docs/language/backend/s3.mdx              @hashicorp/terraform-education @hashicorp/terraform-core @hashicorp/terraform-aws

@@ -115,7 +115,7 @@ func initCommands(
 
 	// The command list is included in the terraform -help
 	// output, which is in turn included in the docs at
-	// website/docs/cli/commands/index.html.markdown; if you
+	// .../docs/cli/commands/index.mdx (in web-unified-docs); if you
 	// add, remove or reclassify commands then consider updating
 	// that to match.
 

@@ -39,21 +39,9 @@ copyrightfix:
 syncdeps:
 	"$(CURDIR)/scripts/syncdeps.sh"
 
-# Run this if working on the website locally to run in watch mode.
-website:
-	$(MAKE) -C website website
-
-# Use this if you have run `website/build-local` to use the locally built image.
-website/local:
-	$(MAKE) -C website website/local
-
-# Run this to generate a new local Docker image.
-website/build-local:
-	$(MAKE) -C website website/build-local
-
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck importscheck vetcheck generate protobuf staticcheck syncdeps website website/local website/build-local
+.PHONY: fmtcheck importscheck vetcheck generate protobuf staticcheck syncdeps

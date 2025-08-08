@@ -41,7 +41,7 @@ This repository contains only Terraform core, which includes the command line in
 
 - To learn more about how we handle bug reports, refer to the [bug triage guide](./BUGPROCESS.md).
 
-- To learn how to contribute to the Terraform documentation in this repository, refer to the [Terraform Documentation README](/website/README.md).
+- To learn how to contribute to the Terraform documentation, refer to the [Web Unified Docs repository](https://github.com/hashicorp/web-unified-docs).
 
 ## License
 
