@@ -6,9 +6,9 @@ package command
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -142,12 +142,20 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		return 1
 	}
-	if earlyConfDiags.HasErrors() && earlyConfDiags[0].Description().Detail == "Blocks of type \"state_store\" are not expected here." {
-		// Usually these early configuration diagnostics aren't acted on until after backend initialization.
-		// However if a user attempts to use PSS without enabling experiments they'll experience issues in initBackend
-		// if we don't return as soon as this diagnostic is raised.
+	if !c.Meta.AllowExperimentalFeatures && rootModEarly.StateStore != nil {
+		// TODO(SarahFrench/radeksimko) - remove when this feature isn't experimental.
+		// This approach for making the feature experimental is required
+		// to let us assert the feature is gated behind an experiment in tests.
+		// See https://github.com/hashicorp/terraform/pull/37350#issuecomment-3168555619
 		diags = diags.Append(earlyConfDiags)
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported block type",
+			Detail:   "Blocks of type \"state_store\" are not expected here.",
+			Subject:  &rootModEarly.StateStore.TypeRange,
+		})
 		view.Diagnostics(diags)
+
 		return 1
 	}
 
