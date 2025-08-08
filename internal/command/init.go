@@ -929,7 +929,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 
 	if state == nil {
 		// if there is no state there are no providers to get
-		return true, nil, nil
+		return true, depsfile.NewLocks(), nil
 	}
 	reqs := state.ProviderRequirements()
 
