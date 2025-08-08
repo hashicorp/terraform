@@ -640,13 +640,12 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 					ClientCapabilities: ctx.ClientCapabilities(),
 				})
 
-				// TODO: Deal with deferred responses
 				diags = diags.Append(resp.Diagnostics)
 				if diags.HasErrors() {
 					return diags
 				}
 
-				ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
+				aii := plans.ActionInvocationInstance{
 					Addr:                    absActionAddr,
 					ProviderAddr:            actionInstance.ProviderAddr,
 					TriggeringResourceAddr:  n.Addr,
@@ -654,7 +653,13 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 					ActionTriggerBlockIndex: i,
 					ActionsListIndex:        j,
 					ConfigValue:             actionInstance.ConfigValue,
-				})
+				}
+
+				if ctx.Deferrals().DeferralAllowed() && resp.Deferred != nil {
+					ctx.Deferrals().ReportActionInvocationDeferred(aii, resp.Deferred.Reason)
+				}
+
+				ctx.Changes().AppendActionInvocation(&aii)
 			}
 		}
 	}
