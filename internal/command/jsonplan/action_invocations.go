@@ -91,58 +91,68 @@ func marshalConfigValues(value cty.Value) map[string]json.RawMessage {
 
 func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, schemas *terraform.Schemas) ([]ActionInvocation, error) {
 	ret := make([]ActionInvocation, 0, len(actions))
-
 	for _, action := range actions {
-		schema := schemas.ActionTypeConfig(
-			action.ProviderAddr.Provider,
-			action.Addr.Action.Action.Type,
-		)
-		if schema.ConfigSchema == nil {
-			return ret, fmt.Errorf("no schema found for %s (in provider %s)", action.Addr.Action.Action.Type, action.ProviderAddr.Provider)
-		}
-
-		actionDec, err := action.Decode(&schema)
+		ai, err := MarshalActionInvocation(action, schemas)
 		if err != nil {
-			return ret, fmt.Errorf("failed to decode action %s: %w", action.Addr, err)
-		}
-
-		ai := ActionInvocation{
-			Address:      action.Addr.String(),
-			Type:         action.Addr.Action.Action.Type,
-			Name:         action.Addr.Action.Action.Name,
-			ProviderName: action.ProviderAddr.Provider.String(),
-
-			// These fields are only used for non-CLI actions. We will need to find another format
-			// once we support terraform invoke.
-			ActionTriggerBlockIndex:   &action.ActionTriggerBlockIndex,
-			ActionsListIndex:          &action.ActionsListIndex,
-			TriggeringResourceAddress: action.TriggeringResourceAddr.String(),
-			TriggerEvent:              action.TriggerEvent.String(),
-		}
-
-		if actionDec.ConfigValue != cty.NilVal {
-			// TODO: Support sensitive and ephemeral values in action invocations.
-			_, pvms := actionDec.ConfigValue.UnmarkDeepWithPaths()
-			sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
-			if len(sensitivePaths) > 0 {
-				return ret, fmt.Errorf("action %s has sensitive config values, which are not supported in action invocations", action.Addr)
-			}
-			ephemeralPaths, otherMarks := marks.PathsWithMark(otherMarks, marks.Ephemeral)
-			if len(ephemeralPaths) > 0 {
-				return ret, fmt.Errorf("action %s has ephemeral config values, which are not supported in action invocations", action.Addr)
-			}
-			if len(otherMarks) > 0 {
-				return ret, fmt.Errorf("action %s has config values with unsupported marks: %v", action.Addr, otherMarks)
-			}
-
-			if actionDec.ConfigValue.IsWhollyKnown() {
-				ai.ConfigValues = marshalConfigValues(actionDec.ConfigValue)
-			} else {
-				knowns := omitUnknowns(actionDec.ConfigValue)
-				ai.ConfigValues = marshalConfigValues(knowns)
-			}
+			return ret, err
 		}
 		ret = append(ret, ai)
+	}
+
+	return ret, nil
+}
+
+func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas *terraform.Schemas) (ActionInvocation, error) {
+	ret := ActionInvocation{}
+
+	schema := schemas.ActionTypeConfig(
+		action.ProviderAddr.Provider,
+		action.Addr.Action.Action.Type,
+	)
+	if schema.ConfigSchema == nil {
+		return ret, fmt.Errorf("no schema found for %s (in provider %s)", action.Addr.Action.Action.Type, action.ProviderAddr.Provider)
+	}
+
+	actionDec, err := action.Decode(&schema)
+	if err != nil {
+		return ret, fmt.Errorf("failed to decode action %s: %w", action.Addr, err)
+	}
+
+	ret = ActionInvocation{
+		Address:      action.Addr.String(),
+		Type:         action.Addr.Action.Action.Type,
+		Name:         action.Addr.Action.Action.Name,
+		ProviderName: action.ProviderAddr.Provider.String(),
+
+		// These fields are only used for non-CLI actions. We will need to find another format
+		// once we support terraform invoke.
+		ActionTriggerBlockIndex:   &action.ActionTriggerBlockIndex,
+		ActionsListIndex:          &action.ActionsListIndex,
+		TriggeringResourceAddress: action.TriggeringResourceAddr.String(),
+		TriggerEvent:              action.TriggerEvent.String(),
+	}
+
+	if actionDec.ConfigValue != cty.NilVal {
+		// TODO: Support sensitive and ephemeral values in action invocations.
+		_, pvms := actionDec.ConfigValue.UnmarkDeepWithPaths()
+		sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+		if len(sensitivePaths) > 0 {
+			return ret, fmt.Errorf("action %s has sensitive config values, which are not supported in action invocations", action.Addr)
+		}
+		ephemeralPaths, otherMarks := marks.PathsWithMark(otherMarks, marks.Ephemeral)
+		if len(ephemeralPaths) > 0 {
+			return ret, fmt.Errorf("action %s has ephemeral config values, which are not supported in action invocations", action.Addr)
+		}
+		if len(otherMarks) > 0 {
+			return ret, fmt.Errorf("action %s has config values with unsupported marks: %v", action.Addr, otherMarks)
+		}
+
+		if actionDec.ConfigValue.IsWhollyKnown() {
+			ret.ConfigValues = marshalConfigValues(actionDec.ConfigValue)
+		} else {
+			knowns := omitUnknowns(actionDec.ConfigValue)
+			ret.ConfigValues = marshalConfigValues(knowns)
+		}
 	}
 
 	return ret, nil

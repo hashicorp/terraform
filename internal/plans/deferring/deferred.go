@@ -80,6 +80,12 @@ type Deferred struct {
 	// all of those options to decide if each instance is relevant.
 	ephemeralResourceInstancesDeferred addrs.Map[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]]
 
+	// actionInvocationDeferred tracks the action invocations that have been
+	// deferred despite their full addresses being known. This can happen
+	// either because an upstream change was already deferred, or because
+	// the action invocation is not yet ready to be executed.
+	actionInvocationDeferred []*plans.DeferredActionInvocation
+
 	// partialExpandedResourcesDeferred tracks placeholders that cover an
 	// unbounded set of potential resource instances in situations where we
 	// don't yet even have enough information to predict which instances of
@@ -112,6 +118,11 @@ type Deferred struct {
 	// a deferred data source, then that resource should be deferred as well.
 	partialExpandedEphemeralResourceDeferred addrs.Map[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]]
 
+	// partialExpandedActionInvocationDeferred tracks placeholders that cover an
+	// unbounded set of potential action invocations in situations where we don't yet
+	// even have enough information to predict which action invocation will exist.
+	partialExpandedActionInvocationDeferred addrs.Map[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]]
+
 	// partialExpandedModulesDeferred tracks all of the partial-expanded module
 	// prefixes we were notified about.
 	//
@@ -137,10 +148,12 @@ func NewDeferred(enabled bool) *Deferred {
 		resourceInstancesDeferred:                addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]](),
 		ephemeralResourceInstancesDeferred:       addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]](),
 		dataSourceInstancesDeferred:              addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]](),
+		actionInvocationDeferred:                 []*plans.DeferredActionInvocation{},
 		partialExpandedResourcesDeferred:         addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedDataSourcesDeferred:       addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedEphemeralResourceDeferred: addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedModulesDeferred:           addrs.MakeSet[addrs.PartialExpandedModule](),
+		partialExpandedActionInvocationDeferred:  addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 	}
 }
 
@@ -174,6 +187,11 @@ func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange 
 		}
 	}
 	return changes
+}
+
+// GetDeferredActionInvocations returns a list of all deferred action invocations.
+func (d *Deferred) GetDeferredActionInvocations() []*plans.DeferredActionInvocation {
+	return d.actionInvocationDeferred
 }
 
 // SetExternalDependencyDeferred modifies a freshly-constructed [Deferred]
@@ -212,9 +230,11 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			d.resourceInstancesDeferred.Len() != 0 ||
 			d.dataSourceInstancesDeferred.Len() != 0 ||
 			d.ephemeralResourceInstancesDeferred.Len() != 0 ||
+			len(d.actionInvocationDeferred) != 0 ||
 			d.partialExpandedResourcesDeferred.Len() != 0 ||
 			d.partialExpandedDataSourcesDeferred.Len() != 0 ||
 			d.partialExpandedEphemeralResourceDeferred.Len() != 0 ||
+			d.partialExpandedActionInvocationDeferred.Len() != 0 ||
 			len(d.partialExpandedModulesDeferred) != 0)
 }
 
@@ -626,8 +646,32 @@ func (d *Deferred) ReportModuleExpansionDeferred(addr addrs.PartialExpandedModul
 	d.partialExpandedModulesDeferred.Add(addr)
 }
 
+func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInstance, reason providers.DeferredReason) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	// Check if the action invocation is already deferred
+	for _, deferred := range d.actionInvocationDeferred {
+		if deferred.ActionInvocationInstance.Equal(&ai) {
+			// This indicates a bug in the caller, since our graph walk should
+			// ensure that we visit and evaluate each distinct action invocation
+			// only once.
+			panic(fmt.Sprintf("duplicate deferral report for action %s invoked by %s", ai.Addr.String(), ai.TriggeringResourceAddr.String()))
+		}
+	}
+
+	d.actionInvocationDeferred = append(d.actionInvocationDeferred, &plans.DeferredActionInvocation{
+		ActionInvocationInstance: &ai,
+		DeferredReason:           reason,
+	})
+}
+
+// TODO: Report deferred action invocations
+// TODO: Implement ShouldBeDeferred for actions
+// TODO: Look into where deferred values are used
+
 // UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
 // provider was deferred although deferrals were not allowed.
-func UnexpectedProviderDeferralDiagnostic(addrs addrs.AbsResourceInstance) tfdiags.Diagnostic {
+func UnexpectedProviderDeferralDiagnostic(addrs fmt.Stringer) tfdiags.Diagnostic {
 	return tfdiags.Sourceless(tfdiags.Error, "Provider deferred changes when Terraform did not allow deferrals", fmt.Sprintf("The provider signaled a deferred action for %q, but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.", addrs.String()))
 }

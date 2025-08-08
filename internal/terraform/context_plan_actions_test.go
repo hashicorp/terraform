@@ -23,11 +23,11 @@ import (
 func TestContextPlan_actions(t *testing.T) {
 
 	for name, tc := range map[string]struct {
-		toBeImplemented    bool
-		module             map[string]string
-		buildState         func(*states.SyncState)
-		planActionResponse *providers.PlanActionResponse
-		planOpts           *PlanOpts
+		toBeImplemented bool
+		module          map[string]string
+		buildState      func(*states.SyncState)
+		planActionFn    func(providers.PlanActionRequest) providers.PlanActionResponse
+		planOpts        *PlanOpts
 
 		expectPlanActionCalled bool
 
@@ -676,10 +676,12 @@ resource "test_object" "a" {
 `,
 			},
 
-			planActionResponse: &providers.PlanActionResponse{
-				Diagnostics: tfdiags.Diagnostics{
-					tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
-				},
+			planActionFn: func(providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
+					},
+				}
 			},
 
 			expectPlanActionCalled: true,
@@ -1187,6 +1189,266 @@ resource "test_object" "a" {
 				}
 			},
 		},
+
+		"action with deferred plan while deferral is not allowed": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: false,
+			},
+			expectPlanActionCalled: true,
+			planActionFn: func(providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				diags = append(diags, tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider deferred changes when Terraform did not allow deferrals",
+					`The provider signaled a deferred action for "action.test_unlinked.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
+				))
+				return diags
+			},
+		},
+
+		"action with deferred plan while deferral is allowed": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			expectPlanActionCalled: true,
+			planActionFn: func(providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected plan to have no action invocations, but it has %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Complete != false {
+					t.Fatalf("expected plan to be incomplete, but it is complete")
+				}
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected plan to have 1 deferred action invocation, but it has %d", len(p.DeferredActionInvocations))
+				}
+
+				if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action invocation to have action ID 'action.test_unlinked.hello', but it has '%s'", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action invocation to have reason 'DeferredReasonAbsentPrereq', but it has '%s'", p.DeferredActionInvocations[0].DeferredReason)
+				}
+
+				// Should not defer the resource
+				if len(p.DeferredResources) != 0 {
+					t.Fatalf("expected plan to have no deferred resources, but it has %d", len(p.DeferredResources))
+				}
+			},
+		},
+
+		"deferring before actions should defer the resource": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			expectPlanActionCalled: true,
+			planActionFn: func(providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected plan to have no action invocations, but it has %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Complete != false {
+					t.Fatalf("expected plan to be incomplete, but it is complete")
+				}
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected plan to have 1 deferred action invocation, but it has %d", len(p.DeferredActionInvocations))
+				}
+
+				if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action invocation to have action ID 'action.test_unlinked.hello', but it has '%s'", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action invocation to have reason 'DeferredReasonAbsentPrereq', but it has '%s'", p.DeferredActionInvocations[0].DeferredReason)
+				}
+
+				if len(p.DeferredResources) != 1 {
+					t.Fatalf("expected plan to have 1 deferred resource, but it has %d", len(p.DeferredResources))
+				}
+				deferredResource := p.DeferredResources[0]
+				if deferredResource.ChangeSrc.Addr.String() != "test_object.a" {
+					t.Fatalf("expected deferred resource to have address 'test_object.a', but it has '%s'", deferredResource.ChangeSrc.Addr.String())
+				}
+
+				if len(p.Changes.Resources) != 0 {
+					t.Fatalf("expected plan to have 0 resource change, but it has %d", len(p.Changes.Resources))
+				}
+			},
+		},
+
+		"deferring before actions should defer following actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello, action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			expectPlanActionCalled: true,
+			planActionFn: func(providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected plan to have no action invocations, but it has %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Complete != false {
+					t.Fatalf("expected plan to be incomplete, but it is complete")
+				}
+				if len(p.DeferredActionInvocations) != 2 {
+					t.Fatalf("expected plan to have 2 deferred action invocation, but it has %d", len(p.DeferredActionInvocations))
+				}
+
+				slices.SortFunc(p.DeferredActionInvocations, func(a, b *plans.DeferredActionInvocationSrc) int {
+					if a.ActionInvocationInstanceSrc.Addr.Less(b.ActionInvocationInstanceSrc.Addr) {
+						return -1
+					}
+					if b.ActionInvocationInstanceSrc.Addr.Less(a.ActionInvocationInstanceSrc.Addr) {
+						return 1
+					}
+					return 0
+				})
+
+				if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action invocation to have action ID 'action.test_unlinked.hello', but it has '%s'", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action invocation to have reason 'DeferredReasonAbsentPrereq', but it has '%s'", p.DeferredActionInvocations[0].DeferredReason)
+				}
+
+				if p.DeferredActionInvocations[1].ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.world" {
+					t.Fatalf("expected deferred action invocation to have action ID 'action.test_unlinked.world', but it has '%s'", p.DeferredActionInvocations[1].ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				if p.DeferredActionInvocations[1].DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected deferred action invocation to have reason 'DeferredReasonDeferredPrereq', but it has '%s'", p.DeferredActionInvocations[1].DeferredReason)
+				}
+			},
+		},
+
+		// TODO: Deferring after actions
+		// TODO: With combined before and after actions from different triggers, deferring after actions
+		// TODO: Test with already deferred resource
+		"unknown for_each with reference": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+variable "each" {
+  type = set(string)
+}
+
+action "test_unlinked" "hello" {
+  for_each = var.each
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"each": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+				DeferralAllowed: true,
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected 1 deferred action invocation, but got %d", len(p.DeferredActionInvocations))
+				}
+
+				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonInstanceCountUnknown {
+					t.Fatalf("expected deferred action invocation to have reason 'DeferredReasonInstanceCountUnknown', but it has '%s'", p.DeferredActionInvocations[0].DeferredReason)
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1298,8 +1560,8 @@ resource "test_object" "a" {
 				},
 			}
 
-			if tc.planActionResponse != nil {
-				p.PlanActionResponse = *tc.planActionResponse
+			if tc.planActionFn != nil {
+				p.PlanActionFn = tc.planActionFn
 			}
 
 			ctx := testContext2(t, &ContextOpts{

@@ -64,19 +64,20 @@ type plan struct {
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
 	// that is undefined at this time, but consistent.
-	ResourceDrift      []ResourceChange         `json:"resource_drift,omitempty"`
-	ResourceChanges    []ResourceChange         `json:"resource_changes,omitempty"`
-	DeferredChanges    []DeferredResourceChange `json:"deferred_changes,omitempty"`
-	OutputChanges      map[string]Change        `json:"output_changes,omitempty"`
-	ActionInvocations  []ActionInvocation       `json:"action_invocations,omitempty"`
-	PriorState         json.RawMessage          `json:"prior_state,omitempty"`
-	Config             json.RawMessage          `json:"configuration,omitempty"`
-	RelevantAttributes []ResourceAttr           `json:"relevant_attributes,omitempty"`
-	Checks             json.RawMessage          `json:"checks,omitempty"`
-	Timestamp          string                   `json:"timestamp,omitempty"`
-	Applyable          bool                     `json:"applyable"`
-	Complete           bool                     `json:"complete"`
-	Errored            bool                     `json:"errored"`
+	ResourceDrift             []ResourceChange           `json:"resource_drift,omitempty"`
+	ResourceChanges           []ResourceChange           `json:"resource_changes,omitempty"`
+	DeferredChanges           []DeferredResourceChange   `json:"deferred_changes,omitempty"`
+	DeferredActionInvocations []DeferredActionInvocation `json:"deferred_action_invocations,omitempty"`
+	OutputChanges             map[string]Change          `json:"output_changes,omitempty"`
+	ActionInvocations         []ActionInvocation         `json:"action_invocations,omitempty"`
+	PriorState                json.RawMessage            `json:"prior_state,omitempty"`
+	Config                    json.RawMessage            `json:"configuration,omitempty"`
+	RelevantAttributes        []ResourceAttr             `json:"relevant_attributes,omitempty"`
+	Checks                    json.RawMessage            `json:"checks,omitempty"`
+	Timestamp                 string                     `json:"timestamp,omitempty"`
+	Applyable                 bool                       `json:"applyable"`
+	Complete                  bool                       `json:"complete"`
+	Errored                   bool                       `json:"errored"`
 }
 
 func newPlan() *plan {
@@ -309,6 +310,13 @@ func Marshal(
 		output.DeferredChanges, err = MarshalDeferredResourceChanges(p.DeferredResources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling deferred resource changes: %s", err)
+		}
+	}
+
+	if p.DeferredActionInvocations != nil {
+		output.DeferredActionInvocations, err = MarshalDeferredActionInvocations(p.DeferredActionInvocations, schemas)
+		if err != nil {
+			return nil, fmt.Errorf("error in marshaling deferred action invocations: %s", err)
 		}
 	}
 
@@ -643,6 +651,27 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 	return r, nil
 }
 
+func MarshalDeferredReason(reason providers.DeferredReason) string {
+	switch reason {
+	case providers.DeferredReasonInstanceCountUnknown:
+		return DeferredReasonInstanceCountUnknown
+	case providers.DeferredReasonResourceConfigUnknown:
+		return DeferredReasonResourceConfigUnknown
+	case providers.DeferredReasonProviderConfigUnknown:
+		return DeferredReasonProviderConfigUnknown
+	case providers.DeferredReasonAbsentPrereq:
+		return DeferredReasonAbsentPrereq
+	case providers.DeferredReasonDeferredPrereq:
+		return DeferredReasonDeferredPrereq
+	default:
+		// If we find a reason we don't know about, we'll just mark it as
+		// unknown. This is a bit of a safety net to ensure that we don't
+		// break if new reasons are introduced in future versions of the
+		// provider protocol.
+		return DeferredReasonUnknown
+	}
+}
+
 // MarshalDeferredResourceChanges converts the provided internal representation
 // of DeferredResourceInstanceChangeSrc objects into the public structured JSON
 // changes.
@@ -665,30 +694,37 @@ func MarshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceC
 			return nil, err
 		}
 
-		deferredChange := DeferredResourceChange{
+		ret = append(ret, DeferredResourceChange{
 			ResourceChange: change,
+			Reason:         MarshalDeferredReason(rc.DeferredReason),
+		})
+	}
+
+	return ret, nil
+}
+
+func MarshalDeferredActionInvocations(actions []*plans.DeferredActionInvocationSrc, schemas *terraform.Schemas) ([]DeferredActionInvocation, error) {
+	var ret []DeferredActionInvocation
+
+	var sortedActions []*plans.DeferredActionInvocationSrc
+	sortedActions = append(sortedActions, actions...)
+	sort.Slice(sortedActions, func(i, j int) bool {
+		if !sortedActions[i].ActionInvocationInstanceSrc.Addr.Equal(sortedActions[j].ActionInvocationInstanceSrc.Addr) {
+			return sortedActions[i].ActionInvocationInstanceSrc.Addr.Less(sortedActions[j].ActionInvocationInstanceSrc.Addr)
+		}
+		return sortedActions[i].ActionInvocationInstanceSrc.TriggeringResourceAddr.Less(sortedActions[j].ActionInvocationInstanceSrc.TriggeringResourceAddr)
+	})
+
+	for _, rc := range sortedActions {
+		actionInvocation, err := MarshalActionInvocation(rc.ActionInvocationInstanceSrc, schemas)
+		if err != nil {
+			return nil, err
 		}
 
-		switch rc.DeferredReason {
-		case providers.DeferredReasonInstanceCountUnknown:
-			deferredChange.Reason = DeferredReasonInstanceCountUnknown
-		case providers.DeferredReasonResourceConfigUnknown:
-			deferredChange.Reason = DeferredReasonResourceConfigUnknown
-		case providers.DeferredReasonProviderConfigUnknown:
-			deferredChange.Reason = DeferredReasonProviderConfigUnknown
-		case providers.DeferredReasonAbsentPrereq:
-			deferredChange.Reason = DeferredReasonAbsentPrereq
-		case providers.DeferredReasonDeferredPrereq:
-			deferredChange.Reason = DeferredReasonDeferredPrereq
-		default:
-			// If we find a reason we don't know about, we'll just mark it as
-			// unknown. This is a bit of a safety net to ensure that we don't
-			// break if new reasons are introduced in future versions of the
-			// provider protocol.
-			deferredChange.Reason = DeferredReasonUnknown
-		}
-
-		ret = append(ret, deferredChange)
+		ret = append(ret, DeferredActionInvocation{
+			ActionInvocation: actionInvocation,
+			Reason:           MarshalDeferredReason(rc.DeferredReason),
+		})
 	}
 
 	return ret, nil

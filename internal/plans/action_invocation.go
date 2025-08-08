@@ -83,3 +83,17 @@ func (ai *ActionInvocationInstance) DeepCopy() *ActionInvocationInstance {
 	ret := *ai
 	return &ret
 }
+
+func (ai *ActionInvocationInstance) Equal(other *ActionInvocationInstance) bool {
+	if ai == nil || other == nil {
+		return ai == other
+	}
+
+	return ai.Addr.Equal(other.Addr) &&
+		ai.TriggeringResourceAddr.Equal(other.TriggeringResourceAddr) &&
+		ai.TriggerEvent == other.TriggerEvent &&
+		ai.ActionTriggerBlockIndex == other.ActionTriggerBlockIndex &&
+		ai.ActionsListIndex == other.ActionsListIndex &&
+		ai.ProviderAddr.Equal(other.ProviderAddr) &&
+		ai.ConfigValue.Equals(other.ConfigValue).True()
+}

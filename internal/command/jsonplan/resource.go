@@ -114,3 +114,13 @@ type DeferredResourceChange struct {
 	// Change contains any information we have about the deferred change.
 	ResourceChange ResourceChange `json:"resource_change"`
 }
+
+// DeferredActionInvocation is a description of an action invocation that has been
+// deferred for some reason.
+type DeferredActionInvocation struct {
+	// Reason is the reason why this action was deferred.
+	Reason string `json:"reason"`
+
+	// Change contains any information we have about the deferred change.
+	ActionInvocation ActionInvocation `json:"action_invocation"`
+}

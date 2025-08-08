@@ -563,6 +563,8 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 		return diags
 	}
 
+	deferFollowingActions := false
+
 	for i, at := range n.Config.Managed.ActionTriggers {
 		triggeringEvent, isTriggered := actionIsTriggeredByEvent(at.Events, change.Action)
 		if !isTriggered {
@@ -622,6 +624,26 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 					return diags
 				}
 
+				aii := plans.ActionInvocationInstance{
+					Addr:                    absActionAddr,
+					ProviderAddr:            actionInstance.ProviderAddr,
+					TriggeringResourceAddr:  n.Addr,
+					TriggerEvent:            *triggeringEvent,
+					ActionTriggerBlockIndex: i,
+					ActionsListIndex:        j,
+					ConfigValue:             actionInstance.ConfigValue,
+				}
+
+				if deferFollowingActions == true {
+					if ctx.Deferrals().DeferralAllowed() {
+						ctx.Deferrals().ReportActionInvocationDeferred(aii, providers.DeferredReasonDeferredPrereq)
+						continue
+					} else {
+						// This is panic because we can only set deferFollowingActions if the context allows deferrals
+						panic("Deferral not allowed")
+					}
+				}
+
 				provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
 				if err != nil {
 					diags = diags.Append(&hcl.Diagnostic{
@@ -640,21 +662,34 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 					ClientCapabilities: ctx.ClientCapabilities(),
 				})
 
-				// TODO: Deal with deferred responses
 				diags = diags.Append(resp.Diagnostics)
 				if diags.HasErrors() {
 					return diags
 				}
 
-				ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-					Addr:                    absActionAddr,
-					ProviderAddr:            actionInstance.ProviderAddr,
-					TriggeringResourceAddr:  n.Addr,
-					TriggerEvent:            *triggeringEvent,
-					ActionTriggerBlockIndex: i,
-					ActionsListIndex:        j,
-					ConfigValue:             actionInstance.ConfigValue,
-				})
+				if resp.Deferred != nil {
+					if ctx.Deferrals().DeferralAllowed() {
+						deferFollowingActions = true
+						ctx.Deferrals().ReportActionInvocationDeferred(aii, resp.Deferred.Reason)
+
+						// If a before action was deferred, we need to defer the resource change as well.
+						// A resource with a deferred before action can not be applied.
+						// We can expect this to be the first deferred action invocation for this resource instance.
+						// We will skip planning any action after the first one was deferred.
+						if *triggeringEvent == configs.BeforeCreate || *triggeringEvent == configs.BeforeUpdate || *triggeringEvent == configs.BeforeDestroy {
+							resourceChange := ctx.Changes().GetResourceInstanceChange(n.Addr, n.Addr.CurrentObject().DeposedKey)
+							if change == nil {
+								panic(fmt.Sprintf("No change found for resource instance %s", n.Addr))
+							}
+							ctx.Changes().RemoveResourceInstanceChange(n.Addr, n.Addr.CurrentObject().DeposedKey)
+							ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, resourceChange)
+						}
+					} else if !resp.Diagnostics.HasErrors() {
+						return diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(absActionAddr))
+					}
+				} else {
+					ctx.Changes().AppendActionInvocation(&aii)
+				}
 			}
 		}
 	}
