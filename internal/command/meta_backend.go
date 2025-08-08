@@ -1645,29 +1645,48 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 	if opts.Init && b != nil {
 		err := m.selectWorkspace(b)
 		if strings.Contains(err.Error(), "No existing workspaces") {
+			// If there are no workspaces, Terraform either needs to create the default workspace here,
+			// or instruct the user to run a `terraform workspace new` command.
 			ws, err := m.Workspace()
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
 				return nil, diags
 			}
 
-			if m.Input() && ws == backend.DefaultStateName {
-				input := m.UIInput()
-				desc := fmt.Sprintf("Terraform will create the %q workspace via %q.\n"+
-					"Only 'yes' will be accepted to approve.", backend.DefaultStateName, c.Type)
-				v, err := input.Input(context.Background(), &terraform.InputOpts{
-					Id:          "approve",
-					Query:       fmt.Sprintf("Workspace %q does not exit, would you like to create one?", backend.DefaultStateName),
-					Description: desc,
-				})
-				if err != nil {
-					diags = diags.Append(fmt.Errorf("Failed to confirm default workspace creation: %w", err))
-					return nil, diags
-				}
-				if v != "yes" {
-					diags = diags.Append(errors.New("Failed to create default workspace"))
-					return nil, diags
-				}
+			switch {
+			case ws != backend.DefaultStateName:
+				// User needs to run a `terraform workspace new` command.
+				diags = append(diags, tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("Workspace %q has not been created yet", ws),
+					fmt.Sprintf("State store %q in provider %s (%q) reports that no workspaces currently exist. To create the custom workspace %q use the command `terraform workspace new %s`.",
+						c.Type,
+						c.Provider.Name,
+						c.ProviderAddr,
+						ws,
+						ws,
+					),
+				))
+				return nil, diags
+
+			case ws == backend.DefaultStateName:
+				// TODO: do we want to prompt for input here (m.Input()), or create automatically unless -readonly flag present?
+				// input := m.UIInput()
+				// desc := fmt.Sprintf("Terraform will create the %q workspace via %q.\n"+
+				// 	"Only 'yes' will be accepted to approve.", backend.DefaultStateName, c.Type)
+				// v, err := input.Input(context.Background(), &terraform.InputOpts{
+				// 	Id:          "approve",
+				// 	Query:       fmt.Sprintf("Workspace %q does not exit, would you like to create one?", backend.DefaultStateName),
+				// 	Description: desc,
+				// })
+				// if err != nil {
+				// 	diags = diags.Append(fmt.Errorf("Failed to confirm default workspace creation: %w", err))
+				// 	return nil, diags
+				// }
+				// if v != "yes" {
+				// 	diags = diags.Append(errors.New("Failed to create default workspace"))
+				// 	return nil, diags
+				// }
 
 				// TODO: Confirm if defaulting to creation on first use (rather than error) is a good idea
 				// Make the default workspace. All other workspaces are user-created via the workspace commands.
@@ -1690,6 +1709,9 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
 					return nil, diags
 				}
+			default:
+				diags = diags.Append(err)
+				return nil, diags
 			}
 			// TODO: handle if input is not enabled
 		}
