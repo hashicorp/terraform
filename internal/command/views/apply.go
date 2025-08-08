@@ -138,11 +138,12 @@ func (v *ApplyJSON) ResourceCount(stateOutPath string) {
 		operation = json.OperationDestroyed
 	}
 	v.view.ChangeSummary(&json.ChangeSummary{
-		Add:       v.countHook.Added,
-		Change:    v.countHook.Changed,
-		Remove:    v.countHook.Removed,
-		Import:    v.countHook.Imported,
-		Operation: operation,
+		Add:              v.countHook.Added,
+		Change:           v.countHook.Changed,
+		Remove:           v.countHook.Removed,
+		Import:           v.countHook.Imported,
+		ActionInvocation: v.countHook.ActionInvocation,
+		Operation:        operation,
 	})
 }
 
