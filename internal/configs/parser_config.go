@@ -4,9 +4,6 @@
 package configs
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -114,10 +111,6 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 						Type:       "state_store",
 						LabelNames: []string{"type"},
 					})
-			}
-			if os.Getenv("SARAH_DEBUG_ISSUE") == "1" {
-				fmt.Println("allowExperiments", allowExperiments)
-				fmt.Println("terraformBlockSchema", terraformBlockSchema)
 			}
 			content, contentDiags := block.Body.Content(terraformBlockSchema)
 			diags = append(diags, contentDiags...)
