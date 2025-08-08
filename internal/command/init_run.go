@@ -141,6 +141,14 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		return 1
 	}
+	if earlyConfDiags.HasErrors() && earlyConfDiags[0].Description().Detail == "Blocks of type \"state_store\" are not expected here." {
+		// Usually these early configuration diagnostics aren't acted on until after backend initialization.
+		// However if a user attempts to use PSS without enabling experiments they'll experience issues in initBackend
+		// if we don't return as soon as this diagnostic is raised.
+		diags = diags.Append(earlyConfDiags)
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	var back backend.Backend
 
