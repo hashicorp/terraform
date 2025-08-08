@@ -986,18 +986,13 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
-	if upgrade {
-		if flagLockfile == "readonly" {
-			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
-			view.Diagnostics(diags)
-			return true, nil, diags
-		}
 
-		// We don't set `mode = providercache.InstallUpgrades` here when downloading providers from
-		// state, as it'll cause Terraform to download provider versions that don't match version
-		// constraints in the config.
-		// Instead, leave `mode` as `providercache.InstallNewProvidersOnly`.
-	}
+	// We don't handle upgrade flags here, i.e. what happens at this point in getProvidersFromConfig:
+	// > We cannot upgrade a provider used only by the state, as there are no version constraints in state.
+	//    > Given the overlap between providers in the config and state, using the upgrade mode here
+	//      would remove the effects of version constraints from the config.
+	// > Any validation of CLI flag usage is already done in getProvidersFromConfig
+
 	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
