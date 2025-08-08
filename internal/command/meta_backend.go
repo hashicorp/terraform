@@ -1100,7 +1100,7 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 
 // Unconfiguring a backend (moving from backend => local).
 func (m *Meta) backend_c_r_S(
-	c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+	c *configs.Backend, cHash int, backendSMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 
 	var diags tfdiags.Diagnostics
 
@@ -1111,7 +1111,8 @@ func (m *Meta) backend_c_r_S(
 		vt = arguments.ViewHuman
 	}
 
-	s := sMgr.State()
+	// Get backend state file data
+	s := backendSMgr.State()
 
 	cloudMode := cloud.DetectConfigChangeType(s.Backend, c, false)
 	diags = diags.Append(m.assertSupportedCloudInitOptions(cloudMode))
@@ -1136,7 +1137,7 @@ func (m *Meta) backend_c_r_S(
 	}
 
 	// Initialize the configured backend
-	b, moreDiags := m.savedBackend(sMgr)
+	b, moreDiags := m.savedBackend(backendSMgr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags
@@ -1157,11 +1158,11 @@ func (m *Meta) backend_c_r_S(
 
 	// Remove the stored metadata
 	s.Backend = nil
-	if err := sMgr.WriteState(s); err != nil {
+	if err := backendSMgr.WriteState(s); err != nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendClearSaved), err))
 		return nil, diags
 	}
-	if err := sMgr.PersistState(); err != nil {
+	if err := backendSMgr.PersistState(); err != nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendClearSaved), err))
 		return nil, diags
 	}
@@ -1177,7 +1178,7 @@ func (m *Meta) backend_c_r_S(
 }
 
 // Configuring a backend for the first time.
-func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
@@ -1282,15 +1283,15 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	if m.stateLock {
 		view := views.NewStateLocker(vt, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
-		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
+		if err := stateLocker.Lock(backendSMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
 			return nil, diags
 		}
 		defer stateLocker.Unlock()
 	}
 
-	// Store the metadata in our saved state location
-	s := sMgr.State()
+	// Store the backend's metadata in our the backend state file location
+	s := backendSMgr.State()
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
@@ -1325,11 +1326,12 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		}
 	}
 
-	if err := sMgr.WriteState(s); err != nil {
+	// Update backend state file
+	if err := backendSMgr.WriteState(s); err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
 		return nil, diags
 	}
-	if err := sMgr.PersistState(); err != nil {
+	if err := backendSMgr.PersistState(); err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
 		return nil, diags
 	}
@@ -1345,7 +1347,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 }
 
 // Changing a previously saved backend.
-func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, backendSMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
@@ -1355,8 +1357,8 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		vt = arguments.ViewHuman
 	}
 
-	// Get the old state
-	s := sMgr.State()
+	// Get the old backend state file data
+	s := backendSMgr.State()
 
 	cloudMode := cloud.DetectConfigChangeType(s.Backend, c, false)
 	diags = diags.Append(m.assertSupportedCloudInitOptions(cloudMode))
@@ -1402,7 +1404,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	// state lives.
 	if cloudMode != cloud.ConfigChangeInPlace {
 		// Grab the existing backend
-		oldB, oldBDiags := m.savedBackend(sMgr)
+		oldB, oldBDiags := m.savedBackend(backendSMgr)
 		diags = diags.Append(oldBDiags)
 		if oldBDiags.HasErrors() {
 			return nil, diags
@@ -1424,7 +1426,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		if m.stateLock {
 			view := views.NewStateLocker(vt, m.View)
 			stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
-			if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
+			if err := stateLocker.Lock(backendSMgr, "backend from plan"); err != nil {
 				diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
 				return nil, diags
 			}
@@ -1433,7 +1435,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	// Update the backend state
-	s = sMgr.State()
+	s = backendSMgr.State()
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
@@ -1455,11 +1457,12 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		}
 	}
 
-	if err := sMgr.WriteState(s); err != nil {
+	// Save data to backend state file
+	if err := backendSMgr.WriteState(s); err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
 		return nil, diags
 	}
-	if err := sMgr.PersistState(); err != nil {
+	if err := backendSMgr.PersistState(); err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
 		return nil, diags
 	}
@@ -1491,7 +1494,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 //-------------------------------------------------------------------
 
 // Configuring a state_store for the first time.
-func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
@@ -1577,7 +1580,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	if m.stateLock {
 		view := views.NewStateLocker(vt, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
-		if err := stateLocker.Lock(sMgr, "state_store from plan"); err != nil {
+		if err := stateLocker.Lock(backendSMgr, "state_store from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
 			return nil, diags
 		}
@@ -1585,7 +1588,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 	}
 
 	// Store the state_store metadata in our saved state location
-	s := sMgr.State()
+	s := backendSMgr.State()
 	if s == nil {
 		s = workdir.NewBackendStateFile()
 	}
@@ -1683,7 +1686,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
 					return nil, diags
 				}
-				if err := sMgr.PersistState(); err != nil {
+				if err := backendSMgr.PersistState(); err != nil {
 					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
 					return nil, diags
 				}
@@ -1695,11 +1698,12 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 		}
 	}
 
-	if err := sMgr.WriteState(s); err != nil {
+	// Update backend state file
+	if err := backendSMgr.WriteState(s); err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
 		return nil, diags
 	}
-	if err := sMgr.PersistState(); err != nil {
+	if err := backendSMgr.PersistState(); err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
 		return nil, diags
 	}
@@ -1712,10 +1716,10 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, sMgr *clistate.L
 // TODO: This is extremely similar to Meta.backendFromState() but for legacy reasons this is the
 // function used by the migration APIs within this file. The other handles 'init -backend=false',
 // specifically.
-func (m *Meta) savedBackend(sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) savedBackend(backendSMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	s := sMgr.State()
+	s := backendSMgr.State()
 
 	// Get the backend
 	f := backendInit.Backend(s.Backend.Type)
