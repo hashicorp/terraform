@@ -1184,7 +1184,6 @@ action "test_unlinked" "hello" {}
 			expectPlanActionCalled: true,
 		},
 		"targeted referenced action": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {}
@@ -1265,7 +1264,6 @@ action "test_unlinked" "hello" {
 		},
 
 		"targeted count action with precise target": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {
@@ -1299,7 +1297,6 @@ action "test_unlinked" "hello" {
 			expectPlanActionCalled: true,
 		},
 		"targeted for_each action with precise target": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {
@@ -1334,7 +1331,6 @@ action "test_unlinked" "hello" {
 		},
 
 		"targeted action with existing dependencies": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 resource "test_object" "a" {

@@ -88,7 +88,12 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// that will be connected to the resource instance nodes.
 	runBeforeNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
 	runAfterNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
+	var cliTriggeredNode []*plans.ActionInvocationInstanceSrc
 	for _, ai := range changes.ActionInvocations {
+		if _, ok := ai.ActionTrigger.(plans.InvokeCmdActionTrigger); ok {
+			cliTriggeredNode = append(cliTriggeredNode, ai)
+			continue
+		}
 		lat := ai.ActionTrigger.(plans.LifecycleActionTrigger)
 
 		var targetMap addrs.Map[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]
@@ -276,7 +281,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 		log.Printf("[TRACE] DiffTransformer: adding action invocations to run after %s", key)
 		actionNode := &nodeActionApply{
-			TriggeringResourceaddrs: key,
+			TriggeringResourceaddrs: &key,
 			ActionInvocations:       value,
 		}
 
@@ -297,6 +302,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		for _, rNode := range resourceNode {
 			g.Connect(dag.BasicEdge(actionNode, rNode))
 		}
+	}
+
+	for _, value := range cliTriggeredNode {
+		actionNode := &nodeActionApply{
+			TriggeringResourceaddrs: nil,
+			ActionInvocations:       []*plans.ActionInvocationInstanceSrc{value},
+		}
+		g.Add(actionNode)
 	}
 
 	log.Printf("[TRACE] DiffTransformer complete")

@@ -20,7 +20,7 @@ import (
 )
 
 type nodeActionApply struct {
-	TriggeringResourceaddrs addrs.AbsResourceInstance
+	TriggeringResourceaddrs *addrs.AbsResourceInstance
 	ActionInvocations       []*plans.ActionInvocationInstanceSrc
 }
 
@@ -42,10 +42,14 @@ func (n *nodeActionApply) DotNode(string, *dag.DotOpts) *dag.DotNode {
 }
 
 func (n *nodeActionApply) Execute(ctx EvalContext, _ walkOperation) (diags tfdiags.Diagnostics) {
-	return invokeActionsWithEnhancedDiagnostics(ctx, n.ActionInvocations, &n.TriggeringResourceaddrs)
+	return invokeActionsWithEnhancedDiagnostics(ctx, n.ActionInvocations, n.TriggeringResourceaddrs)
 }
 
-func invokeActionsWithEnhancedDiagnostics(ctx EvalContext, actionInvocations []*plans.ActionInvocationInstanceSrc, triggeringResourceAddrs *addrs.AbsResourceInstance) tfdiags.Diagnostics {
+func invokeActionsWithEnhancedDiagnostics(
+	ctx EvalContext,
+	actionInvocations []*plans.ActionInvocationInstanceSrc,
+	triggeringResourceAddrs *addrs.AbsResourceInstance,
+) tfdiags.Diagnostics {
 	finishedActionInvocations, diags := invokeActions(ctx, actionInvocations)
 	return enhanceActionDiagnostics(finishedActionInvocations, actionInvocations, diags, triggeringResourceAddrs)
 }
@@ -192,7 +196,10 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 }
 
 func (n *nodeActionApply) ModulePath() addrs.Module {
-	return n.TriggeringResourceaddrs.Module.Module()
+	if n.TriggeringResourceaddrs != nil {
+		return n.TriggeringResourceaddrs.Module.Module()
+	}
+	return n.ActionInvocations[0].Addr.Module.Module()
 }
 
 func (n *nodeActionApply) References() []*addrs.Reference {

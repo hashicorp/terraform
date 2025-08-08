@@ -147,6 +147,11 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 		vertexAddr = r.ResourceAddr()
 	case *nodeActionInvoke:
 		vertexAddr = r.Target
+	case *nodeActionApply:
+		if len(r.ActionInvocations) != 1 {
+			panic("unexpected number of action invocations in nodeActionApply")
+		}
+		vertexAddr = r.ActionInvocations[0].Addr
 
 	default:
 		// Only partial nodes and resource and resource instance nodes can be
