@@ -152,6 +152,9 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	} else if os.Getenv("SARAH_DEBUG_ISSUE") == "1" {
 		fmt.Println("c.Meta.AllowExperimentalFeatures", c.Meta.AllowExperimentalFeatures)
 		fmt.Println("initArgs.EnablePssExperiment", initArgs.EnablePssExperiment)
+		fmt.Printf("rootModEarly.Backend: %#v\n", rootModEarly.Backend)
+		fmt.Printf("rootModEarly.StateStore: %#v\n", rootModEarly.StateStore)
+		fmt.Println("earlyConfDiags", earlyConfDiags)
 	}
 
 	var back backend.Backend
