@@ -91,8 +91,8 @@ func (n *nodeActionInvoke) Execute(ctx EvalContext, wo walkOperation) (diags tfd
 		}
 
 		hookIdentity := HookActionIdentity{
-			Addr: n.Target,
-			ActionTrigger:
+			Addr:          n.Target,
+			ActionTrigger: plans.InvokeCmdActionTrigger{},
 		}
 
 		for event := range resp.Events {

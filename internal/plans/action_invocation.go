@@ -72,7 +72,7 @@ type InvokeCmdActionTrigger struct{}
 func (t InvokeCmdActionTrigger) actionTriggerSigil() {}
 
 func (t InvokeCmdActionTrigger) String() string {
-	return "Invoke by the CLI"
+	return "CLI"
 }
 
 func (t InvokeCmdActionTrigger) TriggerEvent() configs.ActionTriggerEvent {

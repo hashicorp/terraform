@@ -75,7 +75,7 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 		if !ok {
 			return false
 		}
-		at2, ok := orderedActionInvocations[2].ActionTrigger.(plans.LifecycleActionTrigger)
+		at2, ok := orderedActionInvocations[j].ActionTrigger.(plans.LifecycleActionTrigger)
 		if !ok {
 			return false
 		}
@@ -307,7 +307,7 @@ func areBeforeActionInvocations(actionInvocations []*plans.ActionInvocationInsta
 			panic(fmt.Sprintf("areBeforeActionInvocations list contains unsupported actionTrigger type %T", att))
 		}
 		if att.ActionTriggerEvent != firstEvent {
-			panic(fmt.Sprintf("areBeforeActionInvocations called with action invocations with different trigger events: %s != %s", firstEvent, att.TriggerEvent))
+			panic(fmt.Sprintf("areBeforeActionInvocations called with action invocations with different trigger events: %s != %s", firstEvent, att.TriggerEvent()))
 		}
 	}
 
