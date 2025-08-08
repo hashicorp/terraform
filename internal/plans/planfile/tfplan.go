@@ -1252,34 +1252,36 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 		return nil, fmt.Errorf("action invocation object is absent")
 	}
 
+	lat := plans.LifecycleActionTrigger{}
 	ret := &plans.ActionInvocationInstanceSrc{}
+
 	actionAddr, diags := addrs.ParseAbsActionInstanceStr(rawAction.Addr)
 	if diags.HasErrors() {
 		return nil, fmt.Errorf("invalid action instance address %q: %w", rawAction.Addr, diags.Err())
 	}
 	ret.Addr = actionAddr
 
-	ret.TriggeringResourceAddr, diags = addrs.ParseAbsResourceInstanceStr(rawAction.TriggeringResourceAddr)
+	lat.TriggeringResourceAddr, diags = addrs.ParseAbsResourceInstanceStr(rawAction.TriggeringResourceAddr)
 	if diags.HasErrors() {
 		return nil, fmt.Errorf("invalid resource instance address %q: %w", rawAction.TriggeringResourceAddr, diags.Err())
 	}
 
-	ret.ActionsListIndex = int(rawAction.ActionsListIndex)
-	ret.ActionTriggerBlockIndex = int(rawAction.ActionTriggerBlockIndex)
+	lat.ActionsListIndex = int(rawAction.ActionsListIndex)
+	lat.ActionTriggerBlockIndex = int(rawAction.ActionTriggerBlockIndex)
 
 	switch rawAction.TriggerEvent {
 	case planproto.ActionTriggerEvent_BEFORE_CERATE:
-		ret.TriggerEvent = configs.BeforeCreate
+		lat.ActionTriggerEvent = configs.BeforeCreate
 	case planproto.ActionTriggerEvent_AFTER_CREATE:
-		ret.TriggerEvent = configs.AfterCreate
+		lat.ActionTriggerEvent = configs.AfterCreate
 	case planproto.ActionTriggerEvent_BEFORE_UPDATE:
-		ret.TriggerEvent = configs.BeforeUpdate
+		lat.ActionTriggerEvent = configs.BeforeUpdate
 	case planproto.ActionTriggerEvent_AFTER_UPDATE:
-		ret.TriggerEvent = configs.AfterUpdate
+		lat.ActionTriggerEvent = configs.AfterUpdate
 	case planproto.ActionTriggerEvent_BEFORE_DESTROY:
-		ret.TriggerEvent = configs.BeforeDestroy
+		lat.ActionTriggerEvent = configs.BeforeDestroy
 	case planproto.ActionTriggerEvent_AFTER_DESTROY:
-		ret.TriggerEvent = configs.AfterDestroy
+		lat.ActionTriggerEvent = configs.AfterDestroy
 
 	default:
 		return nil, fmt.Errorf("invalid action trigger event %s", rawAction.TriggerEvent)
@@ -1299,6 +1301,7 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 		ret.ConfigValue = configVal
 	}
 
+	ret.ActionTrigger = lat
 	return ret, nil
 }
 
@@ -1308,7 +1311,7 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 	}
 
 	triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
-	switch action.TriggerEvent {
+	switch action.ActionTrigger.TriggerEvent() {
 	case configs.BeforeCreate:
 		triggerEvent = planproto.ActionTriggerEvent_BEFORE_CERATE
 	case configs.AfterCreate:
@@ -1321,15 +1324,32 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		triggerEvent = planproto.ActionTriggerEvent_BEFORE_DESTROY
 	case configs.AfterDestroy:
 		triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
+	case configs.Invoke:
+		triggerEvent = planproto.ActionTriggerEvent_INVOKE
 	}
 
 	ret := &planproto.ActionInvocationInstance{
-		Addr:                    action.Addr.String(),
-		Provider:                action.ProviderAddr.String(),
-		TriggeringResourceAddr:  action.TriggeringResourceAddr.String(),
-		ActionsListIndex:        int64(action.ActionsListIndex),
-		ActionTriggerBlockIndex: int64(action.ActionTriggerBlockIndex),
-		TriggerEvent:            triggerEvent,
+		Addr:     action.Addr.String(),
+		Provider: action.ProviderAddr.String(),
+	}
+
+	switch action.ActionTrigger.(type) {
+	case plans.LifecycleActionTrigger:
+		at := action.ActionTrigger.(plans.LifecycleActionTrigger)
+		ret.ActionTrigger = &planproto.ActionInvocationInstance_LifecycleActionTrigger{
+			LifecycleActionTrigger: &planproto.LifecycleActionTrigger{
+				TriggeringResourceAddr:  at.TriggeringResourceAddr.String(),
+				TriggerEvent:            triggerEvent,
+				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(at.ActionsListIndex),
+			},
+		}
+	case plans.InvokeCmdActionTrigger:
+		ret.ActionTrigger = &planproto.ActionInvocationInstance_InvokeCmdActionTrigger{
+			InvokeCmdActionTrigger: &planproto.InvokeCmdActionTrigger{
+				TriggerEvent: triggerEvent,
+			},
+		}
 	}
 
 	if action.ConfigValue != nil {

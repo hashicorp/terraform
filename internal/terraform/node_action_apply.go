@@ -57,13 +57,13 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 	// This way we have the correct order of execution.
 	orderedActionInvocations := make([]*plans.ActionInvocationInstance, 0, len(actionInvocations))
 	for _, invocation := range actionInvocations {
-		ai := ctx.Changes().GetActionInvocation(invocation.Addr, invocation.TriggeringResourceAddr, invocation.ActionTriggerBlockIndex, invocation.ActionsListIndex)
+		ai := ctx.Changes().GetActionInvocation(invocation.Addr, invocation.ActionTrigger)
 
 		if ai == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				fmt.Sprintf("Failed to find action invocation instance %s in changes.", ai.Addr),
-				fmt.Sprintf("The action invocation instance %s was not found in the changes for %s.", ai.Addr, ai.TriggeringResourceAddr.String()),
+				fmt.Sprintf("The action invocation instance %s was not found in the changes for %s.", ai.Addr, ai.ActionTrigger.String()),
 			))
 			return finishedActionInvocations, diags
 		}
@@ -71,10 +71,19 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 		orderedActionInvocations = append(orderedActionInvocations, ai)
 	}
 	sort.Slice(orderedActionInvocations, func(i, j int) bool {
-		if orderedActionInvocations[i].ActionTriggerBlockIndex == orderedActionInvocations[j].ActionTriggerBlockIndex {
-			return orderedActionInvocations[i].ActionsListIndex < orderedActionInvocations[j].ActionsListIndex
+		at1, ok := orderedActionInvocations[i].ActionTrigger.(plans.LifecycleActionTrigger)
+		if !ok {
+			return false
 		}
-		return orderedActionInvocations[i].ActionTriggerBlockIndex < orderedActionInvocations[j].ActionTriggerBlockIndex
+		at2, ok := orderedActionInvocations[2].ActionTrigger.(plans.LifecycleActionTrigger)
+		if !ok {
+			return false
+		}
+
+		if at1.ActionTriggerBlockIndex == at2.ActionTriggerBlockIndex {
+			return at1.ActionsListIndex < at2.ActionsListIndex
+		}
+		return at1.ActionTriggerBlockIndex < at2.ActionTriggerBlockIndex
 	})
 
 	// Now we ensure we have an expanded action instance for each action invocations.
@@ -139,10 +148,8 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 		}
 
 		hookIdentity := HookActionIdentity{
-			Addr:                    ai.Addr,
-			TriggeringResourceAddr:  ai.TriggeringResourceAddr,
-			ActionTriggerBlockIndex: ai.ActionTriggerBlockIndex,
-			ActionsListIndex:        ai.ActionsListIndex,
+			Addr:          ai.Addr,
+			ActionTrigger: ai.ActionTrigger,
 		}
 
 		ctx.Hook(func(h Hook) (HookAction, error) {
@@ -288,10 +295,19 @@ func areBeforeActionInvocations(actionInvocations []*plans.ActionInvocationInsta
 	if len(actionInvocations) == 0 {
 		panic("areBeforeActionInvocations called with empty actionInvocations")
 	}
-	firstEvent := actionInvocations[0].TriggerEvent
+	at, ok := actionInvocations[0].ActionTrigger.(plans.LifecycleActionTrigger)
+	if !ok {
+		panic(fmt.Sprintf("areBeforeActionInvocations called with unsupported actionTrigger type %T", at))
+	}
+	firstEvent := at.ActionTriggerEvent
 	for _, ai := range actionInvocations {
-		if ai.TriggerEvent != firstEvent {
-			panic(fmt.Sprintf("areBeforeActionInvocations called with action invocations with different trigger events: %s != %s", firstEvent, ai.TriggerEvent))
+		var att plans.LifecycleActionTrigger
+		att, ok = ai.ActionTrigger.(plans.LifecycleActionTrigger)
+		if !ok {
+			panic(fmt.Sprintf("areBeforeActionInvocations list contains unsupported actionTrigger type %T", att))
+		}
+		if att.ActionTriggerEvent != firstEvent {
+			panic(fmt.Sprintf("areBeforeActionInvocations called with action invocations with different trigger events: %s != %s", firstEvent, att.TriggerEvent))
 		}
 	}
 

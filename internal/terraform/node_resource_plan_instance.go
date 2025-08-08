@@ -647,13 +647,15 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 				}
 
 				ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-					Addr:                    absActionAddr,
-					ProviderAddr:            actionInstance.ProviderAddr,
-					TriggeringResourceAddr:  n.Addr,
-					TriggerEvent:            *triggeringEvent,
-					ActionTriggerBlockIndex: i,
-					ActionsListIndex:        j,
-					ConfigValue:             actionInstance.ConfigValue,
+					Addr:         absActionAddr,
+					ProviderAddr: actionInstance.ProviderAddr,
+					ActionTrigger: plans.LifecycleActionTrigger{
+						TriggeringResourceAddr:  n.Addr,
+						ActionTriggerEvent:      *triggeringEvent,
+						ActionTriggerBlockIndex: i,
+						ActionsListIndex:        j,
+					},
+					ConfigValue: actionInstance.ConfigValue,
 				})
 			}
 		}

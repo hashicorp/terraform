@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -94,8 +93,7 @@ func (c *ChangesSrc) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key
 }
 
 // OutputValue returns the planned change for the output value with the
-//
-//	given address, if any. Returns nil if no change is planned.
+// given address, if any. Returns nil if no change is planned.
 func (c *ChangesSrc) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	for _, oc := range c.Outputs {
 		if oc.Addr.Equal(addr) {
@@ -554,7 +552,7 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 	}, nil
 }
 
-// AppendResourceInstanceChange records the given resource instance change in
+// AppendActionInvocationInstanceChange records the given resource instance change in
 // the set of planned resource changes.
 func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocationInstanceSrc) {
 	if c == nil {
@@ -566,11 +564,8 @@ func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocati
 }
 
 type ActionInvocationInstanceSrc struct {
-	Addr                    addrs.AbsActionInstance
-	TriggeringResourceAddr  addrs.AbsResourceInstance
-	TriggerEvent            configs.ActionTriggerEvent
-	ActionTriggerBlockIndex int
-	ActionsListIndex        int
+	Addr          addrs.AbsActionInstance
+	ActionTrigger ActionTrigger
 
 	ConfigValue DynamicValue
 
@@ -590,13 +585,10 @@ func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (
 	}
 
 	ai := &ActionInvocationInstance{
-		Addr:                    acs.Addr,
-		TriggeringResourceAddr:  acs.TriggeringResourceAddr,
-		TriggerEvent:            acs.TriggerEvent,
-		ActionTriggerBlockIndex: acs.ActionTriggerBlockIndex,
-		ActionsListIndex:        acs.ActionsListIndex,
-		ProviderAddr:            acs.ProviderAddr,
-		ConfigValue:             config,
+		Addr:          acs.Addr,
+		ActionTrigger: acs.ActionTrigger,
+		ProviderAddr:  acs.ProviderAddr,
+		ConfigValue:   config,
 	}
 	return ai, nil
 }

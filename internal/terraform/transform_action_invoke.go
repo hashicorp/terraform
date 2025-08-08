@@ -13,9 +13,13 @@ type ActionInvokeTransformer struct {
 
 func (t *ActionInvokeTransformer) Transform(g *Graph) error {
 	for _, target := range t.Targets {
-		if target.AddrType() == addrs.AbsActionAddrType ||
-			target.AddrType() == addrs.AbsActionInstanceAddrType {
-			v := nodeActionInvoke{Target: target}
+		if target.AddrType() == addrs.AbsActionAddrType {
+			aaiTarget := target.(addrs.AbsAction).Instance(addrs.NoKey)
+			v := nodeActionInvoke{Target: aaiTarget}
+			g.Add(&v)
+		} else if target.AddrType() == addrs.AbsActionInstanceAddrType {
+			aaiTarget := target.(addrs.AbsActionInstance)
+			v := nodeActionInvoke{Target: aaiTarget}
 			g.Add(&v)
 		}
 	}

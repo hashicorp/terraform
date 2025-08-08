@@ -26,8 +26,8 @@ func TestContext2Apply_actions(t *testing.T) {
 		events                          func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
 		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
 
-		planOpts                        *PlanOpts
-		applyOpts                       *ApplyOpts
+		planOpts  *PlanOpts
+		applyOpts *ApplyOpts
 
 		expectInvokeActionCalled bool
 		expectInvokeActionCalls  []providers.InvokeActionRequest

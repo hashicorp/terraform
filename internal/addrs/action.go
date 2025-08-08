@@ -210,6 +210,8 @@ func (a AbsAction) TargetContains(other Targetable) bool {
 	switch to := other.(type) {
 	case AbsAction:
 		return a.Equal(to)
+	case AbsActionInstance:
+		return a.Action.Equal(to.Action.Action)
 	default:
 		return false
 	}

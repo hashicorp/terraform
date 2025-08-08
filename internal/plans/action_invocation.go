@@ -11,16 +11,9 @@ import (
 )
 
 type ActionInvocationInstance struct {
-	Addr                   addrs.AbsActionInstance
-	TriggeringResourceAddr addrs.AbsResourceInstance
+	Addr addrs.AbsActionInstance
 
-	// Information about the trigger
-	// The event that triggered this action invocation.
-	TriggerEvent configs.ActionTriggerEvent
-	// The index of the action_trigger block that triggered this invocation.
-	ActionTriggerBlockIndex int
-	// The index of the action in the evens list of the action_trigger block
-	ActionsListIndex int
+	ActionTrigger ActionTrigger
 
 	// Provider is the address of the provider configuration that was used
 	// to plan this action, and thus the configuration that must also be
@@ -30,18 +23,78 @@ type ActionInvocationInstance struct {
 	ConfigValue cty.Value
 }
 
+type ActionTrigger interface {
+	actionTriggerSigil()
+
+	TriggerEvent() configs.ActionTriggerEvent
+
+	String() string
+
+	Equals(to ActionTrigger) bool
+}
+
+type LifecycleActionTrigger struct {
+	TriggeringResourceAddr addrs.AbsResourceInstance
+	// Information about the trigger
+	// The event that triggered this action invocation.
+	ActionTriggerEvent configs.ActionTriggerEvent
+	// The index of the action_trigger block that triggered this invocation.
+	ActionTriggerBlockIndex int
+	// The index of the action in the events list of the action_trigger block
+	ActionsListIndex int
+}
+
+func (t LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+	return t.ActionTriggerEvent
+}
+
+func (t LifecycleActionTrigger) actionTriggerSigil() {}
+
+func (t LifecycleActionTrigger) String() string {
+	return t.TriggeringResourceAddr.String()
+}
+
+func (t LifecycleActionTrigger) Equals(other ActionTrigger) bool {
+	o, ok := other.(LifecycleActionTrigger)
+	if !ok {
+		return false
+	}
+
+	return t.TriggeringResourceAddr.Equal(o.TriggeringResourceAddr) &&
+		t.ActionTriggerBlockIndex == o.ActionTriggerBlockIndex &&
+		t.ActionsListIndex == o.ActionsListIndex
+}
+
+var _ ActionTrigger = (*LifecycleActionTrigger)(nil)
+
+type InvokeCmdActionTrigger struct{}
+
+func (t InvokeCmdActionTrigger) actionTriggerSigil() {}
+
+func (t InvokeCmdActionTrigger) String() string {
+	return "Invoke by the CLI"
+}
+
+func (t InvokeCmdActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+	return configs.Invoke
+}
+
+func (t InvokeCmdActionTrigger) Equals(other ActionTrigger) bool {
+	_, ok := other.(LifecycleActionTrigger)
+	return ok
+}
+
+var _ ActionTrigger = (*InvokeCmdActionTrigger)(nil)
+
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*ActionInvocationInstanceSrc, error) {
 
 	ret := &ActionInvocationInstanceSrc{
-		Addr:                    ai.Addr,
-		TriggeringResourceAddr:  ai.TriggeringResourceAddr,
-		TriggerEvent:            ai.TriggerEvent,
-		ActionTriggerBlockIndex: ai.ActionTriggerBlockIndex,
-		ActionsListIndex:        ai.ActionsListIndex,
-		ProviderAddr:            ai.ProviderAddr,
+		Addr:          ai.Addr,
+		ActionTrigger: ai.ActionTrigger,
+		ProviderAddr:  ai.ProviderAddr,
 	}
 
 	if ai.ConfigValue != cty.NilVal {

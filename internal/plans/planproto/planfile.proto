@@ -436,6 +436,7 @@ enum ActionTriggerEvent {
     BEFORE_DESTROY = 5;
     AFTER_DESTROY = 6;
     CLI = 7;
+    INVOKE = 8;
 }
 
 // ActionInvocationInstance contains a planned action invocation and any embedded ResourceInstanceActionChanges
@@ -451,10 +452,25 @@ message ActionInvocationInstance {
     repeated ResourceInstanceActionChange linked_resources = 3;
     DynamicValue config_value = 4;
 
-    string triggering_resource_addr = 5;
-    ActionTriggerEvent trigger_event = 6;
-    int64 action_trigger_block_index = 7;
-    int64 actions_list_index = 8;
+    oneof action_trigger {
+        LifecycleActionTrigger lifecycle_action_trigger = 5;
+        InvokeCmdActionTrigger invoke_cmd_action_trigger = 6;
+    }
+}
+
+// LifecycleActionTrigger contains details on the conditions that led to the
+// triggering of an action.
+message LifecycleActionTrigger {
+  string triggering_resource_addr = 1;
+  ActionTriggerEvent trigger_event = 2;
+  int64 action_trigger_block_index = 3;
+  int64 actions_list_index = 4;
+}
+
+// InvokeCmdActionTrigger is a marker value to denote triggering of an action
+// via CLI invoke command.
+message InvokeCmdActionTrigger {
+  ActionTriggerEvent trigger_event = 1;
 }
 
 message ResourceInstanceActionChange {
@@ -467,7 +483,7 @@ message ResourceInstanceActionChange {
     // set, the change applies to the instance's current object.
     string deposed_key = 2;
 
-    // Description of the proposed change. 
+    // Description of the proposed change.
     // May use "update", "replace", "delete" and "no-op" actions.
     Change change = 3;
 }

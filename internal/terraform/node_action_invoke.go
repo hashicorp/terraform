@@ -14,12 +14,12 @@ import (
 )
 
 type nodeActionInvoke struct {
-	Target addrs.Targetable
+	Target addrs.AbsActionInstance
 }
 
 var (
 	_ GraphNodeExecutable = (*nodeActionInvoke)(nil)
-	//_ GraphNodeReferencer      = (*nodeActionInvoke)(nil)
+	_ GraphNodeReferencer = (*nodeActionInvoke)(nil)
 	//_ dag.GraphNodeDotter      = (*nodeActionInvoke)(nil)
 	//_ GraphNodeActionProviders = (*nodeActionInvoke)(nil)
 )
@@ -35,16 +35,7 @@ func (n *nodeActionInvoke) DotNode(string, *dag.DotOpts) *dag.DotNode {
 }
 
 func (n *nodeActionInvoke) Execute(ctx EvalContext, wo walkOperation) (diags tfdiags.Diagnostics) {
-	aaiAddr, ok := n.Target.(addrs.AbsActionInstance)
-	if !ok {
-		return diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Hey error",
-			"Hey details",
-		))
-	}
-
-	ai, ok := ctx.Actions().GetActionInstance(aaiAddr)
+	ai, ok := ctx.Actions().GetActionInstance(n.Target)
 	if !ok {
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -57,21 +48,21 @@ func (n *nodeActionInvoke) Execute(ctx EvalContext, wo walkOperation) (diags tfd
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Hey error3",
-			"Hey details3",
+			"Provider not found",
+			"Provider not found",
 		))
 	}
 
 	switch wo {
 	case walkPlan:
-		res := provider.PlanAction(providers.PlanActionRequest{
-			ActionType:         aaiAddr.Action.Action.Type,
+		resp := provider.PlanAction(providers.PlanActionRequest{
+			ActionType:         n.Target.Action.Action.Type,
 			ProposedActionData: ai.ConfigValue,
 			LinkedResources:    nil,
 			ClientCapabilities: providers.ClientCapabilities{},
 		})
 
-		if res.Diagnostics.HasErrors() {
+		if resp.Diagnostics.HasErrors() {
 			return diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Hey error4",
@@ -80,26 +71,51 @@ func (n *nodeActionInvoke) Execute(ctx EvalContext, wo walkOperation) (diags tfd
 		}
 
 		ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-			Addr:                    aaiAddr,
-			TriggeringResourceAddr:  addrs.AbsResourceInstance{},
-			TriggerEvent:            0,
-			ActionTriggerBlockIndex: 0,
-			ActionsListIndex:        0,
-			ProviderAddr:            ai.ProviderAddr,
+			Addr:          n.Target,
+			ActionTrigger: plans.InvokeCmdActionTrigger{},
+			ProviderAddr:  ai.ProviderAddr,
 		})
 	case walkApply:
-		res := provider.InvokeAction(providers.InvokeActionRequest{
-			ActionType:        aaiAddr.Action.Action.Type,
+		resp := provider.InvokeAction(providers.InvokeActionRequest{
+			ActionType:        n.Target.Action.Action.Type,
 			PlannedActionData: ai.ConfigValue,
 			LinkedResources:   nil,
 		})
 
-		if res.Diagnostics.HasErrors() {
+		if resp.Diagnostics.HasErrors() {
 			return diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Error while invoking provider action",
 				"---TODO---",
 			))
+		}
+
+		hookIdentity := HookActionIdentity{
+			Addr: n.Target,
+			ActionTrigger:
+		}
+
+		for event := range resp.Events {
+			switch ev := event.(type) {
+			case providers.InvokeActionEvent_Progress:
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.ProgressAction(hookIdentity, ev.Message)
+				})
+			case providers.InvokeActionEvent_Completed:
+				diags = diags.Append(ev.Diagnostics)
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
+				})
+				if ev.Diagnostics.HasErrors() {
+					// TODO: We would want to add some warning / error telling the user how to recover
+					// from this, or maybe attach this info to the diagnostics sent by the provider.
+					// For now we just return the diagnostics.
+
+					return diags
+				}
+			default:
+				panic(fmt.Sprintf("unexpected action event type %T", ev))
+			}
 		}
 	default:
 		return diags.Append(tfdiags.Sourceless(
@@ -113,32 +129,18 @@ func (n *nodeActionInvoke) Execute(ctx EvalContext, wo walkOperation) (diags tfd
 }
 
 func (n *nodeActionInvoke) ModulePath() addrs.Module {
-	aai, ok := n.Target.(addrs.AbsActionInstance)
-	if !ok {
-		panic("not an abs action instance")
-	}
-	return aai.Module.Module()
+	return n.Target.Module.Module()
 }
 
 func (n *nodeActionInvoke) References() []*addrs.Reference {
-	aai, ok := n.Target.(addrs.AbsActionInstance)
-	if !ok {
-		panic("not an abs action instance")
-	}
-
 	var refs []*addrs.Reference
 	refs = append(refs, &addrs.Reference{
-		Subject: aai.Action,
+		Subject: n.Target.Action,
 	})
 
 	return refs
 }
 
 func (n *nodeActionInvoke) Actions() []addrs.ConfigAction {
-	aai, ok := n.Target.(addrs.AbsActionInstance)
-	if !ok {
-		panic("not an abs action instance")
-	}
-
-	return []addrs.ConfigAction{aai.ConfigAction()}
+	return []addrs.ConfigAction{n.Target.ConfigAction()}
 }

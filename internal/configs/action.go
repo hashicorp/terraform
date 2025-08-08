@@ -72,6 +72,7 @@ const (
 	AfterUpdate
 	BeforeDestroy
 	AfterDestroy
+	Invoke
 )
 
 // ActionRef represents a reference to a configured Action
