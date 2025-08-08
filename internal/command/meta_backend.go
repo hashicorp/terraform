@@ -1687,6 +1687,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 				}
 			}
 			// TODO: handle if input is not enabled
+		}
 	}
 	if diags.HasErrors() {
 		return nil, diags
