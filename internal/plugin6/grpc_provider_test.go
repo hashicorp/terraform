@@ -1735,39 +1735,6 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 }
 
 func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
-	client := mockProviderClient(t)
-	p := &GRPCProvider{
-		client: client,
-		ctx:    context.Background(),
-	}
-
-	// Create a mock stream client that will return a resource event with diagnostics
-	mockStream := &mockListResourceStreamClient{
-		events: []*proto.ListResource_Event{
-			{
-				DisplayName: "Test Resource With Warning",
-				Identity: &proto.ResourceIdentityData{
-					IdentityData: &proto.DynamicValue{
-						Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
-					},
-				},
-				Diagnostic: []*proto.Diagnostic{
-					{
-						Severity: proto.Diagnostic_WARNING,
-						Summary:  "Test warning",
-						Detail:   "This is a test warning",
-					},
-				},
-			},
-		},
-	}
-
-	client.EXPECT().ListResource(
-		gomock.Any(),
-		gomock.Any(),
-	).Return(mockStream, nil)
-
-	// Create the request
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
@@ -1779,16 +1746,212 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 		Limit:    100,
 	}
 
-	resp := p.ListResource(request)
-	checkDiags(t, resp.Diagnostics)
-
-	data := resp.Result.AsValueMap()
-	if _, ok := data["data"]; !ok {
-		t.Fatal("Expected 'data' key in result")
+	testCases := []struct {
+		name          string
+		events        []*proto.ListResource_Event
+		expectedCount int
+		expectedDiags int
+		expectedWarns int // subset of expectedDiags
+	}{
+		{
+			"no events",
+			[]*proto.ListResource_Event{},
+			0,
+			0,
+			0,
+		},
+		{
+			"single event no diagnostics",
+			[]*proto.ListResource_Event{
+				{
+					DisplayName: "Test Resource",
+					Identity: &proto.ResourceIdentityData{
+						IdentityData: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+						},
+					},
+				},
+			},
+			1,
+			0,
+			0,
+		},
+		{
+			"event with warning",
+			[]*proto.ListResource_Event{
+				{
+					DisplayName: "Test Resource",
+					Identity: &proto.ResourceIdentityData{
+						IdentityData: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+						},
+					},
+					Diagnostic: []*proto.Diagnostic{
+						{
+							Severity: proto.Diagnostic_WARNING,
+							Summary:  "Test warning",
+							Detail:   "Warning detail",
+						},
+					},
+				},
+			},
+			1,
+			1,
+			1,
+		},
+		{
+			"only a warning",
+			[]*proto.ListResource_Event{
+				{
+					Diagnostic: []*proto.Diagnostic{
+						{
+							Severity: proto.Diagnostic_WARNING,
+							Summary:  "Test warning",
+							Detail:   "Warning detail",
+						},
+					},
+				},
+			},
+			0,
+			1,
+			1,
+		},
+		{
+			"only an error",
+			[]*proto.ListResource_Event{
+				{
+					Diagnostic: []*proto.Diagnostic{
+						{
+							Severity: proto.Diagnostic_ERROR,
+							Summary:  "Test error",
+							Detail:   "Error detail",
+						},
+					},
+				},
+			},
+			0,
+			1,
+			0,
+		},
+		{
+			"event with error",
+			[]*proto.ListResource_Event{
+				{
+					DisplayName: "Test Resource",
+					Identity: &proto.ResourceIdentityData{
+						IdentityData: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+						},
+					},
+					Diagnostic: []*proto.Diagnostic{
+						{
+							Severity: proto.Diagnostic_ERROR,
+							Summary:  "Test error",
+							Detail:   "Error detail",
+						},
+					},
+				},
+			},
+			0,
+			1,
+			0,
+		},
+		{
+			"multiple events mixed diagnostics",
+			[]*proto.ListResource_Event{
+				{
+					DisplayName: "Resource 1",
+					Identity: &proto.ResourceIdentityData{
+						IdentityData: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa7id_attr\xa4id-1"),
+						},
+					},
+					Diagnostic: []*proto.Diagnostic{
+						{
+							Severity: proto.Diagnostic_WARNING,
+							Summary:  "Warning 1",
+							Detail:   "Warning detail 1",
+						},
+					},
+				},
+				{
+					DisplayName: "Resource 2",
+					Identity: &proto.ResourceIdentityData{
+						IdentityData: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa7id_attr\xa4id-2"),
+						},
+					},
+				},
+				{
+					DisplayName: "Resource 3",
+					Identity: &proto.ResourceIdentityData{
+						IdentityData: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa7id_attr\xa4id-3"),
+						},
+					},
+					Diagnostic: []*proto.Diagnostic{
+						{
+							Severity: proto.Diagnostic_ERROR,
+							Summary:  "Error 1",
+							Detail:   "Error detail 1",
+						},
+						{
+							Severity: proto.Diagnostic_WARNING,
+							Summary:  "Warning 2",
+							Detail:   "Warning detail 2",
+						},
+					},
+				},
+				{ // This event will never be reached
+					DisplayName: "Resource 4",
+					Identity: &proto.ResourceIdentityData{
+						IdentityData: &proto.DynamicValue{
+							Msgpack: []byte("\x81\xa7id_attr\xa4id-4"),
+						},
+					},
+				},
+			},
+			2,
+			3,
+			2,
+		},
 	}
 
-	if !resp.Diagnostics.HasWarnings() {
-		t.Fatal("Expected warning diagnostics, but got none")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := mockProviderClient(t)
+			p := &GRPCProvider{
+				client: client,
+				ctx:    context.Background(),
+			}
+
+			mockStream := &mockListResourceStreamClient{
+				events: tc.events,
+			}
+
+			client.EXPECT().ListResource(
+				gomock.Any(),
+				gomock.Any(),
+			).Return(mockStream, nil)
+
+			resp := p.ListResource(request)
+
+			result := resp.Result.AsValueMap()
+			nResults := result["data"].LengthInt()
+			if nResults != tc.expectedCount {
+				t.Fatalf("Expected %d results, got %d", tc.expectedCount, nResults)
+			}
+
+			nDiagnostics := len(resp.Diagnostics)
+			if nDiagnostics != tc.expectedDiags {
+				t.Fatalf("Expected %d diagnostics, got %d", tc.expectedDiags, nDiagnostics)
+			}
+
+			nWarnings := len(resp.Diagnostics.Warnings())
+			if nWarnings != tc.expectedWarns {
+				t.Fatalf("Expected %d warnings, got %d", tc.expectedWarns, nWarnings)
+			}
+		})
 	}
 }
 
