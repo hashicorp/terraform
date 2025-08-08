@@ -48,7 +48,7 @@ func (n *NodeTestRun) Referenceable() addrs.Referenceable {
 }
 
 func (n *NodeTestRun) References() []*addrs.Reference {
-	references, _ := n.run.GetReferences()
+	references, _ := moduletest.GetRunReferences(n.run.Config)
 
 	for _, run := range n.priorRuns {
 		// we'll also draw an implicit reference to all prior runs to make sure
@@ -56,6 +56,27 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 		references = append(references, &addrs.Reference{
 			Subject:     run.Addr(),
 			SourceRange: tfdiags.SourceRangeFromHCL(n.run.Config.DeclRange),
+		})
+	}
+
+	for name, variable := range n.run.ModuleConfig.Module.Variables {
+
+		// because we also draw implicit references back to any variables
+		// defined in the test file with the same name as actual variables, then
+		// we'll count these as references as well.
+
+		if _, ok := n.run.Config.Variables[name]; ok {
+
+			// BUT, if the variable is defined within the list of variables
+			// within the run block then we don't want to draw an implicit
+			// reference as the data comes from that expression.
+
+			continue
+		}
+
+		references = append(references, &addrs.Reference{
+			Subject:     addrs.InputVariable{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
 		})
 	}
 
@@ -106,7 +127,7 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) {
 	// Before the terraform operation is started, the operation updates the
 	// waiter with the cleanup context on cancellation, as well as the
 	// progress status.
-	waiter := NewOperationWaiter(nil, evalCtx, n, moduletest.Running, startTime.UnixMilli())
+	waiter := NewOperationWaiter(nil, evalCtx, file, run, moduletest.Running, startTime.UnixMilli())
 	cancelled := waiter.Run(func() {
 		defer logging.PanicHandler()
 		n.execute(evalCtx, waiter)
@@ -128,7 +149,7 @@ func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	ctx.Renderer().Run(run, file, moduletest.Starting, 0)
 
-	providers, mocks, providerDiags := n.getProviders(ctx)
+	providers, mocks, providerDiags := getProviders(ctx, file.Config, run.Config, run.ModuleConfig)
 	if !ctx.ProvidersCompleted(providers) {
 		run.Status = moduletest.Skip
 		return
@@ -145,7 +166,7 @@ func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 		return
 	}
 
-	variables, variableDiags := n.GetVariables(ctx, true)
+	variables, variableDiags := GetVariables(ctx, run.Config, run.ModuleConfig, true)
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
 	if variableDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -181,19 +202,17 @@ func (n *NodeTestRun) testValidate(providers map[addrs.RootProviderConfig]provid
 	}
 }
 
-func (n *NodeTestRun) getProviders(ctx *EvalContext) (map[addrs.RootProviderConfig]providers.Interface, map[addrs.RootProviderConfig]*configs.MockData, tfdiags.Diagnostics) {
-	run := n.run
-
+func getProviders(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config) (map[addrs.RootProviderConfig]providers.Interface, map[addrs.RootProviderConfig]*configs.MockData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if len(run.Config.Providers) > 0 {
+	if len(run.Providers) > 0 {
 		// Then we'll only provide the specific providers asked for by the run
 		// block.
 
-		providers := make(map[addrs.RootProviderConfig]providers.Interface, len(run.Config.Providers))
+		providers := make(map[addrs.RootProviderConfig]providers.Interface, len(run.Providers))
 		mocks := make(map[addrs.RootProviderConfig]*configs.MockData)
 
-		for _, ref := range run.Config.Providers {
+		for _, ref := range run.Providers {
 
 			testAddr := addrs.RootProviderConfig{
 				Provider: ctx.ProviderForConfigAddr(ref.InParent.Addr()),
@@ -201,7 +220,7 @@ func (n *NodeTestRun) getProviders(ctx *EvalContext) (map[addrs.RootProviderConf
 			}
 
 			moduleAddr := addrs.RootProviderConfig{
-				Provider: run.ModuleConfig.ProviderForConfigAddr(ref.InChild.Addr()),
+				Provider: module.ProviderForConfigAddr(ref.InChild.Addr()),
 				Alias:    ref.InChild.Alias,
 			}
 
@@ -218,7 +237,7 @@ func (n *NodeTestRun) getProviders(ctx *EvalContext) (map[addrs.RootProviderConf
 			if provider, ok := ctx.GetProvider(testAddr); ok {
 				providers[moduleAddr] = provider
 
-				config := n.File().Config.Providers[ref.InParent.String()]
+				config := file.Providers[ref.InParent.String()]
 				if config.Mock {
 					mocks[moduleAddr] = config.MockData
 				}
@@ -241,7 +260,7 @@ func (n *NodeTestRun) getProviders(ctx *EvalContext) (map[addrs.RootProviderConf
 		providers := make(map[addrs.RootProviderConfig]providers.Interface)
 		mocks := make(map[addrs.RootProviderConfig]*configs.MockData)
 
-		for addr := range requiredProviders(run.ModuleConfig) {
+		for addr := range requiredProviders(module) {
 			if provider, ok := ctx.GetProvider(addr); ok {
 				providers[addr] = provider
 
@@ -249,7 +268,7 @@ func (n *NodeTestRun) getProviders(ctx *EvalContext) (map[addrs.RootProviderConf
 				if len(addr.Alias) > 0 {
 					local = fmt.Sprintf("%s.%s", local, addr.Alias)
 				}
-				config := n.File().Config.Providers[local]
+				config := file.Providers[local]
 				if config.Mock {
 					mocks[addr] = config.MockData
 				}

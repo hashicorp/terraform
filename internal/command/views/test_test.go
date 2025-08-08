@@ -994,13 +994,13 @@ main.tftest.hcl, and they need to be cleaned up manually:
 
 func TestTestHuman_FatalInterruptSummary(t *testing.T) {
 	tcs := map[string]struct {
-		states  map[*moduletest.Run]*states.State
+		states  map[string]*states.State
 		run     *moduletest.Run
 		created []*plans.ResourceInstanceChangeSrc
 		want    string
 	}{
 		"no_state_only_plan": {
-			states: make(map[*moduletest.Run]*states.State),
+			states: make(map[string]*states.State),
 			run: &moduletest.Run{
 				Config: &configs.TestRun{},
 				Name:   "run_block",
@@ -1048,8 +1048,8 @@ Terraform was in the process of creating the following resources for
 `,
 		},
 		"file_state_no_plan": {
-			states: map[*moduletest.Run]*states.State{
-				nil: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				configs.TestMainStateIdentifier: states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -1091,15 +1091,8 @@ test:
 `,
 		},
 		"run_states_no_plan": {
-			states: map[*moduletest.Run]*states.State{
-				&moduletest.Run{
-					Name: "setup_block",
-					Config: &configs.TestRun{
-						Module: &configs.TestRunModuleCall{
-							Source: addrs.ModuleSourceLocal("../setup"),
-						},
-					},
-				}: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				"../setup": states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -1134,22 +1127,14 @@ test:
 Terraform was interrupted while executing main.tftest.hcl, and may not have
 performed the expected cleanup operations.
 
-Terraform has already created the following resources for "setup_block" from
-"../setup":
+Terraform has already created the following resources for "../setup":
   - test_instance.one
   - test_instance.two
 `,
 		},
 		"all_states_with_plan": {
-			states: map[*moduletest.Run]*states.State{
-				&moduletest.Run{
-					Name: "setup_block",
-					Config: &configs.TestRun{
-						Module: &configs.TestRunModuleCall{
-							Source: addrs.ModuleSourceLocal("../setup"),
-						},
-					},
-				}: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				"../setup": states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -1178,7 +1163,7 @@ Terraform has already created the following resources for "setup_block" from
 						&states.ResourceInstanceObjectSrc{},
 						addrs.AbsProviderConfig{})
 				}),
-				nil: states.BuildState(func(state *states.SyncState) {
+				configs.TestMainStateIdentifier: states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -1253,8 +1238,7 @@ test:
   - test_instance.one
   - test_instance.two
 
-Terraform has already created the following resources for "setup_block" from
-"../setup":
+Terraform has already created the following resources for "../setup":
   - test_instance.setup_one
   - test_instance.setup_two
 
@@ -1272,15 +1256,15 @@ Terraform was in the process of creating the following resources for
 
 			file := &moduletest.File{
 				Name: "main.tftest.hcl",
-				Runs: func() []*moduletest.Run {
-					var runs []*moduletest.Run
-					for run := range tc.states {
-						if run != nil {
-							runs = append(runs, run)
-						}
-					}
-					return runs
-				}(),
+				//	Runs: func() []*moduletest.Run {
+				//		var runs []*moduletest.Run
+				//		for run := range tc.states {
+				//			if run != nil {
+				//				runs = append(runs, run)
+				//			}
+				//		}
+				//		return runs
+				//	}(),
 			}
 
 			view.FatalInterruptSummary(tc.run, file, tc.states, tc.created)
@@ -2973,12 +2957,12 @@ func TestTestJSON_Run(t *testing.T) {
 
 func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 	tcs := map[string]struct {
-		states  map[*moduletest.Run]*states.State
+		states  map[string]*states.State
 		changes []*plans.ResourceInstanceChangeSrc
 		want    []map[string]interface{}
 	}{
 		"no_state_only_plan": {
-			states: make(map[*moduletest.Run]*states.State),
+			states: make(map[string]*states.State),
 			changes: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.AbsResourceInstance{
@@ -3029,8 +3013,8 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 			},
 		},
 		"file_state_no_plan": {
-			states: map[*moduletest.Run]*states.State{
-				nil: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				configs.TestMainStateIdentifier: states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -3083,8 +3067,8 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 			},
 		},
 		"run_states_no_plan": {
-			states: map[*moduletest.Run]*states.State{
-				&moduletest.Run{Name: "setup_block"}: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				"../setup": states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -3124,7 +3108,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 					"@testrun":  "run_block",
 					"test_interrupt": map[string]interface{}{
 						"states": map[string]interface{}{
-							"setup_block": []interface{}{
+							"../setup": []interface{}{
 								map[string]interface{}{
 									"instance": "test_instance.one",
 								},
@@ -3139,8 +3123,8 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 			},
 		},
 		"all_states_with_plan": {
-			states: map[*moduletest.Run]*states.State{
-				&moduletest.Run{Name: "setup_block"}: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				"../setup": states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -3169,7 +3153,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 						&states.ResourceInstanceObjectSrc{},
 						addrs.AbsProviderConfig{})
 				}),
-				nil: states.BuildState(func(state *states.SyncState) {
+				configs.TestMainStateIdentifier: states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -3248,7 +3232,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 							},
 						},
 						"states": map[string]interface{}{
-							"setup_block": []interface{}{
+							"../setup": []interface{}{
 								map[string]interface{}{
 									"instance": "test_instance.setup_one",
 								},
