@@ -213,7 +213,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 					root.StateStore.ProviderAddr,
 					root.StateStore.Type,
 				),
-				Subject: &root.Backend.TypeRange,
+				Subject: &root.StateStore.TypeRange,
 			})
 			return nil, true, diags
 		}
