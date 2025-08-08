@@ -148,6 +148,9 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		diags = diags.Append(earlyConfDiags)
 		view.Diagnostics(diags)
 		return 1
+	} else {
+		fmt.Println("c.Meta.AllowExperimentalFeatures", c.Meta.AllowExperimentalFeatures)
+		fmt.Println("initArgs.EnablePssExperiment", initArgs.EnablePssExperiment)
 	}
 
 	var back backend.Backend

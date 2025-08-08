@@ -3228,12 +3228,12 @@ func TestInit_testsWithModule(t *testing.T) {
 }
 
 func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory with test config
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-with-state-store"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
