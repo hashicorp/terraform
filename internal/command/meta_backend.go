@@ -1706,6 +1706,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
 					return nil, diags
 				}
+				// TODO - implement Read/Write state RPC methods
 				if err := defaultSMgr.PersistState(nil); err != nil {
 					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
 					return nil, diags
