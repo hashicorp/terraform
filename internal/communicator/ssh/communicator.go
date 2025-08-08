@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -174,7 +175,12 @@ func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 			))
 		}
 
-		if c.connInfo.ProxyHost != "" {
+		if c.connInfo.ProxyCommand != "" {
+			o.Output(fmt.Sprintf(
+				"Using configured proxy command: %s",
+				c.connInfo.ProxyCommand,
+			))
+		} else if c.connInfo.ProxyHost != "" {
 			o.Output(fmt.Sprintf(
 				"Using configured proxy host...\n"+
 					"  ProxyHost: %s\n"+
@@ -329,7 +335,13 @@ func (c *Communicator) Disconnect() error {
 	if c.conn != nil {
 		conn := c.conn
 		c.conn = nil
-		return conn.Close()
+
+		// Close the connection
+		err := conn.Close()
+		if err != nil {
+			log.Printf("[ERROR] Error closing connection: %s", err)
+			return err
+		}
 	}
 
 	return nil
@@ -603,7 +615,7 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 
 	if err != nil {
 		if exitErr, ok := err.(*ssh.ExitError); ok {
-			// Otherwise, we have an ExitErorr, meaning we can just read
+			// Otherwise, we have an ExitError, meaning we can just read
 			// the exit status
 			log.Printf("[ERROR] %s", exitErr)
 
@@ -896,4 +908,135 @@ func quoteShell(args []string, targetPlatform string) (string, error) {
 
 	return "", fmt.Errorf("Cannot quote shell command, target platform unknown: %s", targetPlatform)
 
+}
+
+// ProxyCommandConnectFunc is a convenience method for returning a function
+// that connects to a host using a proxy command.
+func ProxyCommandConnectFunc(proxyCommand, addr string) func() (net.Conn, error) {
+	return func() (net.Conn, error) {
+		log.Printf("[DEBUG] Connecting to %s using proxy command: %s", addr, proxyCommand)
+
+		// Split the command into command and args
+		cmdParts := strings.Fields(proxyCommand)
+		if len(cmdParts) == 0 {
+			return nil, fmt.Errorf("Invalid proxy command: %s", proxyCommand)
+		}
+
+		// Create a buffer to capture stderr
+		stderrBuf := new(bytes.Buffer)
+
+		// Create context for command lifecycle management
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// Create proxy command with context
+		cmd := exec.CommandContext(ctx, cmdParts[0], cmdParts[1:]...)
+		cmd.Stderr = stderrBuf
+
+		// Start the command with pipes
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			cancel()
+			return nil, fmt.Errorf("Error creating stdin pipe for proxy command: %s", err)
+		}
+
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			stdin.Close()
+			cancel()
+			return nil, fmt.Errorf("Error creating stdout pipe for proxy command: %s", err)
+		}
+
+		if err := cmd.Start(); err != nil {
+			stdin.Close()
+			cancel()
+			return nil, fmt.Errorf("Error starting proxy command: %s", err)
+		}
+
+		// Create a wrapper that manages the command and pipes
+		conn := &proxyCommandConn{
+			cmd:        cmd,
+			stderr:     stderrBuf,
+			stdinPipe:  stdin,
+			stdoutPipe: stdout,
+			ctx:        ctx,
+			cancel:     cancel,
+		}
+
+		return conn, nil
+	}
+}
+
+type proxyCommandConn struct {
+	cmd        *exec.Cmd
+	stderr     *bytes.Buffer
+	stdinPipe  io.WriteCloser
+	stdoutPipe io.ReadCloser
+	closed     bool
+	mutex      sync.Mutex
+	ctx        context.Context
+	cancel     context.CancelFunc
+}
+
+// Read reads data from the connection (the command's stdout)
+func (c *proxyCommandConn) Read(b []byte) (int, error) {
+	c.mutex.Lock()
+	if c.closed {
+		c.mutex.Unlock()
+		return 0, io.EOF
+	}
+	c.mutex.Unlock()
+
+	return c.stdoutPipe.Read(b)
+}
+
+// Write writes data to the connection (the command's stdin)
+func (c *proxyCommandConn) Write(b []byte) (int, error) {
+	return c.stdinPipe.Write(b)
+}
+
+func (c *proxyCommandConn) Close() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.closed {
+		return nil
+	}
+	c.closed = true
+
+	log.Print("[DEBUG] Closing proxy command connection")
+	if err := c.stdinPipe.Close(); err != nil {
+		log.Printf("[ERROR] Error closing stdin pipe: %s", err)
+	}
+
+	// Cancel the context to signal the command to terminate
+	c.cancel()
+	c.cmd.Wait()
+
+	// If the command failed, log the stderr output
+	if c.stderr.Len() > 0 {
+		log.Printf("[ERROR] Proxy command stderr: %s", c.stderr.String())
+	}
+
+	return nil
+}
+
+// Required methods to implement net.Conn interface
+func (c *proxyCommandConn) LocalAddr() net.Addr {
+	return &net.UnixAddr{Name: "local", Net: "unix"}
+}
+
+func (c *proxyCommandConn) RemoteAddr() net.Addr {
+	return &net.UnixAddr{Name: "remote", Net: "unix"}
+}
+
+func (c *proxyCommandConn) SetDeadline(t time.Time) error {
+	return nil // Not implemented
+}
+
+func (c *proxyCommandConn) SetReadDeadline(t time.Time) error {
+	return nil // Not implemented
+}
+
+func (c *proxyCommandConn) SetWriteDeadline(t time.Time) error {
+	return nil // Not implemented
 }

@@ -231,6 +231,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
+		"proxy_command": {
+			Type:     cty.String,
+			Optional: true,
+		},
 		"bastion_host": {
 			Type:     cty.String,
 			Optional: true,

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: You can now utilize an SSH proxy command with the `proxy_command` argument in `connection` blocks of resources.
+time: 2025-03-01T16:57:40.050317317Z
+custom:
+    Issue: "394"
