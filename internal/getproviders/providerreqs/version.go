@@ -88,6 +88,8 @@ func ParseVersion(str string) (Version, error) {
 	return versions.ParseVersion(str)
 }
 
+// GoVersionFromVersion converts a Version from the providerreqs package
+// into a Version from the hashicorp/go-version module.
 func GoVersionFromVersion(v Version) (*version.Version, error) {
 	return version.NewVersion(v.String())
 }
