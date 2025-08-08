@@ -93,7 +93,7 @@ func (runner *TestSuiteRunner) Cancel() {
 	runner.Cancelled = true
 }
 
-func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
+func (runner *TestSuiteRunner) Test(experimentsAllowed bool) (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if runner.Concurrency < 1 {
@@ -106,7 +106,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		return moduletest.Error, diags
 	}
 
-	manifest, err := teststates.LoadManifest(".")
+	manifest, err := teststates.LoadManifest(".", experimentsAllowed)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -143,7 +143,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		suite.Status = suite.Status.Merge(file.Status)
 	}
 
-	if err := manifest.Save(); err != nil {
+	if err := manifest.Save(experimentsAllowed); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to save state manifest",

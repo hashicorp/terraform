@@ -62,7 +62,18 @@ type TestRunManifest struct {
 }
 
 // LoadManifest loads the test manifest from the specified root directory.
-func LoadManifest(rootDir string) (*TestManifest, error) {
+func LoadManifest(rootDir string, experimentsAllowed bool) (*TestManifest, error) {
+	if !experimentsAllowed {
+		// Just return an empty manifest file every time when experiments are
+		// disabled.
+		return &TestManifest{
+			Version: 0,
+			Files:   make(map[string]*TestFileManifest),
+			dataDir: workdir.NewDir(rootDir).TestDataDir(),
+			ids:     make(map[string]bool),
+		}, nil
+	}
+
 	wd := workdir.NewDir(rootDir)
 
 	manifest := &TestManifest{
@@ -98,7 +109,12 @@ func LoadManifest(rootDir string) (*TestManifest, error) {
 }
 
 // Save saves the current state of the manifest to the data directory.
-func (manifest *TestManifest) Save() error {
+func (manifest *TestManifest) Save(experimentsAllowed bool) error {
+	if !experimentsAllowed {
+		// just don't save the manifest file when experiments are disabled.
+		return nil
+	}
+
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return err

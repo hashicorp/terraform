@@ -43,7 +43,7 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	test, testDiags := loadTestFile(body)
+	test, testDiags := loadTestFile(body, p.allowExperiments)
 	diags = append(diags, testDiags...)
 	return test, diags
 }
