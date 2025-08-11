@@ -1509,11 +1509,22 @@ func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 func (p *GRPCProvider) DeleteState(r providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
 	logger.Trace("GRPCProvider.v6: DeleteState")
 
-	protoReq := &proto6.GetStates_Request{
+	protoReq := &proto6.DeleteState_Request{
 		TypeName: r.TypeName,
 	}
 
-	protoResp, err := p.client.GetStates(p.ctx, protoReq)
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoResp, err := p.client.DeleteState(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
