@@ -223,6 +223,19 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 				},
 			},
 		},
+		StateStoreSchemas: map[string]*proto.Schema{
+			"mock_store": {
+				Block: &proto.Schema_Block{
+					Version: 1,
+					Attributes: []*proto.Schema_Attribute{
+						{
+							Name: "region",
+							Type: []byte(`"string"`),
+						},
+					},
+				},
+			},
+		},
 		ServerCapabilities: &proto.ServerCapabilities{
 			GetProviderSchemaOptional: true,
 		},
