@@ -3116,3 +3116,54 @@ func TestGRPCProvider_ValidateStateStoreConfig_returns_validation_errors(t *test
 		})
 	}
 }
+
+func TestGRPCProvider_ValidateStateStoreConfig_schema_errors(t *testing.T) {
+
+	cases := map[string]struct {
+		typeName             string
+		config               cty.Value
+		expectedErrorSummary string
+	}{
+		"no matching store type in provider": {
+			typeName:             "does_not_exist", // not present in mockProviderClient state store schemas
+			expectedErrorSummary: "unknown state store type \"does_not_exist\"",
+		},
+		"missing required attributes": {
+			typeName: "mock_store", // Is present in mockProviderClient
+			config:   cty.ObjectVal(map[string]cty.Value{
+				// Missing required `region` attr
+			}),
+			expectedErrorSummary: "attribute \"region\" is required",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			client := mockProviderClient(t)
+			p := &GRPCProvider{
+				client: client,
+				ctx:    context.Background(),
+			}
+
+			request := providers.ValidateStateStoreConfigRequest{
+				TypeName: tc.typeName,
+				Config:   tc.config,
+			}
+
+			// Act
+			resp := p.ValidateStateStoreConfig(request)
+
+			// Note - we haven't asserted that we expect ValidateStateStoreConfig
+			// to be called via the client; this package returns these errors before then.
+
+			// Assert that the expected error is returned
+			checkDiagsHasError(t, resp.Diagnostics)
+			if resp.Diagnostics[0].Description().Summary != tc.expectedErrorSummary {
+				t.Fatalf("expected error summary to be %q, but got %q",
+					tc.expectedErrorSummary,
+					resp.Diagnostics[0].Description().Summary,
+				)
+			}
+		})
+	}
+}
