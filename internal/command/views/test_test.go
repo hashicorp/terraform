@@ -1256,15 +1256,6 @@ Terraform was in the process of creating the following resources for
 
 			file := &moduletest.File{
 				Name: "main.tftest.hcl",
-				//	Runs: func() []*moduletest.Run {
-				//		var runs []*moduletest.Run
-				//		for run := range tc.states {
-				//			if run != nil {
-				//				runs = append(runs, run)
-				//			}
-				//		}
-				//		return runs
-				//	}(),
 			}
 
 			view.FatalInterruptSummary(tc.run, file, tc.states, tc.created)
