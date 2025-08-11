@@ -310,11 +310,6 @@ func initCommands(
 				Meta: meta,
 			}, nil
 		},
-		"test cleanup": func() (cli.Command, error) {
-			return &command.TestCleanupCommand{
-				Meta: meta,
-			}, nil
-		},
 
 		"validate": func() (cli.Command, error) {
 			return &command.ValidateCommand{
@@ -458,6 +453,12 @@ func initCommands(
 
 		Commands["query"] = func() (cli.Command, error) {
 			return &command.QueryCommand{
+				Meta: meta,
+			}, nil
+		}
+
+		Commands["test cleanup"] = func() (cli.Command, error) {
+			return &command.TestCleanupCommand{
 				Meta: meta,
 			}, nil
 		}

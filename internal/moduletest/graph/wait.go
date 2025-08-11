@@ -47,13 +47,13 @@ func (a *atomicProgress[T]) Store(progress T) {
 }
 
 // NewOperationWaiter creates a new operation waiter.
-func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTestRun,
+func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, file *moduletest.File, run *moduletest.Run,
 	progress moduletest.Progress, start int64) *operationWaiter {
 	identifier := "validate"
-	if n.File() != nil {
-		identifier = n.File().Name
-		if n.run != nil {
-			identifier = fmt.Sprintf("%s/%s", identifier, n.run.Name)
+	if file != nil {
+		identifier = file.Name
+		if run != nil {
+			identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
 		}
 	}
 
@@ -62,8 +62,8 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTes
 
 	return &operationWaiter{
 		ctx:        ctx,
-		run:        n.run,
-		file:       n.File(),
+		run:        run,
+		file:       file,
 		progress:   p,
 		start:      start,
 		identifier: identifier,
@@ -134,14 +134,13 @@ func (w *operationWaiter) updateProgress() {
 // handleCancelled is called when the test execution is hard cancelled.
 func (w *operationWaiter) handleCancelled() bool {
 	log.Printf("[DEBUG] TestFileRunner: test execution cancelled during %s", w.identifier)
-	states := make(map[*moduletest.Run]*states.State)
-	mainKey := configs.TestMainStateIdentifier
-	states[nil] = w.evalCtx.GetFileState(mainKey).State
+	states := make(map[string]*states.State)
+	states[configs.TestMainStateIdentifier] = w.evalCtx.GetState(configs.TestMainStateIdentifier).State
 	for key, module := range w.evalCtx.FileStates {
-		if key == mainKey {
+		if key == configs.TestMainStateIdentifier {
 			continue
 		}
-		states[module.Run] = module.State
+		states[key] = module.State
 	}
 	w.renderer.FatalInterruptSummary(w.run, w.file, states, w.created)
 

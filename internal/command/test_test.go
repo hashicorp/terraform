@@ -32,7 +32,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/moduletest/graph"
+	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -609,9 +609,10 @@ func TestTest_DestroyFail(t *testing.T) {
 
 	c := &TestCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ShutdownCh:       interrupt,
+			testingOverrides:          metaOverridesForProvider(provider.Provider),
+			View:                      view,
+			ShutdownCh:                interrupt,
+			AllowExperimentalFeatures: true,
 		},
 	}
 
@@ -674,54 +675,11 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 		t.Errorf("should not have deleted all resources on completion but only has %v", provider.ResourceString())
 	}
 
-	actualStates := func() map[string][]string {
-		// Verify the manifest.json file
-		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-		manifestFile, err := os.ReadFile(manifestPath)
-		if err != nil {
-			t.Fatalf("failed to read manifest.json: %s", err)
-		}
-
-		var manifest graph.TestManifest
-		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-			t.Fatalf("failed to unmarshal manifest.json: %s", err)
-		}
-
-		states := make(map[string][]string)
-
-		// Verify the states in the manifest
-		for fileName, file := range manifest.Files {
-			for name, state := range file.States {
-				sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
-				if err := sm.RefreshState(); err != nil {
-					t.Fatalf("error when reading state file: %s", err)
-				}
-				state := sm.State()
-
-				// If the state is nil, then the test cleaned up the state
-				if state == nil || state.Empty() {
-					continue
-				}
-
-				var resources []string
-				for _, module := range state.Modules {
-					for _, resource := range module.Resources {
-						resources = append(resources, resource.Addr.String())
-					}
-				}
-				sort.Strings(resources)
-				states[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
-			}
-		}
-
-		return states
-	}
-
 	expectedStates := map[string][]string{
 		"main.":       {"test_resource.another", "test_resource.resource"},
 		"main.double": {"test_resource.another", "test_resource.resource"},
 	}
-	if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
+	if diff := cmp.Diff(expectedStates, statesFromManifest(t, td)); diff != "" {
 		t.Fatalf("unexpected states: %s", diff)
 	}
 
@@ -742,27 +700,30 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 
 		c := &TestCleanupCommand{
 			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				View:             view,
-				ShutdownCh:       interrupt,
+				testingOverrides:          metaOverridesForProvider(provider.Provider),
+				View:                      view,
+				ShutdownCh:                interrupt,
+				AllowExperimentalFeatures: true,
 			},
 		}
 
 		c.Run([]string{"-no-color"})
 		output := done(t)
 
+		actualCleanup := output.Stdout()
 		expectedCleanup := `main.tftest.hcl... in progress
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
 
-Success!`
-		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
-			t.Fatalf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
+Success!
+`
+		if diff := cmp.Diff(expectedCleanup, actualCleanup); diff != "" {
+			t.Fatalf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, actualCleanup, diff)
 		}
 
 		expectedStates := map[string][]string{}
 
-		if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
+		if diff := cmp.Diff(expectedStates, statesFromManifest(t, td)); diff != "" {
 			t.Fatalf("unexpected states after cleanup: %s", diff)
 		}
 	})
@@ -778,9 +739,10 @@ func TestTest_Cleanup(t *testing.T) {
 
 		view, done := testView(t)
 		meta := Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ProviderSource:   providerSource,
+			testingOverrides:          metaOverridesForProvider(provider.Provider),
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
 		}
 
 		init := &InitCommand{Meta: meta}
@@ -794,9 +756,10 @@ func TestTest_Cleanup(t *testing.T) {
 
 		c := &TestCommand{
 			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				View:             view,
-				ShutdownCh:       interrupt,
+				testingOverrides:          metaOverridesForProvider(provider.Provider),
+				View:                      view,
+				ShutdownCh:                interrupt,
+				AllowExperimentalFeatures: true,
 			},
 		}
 
@@ -880,9 +843,10 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 
 		c := &TestCleanupCommand{
 			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				View:             view,
-				ShutdownCh:       interrupt,
+				testingOverrides:          metaOverridesForProvider(provider.Provider),
+				View:                      view,
+				ShutdownCh:                interrupt,
+				AllowExperimentalFeatures: true,
 			},
 		}
 
@@ -893,7 +857,8 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
 
-Success!`
+Success!
+`
 		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
 			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
 		}
@@ -932,9 +897,10 @@ Success!`
 
 		c := &TestCleanupCommand{
 			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				View:             view,
-				ShutdownCh:       interrupt,
+				testingOverrides:          metaOverridesForProvider(provider.Provider),
+				View:                      view,
+				ShutdownCh:                interrupt,
+				AllowExperimentalFeatures: true,
 			},
 		}
 
@@ -945,7 +911,8 @@ Success!`
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
 
-Success!`
+Success!
+`
 		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
 			t.Fatalf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
 		}
@@ -961,127 +928,172 @@ Success!`
 	})
 }
 
-func TestTest_LeftoverState(t *testing.T) {
-	tests := []struct {
-		name       string
-		state      string
-		expectCode int
-		expectOut  string
-	}{
-		{
-			name: "non-empty state file",
-			state: `{
-					"version": 4,
-					"terraform_version": "1.5.0",
-					"serial": 1,
-					"lineage": "example-lineage-id",
-					"outputs": {},
-					"resources": [
-						{
-						"mode": "managed",
-						"type": "test_resource",
-						"name": "foo",
-						"provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
-						"instances": [
-							{
-							"schema_version": 0,
-							"attributes": {
-								"id": "constant_value",
-								"value": "bar"
-							},
-							"sensitive_attributes": [],
-							"private": "eyJzY2hlbWFfdmVyc2lvbiI6IjAifQ=="
-							}
-						]
-						}
-					]
-					}`,
-			expectCode: 1,
-			expectOut:  "\nFailure! 0 passed, 0 failed.\n",
-		},
-		{
-			name: "empty state file",
-			state: `{
-				"version": 4,
-				"terraform_version": "1.0.0",
-				"serial": 1,
-				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
-				"outputs": {},
-				"resources": []
-			}`,
-			expectCode: 0,
-			expectOut: `main.tftest.hcl... in progress
-  run "validate_test_resource"... pass
-  run "apply_test_resource"... pass
-main.tftest.hcl... tearing down
-main.tftest.hcl... pass
+func TestTest_CleanupActuallyCleansUp(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup_simple")), td)
+	t.Chdir(td)
 
-Success! 2 passed, 0 failed.
-`,
-		},
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", "plan_then_apply")), td)
-			t.Chdir(td)
+	init := &InitCommand{
+		Meta: meta,
+	}
 
-			statePath := path.Join(td, ".terraform", "test", "main.tfstate")
-			manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-			manifest := graph.TestManifest{
-				Version: 0,
-				Files: map[string]*graph.TestFile{
-					"main.tftest.hcl": {States: map[string]*graph.TestState{"single": {Path: statePath}}},
-				},
-			}
+	output := done(t)
 
-			os.MkdirAll(filepath.Dir(statePath), 0755)
-			if err := os.WriteFile(statePath, []byte(tt.state), 0644); err != nil {
-				t.Fatalf("failed to write state file: %s", err)
-			}
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
 
-			manifestFile, err := os.Create(manifestPath)
-			if err != nil {
-				t.Fatalf("failed to create manifest.json: %s", err)
-			}
-			defer manifestFile.Close()
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
-			if err := json.NewEncoder(manifestFile).Encode(manifest); err != nil {
-				t.Fatalf("failed to write manifest.json: %s", err)
-			}
+	c := &TestCommand{
+		Meta: meta,
+	}
 
-			provider := testing_command.NewProvider(nil)
-			view, done := testView(t)
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
 
-			interrupt := make(chan struct{})
-			provider.Interrupt = interrupt
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
+	}
 
-			c := &TestCommand{
-				Meta: Meta{
-					testingOverrides: metaOverridesForProvider(provider.Provider),
-					View:             view,
-					ShutdownCh:       interrupt,
-				},
-			}
+	// Run the cleanup command.
 
-			code := c.Run([]string{"-no-color"})
-			output := done(t)
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
-			if code != tt.expectCode {
-				t.Errorf("expected status code %d but got %d:\n\n%s", tt.expectCode, code, output.All())
-			}
+	cleanup := &TestCleanupCommand{
+		Meta: meta,
+	}
 
-			if diff := cmp.Diff(tt.expectOut, output.Stdout()); diff != "" {
-				t.Errorf("unexpected output: %s", diff)
-			}
+	code = cleanup.Run([]string{"-no-color"})
+	output = done(t)
 
-			if tt.expectCode == 1 {
-				if _, err := os.Stat(statePath); err != nil {
-					t.Fatalf("state file should still be present: %s", err)
-				}
-			}
-		})
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	// Running the test again should now work, because we cleaned everything
+	// up.
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c = &TestCommand{
+		Meta: meta,
+	}
+
+	code = c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
+	}
+}
+
+func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup_simple")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	// Running the test again should fail because of the skip cleanup.
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c = &TestCommand{
+		Meta: meta,
+	}
+
+	code = c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code == 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expectedOut := "main.tftest.hcl... in progress\nmain.tftest.hcl... tearing down\nmain.tftest.hcl... fail\n\nFailure! 0 passed, 0 failed.\n"
+	expectedErr := "\nError: State manifest not empty\n\nThe state manifest for main.tftest.hcl should be empty before running tests.\nThis could be due to a previous test run not cleaning up after itself. Please\nensure that all state files are cleaned up before running tests.\n"
+
+	if diff := cmp.Diff(expectedOut, output.Stdout()); len(diff) > 0 {
+		t.Error(diff)
+	}
+	if diff := cmp.Diff(expectedErr, output.Stderr()); len(diff) > 0 {
+		t.Error(diff)
 	}
 }
 
@@ -2927,11 +2939,12 @@ func TestTest_SkipCleanup(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
 	}
 
 	init := &InitCommand{
@@ -2965,8 +2978,8 @@ func TestTest_SkipCleanup(t *testing.T) {
 		expected := `
 Warning: Duplicate "skip_cleanup" block
 
-  on main.tftest.hcl line 14:
-  14: run "test_three" {
+  on main.tftest.hcl line 15, in run "test_three":
+  15:   skip_cleanup = true
 
 The run "test_three" has a skip_cleanup attribute set, but shares state with
 an earlier run "test_two" that also has skip_cleanup set. The later run takes
@@ -3000,18 +3013,6 @@ Success! 5 passed, 0 failed.
 	})
 
 	t.Run("state should be persisted", func(t *testing.T) {
-		// Verify the manifest.json file
-		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-		manifestFile, err := os.ReadFile(manifestPath)
-		if err != nil {
-			t.Fatalf("failed to read manifest.json: %s", err)
-		}
-
-		var manifest graph.TestManifest
-		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-			t.Fatalf("failed to unmarshal manifest.json: %s", err)
-		}
-
 		expectedStates := map[string][]string{
 			"main.": {"test_resource.resource"},
 		}
@@ -3039,11 +3040,12 @@ func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
 	}
 
 	init := &InitCommand{
@@ -3103,18 +3105,6 @@ Success! 3 passed, 0 failed.
 	// we want to check that we leave behind the state that was skipped
 	// and the states that it depends on
 	t.Run("state should be persisted", func(t *testing.T) {
-		// Verify the manifest.json file
-		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-		manifestFile, err := os.ReadFile(manifestPath)
-		if err != nil {
-			t.Fatalf("failed to read manifest.json: %s", err)
-		}
-
-		var manifest graph.TestManifest
-		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-			t.Fatalf("failed to unmarshal manifest.json: %s", err)
-		}
-
 		expectedStates := map[string][]string{
 			"main.":      {"output.id", "output.unused"},
 			"main.state": {"test_resource.resource", "output.id", "output.unused"},
@@ -3133,8 +3123,9 @@ Success! 3 passed, 0 failed.
 				testingOverrides: metaOverridesForProvider(provider.Provider),
 				View:             view,
 
-				Ui:             ui,
-				ProviderSource: providerSource,
+				Ui:                        ui,
+				ProviderSource:            providerSource,
+				AllowExperimentalFeatures: true,
 			},
 		}
 
@@ -3145,7 +3136,8 @@ Success! 3 passed, 0 failed.
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
 
-Success!`
+Success!
+`
 		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
 			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
 		}
@@ -3178,11 +3170,12 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
 	}
 
 	init := &InitCommand{
@@ -3255,7 +3248,7 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
 
 		expected := []string{
-			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with an earlier run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":146,"column":17,"line":14},"filename":"main.tftest.hcl","start":{"byte":130,"column":1,"line":14}},"severity":"warning","snippet":{"code":"run \"test_three\" {","context":null,"highlight_end_offset":16,"highlight_start_offset":0,"start_line":14,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
+			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with an earlier run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":163,"column":15,"line":15},"filename":"main.tftest.hcl","start":{"byte":151,"column":3,"line":15}},"severity":"warning","snippet":{"code":"  skip_cleanup = true","context":"run \"test_three\"","highlight_end_offset":14,"highlight_start_offset":2,"start_line":15,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
 			`{"@level":"info","@message":"Found 1 file and 5 run blocks","@module":"terraform.ui","test_abstract":{"main.tftest.hcl":["test","test_two","test_three","test_four","test_five"]},"type":"test_abstract"}`,
 			`{"@level":"info","@message":"main.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"starting"},"type":"test_file"}`,
 			`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test"},"type":"test_run"}`,
@@ -3308,11 +3301,12 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
 	}
 
 	init := &InitCommand{
@@ -3372,16 +3366,9 @@ Success! 5 passed, 0 failed.
 	})
 
 	t.Run("state should be persisted with valid reason", func(t *testing.T) {
-		// Verify the manifest.json file
-		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-		manifestFile, err := os.ReadFile(manifestPath)
+		manifest, err := teststates.LoadManifest(td, true)
 		if err != nil {
-			t.Fatalf("failed to read manifest.json: %s", err)
-		}
-
-		var manifest graph.TestManifest
-		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-			t.Fatalf("failed to unmarshal manifest.json: %s", err)
+			t.Fatal(err)
 		}
 
 		expectedStates := map[string][]string{
@@ -3389,11 +3376,11 @@ Success! 5 passed, 0 failed.
 		}
 		actualStates := make(map[string][]string)
 
-		var reason graph.StateReason
+		var reason teststates.StateReason
 		// Verify the states in the manifest
 		for fileName, file := range manifest.Files {
 			for name, state := range file.States {
-				sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+				sm := statemgr.NewFilesystem(manifest.StateFilePath(state.ID))
 				if err := sm.RefreshState(); err != nil {
 					t.Fatalf("error when reading state file: %s", err)
 				}
@@ -3419,7 +3406,7 @@ Success! 5 passed, 0 failed.
 		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
 			t.Fatalf("unexpected states: %s", diff)
 		}
-		if reason != graph.ReasonSkip {
+		if reason != teststates.StateReasonSkip {
 			t.Fatalf("expected reason to be skip but got %s", reason)
 		}
 	})
@@ -4613,7 +4600,6 @@ permission denied..
 // Backend validation performed in the command package is dependent on the internal/backend/init package,
 // which cannot be imported in configuration parsing packages without creating an import cycle.
 func TestTest_ReusedBackendConfiguration(t *testing.T) {
-
 	testCases := map[string]struct {
 		dirName   string
 		expectErr string
@@ -4686,11 +4672,12 @@ There is no backend type named "foobar".
 			ui := new(cli.MockUi)
 
 			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
+				testingOverrides:          metaOverridesForProvider(provider.Provider),
+				Ui:                        ui,
+				View:                      view,
+				Streams:                   streams,
+				ProviderSource:            providerSource,
+				AllowExperimentalFeatures: true,
 			}
 
 			init := &InitCommand{
@@ -4733,7 +4720,6 @@ There is no backend type named "foobar".
 
 // When there is no starting state, state is created by the run containing the backend block
 func TestTest_UseOfBackends_stateCreatedByBackend(t *testing.T) {
-
 	dirName := "valid-use-local-backend/no-prior-state"
 
 	resourceId := "12345"
@@ -4766,11 +4752,12 @@ test_resource_id = 12345`
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
 	}
 
 	// INIT
@@ -4827,7 +4814,6 @@ test_resource_id = 12345`
 
 // When there is pre-existing state, the state is used by the run containing the backend block
 func TestTest_UseOfBackends_priorStateUsedByBackend(t *testing.T) {
-
 	dirName := "valid-use-local-backend/with-prior-state"
 	resourceId := "53d69028-477d-7ba0-83c3-ff3807e3756f" // This value needs to match the state file in the test fixtures
 	expectedState := fmt.Sprintf(`test_resource.foobar:
@@ -4859,6 +4845,7 @@ test_resource_id = %s`, resourceId, resourceId)
 				"create_wait_seconds":  cty.NullVal(cty.Number),
 				"destroy_fail":         cty.False,
 				"destroy_wait_seconds": cty.NullVal(cty.Number),
+				"defer":                cty.NullVal(cty.Bool),
 			})},
 	}
 	provider := testing_command.NewProvider(resourceStore)
@@ -4873,11 +4860,12 @@ test_resource_id = %s`, resourceId, resourceId)
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
 	}
 
 	// INIT
@@ -4938,19 +4926,19 @@ test_resource_id = %s`, resourceId, resourceId)
 // Artifacts are made when the cleanup operation errors.
 func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 	cases := map[string]struct {
-		forceError       bool
-		expectedCode     int
-		expectStateFiles bool
+		forceError          bool
+		expectedCode        int
+		expectStateManifest bool
 	}{
 		"no artifact made when there are no cleanup errors when processing a run block with a backend": {
-			forceError:       false,
-			expectedCode:     0,
-			expectStateFiles: false,
+			forceError:          false,
+			expectedCode:        0,
+			expectStateManifest: false,
 		},
 		"artifact made when a cleanup error is forced when processing a run block with a backend": {
-			forceError:       true,
-			expectedCode:     1,
-			expectStateFiles: true,
+			forceError:          true,
+			expectedCode:        1,
+			expectStateManifest: true,
 		},
 	}
 
@@ -4992,11 +4980,12 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 			ui := new(cli.MockUi)
 
 			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
+				testingOverrides:          metaOverridesForProvider(provider.Provider),
+				Ui:                        ui,
+				View:                      view,
+				Streams:                   streams,
+				ProviderSource:            providerSource,
+				AllowExperimentalFeatures: true,
 			}
 
 			// INIT
@@ -5035,33 +5024,20 @@ The apply resource change function was invoked %d times but we trigger an error 
 
 			// State is NOT stored in .terraform/test as a state artifact because
 			// there haven't been any failures or errors in the tests
-			manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-			manifestFile, err := os.ReadFile(manifestPath)
+			manifest, err := teststates.LoadManifest(td, true)
 			if err != nil {
-				t.Fatalf("failed to read manifest.json: %s", err)
+				t.Fatal(err)
 			}
-			var manifest graph.TestManifest
-			if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-				t.Fatalf("failed to unmarshal manifest.json: %s", err)
-			}
-			foundFiles := []string{}
+			foundIds := []string{}
 			for _, file := range manifest.Files {
-				for name, state := range file.States {
-					t.Logf("manifest.json describes state for %s is stored in %s", name, state.Path)
-					path := path.Join(td, state.Path)
-					_, err := os.Stat(path)
-					if err != nil && !os.IsNotExist(err) {
-						t.Fatalf("unexpected error when checking for state artifacts: %s", err)
-					}
-					if err == nil {
-						foundFiles = append(foundFiles, state.Path)
-					}
+				for _, state := range file.States {
+					foundIds = append(foundIds, state.ID)
 				}
 			}
-			if len(foundFiles) > 0 && !tc.expectStateFiles {
-				t.Fatalf("found %d state files in .terraform/test when none were expected", len(foundFiles))
+			if len(foundIds) > 0 && !tc.expectStateManifest {
+				t.Fatalf("found %d state files in .terraform/test when none were expected", len(foundIds))
 			}
-			if len(foundFiles) == 0 && tc.expectStateFiles {
+			if len(foundIds) == 0 && tc.expectStateManifest {
 				t.Fatalf("found 0 state files in .terraform/test when they were were expected")
 			}
 		})
@@ -5069,7 +5045,6 @@ The apply resource change function was invoked %d times but we trigger an error 
 }
 
 func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
-
 	cases := map[string]struct {
 		testDir    string
 		expectCode int
@@ -5105,11 +5080,12 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 			ui := new(cli.MockUi)
 
 			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
+				testingOverrides:          metaOverridesForProvider(provider.Provider),
+				Ui:                        ui,
+				View:                      view,
+				Streams:                   streams,
+				ProviderSource:            providerSource,
+				AllowExperimentalFeatures: true,
 			}
 
 			// INIT
@@ -5165,11 +5141,12 @@ func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
 	}
 
 	// INIT
@@ -5219,18 +5196,6 @@ supplied_input_value = value-from-run-that-controls-backend
 test_resource_id = 12345`
 	if diff := cmp.Diff(actualBackendState.String(), expectedBackendState); len(diff) > 0 {
 		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedBackendState, actualBackendState, diff)
-	}
-
-	// No state artifacts are made
-	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-	manifestFile, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("failed to read manifest.json: %s", err)
-	}
-
-	var manifest graph.TestManifest
-	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-		t.Fatalf("failed to unmarshal manifest.json: %s", err)
 	}
 
 	expectedStates := map[string][]string{} // empty
@@ -5534,16 +5499,9 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 }
 
 func statesFromManifest(t *testing.T, td string) map[string][]string {
-	// Verify the manifest.json file
-	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-	manifestFile, err := os.ReadFile(manifestPath)
+	manifest, err := teststates.LoadManifest(td, true)
 	if err != nil {
-		t.Fatalf("failed to read manifest.json: %s", err)
-	}
-
-	var manifest graph.TestManifest
-	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-		t.Fatalf("failed to unmarshal manifest.json: %s", err)
+		t.Fatal(err)
 	}
 
 	states := make(map[string][]string)
@@ -5551,7 +5509,7 @@ func statesFromManifest(t *testing.T, td string) map[string][]string {
 	// Verify the states in the manifest
 	for fileName, file := range manifest.Files {
 		for name, state := range file.States {
-			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+			sm := statemgr.NewFilesystem(manifest.StateFilePath(state.ID))
 			if err := sm.RefreshState(); err != nil {
 				t.Fatalf("error when reading state file: %s", err)
 			}
