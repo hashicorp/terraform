@@ -21,3 +21,6 @@ contact_links:
   - name: Terraform Usage, Language, or Workflow Questions
     url: https://discuss.hashicorp.com/c/terraform-core
     about: Please ask and answer language or workflow related questions through the Terraform Core Community Forum.
+  - name: Documentation Issue
+    url: https://github.com/hashicorp/web-unified-docs
+    about: Documentation has its own repository for all HashiCorp products and related issues or questions should be directed there.
