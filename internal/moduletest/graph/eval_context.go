@@ -572,7 +572,7 @@ func (ec *EvalContext) SetFileState(key string, run *moduletest.Run, state *stat
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
 
-	current := ec.FileStates[key]
+	current := ec.getState(key)
 
 	// Whatever happens we're going to record the latest state for this key.
 	current.State = state
@@ -600,10 +600,17 @@ func (ec *EvalContext) SetFileState(key string, run *moduletest.Run, state *stat
 func (ec *EvalContext) GetState(key string) *teststates.TestRunState {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
+	return ec.getState(key)
+}
+
+func (ec *EvalContext) getState(key string) *teststates.TestRunState {
 	current := ec.FileStates[key]
 	if current == nil {
-		// this shouldn't happen, panic here so we now exactly where the origin
-		// of the bug is instead of returning a null state to panic later.
+		// this shouldn't happen, all the states must be initialised prior to
+		// the evaluation context being created.
+		//
+		// panic here, where the origin of the bug is instead of returning a
+		// null state to panic later.
 		panic("null state found in test execution")
 	}
 	return current
@@ -618,12 +625,7 @@ func (ec *EvalContext) LoadState(run *configs.TestRun) (*states.State, error) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
 
-	current := ec.FileStates[run.StateKey]
-	if current == nil {
-		// Should not be possible, all the file states should have been
-		// initialised before the test was started.
-		panic("null state found in test execution")
-	}
+	current := ec.getState(run.StateKey)
 
 	if run.Backend != nil {
 		// Then we'll load the state from the backend instead of just using

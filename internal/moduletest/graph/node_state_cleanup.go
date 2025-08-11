@@ -109,11 +109,6 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config, state *states.State, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called destroy for %s", run.Name)
 
-	if state.Empty() {
-		// Nothing to do!
-		return state, nil
-	}
-
 	variables, diags := GetVariables(ctx, run, module, false)
 	if diags.HasErrors() {
 		return state, diags
