@@ -364,7 +364,7 @@ type RunBlockBackend struct {
 	Run *TestRun
 }
 
-func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
+func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	tf := &TestFile{
 		VariableDefinitions: make(map[string]*Variable),
@@ -381,7 +381,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	diags = append(diags, contentDiags...)
 
 	var cDiags hcl.Diagnostics
-	tf.Config, cDiags = decodeFileConfigBlock(configContent)
+	tf.Config, cDiags = decodeFileConfigBlock(configContent, experimentsAllowed)
 	diags = append(diags, cDiags...)
 	if diags.HasErrors() {
 		return nil, diags
@@ -398,7 +398,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 		case "run":
 			nextRunIndex := len(tf.Runs)
 
-			run, runDiags := decodeTestRunBlock(block, tf)
+			run, runDiags := decodeTestRunBlock(block, tf, experimentsAllowed)
 			diags = append(diags, runDiags...)
 			if !runDiags.HasErrors() {
 				tf.Runs = append(tf.Runs, run)
@@ -617,7 +617,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	return tf, diags
 }
 
-func decodeFileConfigBlock(fileContent *hcl.BodyContent) (*TestFileConfig, hcl.Diagnostics) {
+func decodeFileConfigBlock(fileContent *hcl.BodyContent, experimentsAllowed bool) (*TestFileConfig, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// The "test" block is optional, so we just return a nil config if it doesn't exist.
@@ -652,6 +652,15 @@ func decodeFileConfigBlock(fileContent *hcl.BodyContent) (*TestFileConfig, hcl.D
 	}
 
 	if attr, exists := content.Attributes["skip_cleanup"]; exists {
+		if !experimentsAllowed {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid attribute",
+				Detail:   "The skip_cleanup attribute is only available in experimental builds of Terraform.",
+				Subject:  attr.NameRange.Ptr(),
+			})
+		}
+
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.SkipCleanup)
 		diags = append(diags, rawDiags...)
 	}
@@ -659,7 +668,7 @@ func decodeFileConfigBlock(fileContent *hcl.BodyContent) (*TestFileConfig, hcl.D
 	return ret, diags
 }
 
-func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnostics) {
+func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed bool) (*TestRun, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(testRunBlockSchema)
@@ -795,6 +804,15 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				r.Overrides.Put(subject, override)
 			}
 		case "backend":
+			if !experimentsAllowed {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid block",
+					Detail:   "The backend block is only available within run blocks in experimental builds of Terraform.",
+					Subject:  block.DefRange.Ptr(),
+				})
+			}
+
 			backend, backedDiags := decodeBackendBlock(block)
 			diags = append(diags, backedDiags...)
 
@@ -899,6 +917,15 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 	}
 
 	if attr, exists := content.Attributes["skip_cleanup"]; exists {
+		if !experimentsAllowed {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid attribute",
+				Detail:   "The skip_cleanup attribute is only available in experimental builds of Terraform.",
+				Subject:  attr.NameRange.Ptr(),
+			})
+		}
+
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.SkipCleanup)
 		diags = append(diags, rawDiags...)
 		r.SkipCleanupRange = attr.NameRange.Ptr()

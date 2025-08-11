@@ -197,7 +197,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
-		status, testDiags = runner.Test()
+		status, testDiags = runner.Test(c.AllowExperimentalFeatures)
 	}()
 
 	// Wait for the operation to complete, or for an interrupt to occur.

@@ -102,7 +102,7 @@ func (c *TestCleanupCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
-		_, testDiags = runner.Test()
+		_, testDiags = runner.Test(c.Meta.AllowExperimentalFeatures)
 	}()
 
 	// Wait for the operation to complete, or for an interrupt to occur.
