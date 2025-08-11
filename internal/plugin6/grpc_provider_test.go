@@ -3349,38 +3349,71 @@ func TestGRPCProvider_ConfigureStateStore_schema_errors(t *testing.T) {
 	})
 }
 
-// func TestGRPCProvider_GetStates(t *testing.T) {
+func TestGRPCProvider_GetStates(t *testing.T) {
+	t.Run("returns expected values", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
 
-// 	client := mockProviderClient(t)
-// 	p := &GRPCProvider{
-// 		client: client,
-// 		ctx:    context.Background(),
-// 	}
+		client.EXPECT().GetStates(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(&proto.GetStates_Response{
+			StateId: []string{"default"},
+			Diagnostics: []*proto.Diagnostic{
+				{
+					Severity: proto.Diagnostic_ERROR,
+					Summary:  "Error from GetStates",
+					Detail:   "Something went wrong",
+				},
+			},
+		}, nil)
 
-// 	client.EXPECT().ValidateStateStoreConfig(
-// 		gomock.Any(),
-// 		gomock.Any(),
-// 	).Return(&proto.ValidateStateStore_Response{
-// 		Diagnostics: tc.diagnostic,
-// 	}, nil)
+		request := providers.GetStatesRequest{
+			TypeName: "mock_store",
+		}
 
-// 	request := providers.GetStatesRequest{
-// 		TypeName: "mock_store",
-// 	}
+		// Act
+		resp := p.GetStates(request)
 
-// 	// Act
-// 	resp := p.ConfigureStateStore(request)
+		// Assert returned values
+		if len(resp.States) != 1 || resp.States[0] != "default" {
+			t.Fatalf("expected the returned states to be [\"default\"], instead got: %s", resp.States)
+		}
 
-// 	// Note - we haven't asserted that we expect ConfigureStateStore
-// 	// to be called via the client; this package returns these errors before then.
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErrorSummary := "Error from GetStates"
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
 
-// 	// Assert that the expected error is returned
-// 	checkDiagsHasError(t, resp.Diagnostics)
-// 	if resp.Diagnostics[0].Description().Summary != tc.expectedErrorSummary {
-// 		t.Fatalf("expected error summary to be %q, but got %q",
-// 			tc.expectedErrorSummary,
-// 			resp.Diagnostics[0].Description().Summary,
-// 		)
-// 	}
+	t.Run("no matching store type in provider", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
 
-// }
+		request := providers.GetStatesRequest{
+			TypeName: "does_not_exist", // not present in mockProviderClient state store schemas
+		}
+
+		// Act
+		resp := p.GetStates(request)
+
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErrorSummary := "unknown state store type \"does_not_exist\""
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+}

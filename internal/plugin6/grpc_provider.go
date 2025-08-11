@@ -1481,6 +1481,17 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) (resp providers.GetStatesResponse) {
 	logger.Trace("GRPCProvider.v6: GetStates")
 
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
 	protoReq := &proto6.GetStates_Request{
 		TypeName: r.TypeName,
 	}
