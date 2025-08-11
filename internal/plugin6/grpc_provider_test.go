@@ -3417,3 +3417,67 @@ func TestGRPCProvider_GetStates(t *testing.T) {
 		}
 	})
 }
+
+func TestGRPCProvider_DeleteState(t *testing.T) {
+	t.Run("returns expected values", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		client.EXPECT().DeleteState(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(&proto.DeleteState_Response{
+			Diagnostics: []*proto.Diagnostic{
+				{
+					Severity: proto.Diagnostic_ERROR,
+					Summary:  "Error from DeleteState",
+					Detail:   "Something went wrong",
+				},
+			},
+		}, nil)
+
+		request := providers.DeleteStateRequest{
+			TypeName: "mock_store",
+		}
+
+		// Act
+		resp := p.DeleteState(request)
+
+		// Assert returned values
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErrorSummary := "Error from DeleteState"
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+
+	t.Run("no matching store type in provider", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		request := providers.DeleteStateRequest{
+			TypeName: "does_not_exist", // not present in mockProviderClient state store schemas
+		}
+
+		// Act
+		resp := p.DeleteState(request)
+
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErrorSummary := "unknown state store type \"does_not_exist\""
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+}
