@@ -3167,3 +3167,121 @@ func TestGRPCProvider_ValidateStateStoreConfig_schema_errors(t *testing.T) {
 		})
 	}
 }
+
+func TestGRPCProvider_ConfigureStateStore_returns_validation_errors(t *testing.T) {
+	storeName := "mock_store" // mockProviderClient returns a mock that has this state store in its schemas
+	cases := map[string]struct {
+		typeName    string
+		diagnostic  []*proto.Diagnostic
+		expectError bool
+		errorText   string
+	}{
+		"no validation error raised": {
+			typeName:   storeName,
+			diagnostic: nil,
+		},
+		"validation error raised": {
+			typeName: storeName,
+			diagnostic: []*proto.Diagnostic{
+				{
+					Severity: proto.Diagnostic_ERROR,
+					Summary:  "Error from ConfigureStateStore",
+					Detail:   "Something went wrong",
+				},
+			},
+			expectError: true,
+			errorText:   "Error from ConfigureStateStore",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			client := mockProviderClient(t)
+			p := &GRPCProvider{
+				client: client,
+				ctx:    context.Background(),
+			}
+
+			client.EXPECT().ConfigureStateStore(
+				gomock.Any(),
+				gomock.Any(),
+			).Return(&proto.ConfigureStateStore_Response{
+				Diagnostics: tc.diagnostic,
+			}, nil)
+
+			request := providers.ConfigureStateStoreRequest{
+				TypeName: tc.typeName,
+				Config: cty.ObjectVal(map[string]cty.Value{
+					"region": cty.StringVal("neptune"),
+				}),
+			}
+
+			// Act
+			resp := p.ConfigureStateStore(request)
+
+			// Assert whether error returned or not
+			if tc.expectError {
+				checkDiagsHasError(t, resp.Diagnostics)
+				if resp.Diagnostics[0].Description().Summary != tc.errorText {
+					t.Fatalf("expected error summary to be %q, but got %q",
+						tc.errorText,
+						resp.Diagnostics[0].Description().Summary,
+					)
+				}
+			} else {
+				checkDiags(t, resp.Diagnostics)
+			}
+		})
+	}
+}
+
+func TestGRPCProvider_ConfigureStateStore_schema_errors(t *testing.T) {
+
+	cases := map[string]struct {
+		typeName             string
+		config               cty.Value
+		expectedErrorSummary string
+	}{
+		"no matching store type in provider": {
+			typeName:             "does_not_exist", // not present in mockProviderClient state store schemas
+			expectedErrorSummary: "unknown state store type \"does_not_exist\"",
+		},
+		"missing required attributes": {
+			typeName: "mock_store", // Is present in mockProviderClient
+			config:   cty.ObjectVal(map[string]cty.Value{
+				// Missing required `region` attr
+			}),
+			expectedErrorSummary: "attribute \"region\" is required",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			client := mockProviderClient(t)
+			p := &GRPCProvider{
+				client: client,
+				ctx:    context.Background(),
+			}
+
+			request := providers.ConfigureStateStoreRequest{
+				TypeName: tc.typeName,
+				Config:   tc.config,
+			}
+
+			// Act
+			resp := p.ConfigureStateStore(request)
+
+			// Note - we haven't asserted that we expect ConfigureStateStore
+			// to be called via the client; this package returns these errors before then.
+
+			// Assert that the expected error is returned
+			checkDiagsHasError(t, resp.Diagnostics)
+			if resp.Diagnostics[0].Description().Summary != tc.expectedErrorSummary {
+				t.Fatalf("expected error summary to be %q, but got %q",
+					tc.expectedErrorSummary,
+					resp.Diagnostics[0].Description().Summary,
+				)
+			}
+		})
+	}
+}
