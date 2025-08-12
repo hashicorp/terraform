@@ -1124,7 +1124,7 @@ resource "other_object" "a" {
 			},
 		},
 
-		"action config refers to before triggering resource leads to circular dependency": {
+		"allow circular dependency": {
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {
@@ -1133,6 +1133,7 @@ action "test_unlinked" "hello" {
   }
 }
 resource "test_object" "a" {
+  name = "test"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1143,15 +1144,35 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: false,
-			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
-				if !diags.HasErrors() {
-					t.Fatalf("expected diagnostics to have errors, but it does not")
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
 				}
-				if len(diags) != 1 {
-					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+
+				action := p.Changes.ActionInvocations[0]
+				if action.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
 				}
-				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
-					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+
+				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'test_object.a', but it is %s", action.TriggeringResourceAddr)
+				}
+				config, err := action.ConfigValue.Decode(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				}))
+				if err != nil {
+					t.Fatalf("failed to decode action config: %s", err)
+				}
+
+				if config.IsNull() {
+					t.Fatalf("expected action config to be non-null")
+				}
+
+				if !config.IsKnown() {
+					t.Fatalf("expected action config to be known")
+				}
+				if config.GetAttr("attr").AsString() != "test" {
+					t.Fatalf("expected action config attribute 'attr' to be 'test', got '%s'", config.GetAttr("attr").AsString())
 				}
 			},
 		},

@@ -76,12 +76,13 @@ func (n *nodeExpandActionDeclaration) References() []*addrs.Reference {
 	refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
 	result = append(result, refs...)
 
-	if n.Schema != nil {
-		refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
-		result = append(result, refs...)
-	}
-
 	return result
+}
+
+func (n *nodeExpandActionDeclaration) ConfigReferences() []*addrs.Reference {
+	c := n.Config
+	refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
+	return refs
 }
 
 func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
