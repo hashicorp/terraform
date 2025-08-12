@@ -2299,11 +2299,27 @@ func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 		return mock, nil
 	}
 
+	// Create locks - these would normally be the locks derived from config
+	locks := depsfile.NewLocks()
+	constraint, err := providerreqs.ParseVersionConstraints(">9.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	expectedVersionString := "9.9.9"
+	expectedProviderSource := "registry.terraform.io/my-org/foo"
+	locks.SetProvider(
+		addrs.MustParseProviderSourceString(expectedProviderSource),
+		versions.MustParseVersion(expectedVersionString),
+		constraint,
+		[]providerreqs.Hash{"h1:foo"},
+	)
+
 	// Get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  factory,
+		Locks:            locks,
 	})
 
 	if !beDiags.HasErrors() {
