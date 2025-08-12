@@ -171,24 +171,36 @@ type logPanicWrapper struct {
 	hclog.Logger
 	panicRecorder func(string)
 	inPanic       bool
+	// we need to enable at least error level logging to see stack traces from
+	// go-plugin, but if the user hasn't requested any logging we will only
+	// record them and not pass them through.
+	captureOnly bool
 }
 
 // go-plugin will create a new named logger for each plugin binary.
 func (l *logPanicWrapper) Named(name string) hclog.Logger {
-	return &logPanicWrapper{
+	wrapped := &logPanicWrapper{
 		Logger:        l.Logger.Named(name),
 		panicRecorder: panics.registerPlugin(name),
 	}
+
+	if wrapped.Logger.GetLevel() == hclog.Off {
+		// if we're not logging anything from the provider, we need to set the
+		// level to error in order to capture stack traces.
+		wrapped.captureOnly = true
+		wrapped.Logger.SetLevel(hclog.Error)
+	}
+
+	return wrapped
 }
 
-// we only need to implement Debug, since that is the default output level used
-// by go-plugin when encountering unstructured output on stderr.
-func (l *logPanicWrapper) Debug(msg string, args ...interface{}) {
-	// We don't have access to the binary itself, so guess based on the stderr
-	// output if this is the start of the traceback. An occasional false
+// We only need to implement Error, since that is the level used by go-plugin
+// when encountering a stack trace on stderr.
+func (l *logPanicWrapper) Error(msg string, args ...interface{}) {
+	// We don't have access to the binary itself, so guess based on the log
+	// stream output if this is the start of the traceback. An occasional false
 	// positive shouldn't be a big deal, since this is only retrieved after an
 	// error of some sort.
-
 	panicPrefix := strings.HasPrefix(msg, "panic: ") || strings.HasPrefix(msg, "fatal error: ")
 
 	l.inPanic = l.inPanic || panicPrefix
@@ -197,5 +209,9 @@ func (l *logPanicWrapper) Debug(msg string, args ...interface{}) {
 		l.panicRecorder(msg)
 	}
 
-	l.Logger.Debug(msg, args...)
+	if !l.captureOnly {
+		// pass the message through to the real logger implementation if we're
+		// not just watching for stack traces
+		l.Logger.Error(msg, args...)
+	}
 }
