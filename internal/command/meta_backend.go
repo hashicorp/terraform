@@ -236,6 +236,9 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	if diags.HasErrors() {
 		return fmt.Errorf("Failed to get existing workspaces: %s", diags.Err())
 	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] selectWorkspace: warning(s) returned when getting workspaces: %s", diags.ErrWithWarnings())
+	}
 	if len(workspaces) == 0 {
 		if c, ok := b.(*cloud.Cloud); ok && m.input {
 			// len is always 1 if using Name; 0 means we're using Tags and there
@@ -1161,12 +1164,13 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 
 	// Grab a purely local backend to get the local state if it exists
 	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+	diags = diags.Append(localBDiags)
 	if localBDiags.HasErrors() {
-		diags = diags.Append(localBDiags)
 		return nil, diags
 	}
 
 	workspaces, wDiags := localB.Workspaces()
+	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
 		diags = diags.Append(fmt.Errorf(errBackendLocalRead, wDiags.Err()))
 		return nil, diags

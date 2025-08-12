@@ -85,6 +85,9 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	if wDiags.HasWarnings() {
+		c.Ui.Warn(wDiags.ErrWithWarnings().Error())
+	}
 
 	// Is the user attempting to delete a workspace that doesn't exist?
 	workspace := args[0]
@@ -188,6 +191,9 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	if dwDiags.HasErrors() {
 		c.Ui.Error(dwDiags.Err().Error())
 		return 1
+	}
+	if wDiags.HasWarnings() {
+		c.Ui.Warn(wDiags.ErrWithWarnings().Error())
 	}
 
 	c.Ui.Output(

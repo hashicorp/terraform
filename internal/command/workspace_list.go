@@ -62,6 +62,9 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	if wDiags.HasWarnings() {
+		c.Ui.Warn(wDiags.ErrWithWarnings().Error())
+	}
 
 	env, isOverridden := c.WorkspaceOverridden()
 

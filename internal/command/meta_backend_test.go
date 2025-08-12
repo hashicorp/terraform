@@ -1207,6 +1207,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 	if wDiags.HasErrors() {
 		t.Fatalf("unexpected error: %s", wDiags.Err())
 	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
+	}
 
 	sort.Strings(workspaces)
 	expected := []string{"default", "env2"}
@@ -1305,6 +1308,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *
 	if wDiags.HasErrors() {
 		t.Fatalf("unexpected error: %s", wDiags.Err())
 	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
+	}
 
 	sort.Strings(workspaces)
 	expected := []string{"env1", "env2"}
@@ -1378,6 +1384,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(
 	workspaces, wDiags := b.Workspaces()
 	if wDiags.HasErrors() {
 		t.Fatalf("unexpected error: %s", wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
 	}
 
 	sort.Strings(workspaces)

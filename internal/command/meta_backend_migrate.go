@@ -192,6 +192,8 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateLoadStates), opts.SourceType, wDiags.Err())
 	}
+	if wDiags.HasWarnings() {
+		log.Printf("[WARN] backendMigrateState_S_S: warning(s) returned when getting workspaces from source backend: %s", wDiags.ErrWithWarnings())
 	}
 
 	// Sort the states so they're always copied alphabetically
@@ -556,6 +558,9 @@ func retrieveWorkspaces(back backend.Backend, sourceType string) ([]string, bool
 		return nil, singleState, fmt.Errorf(strings.TrimSpace(
 			errMigrateLoadStates), sourceType, diags.Err())
 	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] retrieveWorkspaces: warning(s) returned when getting workspaces: %s", diags.ErrWithWarnings())
+	}
 
 	return workspaces, singleState, diags.Err()
 }
@@ -775,6 +780,9 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	workspaces, diags := opts.Destination.Workspaces()
 	if diags.HasErrors() {
 		return diags.Err()
+	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] backendMigrateState_S_TFC: warning(s) returned when getting workspaces from destination backend: %s", diags.ErrWithWarnings())
 	}
 
 	var workspacePresent bool
