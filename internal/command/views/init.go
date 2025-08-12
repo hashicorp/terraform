@@ -227,8 +227,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "%s: Reusing previous version from the dependency lock file",
 	},
 	"reusing_version_during_state_provider_init": {
-		HumanValue: "- Reusing previous version of %s.",
-		JSONValue:  "%s: Reusing previous version of %s.",
+		HumanValue: "- Reusing previous version of %s",
+		JSONValue:  "%s: Reusing previous version of %s",
 	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
