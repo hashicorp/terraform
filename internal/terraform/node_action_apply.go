@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeActionApply struct {
@@ -122,8 +123,19 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 			return finishedActionInvocations, diags
 		}
 
+		// TODO: Do this in ctx.Actions() with a mutex
+		configVal := cty.NullVal(actionData.Schema.ConfigSchema.ImpliedType())
+		if actionData.Config != nil {
+			var configDiags tfdiags.Diagnostics
+			configVal, _, configDiags = ctx.EvaluateBlock(actionData.Config, actionData.Schema.ConfigSchema.DeepCopy(), nil, actionData.KeyData)
+
+			diags = diags.Append(configDiags)
+			if diags.HasErrors() {
+				return finishedActionInvocations, diags
+			}
+		}
 		// We don't want to send the marks, but all marks are okay in the context of an action invocation.
-		unmarkedConfigValue, _ := actionData.ConfigValue.UnmarkDeep()
+		unmarkedConfigValue, _ := configVal.UnmarkDeep()
 
 		// Validate that what we planned matches the action data we have.
 		errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, unmarkedConfigValue)

@@ -314,8 +314,8 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 
 	if rn, ok := v.(GraphNodeReferencer); ok {
 		for _, ref := range rn.References() {
-			referenceKeys = append(referenceKeys, m.referenceMapKey(vertexReferencePath(v), ref.Subject))
-
+			referencedKey := m.referenceMapKey(vertexReferencePath(v), ref.Subject)
+			referenceKeys = append(referenceKeys, referencedKey)
 		}
 	}
 
@@ -333,6 +333,29 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 			if rv == v {
 				continue
 			}
+
+			// For actions, we don't include the actions but their references.
+			if action, ok := rv.(*nodeExpandActionDeclaration); ok {
+
+				// Follow the config reference
+				for _, ref := range action.ConfigReferences() {
+					referencedKey := m.referenceMapKey(vertexReferencePath(v), ref.Subject)
+
+					// referenceKeys = append(referenceKeys, referencedKey)
+					x := m[referencedKey]
+					for _, rv2 := range x {
+
+						// don't include self-references
+						if rv2 == v {
+							continue
+						}
+						matches = append(matches, rv2)
+					}
+				}
+				// Ignore the action itself
+				continue
+			}
+
 			matches = append(matches, rv)
 		}
 	}

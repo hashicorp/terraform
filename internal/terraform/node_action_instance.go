@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeActionDeclarationInstance represents an action in a particular module.
@@ -80,18 +79,7 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 	allInsts := ctx.InstanceExpander()
 	keyData := allInsts.GetActionInstanceRepetitionData(n.Addr)
 
-	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
-	if n.Config.Config != nil {
-		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, keyData)
-
-		diags = diags.Append(configDiags)
-		if diags.HasErrors() {
-			return diags
-		}
-	}
-
-	ctx.Actions().AddActionInstance(n.Addr, configVal, n.ResolvedProvider)
+	ctx.Actions().AddActionInstance(n.Addr, n.ResolvedProvider, n.Config.Config, n.Schema, keyData)
 	return diags
 }
 

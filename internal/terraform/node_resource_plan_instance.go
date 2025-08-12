@@ -634,9 +634,20 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 					return diags
 				}
 
+				configVal := cty.NullVal(actionInstance.Schema.ConfigSchema.ImpliedType())
+				if actionInstance.Config != nil {
+					var configDiags tfdiags.Diagnostics
+					configVal, _, configDiags = ctx.EvaluateBlock(actionInstance.Config, actionInstance.Schema.ConfigSchema.DeepCopy(), nil, actionInstance.KeyData)
+
+					diags = diags.Append(configDiags)
+					if diags.HasErrors() {
+						return diags
+					}
+				}
+
 				resp := provider.PlanAction(providers.PlanActionRequest{
 					ActionType:         absActionAddr.Action.Action.Type,
-					ProposedActionData: actionInstance.ConfigValue,
+					ProposedActionData: configVal,
 					ClientCapabilities: ctx.ClientCapabilities(),
 				})
 
@@ -653,7 +664,7 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, chan
 					TriggerEvent:            *triggeringEvent,
 					ActionTriggerBlockIndex: i,
 					ActionsListIndex:        j,
-					ConfigValue:             actionInstance.ConfigValue,
+					ConfigValue:             configVal,
 				})
 			}
 		}

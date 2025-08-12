@@ -6,8 +6,10 @@ package actions
 import (
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // Actions keeps track of action declarations accessible to the context.
@@ -26,11 +28,13 @@ func NewActions() *Actions {
 }
 
 type ActionData struct {
-	ConfigValue  cty.Value
+	Config       hcl.Body
+	Schema       *providers.ActionSchema
+	KeyData      instances.RepetitionData
 	ProviderAddr addrs.AbsProviderConfig
 }
 
-func (a *Actions) AddActionInstance(addr addrs.AbsActionInstance, configValue cty.Value, providerAddr addrs.AbsProviderConfig) {
+func (a *Actions) AddActionInstance(addr addrs.AbsActionInstance, providerAddr addrs.AbsProviderConfig, config hcl.Body, schema *providers.ActionSchema, keyData instances.RepetitionData) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -39,7 +43,9 @@ func (a *Actions) AddActionInstance(addr addrs.AbsActionInstance, configValue ct
 	}
 
 	a.actionInstances.Put(addr, ActionData{
-		ConfigValue:  configValue,
+		Config:       config,
+		Schema:       schema,
+		KeyData:      keyData,
 		ProviderAddr: providerAddr,
 	})
 }
