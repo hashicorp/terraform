@@ -1148,13 +1148,13 @@ resource "test_object" "dep" {
   name = "dep"
 }
 
-// locals {
-//   dep = test_object.dep.name
-// }
+locals {
+  a = test_object.a.name
+}
 
 action "test_unlinked" "hello" {
   config {
-    attr = test_object.a.name
+    attr = local.a
     other_attr = test_object.dep.name
     // other_attr = local.dep
   }

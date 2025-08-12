@@ -341,7 +341,6 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 				for _, ref := range action.ConfigReferences() {
 					referencedKey := m.referenceMapKey(vertexReferencePath(v), ref.Subject)
 
-					// referenceKeys = append(referenceKeys, referencedKey)
 					x := m[referencedKey]
 					for _, rv2 := range x {
 
@@ -352,11 +351,10 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 						matches = append(matches, rv2)
 					}
 				}
-				// Ignore the action itself
-				continue
+			} else {
+				matches = append(matches, rv)
 			}
 
-			matches = append(matches, rv)
 		}
 	}
 	return matches
