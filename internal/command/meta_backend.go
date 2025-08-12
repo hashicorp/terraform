@@ -1691,26 +1691,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 
 				// TODO: Confirm if defaulting to creation on first use (rather than error) is a good idea
 				// Make the default workspace. All other workspaces are user-created via the workspace commands.
-				defaultSMgr, sDiags := b.StateMgr(backend.DefaultStateName)
-				diags = diags.Append(sDiags)
-				if sDiags.HasErrors() {
-					diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
-						c.Type,
-						c.Provider.Name,
-						c.ProviderAddr,
-						sDiags.Err()))
-					return nil, diags
-				}
-				emptyState := states.NewState()
-				if err := defaultSMgr.WriteState(emptyState); err != nil {
-					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
-					return nil, diags
-				}
-				// TODO - implement Read/Write state RPC methods
-				if err := defaultSMgr.PersistState(nil); err != nil {
-					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
-					return nil, diags
-				}
+				m.createDefaultWorkspace(c, b)
 			default:
 				diags = diags.Append(err)
 				return nil, diags
@@ -1733,6 +1714,36 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 	}
 
 	return b, diags
+}
+
+// createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,
+// and persists an empty state file in the default workspace. By creating this artifact we ensure that the default
+// workspace is created and usable by Terraform in later operations.
+func (m *Meta) createDefaultWorkspace(c *configs.StateStore, b backend.Backend) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	defaultSMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	diags = diags.Append(sDiags)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
+			c.Type,
+			c.Provider.Name,
+			c.ProviderAddr,
+			sDiags.Err()))
+		return diags
+	}
+	emptyState := states.NewState()
+	if err := defaultSMgr.WriteState(emptyState); err != nil {
+		diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
+		return diags
+	}
+	// TODO - implement Read/Write state RPC methods
+	if err := defaultSMgr.PersistState(nil); err != nil {
+		diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
+		return diags
+	}
+
+	return diags
 }
 
 // Initializing a saved backend from the cache file (legacy state file)
