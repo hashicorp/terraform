@@ -9,6 +9,7 @@ import (
 	"log"
 	"maps"
 	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"sort"
@@ -25,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -159,10 +161,15 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, locks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, config *configs.Config, locks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
+
+	// Vars to account for changed method parameter names
+	extraConfig := initArgs.BackendConfig
+	viewType := initArgs.ViewType
 
 	if root.StateStore != nil {
 		view.Output(views.InitializingStateStoreMessage)
@@ -186,7 +193,6 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		})
 		return nil, true, diags
 	case root.StateStore != nil:
-		// state_store config present
 		// Access provider factories
 		ctxOpts, err := c.contextOpts()
 		if err != nil {
@@ -280,7 +286,6 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		}
 
 	case root.Backend != nil:
-		// backend config present
 		backendType := root.Backend.Type
 		if backendType == "cloud" {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -353,15 +358,58 @@ However, if you intended to override a defined backend, please verify that
 the backend configuration is present and valid.
 `,
 			))
-
 		}
 
 		opts = &BackendOpts{
+			// No config present to use
 			Init:     true,
 			ViewType: viewType,
 		}
 	}
 
+	// If a state store was previously in use we need to identify which provider
+	// was used in the backend state, and ensure that provider factory is passed
+	// to downstream init code.
+	statePath := filepath.Join(c.Meta.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		return nil, true, diags
+	}
+	s := sMgr.State()
+	if s != nil && s.StateStore != nil {
+		log.Printf("[TRACE] init: backend state file indicates state store %q was previously used from provider %s (%v), version %s",
+			s.StateStore.Type,
+			s.StateStore.Provider.Source.Type,
+			s.StateStore.Provider.Source,
+			s.StateStore.Provider.Version,
+		)
+
+		// Access provider factories
+		ctxOpts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, true, diags
+		}
+		factory, exists := ctxOpts.Providers[*s.StateStore.Provider.Source]
+		if !exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider unavailable",
+				Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+					s.StateStore.Provider.Source.Type,
+					s.StateStore.Provider.Source,
+					s.StateStore.Type,
+				),
+				Subject: &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
+		opts.ProviderFactoryFrom = factory
+	}
+
+	// Use opts prepared above to initialize an operations backend with a backend or state store
 	back, backDiags := c.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags

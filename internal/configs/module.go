@@ -189,6 +189,9 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 
 	// Generate the FQN -> LocalProviderName map
 	mod.gatherProviderLocalNames()
+	if mod.StateStore != nil {
+		diags = append(diags, mod.resolveStateStoreProviderType()...)
+	}
 
 	if mod.StateStore != nil {
 		diags = append(diags, mod.resolveStateStoreProviderType()...)

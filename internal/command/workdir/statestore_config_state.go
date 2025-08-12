@@ -28,6 +28,14 @@ type StateStoreConfigState struct {
 	Hash      uint64               `json:"hash"`     // Hash of the state_store block's configuration, excluding the provider block and any values supplied via methods other than config
 }
 
+// Provider is used in the StateStoreConfigState struct to describe the provider that's used for pluggable
+// state storage. The data inside should mirror an entry in the dependency lock file.
+// This is NOT state of a `provider` configuration block, or an entry in `required_providers`.
+type Provider struct {
+	Version *version.Version `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
+	Source  *tfaddr.Provider `json:"source"`  // The FQN/fully-qualified name of the provider.
+}
+
 // Empty returns true if there is no active state store.
 func (s *StateStoreConfigState) Empty() bool {
 	return s == nil || s.Type == ""

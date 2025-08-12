@@ -15,6 +15,7 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/cli"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -1974,9 +1975,10 @@ func TestBackendFromState(t *testing.T) {
 func Test_determineInitReason(t *testing.T) {
 
 	cases := map[string]struct {
-		cloudMode     cloud.ConfigChangeMode
-		backendState  workdir.BackendStateFile
-		backendConfig configs.Backend
+		cloudMode        cloud.ConfigChangeMode
+		backendState     workdir.BackendStateFile
+		backendConfig    configs.Backend
+		stateStoreConfig configs.StateStore
 
 		wantErr string
 	}{
@@ -2023,6 +2025,64 @@ func Test_determineInitReason(t *testing.T) {
 			},
 			wantErr: `Changed from HCP Terraform to backend "foobar"`,
 		},
+		"migrate state_store to cloud": {
+			cloudMode: cloud.ConfigMigrationIn,
+			backendState: workdir.BackendStateFile{
+				StateStore: &workdir.StateStoreConfigState{
+					Type: "foobar",
+					// Other fields unnecessary
+				},
+			},
+			wantErr: `Changed from state store "foobar" to HCP Terraform`,
+		},
+		"migrate cloud to state_store": {
+			cloudMode: cloud.ConfigMigrationOut,
+			stateStoreConfig: configs.StateStore{
+				Type: "foobar",
+			},
+			wantErr: `Changed from HCP Terraform to state store "foobar"`,
+		},
+
+		// Changing the state storage mechanism in use
+		"backend to state_store": {
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				Backend: &workdir.BackendConfigState{
+					Type: "foobar1",
+				},
+			},
+			stateStoreConfig: configs.StateStore{
+				Type: "foobar2",
+				Provider: &configs.Provider{
+					Name: "abcd",
+				},
+				ProviderAddr: tfaddr.Provider{
+					Hostname:  "hostname",
+					Namespace: "namespace",
+					Type:      "abcd",
+				},
+			},
+			wantErr: `Changed from backend "foobar1" to state store "foobar2" in provider abcd ("hostname/namespace/abcd")`,
+		},
+		"state_store to backend": {
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				StateStore: &workdir.StateStoreConfigState{
+					Type: "foobar1",
+					Provider: &workdir.ProviderConfigState{
+						Source: &tfaddr.Provider{
+							Hostname:  "hostname",
+							Namespace: "namespace",
+							Type:      "abcd",
+						},
+					},
+				},
+			},
+			backendConfig: configs.Backend{
+				Type: "foobar2",
+			},
+			wantErr: `Changed from state store "foobar1" in provider abcd ("hostname/namespace/abcd") to backend "foobar2"`,
+		},
 
 		// Changes within the backend config block
 		"backend type changed": {
@@ -2057,14 +2117,121 @@ func Test_determineInitReason(t *testing.T) {
 			},
 			wantErr: `Backend configuration block has changed`,
 		},
+
+		// Changes within the state_store config block
+		"state store provider changed": {
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				StateStore: &workdir.StateStoreConfigState{
+					Type: "foobar",
+					Provider: &workdir.ProviderConfigState{
+						Source: &tfaddr.Provider{
+							Hostname:  "hostname",
+							Namespace: "namespace",
+							Type:      "abcd",
+						},
+					},
+				},
+			},
+			stateStoreConfig: configs.StateStore{
+				Type: "foobar",
+				Provider: &configs.Provider{
+					Name: "changed",
+				},
+				ProviderAddr: tfaddr.Provider{
+					Hostname:  "hostname",
+					Namespace: "namespace",
+					Type:      "changed",
+				},
+			},
+			wantErr: `State store provider has changed from abcd ("hostname/namespace/abcd") to changed ("hostname/namespace/changed")`,
+		},
+		// "state store provider version changed": {
+		// 	cloudMode: cloud.ConfigChangeIrrelevant,
+		// 	backendState: workdir.BackendStateFile{
+		// 		StateStore: &workdir.StateStoreConfigState{
+		// 			Type: "foobar",
+		// 			Provider: &workdir.ProviderConfigState{
+		// 				Source: &tfaddr.Provider{
+		// 					Hostname:  "hostname",
+		// 					Namespace: "namespace",
+		// 					Type:      "abcd",
+		// 				},
+		// 			},
+		// 		},
+		// 	},
+		// 	stateStoreConfig: configs.StateStore{
+		// 		Type: "foobar",
+		// 		Provider: &configs.Provider{
+		// 			Name: "abcd",
+		// 		},
+		// 		ProviderAddr: tfaddr.Provider{
+		// 			Hostname:  "hostname",
+		// 			Namespace: "namespace",
+		// 			Type:      "abcd"},
+		// 	},
+		// 	wantErr: `foobar`,
+		// },
+		"state store type has changed": {
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				StateStore: &workdir.StateStoreConfigState{
+					Type: "foobar1",
+					Provider: &workdir.ProviderConfigState{
+						Source: &tfaddr.Provider{
+							Hostname:  "hostname",
+							Namespace: "namespace",
+							Type:      "abcd",
+						},
+					},
+				},
+			},
+			stateStoreConfig: configs.StateStore{
+				Type: "foobar2",
+				Provider: &configs.Provider{
+					Name: "abcd",
+				},
+				ProviderAddr: tfaddr.Provider{
+					Hostname:  "hostname",
+					Namespace: "namespace",
+					Type:      "abcd"},
+			},
+			wantErr: `State store type has changed from "foobar1" to "foobar2"`,
+		},
+		"state store config has changed": {
+			cloudMode: cloud.ConfigChangeIrrelevant,
+			backendState: workdir.BackendStateFile{
+				StateStore: &workdir.StateStoreConfigState{
+					Type: "foobar",
+					Provider: &workdir.ProviderConfigState{
+						Source: &tfaddr.Provider{
+							Hostname:  "hostname",
+							Namespace: "namespace",
+							Type:      "abcd",
+						},
+					},
+				},
+			},
+			stateStoreConfig: configs.StateStore{
+				Type: "foobar",
+				Provider: &configs.Provider{
+					Name: "abcd",
+				},
+				ProviderAddr: tfaddr.Provider{
+					Hostname:  "hostname",
+					Namespace: "namespace",
+					Type:      "abcd"},
+			},
+			wantErr: `State store configuration block has changed`,
+		},
 	}
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
 			m := Meta{}
-			diags := m.determineInitReason(tc.backendState.Backend.Type, tc.backendConfig.Type, tc.cloudMode)
-			if !strings.Contains(diags.Err().Error(), tc.wantErr) {
-				t.Fatalf("expected error diagnostic detail to include \"%s\" but it's missing: %s", tc.wantErr, diags.Err())
+			diags := m.determineInitReason(&tc.backendState, &tc.backendConfig, &tc.stateStoreConfig, tc.cloudMode)
+			if !strings.Contains(diags.Description().Detail, tc.wantErr) {
+				t.Fatalf("expected error diagnostic detail to include \"%s\" but it's missing: %s", tc.wantErr, diags.Description().Detail)
 			}
 		})
 	}

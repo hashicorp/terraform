@@ -21,7 +21,6 @@ import (
 	"github.com/apparentlymart/go-versions/versions/constraints"
 
 	"github.com/hashicorp/go-version"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
