@@ -81,9 +81,9 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	states, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
 
