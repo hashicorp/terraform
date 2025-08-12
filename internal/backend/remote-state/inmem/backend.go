@@ -111,7 +111,7 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 	defer states.Unlock()
 
 	if name == backend.DefaultStateName || name == "" {
-		tfdiags.Diagnostics{}.Append(fmt.Errorf("can't delete default state"))
+		return tfdiags.Diagnostics{}.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	delete(states.m, name)
