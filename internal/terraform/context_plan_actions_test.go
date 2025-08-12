@@ -1350,7 +1350,7 @@ action "test_unlinked" "hello" {
 				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
+				Mode: plans.RefreshOnlyMode,
 				Targets: []addrs.Targetable{addrs.AbsActionInstance{
 					Action: addrs.ActionInstance{
 						Action: addrs.Action{
@@ -1386,7 +1386,6 @@ action "test_unlinked" "hello" {
 		},
 
 		"targeted action with not yet created resource": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 resource "test_object" "a" {

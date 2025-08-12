@@ -279,6 +279,10 @@ The -target option is not for routine use, and is provided only for exceptional 
 		))
 	}
 
+	if opts.ActionInvoke && opts.Mode != plans.RefreshOnlyMode {
+		panic("Action invoking cannot be other than refresh mode.")
+	}
+
 	if opts.Query {
 		var hasQuery bool
 		for c := range config.AllModules() {

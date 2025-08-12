@@ -651,7 +651,7 @@ action "act_unlinked" "hello" {}
 `,
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
+				Mode: plans.RefreshOnlyMode,
 				Targets: []addrs.Targetable{addrs.AbsActionInstance{
 					Action: addrs.ActionInstance{
 						Action: addrs.Action{
@@ -676,10 +676,6 @@ action "act_unlinked" "hello" {}
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if tc.toBeImplemented {
-				t.Skip("This test is not implemented yet")
-			}
-
 			m := testModuleInline(t, tc.module)
 
 			invokeActionCalls := []providers.InvokeActionRequest{}

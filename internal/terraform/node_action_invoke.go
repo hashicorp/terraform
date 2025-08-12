@@ -74,6 +74,7 @@ func (n *nodeActionInvoke) Execute(ctx EvalContext, wo walkOperation) (diags tfd
 			Addr:          n.Target,
 			ActionTrigger: plans.InvokeCmdActionTrigger{},
 			ProviderAddr:  ai.ProviderAddr,
+			ConfigValue:   ai.ConfigValue,
 		})
 	case walkApply:
 		resp := provider.InvokeAction(providers.InvokeActionRequest{

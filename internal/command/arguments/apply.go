@@ -195,5 +195,14 @@ func ParseApplyInvoke(args []string) (*Apply, tfdiags.Diagnostics) {
 	apply.PlanPath = ""
 	apply.ActionInvoke = true
 
+	if apply.Operation.PlanMode != plans.NormalMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Invalid argument"),
+			"Cannot set plan mode while invoking an action.",
+		))
+	}
+	apply.Operation.PlanMode = plans.RefreshOnlyMode
+
 	return apply, diags
 }
