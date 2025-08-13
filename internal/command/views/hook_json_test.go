@@ -14,6 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -32,10 +33,13 @@ func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResour
 
 func testJSONHookActionID(actionAddr addrs.AbsActionInstance, triggeringResourceAddr addrs.AbsResourceInstance, actionTriggerIndex int, actionsListIndex int) terraform.HookActionIdentity {
 	return terraform.HookActionIdentity{
-		Addr:                    actionAddr,
-		TriggeringResourceAddr:  triggeringResourceAddr,
-		ActionTriggerBlockIndex: actionTriggerIndex,
-		ActionsListIndex:        actionsListIndex,
+		Addr: actionAddr,
+		ActionTrigger: plans.LifecycleActionTrigger{
+			TriggeringResourceAddr:  triggeringResourceAddr,
+			ActionTriggerBlockIndex: actionTriggerIndex,
+			ActionsListIndex:        actionsListIndex,
+			ActionTriggerEvent:      configs.AfterCreate,
+		},
 	}
 }
 

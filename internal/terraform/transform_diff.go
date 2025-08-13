@@ -89,9 +89,13 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	runBeforeNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
 	runAfterNode := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
 	for _, ai := range changes.ActionInvocations {
+		if _, ok := ai.ActionTrigger.(plans.LifecycleActionTrigger); !ok {
+			continue
+		}
 
+		ait := ai.ActionTrigger.(plans.LifecycleActionTrigger)
 		var targetMap addrs.Map[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]
-		switch ai.TriggerEvent {
+		switch ait.ActionTriggerEvent {
 		case configs.BeforeCreate, configs.BeforeUpdate, configs.BeforeDestroy:
 			targetMap = runBeforeNode
 		case configs.AfterCreate, configs.AfterUpdate, configs.AfterDestroy:
@@ -101,11 +105,11 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		}
 
 		basis := []*plans.ActionInvocationInstanceSrc{}
-		if targetMap.Has(ai.TriggeringResourceAddr) {
-			basis = targetMap.Get(ai.TriggeringResourceAddr)
+		if targetMap.Has(ait.TriggeringResourceAddr) {
+			basis = targetMap.Get(ait.TriggeringResourceAddr)
 		}
 
-		targetMap.Put(ai.TriggeringResourceAddr, append(basis, ai))
+		targetMap.Put(ait.TriggeringResourceAddr, append(basis, ai))
 	}
 
 	for _, rc := range changes.Resources {
