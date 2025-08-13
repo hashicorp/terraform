@@ -1742,6 +1742,54 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 	return diags
 }
 
+// prepareBackend returns an operations backend that may use a backend, cloud, or state_store block for state storage.
+// This method should be used in non-init operations only; it's incapable of processing new init command CLI flags used
+// for partial configuration, however it will use the backend state file to use partial configuration from a previous
+// init command.
+func (m *Meta) prepareBackend(root *configs.Module) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	opts := &BackendOpts{} // Note: Init is left as false, as this method should be used in non-init operations only.
+	switch {
+	case root.Backend != nil:
+		opts.BackendConfig = root.Backend
+	case root.CloudConfig != nil:
+		backendConfig := root.CloudConfig.ToBackendConfig()
+		opts.BackendConfig = &backendConfig
+	case root.StateStore != nil:
+		// In addition to config, use of a state_store requires
+		// provider factory and provider locks data
+		factory, fDiags := m.getStateStoreProviderFactory(root.StateStore)
+		diags.Append(fDiags)
+		if fDiags.HasErrors() {
+			return nil, diags
+		}
+
+		// TODO - handle locks
+
+		// locks, lDiags := c.lockedDependencies()
+		// diags.Append(lDiags)
+		// if lDiags.HasErrors() {
+		// 	return nil, diags
+		// }
+
+		opts.ProviderFactory = factory
+		// opts.Locks = locks
+		opts.StateStoreConfig = root.StateStore
+	default:
+		// there is no config; defaults to local state storage
+	}
+
+	// Load the backend
+	be, beDiags := m.Backend(opts)
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return be, diags
+}
+
 func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
