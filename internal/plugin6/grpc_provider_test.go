@@ -223,6 +223,19 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 				},
 			},
 		},
+		StateStoreSchemas: map[string]*proto.Schema{
+			"mock_store": {
+				Block: &proto.Schema_Block{
+					Version: 1,
+					Attributes: []*proto.Schema_Attribute{
+						{
+							Name: "region",
+							Type: []byte(`"string"`),
+						},
+					},
+				},
+			},
+		},
 		ServerCapabilities: &proto.ServerCapabilities{
 			GetProviderSchemaOptional: true,
 		},
@@ -3035,4 +3048,436 @@ func TestGRPCProvider_invokeAction_linked_provider_returns_error(t *testing.T) {
 	}
 
 	checkDiagsHasError(t, evt.Diagnostics)
+}
+
+func TestGRPCProvider_ValidateStateStoreConfig_returns_validation_errors(t *testing.T) {
+	storeName := "mock_store" // mockProviderClient returns a mock that has this state store in its schemas
+
+	t.Run("no validation error raised", func(t *testing.T) {
+		typeName := storeName
+		var diagnostic []*proto.Diagnostic = nil
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		client.EXPECT().ValidateStateStoreConfig(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(&proto.ValidateStateStore_Response{
+			Diagnostics: diagnostic,
+		}, nil)
+
+		request := providers.ValidateStateStoreConfigRequest{
+			TypeName: typeName,
+			Config: cty.ObjectVal(map[string]cty.Value{
+				"region": cty.StringVal("neptune"),
+			}),
+		}
+
+		// Act
+		resp := p.ValidateStateStoreConfig(request)
+
+		// Assert no error returned
+		checkDiags(t, resp.Diagnostics)
+
+	})
+
+	t.Run("validation error raised", func(t *testing.T) {
+		typeName := storeName
+		diagnostic := []*proto.Diagnostic{
+			{
+				Severity: proto.Diagnostic_ERROR,
+				Summary:  "Error from ValidateStateStoreConfig",
+				Detail:   "Something went wrong",
+			},
+		}
+		errorText := "Error from ValidateStateStoreConfig"
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		client.EXPECT().ValidateStateStoreConfig(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(&proto.ValidateStateStore_Response{
+			Diagnostics: diagnostic,
+		}, nil)
+
+		request := providers.ValidateStateStoreConfigRequest{
+			TypeName: typeName,
+			Config: cty.ObjectVal(map[string]cty.Value{
+				"region": cty.StringVal("neptune"),
+			}),
+		}
+
+		// Act
+		resp := p.ValidateStateStoreConfig(request)
+
+		// Assert error returned
+		checkDiagsHasError(t, resp.Diagnostics)
+		if resp.Diagnostics[0].Description().Summary != errorText {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				errorText,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+
+	})
+
+}
+
+func TestGRPCProvider_ValidateStateStoreConfig_schema_errors(t *testing.T) {
+	t.Run("no matching store type in provider", func(t *testing.T) {
+		typeName := "does_not_exist" // not present in mockProviderClient state store schemas
+		config := cty.EmptyObjectVal
+		expectedErrorSummary := "unknown state store type \"does_not_exist\""
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		request := providers.ValidateStateStoreConfigRequest{
+			TypeName: typeName,
+			Config:   config,
+		}
+
+		// Act
+		resp := p.ValidateStateStoreConfig(request)
+
+		// Note - we haven't asserted that we expect ValidateStateStoreConfig
+		// to be called via the client; this package returns these errors before then.
+
+		// Assert that the expected error is returned
+		checkDiagsHasError(t, resp.Diagnostics)
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+
+	t.Run("missing required attributes", func(t *testing.T) {
+		typeName := "mock_store" // Is present in mockProviderClient
+		config := cty.ObjectVal(map[string]cty.Value{
+			// Missing required `region` attr
+		})
+		expectedErrorSummary := "attribute \"region\" is required"
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		request := providers.ValidateStateStoreConfigRequest{
+			TypeName: typeName,
+			Config:   config,
+		}
+
+		// Act
+		resp := p.ValidateStateStoreConfig(request)
+
+		// Note - we haven't asserted that we expect ValidateStateStoreConfig
+		// to be called via the client; this package returns these errors before then.
+
+		// Assert that the expected error is returned
+		checkDiagsHasError(t, resp.Diagnostics)
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+}
+
+func TestGRPCProvider_ConfigureStateStore_returns_validation_errors(t *testing.T) {
+	storeName := "mock_store" // mockProviderClient returns a mock that has this state store in its schemas
+
+	t.Run("no validation error raised", func(t *testing.T) {
+		typeName := storeName
+		var diagnostic []*proto.Diagnostic = nil
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		client.EXPECT().ConfigureStateStore(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(&proto.ConfigureStateStore_Response{
+			Diagnostics: diagnostic,
+		}, nil)
+
+		request := providers.ConfigureStateStoreRequest{
+			TypeName: typeName,
+			Config: cty.ObjectVal(map[string]cty.Value{
+				"region": cty.StringVal("neptune"),
+			}),
+		}
+
+		// Act
+		resp := p.ConfigureStateStore(request)
+
+		// Assert no error returned
+		checkDiags(t, resp.Diagnostics)
+	})
+
+	t.Run("validation error raised", func(t *testing.T) {
+		typeName := storeName
+		diagnostic := []*proto.Diagnostic{
+			{
+				Severity: proto.Diagnostic_ERROR,
+				Summary:  "Error from ConfigureStateStore",
+				Detail:   "Something went wrong",
+			},
+		}
+		errorText := "Error from ConfigureStateStore"
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		client.EXPECT().ConfigureStateStore(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(&proto.ConfigureStateStore_Response{
+			Diagnostics: diagnostic,
+		}, nil)
+
+		request := providers.ConfigureStateStoreRequest{
+			TypeName: typeName,
+			Config: cty.ObjectVal(map[string]cty.Value{
+				"region": cty.StringVal("neptune"),
+			}),
+		}
+
+		// Act
+		resp := p.ConfigureStateStore(request)
+
+		// Assert whether error returned or not
+		checkDiagsHasError(t, resp.Diagnostics)
+		if resp.Diagnostics[0].Description().Summary != errorText {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				errorText,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+
+	})
+
+}
+
+func TestGRPCProvider_ConfigureStateStore_schema_errors(t *testing.T) {
+	t.Run("no matching store type in provider", func(t *testing.T) {
+		typeName := "does_not_exist" // not present in mockProviderClient state store schemas
+		config := cty.EmptyObjectVal
+		expectedErrorSummary := "unknown state store type \"does_not_exist\""
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		request := providers.ConfigureStateStoreRequest{
+			TypeName: typeName,
+			Config:   config,
+		}
+
+		// Act
+		resp := p.ConfigureStateStore(request)
+
+		// Note - we haven't asserted that we expect ConfigureStateStore
+		// to be called via the client; this package returns these errors before then.
+
+		// Assert that the expected error is returned
+		checkDiagsHasError(t, resp.Diagnostics)
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+
+	t.Run("missing required attributes", func(t *testing.T) {
+		typeName := "mock_store" // Is present in mockProviderClient
+		config := cty.ObjectVal(map[string]cty.Value{
+			// Missing required `region` attr
+		})
+		expectedErrorSummary := "attribute \"region\" is required"
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		request := providers.ConfigureStateStoreRequest{
+			TypeName: typeName,
+			Config:   config,
+		}
+
+		// Act
+		resp := p.ConfigureStateStore(request)
+
+		// Note - we haven't asserted that we expect ConfigureStateStore
+		// to be called via the client; this package returns these errors before then.
+
+		// Assert that the expected error is returned
+		checkDiagsHasError(t, resp.Diagnostics)
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+}
+
+func TestGRPCProvider_GetStates(t *testing.T) {
+	t.Run("returns expected values", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		client.EXPECT().GetStates(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(&proto.GetStates_Response{
+			StateId: []string{"default"},
+			Diagnostics: []*proto.Diagnostic{
+				{
+					Severity: proto.Diagnostic_ERROR,
+					Summary:  "Error from GetStates",
+					Detail:   "Something went wrong",
+				},
+			},
+		}, nil)
+
+		request := providers.GetStatesRequest{
+			TypeName: "mock_store",
+		}
+
+		// Act
+		resp := p.GetStates(request)
+
+		// Assert returned values
+		if len(resp.States) != 1 || resp.States[0] != "default" {
+			t.Fatalf("expected the returned states to be [\"default\"], instead got: %s", resp.States)
+		}
+
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErrorSummary := "Error from GetStates"
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+
+	t.Run("no matching store type in provider", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		request := providers.GetStatesRequest{
+			TypeName: "does_not_exist", // not present in mockProviderClient state store schemas
+		}
+
+		// Act
+		resp := p.GetStates(request)
+
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErrorSummary := "unknown state store type \"does_not_exist\""
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+}
+
+func TestGRPCProvider_DeleteState(t *testing.T) {
+	t.Run("returns expected values", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		client.EXPECT().DeleteState(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(&proto.DeleteState_Response{
+			Diagnostics: []*proto.Diagnostic{
+				{
+					Severity: proto.Diagnostic_ERROR,
+					Summary:  "Error from DeleteState",
+					Detail:   "Something went wrong",
+				},
+			},
+		}, nil)
+
+		request := providers.DeleteStateRequest{
+			TypeName: "mock_store",
+		}
+
+		// Act
+		resp := p.DeleteState(request)
+
+		// Assert returned values
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErrorSummary := "Error from DeleteState"
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
+
+	t.Run("no matching store type in provider", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		request := providers.DeleteStateRequest{
+			TypeName: "does_not_exist", // not present in mockProviderClient state store schemas
+		}
+
+		// Act
+		resp := p.DeleteState(request)
+
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErrorSummary := "unknown state store type \"does_not_exist\""
+		if resp.Diagnostics[0].Description().Summary != expectedErrorSummary {
+			t.Fatalf("expected error summary to be %q, but got %q",
+				expectedErrorSummary,
+				resp.Diagnostics[0].Description().Summary,
+			)
+		}
+	})
 }
