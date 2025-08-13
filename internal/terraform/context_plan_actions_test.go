@@ -107,18 +107,23 @@ resource "test_object" "a" {
 					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
-					t.Fatalf("expected action to have a triggering resource address 'test_object.a', got '%s'", action.TriggeringResourceAddr)
+				at, ok := action.ActionTrigger.(plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 				}
 
-				if action.ActionTriggerBlockIndex != 0 {
-					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+					t.Fatalf("expected action to have a triggering resource address 'test_object.a', got '%s'", at.TriggeringResourceAddr)
 				}
-				if action.TriggerEvent != configs.BeforeCreate {
-					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+
+				if at.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 				}
-				if action.ActionsListIndex != 0 {
-					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				if at.TriggerEvent() != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
+				}
+				if at.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", at.ActionsListIndex)
 				}
 
 				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
@@ -902,18 +907,23 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", action.TriggeringResourceAddr)
+				at, ok := action.ActionTrigger.(plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 				}
 
-				if action.ActionTriggerBlockIndex != 0 {
-					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
-				if action.TriggerEvent != configs.BeforeCreate {
-					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+
+				if at.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 				}
-				if action.ActionsListIndex != 0 {
-					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				if at.TriggerEvent() != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
+				}
+				if at.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", at.ActionsListIndex)
 				}
 
 				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
@@ -951,7 +961,15 @@ resource "other_object" "a" {
 
 				// We know we are run within two child modules, so we can just sort by the triggering resource address
 				slices.SortFunc(p.Changes.ActionInvocations, func(a, b *plans.ActionInvocationInstanceSrc) int {
-					if a.TriggeringResourceAddr.String() < b.TriggeringResourceAddr.String() {
+					at, ok := a.ActionTrigger.(plans.LifecycleActionTrigger)
+					if !ok {
+						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", a.ActionTrigger)
+					}
+					bt, ok := b.ActionTrigger.(plans.LifecycleActionTrigger)
+					if !ok {
+						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", b.ActionTrigger)
+					}
+					if at.TriggeringResourceAddr.String() < bt.TriggeringResourceAddr.String() {
 						return -1
 					} else {
 						return 1
@@ -963,18 +981,20 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'module.mod[0].action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[0].other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'module.mod[0].other_object.a', but it is %s", action.TriggeringResourceAddr)
+				at := action.ActionTrigger.(plans.LifecycleActionTrigger)
+
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[0].other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod[0].other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
 
-				if action.ActionTriggerBlockIndex != 0 {
-					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				if at.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 				}
-				if action.TriggerEvent != configs.BeforeCreate {
-					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+				if at.TriggerEvent() != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
 				}
-				if action.ActionsListIndex != 0 {
-					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				if at.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", at.ActionsListIndex)
 				}
 
 				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
@@ -986,8 +1006,10 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'module.mod[1].action.test_unlinked.hello', got '%s'", action2.Addr)
 				}
 
-				if !action2.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[1].other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'module.mod[1].other_object.a', but it is %s", action2.TriggeringResourceAddr)
+				a2t := action2.ActionTrigger.(plans.LifecycleActionTrigger)
+
+				if !a2t.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[1].other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod[1].other_object.a', but it is %s", a2t.TriggeringResourceAddr)
 				}
 			},
 		},
@@ -1028,8 +1050,13 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", action.TriggeringResourceAddr)
+				at, ok := action.ActionTrigger.(plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a lifecycle action trigger, got %T", action.ActionTrigger)
+				}
+
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
 
 				if action.ProviderAddr.Module.String() != "module.mod" {
@@ -1072,9 +1099,13 @@ resource "other_object" "a" {
 				if action.Addr.String() != "action.ecosystem_unlinked.hello" {
 					t.Fatalf("expected action address to be 'action.ecosystem_unlinked.hello', got '%s'", action.Addr)
 				}
+				at, ok := action.ActionTrigger.(plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
+				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", action.TriggeringResourceAddr)
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
 
 				if action.ProviderAddr.Provider.Namespace != "danielmschmidt" {
@@ -1114,8 +1145,13 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", action.TriggeringResourceAddr)
+				at, ok := action.ActionTrigger.(plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
+				}
+
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
 
 				if action.ProviderAddr.Alias != "aliased" {

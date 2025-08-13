@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -566,11 +565,8 @@ func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocati
 }
 
 type ActionInvocationInstanceSrc struct {
-	Addr                    addrs.AbsActionInstance
-	TriggeringResourceAddr  addrs.AbsResourceInstance
-	TriggerEvent            configs.ActionTriggerEvent
-	ActionTriggerBlockIndex int
-	ActionsListIndex        int
+	Addr          addrs.AbsActionInstance
+	ActionTrigger ActionTrigger
 
 	ConfigValue DynamicValue
 
@@ -590,13 +586,10 @@ func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (
 	}
 
 	ai := &ActionInvocationInstance{
-		Addr:                    acs.Addr,
-		TriggeringResourceAddr:  acs.TriggeringResourceAddr,
-		TriggerEvent:            acs.TriggerEvent,
-		ActionTriggerBlockIndex: acs.ActionTriggerBlockIndex,
-		ActionsListIndex:        acs.ActionsListIndex,
-		ProviderAddr:            acs.ProviderAddr,
-		ConfigValue:             config,
+		Addr:          acs.Addr,
+		ActionTrigger: acs.ActionTrigger,
+		ProviderAddr:  acs.ProviderAddr,
+		ConfigValue:   config,
 	}
 	return ai, nil
 }

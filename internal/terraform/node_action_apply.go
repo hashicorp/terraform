@@ -57,13 +57,14 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 	// This way we have the correct order of execution.
 	orderedActionInvocations := make([]*plans.ActionInvocationInstance, 0, len(actionInvocations))
 	for _, invocation := range actionInvocations {
-		ai := ctx.Changes().GetActionInvocation(invocation.Addr, invocation.TriggeringResourceAddr, invocation.ActionTriggerBlockIndex, invocation.ActionsListIndex)
+		at := invocation.ActionTrigger.(plans.LifecycleActionTrigger) // We only support lifecycle actions for now.
+		ai := ctx.Changes().GetActionInvocation(invocation.Addr, at)
 
 		if ai == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				fmt.Sprintf("Failed to find action invocation instance %s in changes.", ai.Addr),
-				fmt.Sprintf("The action invocation instance %s was not found in the changes for %s.", ai.Addr, ai.TriggeringResourceAddr.String()),
+				fmt.Sprintf("The action invocation instance %s was not found in the changes for %s.", ai.Addr, at.TriggeringResourceAddr.String()),
 			))
 			return finishedActionInvocations, diags
 		}
@@ -71,10 +72,12 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 		orderedActionInvocations = append(orderedActionInvocations, ai)
 	}
 	sort.Slice(orderedActionInvocations, func(i, j int) bool {
-		if orderedActionInvocations[i].ActionTriggerBlockIndex == orderedActionInvocations[j].ActionTriggerBlockIndex {
-			return orderedActionInvocations[i].ActionsListIndex < orderedActionInvocations[j].ActionsListIndex
+		ati := orderedActionInvocations[i].ActionTrigger.(plans.LifecycleActionTrigger)
+		atj := orderedActionInvocations[i].ActionTrigger.(plans.LifecycleActionTrigger)
+		if ati.ActionTriggerBlockIndex == atj.ActionTriggerBlockIndex {
+			return ati.ActionsListIndex < atj.ActionsListIndex
 		}
-		return orderedActionInvocations[i].ActionTriggerBlockIndex < orderedActionInvocations[j].ActionTriggerBlockIndex
+		return ati.ActionTriggerBlockIndex < atj.ActionTriggerBlockIndex
 	})
 
 	// Now we ensure we have an expanded action instance for each action invocations.
@@ -139,10 +142,8 @@ func invokeActions(ctx EvalContext, actionInvocations []*plans.ActionInvocationI
 		}
 
 		hookIdentity := HookActionIdentity{
-			Addr:                    ai.Addr,
-			TriggeringResourceAddr:  ai.TriggeringResourceAddr,
-			ActionTriggerBlockIndex: ai.ActionTriggerBlockIndex,
-			ActionsListIndex:        ai.ActionsListIndex,
+			Addr:          ai.Addr,
+			ActionTrigger: ai.ActionTrigger,
 		}
 
 		ctx.Hook(func(h Hook) (HookAction, error) {
@@ -288,10 +289,10 @@ func areBeforeActionInvocations(actionInvocations []*plans.ActionInvocationInsta
 	if len(actionInvocations) == 0 {
 		panic("areBeforeActionInvocations called with empty actionInvocations")
 	}
-	firstEvent := actionInvocations[0].TriggerEvent
+	firstEvent := actionInvocations[0].ActionTrigger.TriggerEvent()
 	for _, ai := range actionInvocations {
-		if ai.TriggerEvent != firstEvent {
-			panic(fmt.Sprintf("areBeforeActionInvocations called with action invocations with different trigger events: %s != %s", firstEvent, ai.TriggerEvent))
+		if ai.ActionTrigger.TriggerEvent() != firstEvent {
+			panic(fmt.Sprintf("areBeforeActionInvocations called with action invocations with different trigger events: %s != %s", firstEvent, ai.ActionTrigger.TriggerEvent()))
 		}
 	}
 
