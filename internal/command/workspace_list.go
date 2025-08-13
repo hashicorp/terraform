@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/posener/complete"
 )
@@ -37,17 +38,8 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		BackendConfig: backendConfig,
-	})
+	b, backendDiags := c.prepareBackend(configPath)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -104,4 +96,18 @@ Usage: terraform [global options] workspace list
 
 func (c *WorkspaceListCommand) Synopsis() string {
 	return "List Workspaces"
+}
+
+// prepareBackend returns an operations backend that may use a backend, cloud, or state_store block for state storage.
+func (c *WorkspaceListCommand) prepareBackend(configPath string) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+	if configPath == "" {
+		configPath = "."
+	}
+
+	mod, diags := c.loadSingleModule(configPath)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	return c.Meta.prepareBackend(mod)
 }
