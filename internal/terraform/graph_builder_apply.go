@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -81,11 +83,14 @@ type ApplyGraphBuilder struct {
 
 // See GraphBuilder
 func (b *ApplyGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
-	return (&BasicGraphBuilder{
+	x, diags := (&BasicGraphBuilder{
 		Steps:               b.Steps(),
 		Name:                "ApplyGraphBuilder",
 		SkipGraphValidation: b.SkipGraphValidation,
 	}).Build(path)
+
+	fmt.Printf("%s", string(x.Dot(nil)))
+	return x, diags
 }
 
 // See GraphBuilder
@@ -149,6 +154,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:    b.State,
 			Changes:  b.Changes,
 			Config:   b.Config,
+		},
+
+		&ActionDiffTransformer{
+			Changes: b.Changes,
+			Config:  b.Config,
 		},
 
 		// Creates nodes for all the deferred changes.

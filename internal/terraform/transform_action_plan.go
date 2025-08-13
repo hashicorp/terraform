@@ -54,7 +54,7 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 				default:
 					continue
 				}
-				nat := &nodeActionTrigger{
+				nat := &nodeActionTriggerPlan{
 					resourceAddress: r.Addr().InModule(addrs.RootModule),
 					actionAddress:   instance,
 					events:          at.Events,

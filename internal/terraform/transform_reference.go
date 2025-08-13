@@ -313,6 +313,9 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	var referenceKeys []string
 
 	if rn, ok := v.(GraphNodeReferencer); ok {
+
+		fmt.Printf("\n\t rn --> %#v \n", rn)
+
 		for _, ref := range rn.References() {
 			referenceKeys = append(referenceKeys, m.referenceMapKey(vertexReferencePath(v), ref.Subject))
 

@@ -14,25 +14,25 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-type nodeActionTrigger struct {
-	resourceAddress addrs.ConfigResource
-	actionAddress   addrs.AbsActionInstance
-	events          []configs.ActionTriggerEvent
-	resolveProvider addrs.AbsProviderConfig
+type nodeActionTriggerPlan struct {
+	resourceAddress  addrs.ConfigResource
+	actionAddress    addrs.AbsActionInstance
+	events           []configs.ActionTriggerEvent
+	resolvedProvider addrs.AbsProviderConfig
 	//condition       hcl.Expression
 }
 
 var (
-	_ GraphNodeExecutable       = (*nodeActionTrigger)(nil)
-	_ GraphNodeReferencer       = (*nodeActionTrigger)(nil)
-	_ GraphNodeProviderConsumer = (*nodeActionTrigger)(nil)
+	_ GraphNodeExecutable       = (*nodeActionTriggerPlan)(nil)
+	_ GraphNodeReferencer       = (*nodeActionTriggerPlan)(nil)
+	_ GraphNodeProviderConsumer = (*nodeActionTriggerPlan)(nil)
 )
 
-func (n *nodeActionTrigger) Name() string {
+func (n *nodeActionTriggerPlan) Name() string {
 	return "action_" + n.resourceAddress.String()
 }
 
-func (n *nodeActionTrigger) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
+func (n *nodeActionTriggerPlan) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	_, keys, _ := ctx.InstanceExpander().ResourceInstanceKeys(n.resourceAddress.Absolute(addrs.RootModuleInstance))
@@ -104,11 +104,11 @@ func (n *nodeActionTrigger) Execute(ctx EvalContext, operation walkOperation) tf
 	return diags
 }
 
-func (n *nodeActionTrigger) ModulePath() addrs.Module {
+func (n *nodeActionTriggerPlan) ModulePath() addrs.Module {
 	return addrs.RootModule
 }
 
-func (n *nodeActionTrigger) References() []*addrs.Reference {
+func (n *nodeActionTriggerPlan) References() []*addrs.Reference {
 	var refs []*addrs.Reference
 
 	refs = append(refs, &addrs.Reference{
@@ -122,20 +122,20 @@ func (n *nodeActionTrigger) References() []*addrs.Reference {
 	return refs
 }
 
-func (n *nodeActionTrigger) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
-	if n.resolveProvider.Provider.Type != "" {
-		return n.resolveProvider, true
+func (n *nodeActionTriggerPlan) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+	if n.resolvedProvider.Provider.Type != "" {
+		return n.resolvedProvider, true
 	}
 
 	return addrs.LocalProviderConfig{
-		LocalName: "test",
+		LocalName: "act",
 	}, false
 }
 
-func (n *nodeActionTrigger) Provider() (provider addrs.Provider) {
-	return addrs.NewDefaultProvider("test")
+func (n *nodeActionTriggerPlan) Provider() (provider addrs.Provider) {
+	return addrs.NewDefaultProvider("act")
 }
 
-func (n *nodeActionTrigger) SetProvider(config addrs.AbsProviderConfig) {
-	n.resolveProvider = config
+func (n *nodeActionTriggerPlan) SetProvider(config addrs.AbsProviderConfig) {
+	n.resolvedProvider = config
 }

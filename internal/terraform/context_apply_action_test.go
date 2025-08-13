@@ -674,6 +674,34 @@ action "act_unlinked" "hello" {}
 			}},
 			expectInvokeActionCalled: true,
 		},
+
+		"after_create with config cycle": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_object_a"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("test_object_a"),
+				}),
+			}},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
