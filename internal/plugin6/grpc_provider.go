@@ -4,6 +4,7 @@
 package plugin6
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -1502,6 +1503,140 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 		return resp
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
+}
+
+func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
+	logger.Trace("GRPCProvider.v6: ReadStateBytes")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto6.ReadStateBytes_Request{
+		TypeName: r.TypeName,
+		StateId:  r.StateId,
+	}
+
+	// Start the streaming RPC with a context. The context will be cancelled
+	// when this function returns, which will stop the stream if it is still
+	// running.
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+
+	client, err := p.client.ReadStateBytes(ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	var buf *bytes.Buffer
+	var expectedTotalLength int
+	for {
+		chunk, err := client.Recv()
+		if err == io.EOF {
+			// End of stream, we're done
+			break
+		}
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			break
+		}
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(chunk.Diagnostics))
+		if resp.Diagnostics.HasErrors() {
+			// If we have errors, we stop processing and return early
+			break
+		}
+
+		if expectedTotalLength == 0 {
+			expectedTotalLength = int(chunk.TotalLength)
+		}
+		logger.Trace("GRPCProvider.v6: ReadStateBytes: received chunk for range", chunk.Range)
+
+		n, err := buf.Write(chunk.Bytes)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			break
+		}
+		logger.Trace("GRPCProvider.v6: ReadStateBytes: read bytes of a chunk", n)
+	}
+
+	logger.Trace("GRPCProvider.v6: ReadStateBytes: received all chunks", buf.Len())
+	if buf.Len() != expectedTotalLength {
+		err = fmt.Errorf("expected state file of total %d bytes, received %d bytes",
+			expectedTotalLength, buf.Len())
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.Bytes = buf.Bytes()
+
+	return resp
+}
+
+func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
+	logger.Trace("GRPCProvider.v6: WriteStateBytes")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	// Start the streaming RPC with a context. The context will be cancelled
+	// when this function returns, which will stop the stream if it is still
+	// running.
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+
+	// TODO: Configurable chunk size
+	chunkSize := 4 * 1_000_000 // 4MB
+
+	if len(r.Bytes) < chunkSize {
+		protoReq := &proto6.WriteStateBytes_RequestChunk{
+			TypeName:    r.TypeName,
+			StateId:     r.StateId,
+			Bytes:       r.Bytes,
+			TotalLength: int64(len(r.Bytes)),
+			Range: &proto6.StateRange{
+				Start: 0,
+				End:   int64(len(r.Bytes)),
+			},
+		}
+		client, err := p.client.WriteStateBytes(ctx)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
+		}
+		err = client.Send(protoReq)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
+		}
+		protoResp, err := client.CloseAndRecv()
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
+		}
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+		if resp.Diagnostics.HasErrors() {
+			return resp
+		}
+	}
+
+	// TODO: implement chunking for state files larger than chunkSize
+
 	return resp
 }
 

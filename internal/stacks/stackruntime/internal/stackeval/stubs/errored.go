@@ -276,6 +276,34 @@ func (p *erroredProvider) ConfigureStateStore(providers.ConfigureStateStoreReque
 	}
 }
 
+// ReadStateBytes implements providers.Interface.
+func (p *erroredProvider) ReadStateBytes(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot read state managed by this state store because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ReadStateBytesResponse{
+		Diagnostics: diags,
+	}
+}
+
+// WriteStateBytes implements providers.Interface.
+func (p *erroredProvider) WriteStateBytes(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot write state managed by this state store because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.WriteStateBytesResponse{
+		Diagnostics: diags,
+	}
+}
+
 // GetStates implements providers.Interface.
 func (p *erroredProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
 	var diags tfdiags.Diagnostics
