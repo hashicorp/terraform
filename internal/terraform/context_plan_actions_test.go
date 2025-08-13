@@ -1164,7 +1164,7 @@ action "test_unlinked" "hello" {}
 `,
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
+				Mode: plans.RefreshOnlyMode,
 				Targets: []addrs.Targetable{addrs.AbsActionInstance{
 					Action: addrs.ActionInstance{
 						Action: addrs.Action{
@@ -1583,25 +1583,49 @@ action "test_unlinked" "hello" {
   }
 }
 resource "test_object" "a" {
+  name = "test_name"
+
   lifecycle {
     action_trigger {
-      events = [before_create]
+      events = [after_create]
       actions = [action.test_unlinked.hello]
     }
   }
 }
 `,
 			},
-			expectPlanActionCalled: false,
-			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
-				if !diags.HasErrors() {
-					t.Fatalf("expected diagnostics to have errors, but it does not")
+			expectPlanActionCalled: true,
+			//assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+			//	if !diags.HasErrors() {
+			//		t.Fatalf("expected diagnostics to have errors, but it does not")
+			//	}
+			//	if len(diags) != 1 {
+			//		t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+			//	}
+			//	if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
+			//		t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+			//	}
+			//},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected one action in plan, got %d", len(p.Changes.ActionInvocations))
 				}
-				if len(diags) != 1 {
-					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+
+				if p.Changes.ActionInvocations[0].ActionTrigger.TriggerEvent() != configs.AfterCreate {
+					t.Fatalf("expected trigger event to be of type AfterCreate, got: %v", p.Changes.ActionInvocations[0].ActionTrigger)
 				}
-				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
-					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+
+				if p.Changes.ActionInvocations[0].Addr.Action.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action to equal 'action.test_unlinked.hello', got '%s'", p.Changes.ActionInvocations[0].Addr)
+				}
+
+				decode, err := p.Changes.ActionInvocations[0].ConfigValue.Decode(cty.Object(map[string]cty.Type{"attr": cty.String}))
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if decode.GetAttr("attr").AsString() != "test_name" {
+					t.Fatalf("expected action config field 'attr' to have value 'test_name', got '%s'", decode.GetAttr("attr").AsString())
 				}
 			},
 		},

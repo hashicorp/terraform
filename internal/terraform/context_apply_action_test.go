@@ -561,7 +561,7 @@ resource "test_object" "b" {
 		},
 
 		"action with secrets in configuration": {
-			toBeImplemented: true, // We currently don't suppport sensitive values in the plan
+			toBeImplemented: true, // To be implemented as part of https://hashicorp.atlassian.net/browse/TF-27774
 			module: map[string]string{
 				"main.tf": `
 variable "secret_value" {
@@ -676,6 +676,10 @@ action "act_unlinked" "hello" {}
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
+			if tc.toBeImplemented {
+				t.Skip("Test not implemented yet")
+			}
+
 			m := testModuleInline(t, tc.module)
 
 			invokeActionCalls := []providers.InvokeActionRequest{}

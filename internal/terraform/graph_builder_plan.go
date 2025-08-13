@@ -172,6 +172,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ActionInvokeTransformer{
 			Targets: b.Targets,
 		},
+		&ActionPlanTransformer{
+			Config:    b.Config,
+			Operation: b.Operation,
+		},
 		// Add dynamic values
 		&RootVariableTransformer{
 			Config:       b.Config,
