@@ -1259,30 +1259,41 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 	}
 	ret.Addr = actionAddr
 
-	ret.TriggeringResourceAddr, diags = addrs.ParseAbsResourceInstanceStr(rawAction.TriggeringResourceAddr)
-	if diags.HasErrors() {
-		return nil, fmt.Errorf("invalid resource instance address %q: %w", rawAction.TriggeringResourceAddr, diags.Err())
-	}
+	switch at := rawAction.ActionTrigger.(type) {
+	case *planproto.ActionInvocationInstance_LifecycleActionTrigger:
+		triggeringResourceAddrs, diags := addrs.ParseAbsResourceInstanceStr(at.LifecycleActionTrigger.TriggeringResourceAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("invalid resource instance address %q: %w",
+				at.LifecycleActionTrigger.TriggeringResourceAddr, diags.Err())
+		}
 
-	ret.ActionsListIndex = int(rawAction.ActionsListIndex)
-	ret.ActionTriggerBlockIndex = int(rawAction.ActionTriggerBlockIndex)
+		var ate configs.ActionTriggerEvent
+		switch at.LifecycleActionTrigger.TriggerEvent {
+		case planproto.ActionTriggerEvent_BEFORE_CERATE:
+			ate = configs.BeforeCreate
+		case planproto.ActionTriggerEvent_AFTER_CREATE:
+			ate = configs.AfterCreate
+		case planproto.ActionTriggerEvent_BEFORE_UPDATE:
+			ate = configs.BeforeUpdate
+		case planproto.ActionTriggerEvent_AFTER_UPDATE:
+			ate = configs.AfterUpdate
+		case planproto.ActionTriggerEvent_BEFORE_DESTROY:
+			ate = configs.BeforeDestroy
+		case planproto.ActionTriggerEvent_AFTER_DESTROY:
+			ate = configs.AfterDestroy
 
-	switch rawAction.TriggerEvent {
-	case planproto.ActionTriggerEvent_BEFORE_CERATE:
-		ret.TriggerEvent = configs.BeforeCreate
-	case planproto.ActionTriggerEvent_AFTER_CREATE:
-		ret.TriggerEvent = configs.AfterCreate
-	case planproto.ActionTriggerEvent_BEFORE_UPDATE:
-		ret.TriggerEvent = configs.BeforeUpdate
-	case planproto.ActionTriggerEvent_AFTER_UPDATE:
-		ret.TriggerEvent = configs.AfterUpdate
-	case planproto.ActionTriggerEvent_BEFORE_DESTROY:
-		ret.TriggerEvent = configs.BeforeDestroy
-	case planproto.ActionTriggerEvent_AFTER_DESTROY:
-		ret.TriggerEvent = configs.AfterDestroy
-
+		default:
+			return nil, fmt.Errorf("invalid action trigger event %s", at.LifecycleActionTrigger.TriggerEvent)
+		}
+		ret.ActionTrigger = plans.LifecycleActionTrigger{
+			TriggeringResourceAddr:  triggeringResourceAddrs,
+			ActionTriggerBlockIndex: int(at.LifecycleActionTrigger.ActionTriggerBlockIndex),
+			ActionsListIndex:        int(at.LifecycleActionTrigger.ActionsListIndex),
+			ActionTriggerEvent:      ate,
+		}
 	default:
-		return nil, fmt.Errorf("invalid action trigger event %s", rawAction.TriggerEvent)
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type %t", rawAction.ActionTrigger)
 	}
 
 	providerAddr, diags := addrs.ParseAbsProviderConfigStr(rawAction.Provider)
@@ -1307,29 +1318,39 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		return nil, nil
 	}
 
-	triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
-	switch action.TriggerEvent {
-	case configs.BeforeCreate:
-		triggerEvent = planproto.ActionTriggerEvent_BEFORE_CERATE
-	case configs.AfterCreate:
-		triggerEvent = planproto.ActionTriggerEvent_AFTER_CREATE
-	case configs.BeforeUpdate:
-		triggerEvent = planproto.ActionTriggerEvent_BEFORE_UPDATE
-	case configs.AfterUpdate:
-		triggerEvent = planproto.ActionTriggerEvent_AFTER_UPDATE
-	case configs.BeforeDestroy:
-		triggerEvent = planproto.ActionTriggerEvent_BEFORE_DESTROY
-	case configs.AfterDestroy:
-		triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
+	ret := &planproto.ActionInvocationInstance{
+		Addr:     action.Addr.String(),
+		Provider: action.ProviderAddr.String(),
 	}
 
-	ret := &planproto.ActionInvocationInstance{
-		Addr:                    action.Addr.String(),
-		Provider:                action.ProviderAddr.String(),
-		TriggeringResourceAddr:  action.TriggeringResourceAddr.String(),
-		ActionsListIndex:        int64(action.ActionsListIndex),
-		ActionTriggerBlockIndex: int64(action.ActionTriggerBlockIndex),
-		TriggerEvent:            triggerEvent,
+	switch at := action.ActionTrigger.(type) {
+	case plans.LifecycleActionTrigger:
+		triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
+		switch at.ActionTriggerEvent {
+		case configs.BeforeCreate:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_CERATE
+		case configs.AfterCreate:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_CREATE
+		case configs.BeforeUpdate:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_UPDATE
+		case configs.AfterUpdate:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_UPDATE
+		case configs.BeforeDestroy:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_DESTROY
+		case configs.AfterDestroy:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
+		}
+		ret.ActionTrigger = &planproto.ActionInvocationInstance_LifecycleActionTrigger{
+			LifecycleActionTrigger: &planproto.LifecycleActionTrigger{
+				TriggerEvent:            triggerEvent,
+				TriggeringResourceAddr:  at.TriggeringResourceAddr.String(),
+				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(at.ActionsListIndex),
+			},
+		}
+	default:
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
 	}
 
 	if action.ConfigValue != nil {
