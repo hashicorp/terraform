@@ -284,9 +284,12 @@ const (
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
+	// InitializingProviderPluginFromConfigMessage indicates the beginning of installing of providers described in configuration
 	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
-	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
-	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"
+	// InitializingProviderPluginFromStateMessage indicates the beginning of installing of providers described in state
+	InitializingProviderPluginFromStateMessage InitMessageCode = "initializing_provider_plugin_from_state_message"
+	// DependenciesLockPendingChangesInfo indicates when a provider installation step will reuse a provider from a previous installation step in the current operation
+	ReusingVersionIdentifiedFromConfig InitMessageCode = "reusing_version_during_state_provider_init"
 
 	// InitConfigError indicates problems encountered during initialisation
 	InitConfigError InitMessageCode = "init_config_error"
