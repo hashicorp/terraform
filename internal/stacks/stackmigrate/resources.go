@@ -57,11 +57,13 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 
 	for _, resource := range m.stateResources() {
 		for key, instance := range resource.Instances {
+			source := resource.Addr.Instance(key)
+
 			// check if the state resource has been requested for migration,
 			// either by being in the resources map, or its module being in the modules map.
 			// The returned target builds a new address for the resource within the
 			// stack component where it will be migrated to.
-			target, diags := m.search(resource.Addr.Instance(key), resources, modules)
+			target, diags := m.search(source, resources, modules)
 			if diags.HasErrors() {
 				// if there are errors, we can't migrate this resource.
 				m.emitDiags(diags)
@@ -80,7 +82,7 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 			trackComponent(target)
 
 			// retrieve the provider that was uses to create the resource instance.
-			providerAddr, provider, diags := m.getOwningProvider(target)
+			providerAddr, provider, diags := m.getOwningProvider(source, target)
 			if diags.HasErrors() {
 				m.emitDiags(diags)
 				continue
@@ -90,7 +92,7 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 			if schema.Body == nil {
 				m.emitDiags(diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Resource type not found",
+					Summary:  "Invalid resource type",
 					Detail:   fmt.Sprintf("Resource type %s not found in provider schema.", resource.Addr.Resource.Type),
 					Subject:  target.StackModuleConfig.SourceAddrRange.Ptr(),
 				}))
@@ -175,7 +177,7 @@ func (m *migration) search(resource addrs.AbsResourceInstance, resources map[str
 		// then we might have a mapping for the module it is in below.
 		if resource.Module.IsRoot() {
 			var diags tfdiags.Diagnostics
-			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource not found", fmt.Sprintf("Resource %q not found in mapping.", resource.Resource.String())))
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource not found", fmt.Sprintf("Resource %q exists in state, but was not included in any provided mapping.", resource.Resource.String())))
 			return nil, diags
 		}
 	}
@@ -207,14 +209,14 @@ func (m *migration) search(resource addrs.AbsResourceInstance, resources map[str
 		}, diags
 	} else {
 		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Module not found", fmt.Sprintf("Module %q not found in mapping.", resource.Module[0].Name)))
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Module not found", fmt.Sprintf("Module %q exists in state, but was not included in any provided mapping.", resource.Module[0].Name)))
 		return nil, diags
 	}
 }
 
 // getOwningProvider returns the address of the provider configuration,
 // as well as the provider instance, that was used to create the given resource instance.
-func (m *migration) getOwningProvider(resource *stackResource) (addrs.AbsProviderConfig, providers.Interface, tfdiags.Diagnostics) {
+func (m *migration) getOwningProvider(source addrs.AbsResourceInstance, resource *stackResource) (addrs.AbsProviderConfig, providers.Interface, tfdiags.Diagnostics) {
 	var ret addrs.AbsProviderConfig
 	// At this point, we already worked out the stack component where we are migrating
 	// the resource to. Now we need to look into the module configuration of the stack component,
@@ -222,7 +224,7 @@ func (m *migration) getOwningProvider(resource *stackResource) (addrs.AbsProvide
 	// the resource instance.
 
 	moduleAddr := resource.AbsResourceInstance.Item.Module.Module() // the module address within the stack component's module configuration
-	providerConfig, diags := m.findProviderConfig(moduleAddr, resource.AbsResourceInstance.Item.Resource.Resource, resource.StackModuleConfig)
+	providerConfig, diags := m.findProviderConfig(source, moduleAddr, resource.AbsResourceInstance.Item.Resource.Resource, resource.StackModuleConfig, resource.AbsResourceInstance.Component)
 	if diags.HasErrors() {
 		return ret, nil, diags
 	}
@@ -266,7 +268,7 @@ func (m *migration) getOwningProvider(resource *stackResource) (addrs.AbsProvide
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Provider not found for component",
-				Detail:   fmt.Sprintf("Provider %s was needed by the resource %s but was not found in the stack configuration.", ref.ProviderLocalName, resource.AbsResourceInstance.Item.Resource.String()),
+				Detail:   fmt.Sprintf("Provider %s was needed by the resource %s but was not found in the stack configuration.", ref.ProviderLocalName, resource.AbsResourceInstance.String()),
 				Subject:  component.SourceAddrRange.ToHCL().Ptr(),
 			})
 			return ret, nil, diags
@@ -305,13 +307,13 @@ func (m *migration) getOwningProvider(resource *stackResource) (addrs.AbsProvide
 
 // findProviderConfig recursively searches through the stack module configuration to find the provider
 // that was used to create the resource instance.
-func (m *migration) findProviderConfig(module addrs.Module, resource addrs.Resource, config *configs.Config) (addrs.LocalProviderConfig, tfdiags.Diagnostics) {
+func (m *migration) findProviderConfig(source addrs.AbsResourceInstance, module addrs.Module, resource addrs.Resource, config *configs.Config, component stackaddrs.AbsComponentInstance) (addrs.LocalProviderConfig, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if module.IsRoot() {
 		r := config.Module.ResourceByAddr(resource)
 		if r == nil {
-			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Resource %q not found in root module.", resource.String())))
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource mapped to non-existent target", fmt.Sprintf("Could not migrate resource %q. Target resource %q not found in component %q.", source, resource.InModule(module), component)))
 			return addrs.LocalProviderConfig{}, diags
 		}
 
@@ -320,13 +322,13 @@ func (m *migration) findProviderConfig(module addrs.Module, resource addrs.Resou
 
 	next, ok := config.Children[module[0]]
 	if !ok {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Module %q not found in root module children.", module[0])))
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource mapped to non-existent target", fmt.Sprintf("Could not migrate resource %q. Module %q not found in component %q.", source, module, component)))
 		return addrs.LocalProviderConfig{}, diags
 	}
 
 	// the address points to a nested module, so we continue the search
 	// within the next module's configuration.
-	provider, moreDiags := m.findProviderConfig(module[1:], resource, next)
+	provider, moreDiags := m.findProviderConfig(source, module[1:], resource, next, component)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return addrs.LocalProviderConfig{}, diags
@@ -334,7 +336,7 @@ func (m *migration) findProviderConfig(module addrs.Module, resource addrs.Resou
 
 	call, ok := config.Module.ModuleCalls[module[0]]
 	if !ok {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Module call %q not found in configuration.", module[0])))
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource mapped to non-existent target", fmt.Sprintf("Could not migrate resource %q. Module %q not found in component %q.", source, module, component)))
 		return addrs.LocalProviderConfig{}, diags
 	}
 
@@ -348,7 +350,7 @@ func (m *migration) findProviderConfig(module addrs.Module, resource addrs.Resou
 	// Let's check the provider within the child module configuration.
 	r := next.Module.ResourceByAddr(resource)
 	if r == nil {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Resource %q not found in containing module.", resource.String())))
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource mapped to non-existent target", fmt.Sprintf("Could not migrate resource %q. Resource %q not found component %q.", source, resource.InModule(module), component)))
 		return addrs.LocalProviderConfig{}, diags
 	}
 	return r.ProviderConfigAddr(), diags
@@ -376,7 +378,7 @@ func (m *migration) loadConfig(resource *stackResource) tfdiags.Diagnostics {
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Module configuration not found",
-			Detail:   fmt.Sprintf("Module configuration for component %q not found", instance.Item.Component.Name),
+			Detail:   fmt.Sprintf("Module configuration for component %q not found.", instance.Item.Component.Name),
 			Subject:  component.SourceAddrRange.ToHCL().Ptr(),
 		})
 	}

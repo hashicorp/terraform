@@ -793,8 +793,8 @@ func TestMigrate(t *testing.T) {
 			},
 			expectedDiags: tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Provider not found",
-				Detail:   "Resource \"testing_resource.for_child\" not found in root module.",
+				Summary:  "Resource mapped to non-existent target",
+				Detail:   "Could not migrate resource \"testing_resource.for_child\". Target resource \"testing_resource.for_child\" not found in component \"component.child\".",
 			}),
 		},
 
@@ -924,7 +924,7 @@ func TestMigrate(t *testing.T) {
 			expectedDiags: tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Resource not found",
-				Detail:   "Resource \"testing_resource.for_child\" not found in mapping.",
+				Detail:   "Resource \"testing_resource.for_child\" exists in state, but was not included in any provided mapping.",
 			}),
 		},
 		"config depends on": {
@@ -1322,6 +1322,117 @@ func TestMigrate(t *testing.T) {
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.two.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "two",
+							"value": "two",
+						}),
+						Status:  states.ObjectReady,
+						Private: nil,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+		},
+		"single component": {
+			path: filepath.Join("for-stacks-migrate", "single-component"),
+			state: func(ss *states.SyncState) {
+				ss.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "one",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "one",
+							"value": "one",
+						}),
+					},
+					mustDefaultRootProvider("testing"),
+				)
+				ss.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "two",
+					}.Instance(addrs.NoKey).Absolute(addrs.ModuleInstance{
+						{
+							Name: "two",
+						},
+					}),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "two",
+							"value": "two",
+						}),
+					},
+					mustDefaultRootProvider("testing"),
+				)
+				ss.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "three",
+					}.Instance(addrs.NoKey).Absolute(addrs.ModuleInstance{
+						{
+							Name: "three",
+						},
+					}),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "three",
+							"value": "three",
+						}),
+					},
+					mustDefaultRootProvider("testing"),
+				)
+			},
+			resources: map[string]string{
+				"testing_resource.one": "component.single.testing_resource.one",
+			},
+			modules: map[string]string{
+				"two":   "single",
+				"three": "single",
+			}, expected: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.single"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.single"),
+					OutputValues:          map[addrs.OutputValue]cty.Value{},
+					InputVariables:        map[addrs.InputVariable]cty.Value{},
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.single.testing_resource.one"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "one",
+							"value": "one",
+						}),
+						Status:  states.ObjectReady,
+						Private: nil,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.single.testing_resource.three"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "three",
+							"value": "three",
+						}),
+						Status:  states.ObjectReady,
+						Private: nil,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.single.testing_resource.two"),
 					NewStateSrc: &states.ResourceInstanceObjectSrc{
 						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
 							"id":    "two",
