@@ -432,6 +432,14 @@ func (m *Mock) ConfigureStateStore(req ConfigureStateStoreRequest) ConfigureStat
 	return m.Provider.ConfigureStateStore(req)
 }
 
+func (m *Mock) ReadStateBytes(req ReadStateBytesRequest) ReadStateBytesResponse {
+	return m.Provider.ReadStateBytes(req)
+}
+
+func (m *Mock) WriteStateBytes(req WriteStateBytesRequest) WriteStateBytesResponse {
+	return m.Provider.WriteStateBytes(req)
+}
+
 func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
 	return m.Provider.GetStates(req)
 }
