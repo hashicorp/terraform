@@ -70,13 +70,15 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 				}
 
 				nat := &nodeActionTriggerPlan{
-					resourceAddress:         r.Addr().InModule(config.Path),
-					actionAddress:           instance,
-					events:                  at.Events,
-					actionConfig:            actionConfig,
-					actionTriggerBlockIndex: i,
-					actionListIndex:         j,
-					invokingSubject:         action.Traversal.SourceRange().Ptr(),
+					actionAddress: instance,
+					actionConfig:  actionConfig,
+					lifecycleActionTrigger: &lifecycleActionTrigger{
+						events:                  at.Events,
+						resourceAddress:         r.Addr().InModule(config.Path),
+						actionTriggerBlockIndex: i,
+						actionListIndex:         j,
+						invokingSubject:         action.Traversal.SourceRange().Ptr(),
+					},
 				}
 
 				g.Add(nat)
