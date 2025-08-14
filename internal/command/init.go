@@ -848,6 +848,9 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			))
 		}
 	}
+	if diags.HasErrors() {
+		return false, nil, diags
+	}
 
 	var inst *providercache.Installer
 	if len(pluginDirs) == 0 {
@@ -944,6 +947,9 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 				),
 			))
 		}
+	}
+	if diags.HasErrors() {
+		return false, nil, diags
 	}
 
 	// The locks below are used to avoid re-downloading any providers in the
