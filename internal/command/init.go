@@ -820,7 +820,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 // dependency lock data based on the configuration.
 // The dependency lock file itself isn't updated here.
 func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
-	ctx, span := tracer.Start(ctx, "install providers")
+	ctx, span := tracer.Start(ctx, "install providers from config")
 	defer span.End()
 
 	// Dev overrides cause the result of "terraform init" to be irrelevant for
@@ -918,7 +918,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 // supply the configLocks argument.
 // The dependency lock file itself isn't updated here.
 func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
-	ctx, span := tracer.Start(ctx, "install providers")
+	ctx, span := tracer.Start(ctx, "install providers from state")
 	defer span.End()
 
 	// Dev overrides cause the result of "terraform init" to be irrelevant for
