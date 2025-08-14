@@ -202,17 +202,9 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
 	},
-	"dependencies_lock_pending_changes_info": {
-		HumanValue: dependenciesLockPendingChangesInfo,
-		JSONValue:  dependenciesLockPendingChangesInfo,
-	},
 	"lock_info": {
 		HumanValue: previousLockInfoHuman,
 		JSONValue:  previousLockInfoJSON,
-	},
-	"pending_lock_info": {
-		HumanValue: pendingLockInfoHuman,
-		JSONValue:  pendingLockInfoJSON,
 	},
 	"provider_already_installed_message": {
 		HumanValue: "- Using previously-installed %s v%s",
@@ -294,8 +286,6 @@ const (
 
 	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
 	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
-	PendingLockInfo                             InitMessageCode = "pending_lock_info"
-	DependenciesLockPendingChangesInfo          InitMessageCode = "dependencies_lock_pending_changes_info"
 	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"
 
 	// InitConfigError indicates problems encountered during initialisation
@@ -394,20 +384,8 @@ selections it made above. Include this file in your version control repository
 so that Terraform can guarantee to make the same selections by default when
 you run "terraform init" in the future.`
 
-const pendingLockInfoHuman = `
-Terraform will create a lock file [bold].terraform.lock.hcl[reset] to record the provider
-selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.`
-
 const previousLockInfoJSON = `
 Terraform has created a lock file .terraform.lock.hcl to record the provider
-selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.`
-
-const pendingLockInfoJSON = `
-Terraform will create a lock file .terraform.lock.hcl to record the provider
 selections it made above. Include this file in your version control repository
 so that Terraform can guarantee to make the same selections by default when
 you run "terraform init" in the future.`
@@ -416,11 +394,6 @@ const dependenciesLockChangesInfo = `
 Terraform has made some changes to the provider dependency selections recorded
 in the .terraform.lock.hcl file. Review those changes and commit them to your
 version control system if they represent changes you intended to make.`
-
-const dependenciesLockPendingChangesInfo = `
-Terraform has pending changes to make to the provider dependency selections recorded
-in the .terraform.lock.hcl file. These will be persisted once the final set of dependencies
-are determined.`
 
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
