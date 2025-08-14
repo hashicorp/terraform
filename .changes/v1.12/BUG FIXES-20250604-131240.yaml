@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: partial ephemeral values were rejected in ephemeral outputs
+time: 2025-06-04T13:12:40.440242-04:00
+custom:
+    Issue: "37210"

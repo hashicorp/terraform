@@ -5,7 +5,6 @@ package configs
 
 import (
 	"fmt"
-	"iter"
 	"log"
 	"maps"
 	"slices"
@@ -144,19 +143,15 @@ func (c *Config) DeepEach(cb func(c *Config)) {
 	}
 }
 
-// AllModules returns an iterator of all the receiver and all of its descendant
-// nodes in the module tree until the iterator is exhausted or terminated.
-func (c *Config) AllModules() iter.Seq[*Config] {
-	return func(yield func(*Config) bool) {
-		if !yield(c) {
-			return
-		}
-		for _, ch := range c.Children {
-			if !yield(ch) {
-				return
-			}
-		}
-	}
+// AllModules returns a slice of all the receiver and all of its descendant
+// nodes in the module tree, in the same order they would be visited by
+// DeepEach.
+func (c *Config) AllModules() []*Config {
+	var ret []*Config
+	c.DeepEach(func(c *Config) {
+		ret = append(ret, c)
+	})
+	return ret
 }
 
 // Descendant returns the descendant config that has the given path beneath
@@ -488,15 +483,6 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 		reqs[fqn] = nil
 	}
 
-	for _, rc := range c.Module.Actions {
-		fqn := rc.Provider
-		if _, exists := reqs[fqn]; exists {
-			// Explicit dependency already present
-			continue
-		}
-		reqs[fqn] = nil
-	}
-
 	// Import blocks that are generating config may have a custom provider
 	// meta-argument. Like the provider meta-argument used in resource blocks,
 	// we use this opportunity to load any implicit providers.
@@ -685,26 +671,6 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 	}
 
 	return providers
-}
-
-// resolveStateStoreProviderType gets tfaddr.Provider data for the provider used for pluggable state storage
-// and assigns it to the ProviderAddr field in the config's root module's state store data.
-//
-// See the reused function resolveStateStoreProviderType for details about logic.
-// If no match is found, an error diagnostic is returned.
-func (c *Config) resolveStateStoreProviderType() hcl.Diagnostics {
-	var diags hcl.Diagnostics
-
-	providerType, typeDiags := resolveStateStoreProviderType(c.Root.Module.ProviderRequirements.RequiredProviders,
-		*c.Root.Module.StateStore)
-
-	if typeDiags.HasErrors() {
-		diags = append(diags, typeDiags...)
-		return diags
-	}
-
-	c.Root.Module.StateStore.ProviderAddr = providerType
-	return nil
 }
 
 // resolveProviderTypesForTests matches resolveProviderTypes except it uses
@@ -1034,9 +1000,6 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProvider
 		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
 	for _, rc := range c.Module.DataResources {
-		maybePutLocal(rc.ProviderConfigAddr(), false)
-	}
-	for _, rc := range c.Module.Actions {
 		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
 	for _, ic := range c.Module.Import {

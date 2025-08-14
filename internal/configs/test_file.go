@@ -40,12 +40,6 @@ const (
 	RefreshOnlyTestMode TestMode = 'R'
 )
 
-const (
-	// TestMainStateIdentifier is the default state identifier for the main
-	// state of the test file.
-	TestMainStateIdentifier = ""
-)
-
 // TestFile represents a single test file within a `terraform test` execution.
 //
 // A test file is made up of a sequential list of run blocks, each designating
@@ -749,10 +743,6 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 	if attr, exists := content.Attributes["state_key"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
 		diags = append(diags, rawDiags...)
-	} else if r.Module != nil {
-		r.StateKey = r.Module.Source.String()
-	} else {
-		r.StateKey = TestMainStateIdentifier // redundant, but let's be explicit
 	}
 
 	if attr, exists := content.Attributes["parallel"]; exists {

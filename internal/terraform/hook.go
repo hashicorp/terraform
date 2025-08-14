@@ -35,19 +35,7 @@ type HookResourceIdentity struct {
 
 // HookActionIdentity is passed to Hook interface methods to fully identify
 // the action being performed.
-type HookActionIdentity struct {
-	Addr addrs.AbsActionInstance
-
-	// If run as part of a plan / apply we also have the values below
-	// (if CLI triggered they are not applicable)
-	TriggeringResourceAddr  addrs.AbsResourceInstance
-	ActionTriggerBlockIndex int
-	ActionsListIndex        int
-}
-
-func (i *HookActionIdentity) String() string {
-	return i.Addr.String() + " (triggered by " + i.TriggeringResourceAddr.String() + ")"
-}
+type HookActionIdentity = addrs.AbsActionInvocationInstance
 
 // Hook is the interface that must be implemented to hook into various
 // parts of Terraform, allowing you to inspect or change behavior at runtime.

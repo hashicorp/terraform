@@ -35,14 +35,6 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
 			parser := NewParser(nil)
-
-			if strings.Contains(name, "state-store") {
-				// The PSS project is currently gated as experimental
-				// TODO(SarahFrench/radeksimko) - remove this from the test once
-				// the feature is GA.
-				parser.allowExperiments = true
-			}
-
 			path := filepath.Join("testdata/valid-modules", name)
 
 			mod, diags := parser.LoadConfigDir(path)

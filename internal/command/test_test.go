@@ -130,37 +130,6 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
-		"expect_failures_outputs": {
-			expectedOut: []string{"1 passed, 0 failed."},
-			code:        0,
-		},
-		"expect_failures_checks_verbose": {
-			override:    "expect_failures_checks",
-			args:        []string{"-verbose"},
-			expectedOut: []string{"1 passed, 0 failed.", "Warning: Check block assertion failed"},
-			code:        0,
-		},
-		"expect_failures_inputs_verbose": {
-			override:    "expect_failures_inputs",
-			args:        []string{"-verbose"},
-			expectedOut: []string{"1 passed, 0 failed."},
-			expectedErr: []string{"Error: Invalid value for variable"},
-			code:        0,
-		},
-		"expect_failures_resources_verbose": {
-			override:    "expect_failures_resources",
-			args:        []string{"-verbose"},
-			expectedOut: []string{"1 passed, 0 failed."},
-			expectedErr: []string{"Error: Resource postcondition failed"},
-			code:        0,
-		},
-		"expect_failures_outputs_verbose": {
-			override:    "expect_failures_outputs",
-			args:        []string{"-verbose"},
-			expectedOut: []string{"1 passed, 0 failed."},
-			expectedErr: []string{"Error: Module output value precondition failed"},
-			code:        0,
-		},
 		"multiple_files": {
 			expectedOut: []string{"2 passed, 0 failed"},
 			code:        0,
@@ -388,19 +357,13 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Invalid condition run"},
 			code:        1,
 		},
-		"write-into-default-state": {
-			args:        []string{"-verbose"},
-			expectedOut: []string{"test_resource.two will be destroyed"},
-			code:        0,
+		"no-tests": {
+			code: 0,
 		},
-		"prevent-destroy": {
-			expectedOut: []string{"1 passed, 0 failed."},
-			code:        0,
-		},
-		"deferred_changes": {
-			args:        []string{"-allow-deferral"},
-			expectedOut: []string{"3 passed, 0 failed."},
-			code:        0,
+		"expect-failures-assertions": {
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Test assertion failed"},
+			code:        1,
 		},
 	}
 	for name, tc := range tcs {
@@ -425,7 +388,7 @@ func TestTest_Runs(t *testing.T) {
 
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
-			t.Chdir(td)
+			defer testChdir(t, td)()
 
 			store := &testing_command.ResourceStore{
 				Data: make(map[string]cty.Value),
@@ -447,11 +410,10 @@ func TestTest_Runs(t *testing.T) {
 						},
 					},
 				},
-				Ui:                        ui,
-				View:                      view,
-				Streams:                   streams,
-				ProviderSource:            providerSource,
-				AllowExperimentalFeatures: true,
+				Ui:             ui,
+				View:           view,
+				Streams:        streams,
+				ProviderSource: providerSource,
 			}
 
 			init := &InitCommand{
@@ -540,7 +502,7 @@ func TestTest_Runs(t *testing.T) {
 func TestTest_Interrupt(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_interrupt")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -572,7 +534,7 @@ func TestTest_Interrupt(t *testing.T) {
 func TestTest_DestroyFail(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "destroy_fail")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -655,10 +617,10 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 	// It's really important that the above message is printed, so we're testing
 	// for it specifically and making sure it contains all the resources.
 	if diff := cmp.Diff(cleanupErr, err); diff != "" {
-		t.Errorf("expected err to be\n%s\n\nbut got\n%s\n\n diff:\n%s\n", cleanupErr, err, diff)
+		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", cleanupErr, err, diff)
 	}
 	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
-		t.Errorf("expected output to be \n%s\n\nbut got \n%s\n\n diff:\n%s\n", cleanupMessage, output.Stdout(), diff)
+		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
 	}
 
 	// This time the test command shouldn't have cleaned up the resource because
@@ -671,7 +633,7 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 func TestTest_SharedState_Order(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "shared_state")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -743,7 +705,7 @@ func TestTest_SharedState_Order(t *testing.T) {
 func TestTest_Parallel_Divided_Order(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "parallel_divided")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -820,7 +782,7 @@ func TestTest_Parallel_Divided_Order(t *testing.T) {
 func TestTest_Parallel(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "parallel")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -1173,7 +1135,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, td, closer := testModuleInline(t, tt.sources)
 			defer closer()
-			t.Chdir(td)
+			defer testChdir(t, td)()
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
@@ -1258,7 +1220,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 func TestTest_InterruptSkipsRemaining(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_interrupt_and_additional_file")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -1290,7 +1252,7 @@ func TestTest_InterruptSkipsRemaining(t *testing.T) {
 func TestTest_DoubleInterrupt(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_double_interrupt")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -1339,7 +1301,7 @@ test:
 func TestTest_ProviderAlias(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_provider_alias")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	store := &testing_command.ResourceStore{
 		Data: make(map[string]cty.Value),
@@ -1409,7 +1371,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 func TestTest_ComplexCondition(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "complex_condition")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -1579,7 +1541,7 @@ expected to fail
 func TestTest_ComplexConditionVerbose(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "complex_condition")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -1898,7 +1860,7 @@ expected to fail
 func TestTest_ModuleDependencies(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_setup_module")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	// Our two providers will share a common set of values to make things
 	// easier.
@@ -1989,7 +1951,7 @@ func TestTest_ModuleDependencies(t *testing.T) {
 func TestTest_CatchesErrorsBeforeDestroy(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid_default_state")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -2046,7 +2008,7 @@ variable into a "variables" block within the test file or run block.
 func TestTest_Verbose(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "plan_then_apply")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -2236,7 +2198,7 @@ can remove the provider configuration again.
 
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
-			t.Chdir(td)
+			defer testChdir(t, td)()
 
 			provider := testing_command.NewProvider(nil)
 
@@ -2303,7 +2265,7 @@ can remove the provider configuration again.
 func TestTest_NestedSetupModules(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_nested_setup_modules")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -2358,7 +2320,7 @@ func TestTest_NestedSetupModules(t *testing.T) {
 func TestTest_StatePropagation(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "state_propagation")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -2497,7 +2459,7 @@ Success! 5 passed, 0 failed.
 func TestTest_OnlyExternalModules(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "only_modules")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -2566,7 +2528,7 @@ Success! 2 passed, 0 failed.
 func TestTest_PartialUpdates(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "partial_updates")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -2633,7 +2595,7 @@ Success! 2 passed, 0 failed.
 func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-cleanup-warnings")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -2709,7 +2671,7 @@ Success! 1 passed, 0 failed.
 func TestTest_BadReferences(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "bad-references")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -2781,7 +2743,7 @@ The input variable "default" does not exist within this test file.
 func TestTest_UndefinedVariables(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "variables_undefined_in_config")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -2834,7 +2796,7 @@ can be declared with a variable "input" {} block.
 func TestTest_VariablesInProviders(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_vars")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -2873,7 +2835,7 @@ Success! 1 passed, 0 failed.
 func TestTest_ExpectedFailuresDuringPlanning(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "expected_failures_during_planning")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -2992,7 +2954,7 @@ func TestTest_MissingExpectedFailuresDuringApply(t *testing.T) {
 	// This lets subsequent runs continue to execute and the file to be marked as failed.
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "expect_failures_during_apply")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -3183,7 +3145,7 @@ operation, and the specified output value is only known after apply.
 		t.Run(name, func(t *testing.T) {
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", name)), td)
-			t.Chdir(td)
+			defer testChdir(t, td)()
 
 			provider := testing_command.NewProvider(nil)
 			view, done := testView(t)
@@ -3221,7 +3183,7 @@ operation, and the specified output value is only known after apply.
 func TestTest_SensitiveInputValues(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "sensitive_input_values")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -3367,7 +3329,7 @@ expected to fail
 func TestTest_LongRunningTest(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "long_running")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -3409,7 +3371,7 @@ Success! 1 passed, 0 failed.
 func TestTest_LongRunningTestJSON(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "long_running")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
@@ -3496,7 +3458,7 @@ func TestTest_LongRunningTestJSON(t *testing.T) {
 func TestTest_InvalidOverrides(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-overrides")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -3596,7 +3558,7 @@ Success! 2 passed, 0 failed.
 func TestTest_InvalidConfig(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid_config")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -3677,7 +3639,7 @@ permission denied..
 func TestTest_RunBlocksInProviders(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
 
@@ -3744,7 +3706,7 @@ Success! 2 passed, 0 failed.
 func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs_invalid")), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	store := &testing_command.ResourceStore{
 		Data: make(map[string]cty.Value),
@@ -3862,7 +3824,7 @@ func TestTest_JUnitOutput(t *testing.T) {
 			td := t.TempDir()
 			testPath := path.Join("test", tc.path)
 			testCopyDir(t, testFixturePath(testPath), td)
-			t.Chdir(td)
+			defer testChdir(t, td)()
 
 			provider := testing_command.NewProvider(nil)
 			view, done := testView(t)
@@ -3908,6 +3870,90 @@ func TestTest_JUnitOutput(t *testing.T) {
 				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 			}
 		})
+	}
+}
+
+// https://github.com/hashicorp/terraform/issues/37546
+func TestTest_TeardownOrder(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "rds_shared_subnet")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color", "-json"})
+	if code != 0 {
+		t.Errorf("expected status code %d but got %d", 0, code)
+	}
+	output := done(t).All()
+
+	// Parse the JSON output to check teardown order
+	var setupTeardownStart time.Time
+	var lastRunTeardownStart time.Time
+
+	for line := range strings.SplitSeq(output, "\n") {
+		if strings.Contains(line, `"progress":"teardown"`) {
+			var obj map[string]any
+			if err := json.Unmarshal([]byte(line), &obj); err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(line, `"setup_tests"`) {
+				if ts, ok := obj["@timestamp"].(string); ok {
+					// record the first time that the setup teardown appears in the output
+					if setupTeardownStart.IsZero() {
+						parsedTime, _ := time.Parse(time.RFC3339, ts)
+						setupTeardownStart = parsedTime
+					}
+				}
+
+			} else {
+				if ts, ok := obj["@timestamp"].(string); ok {
+					parsedTime, _ := time.Parse(time.RFC3339, ts)
+					// record the last time that a run's teardown appears in the output
+					if parsedTime.After(lastRunTeardownStart) {
+						lastRunTeardownStart = parsedTime
+					}
+				}
+			}
+		}
+	}
+
+	// all runs should have been down with teardown before the setup starts
+	if lastRunTeardownStart.After(setupTeardownStart) {
+		t.Fatalf("setup is tearing down before dependants are done: \n %s", output)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Logf("Resources remaining after test completion (this might indicate the teardown issue): %v", provider.ResourceString())
 	}
 }
 

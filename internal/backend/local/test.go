@@ -58,8 +58,7 @@ type TestSuiteRunner struct {
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
 
-	Concurrency     int
-	DeferralAllowed bool
+	Concurrency int
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -99,10 +98,10 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	// collisions, as the test directory variables should take precedence.
 	maps.Copy(testDirectoryGlobalVariables, runner.GlobalTestVariables)
 
-	suite.Status = moduletest.Pending
+	suite.Status = moduletest.Pass
 	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
 		if runner.Cancelled {
-			return suite.Status, diags
+			return moduletest.Error, diags
 		}
 
 		file := suite.Files[name]
@@ -122,7 +121,6 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			Render:            runner.View,
 			UnparsedVariables: currentGlobalVariables,
 			Concurrency:       runner.Concurrency,
-			DeferralAllowed:   runner.DeferralAllowed,
 		})
 
 		fileRunner := &TestFileRunner{

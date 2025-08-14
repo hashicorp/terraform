@@ -34,7 +34,7 @@ func TestRefresh(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -91,7 +91,7 @@ func TestRefresh_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-empty"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	p := testProvider()
 	view, done := testView(t)
@@ -125,7 +125,7 @@ func TestRefresh_lockedState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -234,7 +234,7 @@ func TestRefresh_defaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	originalState := testState()
 
@@ -316,7 +316,7 @@ func TestRefresh_outPath(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -385,7 +385,7 @@ func TestRefresh_var(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-var"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -422,7 +422,7 @@ func TestRefresh_varFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-var"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -464,7 +464,7 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-var"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -505,7 +505,7 @@ func TestRefresh_varsUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-unset-var"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	// Disable test mode so input would be asked
 	test = false
@@ -553,7 +553,7 @@ func TestRefresh_backup(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -638,7 +638,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -713,7 +713,7 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-output"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -760,7 +760,7 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 func TestRefresh_targeted(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-targeted"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -821,7 +821,7 @@ func TestRefresh_targetFlagsDiags(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			td := testTempDir(t)
 			defer os.RemoveAll(td)
-			t.Chdir(td)
+			defer testChdir(t, td)()
 
 			view, done := testView(t)
 			c := &RefreshCommand{
@@ -854,7 +854,7 @@ func TestRefresh_warnings(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	p := testProvider()
 	p.GetProviderSchemaResponse = refreshFixtureSchema()

@@ -109,8 +109,7 @@ func TestUntaint_lockedState(t *testing.T) {
 
 func TestUntaint_backup(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -165,8 +164,7 @@ test_instance.foo:
 
 func TestUntaint_backupDisable(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -237,8 +235,7 @@ func TestUntaint_badState(t *testing.T) {
 
 func TestUntaint_defaultState(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -285,8 +282,7 @@ test_instance.foo:
 
 func TestUntaint_defaultWorkspaceState(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -423,8 +419,7 @@ because -allow-missing was set.
 
 func TestUntaint_stateOut(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {

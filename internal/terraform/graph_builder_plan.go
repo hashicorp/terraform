@@ -114,11 +114,6 @@ type PlanGraphBuilder struct {
 	// If true, the graph builder will generate a query plan instead of a
 	// normal plan. This is used for the "terraform query" command.
 	queryPlan bool
-
-	// overridePreventDestroy is only applicable during destroy operations, and
-	// allows Terraform to ignore the configuration attribute prevent_destroy
-	// to destroy resources regardless.
-	overridePreventDestroy bool
 }
 
 // See GraphBuilder
@@ -144,10 +139,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		b.initImport()
 	default:
 		panic("invalid plan operation: " + b.Operation.String())
-	}
-
-	if b.overridePreventDestroy && b.Operation != walkPlanDestroy {
-		panic("overridePreventDestroy can only be set during walkPlanDestroy operations")
 	}
 
 	steps := []GraphTransformer{
@@ -345,7 +336,6 @@ func (b *PlanGraphBuilder) initDestroy() {
 	b.initPlan()
 
 	b.ConcreteResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
-		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,

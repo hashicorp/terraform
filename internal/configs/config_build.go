@@ -41,11 +41,6 @@ func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Con
 		// the known types for validation.
 		providers := cfg.resolveProviderTypes()
 		cfg.resolveProviderTypesForTests(providers)
-
-		if cfg.Module.StateStore != nil {
-			stateProviderDiags := cfg.resolveStateStoreProviderType()
-			diags = append(diags, stateProviderDiags...)
-		}
 	}
 
 	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)

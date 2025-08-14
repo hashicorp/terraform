@@ -12,34 +12,14 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-func invalidLinkedResourceDiag(subj *hcl.Range) *hcl.Diagnostic {
-	return &hcl.Diagnostic{
-		Severity: hcl.DiagError,
-		Summary:  `Invalid "linked_resource"`,
-		Detail:   `"linked_resource" must only refer to a managed resource in the current module.`,
-		Subject:  subj,
-	}
-}
-
-func invalidLinkedResourcesDiag(subj *hcl.Range) *hcl.Diagnostic {
-	return &hcl.Diagnostic{
-		Severity: hcl.DiagError,
-		Summary:  `Invalid "linked_resources"`,
-		Detail:   `"linked_resources" must only refer to managed resources in the current module.`,
-		Subject:  subj,
-	}
-}
-
 // Action represents an "action" block inside a configuration
 type Action struct {
-	Name    string
-	Type    string
-	Config  hcl.Body
-	Count   hcl.Expression
-	ForEach hcl.Expression
-	// DependsOn []hcl.Traversal // not yet supported
-
-	LinkedResources []hcl.Traversal
+	Name      string
+	Type      string
+	Config    hcl.Body
+	Count     hcl.Expression
+	ForEach   hcl.Expression
+	DependsOn []hcl.Traversal
 
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
@@ -53,7 +33,7 @@ type Action struct {
 type ActionTrigger struct {
 	Condition hcl.Expression
 	Events    []ActionTriggerEvent
-	Actions   []ActionRef // References to actions
+	Actions   []ActionRef
 
 	DeclRange hcl.Range
 }
@@ -65,8 +45,7 @@ type ActionTriggerEvent int
 //go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerEvent
 
 const (
-	Unknown ActionTriggerEvent = iota
-	BeforeCreate
+	BeforeCreate ActionTriggerEvent = iota
 	AfterCreate
 	BeforeUpdate
 	AfterUpdate
@@ -75,10 +54,10 @@ const (
 )
 
 // ActionRef represents a reference to a configured Action
+// copypasta of providerconfigref; not sure what's needed.
 type ActionRef struct {
 	Traversal hcl.Traversal
-
-	Range hcl.Range
+	Range     hcl.Range
 }
 
 func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics) {
@@ -96,6 +75,9 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		a.Condition = attr.Expr
 	}
 
+	// this is parsing events like expressions, so it's angry when there's quotes
+	// needs to parse strings:
+	// Quoted references are deprecated; In this context, references are expected literally rather than in quotes.
 	if attr, exists := content.Attributes["events"]; exists {
 		exprs, ediags := hcl.ExprList(attr.Expr)
 		diags = append(diags, ediags...)
@@ -124,17 +106,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 					Subject:  expr.Range().Ptr(),
 				})
-				continue
-			}
-
-			if event == BeforeDestroy || event == AfterDestroy {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid destroy event used",
-					Detail:   "The destroy events (before_destroy, after_destroy) are not supported as of right now. They will be supported in a future release.",
-					Subject:  expr.Range().Ptr(),
-				})
-				continue
 			}
 			events = append(events, event)
 		}
@@ -148,28 +119,21 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		for _, expr := range exprs {
 			traversal, travDiags := hcl.AbsTraversalForExpr(expr)
 			diags = append(diags, travDiags...)
-
-			if len(traversal) > 0 {
-				// verify that the traversal is an action
-				ref, refDiags := addrs.ParseRef(traversal)
-				diags = append(diags, refDiags.ToHCL()...)
-
-				switch ref.Subject.(type) {
-				case addrs.ActionInstance, addrs.Action:
-					actionRef := ActionRef{
-						Traversal: traversal,
-						Range:     expr.Range(),
-					}
-					actions = append(actions, actionRef)
-				default:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid actions argument inside action_triggers",
-						Detail:   "action_triggers.actions accepts a list of one or more actions, which must be in the current module.",
-						Subject:  expr.Range().Ptr(),
-					})
-					continue
+			// verify that the traversal is an action
+			if traversal.RootName() != "action" {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid actions argument inside action_triggers",
+					Detail:   "action_triggers.actions accepts a list of one or more actions",
+					Subject:  block.DefRange.Ptr(),
+				})
+			}
+			if len(traversal) != 0 {
+				actionRef := ActionRef{
+					Traversal: traversal,
+					Range:     expr.Range(),
 				}
+				actions = append(actions, actionRef)
 			}
 		}
 		a.Actions = actions
@@ -221,8 +185,9 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 		})
 	}
 
-	content, moreDiags := block.Body.Content(actionBlockSchema)
+	content, remain, moreDiags := block.Body.PartialContent(actionBlockSchema)
 	diags = append(diags, moreDiags...)
+	a.Config = remain
 
 	if attr, exists := content.Attributes["count"]; exists {
 		a.Count = attr.Expr
@@ -241,136 +206,24 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 		}
 	}
 
-	if attr, exists := content.Attributes["linked_resource"]; exists {
-		if a.LinkedResources != nil {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  `Invalid use of "linked_resource"`,
-				Detail:   `"linked_resource" and "linked_resources" are mutually exclusive, only one should be used.`,
-				Subject:  &attr.NameRange,
-			})
-		}
-
-		traversal, travDiags := hcl.AbsTraversalForExpr(attr.Expr)
-		diags = append(diags, travDiags...)
-		if len(traversal) != 0 {
-			ref, refDiags := addrs.ParseRef(traversal)
-			diags = append(diags, refDiags.ToHCL()...)
-
-			switch res := ref.Subject.(type) {
-			case addrs.Resource:
-				if res.Mode != addrs.ManagedResourceMode {
-					diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
-				} else {
-					a.LinkedResources = []hcl.Traversal{traversal}
-				}
-			case addrs.ResourceInstance:
-				if res.Resource.Mode != addrs.ManagedResourceMode {
-					diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
-				} else {
-					a.LinkedResources = []hcl.Traversal{traversal}
-				}
-			default:
-				diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
-			}
-		}
-	}
-
-	if attr, exists := content.Attributes["linked_resources"]; exists {
-		if a.LinkedResources != nil {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  `Invalid use of "linked_resources"`,
-				Detail:   `"linked_resource" and "linked_resources" are mutually exclusive, only one should be used.`,
-				Subject:  &attr.NameRange,
-			})
-		}
-
-		exprs, exprDiags := hcl.ExprList(attr.Expr)
-		diags = append(diags, exprDiags...)
-
-		if len(exprs) > 0 {
-			lrs := make([]hcl.Traversal, 0, len(exprs))
-			for _, expr := range exprs {
-				traversal, travDiags := hcl.AbsTraversalForExpr(expr)
-				diags = append(diags, travDiags...)
-
-				if len(traversal) != 0 {
-					ref, refDiags := addrs.ParseRef(traversal)
-					diags = append(diags, refDiags.ToHCL()...)
-
-					switch ref.Subject.(type) {
-					case addrs.Resource, addrs.ResourceInstance:
-						lrs = append(lrs, traversal)
-					default:
-						diags = append(diags, invalidLinkedResourcesDiag(&attr.NameRange))
-					}
-				}
-			}
-			a.LinkedResources = lrs
-		}
-	}
-
-	for _, block := range content.Blocks {
-		switch block.Type {
-		case "config":
-			if a.Config != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Duplicate config block",
-					Detail:   "An action must contain only one nested \"config\" block.",
-					Subject:  block.DefRange.Ptr(),
-				})
-				return nil, diags
-			}
-			a.Config = block.Body
-		default:
-			// Should not get here because the above should cover all
-			// block types declared in the schema.
-			panic(fmt.Sprintf("unhandled block type %q", block.Type))
-		}
-	}
-
 	if attr, exists := content.Attributes["provider"]; exists {
 		var providerDiags hcl.Diagnostics
 		a.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
 		diags = append(diags, providerDiags...)
 	}
 
-	// depends_on: not yet supported
-	// if attr, exists := content.Attributes["depends_on"]; exists {
-	// 	deps, depsDiags := DecodeDependsOn(attr)
-	// 	diags = append(diags, depsDiags...)
-	// 	a.DependsOn = append(a.DependsOn, deps...)
-	// }
+	if attr, exists := content.Attributes["depends_on"]; exists {
+		deps, depsDiags := DecodeDependsOn(attr)
+		diags = append(diags, depsDiags...)
+		a.DependsOn = append(a.DependsOn, deps...)
+	}
 
 	return a, diags
 }
 
 // actionBlockSchema is the schema for an action type within terraform.
 var actionBlockSchema = &hcl.BodySchema{
-	Attributes: commonActionAttributes,
-	Blocks: []hcl.BlockHeaderSchema{
-		{Type: "config"},
-	},
-}
-
-var commonActionAttributes = []hcl.AttributeSchema{
-	{
-		Name: "count",
-	},
-	{
-		Name: "for_each",
-	},
-	{
-		Name: "provider",
-	},
-	{
-		Name: "linked_resource",
-	},
-	{
-		Name: "linked_resources",
-	},
+	Attributes: commonResourceAttributes,
 }
 
 var actionTriggerSchema = &hcl.BodySchema{

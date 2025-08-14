@@ -267,7 +267,7 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Remo
 	}
 
 	if lp, ok := pf.Local(); ok {
-		plan, stateFile, config, err = getDataFromPlanfileReader(lp, c.Meta.AllowExperimentalFeatures)
+		plan, stateFile, config, err = getDataFromPlanfileReader(lp)
 	} else if cp, ok := pf.Cloud(); ok {
 		redacted := c.viewType != arguments.ViewJSON
 		jsonPlan, err = c.getDataFromCloudPlan(cp, redacted)
@@ -297,7 +297,7 @@ func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, re
 }
 
 // getDataFromPlanfileReader returns a plan, statefile, and config, extracted from a local plan file.
-func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperiments bool) (*plans.Plan, *statefile.File, *configs.Config, error) {
+func getDataFromPlanfileReader(planReader *planfile.Reader) (*plans.Plan, *statefile.File, *configs.Config, error) {
 	// Get plan
 	plan, err := planReader.ReadPlan()
 	if err != nil {
@@ -311,7 +311,7 @@ func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperim
 	}
 
 	// Get config
-	config, diags := planReader.ReadConfig(allowLanguageExperiments)
+	config, diags := planReader.ReadConfig()
 	if diags.HasErrors() {
 		return nil, nil, nil, errUnusable(diags.Err(), "local plan")
 	}

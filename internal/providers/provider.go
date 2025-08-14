@@ -4,8 +4,6 @@
 package providers
 
 import (
-	"iter"
-
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -123,15 +121,6 @@ type Interface interface {
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
 	DeleteState(DeleteStateRequest) DeleteStateResponse
 
-	// PlanAction plans an action to be invoked, providers might indicate potential drift and
-	// raise issues with the action configuration.
-	PlanAction(PlanActionRequest) PlanActionResponse
-	// InvokeAction invokes an action, providers return a stream of events that update terraform
-	// about the status of the action.
-	InvokeAction(InvokeActionRequest) InvokeActionResponse
-	// ValidateActionConfig performs configuration validation
-	ValidateActionConfig(ValidateActionConfigRequest) ValidateActionConfigResponse
-
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -169,9 +158,6 @@ type GetProviderSchemaResponse struct {
 	// StateStores maps the state store type name to that type's schema.
 	StateStores map[string]Schema
 
-	// Actions maps the name of the action to its schema.
-	Actions map[string]ActionSchema
-
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 
@@ -196,56 +182,6 @@ type IdentitySchema struct {
 	Version int64
 
 	Body *configschema.Object
-}
-
-type ExecutionOrder string
-
-const (
-	ExecutionOrderInvalid ExecutionOrder = "invalid"
-	ExecutionOrderBefore  ExecutionOrder = "before"
-	ExecutionOrderAfter   ExecutionOrder = "after"
-)
-
-type LinkedResourceSchema struct {
-	TypeName string
-}
-
-type UnlinkedAction struct{}
-
-type LifecycleAction struct {
-	Executes       ExecutionOrder
-	LinkedResource LinkedResourceSchema
-}
-
-type LinkedAction struct {
-	LinkedResources []LinkedResourceSchema
-}
-
-type ActionSchema struct {
-	ConfigSchema *configschema.Block
-
-	// One of the following fields must be set, indicating the type of action.
-	Unlinked  *UnlinkedAction
-	Lifecycle *LifecycleAction
-	Linked    *LinkedAction
-}
-
-func (a ActionSchema) LinkedResources() []LinkedResourceSchema {
-	if a.Unlinked != nil {
-		return []LinkedResourceSchema{}
-	}
-	if a.Lifecycle != nil {
-		return []LinkedResourceSchema{a.Lifecycle.LinkedResource}
-	}
-	if a.Linked != nil {
-		return a.Linked.LinkedResources
-	}
-	panic("ActionSchema must have one of Unlinked, Lifecycle, or Linked set")
-}
-
-// IsNil() returns true is there is no action schema at all.
-func (a ActionSchema) IsNil() bool {
-	return a.ConfigSchema == nil && a.Unlinked == nil && a.Lifecycle == nil && a.Linked == nil
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
@@ -512,7 +448,7 @@ type ReadResourceResponse struct {
 	Private []byte
 
 	// Deferred if present signals that the provider was not able to fully
-	// complete this operation and a subsequent run is required.
+	// complete this operation and a susequent run is required.
 	Deferred *Deferred
 
 	// Identity is the object-typed value representing the identity of the remote
@@ -581,7 +517,7 @@ type PlanResourceChangeResponse struct {
 	LegacyTypeSystem bool
 
 	// Deferred if present signals that the provider was not able to fully
-	// complete this operation and a subsequent run is required.
+	// complete this operation and a susequent run is required.
 	Deferred *Deferred
 
 	// PlannedIdentity is the planned identity data of the resource.
@@ -668,7 +604,7 @@ type ImportResourceStateResponse struct {
 	Diagnostics tfdiags.Diagnostics
 
 	// Deferred if present signals that the provider was not able to fully
-	// complete this operation and a subsequent run is required.
+	// complete this operation and a susequent run is required.
 	Deferred *Deferred
 }
 
@@ -765,7 +701,7 @@ type ReadDataSourceResponse struct {
 	Diagnostics tfdiags.Diagnostics
 
 	// Deferred if present signals that the provider was not able to fully
-	// complete this operation and a subsequent run is required.
+	// complete this operation and a susequent run is required.
 	Deferred *Deferred
 }
 
@@ -794,7 +730,7 @@ type CallFunctionResponse struct {
 	// provider schema.
 	//
 	// If Diagnostics contains any errors, this field will be ignored and
-	// so can be left as cty.NilVal to represent the absence of a value.
+	// so can be left as cty.NilVal to represent the absense of a value.
 	Result cty.Value
 
 	// Err is the error value from the function call. This may be an instance
@@ -873,104 +809,6 @@ type DeleteStateRequest struct {
 }
 
 type DeleteStateResponse struct {
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-}
-
-type LinkedResourcePlanData struct {
-	PriorState    cty.Value
-	PlannedState  cty.Value
-	Config        cty.Value
-	PriorIdentity cty.Value
-}
-type LinkedResourcePlan struct {
-	PlannedState    cty.Value
-	PlannedIdentity cty.Value
-}
-
-type LinkedResourceInvokeData struct {
-	PriorState      cty.Value
-	PlannedState    cty.Value
-	Config          cty.Value
-	PlannedIdentity cty.Value
-}
-type LinkedResourceResult struct {
-	NewState        cty.Value
-	NewIdentity     cty.Value
-	RequiresReplace bool
-}
-
-type PlanActionRequest struct {
-	ActionType         string
-	ProposedActionData cty.Value
-
-	LinkedResources    []LinkedResourcePlanData
-	ClientCapabilities ClientCapabilities
-}
-
-type PlanActionResponse struct {
-	LinkedResources []LinkedResourcePlan
-	Deferred        *Deferred
-	Diagnostics     tfdiags.Diagnostics
-}
-
-type InvokeActionRequest struct {
-	ActionType         string
-	LinkedResources    []LinkedResourceInvokeData
-	PlannedActionData  cty.Value
-	ClientCapabilities ClientCapabilities
-}
-
-type InvokeActionResponse struct {
-	Events      iter.Seq[InvokeActionEvent]
-	Diagnostics tfdiags.Diagnostics
-}
-
-type InvokeActionEvent interface {
-	isInvokeActionEvent()
-}
-
-// Completed Event
-var _ InvokeActionEvent = &InvokeActionEvent_Completed{}
-
-type InvokeActionEvent_Completed struct {
-	LinkedResources []LinkedResourceResult
-	Diagnostics     tfdiags.Diagnostics
-}
-
-func (e InvokeActionEvent_Completed) isInvokeActionEvent() {}
-
-// Progress Event
-var _ InvokeActionEvent = &InvokeActionEvent_Progress{}
-
-type InvokeActionEvent_Progress struct {
-	Message string
-}
-
-func (e InvokeActionEvent_Progress) isInvokeActionEvent() {}
-
-type ValidateActionConfigRequest struct {
-	// TypeName is the name of the action type to validate.
-	TypeName string
-
-	// Config is the configuration value to validate, which may contain unknown
-	// values.
-	Config cty.Value
-
-	// LinkedResources contains the configuration of any LinkedResources associated with the action.
-	LinkedResources []LinkedResourceConfig
-}
-
-type LinkedResourceConfig struct {
-	// TypeName is the name of the resource type to validate.
-	TypeName string
-
-	// Config is the configuration value to validate, which may contain unknown
-	// values.
-	Config cty.Value
-}
-
-type ValidateActionConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

@@ -154,8 +154,7 @@ func TestStateShow_multi(t *testing.T) {
 }
 
 func TestStateShow_noState(t *testing.T) {
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	p := testProvider()
 	streams, done := terminal.StreamsForTesting(t)

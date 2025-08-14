@@ -45,7 +45,6 @@ type module struct {
 	Resources   []resource            `json:"resources,omitempty"`
 	ModuleCalls map[string]moduleCall `json:"module_calls,omitempty"`
 	Variables   variables             `json:"variables,omitempty"`
-	Actions     []action              `json:"actions,omitempty"`
 }
 
 type moduleCall struct {
@@ -106,29 +105,6 @@ type resource struct {
 	ForEachExpression *expression `json:"for_each_expression,omitempty"`
 
 	DependsOn []string `json:"depends_on,omitempty"`
-}
-
-// Action is the representation of an action in the config
-type action struct {
-	// Address is the absolute resource address
-	Address string `json:"address,omitempty"`
-
-	Type string `json:"type,omitempty"`
-	Name string `json:"name,omitempty"`
-
-	// ProviderConfigKey is the key into "provider_configs" (shown above) for
-	// the provider configuration that this resource is associated with.
-	//
-	// NOTE: If a given resource is in a ModuleCall, and the provider was
-	// configured outside of the module (in a higher level configuration file),
-	// the ProviderConfigKey will not match a key in the ProviderConfigs map.
-	ProviderConfigKey string `json:"provider_config_key,omitempty"`
-
-	// CountExpression and ForEachExpression describe the expressions given for
-	// the corresponding meta-arguments in the resource configuration block.
-	// These are omitted if the corresponding argument isn't set.
-	CountExpression   *expression `json:"count_expression,omitempty"`
-	ForEachExpression *expression `json:"for_each_expression,omitempty"`
 }
 
 type output struct {
@@ -393,7 +369,6 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas, addr string) (
 		}
 		module.Variables = vars
 	}
-	module.Actions = marshalActions(c.Module.Actions, addr)
 
 	return module, nil
 }
@@ -543,37 +518,6 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		return rs[i].Address < rs[j].Address
 	})
 	return rs, nil
-}
-
-func marshalActions(actions map[string]*configs.Action, moduleAddr string) []action {
-	var as []action
-
-	for _, v := range actions {
-		providerConfigKey := opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr)
-		a := action{
-			Address:           v.Addr().String(),
-			Type:              v.Type,
-			Name:              v.Name,
-			ProviderConfigKey: providerConfigKey,
-		}
-
-		cExp := marshalExpression(v.Count)
-		if !cExp.Empty() {
-			a.CountExpression = &cExp
-		} else {
-			fExp := marshalExpression(v.ForEach)
-			if !fExp.Empty() {
-				a.ForEachExpression = &fExp
-			}
-		}
-
-		as = append(as, a)
-	}
-
-	sort.Slice(as, func(i, j int) bool {
-		return as[i].Address < as[j].Address
-	})
-	return as
 }
 
 // Flatten all resource provider keys in a module and its descendants, such

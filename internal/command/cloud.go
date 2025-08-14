@@ -133,7 +133,7 @@ func (c *CloudCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		return diags
 	}
 	b, backendDiags := c.Backend(&BackendOpts{
-		BackendConfig: backendConfig,
+		Config: backendConfig,
 	})
 	diags = diags.Append(backendDiags)
 	if diags.HasErrors() {

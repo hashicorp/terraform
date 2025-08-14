@@ -129,18 +129,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 	}
 
-	for _, a := range module.Actions {
-		if a != nil {
-			addr := a.Addr().InModule(path)
-			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
-			node := &nodeExpandActionDeclaration{
-				Addr:   addr,
-				Config: *a,
-			}
-			g.Add(node)
-		}
-	}
-
 	for _, r := range allResources {
 		relAddr := r.Addr()
 
@@ -186,7 +174,10 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 
 		abstract := &NodeAbstractResource{
-			Addr:          configAddr,
+			Addr: addrs.ConfigResource{
+				Resource: relAddr,
+				Module:   path,
+			},
 			importTargets: imports,
 		}
 

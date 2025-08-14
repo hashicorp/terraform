@@ -46,11 +46,6 @@ type NodeAbstractResourceInstance struct {
 
 	preDestroyRefresh bool
 
-	// overridePreventDestroy is set during test cleanup operations to allow
-	// tests to clean up any created infrastructure regardless of this setting
-	// in the configuration.
-	overridePreventDestroy bool
-
 	// During import (or query) we may generate configuration for a resource, which needs
 	// to be stored in the final change.
 	generatedConfigHCL string
@@ -190,7 +185,7 @@ func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.Resourc
 		return nil
 	}
 
-	preventDestroy := n.Config.Managed.PreventDestroy && !n.overridePreventDestroy
+	preventDestroy := n.Config.Managed.PreventDestroy
 
 	if (change.Action == plans.Delete || change.Action.IsReplace()) && preventDestroy {
 		var diags tfdiags.Diagnostics

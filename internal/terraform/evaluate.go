@@ -342,8 +342,11 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 		return cty.DynamicVal, diags
 	}
 
-	val := d.Evaluator.NamedValues.GetLocalValue(addr.Absolute(d.ModulePath))
-	return val, diags
+	if target := addr.Absolute(d.ModulePath); d.Evaluator.NamedValues.HasLocalValue(target) {
+		return d.Evaluator.NamedValues.GetLocalValue(addr.Absolute(d.ModulePath)), diags
+	}
+
+	return cty.DynamicVal, diags
 }
 
 func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -541,6 +544,21 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// result for _all_ of its work, rather than continuing to duplicate a bunch
 	// of the logic we've tried to encapsulate over ther already.
 	if d.Operation == walkPlan || d.Operation == walkApply {
+		if !d.Evaluator.Instances.ResourceInstanceExpanded(addr.Absolute(moduleAddr)) {
+			// Then we've asked for a resource that hasn't been evaluated yet.
+			// This means that either something has gone wrong in the graph or
+			// the console or test command has an errored plan and is attempting
+			// to load an invalid resource from it.
+
+			unknownVal := cty.DynamicVal
+
+			// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
+			if addr.Mode == addrs.EphemeralResourceMode {
+				unknownVal = unknownVal.Mark(marks.Ephemeral)
+			}
+			return unknownVal, diags
+		}
+
 		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
 			// There really isn't anything interesting we can do in this situation,
 			// because it means we have an unknown for_each/count, in which case
@@ -594,97 +612,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		// continue with the rest of the function
 	}
 
-	// Now, we're going to build up a value that represents the resource
-	// or resources that are in the state.
-	instances := map[addrs.InstanceKey]cty.Value{}
-
-	// First, we're going to load any instances that we have written into the
-	// deferrals system. A deferred resource overrides anything that might be
-	// in the state for the resource, so we do this first.
-	for key, value := range d.Evaluator.Deferrals.GetDeferredResourceInstances(addr.Absolute(d.ModulePath)) {
-		instances[key] = value
-	}
-
-	// Proactively read out all the resource changes before iteration. Not only
-	// does GetResourceInstanceChange have to iterate over all instances
-	// internally causing an n^2 lookup, but Changes is also a major point of
-	// lock contention.
-	resChanges := d.Evaluator.Changes.GetChangesForConfigResource(addr.InModule(moduleConfig.Path))
-	instChanges := addrs.MakeMap[addrs.AbsResourceInstance, *plans.ResourceInstanceChange]()
-	for _, ch := range resChanges {
-		instChanges.Put(ch.Addr, ch)
-	}
-
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
-	// Decode all instances in the current state
-	pendingDestroy := d.Operation == walkDestroy
-	if rs != nil {
-		for key, is := range rs.Instances {
-			if _, ok := instances[key]; ok {
-				// Then we've already loaded this instance from the deferrals so
-				// we'll just ignore it being in state.
-				continue
-			}
-			// Otherwise, we'll load the instance from state.
 
-			if is == nil || is.Current == nil {
-				// Assume we're dealing with an instance that hasn't been created yet.
-				instances[key] = cty.UnknownVal(ty)
-				continue
-			}
-
-			instAddr := addr.Instance(key).Absolute(d.ModulePath)
-			change := instChanges.Get(instAddr)
-			if change != nil {
-				// Don't take any resources that are yet to be deleted into account.
-				// If the referenced resource is CreateBeforeDestroy, then orphaned
-				// instances will be in the state, as they are not destroyed until
-				// after their dependants are updated.
-				if change.Action == plans.Delete {
-					if !pendingDestroy {
-						continue
-					}
-				}
-			}
-
-			// Planned resources are temporarily stored in state with empty values,
-			// and need to be replaced by the planned value here.
-			if is.Current.Status == states.ObjectPlanned {
-				if change == nil {
-					// FIXME: This is usually an unfortunate case where we need to
-					// lookup an individual instance referenced via "self" for
-					// postconditions which we know exists, but because evaluation
-					// must always get the resource in aggregate some instance
-					// changes may not yet be registered.
-					instances[key] = cty.DynamicVal
-					// log the problem for debugging, since it may be a legitimate error we can't catch
-					log.Printf("[WARN] instance %s is marked as having a change pending but that change is not recorded in the plan", instAddr)
-					continue
-				}
-				instances[key] = change.After
-				continue
-			}
-
-			ios, err := is.Current.Decode(schema)
-			if err != nil {
-				// This shouldn't happen, since by the time we get here we
-				// should have upgraded the state data already.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid resource instance data in state",
-					Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
-					Subject:  &config.DeclRange,
-				})
-				continue
-			}
-
-			val := ios.Value
-
-			instances[key] = val
-		}
-	}
-
-	if len(instances) == 0 {
+	if rs == nil {
 		switch d.Operation {
 		case walkPlan, walkApply:
 			// During plan and apply as we evaluate each removed instance they
@@ -736,6 +666,93 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// states populated for all resources in the configuration.
 			return cty.DynamicVal, diags
 		}
+	}
+
+	// Now, we're going to build up a value that represents the resource
+	// or resources that are in the state.
+	instances := map[addrs.InstanceKey]cty.Value{}
+
+	// First, we're going to load any instances that we have written into the
+	// deferrals system. A deferred resource overrides anything that might be
+	// in the state for the resource, so we do this first.
+	for key, value := range d.Evaluator.Deferrals.GetDeferredResourceInstances(addr.Absolute(d.ModulePath)) {
+		instances[key] = value
+	}
+
+	// Proactively read out all the resource changes before iteration. Not only
+	// does GetResourceInstanceChange have to iterate over all instances
+	// internally causing an n^2 lookup, but Changes is also a major point of
+	// lock contention.
+	resChanges := d.Evaluator.Changes.GetChangesForConfigResource(addr.InModule(moduleConfig.Path))
+	instChanges := addrs.MakeMap[addrs.AbsResourceInstance, *plans.ResourceInstanceChange]()
+	for _, ch := range resChanges {
+		instChanges.Put(ch.Addr, ch)
+	}
+
+	// Decode all instances in the current state
+	pendingDestroy := d.Operation == walkDestroy
+	for key, is := range rs.Instances {
+		if _, ok := instances[key]; ok {
+			// Then we've already loaded this instance from the deferrals so
+			// we'll just ignore it being in state.
+			continue
+		}
+		// Otherwise, we'll load the instance from state.
+
+		if is == nil || is.Current == nil {
+			// Assume we're dealing with an instance that hasn't been created yet.
+			instances[key] = cty.UnknownVal(ty)
+			continue
+		}
+
+		instAddr := addr.Instance(key).Absolute(d.ModulePath)
+		change := instChanges.Get(instAddr)
+		if change != nil {
+			// Don't take any resources that are yet to be deleted into account.
+			// If the referenced resource is CreateBeforeDestroy, then orphaned
+			// instances will be in the state, as they are not destroyed until
+			// after their dependants are updated.
+			if change.Action == plans.Delete {
+				if !pendingDestroy {
+					continue
+				}
+			}
+		}
+
+		// Planned resources are temporarily stored in state with empty values,
+		// and need to be replaced by the planned value here.
+		if is.Current.Status == states.ObjectPlanned {
+			if change == nil {
+				// FIXME: This is usually an unfortunate case where we need to
+				// lookup an individual instance referenced via "self" for
+				// postconditions which we know exists, but because evaluation
+				// must always get the resource in aggregate some instance
+				// changes may not yet be registered.
+				instances[key] = cty.DynamicVal
+				// log the problem for debugging, since it may be a legitimate error we can't catch
+				log.Printf("[WARN] instance %s is marked as having a change pending but that change is not recorded in the plan", instAddr)
+				continue
+			}
+			instances[key] = change.After
+			continue
+		}
+
+		ios, err := is.Current.Decode(schema)
+		if err != nil {
+			// This shouldn't happen, since by the time we get here we
+			// should have upgraded the state data already.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid resource instance data in state",
+				Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
+				Subject:  &config.DeclRange,
+			})
+			continue
+		}
+
+		val := ios.Value
+
+		instances[key] = val
 	}
 
 	// ret should be populated with a valid value in all cases below

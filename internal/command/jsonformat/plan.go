@@ -7,15 +7,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"slices"
 	"sort"
 	"strings"
+
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
@@ -34,7 +33,6 @@ type Plan struct {
 	ResourceDrift      []jsonplan.ResourceChange         `json:"resource_drift,omitempty"`
 	RelevantAttributes []jsonplan.ResourceAttr           `json:"relevant_attributes,omitempty"`
 	DeferredChanges    []jsonplan.DeferredResourceChange `json:"deferred_changes,omitempty"`
-	ActionInvocations  []jsonplan.ActionInvocation       `json:"action_invocations,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
@@ -49,10 +47,6 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 	default:
 		panic("found unrecognized resource mode: " + change.Mode)
 	}
-}
-
-func (plan Plan) getActionSchema(ai jsonplan.ActionInvocation) *jsonprovider.ActionSchema {
-	return plan.ProviderSchemas[ai.ProviderName].ActionSchemas[ai.Type]
 }
 
 func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
@@ -91,12 +85,11 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 		}
 	}
 
-	// Precompute the outputs and actions early, so we can make a decision about whether we
+	// Precompute the outputs early, so we can make a decision about whether we
 	// display the "there are no changes messages".
 	outputs := renderHumanDiffOutputs(renderer, diffs.outputs)
-	actions := renderHumanActionInvocations(renderer, plan.ActionInvocations)
 
-	if len(changes) == 0 && len(outputs) == 0 && len(actions) == 0 {
+	if len(changes) == 0 && len(outputs) == 0 {
 		// If we didn't find any changes to report at all then this is a
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
@@ -255,11 +248,6 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 		}
 	}
 
-	if len(actions) > 0 {
-		renderer.Streams.Print("\nActions to be invoked:\n")
-		renderer.Streams.Printf("%s\n", actions)
-	}
-
 	if len(outputs) > 0 {
 		renderer.Streams.Print("\nChanges to Outputs:\n")
 		renderer.Streams.Printf("%s\n", outputs)
@@ -399,63 +387,7 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	opts.ShowUnchangedChildren = diff.Importing()
 
 	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, opts)))
-
-	if len(diff.beforeActionsTriggered) > 0 {
-		buf.WriteString(renderer.Colorize.Color("\n\n    [bold]# Actions to be invoked before this change in order:[reset]\n"))
-		for _, ai := range diff.beforeActionsTriggered {
-			buf.WriteString(renderActionInvocation(renderer, ai))
-		}
-	}
-
-	if len(diff.afterActionsTriggered) > 0 {
-		buf.WriteString(renderer.Colorize.Color("\n\n    [bold]# Actions to be invoked after this change in order:[reset]\n"))
-		for _, ai := range diff.afterActionsTriggered {
-			buf.WriteString(renderActionInvocation(renderer, ai))
-		}
-	}
-
 	return buf.String(), true
-}
-
-func renderActionInvocation(renderer Renderer, ai actionInvocation) string {
-	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("    action %q %q {\n", ai.invocation.Type, ai.invocation.Name))
-	if len(ai.invocation.ConfigValues) > 0 {
-		buf.WriteString("        config ")
-
-		opts := computed.NewRenderHumanOpts(renderer.Colorize)
-		opts.ShowUnchangedChildren = true
-		opts.HideDiffActionSymbols = true
-		change := structured.FromJsonActionInvocation(ai.invocation)
-
-		buf.WriteString(indentExceptFirstLine(differ.ComputeDiffForBlock(change, ai.schema.ConfigSchema).RenderHuman(0, opts), 8))
-		buf.WriteString("\n")
-	}
-	buf.WriteString("    }\n")
-	return buf.String()
-}
-
-func indentExceptFirstLine(s string, indentation int) string {
-	lines := strings.Split(s, "\n")
-	if len(lines) == 0 {
-		return s
-	}
-	var buf bytes.Buffer
-	for i, line := range lines {
-		if i == 0 {
-			buf.WriteString(line)
-		} else {
-			// Indent all lines except the first one
-			buf.WriteString(strings.Repeat(" ", indentation))
-			buf.WriteString(line)
-		}
-
-		// Add a newline after each line except for the last one
-		if i < len(lines)-1 {
-			buf.WriteString("\n")
-		}
-	}
-	return buf.String()
 }
 
 func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, bool) {
@@ -498,12 +430,6 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 
 	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(deferred.diff.change), deferred.diff.diff.RenderHuman(0, opts)))
 	return buf.String(), true
-}
-
-// All actions that run based on the resource lifecycle should be rendered as part of the resource
-// changes, therefore this function only renders actions that are invoked by the CLI
-func renderHumanActionInvocations(renderer Renderer, actionInvocations []jsonplan.ActionInvocation) string {
-	return "" // TODO: We will use this function once we support CLI invoked actions.
 }
 
 func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action, changeCause string) string {

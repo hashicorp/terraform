@@ -53,11 +53,3 @@ func (ss *Schemas) ResourceTypeConfig(provider addrs.Provider, resourceMode addr
 func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 	return ss.Provisioners[name]
 }
-
-func (ss *Schemas) ActionTypeConfig(provider addrs.Provider, actionType string) providers.ActionSchema {
-	ps := ss.ProviderSchema(provider)
-	if ps.Actions == nil {
-		return providers.ActionSchema{}
-	}
-	return ps.Actions[actionType]
-}

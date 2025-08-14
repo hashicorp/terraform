@@ -73,8 +73,7 @@ func TestShow_noArgsNoState(t *testing.T) {
 
 func TestShow_noArgsWithState(t *testing.T) {
 	// Get a temp cwd
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 	// Create the default state
 	testStateFileDefault(t, testState())
 
@@ -105,7 +104,7 @@ func TestShow_argsWithState(t *testing.T) {
 	statePath := testStateFile(t, testState())
 	stateDir := filepath.Dir(statePath)
 	defer os.RemoveAll(stateDir)
-	t.Chdir(stateDir)
+	defer testChdir(t, stateDir)()
 
 	view, done := testView(t)
 	c := &ShowCommand{
@@ -153,7 +152,7 @@ func TestShow_argsWithStateAliasedProvider(t *testing.T) {
 	statePath := testStateFile(t, testState)
 	stateDir := filepath.Dir(statePath)
 	defer os.RemoveAll(stateDir)
-	t.Chdir(stateDir)
+	defer testChdir(t, stateDir)()
 
 	view, done := testView(t)
 	c := &ShowCommand{
@@ -545,7 +544,7 @@ func TestShow_json_output(t *testing.T) {
 			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			t.Chdir(td)
+			defer testChdir(t, td)()
 
 			expectError := strings.Contains(entry.Name(), "error")
 
@@ -660,7 +659,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	td := t.TempDir()
 	inputDir := "testdata/show-json-sensitive"
 	testCopyDir(t, inputDir, td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
 	defer close()
@@ -749,108 +748,13 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	}
 }
 
-func TestShow_json_output_actions(t *testing.T) {
-	td := t.TempDir()
-	inputDir := "testdata/show-json-actions"
-	testCopyDir(t, inputDir, td)
-	t.Chdir(td)
-
-	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
-	defer close()
-
-	p := showFixtureProvider()
-
-	// init
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
-	ic := &InitCommand{
-		Meta: Meta{
-			testingOverrides:          metaOverridesForProvider(p),
-			Ui:                        ui,
-			View:                      view,
-			ProviderSource:            providerSource,
-			AllowExperimentalFeatures: true,
-		},
-	}
-	if code := ic.Run([]string{}); code != 0 {
-		t.Fatalf("init failed\n%s", ui.ErrorWriter)
-	}
-
-	// plan
-	planView, planDone := testView(t)
-	pc := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             planView,
-			ProviderSource:   providerSource,
-		},
-	}
-
-	args := []string{
-		"-out=terraform.plan",
-	}
-	code := pc.Run(args)
-	planOutput := planDone(t)
-
-	if code != 0 {
-		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, planOutput.Stderr())
-	}
-
-	// show
-	showView, showDone := testView(t)
-	sc := &ShowCommand{
-		Meta: Meta{
-			testingOverrides:          metaOverridesForProvider(p),
-			View:                      showView,
-			ProviderSource:            providerSource,
-			AllowExperimentalFeatures: true,
-		},
-	}
-
-	args = []string{
-		"-json",
-		"terraform.plan",
-	}
-	defer os.Remove("terraform.plan")
-	code = sc.Run(args)
-	showOutput := showDone(t)
-
-	if code != 0 {
-		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, showOutput.Stderr())
-	}
-
-	// compare ui output to wanted output
-	var got, want plan
-
-	gotString := showOutput.Stdout()
-	json.Unmarshal([]byte(gotString), &got)
-
-	wantFile, err := os.Open("output.json")
-	if err != nil {
-		t.Fatalf("unexpected err: %s", err)
-	}
-	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
-	if err != nil {
-		t.Fatalf("unexpected err: %s", err)
-	}
-	json.Unmarshal([]byte(byteValue), &want)
-
-	// Disregard format version to reduce needless test fixture churn
-	want.FormatVersion = got.FormatVersion
-
-	if !cmp.Equal(got, want) {
-		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
-	}
-}
-
 // Failing conditions are only present in JSON output for refresh-only plans,
 // so we test that separately here.
 func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 	td := t.TempDir()
 	inputDir := "testdata/show-json/conditions"
 	testCopyDir(t, inputDir, td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
 	defer close()
@@ -959,7 +863,7 @@ func TestShow_json_output_state(t *testing.T) {
 			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			t.Chdir(td)
+			defer testChdir(t, td)()
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
 				"test": {"1.2.3"},
@@ -1034,7 +938,7 @@ func TestShow_planWithNonDefaultStateLineage(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("show"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	// Write default state file with a testing lineage ("fake-for-testing")
 	testStateFileDefault(t, testState())
@@ -1081,7 +985,7 @@ func TestShow_corruptStatefile(t *testing.T) {
 	td := t.TempDir()
 	inputDir := "testdata/show-corrupt-statefile"
 	testCopyDir(t, inputDir, td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	view, done := testView(t)
 	c := &ShowCommand{
@@ -1125,16 +1029,6 @@ func showFixtureSchema() *providers.GetProviderSchemaResponse {
 						"ami": {Type: cty.String, Optional: true},
 					},
 				},
-			},
-		},
-		Actions: map[string]providers.ActionSchema{
-			"test_unlinked": {
-				ConfigSchema: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"attr": {Type: cty.String, Optional: true},
-					},
-				},
-				Unlinked: &providers.UnlinkedAction{},
 			},
 		},
 	}

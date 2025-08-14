@@ -123,7 +123,7 @@ func TestCloud_withBackendConfig(t *testing.T) {
 	disco := testDisco(server)
 
 	wd := tempWorkingDirFixture(t, "cloud-config")
-	t.Chdir(wd.RootModuleDir())
+	defer testChdir(t, wd.RootModuleDir())()
 
 	// Overwrite the cloud backend with the test disco
 	previousBackend := backendInit.Backend("cloud")
@@ -178,7 +178,7 @@ func TestCloud_withENVConfig(t *testing.T) {
 	disco := testDisco(server)
 
 	wd := tempWorkingDir(t)
-	t.Chdir(wd.RootModuleDir())
+	defer testChdir(t, wd.RootModuleDir())()
 
 	serverURL, _ := url.Parse(server.URL)
 

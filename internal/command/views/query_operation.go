@@ -5,7 +5,6 @@ package views
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
@@ -60,31 +59,6 @@ func (v *QueryOperationHuman) EmergencyDumpState(stateFile *statefile.File) erro
 }
 
 func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	// The hook for individual query blocks do not display any output when the results are empty,
-	// so we will display a grouped warning message here for the empty queries.
-	emptyBlocks := []string{}
-	for _, query := range plan.Changes.Queries {
-		pSchema := schemas.ProviderSchema(query.ProviderAddr.Provider)
-		addr := query.Addr
-		schema := pSchema.ListResourceTypes[addr.Resource.Resource.Type]
-
-		results, err := query.Decode(schema)
-		if err != nil {
-			v.view.streams.Eprintln(err)
-			continue
-		}
-
-		data := results.Results.Value.GetAttr("data")
-		if data.LengthInt() == 0 {
-			emptyBlocks = append(emptyBlocks, addr.String())
-		}
-
-	}
-
-	if len(emptyBlocks) > 0 {
-		msg := fmt.Sprintf(v.view.colorize.Color("[bold][yellow]Warning:[reset][bold] list block(s) [%s] returned 0 results.\n"), strings.Join(emptyBlocks, ", "))
-		v.view.streams.Println(format.WordWrap(msg, v.view.outputColumns()))
-	}
 }
 
 func (v *QueryOperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {

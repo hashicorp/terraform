@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -135,7 +134,7 @@ func (w *operationWaiter) updateProgress() {
 func (w *operationWaiter) handleCancelled() bool {
 	log.Printf("[DEBUG] TestFileRunner: test execution cancelled during %s", w.identifier)
 	states := make(map[*moduletest.Run]*states.State)
-	mainKey := configs.TestMainStateIdentifier
+	mainKey := moduletest.MainStateIdentifier
 	states[nil] = w.evalCtx.GetFileState(mainKey).State
 	for key, module := range w.evalCtx.FileStates {
 		if key == mainKey {

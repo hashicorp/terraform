@@ -24,8 +24,7 @@ import (
 // This file still contains some tests using the stdin-based input.
 
 func TestConsole_basic(t *testing.T) {
-	tmp := t.TempDir()
-	t.Chdir(tmp)
+	testCwd(t)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -58,7 +57,7 @@ func TestConsole_basic(t *testing.T) {
 func TestConsole_tfvars(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-vars"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	// Write a terraform.tvars
 	varFilePath := filepath.Join(td, "terraform.tfvars")
@@ -116,7 +115,7 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 	// intentionally not setting here.
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-vars"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	p := testProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
@@ -160,7 +159,7 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 func TestConsole_variables(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("variables"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -202,7 +201,7 @@ func TestConsole_variables(t *testing.T) {
 func TestConsole_modules(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("modules"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	p := applyFixtureProvider()
 	ui := cli.NewMockUi()
@@ -244,7 +243,7 @@ func TestConsole_modules(t *testing.T) {
 func TestConsole_modulesPlan(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	t.Chdir(td)
+	defer testChdir(t, td)()
 
 	p := applyFixtureProvider()
 	ui := cli.NewMockUi()
