@@ -21,7 +21,7 @@ These instructions use [application default credentials](https://cloud.google.co
     * `TF_ACC=1` (Required) - this signals that you're happy for the test to provision real infrastructure.
     * `GOOGLE_REGION=<region>` (Required) - This region name is used to set the region of the GCS bucket and the region that customer-managed encryption keys are created in. If in doubt, use "us-central1".
 
-## Run tests
+## Run the tests!
 
 Run tests in the `internal/backend/remote-state/gcs` package with the above environment variables set.
 If any errors indicate an issue with credentials or permissions, please review how you're providing credentials to the code and whether sufficient permissions are present.
