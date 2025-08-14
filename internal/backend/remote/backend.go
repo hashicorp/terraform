@@ -546,11 +546,15 @@ func (b *Remote) retryLogHook(attemptNum int, resp *http.Response) {
 }
 
 // Workspaces implements backend.Backend.
-func (b *Remote) Workspaces() ([]string, error) {
+func (b *Remote) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	if b.prefix == "" {
-		return nil, backend.ErrWorkspacesNotSupported
+		return nil, diags.Append(backend.ErrWorkspacesNotSupported)
 	}
-	return b.workspaces()
+	workspaces, err := b.workspaces()
+	diags.Append(err)
+
+	return workspaces, diags
 }
 
 // workspaces returns a filtered list of remote workspace names.
@@ -609,12 +613,14 @@ func (b *Remote) WorkspaceNamePattern() string {
 }
 
 // DeleteWorkspace implements backend.Backend.
-func (b *Remote) DeleteWorkspace(name string, _ bool) error {
+func (b *Remote) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if b.workspace == "" && name == backend.DefaultStateName {
-		return backend.ErrDefaultWorkspaceNotSupported
+		return diags.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 	if b.prefix == "" && name != backend.DefaultStateName {
-		return backend.ErrWorkspacesNotSupported
+		return diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
 	// Configure the remote workspace name.
@@ -633,7 +639,7 @@ func (b *Remote) DeleteWorkspace(name string, _ bool) error {
 		},
 	}
 
-	return client.Delete()
+	return diags.Append(client.Delete())
 }
 
 // StateMgr implements backend.Backend.

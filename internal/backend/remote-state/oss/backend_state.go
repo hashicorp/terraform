@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -52,17 +53,19 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	return client, nil
 }
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	bucket, err := b.ossClient.Bucket(b.bucketName)
 	if err != nil {
-		return []string{""}, fmt.Errorf("error getting bucket: %#v", err)
+		return []string{""}, diags.Append(fmt.Errorf("error getting bucket: %#v", err))
 	}
 
 	var options []oss.Option
 	options = append(options, oss.Prefix(b.statePrefix+"/"), oss.MaxKeys(1000))
 	resp, err := bucket.ListObjects(options...)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	result := []string{backend.DefaultStateName}
@@ -89,26 +92,28 @@ func (b *Backend) Workspaces() ([]string, error) {
 			}
 			resp, err = bucket.ListObjects(options...)
 			if err != nil {
-				return nil, err
+				return nil, diags.Append(err)
 			}
 		} else {
 			break
 		}
 	}
 	sort.Strings(result[1:])
-	return result, nil
+	return result, diags
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	client, err := b.remoteClient(name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
-	return client.Delete()
+	return diags.Append(client.Delete())
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
@@ -119,9 +124,9 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	stateMgr := &remote.State{Client: client}
 
 	// Check to see if this state already exists.
-	existing, err := b.Workspaces()
-	if err != nil {
-		return nil, err
+	existing, diags := b.Workspaces()
+	if diags.HasErrors() {
+		return nil, diags.Err()
 	}
 
 	log.Printf("[DEBUG] Current workspace name: %s. All workspaces:%#v", name, existing)

@@ -87,13 +87,13 @@ func TestBackendStates(t *testing.T, b Backend) {
 		}
 	}
 
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		if err == ErrWorkspacesNotSupported {
+	workspaces, wDiag := b.Workspaces()
+	if wDiag.HasErrors() {
+		if wDiag.Err().Error() == ErrWorkspacesNotSupported.Error() {
 			t.Logf("TestBackend: workspaces not supported in %T, skipping", b)
 			return
 		}
-		t.Fatalf("error: %v", err)
+		t.Fatalf("error: %v", wDiag.Err())
 	}
 
 	// Test it starts with only the default
@@ -206,9 +206,9 @@ func TestBackendStates(t *testing.T, b Backend) {
 	// Verify we can now list them
 	{
 		// we determined that named stated are supported earlier
-		workspaces, err := b.Workspaces()
-		if err != nil {
-			t.Fatalf("err: %s", err)
+		workspaces, diags := b.Workspaces()
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
 		}
 
 		sort.Strings(workspaces)
@@ -222,12 +222,12 @@ func TestBackendStates(t *testing.T, b Backend) {
 	}
 
 	// Delete some workspaces
-	if err := b.DeleteWorkspace("foo", true); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := b.DeleteWorkspace("foo", true); diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
 	// Verify the default state can't be deleted
-	if err := b.DeleteWorkspace(DefaultStateName, true); err == nil {
+	if diags := b.DeleteWorkspace(DefaultStateName, true); !diags.HasErrors() {
 		t.Fatal("expected error")
 	}
 
@@ -245,15 +245,15 @@ func TestBackendStates(t *testing.T, b Backend) {
 		t.Fatalf("should be empty: %s", v)
 	}
 	// and delete it again
-	if err := b.DeleteWorkspace("foo", true); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := b.DeleteWorkspace("foo", true); diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
 	// Verify deletion
 	{
-		workspaces, err := b.Workspaces()
-		if err != nil {
-			t.Fatalf("err: %s", err)
+		workspaces, wDiags := b.Workspaces()
+		if wDiags.HasErrors() {
+			t.Fatalf("err: %s", wDiags.Err())
 		}
 
 		sort.Strings(workspaces)

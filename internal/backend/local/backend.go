@@ -196,7 +196,9 @@ func (b *Local) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	return []backendrun.HostAlias{}, nil
 }
 
-func (b *Local) Workspaces() ([]string, error) {
+func (b *Local) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
 		return b.Backend.Workspaces()
@@ -211,7 +213,7 @@ func (b *Local) Workspaces() ([]string, error) {
 		return envs, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	var listed []string
@@ -224,28 +226,35 @@ func (b *Local) Workspaces() ([]string, error) {
 	sort.Strings(listed)
 	envs = append(envs, listed...)
 
-	return envs, nil
+	return envs, diags
 }
 
 // DeleteWorkspace removes a workspace.
 //
 // The "default" workspace cannot be removed.
-func (b *Local) DeleteWorkspace(name string, force bool) error {
+func (b *Local) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
 		return b.Backend.DeleteWorkspace(name, force)
 	}
 
 	if name == "" {
-		return errors.New("empty state name")
+		return diags.Append(errors.New("empty state name"))
 	}
 
 	if name == backend.DefaultStateName {
-		return errors.New("cannot delete default state")
+		return diags.Append(errors.New("cannot delete default state"))
 	}
 
 	delete(b.states, name)
-	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
+	err := os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
+	if err != nil {
+		return diags.Append(fmt.Errorf("error deleting workspace %s: %w", name, err))
+	}
+
+	return diags
 }
 
 func (b *Local) StateMgr(name string) (statemgr.Full, error) {

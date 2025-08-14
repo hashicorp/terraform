@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestLocal returns a configured Local struct with temporary paths and
@@ -117,12 +118,12 @@ func TestNewLocalSingle() backend.Backend {
 	return &TestLocalSingleState{Local: New()}
 }
 
-func (b *TestLocalSingleState) Workspaces() ([]string, error) {
-	return nil, backend.ErrWorkspacesNotSupported
+func (b *TestLocalSingleState) Workspaces() ([]string, tfdiags.Diagnostics) {
+	return nil, tfdiags.Diagnostics{}.Append(backend.ErrWorkspacesNotSupported)
 }
 
-func (b *TestLocalSingleState) DeleteWorkspace(string, bool) error {
-	return backend.ErrWorkspacesNotSupported
+func (b *TestLocalSingleState) DeleteWorkspace(string, bool) tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{}.Append(backend.ErrWorkspacesNotSupported)
 }
 
 func (b *TestLocalSingleState) StateMgr(name string) (statemgr.Full, error) {
@@ -147,10 +148,11 @@ func TestNewLocalNoDefault() backend.Backend {
 	return &TestLocalNoDefaultState{Local: New()}
 }
 
-func (b *TestLocalNoDefaultState) Workspaces() ([]string, error) {
+func (b *TestLocalNoDefaultState) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	workspaces, err := b.Local.Workspaces()
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	filtered := workspaces[:0]
@@ -160,12 +162,12 @@ func (b *TestLocalNoDefaultState) Workspaces() ([]string, error) {
 		}
 	}
 
-	return filtered, nil
+	return filtered, diags
 }
 
-func (b *TestLocalNoDefaultState) DeleteWorkspace(name string, force bool) error {
+func (b *TestLocalNoDefaultState) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
 	if name == backend.DefaultStateName {
-		return backend.ErrDefaultWorkspaceNotSupported
+		return tfdiags.Diagnostics{}.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 	return b.Local.DeleteWorkspace(name, force)
 }

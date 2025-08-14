@@ -276,31 +276,31 @@ func TestLocal_cannotDeleteDefaultState(t *testing.T) {
 	b := New()
 
 	// Only default workspace exists initially.
-	states, err := b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 	if !reflect.DeepEqual(states, expectedStates) {
 		t.Fatalf("expected []string{%q}, got %q", dflt, states)
 	}
 
 	// Attempt to delete default state - force=false
-	err = b.DeleteWorkspace(dflt, false)
-	if err == nil {
+	dwDiags := b.DeleteWorkspace(dflt, false)
+	if !dwDiags.HasErrors() {
 		t.Fatal("expected error but there was none")
 	}
 	expectedErr := "cannot delete default state"
-	if err.Error() != expectedErr {
-		t.Fatalf("expected error %q, got: %q", expectedErr, err)
+	if dwDiags.Err().Error() != expectedErr {
+		t.Fatalf("expected error %q, got: %q", expectedErr, dwDiags.Err())
 	}
 
 	// Setting force=true doesn't change outcome
-	err = b.DeleteWorkspace(dflt, true)
-	if err == nil {
+	dwDiags = b.DeleteWorkspace(dflt, true)
+	if !dwDiags.HasErrors() {
 		t.Fatal("expected error but there was none")
 	}
-	if err.Error() != expectedErr {
-		t.Fatalf("expected error %q, got: %q", expectedErr, err)
+	if dwDiags.Err().Error() != expectedErr {
+		t.Fatalf("expected error %q, got: %q", expectedErr, dwDiags.Err())
 	}
 }
 
@@ -313,9 +313,9 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	b := New()
 
 	// Only the default workspace exists initially.
-	states, err := b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	if !reflect.DeepEqual(states, expectedStates) {
@@ -328,9 +328,9 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedStates = append(expectedStates, expectedA)
@@ -344,9 +344,9 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedStates = append(expectedStates, expectedB)
@@ -355,13 +355,13 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	// Can delete a given workspace
-	if err := b.DeleteWorkspace(expectedA, true); err != nil {
-		t.Fatal(err)
+	if dwDiags := b.DeleteWorkspace(expectedA, true); dwDiags.HasErrors() {
+		t.Fatal(dwDiags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedStates = []string{dflt, expectedB}
@@ -370,13 +370,13 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	// Can delete another workspace
-	if err := b.DeleteWorkspace(expectedB, true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace(expectedB, true); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedStates = []string{dflt}
@@ -385,7 +385,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	// You cannot delete the default workspace
-	if err := b.DeleteWorkspace(dflt, true); err == nil {
+	if diags := b.DeleteWorkspace(dflt, true); !diags.HasErrors() {
 		t.Fatal("expected error deleting default state")
 	}
 }
@@ -630,12 +630,12 @@ func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
 	return nil, errTestDelegateState
 }
 
-func (b *testDelegateBackend) Workspaces() ([]string, error) {
-	return nil, errTestDelegateStates
+func (b *testDelegateBackend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	return nil, tfdiags.Diagnostics{}.Append(errTestDelegateStates)
 }
 
-func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
-	return errTestDelegateDeleteState
+func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{}.Append(errTestDelegateDeleteState)
 }
 
 // Verify that all backend.Backend methods are dispatched to the correct Backend when
@@ -654,23 +654,23 @@ func TestLocal_callsMethodsOnStateBackend(t *testing.T) {
 	}
 
 	if _, diags := b.PrepareConfig(cty.NilVal); !diags.HasErrors() {
-		t.Fatal("expected errTestDelegatePrepareConfig error, got:", diags)
+		t.Fatal("expected errTestDelegatePrepareConfig error, got:", diags.Err())
 	}
 
 	if diags := b.Configure(cty.NilVal); !diags.HasErrors() {
-		t.Fatal("expected errTestDelegateConfigure error, got:", diags)
+		t.Fatal("expected errTestDelegateConfigure error, got:", diags.Err())
 	}
 
 	if _, err := b.StateMgr("test"); err != errTestDelegateState {
 		t.Fatal("expected errTestDelegateState, got:", err)
 	}
 
-	if _, err := b.Workspaces(); err != errTestDelegateStates {
-		t.Fatal("expected errTestDelegateStates, got:", err)
+	if _, diags := b.Workspaces(); !diags.HasErrors() || diags.Err().Error() != errTestDelegateStates.Error() {
+		t.Fatal("expected errTestDelegateStates, got:", diags.Err())
 	}
 
-	if err := b.DeleteWorkspace("test", true); err != errTestDelegateDeleteState {
-		t.Fatal("expected errTestDelegateDeleteState, got:", err)
+	if diags := b.DeleteWorkspace("test", true); !diags.HasErrors() || diags.Err().Error() != errTestDelegateDeleteState.Error() {
+		t.Fatal("expected errTestDelegateDeleteState, got:", diags.Err())
 	}
 }
 

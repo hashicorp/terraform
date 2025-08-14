@@ -15,14 +15,17 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Workspaces returns a list of names for the workspaces found in k8s. The default
 // workspace is always returned as the first element in the slice.
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	secretClient, err := b.KubernetesSecretClient()
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	secrets, err := secretClient.List(
@@ -32,7 +35,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// Use a map so there aren't duplicate workspaces
@@ -61,20 +64,21 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	sort.Strings(states[1:])
-	return states, nil
+	return states, diags
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	client, err := b.remoteClient(name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
-	return client.Delete()
+	return diags.Append(client.Delete())
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {

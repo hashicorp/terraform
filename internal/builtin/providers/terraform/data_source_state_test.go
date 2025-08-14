@@ -373,10 +373,10 @@ func (b backendFailsConfigure) StateMgr(workspace string) (statemgr.Full, error)
 	return nil, fmt.Errorf("StateMgr not implemented")
 }
 
-func (b backendFailsConfigure) DeleteWorkspace(name string, _ bool) error {
-	return fmt.Errorf("DeleteWorkspace not implemented")
+func (b backendFailsConfigure) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{}.Append(fmt.Errorf("DeleteWorkspace not implemented"))
 }
 
-func (b backendFailsConfigure) Workspaces() ([]string, error) {
-	return nil, fmt.Errorf("Workspaces not implemented")
+func (b backendFailsConfigure) Workspaces() ([]string, tfdiags.Diagnostics) {
+	return nil, tfdiags.Diagnostics{}.Append(fmt.Errorf("Workspaces not implemented"))
 }

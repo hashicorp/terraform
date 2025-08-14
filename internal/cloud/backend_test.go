@@ -33,9 +33,9 @@ func TestCloud_backendWithName(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("error: %v", err)
+	workspaces, diags := b.Workspaces()
+	if diags.HasErrors() {
+		t.Fatalf("error: %v", diags.Err())
 	}
 
 	if len(workspaces) != 1 || workspaces[0] != testBackendSingleWorkspaceName {
@@ -46,12 +46,12 @@ func TestCloud_backendWithName(t *testing.T) {
 		t.Fatalf("expected fetching a state which is NOT the single configured workspace to have an ErrWorkspacesNotSupported error, but got: %v", err)
 	}
 
-	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected deleting the single configured workspace name to result in an error, but got: %v", err)
+	if diags := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); !diags.HasErrors() || diags.Err().Error() != backend.ErrWorkspacesNotSupported.Error() {
+		t.Fatalf("expected deleting the single configured workspace name to result in an error, but got: %v", diags.Err())
 	}
 
-	if err := b.DeleteWorkspace("foo", true); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected deleting a workspace which is NOT the configured workspace name to result in an error, but got: %v", err)
+	if diags := b.DeleteWorkspace("foo", true); !diags.HasErrors() || diags.Err().Error() != backend.ErrWorkspacesNotSupported.Error() {
+		t.Fatalf("expected deleting a workspace which is NOT the configured workspace name to result in an error, but got: %v", diags.Err())
 	}
 }
 
@@ -69,9 +69,9 @@ func TestCloud_backendWithTags(t *testing.T) {
 		}
 	}
 
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("error: %s", err)
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatalf("error: %s", wDiags.Err())
 	}
 	actual := len(workspaces)
 	if actual != 26 {
@@ -94,9 +94,9 @@ func TestCloud_backendWithKVTags(t *testing.T) {
 		t.Fatalf("error creating workspace: %s", err)
 	}
 
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("error: %s", err)
+	workspaces, diags := b.Workspaces()
+	if diags.HasErrors() {
+		t.Fatalf("error: %s", diags)
 	}
 
 	actual := len(workspaces)
@@ -1319,8 +1319,8 @@ func TestCloud_addAndRemoveWorkspacesDefault(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
+	if diags := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); !diags.HasErrors() || diags.Err().Error() != backend.ErrWorkspacesNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, diags.Err())
 	}
 }
 
@@ -1620,9 +1620,9 @@ func TestCloudBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	}
 
 	// sanity check that the mock now contains two workspaces
-	wl, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("error fetching workspace names: %v", err)
+	wl, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatalf("error fetching workspace names: %v", wDiags.Err())
 	}
 	if len(wl) != 2 {
 		t.Fatalf("expected 2 workspaced but got %d", len(wl))
@@ -1639,8 +1639,8 @@ func TestCloudBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error locking workspace: %v", err)
 	}
-	err = b.DeleteWorkspace(safeDeleteWorkspaceName, false)
-	if err == nil {
+	dwDiags := b.DeleteWorkspace(safeDeleteWorkspaceName, false)
+	if !dwDiags.HasErrors() {
 		t.Fatalf("workspace should have failed to safe delete")
 	}
 
@@ -1649,9 +1649,9 @@ func TestCloudBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error unlocking workspace: %v", err)
 	}
-	err = b.DeleteWorkspace(safeDeleteWorkspaceName, false)
-	if err != nil {
-		t.Fatalf("error safe deleting workspace: %v", err)
+	dwDiags = b.DeleteWorkspace(safeDeleteWorkspaceName, false)
+	if dwDiags.HasErrors() {
+		t.Fatalf("error safe deleting workspace: %v", dwDiags)
 	}
 
 	// lock a workspace and then confirm that force deleting it works
@@ -1663,9 +1663,9 @@ func TestCloudBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error locking workspace: %v", err)
 	}
-	err = b.DeleteWorkspace(forceDeleteWorkspaceName, true)
-	if err != nil {
-		t.Fatalf("error force deleting workspace: %v", err)
+	dwDiags = b.DeleteWorkspace(forceDeleteWorkspaceName, true)
+	if dwDiags.HasErrors() {
+		t.Fatalf("error force deleting workspace: %v", dwDiags.Err())
 	}
 }
 
@@ -1673,8 +1673,8 @@ func TestCloudBackend_DeleteWorkspace_DoesNotExist(t *testing.T) {
 	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 
-	err := b.DeleteWorkspace("non-existent-workspace", false)
-	if err != nil {
+	diags := b.DeleteWorkspace("non-existent-workspace", false)
+	if diags.HasErrors() {
 		t.Fatalf("expected deleting a workspace which does not exist to succeed")
 	}
 }

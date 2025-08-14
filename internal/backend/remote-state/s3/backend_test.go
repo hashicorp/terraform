@@ -2738,8 +2738,8 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// delete the real workspace
-	if err := b.DeleteWorkspace("s2", true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace("s2", true); diags.HasErrors() {
+		t.Fatal(diags)
 	}
 
 	if err := checkStateList(b, []string{"default", "s1"}); err != nil {
@@ -3461,9 +3461,9 @@ func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
 }
 
 func checkStateList(b backend.Backend, expected []string) error {
-	states, err := b.Workspaces()
-	if err != nil {
-		return err
+	states, diags := b.Workspaces()
+	if diags.HasErrors() {
+		return diags.Err()
 	}
 
 	if !reflect.DeepEqual(states, expected) {

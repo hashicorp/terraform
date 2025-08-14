@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -26,7 +27,8 @@ const (
 
 // Workspaces returns a list of names for the workspaces found on GCS. The default
 // state is always returned as the first element in the slice.
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	ctx := context.TODO()
 
 	states := []string{backend.DefaultStateName}
@@ -42,7 +44,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("querying Cloud Storage failed: %v", err)
+			return nil, diags.Append(fmt.Errorf("querying Cloud Storage failed: %v", err))
 		}
 
 		name := path.Base(attrs.Name)
@@ -57,21 +59,22 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	sort.Strings(states[1:])
-	return states, nil
+	return states, diags
 }
 
 // DeleteWorkspace deletes the named workspaces. The "default" state cannot be deleted.
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	if name == backend.DefaultStateName {
-		return fmt.Errorf("cowardly refusing to delete the %q state", name)
+		return diags.Append(fmt.Errorf("cowardly refusing to delete the %q state", name))
 	}
 
 	c, err := b.client(name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
-	return c.Delete()
+	return diags.Append(c.Delete())
 }
 
 // client returns a remoteClient for the named state.

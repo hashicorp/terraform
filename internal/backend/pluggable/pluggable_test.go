@@ -327,17 +327,17 @@ func TestPluggable_Workspaces(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			workspaces, err := p.Workspaces()
+			workspaces, wDiags := p.Workspaces()
 			if mock, ok := tc.provider.(*testing_provider.MockProvider); ok {
 				if !mock.GetStatesCalled {
 					t.Fatal("expected mock's GetStates method to have been called")
 				}
 			}
-			if err != nil {
+			if wDiags.HasErrors() {
 				if tc.wantError == "" {
 					t.Fatalf("unexpected error: %s", err)
 				}
-				if !strings.Contains(err.Error(), tc.wantError) {
+				if !strings.Contains(wDiags.Err().Error(), tc.wantError) {
 					t.Fatalf("expected error %q but got: %q", tc.wantError, err)
 				}
 				return
@@ -383,18 +383,18 @@ func TestPluggable_DeleteWorkspace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	err = p.DeleteWorkspace(stateId, false)
+	dwDiags := p.DeleteWorkspace(stateId, false)
 
 	// Assertions
 	if !mock.DeleteStateCalled {
 		t.Fatal("expected mock's DeleteState method to have been called")
 	}
 
-	if err == nil {
+	if !dwDiags.HasErrors() {
 		t.Fatal("test is expected to return an error, but there isn't one")
 	}
 	wantError := "error diagnostic raised from mock"
-	if !strings.Contains(err.Error(), wantError) {
+	if !strings.Contains(dwDiags.Err().Error(), wantError) {
 		t.Fatalf("expected error %q but got: %q", wantError, err)
 	}
 }

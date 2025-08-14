@@ -620,7 +620,8 @@ func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 
 // Workspaces implements backend.Backend (which is embedded in backendrun.OperationsBackend),
 // returning a filtered list of workspace names according to the workspace mapping strategy configured.
-func (b *Cloud) Workspaces() ([]string, error) {
+func (b *Cloud) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	// Create a slice to contain all the names.
 	var names []string
 
@@ -628,7 +629,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	// backend will automatically create the remote workspace if it does not yet exist.
 	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy {
 		names = append(names, b.WorkspaceMapping.Name)
-		return names, nil
+		return names, diags
 	}
 
 	// Otherwise, multiple workspaces are being mapped. Query HCP Terraform for all the remote
@@ -658,7 +659,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 		}
 		projects, err := b.client.Projects.List(context.Background(), b.Organization, listOpts)
 		if err != nil && err != tfe.ErrResourceNotFound {
-			return nil, fmt.Errorf("failed to retrieve project %s: %v", listOpts.Name, err)
+			return nil, diags.Append(fmt.Errorf("failed to retrieve project %s: %v", listOpts.Name, err))
 		}
 		for _, p := range projects.Items {
 			if p.Name == b.WorkspaceMapping.Project {
@@ -671,7 +672,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	for {
 		wl, err := b.client.Workspaces.List(context.Background(), b.Organization, options)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		for _, w := range wl.Items {
@@ -690,17 +691,19 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	// Sort the result so we have consistent output.
 	sort.StringSlice(names).Sort()
 
-	return names, nil
+	return names, diags
 }
 
 // DeleteWorkspace implements backend.Backend (which is embedded in backendrun.OperationsBackend).
-func (b *Cloud) DeleteWorkspace(name string, force bool) error {
+func (b *Cloud) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if name == backend.DefaultStateName {
-		return backend.ErrDefaultWorkspaceNotSupported
+		return diags.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 
 	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy {
-		return backend.ErrWorkspacesNotSupported
+		return diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, name)
@@ -709,12 +712,12 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to retrieve workspace %s: %v", name, err)
+		return diags.Append(fmt.Errorf("failed to retrieve workspace %s: %v", name, err))
 	}
 
 	// Configure the remote workspace name.
 	State := &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}
-	return State.Delete(force)
+	return diags.Append(State.Delete(force))
 }
 
 // StateMgr implements backend.Backend (which is embedded in backendrun.OperationsBackend).

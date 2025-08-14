@@ -314,10 +314,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	return &remote.State{Client: b.client}, nil
 }
 
-func (b *Backend) Workspaces() ([]string, error) {
-	return nil, backend.ErrWorkspacesNotSupported
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	return nil, tfdiags.Diagnostics{}.Append(backend.ErrWorkspacesNotSupported)
 }
 
-func (b *Backend) DeleteWorkspace(string, bool) error {
-	return backend.ErrWorkspacesNotSupported
+func (b *Backend) DeleteWorkspace(string, bool) tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{}.Append(backend.ErrWorkspacesNotSupported)
 }

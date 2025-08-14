@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type backendMigrateOpts struct {
@@ -186,10 +187,13 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	}
 
 	// Read all the states
-	sourceWorkspaces, err := opts.Source.Workspaces()
-	if err != nil {
+	sourceWorkspaces, wDiags := opts.Source.Workspaces()
+	if wDiags.HasErrors() {
 		return fmt.Errorf(strings.TrimSpace(
-			errMigrateLoadStates), opts.SourceType, err)
+			errMigrateLoadStates), opts.SourceType, wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		log.Printf("[WARN] backendMigrateState_S_S: warning(s) returned when getting workspaces from source backend: %s", wDiags.ErrWithWarnings())
 	}
 
 	// Sort the states so they're always copied alphabetically
@@ -543,18 +547,22 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 
 func retrieveWorkspaces(back backend.Backend, sourceType string) ([]string, bool, error) {
 	var singleState bool
-	var err error
-	workspaces, err := back.Workspaces()
-	if err == backend.ErrWorkspacesNotSupported {
+	var diags tfdiags.Diagnostics
+
+	workspaces, diags := back.Workspaces()
+	if diags.HasErrors() && diags.Err().Error() == backend.ErrWorkspacesNotSupported.Error() {
 		singleState = true
-		err = nil
+		diags = nil
 	}
-	if err != nil {
+	if diags.HasErrors() {
 		return nil, singleState, fmt.Errorf(strings.TrimSpace(
-			errMigrateLoadStates), sourceType, err)
+			errMigrateLoadStates), sourceType, diags.Err())
+	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] retrieveWorkspaces: warning(s) returned when getting workspaces: %s", diags.ErrWithWarnings())
 	}
 
-	return workspaces, singleState, err
+	return workspaces, singleState, diags.Err()
 }
 
 func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
@@ -769,9 +777,12 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 
 	// After migrating multiple workspaces, we need to reselect the current workspace as it may
 	// have been renamed. Query the backend first to be sure it now exists.
-	workspaces, err := opts.Destination.Workspaces()
-	if err != nil {
-		return err
+	workspaces, diags := opts.Destination.Workspaces()
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] backendMigrateState_S_TFC: warning(s) returned when getting workspaces from destination backend: %s", diags.ErrWithWarnings())
 	}
 
 	var workspacePresent bool

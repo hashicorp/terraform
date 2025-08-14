@@ -86,8 +86,8 @@ func TestBackendConfigWorkSpace(t *testing.T) {
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 	createOSSBucket(t, b.ossClient, bucketName)
 	defer deleteOSSBucket(t, b.ossClient, bucketName)
-	if _, err := b.Workspaces(); err != nil {
-		t.Fatal(err.Error())
+	if _, diags := b.Workspaces(); diags.HasErrors() {
+		t.Fatal(diags.Err().Error())
 	}
 	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "https://oss-cn-beijing") {
 		t.Fatalf("Incorrect region was provided")

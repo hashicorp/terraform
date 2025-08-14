@@ -88,11 +88,13 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	// This command will not write state
 	c.ignoreRemoteVersionConflict(b)
 
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to get configured named states: %s", err))
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to get configured named states: %s", wDiags.Err()))
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
+
 	for _, ws := range workspaces {
 		if workspace == ws {
 			c.Ui.Error(fmt.Sprintf(envExists, workspace))
