@@ -15,15 +15,24 @@ import (
 )
 
 type nodeActionTriggerPlan struct {
-	resourceAddress  addrs.ConfigResource
 	actionAddress    addrs.AbsActionInstance
-	events           []configs.ActionTriggerEvent
 	resolvedProvider addrs.AbsProviderConfig
+	actionConfig     *configs.Action
+
+	lifecycleActionTrigger *lifecycleActionTrigger
+}
+
+type lifecycleActionTrigger struct {
+	resourceAddress addrs.ConfigResource
+	events          []configs.ActionTriggerEvent
 	//condition       hcl.Expression
-	actionConfig            *configs.Action
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
+}
+
+func (at *lifecycleActionTrigger) Name() string {
+	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
 var (
@@ -33,24 +42,35 @@ var (
 )
 
 func (n *nodeActionTriggerPlan) Name() string {
-	return "action_" + n.resourceAddress.String()
+	triggeredBy := "triggered by "
+	if n.lifecycleActionTrigger != nil {
+		triggeredBy += n.lifecycleActionTrigger.resourceAddress.String()
+	} else {
+		triggeredBy += "unknown"
+	}
+
+	return fmt.Sprintf("%s %s", n.actionAddress.String(), triggeredBy)
 }
 
 func (n *nodeActionTriggerPlan) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, keys, _ := ctx.InstanceExpander().ResourceInstanceKeys(n.resourceAddress.Absolute(addrs.RootModuleInstance))
+	if n.lifecycleActionTrigger == nil {
+		panic("Only actions triggered by plan and apply are supported")
+	}
+
+	_, keys, _ := ctx.InstanceExpander().ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(addrs.RootModuleInstance))
 	for _, key := range keys {
 		change := ctx.Changes().
 			GetResourceInstanceChange(
-				n.resourceAddress.Absolute(
+				n.lifecycleActionTrigger.resourceAddress.Absolute(
 					addrs.RootModuleInstance).
 					Instance(key),
 				addrs.NotDeposed)
 		if change == nil {
 			panic("change cannot be nil")
 		}
-		triggeringEvent, isTriggered := actionIsTriggeredByEvent(n.events, change.Action)
+		triggeringEvent, isTriggered := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
 		if !isTriggered {
 			return nil
 		}
@@ -62,7 +82,7 @@ func (n *nodeActionTriggerPlan) Execute(ctx EvalContext, operation walkOperation
 				Severity: hcl.DiagError,
 				Summary:  "Reference to non-existant action instance",
 				Detail:   "Action instance was not found in the current context.",
-				Subject:  n.invokingSubject,
+				Subject:  n.lifecycleActionTrigger.invokingSubject,
 			})
 			return diags
 		}
@@ -73,7 +93,7 @@ func (n *nodeActionTriggerPlan) Execute(ctx EvalContext, operation walkOperation
 				Severity: hcl.DiagError,
 				Summary:  "Failed to get provider",
 				Detail:   fmt.Sprintf("Failed to get provider: %s", err),
-				Subject:  n.invokingSubject,
+				Subject:  n.lifecycleActionTrigger.invokingSubject,
 			})
 
 			return diags
@@ -95,10 +115,10 @@ func (n *nodeActionTriggerPlan) Execute(ctx EvalContext, operation walkOperation
 			Addr:         n.actionAddress,
 			ProviderAddr: actionInstance.ProviderAddr,
 			ActionTrigger: plans.LifecycleActionTrigger{
-				TriggeringResourceAddr:  n.resourceAddress.Absolute(addrs.RootModuleInstance).Instance(key),
+				TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress.Absolute(addrs.RootModuleInstance).Instance(key),
 				ActionTriggerEvent:      *triggeringEvent,
-				ActionTriggerBlockIndex: n.actionTriggerBlockIndex,
-				ActionsListIndex:        n.actionListIndex,
+				ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
+				ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
 			},
 			ConfigValue: actionInstance.ConfigValue,
 		})
@@ -114,14 +134,15 @@ func (n *nodeActionTriggerPlan) ModulePath() addrs.Module {
 
 func (n *nodeActionTriggerPlan) References() []*addrs.Reference {
 	var refs []*addrs.Reference
-
-	refs = append(refs, &addrs.Reference{
-		Subject: n.resourceAddress.Resource,
-	})
-
 	refs = append(refs, &addrs.Reference{
 		Subject: n.actionAddress.Action,
 	})
+
+	if n.lifecycleActionTrigger != nil {
+		refs = append(refs, &addrs.Reference{
+			Subject: n.lifecycleActionTrigger.resourceAddress.Resource,
+		})
+	}
 
 	return refs
 }
