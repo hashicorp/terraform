@@ -93,9 +93,8 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to get configured named states: %s", wDiags.Err()))
 		return 1
 	}
-	if wDiags.HasWarnings() {
-		c.Ui.Warn(wDiags.ErrWithWarnings().Error())
-	}
+	c.showDiagnostics(diags) // output warnings, if any
+
 	for _, ws := range workspaces {
 		if workspace == ws {
 			c.Ui.Error(fmt.Sprintf(envExists, workspace))

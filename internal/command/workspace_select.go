@@ -86,9 +86,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
-	if wDiags.HasWarnings() {
-		c.Ui.Warn(wDiags.ErrWithWarnings().Error())
-	}
+	c.showDiagnostics(diags) // output warnings, if any
 
 	if name == current {
 		// already using this workspace
