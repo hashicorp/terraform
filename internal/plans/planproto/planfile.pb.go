@@ -1652,15 +1652,15 @@ type ActionInvocationInstance struct {
 	// provider is the address of the provider configuration that this change
 	// was planned with, and thus the configuration that must be used to
 	// apply it.
-	Provider                string                          `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	LinkedResources         []*ResourceInstanceActionChange `protobuf:"bytes,3,rep,name=linked_resources,json=linkedResources,proto3" json:"linked_resources,omitempty"`
-	ConfigValue             *DynamicValue                   `protobuf:"bytes,4,opt,name=config_value,json=configValue,proto3" json:"config_value,omitempty"`
-	TriggeringResourceAddr  string                          `protobuf:"bytes,5,opt,name=triggering_resource_addr,json=triggeringResourceAddr,proto3" json:"triggering_resource_addr,omitempty"`
-	TriggerEvent            ActionTriggerEvent              `protobuf:"varint,6,opt,name=trigger_event,json=triggerEvent,proto3,enum=tfplan.ActionTriggerEvent" json:"trigger_event,omitempty"`
-	ActionTriggerBlockIndex int64                           `protobuf:"varint,7,opt,name=action_trigger_block_index,json=actionTriggerBlockIndex,proto3" json:"action_trigger_block_index,omitempty"`
-	ActionsListIndex        int64                           `protobuf:"varint,8,opt,name=actions_list_index,json=actionsListIndex,proto3" json:"actions_list_index,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	Provider        string                          `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	LinkedResources []*ResourceInstanceActionChange `protobuf:"bytes,3,rep,name=linked_resources,json=linkedResources,proto3" json:"linked_resources,omitempty"`
+	ConfigValue     *DynamicValue                   `protobuf:"bytes,4,opt,name=config_value,json=configValue,proto3" json:"config_value,omitempty"`
+	// Types that are valid to be assigned to ActionTrigger:
+	//
+	//	*ActionInvocationInstance_LifecycleActionTrigger
+	ActionTrigger isActionInvocationInstance_ActionTrigger `protobuf_oneof:"action_trigger"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ActionInvocationInstance) Reset() {
@@ -1721,28 +1721,96 @@ func (x *ActionInvocationInstance) GetConfigValue() *DynamicValue {
 	return nil
 }
 
-func (x *ActionInvocationInstance) GetTriggeringResourceAddr() string {
+func (x *ActionInvocationInstance) GetActionTrigger() isActionInvocationInstance_ActionTrigger {
+	if x != nil {
+		return x.ActionTrigger
+	}
+	return nil
+}
+
+func (x *ActionInvocationInstance) GetLifecycleActionTrigger() *LifecycleActionTrigger {
+	if x != nil {
+		if x, ok := x.ActionTrigger.(*ActionInvocationInstance_LifecycleActionTrigger); ok {
+			return x.LifecycleActionTrigger
+		}
+	}
+	return nil
+}
+
+type isActionInvocationInstance_ActionTrigger interface {
+	isActionInvocationInstance_ActionTrigger()
+}
+
+type ActionInvocationInstance_LifecycleActionTrigger struct {
+	LifecycleActionTrigger *LifecycleActionTrigger `protobuf:"bytes,5,opt,name=lifecycle_action_trigger,json=lifecycleActionTrigger,proto3,oneof"`
+}
+
+func (*ActionInvocationInstance_LifecycleActionTrigger) isActionInvocationInstance_ActionTrigger() {}
+
+// LifecycleActionTrigger contains details on the conditions that led to the
+// triggering of an action.
+type LifecycleActionTrigger struct {
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	TriggeringResourceAddr  string                 `protobuf:"bytes,1,opt,name=triggering_resource_addr,json=triggeringResourceAddr,proto3" json:"triggering_resource_addr,omitempty"`
+	TriggerEvent            ActionTriggerEvent     `protobuf:"varint,2,opt,name=trigger_event,json=triggerEvent,proto3,enum=tfplan.ActionTriggerEvent" json:"trigger_event,omitempty"`
+	ActionTriggerBlockIndex int64                  `protobuf:"varint,3,opt,name=action_trigger_block_index,json=actionTriggerBlockIndex,proto3" json:"action_trigger_block_index,omitempty"`
+	ActionsListIndex        int64                  `protobuf:"varint,4,opt,name=actions_list_index,json=actionsListIndex,proto3" json:"actions_list_index,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *LifecycleActionTrigger) Reset() {
+	*x = LifecycleActionTrigger{}
+	mi := &file_planfile_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LifecycleActionTrigger) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LifecycleActionTrigger) ProtoMessage() {}
+
+func (x *LifecycleActionTrigger) ProtoReflect() protoreflect.Message {
+	mi := &file_planfile_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LifecycleActionTrigger.ProtoReflect.Descriptor instead.
+func (*LifecycleActionTrigger) Descriptor() ([]byte, []int) {
+	return file_planfile_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *LifecycleActionTrigger) GetTriggeringResourceAddr() string {
 	if x != nil {
 		return x.TriggeringResourceAddr
 	}
 	return ""
 }
 
-func (x *ActionInvocationInstance) GetTriggerEvent() ActionTriggerEvent {
+func (x *LifecycleActionTrigger) GetTriggerEvent() ActionTriggerEvent {
 	if x != nil {
 		return x.TriggerEvent
 	}
 	return ActionTriggerEvent_INVALID_EVENT
 }
 
-func (x *ActionInvocationInstance) GetActionTriggerBlockIndex() int64 {
+func (x *LifecycleActionTrigger) GetActionTriggerBlockIndex() int64 {
 	if x != nil {
 		return x.ActionTriggerBlockIndex
 	}
 	return 0
 }
 
-func (x *ActionInvocationInstance) GetActionsListIndex() int64 {
+func (x *LifecycleActionTrigger) GetActionsListIndex() int64 {
 	if x != nil {
 		return x.ActionsListIndex
 	}
@@ -1767,7 +1835,7 @@ type ResourceInstanceActionChange struct {
 
 func (x *ResourceInstanceActionChange) Reset() {
 	*x = ResourceInstanceActionChange{}
-	mi := &file_planfile_proto_msgTypes[15]
+	mi := &file_planfile_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1779,7 +1847,7 @@ func (x *ResourceInstanceActionChange) String() string {
 func (*ResourceInstanceActionChange) ProtoMessage() {}
 
 func (x *ResourceInstanceActionChange) ProtoReflect() protoreflect.Message {
-	mi := &file_planfile_proto_msgTypes[15]
+	mi := &file_planfile_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1792,7 +1860,7 @@ func (x *ResourceInstanceActionChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceInstanceActionChange.ProtoReflect.Descriptor instead.
 func (*ResourceInstanceActionChange) Descriptor() ([]byte, []int) {
-	return file_planfile_proto_rawDescGZIP(), []int{15}
+	return file_planfile_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ResourceInstanceActionChange) GetAddr() string {
@@ -1826,7 +1894,7 @@ type PlanResourceAttr struct {
 
 func (x *PlanResourceAttr) Reset() {
 	*x = PlanResourceAttr{}
-	mi := &file_planfile_proto_msgTypes[17]
+	mi := &file_planfile_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1838,7 +1906,7 @@ func (x *PlanResourceAttr) String() string {
 func (*PlanResourceAttr) ProtoMessage() {}
 
 func (x *PlanResourceAttr) ProtoReflect() protoreflect.Message {
-	mi := &file_planfile_proto_msgTypes[17]
+	mi := &file_planfile_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1879,7 +1947,7 @@ type CheckResults_ObjectResult struct {
 
 func (x *CheckResults_ObjectResult) Reset() {
 	*x = CheckResults_ObjectResult{}
-	mi := &file_planfile_proto_msgTypes[18]
+	mi := &file_planfile_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1891,7 +1959,7 @@ func (x *CheckResults_ObjectResult) String() string {
 func (*CheckResults_ObjectResult) ProtoMessage() {}
 
 func (x *CheckResults_ObjectResult) ProtoReflect() protoreflect.Message {
-	mi := &file_planfile_proto_msgTypes[18]
+	mi := &file_planfile_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1941,7 +2009,7 @@ type Path_Step struct {
 
 func (x *Path_Step) Reset() {
 	*x = Path_Step{}
-	mi := &file_planfile_proto_msgTypes[19]
+	mi := &file_planfile_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1953,7 +2021,7 @@ func (x *Path_Step) String() string {
 func (*Path_Step) ProtoMessage() {}
 
 func (x *Path_Step) ProtoReflect() protoreflect.Message {
-	mi := &file_planfile_proto_msgTypes[19]
+	mi := &file_planfile_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2129,16 +2197,19 @@ const file_planfile_proto_rawDesc = "" +
 	"\aunknown\x18\x02 \x01(\bR\aunknown\x120\n" +
 	"\bidentity\x18\x03 \x01(\v2\x14.tfplan.DynamicValueR\bidentity\":\n" +
 	"\bDeferred\x12.\n" +
-	"\x06reason\x18\x01 \x01(\x0e2\x16.tfplan.DeferredReasonR\x06reason\"\xba\x03\n" +
+	"\x06reason\x18\x01 \x01(\x0e2\x16.tfplan.DeferredReasonR\x06reason\"\xc2\x02\n" +
 	"\x18ActionInvocationInstance\x12\x12\n" +
 	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12O\n" +
 	"\x10linked_resources\x18\x03 \x03(\v2$.tfplan.ResourceInstanceActionChangeR\x0flinkedResources\x127\n" +
-	"\fconfig_value\x18\x04 \x01(\v2\x14.tfplan.DynamicValueR\vconfigValue\x128\n" +
-	"\x18triggering_resource_addr\x18\x05 \x01(\tR\x16triggeringResourceAddr\x12?\n" +
-	"\rtrigger_event\x18\x06 \x01(\x0e2\x1a.tfplan.ActionTriggerEventR\ftriggerEvent\x12;\n" +
-	"\x1aaction_trigger_block_index\x18\a \x01(\x03R\x17actionTriggerBlockIndex\x12,\n" +
-	"\x12actions_list_index\x18\b \x01(\x03R\x10actionsListIndex\"{\n" +
+	"\fconfig_value\x18\x04 \x01(\v2\x14.tfplan.DynamicValueR\vconfigValue\x12Z\n" +
+	"\x18lifecycle_action_trigger\x18\x05 \x01(\v2\x1e.tfplan.LifecycleActionTriggerH\x00R\x16lifecycleActionTriggerB\x10\n" +
+	"\x0eaction_trigger\"\xfe\x01\n" +
+	"\x16LifecycleActionTrigger\x128\n" +
+	"\x18triggering_resource_addr\x18\x01 \x01(\tR\x16triggeringResourceAddr\x12?\n" +
+	"\rtrigger_event\x18\x02 \x01(\x0e2\x1a.tfplan.ActionTriggerEventR\ftriggerEvent\x12;\n" +
+	"\x1aaction_trigger_block_index\x18\x03 \x01(\x03R\x17actionTriggerBlockIndex\x12,\n" +
+	"\x12actions_list_index\x18\x04 \x01(\x03R\x10actionsListIndex\"{\n" +
 	"\x1cResourceInstanceActionChange\x12\x12\n" +
 	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x1f\n" +
 	"\vdeposed_key\x18\x02 \x01(\tR\n" +
@@ -2209,7 +2280,7 @@ func file_planfile_proto_rawDescGZIP() []byte {
 }
 
 var file_planfile_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_planfile_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_planfile_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_planfile_proto_goTypes = []any{
 	(Mode)(0),                              // 0: tfplan.Mode
 	(Action)(0),                            // 1: tfplan.Action
@@ -2233,15 +2304,16 @@ var file_planfile_proto_goTypes = []any{
 	(*Importing)(nil),                      // 19: tfplan.Importing
 	(*Deferred)(nil),                       // 20: tfplan.Deferred
 	(*ActionInvocationInstance)(nil),       // 21: tfplan.ActionInvocationInstance
-	(*ResourceInstanceActionChange)(nil),   // 22: tfplan.ResourceInstanceActionChange
-	nil,                                    // 23: tfplan.Plan.VariablesEntry
-	(*PlanResourceAttr)(nil),               // 24: tfplan.Plan.resource_attr
-	(*CheckResults_ObjectResult)(nil),      // 25: tfplan.CheckResults.ObjectResult
-	(*Path_Step)(nil),                      // 26: tfplan.Path.Step
+	(*LifecycleActionTrigger)(nil),         // 22: tfplan.LifecycleActionTrigger
+	(*ResourceInstanceActionChange)(nil),   // 23: tfplan.ResourceInstanceActionChange
+	nil,                                    // 24: tfplan.Plan.VariablesEntry
+	(*PlanResourceAttr)(nil),               // 25: tfplan.Plan.resource_attr
+	(*CheckResults_ObjectResult)(nil),      // 26: tfplan.CheckResults.ObjectResult
+	(*Path_Step)(nil),                      // 27: tfplan.Path.Step
 }
 var file_planfile_proto_depIdxs = []int32{
 	0,  // 0: tfplan.Plan.ui_mode:type_name -> tfplan.Mode
-	23, // 1: tfplan.Plan.variables:type_name -> tfplan.Plan.VariablesEntry
+	24, // 1: tfplan.Plan.variables:type_name -> tfplan.Plan.VariablesEntry
 	12, // 2: tfplan.Plan.resource_changes:type_name -> tfplan.ResourceInstanceChange
 	12, // 3: tfplan.Plan.resource_drift:type_name -> tfplan.ResourceInstanceChange
 	13, // 4: tfplan.Plan.deferred_changes:type_name -> tfplan.DeferredResourceInstanceChange
@@ -2250,7 +2322,7 @@ var file_planfile_proto_depIdxs = []int32{
 	21, // 7: tfplan.Plan.action_invocations:type_name -> tfplan.ActionInvocationInstance
 	8,  // 8: tfplan.Plan.backend:type_name -> tfplan.Backend
 	9,  // 9: tfplan.Plan.state_store:type_name -> tfplan.StateStore
-	24, // 10: tfplan.Plan.relevant_attributes:type_name -> tfplan.Plan.resource_attr
+	25, // 10: tfplan.Plan.relevant_attributes:type_name -> tfplan.Plan.resource_attr
 	16, // 11: tfplan.Plan.function_results:type_name -> tfplan.FunctionCallHash
 	17, // 12: tfplan.Backend.config:type_name -> tfplan.DynamicValue
 	17, // 13: tfplan.StateStore.config:type_name -> tfplan.DynamicValue
@@ -2270,23 +2342,24 @@ var file_planfile_proto_depIdxs = []int32{
 	11, // 27: tfplan.OutputChange.change:type_name -> tfplan.Change
 	6,  // 28: tfplan.CheckResults.kind:type_name -> tfplan.CheckResults.ObjectKind
 	5,  // 29: tfplan.CheckResults.status:type_name -> tfplan.CheckResults.Status
-	25, // 30: tfplan.CheckResults.objects:type_name -> tfplan.CheckResults.ObjectResult
-	26, // 31: tfplan.Path.steps:type_name -> tfplan.Path.Step
+	26, // 30: tfplan.CheckResults.objects:type_name -> tfplan.CheckResults.ObjectResult
+	27, // 31: tfplan.Path.steps:type_name -> tfplan.Path.Step
 	17, // 32: tfplan.Importing.identity:type_name -> tfplan.DynamicValue
 	3,  // 33: tfplan.Deferred.reason:type_name -> tfplan.DeferredReason
-	22, // 34: tfplan.ActionInvocationInstance.linked_resources:type_name -> tfplan.ResourceInstanceActionChange
+	23, // 34: tfplan.ActionInvocationInstance.linked_resources:type_name -> tfplan.ResourceInstanceActionChange
 	17, // 35: tfplan.ActionInvocationInstance.config_value:type_name -> tfplan.DynamicValue
-	4,  // 36: tfplan.ActionInvocationInstance.trigger_event:type_name -> tfplan.ActionTriggerEvent
-	11, // 37: tfplan.ResourceInstanceActionChange.change:type_name -> tfplan.Change
-	17, // 38: tfplan.Plan.VariablesEntry.value:type_name -> tfplan.DynamicValue
-	18, // 39: tfplan.Plan.resource_attr.attr:type_name -> tfplan.Path
-	5,  // 40: tfplan.CheckResults.ObjectResult.status:type_name -> tfplan.CheckResults.Status
-	17, // 41: tfplan.Path.Step.element_key:type_name -> tfplan.DynamicValue
-	42, // [42:42] is the sub-list for method output_type
-	42, // [42:42] is the sub-list for method input_type
-	42, // [42:42] is the sub-list for extension type_name
-	42, // [42:42] is the sub-list for extension extendee
-	0,  // [0:42] is the sub-list for field type_name
+	22, // 36: tfplan.ActionInvocationInstance.lifecycle_action_trigger:type_name -> tfplan.LifecycleActionTrigger
+	4,  // 37: tfplan.LifecycleActionTrigger.trigger_event:type_name -> tfplan.ActionTriggerEvent
+	11, // 38: tfplan.ResourceInstanceActionChange.change:type_name -> tfplan.Change
+	17, // 39: tfplan.Plan.VariablesEntry.value:type_name -> tfplan.DynamicValue
+	18, // 40: tfplan.Plan.resource_attr.attr:type_name -> tfplan.Path
+	5,  // 41: tfplan.CheckResults.ObjectResult.status:type_name -> tfplan.CheckResults.Status
+	17, // 42: tfplan.Path.Step.element_key:type_name -> tfplan.DynamicValue
+	43, // [43:43] is the sub-list for method output_type
+	43, // [43:43] is the sub-list for method input_type
+	43, // [43:43] is the sub-list for extension type_name
+	43, // [43:43] is the sub-list for extension extendee
+	0,  // [0:43] is the sub-list for field type_name
 }
 
 func init() { file_planfile_proto_init() }
@@ -2294,7 +2367,10 @@ func file_planfile_proto_init() {
 	if File_planfile_proto != nil {
 		return
 	}
-	file_planfile_proto_msgTypes[19].OneofWrappers = []any{
+	file_planfile_proto_msgTypes[14].OneofWrappers = []any{
+		(*ActionInvocationInstance_LifecycleActionTrigger)(nil),
+	}
+	file_planfile_proto_msgTypes[20].OneofWrappers = []any{
 		(*Path_Step_AttributeName)(nil),
 		(*Path_Step_ElementKey)(nil),
 	}
@@ -2304,7 +2380,7 @@ func file_planfile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_planfile_proto_rawDesc), len(file_planfile_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   20,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

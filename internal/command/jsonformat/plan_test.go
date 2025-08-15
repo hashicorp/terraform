@@ -8289,10 +8289,6 @@ func TestResourceChange_actions(t *testing.T) {
 		},
 	}
 
-	ptr := func(i int) *int {
-		return &i
-	}
-
 	for name, tc := range map[string]struct {
 		actionInvocations []jsonplan.ActionInvocation
 		output            string
@@ -8300,14 +8296,16 @@ func TestResourceChange_actions(t *testing.T) {
 		"before actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:                   "action.test_unlinked.hello",
-					Type:                      "test_unlinked",
-					Name:                      "hello",
-					ProviderName:              "registry.terraform.io/hashicorp/test",
-					ActionTriggerBlockIndex:   ptr(0),
-					ActionsListIndex:          ptr(0),
-					TriggeringResourceAddress: triggeringResourceAddr.String(),
-					TriggerEvent:              "BeforeCreate",
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
 					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"),
 						"disk": cty.ObjectVal(map[string]cty.Value{
@@ -8342,14 +8340,16 @@ func TestResourceChange_actions(t *testing.T) {
 		"after actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:                   "action.test_unlinked.hello",
-					Type:                      "test_unlinked",
-					Name:                      "hello",
-					ProviderName:              "registry.terraform.io/hashicorp/test",
-					ActionTriggerBlockIndex:   ptr(0),
-					ActionsListIndex:          ptr(0),
-					TriggeringResourceAddress: triggeringResourceAddr.String(),
-					TriggerEvent:              "AfterCreate",
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "AfterCreate",
+					},
 					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"),
 						"disk": cty.ObjectVal(map[string]cty.Value{
@@ -8384,66 +8384,76 @@ func TestResourceChange_actions(t *testing.T) {
 		"before and after actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:                   "action.test_unlinked.hello",
-					Type:                      "test_unlinked",
-					Name:                      "hello",
-					ProviderName:              "registry.terraform.io/hashicorp/test",
-					ActionTriggerBlockIndex:   ptr(0),
-					ActionsListIndex:          ptr(0),
-					TriggeringResourceAddress: triggeringResourceAddr.String(),
-					TriggerEvent:              "BeforeCreate",
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
 					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("first-block-and-action"),
 					})),
 				},
 				{
-					Address:                   "action.test_unlinked.hello",
-					Type:                      "test_unlinked",
-					Name:                      "hello",
-					ProviderName:              "registry.terraform.io/hashicorp/test",
-					ActionTriggerBlockIndex:   ptr(0),
-					ActionsListIndex:          ptr(1),
-					TriggeringResourceAddress: triggeringResourceAddr.String(),
-					TriggerEvent:              "BeforeCreate",
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          1,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
 					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("first-block-second-action"),
 					})),
 				},
 				{
-					Address:                   "action.test_unlinked.hello",
-					Type:                      "test_unlinked",
-					Name:                      "hello",
-					ProviderName:              "registry.terraform.io/hashicorp/test",
-					ActionTriggerBlockIndex:   ptr(1),
-					ActionsListIndex:          ptr(0),
-					TriggeringResourceAddress: triggeringResourceAddr.String(),
-					TriggerEvent:              "AfterCreate",
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   1,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "AfterCreate",
+					},
 					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("second-block-first-action"),
 					})),
 				},
 				{
-					Address:                   "action.test_unlinked.hello",
-					Type:                      "test_unlinked",
-					Name:                      "hello",
-					ProviderName:              "registry.terraform.io/hashicorp/test",
-					ActionTriggerBlockIndex:   ptr(2),
-					ActionsListIndex:          ptr(0),
-					TriggeringResourceAddress: triggeringResourceAddr.String(),
-					TriggerEvent:              "AfterCreate",
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   2,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "AfterCreate",
+					},
 					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("third-block-first-action"),
 					})),
 				},
 				{
-					Address:                   "action.test_unlinked.hello",
-					Type:                      "test_unlinked",
-					Name:                      "hello",
-					ProviderName:              "registry.terraform.io/hashicorp/test",
-					ActionTriggerBlockIndex:   ptr(3),
-					ActionsListIndex:          ptr(0),
-					TriggeringResourceAddress: triggeringResourceAddr.String(),
-					TriggerEvent:              "BeforeCreate",
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   3,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
 					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("fourth-block-first-action"),
 					})),
@@ -8488,14 +8498,16 @@ func TestResourceChange_actions(t *testing.T) {
 		"no config value": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:                   "action.test_unlinked.hello",
-					Type:                      "test_unlinked",
-					Name:                      "hello",
-					ProviderName:              "registry.terraform.io/hashicorp/test",
-					ActionTriggerBlockIndex:   ptr(0),
-					ActionsListIndex:          ptr(0),
-					TriggeringResourceAddress: triggeringResourceAddr.String(),
-					TriggerEvent:              "BeforeCreate",
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
 				},
 			},
 			output: `  # test_instance.example will be created

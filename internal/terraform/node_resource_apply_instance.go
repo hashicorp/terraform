@@ -36,8 +36,6 @@ type NodeApplyableResourceInstance struct {
 	// it might contain addresses that have nothing to do with the resource
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
-
-	beforeActionInvocations []*plans.ActionInvocationInstanceSrc
 }
 
 var (
@@ -48,7 +46,6 @@ var (
 	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeActionProviders    = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -212,11 +209,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var state *states.ResourceInstanceObject
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
-
-	diags = diags.Append(invokeActionsWithEnhancedDiagnostics(ctx, n.beforeActionInvocations, &n.Addr))
-	if diags.HasErrors() {
-		return diags
-	}
 
 	addr := n.ResourceInstanceAddr().Resource
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -473,14 +465,6 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 		))
 	}
 	return diags
-}
-
-func (n *NodeApplyableResourceInstance) Actions() []addrs.ConfigAction {
-	ret := []addrs.ConfigAction{}
-	for _, ai := range n.beforeActionInvocations {
-		ret = append(ret, ai.Addr.ConfigAction())
-	}
-	return ret
 }
 
 // maybeTainted takes the resource addr, new value, planned change, and possible

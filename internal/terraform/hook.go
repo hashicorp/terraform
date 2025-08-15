@@ -38,15 +38,11 @@ type HookResourceIdentity struct {
 type HookActionIdentity struct {
 	Addr addrs.AbsActionInstance
 
-	// If run as part of a plan / apply we also have the values below
-	// (if CLI triggered they are not applicable)
-	TriggeringResourceAddr  addrs.AbsResourceInstance
-	ActionTriggerBlockIndex int
-	ActionsListIndex        int
+	ActionTrigger plans.ActionTrigger
 }
 
 func (i *HookActionIdentity) String() string {
-	return i.Addr.String() + " (triggered by " + i.TriggeringResourceAddr.String() + ")"
+	return i.Addr.String() + " (triggered by " + i.ActionTrigger.String() + ")"
 }
 
 // Hook is the interface that must be implemented to hook into various
