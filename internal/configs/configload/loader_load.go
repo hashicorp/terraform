@@ -5,10 +5,9 @@ package configload
 
 import (
 	"fmt"
-
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
-
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 )
 
@@ -131,6 +130,46 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 				Detail:   fmt.Sprintf("This module's local cache directory %s could not be read. Run \"terraform init\" to install all modules required by this configuration.", record.Dir),
 				Subject:  &req.CallRange,
 			},
+		}
+	}
+
+	// Inherit missing required_providers from parent if the child does not declare them.
+	// This ensures resources in child modules still bind to the correct provider FQN
+	// (e.g., aliyun/alicloud) instead of default hashicorp/<name>.
+	if req.Parent != nil && req.Parent.Module != nil {
+		parentRP := req.Parent.Module.ProviderRequirements
+		if parentRP != nil && parentRP.RequiredProviders != nil {
+			// Ensure child has a requirements map
+			if mod.ProviderRequirements == nil {
+				mod.ProviderRequirements = &configs.RequiredProviders{
+					RequiredProviders: make(map[string]*configs.RequiredProvider),
+				}
+			}
+			if mod.ProviderRequirements.RequiredProviders == nil {
+				mod.ProviderRequirements.RequiredProviders = make(map[string]*configs.RequiredProvider)
+			}
+
+			// Copy only missing providers from parent
+			for name, rp := range parentRP.RequiredProviders {
+				if _, exists := mod.ProviderRequirements.RequiredProviders[name]; !exists {
+					mod.ProviderRequirements.RequiredProviders[name] = rp
+				}
+			}
+
+			// Minimal rebind: update provider for managed resources without explicit config
+			setImplied := func(localName string) addrs.Provider {
+				if rp, ok := mod.ProviderRequirements.RequiredProviders[localName]; ok && rp != nil {
+					return rp.Type
+				}
+				return addrs.ImpliedProviderForUnqualifiedType(localName)
+			}
+			for _, r := range mod.ManagedResources {
+				if r.ProviderConfigRef == nil {
+					if implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider()); err == nil {
+						r.Provider = setImplied(implied)
+					}
+				}
+			}
 		}
 	}
 
