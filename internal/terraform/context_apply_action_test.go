@@ -677,6 +677,8 @@ resource "test_object" "a" {
 				}),
 			}},
 		},
+
+		// TODO: Test cases for applying an action within a module (instance)
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {

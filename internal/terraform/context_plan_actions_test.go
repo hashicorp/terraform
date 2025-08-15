@@ -880,7 +880,6 @@ action "test_linked" "hello" {}
 		},
 
 		"triggered within module": {
-			toBeImplemented: true, // TODO: Look into this
 			module: map[string]string{
 				"main.tf": `
 module "mod" {
@@ -937,7 +936,6 @@ resource "other_object" "a" {
 		},
 
 		"triggered within module instance": {
-			toBeImplemented: true, // TODO: Look into this
 			module: map[string]string{
 				"main.tf": `
 module "mod" {
@@ -1020,7 +1018,6 @@ resource "other_object" "a" {
 		},
 
 		"provider is within module": {
-			toBeImplemented: true, // TODO: Look into this
 			module: map[string]string{
 				"main.tf": `
 module "mod" {
