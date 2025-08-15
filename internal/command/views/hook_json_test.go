@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -410,111 +411,116 @@ func TestJSONHook_EphemeralOp(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
-func TestJSONHook_EphemeralOp_progress(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	hook := newJSONHook(NewJSONView(NewView(streams)))
-	hook.periodicUiTimer = 1 * time.Second
+func TestJSONHook_EphemeralOp_progress(mt *testing.T) {
+	// must be started outsite of the synctest bubble because it starts long-running IO-blocked goroutines.
+	// This prevents the sync bubble from being able to advance time, and processing time.Sleep operations.
+	streams, done := terminal.StreamsForTesting(mt)
 
-	addr := addrs.Resource{
-		Mode: addrs.ManagedResourceMode,
-		Type: "test_instance",
-		Name: "boop",
-	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	synctest.Test(mt, func(t *testing.T) {
+		start := time.Now()
+		hook := newJSONHook(NewJSONView(NewView(streams)))
+		hook.periodicUiTimer = 1 * time.Second
+		t.Log(time.Since(start))
 
-	action, err := hook.PreEphemeralOp(testJSONHookResourceID(addr), plans.Open)
-	testHookReturnValues(t, action, err)
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "boop",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	time.Sleep(2005 * time.Millisecond)
+		action, err := hook.PreEphemeralOp(testJSONHookResourceID(addr), plans.Open)
+		testHookReturnValues(t, action, err)
+		time.Sleep(2005 * time.Millisecond)
 
-	action, err = hook.PostEphemeralOp(testJSONHookResourceID(addr), plans.Open, nil)
-	testHookReturnValues(t, action, err)
+		action, err = hook.PostEphemeralOp(testJSONHookResourceID(addr), plans.Open, nil)
+		testHookReturnValues(t, action, err)
 
-	want := []map[string]interface{}{
-		{
-			"@level":   "info",
-			"@message": "test_instance.boop: Opening...",
-			"@module":  "terraform.ui",
-			"type":     "ephemeral_op_start",
-			"hook": map[string]interface{}{
-				"action": string("open"),
-				"resource": map[string]interface{}{
-					"addr":             string("test_instance.boop"),
-					"implied_provider": string("test"),
-					"module":           string(""),
-					"resource":         string("test_instance.boop"),
-					"resource_key":     nil,
-					"resource_name":    string("boop"),
-					"resource_type":    string("test_instance"),
+		want := []map[string]interface{}{
+			{
+				"@level":   "info",
+				"@message": "test_instance.boop: Opening...",
+				"@module":  "terraform.ui",
+				"type":     "ephemeral_op_start",
+				"hook": map[string]interface{}{
+					"action": string("open"),
+					"resource": map[string]interface{}{
+						"addr":             string("test_instance.boop"),
+						"implied_provider": string("test"),
+						"module":           string(""),
+						"resource":         string("test_instance.boop"),
+						"resource_key":     nil,
+						"resource_name":    string("boop"),
+						"resource_type":    string("test_instance"),
+					},
 				},
 			},
-		},
-		{
-			"@level":   "info",
-			"@message": "test_instance.boop: Still opening... [1s elapsed]",
-			"@module":  "terraform.ui",
-			"type":     "ephemeral_op_progress",
-			"hook": map[string]interface{}{
-				"action":          string("open"),
-				"elapsed_seconds": float64(1),
-				"resource": map[string]interface{}{
-					"addr":             string("test_instance.boop"),
-					"implied_provider": string("test"),
-					"module":           string(""),
-					"resource":         string("test_instance.boop"),
-					"resource_key":     nil,
-					"resource_name":    string("boop"),
-					"resource_type":    string("test_instance"),
+			{
+				"@level":   "info",
+				"@message": "test_instance.boop: Still opening... [1s elapsed]",
+				"@module":  "terraform.ui",
+				"type":     "ephemeral_op_progress",
+				"hook": map[string]interface{}{
+					"action":          string("open"),
+					"elapsed_seconds": float64(1),
+					"resource": map[string]interface{}{
+						"addr":             string("test_instance.boop"),
+						"implied_provider": string("test"),
+						"module":           string(""),
+						"resource":         string("test_instance.boop"),
+						"resource_key":     nil,
+						"resource_name":    string("boop"),
+						"resource_type":    string("test_instance"),
+					},
 				},
 			},
-		},
-		{
-			"@level":   "info",
-			"@message": "test_instance.boop: Still opening... [2s elapsed]",
-			"@module":  "terraform.ui",
-			"type":     "ephemeral_op_progress",
-			"hook": map[string]interface{}{
-				"action":          string("open"),
-				"elapsed_seconds": float64(2),
-				"resource": map[string]interface{}{
-					"addr":             string("test_instance.boop"),
-					"implied_provider": string("test"),
-					"module":           string(""),
-					"resource":         string("test_instance.boop"),
-					"resource_key":     nil,
-					"resource_name":    string("boop"),
-					"resource_type":    string("test_instance"),
+			{
+				"@level":   "info",
+				"@message": "test_instance.boop: Still opening... [2s elapsed]",
+				"@module":  "terraform.ui",
+				"type":     "ephemeral_op_progress",
+				"hook": map[string]interface{}{
+					"action":          string("open"),
+					"elapsed_seconds": float64(2),
+					"resource": map[string]interface{}{
+						"addr":             string("test_instance.boop"),
+						"implied_provider": string("test"),
+						"module":           string(""),
+						"resource":         string("test_instance.boop"),
+						"resource_key":     nil,
+						"resource_name":    string("boop"),
+						"resource_type":    string("test_instance"),
+					},
 				},
 			},
-		},
-		{
-			"@level":   "info",
-			"@message": "test_instance.boop: Opening complete after 2s",
-			"@module":  "terraform.ui",
-			"type":     "ephemeral_op_complete",
-			"hook": map[string]interface{}{
-				"action":          string("open"),
-				"elapsed_seconds": float64(2),
-				"resource": map[string]interface{}{
-					"addr":             string("test_instance.boop"),
-					"implied_provider": string("test"),
-					"module":           string(""),
-					"resource":         string("test_instance.boop"),
-					"resource_key":     nil,
-					"resource_name":    string("boop"),
-					"resource_type":    string("test_instance"),
+			{
+				"@level":   "info",
+				"@message": "test_instance.boop: Opening complete after 2s",
+				"@module":  "terraform.ui",
+				"type":     "ephemeral_op_complete",
+				"hook": map[string]interface{}{
+					"action":          string("open"),
+					"elapsed_seconds": float64(2),
+					"resource": map[string]interface{}{
+						"addr":             string("test_instance.boop"),
+						"implied_provider": string("test"),
+						"module":           string(""),
+						"resource":         string("test_instance.boop"),
+						"resource_key":     nil,
+						"resource_name":    string("boop"),
+						"resource_type":    string("test_instance"),
+					},
 				},
 			},
-		},
-	}
+		}
+		stdout := done(t).Stdout()
 
-	stdout := done(t).Stdout()
+		// time.Sleep can take longer than declared time
+		// so we only test the first lines we expect to see after sleeping
+		lines := strings.SplitN(stdout, "\n", 4)
+		firstLines := strings.Join(lines[:4], "\n")
 
-	// time.Sleep can take longer than declared time
-	// so we only test the first lines we expect to see after sleeping
-	lines := strings.SplitN(stdout, "\n", 4)
-	firstLines := strings.Join(lines[:4], "\n")
-
-	testJSONViewOutputEquals(t, firstLines, want)
+		testJSONViewOutputEquals(t, firstLines, want)
+	})
 }
 
 func TestJSONHook_EphemeralOp_error(t *testing.T) {
