@@ -63,6 +63,7 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 	}
 
 	for _, r := range config.Module.ManagedResources {
+		priorNodes := []*nodeActionTriggerPlanExpand{}
 		for i, at := range r.Managed.ActionTriggers {
 			for j, action := range at.Actions {
 				ref, parseRefDiags := addrs.ParseRef(action.Traversal)
@@ -114,6 +115,12 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 				for _, node := range resourceNode {
 					g.Connect(dag.BasicEdge(nat, node))
 				}
+
+				// We want to plan after all prior nodes
+				for _, priorNode := range priorNodes {
+					g.Connect(dag.BasicEdge(nat, priorNode))
+				}
+				priorNodes = append(priorNodes, nat)
 			}
 		}
 	}
