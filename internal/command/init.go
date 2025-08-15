@@ -249,12 +249,13 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		opts = &BackendOpts{
-			StateStoreConfig: root.StateStore,
-			Locks:            configLocks,
-			ProviderFactory:  factory,
-			ConfigOverride:   configOverride,
-			Init:             true,
-			ViewType:         viewType,
+			StateStoreConfig:       root.StateStore,
+			Locks:                  configLocks,
+			ProviderFactory:        factory,
+			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
+			ConfigOverride:         configOverride,
+			Init:                   true,
+			ViewType:               viewType,
 		}
 
 	case root.Backend != nil:

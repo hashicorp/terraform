@@ -89,6 +89,10 @@ type BackendOpts struct {
 	// ViewType will set console output format for the
 	// initialization operation (JSON or human-readable).
 	ViewType arguments.ViewType
+
+	// CreateDefaultWorkspace signifies whether the operations backend should create
+	// the default workspace or not
+	CreateDefaultWorkspace bool
 }
 
 // BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
@@ -1670,32 +1674,43 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 				return nil, diags
 
 			case ws == backend.DefaultStateName:
-				// TODO: do we want to prompt for input here (m.Input()), or create automatically unless -readonly flag present?
-				// input := m.UIInput()
-				// desc := fmt.Sprintf("Terraform will create the %q workspace via %q.\n"+
-				// 	"Only 'yes' will be accepted to approve.", backend.DefaultStateName, c.Type)
-				// v, err := input.Input(context.Background(), &terraform.InputOpts{
-				// 	Id:          "approve",
-				// 	Query:       fmt.Sprintf("Workspace %q does not exit, would you like to create one?", backend.DefaultStateName),
-				// 	Description: desc,
-				// })
-				// if err != nil {
-				// 	diags = diags.Append(fmt.Errorf("Failed to confirm default workspace creation: %w", err))
-				// 	return nil, diags
-				// }
-				// if v != "yes" {
-				// 	diags = diags.Append(errors.New("Failed to create default workspace"))
-				// 	return nil, diags
-				// }
-
-				// TODO: Confirm if defaulting to creation on first use (rather than error) is a good idea
-				// Make the default workspace. All other workspaces are user-created via the workspace commands.
-				m.createDefaultWorkspace(c, b)
+				// Should we create the default state after prompting the user, or not?
+				if m.Input() {
+					// If input is enabled, we prompt the user before creating the default workspace.
+					input := m.UIInput()
+					desc := fmt.Sprintf("Terraform will create the %q workspace via state store %q.\n"+
+						"Only 'yes' will be accepted to approve.", backend.DefaultStateName, c.Type)
+					v, err := input.Input(context.Background(), &terraform.InputOpts{
+						Id:          "approve",
+						Query:       fmt.Sprintf("Workspace the %s workspace does not exit, would you like to create it?", backend.DefaultStateName),
+						Description: desc,
+					})
+					if err != nil {
+						diags = diags.Append(fmt.Errorf("Failed to confirm %s workspace creation: %w", backend.DefaultStateName, err))
+						return nil, diags
+					}
+					if v != "yes" {
+						diags = diags.Append(fmt.Errorf("Cancelled creation of the %s workspace", backend.DefaultStateName))
+						return nil, diags
+					}
+					m.createDefaultWorkspace(c, b)
+				} else {
+					// If input is disabled, we don't prompt before creating the default workspace.
+					// However this can be blocked with other flags present.
+					if opts.CreateDefaultWorkspace {
+						m.createDefaultWorkspace(c, b)
+					} else {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "The default workspace does not exist",
+							Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. This may cause issues in subsequent Terraform operations",
+						})
+					}
+				}
 			default:
 				diags = diags.Append(err)
 				return nil, diags
 			}
-			// TODO: handle if input is not enabled
 		}
 	}
 	if diags.HasErrors() {
