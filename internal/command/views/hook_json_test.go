@@ -411,12 +411,10 @@ func TestJSONHook_EphemeralOp(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
-func TestJSONHook_EphemeralOp_progress(mt *testing.T) {
-	// must be started outsite of the synctest bubble because it starts long-running IO-blocked goroutines.
-	// This prevents the sync bubble from being able to advance time, and processing time.Sleep operations.
-	streams, done := terminal.StreamsForTesting(mt)
+func TestJSONHook_EphemeralOp_progress(t *testing.T) {
+	syncTest, streams, done := streamableSyncTest(t)
 
-	synctest.Test(mt, func(t *testing.T) {
+	syncTest(t, func(t *testing.T) {
 		start := time.Now()
 		hook := newJSONHook(NewJSONView(NewView(streams)))
 		hook.periodicUiTimer = 1 * time.Second
@@ -822,4 +820,11 @@ func testHookReturnValues(t *testing.T, action terraform.HookAction, err error) 
 	if action != terraform.HookActionContinue {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
+}
+
+// streamableSyncTest is a helper to ensure that the long-running streaming goroutines are started outsite of the synctest bubble.
+// Otherwise, the sync bubble will be unable to advance time, and the main goroutine will become infinitely paused on any time.Sleep operation.
+func streamableSyncTest(t *testing.T) (func(t *testing.T, f func(*testing.T)), *terminal.Streams, func(*testing.T) *terminal.TestOutput) {
+	streams, done := terminal.StreamsForTesting(t)
+	return synctest.Test, streams, done
 }
