@@ -9,15 +9,14 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-type nodeActionTriggerPlan struct {
-	actionAddress    addrs.AbsActionInstance
-	resolvedProvider addrs.AbsProviderConfig
-	actionConfig     *configs.Action
+type nodeActionTriggerPlanExpand struct {
+	actionAddress     addrs.ConfigAction
+	actionInstanceKey addrs.InstanceKey // TODO: This should probably be a new address? Look at resources
+	resolvedProvider  addrs.AbsProviderConfig
+	actionConfig      *configs.Action
 
 	lifecycleActionTrigger *lifecycleActionTrigger
 }
@@ -36,12 +35,11 @@ func (at *lifecycleActionTrigger) Name() string {
 }
 
 var (
-	_ GraphNodeExecutable       = (*nodeActionTriggerPlan)(nil)
-	_ GraphNodeReferencer       = (*nodeActionTriggerPlan)(nil)
-	_ GraphNodeProviderConsumer = (*nodeActionTriggerPlan)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeActionTriggerPlanExpand)(nil)
+	_ GraphNodeReferencer        = (*nodeActionTriggerPlanExpand)(nil)
 )
 
-func (n *nodeActionTriggerPlan) Name() string {
+func (n *nodeActionTriggerPlanExpand) Name() string {
 	triggeredBy := "triggered by "
 	if n.lifecycleActionTrigger != nil {
 		triggeredBy += n.lifecycleActionTrigger.resourceAddress.String()
@@ -52,87 +50,49 @@ func (n *nodeActionTriggerPlan) Name() string {
 	return fmt.Sprintf("%s %s", n.actionAddress.String(), triggeredBy)
 }
 
-func (n *nodeActionTriggerPlan) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
+func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	var g Graph
 	var diags tfdiags.Diagnostics
 
 	if n.lifecycleActionTrigger == nil {
 		panic("Only actions triggered by plan and apply are supported")
 	}
 
-	_, keys, _ := ctx.InstanceExpander().ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(addrs.RootModuleInstance))
-	for _, key := range keys {
-		change := ctx.Changes().
-			GetResourceInstanceChange(
-				n.lifecycleActionTrigger.resourceAddress.Absolute(
-					addrs.RootModuleInstance).
-					Instance(key),
-				addrs.NotDeposed)
-		if change == nil {
-			panic("change cannot be nil")
+	expander := ctx.InstanceExpander()
+	// First we expand the module
+	moduleInstances := expander.ExpandModule(n.lifecycleActionTrigger.resourceAddress.Module, false)
+	for _, module := range moduleInstances {
+		_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
+		for _, key := range keys {
+			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
+			absActionAddr := n.actionAddress.Absolute(module).Instance(n.actionInstanceKey)
+
+			node := nodeActionTriggerPlanInstance{
+				actionAddress:    absActionAddr,
+				resolvedProvider: n.resolvedProvider,
+				actionConfig:     n.actionConfig,
+				lifecycleActionTrigger: &lifecycleActionTriggerInstance{
+					resourceAddress:         absResourceInstanceAddr,
+					events:                  n.lifecycleActionTrigger.events,
+					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
+					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
+					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
+				},
+			}
+
+			g.Add(&node)
 		}
-		triggeringEvent, isTriggered := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
-		if !isTriggered {
-			return nil
-		}
-
-		actionInstance, ok := ctx.Actions().GetActionInstance(n.actionAddress)
-
-		if !ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Reference to non-existant action instance",
-				Detail:   "Action instance was not found in the current context.",
-				Subject:  n.lifecycleActionTrigger.invokingSubject,
-			})
-			return diags
-		}
-
-		provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Failed to get provider",
-				Detail:   fmt.Sprintf("Failed to get provider: %s", err),
-				Subject:  n.lifecycleActionTrigger.invokingSubject,
-			})
-
-			return diags
-		}
-
-		resp := provider.PlanAction(providers.PlanActionRequest{
-			ActionType:         n.actionAddress.Action.Action.Type,
-			ProposedActionData: actionInstance.ConfigValue,
-			ClientCapabilities: ctx.ClientCapabilities(),
-		})
-
-		// TODO: Deal with deferred responses
-		diags = diags.Append(resp.Diagnostics)
-		if diags.HasErrors() {
-			return diags
-		}
-
-		ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-			Addr:         n.actionAddress,
-			ProviderAddr: actionInstance.ProviderAddr,
-			ActionTrigger: plans.LifecycleActionTrigger{
-				TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress.Absolute(addrs.RootModuleInstance).Instance(key),
-				ActionTriggerEvent:      *triggeringEvent,
-				ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
-				ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
-			},
-			ConfigValue: actionInstance.ConfigValue,
-		})
-
 	}
 
-	return diags
+	addRootNodeToGraph(&g)
+	return &g, diags
 }
 
-func (n *nodeActionTriggerPlan) ModulePath() addrs.Module {
-	return addrs.RootModule
+func (n *nodeActionTriggerPlanExpand) ModulePath() addrs.Module {
+	return n.actionAddress.Module
 }
 
-func (n *nodeActionTriggerPlan) References() []*addrs.Reference {
+func (n *nodeActionTriggerPlanExpand) References() []*addrs.Reference {
 	var refs []*addrs.Reference
 	refs = append(refs, &addrs.Reference{
 		Subject: n.actionAddress.Action,
@@ -147,7 +107,7 @@ func (n *nodeActionTriggerPlan) References() []*addrs.Reference {
 	return refs
 }
 
-func (n *nodeActionTriggerPlan) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *nodeActionTriggerPlanExpand) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
 	if n.resolvedProvider.Provider.Type != "" {
 		return n.resolvedProvider, true
 	}
@@ -160,10 +120,10 @@ func (n *nodeActionTriggerPlan) ProvidedBy() (addr addrs.ProviderConfig, exact b
 	}, false
 }
 
-func (n *nodeActionTriggerPlan) Provider() (provider addrs.Provider) {
+func (n *nodeActionTriggerPlanExpand) Provider() (provider addrs.Provider) {
 	return n.actionConfig.Provider
 }
 
-func (n *nodeActionTriggerPlan) SetProvider(config addrs.AbsProviderConfig) {
+func (n *nodeActionTriggerPlanExpand) SetProvider(config addrs.AbsProviderConfig) {
 	n.resolvedProvider = config
 }

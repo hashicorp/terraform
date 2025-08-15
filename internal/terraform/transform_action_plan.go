@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 )
 
 type ActionPlanTransformer struct {
@@ -44,6 +45,23 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 		actionConfigs.Put(a.Addr().InModule(config.Path), a)
 	}
 
+	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
+	for _, node := range g.Vertices() {
+		rn, ok := node.(GraphNodeConfigResource)
+		if !ok {
+			continue
+		}
+		// We ignore any instances that _also_ implement
+		// GraphNodeResourceInstance, since in the unlikely event that they
+		// do exist we'd probably end up creating cycles by connecting them.
+		if _, ok := node.(GraphNodeResourceInstance); ok {
+			continue
+		}
+
+		rAddr := rn.ResourceAddr()
+		resourceNodes.Put(rAddr, append(resourceNodes.Get(rAddr), rn))
+	}
+
 	for _, r := range config.Module.ManagedResources {
 		for i, at := range r.Managed.ActionTriggers {
 			for j, action := range at.Actions {
@@ -51,30 +69,39 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 				if parseRefDiags != nil {
 					return parseRefDiags.Err()
 				}
-				var instance addrs.AbsActionInstance
+				var instance addrs.ConfigAction
+				actionInstanceKey := addrs.NoKey
 
 				switch ai := ref.Subject.(type) {
 				case addrs.Action:
-					instance = ai.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+					instance = ai.InModule(config.Path)
 				case addrs.ActionInstance:
-					instance = ai.Absolute(addrs.RootModuleInstance)
+					instance = ai.Action.InModule(config.Path)
+					actionInstanceKey = ai.Key
 				default:
 					// This should have been caught during validation
 					panic(fmt.Sprintf("unexpected action address %T", ai))
 				}
 
-				actionConfig, ok := actionConfigs.GetOk(instance.ConfigAction())
+				actionConfig, ok := actionConfigs.GetOk(instance)
 				if !ok {
 					// This should have been caught during validation
-					panic(fmt.Sprintf("actionConfig not found for %s", instance))
+					panic(fmt.Sprintf("action config not found for %s", instance))
 				}
 
-				nat := &nodeActionTriggerPlan{
-					actionAddress: instance,
-					actionConfig:  actionConfig,
+				resourceAddr := r.Addr().InModule(config.Path)
+				resourceNode, ok := resourceNodes.GetOk(resourceAddr)
+				if !ok {
+					panic(fmt.Sprintf("Could not find node for %s", resourceAddr))
+				}
+
+				nat := &nodeActionTriggerPlanExpand{
+					actionAddress:     instance,
+					actionInstanceKey: actionInstanceKey,
+					actionConfig:      actionConfig,
 					lifecycleActionTrigger: &lifecycleActionTrigger{
 						events:                  at.Events,
-						resourceAddress:         r.Addr().InModule(config.Path),
+						resourceAddress:         resourceAddr,
 						actionTriggerBlockIndex: i,
 						actionListIndex:         j,
 						invokingSubject:         action.Traversal.SourceRange().Ptr(),
@@ -82,6 +109,11 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 				}
 
 				g.Add(nat)
+
+				// We always want to plan after the resource is done planning
+				for _, node := range resourceNode {
+					g.Connect(dag.BasicEdge(nat, node))
+				}
 			}
 		}
 	}
