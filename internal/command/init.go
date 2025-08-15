@@ -51,7 +51,7 @@ func (c *InitCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	initArgs, initDiags := arguments.ParseInit(args)
 
-	view := views.NewInit(initArgs.ViewType, c.View)
+	view := views.NewInit(viewType, c.View)
 
 	if initDiags.HasErrors() {
 		diags = diags.Append(initDiags)
@@ -246,12 +246,13 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		}
 
 		opts = &BackendOpts{
-			StateStoreConfig: root.StateStore,
-			Locks:            locks,
-			ProviderFactory:  factory,
-			ConfigOverride:   configOverride,
-			Init:             true,
-			ViewType:         viewType,
+			StateStoreConfig:       root.StateStore,
+			Locks:                  locks,
+			ProviderFactory:        factory,
+			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
+			ConfigOverride:         configOverride,
+			Init:                   true,
+			ViewType:               viewType,
 		}
 
 	case root.Backend != nil:
