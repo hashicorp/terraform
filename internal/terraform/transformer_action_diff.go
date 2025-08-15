@@ -28,16 +28,17 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 		applyNodes.Put(applyableResource.Addr, applyableResource)
 	}
 
+	invocationMap := map[*plans.ActionInvocationInstanceSrc]*nodeActionTriggerApply{}
 	for _, action := range t.Changes.ActionInvocations {
 		// Add nodes for each action invocation
-
 		node := &nodeActionTriggerApply{
 			ActionInvocation: action,
 		}
 
 		g.Add(node)
+		invocationMap[action] = node
 
-		// Add edges
+		// Add edge to triggering resource
 		if lat, ok := action.ActionTrigger.(plans.LifecycleActionTrigger); ok {
 			// Add edges for lifecycle action triggers
 			resourceNode, ok := applyNodes.GetOk(lat.TriggeringResourceAddr.ConfigResource())
@@ -53,11 +54,16 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 			default:
 				panic("Unknown event")
 			}
+		}
+	}
 
-			others := laterInvocationsfindLaterActionInvocation(t.Changes.ActionInvocations, action)
-			for _, other := range others {
-				g.Connect(dag.BasicEdge(other, node))
-			}
+	// Find all dependencies between action invocations
+	for _, action := range t.Changes.ActionInvocations {
+		node := invocationMap[action]
+		others := laterInvocationsfindLaterActionInvocation(t.Changes.ActionInvocations, action)
+		for _, other := range others {
+			otherNode := invocationMap[other]
+			g.Connect(dag.BasicEdge(otherNode, node))
 		}
 	}
 	return nil
