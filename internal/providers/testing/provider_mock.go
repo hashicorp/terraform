@@ -5,12 +5,15 @@ package testing
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/providers"
 )
@@ -155,6 +158,9 @@ type MockProvider struct {
 	WriteStateBytesRequest  providers.WriteStateBytesRequest
 	WriteStateBytesFn       func(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse
 	WriteStateBytesResponse providers.WriteStateBytesResponse
+
+	// states is an internal field that tracks which workspaces have been created in a test
+	states map[string]interface{}
 
 	GetStatesCalled   bool
 	GetStatesResponse *providers.GetStatesResponse
@@ -1032,11 +1038,8 @@ func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 		return p.GetStatesFn(r)
 	}
 
-	// If the mock has no further inputs, return an empty list.
-	// The state store should be reporting a minimum of the default workspace usually,
-	// but this should be achieved by querying data storage and identifying the artifact
-	// for that workspace, and reporting that the workspace exists.
-	resp.States = []string{}
+	// If the mock has no further inputs, return the internal states list
+	resp.States = slices.Sorted(maps.Keys(p.states))
 
 	return resp
 }
@@ -1063,7 +1066,15 @@ func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp provide
 		return p.DeleteStateFn(r)
 	}
 
-	// There's no logic we can include here in the absence of other fields on the mock.
+	if _, match := p.states[r.StateId]; match {
+		delete(p.states, r.StateId)
+	} else {
+		resp.Diagnostics.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Workspace cannot be deleted",
+			Detail:   fmt.Sprintf("The workspace %q does not exist, so cannot be deleted", r.StateId),
+		})
+	}
 
 	// If the response contains no diagnostics then the deletion is assumed to be successful.
 	return resp
