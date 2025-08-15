@@ -51,7 +51,7 @@ func (c *InitCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	initArgs, initDiags := arguments.ParseInit(args)
 
-	view := views.NewInit(initArgs.ViewType, c.View)
+	view := views.NewInit(viewType, c.View)
 
 	if initDiags.HasErrors() {
 		diags = diags.Append(initDiags)
@@ -159,7 +159,11 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, locks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, locks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	// Temporary vars to account for refactoring the method's parameters
+	extraConfig := initArgs.BackendConfig
+	viewType := initArgs.ViewType
+
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -271,12 +275,13 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		}
 
 		opts = &BackendOpts{
-			StateStoreConfig: root.StateStore,
-			Locks:            locks,
-			ProviderFactory:  factory,
-			ConfigOverride:   configOverride,
-			Init:             true,
-			ViewType:         viewType,
+			StateStoreConfig:       root.StateStore,
+			Locks:                  locks,
+			ProviderFactory:        factory,
+			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
+			ConfigOverride:         configOverride,
+			Init:                   true,
+			ViewType:               viewType,
 		}
 
 	case root.Backend != nil:

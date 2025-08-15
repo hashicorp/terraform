@@ -172,7 +172,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
 		var locks *depsfile.Locks // Empty locks- this value is unused when a `backend` is used (vs. a `state_store`)
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, locks, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, locks, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
