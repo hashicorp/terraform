@@ -60,25 +60,11 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 	// Find all dependencies between action invocations
 	for _, action := range t.Changes.ActionInvocations {
 		node := invocationMap[action]
-		others := laterInvocationsfindLaterActionInvocation(t.Changes.ActionInvocations, action)
+		others := action.FilterLaterActionInvocations(t.Changes.ActionInvocations)
 		for _, other := range others {
 			otherNode := invocationMap[other]
 			g.Connect(dag.BasicEdge(otherNode, node))
 		}
 	}
 	return nil
-}
-
-func laterInvocationsfindLaterActionInvocation(actionInvocations []*plans.ActionInvocationInstanceSrc, needle *plans.ActionInvocationInstanceSrc) []*plans.ActionInvocationInstanceSrc {
-	needleLat := needle.ActionTrigger.(plans.LifecycleActionTrigger)
-
-	var laterInvocations []*plans.ActionInvocationInstanceSrc
-	for _, invocation := range actionInvocations {
-		if lat, ok := invocation.ActionTrigger.(plans.LifecycleActionTrigger); ok {
-			if lat.TriggeringResourceAddr.Equal(needleLat.TriggeringResourceAddr) && (lat.ActionTriggerBlockIndex > needleLat.ActionTriggerBlockIndex || lat.ActionTriggerBlockIndex == needleLat.ActionTriggerBlockIndex && lat.ActionsListIndex > needleLat.ActionsListIndex) {
-				laterInvocations = append(laterInvocations, invocation)
-			}
-		}
-	}
-	return laterInvocations
 }
