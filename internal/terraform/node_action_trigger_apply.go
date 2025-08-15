@@ -145,7 +145,7 @@ func (n *nodeActionTriggerApply) References() []*addrs.Reference {
 	var refs []*addrs.Reference
 
 	refs = append(refs, &addrs.Reference{
-		Subject: n.ActionInvocation.Addr.Action.Action,
+		Subject: n.ActionInvocation.Addr.Action,
 	})
 
 	return refs
@@ -153,5 +153,5 @@ func (n *nodeActionTriggerApply) References() []*addrs.Reference {
 
 // GraphNodeModulePath
 func (n *nodeActionTriggerApply) ModulePath() addrs.Module {
-	return addrs.RootModule
+	return n.ActionInvocation.Addr.Module.Module()
 }
