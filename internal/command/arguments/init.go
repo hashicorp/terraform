@@ -78,6 +78,10 @@ type Init struct {
 	// TODO(SarahFrench/radeksimko): Remove this once the feature is no longer
 	// experimental
 	EnablePssExperiment bool
+
+	// CreateDefaultWorkspace indicates whether the default workspace should be created by
+	// Terraform when initializing a state store for the first time.
+	CreateDefaultWorkspace bool
 }
 
 // ParseInit processes CLI arguments, returning an Init value and errors.
@@ -111,7 +115,7 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&init.Json, "json", false, "json")
 	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
-
+	cmdFlags.BoolVar(&init.CreateDefaultWorkspace, "create-default-workspace", true, "when -input=false, use this flag to block creation of the default workspace")
 	// Used for enabling experimental code that's invoked before configuration is parsed.
 	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
 
@@ -136,6 +140,14 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 			tfdiags.Error,
 			"Invalid init options",
 			"The -migrate-state and -reconfigure options are mutually-exclusive.",
+		))
+	}
+
+	if init.InputEnabled && !init.CreateDefaultWorkspace {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Invalid init options",
+			"The flag -create-default-workspace=false is ignored when Terraform is configured to ask users for input. Instead, add -input=false or remove the -create-default-workspace flag",
 		))
 	}
 
