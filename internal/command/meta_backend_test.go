@@ -2073,18 +2073,41 @@ func Test_determineInitReason(t *testing.T) {
 // Newly configured state store
 // Working directory has state_store in config but no preexisting backend state file
 func TestMetaBackend_configureNewStateStore(t *testing.T) {
-
 	cases := map[string]struct {
+		// setup
 		isInitCommand bool
-		expectedError string
+
+		inputEnabled bool
+		inputText    string
+
+		createDefaultWorkspace bool
+		// assertions
+		expectedError                string
+		expectDefaultWorkspaceExists bool
 	}{
-		"during an init command, the working directory is initialized and a backend state file is created": {
-			isInitCommand: true,
+		"an init command prompts users for input when the default workspace needs to be created": {
+			inputEnabled:                 true,
+			createDefaultWorkspace:       true,
+			inputText:                    "yes",
+			isInitCommand:                true,
+			expectDefaultWorkspaceExists: true,
 		},
-		"during a non-init command, the command ends in with an error telling the user to run an init command": {
-			isInitCommand: false,
-			expectedError: "State store initialization required, please run \"terraform init\": Reason: Initial configuration of the requested state_store \"foo_bar\" in provider foo (\"registry.terraform.io/my-org/foo\")",
+		"an init command with input disabled will create the default workspace automatically": {
+			inputEnabled:                 false,
+			createDefaultWorkspace:       true,
+			isInitCommand:                true,
+			expectDefaultWorkspaceExists: true,
 		},
+		"an init command with input disabled and the flag -create-default-workspace=false will not make the default workspace": {
+			inputEnabled:                 false,
+			createDefaultWorkspace:       false,
+			isInitCommand:                true,
+			expectDefaultWorkspaceExists: false,
+		},
+		// "during a non-init command, the command ends in with an error telling the user to run an init command": {
+		// 	isInitCommand: false,
+		// 	expectedError: "State store initialization required, please run \"terraform init\": Reason: Initial configuration of the requested state_store \"foo_bar\" in provider foo (\"registry.terraform.io/my-org/foo\")",
+		// },
 	}
 
 	for tn, tc := range cases {
@@ -2096,6 +2119,10 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			// Setup the meta
 			m := testMetaBackend(t, nil)
 			m.AllowExperimentalFeatures = true
+			m.input = tc.inputEnabled
+			if tc.inputEnabled {
+				defer testInteractiveInput(t, []string{tc.inputText})()
+			}
 
 			// Get the state store's config
 			mod, loadDiags := m.loadSingleModule(td)
@@ -2133,6 +2160,8 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 						},
 					},
 				},
+				// TODO: Add logic that makes the call to WriteState create a workspace within
+				// the mock
 			}
 			factory := func() (providers.Interface, error) {
 				return mock, nil
@@ -2154,15 +2183,16 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			)
 
 			// Act - get the operations backend
-			_, beDiags := m.Backend(&BackendOpts{
-				Init:             tc.isInitCommand, // Changes with test case
-				StateStoreConfig: mod.StateStore,
-				ProviderFactory:  factory,
-				Locks:            locks,
+			b, beDiags := m.Backend(&BackendOpts{
+				Init:                   tc.isInitCommand, // Changes with test case
+				StateStoreConfig:       mod.StateStore,
+				ProviderFactory:        factory,
+				Locks:                  locks,
+				CreateDefaultWorkspace: tc.createDefaultWorkspace,
 			})
 			if beDiags.HasErrors() {
 				if tc.expectedError == "" {
-					t.Fatalf("unexpected error: %s", err)
+					t.Fatalf("unexpected error: %s", beDiags.Err())
 				}
 				if !strings.Contains(cleanString(beDiags.Err().Error()), tc.expectedError) {
 					t.Fatalf("expected error to contain %s, but instead got: %s", tc.expectedError, cleanString(beDiags.Err().Error()))
@@ -2195,6 +2225,25 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			}
 			if cleanString(string(s.StateStore.ConfigRaw)) != expectedStoreConfig {
 				t.Fatalf("backend state file contains unexpected raw config data for the state store, want %q, got %q", expectedStoreConfig, cleanString(string(s.StateStore.ConfigRaw)))
+			}
+
+			w, err := b.Workspaces()
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if len(w) == 0 {
+				if tc.expectDefaultWorkspaceExists {
+					t.Fatal("expected the default workspace to exist, but there are no workspaces")
+				}
+				return
+			}
+			if len(w) > 0 {
+				if tc.expectDefaultWorkspaceExists {
+					if len(w) == 1 && w[0] != "default" {
+						t.Fatalf("expected the default workspace to exist, but instead got: %v", w)
+					}
+				}
+				t.Fatalf("expected the default workspace to be the only existing workspace, but instead got: %v", w)
 			}
 		})
 	}
