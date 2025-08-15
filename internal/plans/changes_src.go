@@ -602,3 +602,17 @@ func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc 
 	ret.ConfigValue = ret.ConfigValue.Copy()
 	return &ret
 }
+
+func (needle *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
+	needleLat := needle.ActionTrigger.(LifecycleActionTrigger)
+
+	var laterInvocations []*ActionInvocationInstanceSrc
+	for _, invocation := range actionInvocations {
+		if lat, ok := invocation.ActionTrigger.(LifecycleActionTrigger); ok {
+			if lat.TriggeringResourceAddr.Equal(needleLat.TriggeringResourceAddr) && (lat.ActionTriggerBlockIndex > needleLat.ActionTriggerBlockIndex || lat.ActionTriggerBlockIndex == needleLat.ActionTriggerBlockIndex && lat.ActionsListIndex > needleLat.ActionsListIndex) {
+				laterInvocations = append(laterInvocations, invocation)
+			}
+		}
+	}
+	return laterInvocations
+}
