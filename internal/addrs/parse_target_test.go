@@ -412,7 +412,7 @@ func TestParseTarget(t *testing.T) {
 				},
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+					End:   tfdiags.SourcePos{Line: 1, Column: 22, Byte: 21},
 				},
 			},
 			``,
@@ -432,7 +432,7 @@ func TestParseTarget(t *testing.T) {
 				},
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+					End:   tfdiags.SourcePos{Line: 1, Column: 25, Byte: 24},
 				},
 			},
 			``,
@@ -452,7 +452,7 @@ func TestParseTarget(t *testing.T) {
 				},
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+					End:   tfdiags.SourcePos{Line: 1, Column: 28, Byte: 27},
 				},
 			},
 			``,

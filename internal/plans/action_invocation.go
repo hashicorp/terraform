@@ -54,7 +54,6 @@ func (t LifecycleActionTrigger) String() string {
 	return t.TriggeringResourceAddr.String()
 }
 
-
 func (t LifecycleActionTrigger) Equals(other ActionTrigger) bool {
 	o, ok := other.(LifecycleActionTrigger)
 	if !ok {
@@ -66,6 +65,26 @@ func (t LifecycleActionTrigger) Equals(other ActionTrigger) bool {
 }
 
 var _ ActionTrigger = (*LifecycleActionTrigger)(nil)
+
+type InvokeCmdActionTrigger struct{}
+
+func (t InvokeCmdActionTrigger) actionTriggerSigil() {}
+
+func (t InvokeCmdActionTrigger) String() string {
+	return "CLI"
+}
+
+func (t InvokeCmdActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+	return configs.Invoke
+}
+
+func (t InvokeCmdActionTrigger) Equals(other ActionTrigger) bool {
+	_, ok := other.(InvokeCmdActionTrigger)
+	return ok
+}
+
+var _ ActionTrigger = (*InvokeCmdActionTrigger)(nil)
+
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.

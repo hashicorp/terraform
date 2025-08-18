@@ -1166,7 +1166,7 @@ action "test_unlinked" "hello" {}
 `,
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
+				Mode: plans.RefreshOnlyMode,
 				Targets: []addrs.Targetable{addrs.AbsActionInstance{
 					Action: addrs.ActionInstance{
 						Action: addrs.Action{

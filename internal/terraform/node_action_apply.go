@@ -25,10 +25,9 @@ type nodeActionApply struct {
 }
 
 var (
-	_ GraphNodeExecutable      = (*nodeActionApply)(nil)
-	_ GraphNodeReferencer      = (*nodeActionApply)(nil)
-	_ dag.GraphNodeDotter      = (*nodeActionApply)(nil)
-	_ GraphNodeActionProviders = (*nodeActionApply)(nil)
+	_ GraphNodeExecutable = (*nodeActionApply)(nil)
+	_ GraphNodeReferencer = (*nodeActionApply)(nil)
+	_ dag.GraphNodeDotter = (*nodeActionApply)(nil)
 )
 
 func (n *nodeActionApply) Name() string {
