@@ -45,6 +45,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // BackendOpts are the options used to initialize a backendrun.OperationsBackend.
@@ -2007,9 +2008,9 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	}
 
 	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
-		// TODO TerraformVersion: ,
-		Config: validateResp.PreparedConfig,
-		// TODO ClientCapabilities: ,
+		TerraformVersion: tfversion.String(),
+		Config:           providerConfigVal,
+		// TODO ClientCapabilities?
 	})
 	diags = diags.Append(configureResp.Diagnostics)
 	if configureResp.Diagnostics.HasErrors() {
