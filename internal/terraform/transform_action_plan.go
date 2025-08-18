@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
 type ActionPlanTransformer struct {
@@ -29,7 +30,7 @@ func (t *ActionPlanTransformer) transform(g *Graph, config *configs.Config) erro
 		return err
 	}
 
-	// Transform all the children without generating config.
+	// Transform all the children.
 	for _, c := range config.Children {
 		if err := t.transform(g, c); err != nil {
 			return err
@@ -66,14 +67,15 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 		priorNodes := []*nodeActionTriggerPlanExpand{}
 		for i, at := range r.Managed.ActionTriggers {
 			for j, action := range at.Actions {
-				ref, parseRefDiags := addrs.ParseRef(action.Traversal)
+				ref, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
 				if parseRefDiags != nil {
 					return parseRefDiags.Err()
 				}
+
 				var instance addrs.ConfigAction
 				actionInstanceKey := addrs.NoKey
 
-				switch ai := ref.Subject.(type) {
+				switch ai := ref[0].Subject.(type) {
 				case addrs.Action:
 					instance = ai.InModule(config.Path)
 				case addrs.ActionInstance:
@@ -105,7 +107,7 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 						resourceAddress:         resourceAddr,
 						actionTriggerBlockIndex: i,
 						actionListIndex:         j,
-						invokingSubject:         action.Traversal.SourceRange().Ptr(),
+						invokingSubject:         action.Expr.Range().Ptr(),
 					},
 				}
 
