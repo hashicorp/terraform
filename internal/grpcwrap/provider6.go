@@ -911,19 +911,104 @@ func (p *provider6) ListResource(req *tfplugin6.ListResource_Request, res tfplug
 }
 
 func (p *provider6) ValidateStateStoreConfig(ctx context.Context, req *tfplugin6.ValidateStateStore_Request) (*tfplugin6.ValidateStateStore_Response, error) {
-	panic("not implemented")
+	resp := &tfplugin6.ValidateStateStore_Response{}
+
+	storeSchema, exists := p.schema.StateStores[req.TypeName]
+	if !exists {
+		err := fmt.Errorf(
+			"State store not implemented by the provider: State store %q is not implemented in the provider",
+			req.TypeName,
+		)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, err
+	}
+
+	ty := storeSchema.Body.ImpliedType()
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	prepareResp := p.provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, prepareResp.Diagnostics)
+	return resp, nil
 }
 
 func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.ConfigureStateStore_Request) (*tfplugin6.ConfigureStateStore_Response, error) {
-	panic("not implemented")
+	resp := &tfplugin6.ConfigureStateStore_Response{}
+
+	storeSchema, exists := p.schema.StateStores[req.TypeName]
+	if !exists {
+		err := fmt.Errorf(
+			"State store not implemented by the provider: State store %q is not implemented in the provider",
+			req.TypeName,
+		)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, err
+	}
+
+	ty := storeSchema.Body.ImpliedType()
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	configureResp := p.provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, configureResp.Diagnostics)
+	return resp, nil
 }
 
 func (p *provider6) GetStates(ctx context.Context, req *tfplugin6.GetStates_Request) (*tfplugin6.GetStates_Response, error) {
-	panic("not implemented")
+	resp := &tfplugin6.GetStates_Response{}
+
+	_, exists := p.schema.StateStores[req.TypeName]
+	if !exists {
+		err := fmt.Errorf(
+			"State store not implemented by the provider: State store %q is not implemented in the provider",
+			req.TypeName,
+		)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, err
+	}
+
+	getStatesResp := p.provider.GetStates(providers.GetStatesRequest{
+		TypeName: req.TypeName,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, getStatesResp.Diagnostics)
+	return resp, nil
 }
 
 func (p *provider6) DeleteState(ctx context.Context, req *tfplugin6.DeleteState_Request) (*tfplugin6.DeleteState_Response, error) {
-	panic("not implemented")
+	resp := &tfplugin6.DeleteState_Response{}
+
+	_, exists := p.schema.StateStores[req.TypeName]
+	if !exists {
+		err := fmt.Errorf(
+			"State store not implemented by the provider: State store %q is not implemented in the provider",
+			req.TypeName,
+		)
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, err
+	}
+
+	deleteStateResp := p.provider.DeleteState(providers.DeleteStateRequest{
+		TypeName: req.TypeName,
+		StateId:  req.StateId,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, deleteStateResp.Diagnostics)
+	return resp, nil
 }
 
 func (p *provider6) PlanAction(_ context.Context, req *tfplugin6.PlanAction_Request) (*tfplugin6.PlanAction_Response, error) {
