@@ -6,9 +6,11 @@ package jsonplan
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -160,4 +162,55 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 		}
 	}
 	return ai, nil
+}
+
+// DeferredActionInvocation is a description of an action invocation that has been
+// deferred for some reason.
+type DeferredActionInvocation struct {
+	// Reason is the reason why this action was deferred.
+	Reason string `json:"reason"`
+
+	// Change contains any information we have about the deferred change.
+	ActionInvocation ActionInvocation `json:"action_invocation"`
+}
+
+func MarshalDeferredActionInvocations(dais []*plans.DeferredActionInvocationSrc, schemas *terraform.Schemas) ([]DeferredActionInvocation, error) {
+	var deferredInvocations []DeferredActionInvocation
+
+	sortedActions := append([]*plans.DeferredActionInvocationSrc{}, dais...)
+	sort.Slice(sortedActions, func(i, j int) bool {
+		return sortedActions[i].ActionInvocationInstanceSrc.Less(sortedActions[j].ActionInvocationInstanceSrc)
+	})
+
+	for _, daiSrc := range dais {
+		ai, err := MarshalActionInvocation(daiSrc.ActionInvocationInstanceSrc, schemas)
+		if err != nil {
+			return nil, err
+		}
+
+		dai := DeferredActionInvocation{
+			ActionInvocation: ai,
+		}
+		switch daiSrc.DeferredReason {
+		case providers.DeferredReasonInstanceCountUnknown:
+			dai.Reason = DeferredReasonInstanceCountUnknown
+		case providers.DeferredReasonResourceConfigUnknown:
+			dai.Reason = DeferredReasonResourceConfigUnknown
+		case providers.DeferredReasonProviderConfigUnknown:
+			dai.Reason = DeferredReasonProviderConfigUnknown
+		case providers.DeferredReasonAbsentPrereq:
+			dai.Reason = DeferredReasonAbsentPrereq
+		case providers.DeferredReasonDeferredPrereq:
+			dai.Reason = DeferredReasonDeferredPrereq
+		default:
+			// If we find a reason we don't know about, we'll just mark it as
+			// unknown. This is a bit of a safety net to ensure that we don't
+			// break if new reasons are introduced in future versions of the
+			// provider protocol.
+			dai.Reason = DeferredReasonUnknown
+		}
+
+		deferredInvocations = append(deferredInvocations, dai)
+	}
+	return deferredInvocations, nil
 }

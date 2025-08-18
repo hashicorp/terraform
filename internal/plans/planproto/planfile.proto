@@ -80,6 +80,12 @@ message Plan {
     // in this list.
     repeated DeferredResourceInstanceChange deferred_changes = 27;
 
+    // An unordered set of deferred action invocations. These are action invocations that will be
+    // applied in a subsequent plan, but were deferred in this plan for some
+    // reason. Generally, if complete is set to false there should be entries
+    // in this list.
+    repeated DeferredActionInvocation deferred_action_invocations = 31;
+    
     // An unordered set of proposed changes to outputs in the root module
     // of the configuration. This set also includes "no action" changes for
     // outputs that are not changing, as context for detecting inconsistencies
@@ -300,6 +306,18 @@ message DeferredResourceInstanceChange {
 
     // The original change that was deferred.
     ResourceInstanceChange change = 2;
+}
+
+// DeferredActionInvocation represents an action invocation that
+// was deferred for some reason.
+// It contains the original action invocation that was deferred, along with the reason
+// why it was deferred.
+message DeferredActionInvocation {
+    // The reason why the action invocation was deferred.
+    Deferred deferred = 1;
+
+    // The original action invocation that was deferred.
+    ActionInvocationInstance action_invocation = 2;
 }
 
 message OutputChange {

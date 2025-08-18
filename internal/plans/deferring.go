@@ -52,3 +52,47 @@ func (rcs *DeferredResourceInstanceChange) Encode(schema providers.Schema) (*Def
 		ChangeSrc:      change,
 	}, nil
 }
+
+// DeferredActionInvocation tracks information about an action invocation
+// that has been deferred for some reason.
+type DeferredActionInvocation struct {
+	// DeferredReason is the reason why this action invocation was deferred.
+	DeferredReason providers.DeferredReason
+
+	// ActionInvocationInstance is the instance of the action invocation that was deferred.
+	ActionInvocationInstance *ActionInvocationInstance
+}
+
+func (dai *DeferredActionInvocation) Encode(schema *providers.ActionSchema) (*DeferredActionInvocationSrc, error) {
+	src, err := dai.ActionInvocationInstance.Encode(schema)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DeferredActionInvocationSrc{
+		DeferredReason:              dai.DeferredReason,
+		ActionInvocationInstanceSrc: src,
+	}, nil
+}
+
+// DeferredActionInvocationSrc tracks information about an action invocation
+// that has been deferred for some reason.
+type DeferredActionInvocationSrc struct {
+	// DeferredReason is the reason why this action invocation was deferred.
+	DeferredReason providers.DeferredReason
+
+	// ActionInvocationInstanceSrc is the instance of the action invocation that was deferred.
+	ActionInvocationInstanceSrc *ActionInvocationInstanceSrc
+}
+
+func (dais *DeferredActionInvocationSrc) Decode(schema *providers.ActionSchema) (*DeferredActionInvocation, error) {
+	instance, err := dais.ActionInvocationInstanceSrc.Decode(schema)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DeferredActionInvocation{
+		DeferredReason:           dais.DeferredReason,
+		ActionInvocationInstance: instance,
+	}, nil
+}
