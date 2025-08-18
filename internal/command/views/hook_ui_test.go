@@ -144,8 +144,7 @@ test_instance.foo: Still modifying... [id=test, 00m03s elapsed]
 `
 		result := done(t)
 		output := result.Stdout()
-		// we do not test for equality because time.Sleep can take longer than declared time
-		if !strings.HasPrefix(output, expectedOutput) {
+		if output != expectedOutput {
 			t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
 		}
 
