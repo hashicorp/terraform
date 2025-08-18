@@ -1,0 +1,5 @@
+kind: UPGRADE NOTES
+body: 'Building Terraform 1.14 requires macOS Monterey or later (due to being built on Go 1.25 which imposes these requirements)'
+time: 2025-08-14T16:27:52.659896+02:00
+custom:
+    Issue: "37436"
