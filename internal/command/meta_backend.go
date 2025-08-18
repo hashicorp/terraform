@@ -229,12 +229,15 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 // if the currently selected workspace is valid. If not, it will ask
 // the user to select a workspace from the list.
 func (m *Meta) selectWorkspace(b backend.Backend) error {
-	workspaces, err := b.Workspaces()
-	if err == backend.ErrWorkspacesNotSupported {
+	workspaces, diags := b.Workspaces()
+	if diags.HasErrors() && diags.Err().Error() == backend.ErrWorkspacesNotSupported.Error() {
 		return nil
 	}
-	if err != nil {
-		return fmt.Errorf("Failed to get existing workspaces: %s", err)
+	if diags.HasErrors() {
+		return fmt.Errorf("Failed to get existing workspaces: %s", diags.Err())
+	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] selectWorkspace: warning(s) returned when getting workspaces: %s", diags.ErrWithWarnings())
 	}
 	if len(workspaces) == 0 {
 		if c, ok := b.(*cloud.Cloud); ok && m.input {
@@ -1161,14 +1164,15 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 
 	// Grab a purely local backend to get the local state if it exists
 	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+	diags = diags.Append(localBDiags)
 	if localBDiags.HasErrors() {
-		diags = diags.Append(localBDiags)
 		return nil, diags
 	}
 
-	workspaces, err := localB.Workspaces()
-	if err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+	workspaces, wDiags := localB.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf(errBackendLocalRead, wDiags.Err()))
 		return nil, diags
 	}
 
@@ -1208,7 +1212,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 
 	if len(localStates) > 0 {
 		// Perform the migration
-		err = m.backendMigrateState(&backendMigrateOpts{
+		err := m.backendMigrateState(&backendMigrateOpts{
 			SourceType:      "local",
 			DestinationType: c.Type,
 			Source:          localB,
@@ -1269,7 +1273,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		Type: c.Type,
 		Hash: uint64(cHash),
 	}
-	err = s.Backend.SetConfig(configVal, b.ConfigSchema())
+	err := s.Backend.SetConfig(configVal, b.ConfigSchema())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
 		return nil, diags

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 )
@@ -47,9 +48,9 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// If we need to force-unlock, but for some reason the state no longer
 	// exists, the user will have to use aws tools to manually fix the
 	// situation.
-	existing, err := b.Workspaces()
-	if err != nil {
-		return nil, err
+	existing, diags := b.Workspaces()
+	if diags.HasErrors() {
+		return nil, diags.Err()
 	}
 
 	exists := false
@@ -133,7 +134,9 @@ func (b *Backend) configureRemoteClient() error {
 	return nil
 }
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	logger := logWithOperation("listWorkspaces")
 	const maxKeys = 1000
 
@@ -143,7 +146,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	if b.client == nil {
 		err := b.configureRemoteClient()
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 	}
 	for {
@@ -157,7 +160,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 		listObjectResponse, err := b.client.objectStorageClient.ListObjects(ctx, listObjectReq)
 		if err != nil {
 			logger.Error("Failed to list workspaces in Object Storage backend: %v", err)
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		for _, object := range listObjectResponse.Objects {
@@ -179,23 +182,24 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	}
 
-	return uniqueStrings(wss), nil
+	return uniqueStrings(wss), diags
 }
 
-func (b *Backend) DeleteWorkspace(name string, force bool) error {
+func (b *Backend) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 	if b.client == nil {
 		err := b.configureRemoteClient()
 		if err != nil {
-			return err
+			return diags.Append(err)
 		}
 	}
 
 	b.client.path = b.path(name)
 	b.client.lockFilePath = b.getLockFilePath(name)
-	return b.client.Delete()
+	return diags.Append(b.client.Delete())
 
 }

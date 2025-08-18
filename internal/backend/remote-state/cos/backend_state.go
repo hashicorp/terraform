@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Define file suffix
@@ -23,16 +24,18 @@ const (
 )
 
 // Workspaces returns a list of names for the workspaces
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	c, err := b.client("tencentcloud")
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	obs, err := c.getBucket(b.prefix)
 	log.Printf("[DEBUG] list all workspaces, objects: %v, error: %v", obs, err)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	ws := []string{backend.DefaultStateName}
@@ -56,23 +59,24 @@ func (b *Backend) Workspaces() ([]string, error) {
 	sort.Strings(ws[1:])
 	log.Printf("[DEBUG] list all workspaces, workspaces: %v", ws)
 
-	return ws, nil
+	return ws, diags
 }
 
 // DeleteWorkspace deletes the named workspaces. The "default" state cannot be deleted.
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] delete workspace, workspace: %v", name)
 
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("default state is not allow to delete")
+		return tfdiags.Diagnostics{}.Append(fmt.Errorf("default state is not allowed to be deleted"))
 	}
 
 	c, err := b.client(name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
-	return c.Delete()
+	return diags.Append(c.Delete())
 }
 
 // StateMgr manage the state, if the named state not exists, a new file will created
@@ -85,9 +89,9 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	}
 	stateMgr := &remote.State{Client: c}
 
-	ws, err := b.Workspaces()
-	if err != nil {
-		return nil, err
+	ws, diags := b.Workspaces()
+	if diags.HasErrors() {
+		return nil, diags.Err()
 	}
 
 	exists := false

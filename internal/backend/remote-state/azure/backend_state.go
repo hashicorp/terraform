@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/blobs"
 	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/containers"
 )
@@ -23,7 +24,8 @@ const (
 	keyEnvPrefix = "env:"
 )
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	prefix := b.keyName + keyEnvPrefix
 	params := containers.ListBlobsInput{
 		Prefix: &prefix,
@@ -32,11 +34,11 @@ func (b *Backend) Workspaces() ([]string, error) {
 	ctx := newCtx()
 	client, err := b.apiClient.getContainersClient(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving container client: %v", err)
+		return nil, diags.Append(fmt.Errorf("retrieving container client: %v", err))
 	}
 	resp, err := client.ListBlobs(ctx, b.containerName, params)
 	if err != nil {
-		return nil, fmt.Errorf("listing blobs: %v", err)
+		return nil, diags.Append(fmt.Errorf("listing blobs: %v", err))
 	}
 
 	envs := map[string]struct{}{}
@@ -58,27 +60,29 @@ func (b *Backend) Workspaces() ([]string, error) {
 		result = append(result, name)
 	}
 	sort.Strings(result[1:])
-	return result, nil
+	return result, diags
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	ctx := newCtx()
 	client, err := b.apiClient.getBlobClient(ctx)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
 	if resp, err := client.Delete(ctx, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
 		if !response.WasNotFound(resp.HttpResponse) {
-			return err
+			return diags.Append(err)
 		}
 	}
 
-	return nil
+	return diags
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {

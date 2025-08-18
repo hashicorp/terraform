@@ -254,8 +254,8 @@ func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	if _, err := b.Workspaces(); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
+	if _, diags := b.Workspaces(); !diags.HasErrors() || diags.Err().Error() != backend.ErrWorkspacesNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, diags.Err())
 	}
 
 	if _, err := b.StateMgr(backend.DefaultStateName); err != nil {
@@ -266,12 +266,12 @@ func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if diags := b.DeleteWorkspace(backend.DefaultStateName, true); diags.HasErrors() {
+		t.Fatalf("expected no error, got %v", diags.Err())
 	}
 
-	if err := b.DeleteWorkspace("prod", true); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
+	if diags := b.DeleteWorkspace("prod", true); !diags.HasErrors() || diags.Err().Error() != backend.ErrWorkspacesNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, diags.Err())
 	}
 }
 
@@ -279,9 +279,9 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 	b, bCleanup := testBackendNoDefault(t)
 	defer bCleanup()
 
-	states, err := b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces := []string(nil)
@@ -298,9 +298,9 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces = append(expectedWorkspaces, expectedA)
@@ -313,9 +313,9 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces = append(expectedWorkspaces, expectedB)
@@ -323,17 +323,17 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v, got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != backend.ErrDefaultWorkspaceNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, err)
+	if diags := b.DeleteWorkspace(backend.DefaultStateName, true); !diags.HasErrors() || diags.Err().Error() != backend.ErrDefaultWorkspaceNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, diags.Err())
 	}
 
-	if err := b.DeleteWorkspace(expectedA, true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace(expectedA, true); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces = []string{expectedB}
@@ -341,13 +341,13 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedB, true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace(expectedB, true); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces = []string(nil)

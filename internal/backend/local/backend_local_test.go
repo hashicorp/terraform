@@ -230,11 +230,11 @@ func (b backendWithStateStorageThatFailsRefresh) Configure(cty.Value) tfdiags.Di
 	return nil
 }
 
-func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string, force bool) error {
-	return fmt.Errorf("unimplemented")
+func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{}.Append(fmt.Errorf("unimplemented"))
 }
 
-func (b backendWithStateStorageThatFailsRefresh) Workspaces() ([]string, error) {
+func (b backendWithStateStorageThatFailsRefresh) Workspaces() ([]string, tfdiags.Diagnostics) {
 	return []string{"default"}, nil
 }
 
