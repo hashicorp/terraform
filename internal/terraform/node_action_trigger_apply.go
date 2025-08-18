@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -14,8 +15,9 @@ import (
 )
 
 type nodeActionTriggerApply struct {
-	ActionInvocation *plans.ActionInvocationInstanceSrc
-	resolvedProvider addrs.AbsProviderConfig
+	ActionInvocation   *plans.ActionInvocationInstanceSrc
+	resolvedProvider   addrs.AbsProviderConfig
+	ActionTriggerRange *hcl.Range
 }
 
 var (
@@ -34,40 +36,44 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 	// TODO: Handle verifying the condition here, if we have any.
 	ai := ctx.Changes().GetActionInvocation(actionInvocation.Addr, actionInvocation.ActionTrigger)
 	if ai == nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Action invocation not found in plan",
-			"Could not find action invocation for address "+actionInvocation.Addr.String(),
-		))
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action invocation not found in plan",
+			Detail:   "Could not find action invocation for address " + actionInvocation.Addr.String(),
+			Subject:  n.ActionTriggerRange,
+		})
 		return diags
 	}
 	actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
 	if !ok {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Action instance not found",
-			"Could not find action instance for address "+ai.Addr.String(),
-		))
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action instance not found",
+			Detail:   "Could not find action instance for address " + ai.Addr.String(),
+			Subject:  n.ActionTriggerRange,
+		})
 		return diags
 	}
 	provider, schema, err := getProvider(ctx, actionData.ProviderAddr)
 	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			fmt.Sprintf("Failed to get provider for %s", ai.Addr),
-			fmt.Sprintf("Failed to get provider: %s", err),
-		))
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Failed to get provider for %s", ai.Addr),
+			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
+			Subject:  n.ActionTriggerRange,
+		})
 		return diags
 	}
 
 	actionSchema, ok := schema.Actions[ai.Addr.Action.Action.Type]
 	if !ok {
 		// This should have been caught earlier
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			fmt.Sprintf("Action %s not found in provider schema", ai.Addr),
-			fmt.Sprintf("The action %s was not found in the provider schema for %s", ai.Addr.Action.Action.Type, actionData.ProviderAddr),
-		))
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Action %s not found in provider schema", ai.Addr),
+			Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", ai.Addr.Action.Action.Type, actionData.ProviderAddr),
+			Subject:  n.ActionTriggerRange,
+		})
 		return diags
 	}
 
@@ -77,14 +83,13 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 	// Validate that what we planned matches the action data we have.
 	errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, unmarkedConfigValue)
 	for _, err := range errs {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced inconsistent final plan",
-			fmt.Sprintf(
-				"When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				ai.Addr, actionData.ProviderAddr.Provider.String(), tfdiags.FormatError(err),
-			),
-		))
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider produced inconsistent final plan",
+			Detail: fmt.Sprintf("When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				ai.Addr, actionData.ProviderAddr.Provider.String(), tfdiags.FormatError(err)),
+			Subject: n.ActionTriggerRange,
+		})
 	}
 
 	hookIdentity := HookActionIdentity{
@@ -101,8 +106,12 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 
-	diags = diags.Append(resp.Diagnostics)
-	if resp.Diagnostics.HasErrors() {
+	respDiags := n.AddSubjectToDiagnostics(resp.Diagnostics)
+	diags = diags.Append(respDiags)
+	if respDiags.HasErrors() {
+		ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.CompleteAction(hookIdentity, respDiags.Err())
+		})
 		return diags
 	}
 
@@ -113,7 +122,8 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 				return h.ProgressAction(hookIdentity, ev.Message)
 			})
 		case providers.InvokeActionEvent_Completed:
-			diags = diags.Append(ev.Diagnostics)
+			// Enhance the diagnostics
+			diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
 			ctx.Hook(func(h Hook) (HookAction, error) {
 				return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
 			})
@@ -154,4 +164,26 @@ func (n *nodeActionTriggerApply) References() []*addrs.Reference {
 // GraphNodeModulePath
 func (n *nodeActionTriggerApply) ModulePath() addrs.Module {
 	return n.ActionInvocation.Addr.Module.Module()
+}
+
+func (n *nodeActionTriggerApply) AddSubjectToDiagnostics(input tfdiags.Diagnostics) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if len(input) > 0 {
+		severity := hcl.DiagWarning
+		message := "Warning when invoking action"
+		err := input.Warnings().ErrWithWarnings()
+		if input.HasErrors() {
+			severity = hcl.DiagError
+			message = "Error when invoking action"
+			err = input.ErrWithWarnings()
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: severity,
+			Summary:  message,
+			Detail:   err.Error(),
+			Subject:  n.ActionTriggerRange,
+		})
+	}
+	return diags
 }

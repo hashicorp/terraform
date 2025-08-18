@@ -100,12 +100,28 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 
-	// TODO: Deal with deferred responses
-	diags = diags.Append(resp.Diagnostics)
-	if diags.HasErrors() {
+	if len(resp.Diagnostics) > 0 {
+		severity := hcl.DiagWarning
+		message := "Warnings when planning action"
+		err := resp.Diagnostics.Warnings().ErrWithWarnings()
+		if resp.Diagnostics.HasErrors() {
+			severity = hcl.DiagError
+			message = "Failed to plan action"
+			err = resp.Diagnostics.ErrWithWarnings()
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: severity,
+			Summary:  message,
+			Detail:   err.Error(),
+			Subject:  n.lifecycleActionTrigger.invokingSubject,
+		})
+	}
+	if resp.Diagnostics.HasErrors() {
 		return diags
 	}
 
+	// TODO: Deal with deferred responses
 	ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
 		Addr:         n.actionAddress,
 		ProviderAddr: actionInstance.ProviderAddr,
