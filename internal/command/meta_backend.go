@@ -1670,38 +1670,15 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 				return nil, diags
 
 			case ws == backend.DefaultStateName:
-				// Should we create the default state after prompting the user, or not?
-				if m.Input() {
-					// If input is enabled, we prompt the user before creating the default workspace.
-					input := m.UIInput()
-					desc := fmt.Sprintf("Terraform will create the %q workspace via state store %q.\n"+
-						"Only 'yes' will be accepted to approve.", backend.DefaultStateName, c.Type)
-					v, err := input.Input(context.Background(), &terraform.InputOpts{
-						Id:          "approve",
-						Query:       fmt.Sprintf("Workspace the %s workspace does not exit, would you like to create it?", backend.DefaultStateName),
-						Description: desc,
-					})
-					if err != nil {
-						diags = diags.Append(fmt.Errorf("Failed to confirm %s workspace creation: %w", backend.DefaultStateName, err))
-						return nil, diags
-					}
-					if v != "yes" {
-						diags = diags.Append(fmt.Errorf("Cancelled creation of the %s workspace", backend.DefaultStateName))
-						return nil, diags
-					}
+				// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
+				if opts.CreateDefaultWorkspace {
 					m.createDefaultWorkspace(c, b)
 				} else {
-					// If input is disabled, we don't prompt before creating the default workspace.
-					// However this can be blocked with other flags present.
-					if opts.CreateDefaultWorkspace {
-						m.createDefaultWorkspace(c, b)
-					} else {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagWarning,
-							Summary:  "The default workspace does not exist",
-							Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. This may cause issues in subsequent Terraform operations",
-						})
-					}
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "The default workspace does not exist",
+						Detail:   "Terraform has been configured to skip creation of the default workspace in the state store.",
+					})
 				}
 			default:
 				diags = diags.Append(err)

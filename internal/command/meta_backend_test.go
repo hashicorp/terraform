@@ -2075,39 +2075,26 @@ func Test_determineInitReason(t *testing.T) {
 func TestMetaBackend_configureNewStateStore(t *testing.T) {
 	cases := map[string]struct {
 		// setup
-		isInitCommand bool
-
-		inputEnabled bool
-		inputText    string
-
+		isInitCommand          bool
 		createDefaultWorkspace bool
 		// assertions
 		expectedError                string
 		expectDefaultWorkspaceExists bool
 	}{
-		"an init command prompts users for input when the default workspace needs to be created": {
-			inputEnabled:                 true,
-			createDefaultWorkspace:       true,
-			inputText:                    "yes",
-			isInitCommand:                true,
-			expectDefaultWorkspaceExists: true,
-		},
-		"an init command with input disabled will create the default workspace automatically": {
-			inputEnabled:                 false,
+		"an init command creates the default workspace by default": {
 			createDefaultWorkspace:       true,
 			isInitCommand:                true,
 			expectDefaultWorkspaceExists: true,
 		},
-		"an init command with input disabled and the flag -create-default-workspace=false will not make the default workspace": {
-			inputEnabled:                 false,
+		"an init command with the flag -create-default-workspace=false will not make the default workspace": {
 			createDefaultWorkspace:       false,
 			isInitCommand:                true,
 			expectDefaultWorkspaceExists: false,
 		},
-		// "during a non-init command, the command ends in with an error telling the user to run an init command": {
-		// 	isInitCommand: false,
-		// 	expectedError: "State store initialization required, please run \"terraform init\": Reason: Initial configuration of the requested state_store \"foo_bar\" in provider foo (\"registry.terraform.io/my-org/foo\")",
-		// },
+		"during a non-init command, the command ends in with an error telling the user to run an init command": {
+			isInitCommand: false,
+			expectedError: "State store initialization required, please run \"terraform init\": Reason: Initial configuration of the requested state_store \"foo_bar\" in provider foo (\"registry.terraform.io/my-org/foo\")",
+		},
 	}
 
 	for tn, tc := range cases {
@@ -2119,10 +2106,6 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			// Setup the meta
 			m := testMetaBackend(t, nil)
 			m.AllowExperimentalFeatures = true
-			m.input = tc.inputEnabled
-			if tc.inputEnabled {
-				defer testInteractiveInput(t, []string{tc.inputText})()
-			}
 
 			// Get the state store's config
 			mod, loadDiags := m.loadSingleModule(td)
