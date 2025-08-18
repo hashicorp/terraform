@@ -665,7 +665,6 @@ resource "test_object" "e" {
 		},
 
 		"failing actions cancel next ones": {
-			toBeImplemented: true, // TODO: Look into this
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "failure" {}
