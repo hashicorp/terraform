@@ -23,6 +23,11 @@ type ActionInvocationInstance struct {
 	ConfigValue cty.Value
 }
 
+func (ai *ActionInvocationInstance) Equals(other *ActionInvocationInstance) bool {
+	// Since the trigger can be the same if it's a CLI invocation we also compare the action addr
+	return ai.Addr.Equal(other.Addr) && ai.ActionTrigger.Equals(other.ActionTrigger)
+}
+
 type ActionTrigger interface {
 	actionTriggerSigil()
 
