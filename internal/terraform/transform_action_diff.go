@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -33,6 +35,28 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 		// Add nodes for each action invocation
 		node := &nodeActionTriggerApply{
 			ActionInvocation: action,
+		}
+
+		// If the action invocations is triggered within the lifecycle of a resource
+		// we want to add information about the source location to the apply node
+		if at, ok := action.ActionTrigger.(plans.LifecycleActionTrigger); ok {
+			moduleInstance := t.Config.DescendantForInstance(at.TriggeringResourceAddr.Module)
+			if moduleInstance == nil {
+				panic(fmt.Sprintf("Could not find module instance for resource %s in config", at.TriggeringResourceAddr.String()))
+			}
+
+			resourceInstance := moduleInstance.Module.ResourceByAddr(at.TriggeringResourceAddr.Resource.Resource)
+			if resourceInstance == nil {
+				panic(fmt.Sprintf("Could not find resource instance for resource %s in config", at.TriggeringResourceAddr.String()))
+			}
+
+			triggerBlock := resourceInstance.Managed.ActionTriggers[at.ActionTriggerBlockIndex]
+			if triggerBlock == nil {
+				panic(fmt.Sprintf("Could not find action trigger block %d for resource %s in config", at.ActionTriggerBlockIndex, at.TriggeringResourceAddr.String()))
+			}
+
+			act := triggerBlock.Actions[at.ActionsListIndex]
+			node.ActionTriggerRange = &act.Range
 		}
 
 		g.Add(node)

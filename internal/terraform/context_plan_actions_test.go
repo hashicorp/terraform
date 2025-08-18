@@ -692,9 +692,81 @@ resource "test_object" "a" {
 			expectPlanActionCalled: true,
 			// We only expect a single diagnostic here, the other should not have been called because the first one failed.
 			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{
-					tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
-				}
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to plan action",
+						Detail:   "Planning failed: Test case simulates an error while planning",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 8, Byte: 149},
+							End:      hcl.Pos{Line: 7, Column: 46, Byte: 177},
+						},
+					},
+				)
+			},
+		},
+
+		"actions with warnings don't cancel": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "failure" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.failure, action.test_unlinked.failure]
+    }
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.failure]
+    }
+  }
+}
+`,
+			},
+
+			planActionResponse: &providers.PlanActionResponse{
+				Diagnostics: tfdiags.Diagnostics{
+					tfdiags.Sourceless(tfdiags.Warning, "Warning during planning", "Test case simulates a warning while planning"),
+				},
+			},
+
+			expectPlanActionCalled: true,
+			// We only expect a single diagnostic here, the other should not have been called because the first one failed.
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Warnings when planning action",
+						Detail:   "Warning during planning: Test case simulates a warning while planning",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 8, Byte: 149},
+							End:      hcl.Pos{Line: 7, Column: 46, Byte: 177},
+						},
+					},
+					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Warnings when planning action",
+						Detail:   "Warning during planning: Test case simulates a warning while planning",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 48, Byte: 179},
+							End:      hcl.Pos{Line: 7, Column: 76, Byte: 207},
+						},
+					},
+					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Warnings when planning action",
+						Detail:   "Warning during planning: Test case simulates a warning while planning",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 11, Column: 8, Byte: 284},
+							End:      hcl.Pos{Line: 11, Column: 46, Byte: 312},
+						},
+					},
+				)
 			},
 		},
 
