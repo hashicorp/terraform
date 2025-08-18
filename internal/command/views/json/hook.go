@@ -373,17 +373,16 @@ func (h *actionStart) String() string {
 }
 
 func NewActionStart(id terraform.HookActionIdentity) Hook {
-	switch id.ActionTrigger.(type) {
-	case plans.LifecycleActionTrigger:
-		at := id.ActionTrigger.(plans.LifecycleActionTrigger)
-		return &actionStart{
-			TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
-			TriggerIndex:       at.ActionTriggerBlockIndex,
-			ActionsIndex:       at.ActionsListIndex,
-			Action:             newActionAddr(id.Addr),
-		}
-	default:
-		return &actionStart{}
+	at, ok := id.ActionTrigger.(plans.LifecycleActionTrigger)
+	if !ok {
+		panic("invalid action trigger")
+	}
+
+	return &actionStart{
+		TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
+		TriggerIndex:       at.ActionTriggerBlockIndex,
+		ActionsIndex:       at.ActionsListIndex,
+		Action:             newActionAddr(id.Addr),
 	}
 }
 
@@ -406,18 +405,16 @@ func (h *actionProgress) String() string {
 }
 
 func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
-	switch id.ActionTrigger.(type) {
-	case plans.LifecycleActionTrigger:
-		at := id.ActionTrigger.(plans.LifecycleActionTrigger)
-		return &actionProgress{
-			TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
-			TriggerIndex:       at.ActionTriggerBlockIndex,
-			ActionsIndex:       at.ActionsListIndex,
-			Action:             newActionAddr(id.Addr),
-			Message:            message,
-		}
-	default:
-		return &actionProgress{}
+	at, ok := id.ActionTrigger.(plans.LifecycleActionTrigger)
+	if !ok {
+		panic("invalid action trigger")
+	}
+	return &actionProgress{
+		TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
+		TriggerIndex:       at.ActionTriggerBlockIndex,
+		ActionsIndex:       at.ActionsListIndex,
+		Action:             newActionAddr(id.Addr),
+		Message:            message,
 	}
 }
 
@@ -439,17 +436,15 @@ func (h *actionComplete) String() string {
 }
 
 func NewActionComplete(id terraform.HookActionIdentity) Hook {
-	switch id.ActionTrigger.(type) {
-	case plans.LifecycleActionTrigger:
-		at := id.ActionTrigger.(plans.LifecycleActionTrigger)
-		return &actionComplete{
-			TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
-			TriggerIndex:       at.ActionTriggerBlockIndex,
-			ActionsIndex:       at.ActionsListIndex,
-			Action:             newActionAddr(id.Addr),
-		}
-	default:
-		return &actionComplete{}
+	at, ok := id.ActionTrigger.(plans.LifecycleActionTrigger)
+	if !ok {
+		panic("invalid action trigger")
+	}
+	return &actionComplete{
+		TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
+		TriggerIndex:       at.ActionTriggerBlockIndex,
+		ActionsIndex:       at.ActionsListIndex,
+		Action:             newActionAddr(id.Addr),
 	}
 }
 
@@ -472,20 +467,16 @@ func (h *actionErrored) String() string {
 }
 
 func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
-	switch id.ActionTrigger.(type) {
-	case plans.LifecycleActionTrigger:
-		at := id.ActionTrigger.(plans.LifecycleActionTrigger)
-		return &actionErrored{
-			TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
-			TriggerIndex:       at.ActionTriggerBlockIndex,
-			ActionsIndex:       at.ActionsListIndex,
-			Action:             newActionAddr(id.Addr),
-			Error:              err.Error(),
-		}
-	default:
-		return &actionErrored{
-			Error: err.Error(),
-		}
+	at, ok := id.ActionTrigger.(plans.LifecycleActionTrigger)
+	if !ok {
+		panic("invalid action trigger")
+	}
+	return &actionErrored{
+		TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
+		TriggerIndex:       at.ActionTriggerBlockIndex,
+		ActionsIndex:       at.ActionsListIndex,
+		Action:             newActionAddr(id.Addr),
+		Error:              err.Error(),
 	}
 }
 

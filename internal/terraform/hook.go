@@ -38,8 +38,6 @@ type HookResourceIdentity struct {
 type HookActionIdentity struct {
 	Addr addrs.AbsActionInstance
 
-	// If run as part of a plan / apply we also have the values below
-	// (if CLI triggered they are not applicable)
 	ActionTrigger plans.ActionTrigger
 }
 

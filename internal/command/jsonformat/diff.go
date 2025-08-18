@@ -66,11 +66,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 		after := []jsonplan.ActionInvocation{}
 
 		for _, action := range plan.ActionInvocations {
-			if action.LifecycleActionTrigger == nil {
-				continue
-			}
-
-			if action.LifecycleActionTrigger.TriggeringResourceAddress != change.Address {
+			if action.LifecycleActionTrigger == nil || action.LifecycleActionTrigger.TriggeringResourceAddress != change.Address {
 				continue
 			}
 

@@ -400,11 +400,16 @@ Options:
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
+                         Legacy option for the local backend only. See the local
+                         backend's documentation for more information.
 
   -state-out=path        Path to write state to that is different than
                          "-state". This can be used to preserve the old
                          state.
+                         Legacy option for the local backend only. See the local
+                         backend's documentation for more information.
 
+                         
   -var 'foo=bar'         Set a value for one of the input variables in the root
                          module of the configuration. Use this option more than
                          once to set more than one variable.

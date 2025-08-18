@@ -128,6 +128,8 @@ func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, sche
 			ai.InvokeCmdActionTrigger = &InvokeCmdActionTrigger{
 				ActionTriggerEvent: at.TriggerEvent().String(),
 			}
+		default:
+			return ret, fmt.Errorf("unsupported action trigger type: %T", at)
 		}
 
 		if actionDec.ConfigValue != cty.NilVal {

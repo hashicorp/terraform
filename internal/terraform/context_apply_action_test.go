@@ -643,7 +643,6 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 		},
-
 		"targeted unreferenced action": {
 			module: map[string]string{
 				"main.tf": `
@@ -674,8 +673,202 @@ action "act_unlinked" "hello" {}
 			}},
 			expectInvokeActionCalled: true,
 		},
+		"after_create with config cycle": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_object_a"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("test_object_a"),
+				}),
+			}},
+		},
+
+		"triggered within module": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"triggered within module instance": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    count = 2
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"provider is within module": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+provider "act" {
+    alias = "inthemodule"
+}
+action "act_unlinked" "hello" {
+  provider = act.inthemodule
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"action for_each": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  for_each = toset(["a", "b"])
+  
+  config {
+    attr = "value-${each.key}"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello["a"], action.act_unlinked.hello["b"]]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-a"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-b"),
+				}),
+			}},
+		},
+
+		"action count": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  count = 2
+
+  config {
+    attr = "value-${count.index}"
+  }
+}
+
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello[0], action.act_unlinked.hello[1]]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-0"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-1"),
+				}),
+			}},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
+			if tc.toBeImplemented {
+				t.Skip("This test is not implemented yet")
+			}
+
 			m := testModuleInline(t, tc.module)
 
 			invokeActionCalls := []providers.InvokeActionRequest{}

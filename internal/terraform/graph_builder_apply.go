@@ -151,6 +151,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Config:   b.Config,
 		},
 
+		&ActionDiffTransformer{
+			Changes: b.Changes,
+			Config:  b.Config,
+		},
+
 		// Creates nodes for all the deferred changes.
 		&DeferredTransformer{
 			DeferredChanges: b.DeferredChanges,
