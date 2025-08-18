@@ -22,13 +22,12 @@ import (
 )
 
 func TestContextPlan_actions(t *testing.T) {
-
 	for name, tc := range map[string]struct {
-		toBeImplemented    bool
-		module             map[string]string
-		buildState         func(*states.SyncState)
-		planActionResponse *providers.PlanActionResponse
-		planOpts           *PlanOpts
+		toBeImplemented bool
+		module          map[string]string
+		buildState      func(*states.SyncState)
+		planActionFn    func(providers.PlanActionRequest) providers.PlanActionResponse
+		planOpts        *PlanOpts
 
 		expectPlanActionCalled bool
 
@@ -683,10 +682,12 @@ resource "test_object" "a" {
 `,
 			},
 
-			planActionResponse: &providers.PlanActionResponse{
-				Diagnostics: tfdiags.Diagnostics{
-					tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
-				},
+			planActionFn: func(_ providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
+					},
+				}
 			},
 
 			expectPlanActionCalled: true,
@@ -1421,8 +1422,8 @@ resource "test_object" "a" {
 				},
 			}
 
-			if tc.planActionResponse != nil {
-				p.PlanActionResponse = *tc.planActionResponse
+			if tc.planActionFn != nil {
+				p.PlanActionFn = tc.planActionFn
 			}
 
 			ctx := testContext2(t, &ContextOpts{
