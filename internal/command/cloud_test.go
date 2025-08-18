@@ -135,7 +135,7 @@ func TestCloud_withBackendConfig(t *testing.T) {
 
 	// Initialize the backend
 	ic := &InitCommand{
-		Meta{
+		Meta: Meta{
 			Ui:               ui,
 			View:             view,
 			testingOverrides: metaOverridesForProvider(testProvider()),

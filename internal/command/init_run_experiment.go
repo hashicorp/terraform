@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -22,7 +21,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
+// `runPssInit` is an altered version of the logic in `run` that contains changes
+// related to the PSS project. This is used by the (InitCommand.Run method only if Terraform has
+// experimental features enabled.
+func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int {
 	var diags tfdiags.Diagnostics
 
 	c.forceInitCopy = initArgs.ForceInitCopy
@@ -142,34 +144,69 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		return 1
 	}
-	if !c.Meta.AllowExperimentalFeatures && rootModEarly.StateStore != nil {
-		// TODO(SarahFrench/radeksimko) - remove when this feature isn't experimental.
-		// This approach for making the feature experimental is required
-		// to let us assert the feature is gated behind an experiment in tests.
-		// See https://github.com/hashicorp/terraform/pull/37350#issuecomment-3168555619
-		diags = diags.Append(earlyConfDiags)
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported block type",
-			Detail:   "Blocks of type \"state_store\" are not expected here.",
-			Subject:  &rootModEarly.StateStore.TypeRange,
-		})
-		view.Diagnostics(diags)
 
+	if initArgs.Get {
+		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
+		diags = diags.Append(modsDiags)
+		if modsAbort || modsDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+		if modsOutput {
+			header = true
+		}
+	}
+
+	// With all of the modules (hopefully) installed, we can now try to load the
+	// whole configuration tree.
+	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
+	// configDiags will be handled after the version constraint check, since an
+	// incorrect version of terraform may be producing errors for configuration
+	// constructs added in later versions.
+
+	// Before we go further, we'll check to make sure none of the modules in
+	// the configuration declare that they don't support this Terraform
+	// version, so we can produce a version-related error message rather than
+	// potentially-confusing downstream errors.
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
+	if versionDiags.HasErrors() {
+		view.Diagnostics(versionDiags)
 		return 1
+	}
+
+	// Now the full configuration is loaded, we can download the providers specified in the configuration.
+	// This is step one of a two-step provider download process
+	// Providers may be downloaded by this code, but the dependency lock file is only updated later in `init`
+	// after step two of provider download is complete.
+	previousLocks, moreDiags := c.lockedDependencies()
+	diags = diags.Append(moreDiags)
+
+	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	diags = diags.Append(configProviderDiags)
+	if configProviderDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+	if configProvidersOutput {
+		header = true
+	}
+
+	// If we outputted information, then we need to output a newline
+	// so that our success message is nicely spaced out from prior text.
+	if header {
+		view.Output(views.EmptyMessage)
 	}
 
 	var back backend.Backend
 
-	// There may be config errors or backend init errors but these will be shown later _after_
-	// checking for core version requirement errors.
 	var backDiags tfdiags.Diagnostics
 	var backendOutput bool
-
 	switch {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
+		// TODO(SarahFrench/radeksimko) - pass information about config locks (`configLocks`) into initBackend to
+		// enable PSS
 		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	default:
 		// load the previously-stored backend config
@@ -177,6 +214,11 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	}
 	if backendOutput {
 		header = true
+	}
+	if header {
+		// If we outputted information, then we need to output a newline
+		// so that our success message is nicely spaced out from prior text.
+		view.Output(views.EmptyMessage)
 	}
 
 	var state *states.State
@@ -208,40 +250,41 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		state = sMgr.State()
 	}
 
-	if initArgs.Get {
-		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
-		diags = diags.Append(modsDiags)
-		if modsAbort || modsDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-		if modsOutput {
-			header = true
-		}
-	}
-
-	// With all of the modules (hopefully) installed, we can now try to load the
-	// whole configuration tree.
-	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
-	// configDiags will be handled after the version constraint check, since an
-	// incorrect version of terraform may be producing errors for configuration
-	// constructs added in later versions.
-
-	// Before we go further, we'll check to make sure none of the modules in
-	// the configuration declare that they don't support this Terraform
-	// version, so we can produce a version-related error message rather than
-	// potentially-confusing downstream errors.
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	if versionDiags.HasErrors() {
-		view.Diagnostics(versionDiags)
+	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
+	// This is step two of a two-step provider download process
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	diags = diags.Append(configProviderDiags)
+	if stateProvidersDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
+	if stateProvidersOutput {
+		header = true
+	}
+	if header {
+		// If we outputted information, then we need to output a newline
+		// so that our success message is nicely spaced out from prior text.
+		view.Output(views.EmptyMessage)
+	}
 
-	// We've passed the core version check, now we can show errors from the
-	// configuration and backend initialisation.
+	// Now the two steps of provider download have happened, update the dependency lock file if it has changed.
+	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, configLocks, stateLocks, initArgs.Lockfile, view)
+	diags = diags.Append(lockFileDiags)
+	if lockFileDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+	if lockFileOutput {
+		header = true
+	}
+	if header {
+		// If we outputted information, then we need to output a newline
+		// so that our success message is nicely spaced out from prior text.
+		view.Output(views.EmptyMessage)
+	}
 
-	// Now, we can check the diagnostics from the early configuration and the
-	// backend.
+	// As Terraform version-related diagnostics are handled above, we can now
+	// check the diagnostics from the early configuration and the backend.
 	diags = diags.Append(earlyConfDiags)
 	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
@@ -275,23 +318,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 				return 1
 			}
 		}
-	}
-
-	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
-	diags = diags.Append(providerDiags)
-	if providersAbort || providerDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-	if providersOutput {
-		header = true
-	}
-
-	// If we outputted information, then we need to output a newline
-	// so that our success message is nicely spaced out from prior text.
-	if header {
-		view.Output(views.EmptyMessage)
 	}
 
 	// If we accumulated any warnings along the way that weren't accompanied
