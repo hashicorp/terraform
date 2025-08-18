@@ -800,9 +800,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
-	deferredResources, deferredDiags := c.deferredResources(config, walker.Deferrals.GetDeferredChanges(), priorState)
-	diags = diags.Append(deferredDiags)
-
 	var forgottenResources []string
 	for _, rc := range changes.Resources {
 		if rc.Action == plans.Forget {
@@ -832,7 +829,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		UIMode:             opts.Mode,
 		Changes:            changesSrc,
 		DriftedResources:   driftedResources,
-		DeferredResources:  deferredResources,
 		PrevRunState:       prevRunState,
 		PriorState:         priorState,
 		ExternalReferences: opts.ExternalReferences,
@@ -842,6 +838,16 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		FunctionResults:    funcResults.GetHashes(),
 
 		// Other fields get populated by Context.Plan after we return
+	}
+
+	if !schemaDiags.HasErrors() {
+		deferredResources, deferredDiags := c.deferredResources(config, walker.Deferrals.GetDeferredChanges(), priorState)
+		diags = diags.Append(deferredDiags)
+		plan.DeferredResources = deferredResources
+
+		deferredActionInvocations, deferredActionInvocationsDiags := c.deferredActionInvocations(schemas, walker.Deferrals.GetDeferredActionInvocations())
+		diags = diags.Append(deferredActionInvocationsDiags)
+		plan.DeferredActionInvocations = deferredActionInvocations
 	}
 
 	// Our final rulings on whether the plan is "complete" and "applyable".
@@ -911,6 +917,26 @@ func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.D
 		deferredResources = append(deferredResources, deferralSrc)
 	}
 	return deferredResources, diags
+}
+
+func (c *Context) deferredActionInvocations(schemas *Schemas, deferrals []*plans.DeferredActionInvocation) ([]*plans.DeferredActionInvocationSrc, tfdiags.Diagnostics) {
+	var deferredActionInvocations []*plans.DeferredActionInvocationSrc
+	var diags tfdiags.Diagnostics
+	for _, deferral := range deferrals {
+		schema := schemas.ActionTypeConfig(deferral.ActionInvocationInstance.ProviderAddr.Provider, deferral.ActionInvocationInstance.Addr.Action.Action.Type)
+
+		deferralSrc, err := deferral.Encode(&schema)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to prepare deferred action invocation for plan",
+				fmt.Sprintf("The deferred action invocation %q could not be serialized to store in the plan: %s.", deferral.ActionInvocationInstance.Addr, err)))
+			continue
+		}
+
+		deferredActionInvocations = append(deferredActionInvocations, deferralSrc)
+	}
+	return deferredActionInvocations, diags
 }
 
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {

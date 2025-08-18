@@ -36,6 +36,8 @@ type ActionTrigger interface {
 	String() string
 
 	Equals(to ActionTrigger) bool
+
+	Less(other ActionTrigger) bool
 }
 
 type LifecycleActionTrigger struct {
@@ -68,6 +70,20 @@ func (t LifecycleActionTrigger) Equals(other ActionTrigger) bool {
 	return t.TriggeringResourceAddr.Equal(o.TriggeringResourceAddr) &&
 		t.ActionTriggerBlockIndex == o.ActionTriggerBlockIndex &&
 		t.ActionsListIndex == o.ActionsListIndex
+}
+
+func (t LifecycleActionTrigger) Less(other ActionTrigger) bool {
+	o, ok := other.(LifecycleActionTrigger)
+	if !ok {
+		return false // We always want to show non-lifecycle actions first
+	}
+
+	return t.TriggeringResourceAddr.Less(o.TriggeringResourceAddr) ||
+		(t.TriggeringResourceAddr.Equal(o.TriggeringResourceAddr) &&
+			t.ActionTriggerBlockIndex < o.ActionTriggerBlockIndex) ||
+		(t.TriggeringResourceAddr.Equal(o.TriggeringResourceAddr) &&
+			t.ActionTriggerBlockIndex == o.ActionTriggerBlockIndex &&
+			t.ActionsListIndex < o.ActionsListIndex)
 }
 
 var _ ActionTrigger = (*LifecycleActionTrigger)(nil)

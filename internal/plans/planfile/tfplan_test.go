@@ -420,6 +420,30 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				},
 			},
 		},
+		DeferredActionInvocations: []*plans.DeferredActionInvocationSrc{
+			{
+				DeferredReason: providers.DeferredReasonDeferredPrereq,
+				ActionInvocationInstanceSrc: &plans.ActionInvocationInstanceSrc{
+					Addr: addrs.Action{Type: "test_unlinked", Name: "generic_action"}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
+					ActionTrigger: plans.LifecycleActionTrigger{
+						TriggeringResourceAddr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "woot",
+						}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+						ActionTriggerBlockIndex: 1,
+						ActionsListIndex:        2,
+						ActionTriggerEvent:      configs.AfterCreate,
+					},
+					ProviderAddr: provider,
+					ConfigValue: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("value"),
+					}), cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+			},
+		},
 		RelevantAttributes: []globalref.ResourceAttr{
 			{
 				Resource: addrs.Resource{

@@ -603,6 +603,13 @@ func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc 
 	return &ret
 }
 
+func (acs *ActionInvocationInstanceSrc) Less(other *ActionInvocationInstanceSrc) bool {
+	if acs.ActionTrigger.Equals(other.ActionTrigger) {
+		return acs.Addr.Less(other.Addr)
+	}
+	return acs.ActionTrigger.Less(other.ActionTrigger)
+}
+
 func (needle *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
 	needleLat := needle.ActionTrigger.(LifecycleActionTrigger)
 
