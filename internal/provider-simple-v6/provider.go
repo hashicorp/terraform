@@ -94,6 +94,18 @@ func Provider() providers.Interface {
 					DescriptionKind: configschema.StringPlain,
 				},
 			},
+			StateStores: map[string]providers.Schema{
+				"test_inmem": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Optional: true,
+								Type:     cty.String,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -301,22 +313,6 @@ func (s simple) ListResource(req providers.ListResourceRequest) (resp providers.
 		"config": req.Config,
 	})
 	return
-}
-
-func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
-	panic("not implemented")
-}
-
-func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	panic("not implemented")
-}
-
-func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
-	panic("not implemented")
-}
-
-func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
-	panic("not implemented")
 }
 
 func (s simple) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
