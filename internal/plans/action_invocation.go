@@ -40,6 +40,10 @@ type ActionTrigger interface {
 	Less(other ActionTrigger) bool
 }
 
+var (
+	_ ActionTrigger = (*LifecycleActionTrigger)(nil)
+)
+
 type LifecycleActionTrigger struct {
 	TriggeringResourceAddr addrs.AbsResourceInstance
 	// Information about the trigger
