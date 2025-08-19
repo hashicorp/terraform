@@ -658,6 +658,45 @@ func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInsta
 	})
 }
 
+// ShouldDeferActionInvocation returns true if there is a reason to defer the action invocation instance
+// We want to defer an action invocation if
+// a) the resource was deferred
+// or
+// b) a previously run action was deferred
+func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	// We only want to defer actions that are lifecycle triggered
+	at, ok := ai.ActionTrigger.(plans.LifecycleActionTrigger)
+	if !ok {
+		return false
+	}
+
+	// If the resource was deferred, we also need to defer any action potentially triggering from this
+	if configResourceMap, ok := d.resourceInstancesDeferred.GetOk(at.TriggeringResourceAddr.ConfigResource()); ok {
+		if configResourceMap.Has(at.TriggeringResourceAddr) {
+			return true
+		}
+	}
+
+	// Since all actions plan in order we can just check if an action for this resource instance
+	// has been deferred already
+	for _, deferred := range d.actionInvocationDeferred {
+		deferredAt, deferredOk := deferred.ActionInvocationInstance.ActionTrigger.(plans.LifecycleActionTrigger)
+		if !deferredOk {
+			continue // We only care about lifecycle triggered actions here
+		}
+
+		if deferredAt.TriggeringResourceAddr.Equal(at.TriggeringResourceAddr) {
+			return true
+		}
+	}
+
+	// We found no reason, so we return false
+	return false
+}
+
 // UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
 // provider was deferred although deferrals were not allowed.
 func UnexpectedProviderDeferralDiagnostic(addrs fmt.Stringer) tfdiags.Diagnostic {
