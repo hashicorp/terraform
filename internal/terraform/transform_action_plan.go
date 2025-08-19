@@ -73,7 +73,6 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 				}
 
 				var configAction addrs.ConfigAction
-				actionInstanceKey := addrs.NoKey
 
 				for _, ref := range refs {
 					switch a := ref.Subject.(type) {
@@ -81,7 +80,8 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 						configAction = a.InModule(config.Path)
 					case addrs.ActionInstance:
 						configAction = a.Action.InModule(config.Path)
-						actionInstanceKey = a.Key
+					case addrs.CountAttr, addrs.ForEachAttr:
+						// nothing to do, these will get evaluate later
 					default:
 						// This should have been caught during validation
 						panic(fmt.Sprintf("unexpected action address %T", a))
@@ -101,9 +101,8 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 				}
 
 				nat := &nodeActionTriggerPlanExpand{
-					actionAddress:     configAction,
-					actionInstanceKey: actionInstanceKey,
-					actionConfig:      actionConfig,
+					Addr:   configAction,
+					Config: actionConfig,
 					lifecycleActionTrigger: &lifecycleActionTrigger{
 						events:                  at.Events,
 						resourceAddress:         resourceAddr,

@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -17,7 +19,6 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContextPlan_actions(t *testing.T) {
@@ -542,7 +543,7 @@ resource "test_object" "a" {
 			},
 		},
 		"expanded resource - expanded action": {
-			toBeImplemented: true, // TODO: Not sure why this panics
+			//toBeImplemented: true, // TODO: Not sure why this panics
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {
