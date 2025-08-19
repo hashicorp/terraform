@@ -1510,7 +1510,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 		return resp
 	}
 
-	var buf *bytes.Buffer
+	buf := &bytes.Buffer{}
 	var expectedTotalLength int
 	for {
 		chunk, err := client.Recv()
