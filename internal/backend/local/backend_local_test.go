@@ -140,9 +140,9 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	}
 
 	// Refresh the state
-	sm, err := b.StateMgr("")
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	sm, sDiags := b.StateMgr("")
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := sm.RefreshState(); err != nil {
 		t.Fatalf("unexpected error refreshing state: %s", err)
@@ -214,7 +214,7 @@ type backendWithStateStorageThatFailsRefresh struct {
 
 var _ backend.Backend = backendWithStateStorageThatFailsRefresh{}
 
-func (b backendWithStateStorageThatFailsRefresh) StateMgr(workspace string) (statemgr.Full, error) {
+func (b backendWithStateStorageThatFailsRefresh) StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnostics) {
 	return &stateStorageThatFailsRefresh{}, nil
 }
 

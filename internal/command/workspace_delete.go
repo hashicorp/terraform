@@ -120,9 +120,9 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	}
 
 	// Check if the workspace's state is empty or not
-	stateMgr, err := b.StateMgr(workspace)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	stateMgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		c.Ui.Error(sDiags.Err().Error())
 		return 1
 	}
 

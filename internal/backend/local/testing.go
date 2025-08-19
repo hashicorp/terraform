@@ -126,9 +126,10 @@ func (b *TestLocalSingleState) DeleteWorkspace(string, bool) tfdiags.Diagnostics
 	return tfdiags.Diagnostics{}.Append(backend.ErrWorkspacesNotSupported)
 }
 
-func (b *TestLocalSingleState) StateMgr(name string) (statemgr.Full, error) {
+func (b *TestLocalSingleState) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	if name != backend.DefaultStateName {
-		return nil, backend.ErrWorkspacesNotSupported
+		return nil, diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
 	return b.Local.StateMgr(name)
@@ -172,9 +173,10 @@ func (b *TestLocalNoDefaultState) DeleteWorkspace(name string, force bool) tfdia
 	return b.Local.DeleteWorkspace(name, force)
 }
 
-func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, error) {
+func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	if name == backend.DefaultStateName {
-		return nil, backend.ErrDefaultWorkspaceNotSupported
+		return nil, diags.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 	return b.Local.StateMgr(name)
 }

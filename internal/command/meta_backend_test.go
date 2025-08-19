@@ -50,9 +50,9 @@ func TestMetaBackend_emptyDir(t *testing.T) {
 	}
 
 	// Write some state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	s.WriteState(testState())
 	if err := s.PersistState(nil); err != nil {
@@ -119,9 +119,9 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -193,9 +193,9 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -265,9 +265,9 @@ func TestMetaBackend_configureNewBackend(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -336,9 +336,9 @@ func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	state, err := statemgr.RefreshAndRead(s)
 	if err != nil {
@@ -459,9 +459,9 @@ func TestMetaBackend_configureNewBackendWithStateNoMigrate(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -502,9 +502,9 @@ func TestMetaBackend_configureNewBackendWithStateExisting(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -574,9 +574,9 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -641,9 +641,9 @@ func TestMetaBackend_configuredUnchanged(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -687,9 +687,9 @@ func TestMetaBackend_changeConfiguredBackend(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -773,9 +773,9 @@ func TestMetaBackend_reconfigureBackendChange(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -913,9 +913,9 @@ func TestMetaBackend_configuredBackendChangeCopy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -966,9 +966,9 @@ func TestMetaBackend_configuredBackendChangeCopy_singleState(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1020,9 +1020,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleDefault(t *testing
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1074,9 +1074,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingle(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1148,9 +1148,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleCurrentEnv(t *test
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1219,9 +1219,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 
 	{
 		// Check the default state
-		s, err := b.StateMgr(backend.DefaultStateName)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
+		s, sDiags := b.StateMgr(backend.DefaultStateName)
+		if sDiags.HasErrors() {
+			t.Fatalf("unexpected error: %s", sDiags.Err())
 		}
 		if err := s.RefreshState(); err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -1237,9 +1237,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 
 	{
 		// Check the other state
-		s, err := b.StateMgr("env2")
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
+		s, sDiags := b.StateMgr("env2")
+		if sDiags.HasErrors() {
+			t.Fatalf("unexpected error: %s", sDiags.Err())
 		}
 		if err := s.RefreshState(); err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -1320,9 +1320,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *
 
 	{
 		// Check the renamed default state
-		s, err := b.StateMgr("env1")
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
+		s, sDiags := b.StateMgr("env1")
+		if sDiags.HasErrors() {
+			t.Fatalf("unexpected error: %s", sDiags.Err())
 		}
 		if err := s.RefreshState(); err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -1397,9 +1397,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(
 
 	{
 		// Check the named state
-		s, err := b.StateMgr("env2")
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
+		s, sDiags := b.StateMgr("env2")
+		if sDiags.HasErrors() {
+			t.Fatalf("unexpected error: %s", sDiags.Err())
 		}
 		if err := s.RefreshState(); err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -1450,9 +1450,9 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1512,9 +1512,9 @@ func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1580,9 +1580,9 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1681,9 +1681,9 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1770,9 +1770,9 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("unexpected error: %s", err)

@@ -80,18 +80,20 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 }
 
 // StateMgr manage the state, if the named state not exists, a new file will created
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] state manager, current workspace: %v", name)
 
 	c, err := b.client(name)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 	stateMgr := &remote.State{Client: c}
 
-	ws, diags := b.Workspaces()
-	if diags.HasErrors() {
-		return nil, diags.Err()
+	ws, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		return nil, diags
 	}
 
 	exists := false
@@ -110,7 +112,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockId, err := c.Lock(lockInfo)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to lock cos state: %s", err)
+			return nil, diags.Append(fmt.Errorf("Failed to lock cos state: %s", err))
 		}
 
 		// Local helper function so we can call it multiple places
@@ -124,28 +126,28 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		// Grab the value
 		if err := stateMgr.RefreshState(); err != nil {
 			err = lockUnlock(err)
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
 			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 		}
 
 		// Unlock, the state should now be initialized
 		if err := lockUnlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }
 
 // client returns a remoteClient for the named state.

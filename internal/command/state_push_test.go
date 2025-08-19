@@ -263,9 +263,9 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 
 	// put a dummy state in place, so we have something to force
 	b := backend.TestBackendConfig(t, inmem.New(), nil)
-	sMgr, err := b.StateMgr("test")
-	if err != nil {
-		t.Fatal(err)
+	sMgr, sDiags := b.StateMgr("test")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 	if err := sMgr.WriteState(states.NewState()); err != nil {
 		t.Fatal(err)

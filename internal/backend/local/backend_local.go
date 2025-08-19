@@ -46,9 +46,9 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 
 	// Get the latest state.
 	log.Printf("[TRACE] backend/local: requesting state manager for workspace %q", op.Workspace)
-	s, err := b.StateMgr(op.Workspace)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("error loading state: %w", err))
+	s, sDiags := b.StateMgr(op.Workspace)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("error loading state: %w", sDiags.Err()))
 		return nil, nil, nil, diags
 	}
 	log.Printf("[TRACE] backend/local: requesting state lock for workspace %q", op.Workspace)

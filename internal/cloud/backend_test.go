@@ -42,7 +42,7 @@ func TestCloud_backendWithName(t *testing.T) {
 		t.Fatalf("should only have a single configured workspace matching the configured 'name' strategy, but got: %#v", workspaces)
 	}
 
-	if _, err := b.StateMgr("foo"); err != backend.ErrWorkspacesNotSupported {
+	if _, sDiags := b.StateMgr("foo"); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected fetching a state which is NOT the single configured workspace to have an ErrWorkspacesNotSupported error, but got: %v", err)
 	}
 
@@ -63,7 +63,7 @@ func TestCloud_backendWithTags(t *testing.T) {
 
 	// Test pagination works
 	for i := 0; i < 25; i++ {
-		_, err := b.StateMgr(fmt.Sprintf("foo-%d", i+1))
+		_, sDiags := b.StateMgr(fmt.Sprintf("foo-%d", i+1))
 		if err != nil {
 			t.Fatalf("error: %s", err)
 		}
@@ -1315,7 +1315,7 @@ func TestCloud_addAndRemoveWorkspacesDefault(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
-	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
+	if _, sDiags := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -1362,7 +1362,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 	}
 
 	// This should succeed
-	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
+	if _, sDiags := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -1380,7 +1380,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 
 	// This should fail
 	want := `Remote workspace Terraform version "0.13.5" does not match local Terraform version "0.14.0"`
-	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err.Error() != want {
+	if _, sDiags := b.StateMgr(testBackendSingleWorkspaceName); err.Error() != want {
 		t.Fatalf("wrong error\n got: %v\nwant: %v", err.Error(), want)
 	}
 }
@@ -1419,7 +1419,7 @@ func TestCloud_StateMgr_versionCheckLatest(t *testing.T) {
 	}
 
 	// This should succeed despite not being a string match
-	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
+	if _, sDiags := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
@@ -1609,7 +1609,7 @@ func TestCloudBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	safeDeleteWorkspaceName := "safe-delete-workspace"
 	forceDeleteWorkspaceName := "force-delete-workspace"
 
-	_, err := b.StateMgr(safeDeleteWorkspaceName)
+	_, sDiags := b.StateMgr(safeDeleteWorkspaceName)
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}

@@ -91,7 +91,7 @@ type Backend interface {
 	// If the named workspace doesn't exist, or if it has no state, it will
 	// be created either immediately on this call or the first time
 	// PersistState is called, depending on the state manager implementation.
-	StateMgr(workspace string) (statemgr.Full, error)
+	StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnostics)
 
 	// DeleteWorkspace removes the workspace with the given name if it exists.
 	//

@@ -133,7 +133,7 @@ func (p *Pluggable) DeleteWorkspace(workspace string, force bool) tfdiags.Diagno
 // state storage provider to interact with state.
 //
 // StateMgr implements backend.Backend
-func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, error) {
+func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnostics) {
 	// repackages the provider's methods inside a state manager,
 	// to be passed to the calling code that expects a statemgr.Full
 	return remote.NewRemoteGRPC(p.provider, p.typeName, workspace), nil

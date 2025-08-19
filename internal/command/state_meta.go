@@ -53,9 +53,9 @@ func (c *StateMeta) State() (statemgr.Full, error) {
 		}
 
 		// Get the state
-		s, err := b.StateMgr(workspace)
-		if err != nil {
-			return nil, err
+		s, sDiags := b.StateMgr(workspace)
+		if sDiags.HasErrors() {
+			return nil, sDiags.Err()
 		}
 
 		// Get a local backend

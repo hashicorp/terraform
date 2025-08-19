@@ -89,9 +89,9 @@ func TestBackendLocksSoak(t *testing.T) {
 			"secret_suffix": secretSuffix,
 		}))
 
-		s, err := b.StateMgr(backend.DefaultStateName)
-		if err != nil {
-			t.Fatalf("Error creating state manager: %v", err)
+		s, sDiags := b.StateMgr(backend.DefaultStateName)
+		if sDiags.HasErrors() {
+			t.Fatalf("Error creating state manager: %v", sDiags.Err())
 		}
 
 		lockers = append(lockers, s.(statemgr.Locker))
