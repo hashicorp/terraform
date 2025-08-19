@@ -102,9 +102,9 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		}
 	}
 
-	_, err = b.StateMgr(workspace)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	_, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		c.Ui.Error(sDiags.Err().Error())
 		return 1
 	}
 
@@ -123,9 +123,9 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	// load the new Backend state
-	stateMgr, err := b.StateMgr(workspace)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	stateMgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		c.Ui.Error(sDiags.Err().Error())
 		return 1
 	}
 

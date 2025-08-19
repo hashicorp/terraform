@@ -98,9 +98,9 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Get the state manager for the currently-selected workspace
-	stateMgr, err := b.StateMgr(workspace)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
+	stateMgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", sDiags.Err()))
 		return 1
 	}
 

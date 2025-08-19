@@ -105,9 +105,9 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 
 	if !found {
 		if orCreate {
-			_, err = b.StateMgr(name)
-			if err != nil {
-				c.Ui.Error(err.Error())
+			_, sDiags := b.StateMgr(name)
+			if sDiags.HasErrors() {
+				c.Ui.Error(sDiags.Err().Error())
 				return 1
 			}
 			newState = true

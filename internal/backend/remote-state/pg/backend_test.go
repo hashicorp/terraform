@@ -197,14 +197,14 @@ func TestBackendConfig(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			_, err = b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				t.Fatal(err)
+			_, sDiags := b.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
+				t.Fatal(sDiags)
 			}
 
-			s, err := b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				t.Fatal(err)
+			s, sDiags := b.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
+				t.Fatal(sDiags)
 			}
 			c := s.(*remote.State).Client.(*RemoteClient)
 			if c.Name != backend.DefaultStateName {
@@ -338,14 +338,14 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 				}
 			}
 
-			_, err = b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				t.Fatal(err)
+			_, sDiags := b.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
+				t.Fatal(sDiags)
 			}
 
-			s, err := b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				t.Fatal(err)
+			s, sDiags := b.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
+				t.Fatal(sDiags)
 			}
 			c := s.(*remote.State).Client.(*RemoteClient)
 			if c.Name != backend.DefaultStateName {
@@ -445,9 +445,9 @@ func TestBackendConcurrentLock(t *testing.T) {
 		if b == nil {
 			t.Fatal("Backend could not be configured")
 		}
-		stateMgr, err := b.StateMgr(backend.DefaultStateName)
-		if err != nil {
-			t.Fatalf("Failed to get the state manager: %v", err)
+		stateMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+		if sDiags.HasErrors() {
+			t.Fatalf("Failed to get the state manager: %v", sDiags)
 		}
 
 		info := statemgr.NewLockInfo()

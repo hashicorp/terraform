@@ -116,9 +116,9 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 
 	// State file at the `path` location doesn't exist yet
 	workspace := backend.DefaultStateName
-	stmgr, err := b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %w", sDiags.Err())
 	}
 	defaultStatePath := fmt.Sprintf("%s/%s", td, path)
 	if _, err := os.Stat(defaultStatePath); !strings.Contains(err.Error(), "no such file or directory") {
@@ -137,7 +137,7 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err = stmgr.WriteState(s)
+	err := stmgr.WriteState(s)
 	if err != nil {
 		t.Fatalf("unexpected error returned from WriteState")
 	}
@@ -150,9 +150,9 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 	// Writing to a non-default workspace's state creates a file
 	// that's unaffected by the `path` location
 	workspace = "fizzbuzz"
-	stmgr, err = b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags = b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	fizzbuzzStatePath := fmt.Sprintf("%s/terraform.tfstate.d/%s/terraform.tfstate", td, workspace)
 	err = stmgr.WriteState(s)
@@ -186,9 +186,9 @@ func TestLocal_pathAttributeWrongExtension(t *testing.T) {
 
 	// Writing to the default workspace's state creates a file
 	workspace := backend.DefaultStateName
-	stmgr, err := b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %w", sDiags.Err())
 	}
 	s := states.NewState()
 	s.RootOutputValues = map[string]*states.OutputValue{
@@ -196,7 +196,7 @@ func TestLocal_pathAttributeWrongExtension(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err = stmgr.WriteState(s)
+	err := stmgr.WriteState(s)
 	if err != nil {
 		t.Fatalf("unexpected error returned from WriteState")
 	}
@@ -233,9 +233,9 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 	// Unaffected by the `workspace_dir` location.
 	workspace := backend.DefaultStateName
 	defaultStatePath := fmt.Sprintf("%s/terraform.tfstate", td)
-	stmgr, err := b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %w", sDiags.Err())
 	}
 	s := states.NewState()
 	s.RootOutputValues = map[string]*states.OutputValue{
@@ -243,7 +243,7 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err = stmgr.WriteState(s)
+	err := stmgr.WriteState(s)
 	if err != nil {
 		t.Fatalf("unexpected error returned from WriteState")
 	}
@@ -254,9 +254,9 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 	// that's affected by the `workspace_dir` location
 	workspace = "fizzbuzz"
 	fizzbuzzStatePath := fmt.Sprintf("%s/%s/%s/terraform.tfstate", td, workspaceDir, workspace)
-	stmgr, err = b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags = b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	err = stmgr.WriteState(s)
 	if err != nil {
@@ -324,8 +324,8 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 
 	// Calling StateMgr with a new workspace name creates that workspace's state file.
 	expectedA := "test_A"
-	if _, err := b.StateMgr(expectedA); err != nil {
-		t.Fatal(err)
+	if _, sDiags := b.StateMgr(expectedA); sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	states, wDiags = b.Workspaces()
@@ -340,8 +340,8 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 
 	// Creating another workspace appends it to the list of present workspaces.
 	expectedB := "test_B"
-	if _, err := b.StateMgr(expectedB); err != nil {
-		t.Fatal(err)
+	if _, sDiags := b.StateMgr(expectedB); sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	states, wDiags = b.Workspaces()
@@ -626,8 +626,9 @@ func (b *testDelegateBackend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags.Append(errTestDelegateConfigure)
 }
 
-func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
-	return nil, errTestDelegateState
+func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	return nil, diags.Append(errTestDelegateState)
 }
 
 func (b *testDelegateBackend) Workspaces() ([]string, tfdiags.Diagnostics) {
@@ -661,8 +662,8 @@ func TestLocal_callsMethodsOnStateBackend(t *testing.T) {
 		t.Fatal("expected errTestDelegateConfigure error, got:", diags.Err())
 	}
 
-	if _, err := b.StateMgr("test"); err != errTestDelegateState {
-		t.Fatal("expected errTestDelegateState, got:", err)
+	if _, sDiags := b.StateMgr("test"); sDiags.Err().Error() != errTestDelegateState.Error() {
+		t.Fatal("expected errTestDelegateState, got:", sDiags.Err())
 	}
 
 	if _, diags := b.Workspaces(); !diags.HasErrors() || diags.Err().Error() != errTestDelegateStates.Error() {

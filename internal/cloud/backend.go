@@ -721,20 +721,22 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
 }
 
 // StateMgr implements backend.Backend (which is embedded in backendrun.OperationsBackend).
-func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
+func (b *Cloud) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	var remoteTFVersion string
 
 	if name == backend.DefaultStateName {
-		return nil, backend.ErrDefaultWorkspaceNotSupported
+		return nil, diags.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 
 	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy && name != b.WorkspaceMapping.Name {
-		return nil, backend.ErrWorkspacesNotSupported
+		return nil, diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, name)
 	if err != nil && err != tfe.ErrResourceNotFound {
-		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
+		return nil, diags.Append(fmt.Errorf("Failed to retrieve workspace %s: %v", name, err))
 	}
 	if workspace != nil {
 		remoteTFVersion = workspace.TerraformVersion
@@ -750,7 +752,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		projects, err := b.client.Projects.List(context.Background(), b.Organization, listOpts)
 		if err != nil && err != tfe.ErrResourceNotFound {
 			// This is a failure to make an API request, fail to initialize
-			return nil, fmt.Errorf("Attempted to find configured project %s but was unable to.", b.WorkspaceMapping.Project)
+			return nil, diags.Append(fmt.Errorf("Attempted to find configured project %s but was unable to.", b.WorkspaceMapping.Project))
 		}
 		for _, p := range projects.Items {
 			if p.Name == b.WorkspaceMapping.Project {
@@ -793,7 +795,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 				log.Printf("[TRACE] cloud: Creating %s project %s/%s", b.appName, b.Organization, b.WorkspaceMapping.Project)
 				project, err := b.client.Projects.Create(context.Background(), b.Organization, createOpts)
 				if err != nil && err != tfe.ErrResourceNotFound {
-					return nil, fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err)
+					return nil, diags.Append(fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err))
 				}
 				configuredProject = project
 				workspaceCreateOptions.Project = configuredProject
@@ -804,7 +806,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		log.Printf("[TRACE] cloud: Creating %s workspace %s/%s", b.appName, b.Organization, name)
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.Organization, workspaceCreateOptions)
 		if err != nil {
-			return nil, fmt.Errorf("error creating workspace %s: %v", name, err)
+			return nil, diags.Append(fmt.Errorf("error creating workspace %s: %v", name, err))
 		}
 
 		remoteTFVersion = workspace.TerraformVersion
@@ -836,7 +838,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 	if tagCheck.requiresUpdate {
 		if errFromTagCheck != nil {
 			if errors.Is(errFromTagCheck, ErrCloudDoesNotSupportKVTags) {
-				return nil, fmt.Errorf("backend does not support key/value tags. Try using key-only tags: %w", errFromTagCheck)
+				return nil, diags.Append(fmt.Errorf("backend does not support key/value tags. Try using key-only tags: %w", errFromTagCheck))
 			}
 		}
 
@@ -855,7 +857,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("error updating workspace %q tags: %w", name, err)
+			return nil, diags.Append(fmt.Errorf("error updating workspace %q tags: %w", name, err))
 		}
 	}
 
@@ -868,11 +870,11 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		// Explicitly ignore the pseudo-version "latest" here, as it will cause
 		// plan and apply to always fail.
 		if remoteTFVersion != tfversion.String() && remoteTFVersion != "latest" {
-			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", remoteTFVersion, tfversion.String())
+			return nil, diags.Append(fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", remoteTFVersion, tfversion.String()))
 		}
 	}
 
-	return &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}, nil
+	return &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}, diags
 }
 
 // Operation implements backendrun.OperationsBackend.

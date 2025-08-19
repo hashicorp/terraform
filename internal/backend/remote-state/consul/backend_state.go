@@ -71,7 +71,8 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 	return diags.Append(err)
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	// Determine the path of the data
 	path := b.statePath(name)
 
@@ -104,7 +105,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	lockInfo.Operation = "init"
 	lockId, err := stateMgr.Lock(lockInfo)
 	if err != nil {
-		return nil, fmt.Errorf("failed to lock state in Consul: %s", err)
+		return nil, diags.Append(fmt.Errorf("failed to lock state in Consul: %s", err))
 	}
 
 	// Local helper function so we can call it multiple places
@@ -119,27 +120,27 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// Grab the value
 	if err := stateMgr.RefreshState(); err != nil {
 		err = lockUnlock(err)
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// If we have no state, we have to create an empty state
 	if v := stateMgr.State(); v == nil {
 		if err := stateMgr.WriteState(states.NewState()); err != nil {
 			err = lockUnlock(err)
-			return nil, err
+			return nil, diags.Append(err)
 		}
 		if err := stateMgr.PersistState(nil); err != nil {
 			err = lockUnlock(err)
-			return nil, err
+			return nil, diags.Append(err)
 		}
 	}
 
 	// Unlock, the state should now be initialized
 	if err := lockUnlock(nil); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }
 
 func (b *Backend) statePath(name string) string {
