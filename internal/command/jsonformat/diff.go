@@ -66,18 +66,18 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 		after := []jsonplan.ActionInvocation{}
 
 		for _, action := range plan.ActionInvocations {
-			if action.TriggeringResourceAddress != change.Address {
+			if action.LifecycleActionTrigger == nil || action.LifecycleActionTrigger.TriggeringResourceAddress != change.Address {
 				continue
 			}
 
-			switch action.TriggerEvent {
+			switch action.LifecycleActionTrigger.ActionTriggerEvent {
 			case configs.BeforeCreate.String(), configs.BeforeUpdate.String(), configs.BeforeDestroy.String():
 				before = append(before, action)
 			case configs.AfterCreate.String(), configs.AfterUpdate.String(), configs.AfterDestroy.String():
 				after = append(after, action)
 			default:
 				// The switch should be exhaustive.
-				panic(fmt.Sprintf("Unexpected triggering event when rendering action %s", action.TriggerEvent))
+				panic(fmt.Sprintf("Unexpected triggering event when rendering action %s", action.LifecycleActionTrigger.ActionTriggerEvent))
 			}
 		}
 

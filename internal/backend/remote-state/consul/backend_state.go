@@ -11,18 +11,21 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
 	keyEnvPrefix = "-env:"
 )
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	// List our raw path
 	prefix := b.path + keyEnvPrefix
 	keys, _, err := b.client.KV().Keys(prefix, "/", nil)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// Find the envs, we use a map since we can get duplicates with
@@ -52,9 +55,11 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return result, nil
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	// Determine the path of the data
@@ -63,7 +68,7 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	// Delete it. We just delete it without any locking since
 	// the DeleteState API is documented as such.
 	_, err := b.client.KV().Delete(path, nil)
-	return err
+	return diags.Append(err)
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {

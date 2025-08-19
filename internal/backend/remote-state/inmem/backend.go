@@ -92,7 +92,7 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	return nil
 }
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
 	states.Lock()
 	defer states.Unlock()
 
@@ -106,12 +106,12 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return workspaces, nil
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 	states.Lock()
 	defer states.Unlock()
 
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return tfdiags.Diagnostics{}.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	delete(states.m, name)
