@@ -28,8 +28,9 @@ func TestContext2Apply_actions(t *testing.T) {
 
 		planOpts *PlanOpts
 
-		expectInvokeActionCalled bool
-		expectInvokeActionCalls  []providers.InvokeActionRequest
+		expectInvokeActionCalled            bool
+		expectInvokeActionCalls             []providers.InvokeActionRequest
+		expectInvokeActionCallsAreUnordered bool
 
 		expectDiagnostics tfdiags.Diagnostics
 	}{
@@ -1289,7 +1290,8 @@ resource "test_object" "resource" {
 }
 `,
 			},
-			expectInvokeActionCalled: true,
+			expectInvokeActionCalled:            true,
+			expectInvokeActionCallsAreUnordered: true, // The order depends on the order of the modules
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "act_unlinked",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
@@ -1437,14 +1439,30 @@ resource "test_object" "resource" {
 			if len(tc.expectInvokeActionCalls) > 0 && len(invokeActionCalls) != len(tc.expectInvokeActionCalls) {
 				t.Fatalf("expected %d invoke action calls, got %d", len(tc.expectInvokeActionCalls), len(invokeActionCalls))
 			}
-			for i, expectedCall := range tc.expectInvokeActionCalls {
-				actualCall := invokeActionCalls[i]
 
-				if actualCall.ActionType != expectedCall.ActionType {
-					t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
-				}
-				if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
-					t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
+			for i, expectedCall := range tc.expectInvokeActionCalls {
+				if tc.expectInvokeActionCallsAreUnordered {
+					// We established the length is correct, so we just need to find one call that matches for each
+					found := false
+					for _, actualCall := range invokeActionCalls {
+						if actualCall.ActionType == expectedCall.ActionType && actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Fatalf("expected invoke action call with ActionType %s and PlannedActionData %s was not found in actual calls", expectedCall.ActionType, expectedCall.PlannedActionData.GoString())
+					}
+				} else {
+					// Expect correct order
+					actualCall := invokeActionCalls[i]
+
+					if actualCall.ActionType != expectedCall.ActionType {
+						t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
+					}
+					if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
+						t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
+					}
 				}
 			}
 		})
