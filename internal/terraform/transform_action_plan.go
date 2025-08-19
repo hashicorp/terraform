@@ -67,29 +67,31 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 		priorNodes := []*nodeActionTriggerPlanExpand{}
 		for i, at := range r.Managed.ActionTriggers {
 			for j, action := range at.Actions {
-				ref, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+				refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
 				if parseRefDiags != nil {
 					return parseRefDiags.Err()
 				}
 
-				var instance addrs.ConfigAction
+				var configAction addrs.ConfigAction
 				actionInstanceKey := addrs.NoKey
 
-				switch ai := ref[0].Subject.(type) {
-				case addrs.Action:
-					instance = ai.InModule(config.Path)
-				case addrs.ActionInstance:
-					instance = ai.Action.InModule(config.Path)
-					actionInstanceKey = ai.Key
-				default:
-					// This should have been caught during validation
-					panic(fmt.Sprintf("unexpected action address %T", ai))
+				for _, ref := range refs {
+					switch a := ref.Subject.(type) {
+					case addrs.Action:
+						configAction = a.InModule(config.Path)
+					case addrs.ActionInstance:
+						configAction = a.Action.InModule(config.Path)
+						actionInstanceKey = a.Key
+					default:
+						// This should have been caught during validation
+						panic(fmt.Sprintf("unexpected action address %T", a))
+					}
 				}
 
-				actionConfig, ok := actionConfigs.GetOk(instance)
+				actionConfig, ok := actionConfigs.GetOk(configAction)
 				if !ok {
 					// This should have been caught during validation
-					panic(fmt.Sprintf("action config not found for %s", instance))
+					panic(fmt.Sprintf("action config not found for %s", configAction))
 				}
 
 				resourceAddr := r.Addr().InModule(config.Path)
@@ -99,7 +101,7 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 				}
 
 				nat := &nodeActionTriggerPlanExpand{
-					actionAddress:     instance,
+					actionAddress:     configAction,
 					actionInstanceKey: actionInstanceKey,
 					actionConfig:      actionConfig,
 					lifecycleActionTrigger: &lifecycleActionTrigger{
