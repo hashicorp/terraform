@@ -17,10 +17,12 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -3480,4 +3482,113 @@ func TestGRPCProvider_DeleteState(t *testing.T) {
 			)
 		}
 	})
+}
+
+// newMockReadStateBytesClient returns a mock that will return data in
+// defined chunks. Each element in the array will be returned in separate
+// calls to the client's Recv method, and subsequent calls will return
+// io.EOF errors.
+func newMockReadStateBytesClient(chunks []string) mockReadStateBytesClient {
+	// Calculate the total length of the chunks together when in byte form
+	var totalLength int64
+	chunkMap := map[int][]byte{}
+	for i, chunk := range chunks {
+		chunkBytes := []byte(chunk)
+
+		chunkMap[i] = chunkBytes
+		totalLength += int64(len(chunkBytes))
+	}
+
+	recvCount := 0
+	return mockReadStateBytesClient{
+		chunks:      chunkMap,
+		totalLength: totalLength,
+		recvCount:   &recvCount,
+	}
+}
+
+type mockReadStateBytesClient struct {
+	chunks      map[int][]byte
+	totalLength int64
+
+	// Need a pointer because all methods have value receivers; need to track despite that
+	recvCount *int
+}
+
+var _ proto.Provider_ReadStateBytesClient = mockReadStateBytesClient{}
+
+func (m mockReadStateBytesClient) CloseSend() error {
+	return nil
+}
+
+func (m mockReadStateBytesClient) Context() context.Context {
+	return context.Background()
+}
+
+func (m mockReadStateBytesClient) Header() (metadata.MD, error) {
+	kv := map[string]string{}
+	md := metadata.New(kv)
+	return md, nil
+}
+
+func (m mockReadStateBytesClient) Recv() (*proto.ReadStateBytes_ResponseChunk, error) {
+	chunk := proto.ReadStateBytes_ResponseChunk{
+		TotalLength: m.totalLength,
+	}
+
+	chunkBytes, exists := m.chunks[*m.recvCount]
+	if !exists {
+		// No data to send
+		return nil, io.EOF
+	}
+	chunk.Bytes = chunkBytes
+
+	delete(m.chunks, *m.recvCount)
+	*m.recvCount++
+
+	return &chunk, nil
+}
+
+func (m mockReadStateBytesClient) RecvMsg(a any) error {
+	return nil
+}
+func (m mockReadStateBytesClient) SendMsg(a any) error {
+	return nil
+}
+func (m mockReadStateBytesClient) Trailer() metadata.MD {
+	kv := map[string]string{}
+	md := metadata.New(kv)
+	return md
+}
+
+func TestGRPCProvider_ReadStateBytes(t *testing.T) {
+	t.Run("can process multiple chunks", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Call ReadStateBytes
+		chunks := []string{"hello", "world"}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(newMockReadStateBytesClient(chunks), nil)
+
+		request := providers.ReadStateBytesRequest{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+		}
+
+		// Act
+		resp := p.ReadStateBytes(request)
+
+		// Assert returned values
+		checkDiags(t, resp.Diagnostics)
+		if string(resp.Bytes) != "helloworld" {
+			t.Fatalf("expected data to be %q, got: %q", "helloworld", string(resp.Bytes))
+		}
+	})
+
 }
