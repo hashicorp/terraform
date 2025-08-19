@@ -282,7 +282,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 	var err error
 	destinationState, sDiags := opts.Destination.StateMgr(opts.destinationWorkspace)
-	if sDiags.Err().Error() == backend.ErrDefaultWorkspaceNotSupported.Error() {
+	if sDiags.HasErrors() && sDiags.Err().Error() == backend.ErrDefaultWorkspaceNotSupported.Error() {
 		// If the backend doesn't support using the default state, we ask the user
 		// for a new name and migrate the default state to the given named state.
 		destinationState, err = func() (statemgr.Full, error) {

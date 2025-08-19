@@ -80,7 +80,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 
 	noDefault := false
 	if _, sDiags := b.StateMgr(DefaultStateName); sDiags.HasErrors() {
-		if sDiags.Err() == ErrDefaultWorkspaceNotSupported {
+		if sDiags.Err().Error() == ErrDefaultWorkspaceNotSupported.Error() {
 			noDefault = true
 		} else {
 			t.Fatalf("error: %v", sDiags.Err())
