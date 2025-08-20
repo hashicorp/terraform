@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'workspace: Updated validation to reject workspaces named ""'
-time: 2025-06-23T12:55:14.226554+01:00
-custom:
-    Issue: "37267"
