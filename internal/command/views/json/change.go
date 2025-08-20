@@ -59,6 +59,42 @@ func (c *ResourceInstanceChange) String() string {
 	return fmt.Sprintf("%s: Plan to %s", c.Resource.Addr, c.Action)
 }
 
+func NewPlannedActionInvocation(aiSrc *plans.ActionInvocationInstanceSrc) *ActionInvocation {
+	ai := &ActionInvocation{
+		Action: newActionAddr(aiSrc.Addr),
+	}
+
+	if at, ok := aiSrc.ActionTrigger.(plans.LifecycleActionTrigger); ok {
+		ai.LifecycleTrigger = &ActionInvocationLifecycleTrigger{
+			TriggeringResource:      newResourceAddr(at.TriggeringResourceAddr),
+			TriggeringEvent:         at.ActionTriggerEvent.String(),
+			ActionTriggerBlockIndex: at.ActionTriggerBlockIndex,
+			ActionsListIndex:        at.ActionsListIndex,
+		}
+	}
+
+	return ai
+}
+
+type ActionInvocation struct {
+	Action           ActionAddr                        `json:"action_addr"`
+	LifecycleTrigger *ActionInvocationLifecycleTrigger `json:"lifecycle_trigger,omitempty"`
+}
+
+func (c *ActionInvocation) String() string {
+	if c.LifecycleTrigger != nil {
+		return fmt.Sprintf("%s: triggered by %s trigger on %s", c.Action.Addr, c.LifecycleTrigger.TriggeringEvent, c.LifecycleTrigger.TriggeringResource)
+	}
+	return c.Action.Addr
+}
+
+type ActionInvocationLifecycleTrigger struct {
+	TriggeringResource      ResourceAddr `json:"triggering_resource"`
+	TriggeringEvent         string       `json:"triggering_event"`
+	ActionTriggerBlockIndex int          `json:"action_trigger_block_index"`
+	ActionsListIndex        int          `json:"actions_list_index"`
+}
+
 type ChangeAction string
 
 const (
