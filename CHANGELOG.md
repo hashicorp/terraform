@@ -12,7 +12,7 @@ ENHANCEMENTS:
 
 * Allow successful init when provider constraint matches at least one valid version ([#37137](https://github.com/hashicorp/terraform/issues/37137))
 
-* Performance fix for evaluating high cardinality resources ([#26355](https://github.com/hashicorp/terraform/issues/26355))
+* Performance fix for evaluating high cardinality resources ([#37154](https://github.com/hashicorp/terraform/issues/37154))
 
 *  TF Test: Allow parallel execution of teardown operations ([#37169](https://github.com/hashicorp/terraform/issues/37169))
 
