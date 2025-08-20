@@ -66,8 +66,13 @@ func (m mockReadStateBytesClient) Recv() (*proto.ReadStateBytes_ResponseChunk, e
 
 	chunkBytes, exists := m.chunks[*m.recvCount]
 	if !exists {
-		// No data to send
-		return nil, io.EOF
+		if len(m.chunks) == 0 {
+			// All data has been sent
+			return nil, io.EOF
+		}
+
+		// There's still data, which suggests bad test setup or a bug in the mock
+		return nil, io.ErrUnexpectedEOF
 	}
 	chunk.Bytes = chunkBytes
 
