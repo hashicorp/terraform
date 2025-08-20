@@ -136,8 +136,7 @@ func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr add
 	// If this is false then the codepaths that handle unknown values below
 	// become unreachable, because the evaluate functions will reject unknown
 	// values as an error.
-	// allowUnknown := ctx.Deferrals().DeferralAllowed()
-	allowUnknown := false
+	allowUnknown := ctx.Deferrals().DeferralAllowed()
 
 	switch {
 	case n.Config.Count != nil:
