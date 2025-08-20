@@ -3687,4 +3687,71 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 		// Assert returned values
 		checkDiags(t, resp.Diagnostics)
 	})
+
+	t.Run("data larger than the chunk size is sent in multiple write actions", func(t *testing.T) {
+		// Make a buffer that can contain 10 bytes more than the 4MB chunk size
+		chunkSize := 4 * 1_000_000
+		dataBuff := bytes.NewBuffer(make([]byte, 0, chunkSize+10))
+		dataBuffCopy := bytes.NewBuffer(make([]byte, 0, chunkSize+10))
+		for i := 0; i < (chunkSize + 10); i++ {
+			dataBuff.WriteByte(63)     // We're making 4MB + 10 bytes of question marks because why not
+			dataBuffCopy.WriteByte(63) // Used to make assertions
+		}
+		data := dataBuff.Bytes()
+		dataFirstChunk := dataBuffCopy.Next(chunkSize)  // First write will have a full chunk
+		dataSecondChunk := dataBuffCopy.Next(chunkSize) // This will be the exta 10 bytes
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Mock the call to WriteStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
+		mockWriteClient := newMockWriteStateBytesClient(t, mockWriteStateBytesOpts{})
+		client.EXPECT().WriteStateBytes(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(mockWriteClient, nil)
+
+		// Spy on arguments passed to the Send method because data
+		// is written via separate chunks and separate calls to Send.
+		//
+		// We expect 2 calls to Send as the total data
+		// is 10 bytes larger than the chunk size
+		req1 := &proto.WriteStateBytes_RequestChunk{
+			TypeName:    "mock_store",
+			StateId:     backend.DefaultStateName,
+			Bytes:       dataFirstChunk,
+			TotalLength: int64(len(data)),
+			Range: &proto.StateRange{
+				Start: 0,
+				End:   int64(chunkSize),
+			},
+		}
+		req2 := &proto.WriteStateBytes_RequestChunk{
+			TypeName:    "mock_store",
+			StateId:     backend.DefaultStateName,
+			Bytes:       dataSecondChunk,
+			TotalLength: int64(len(data)),
+			Range: &proto.StateRange{
+				Start: int64(chunkSize),
+				End:   int64(chunkSize + 10),
+			},
+		}
+		mockWriteClient.EXPECT().Send(gomock.AnyOf(req1, req2)).Times(2).Return(nil)
+
+		// Act
+		request := providers.WriteStateBytesRequest{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+			Bytes:    data,
+		}
+		resp := p.WriteStateBytes(request)
+
+		// Assert returned values
+		checkDiags(t, resp.Diagnostics)
+	})
 }
