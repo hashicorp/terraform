@@ -1576,7 +1576,7 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 	// TODO: Configurable chunk size
 	chunkSize := 4 * 1_000_000 // 4MB
 
-	if len(r.Bytes) < chunkSize {
+	if len(r.Bytes) <= chunkSize {
 		protoReq := &proto6.WriteStateBytes_RequestChunk{
 			TypeName:    r.TypeName,
 			StateId:     r.StateId,

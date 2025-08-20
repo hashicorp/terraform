@@ -3635,3 +3635,52 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		}
 	})
 }
+
+func TestGRPCProvider_WriteStateBytes(t *testing.T) {
+	t.Run("todo", func(t *testing.T) {
+		// Make a buffer that can contain the 4MB chunk size
+		byteCount := 1 * 4 * 1_000_000
+		dataBuff := bytes.NewBuffer(make([]byte, 0, byteCount))
+		for i := 0; i < (byteCount); i++ {
+			dataBuff.WriteByte(63) // We're making 4MB of question marks because why not
+		}
+		data := dataBuff.Bytes()
+
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Mock the call to WriteStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
+		mockWriteClient := newMockWriteStateBytesClient(t, mockWriteStateBytesOpts{})
+		client.EXPECT().WriteStateBytes(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(mockWriteClient, nil)
+
+		mockWriteClient.EXPECT().Send(gomock.Eq(&proto.WriteStateBytes_RequestChunk{
+			TypeName:    "mock_store",
+			StateId:     backend.DefaultStateName,
+			Bytes:       data,
+			TotalLength: int64(len(data)),
+			Range: &proto.StateRange{
+				Start: 0,
+				End:   int64(byteCount),
+			},
+		})).Times(1).Return(nil)
+
+		// Act
+		request := providers.WriteStateBytesRequest{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+			Bytes:    data,
+		}
+		resp := p.WriteStateBytes(request)
+
+		// Assert returned values
+		checkDiags(t, resp.Diagnostics)
+	})
+}
