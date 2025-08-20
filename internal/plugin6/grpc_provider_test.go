@@ -3637,14 +3637,13 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 }
 
 func TestGRPCProvider_WriteStateBytes(t *testing.T) {
-	t.Run("todo", func(t *testing.T) {
-		// Make a buffer that can contain the 4MB chunk size
-		byteCount := 1 * 4 * 1_000_000
-		dataBuff := bytes.NewBuffer(make([]byte, 0, byteCount))
-		for i := 0; i < (byteCount); i++ {
-			dataBuff.WriteByte(63) // We're making 4MB of question marks because why not
-		}
-		data := dataBuff.Bytes()
+	t.Run("data smaller than the chunk size is sent in one write action", func(t *testing.T) {
+		// Less than 4MB
+		data := []byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod" +
+			"tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud" +
+			" exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor" +
+			" in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint" +
+			" occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
 
 		client := mockProviderClient(t)
 		p := &GRPCProvider{
@@ -3661,16 +3660,21 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			gomock.Any(),
 		).Return(mockWriteClient, nil)
 
-		mockWriteClient.EXPECT().Send(gomock.Eq(&proto.WriteStateBytes_RequestChunk{
+		// Spy on arguments passed to the Send method of the client
+		//
+		// We expect 1 call to Send as the total data
+		// is less than the chunk size
+		expectedReq := &proto.WriteStateBytes_RequestChunk{
 			TypeName:    "mock_store",
 			StateId:     backend.DefaultStateName,
 			Bytes:       data,
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(byteCount),
+				End:   int64(len(data)),
 			},
-		})).Times(1).Return(nil)
+		}
+		mockWriteClient.EXPECT().Send(gomock.Eq(expectedReq)).Times(1).Return(nil)
 
 		// Act
 		request := providers.WriteStateBytesRequest{
