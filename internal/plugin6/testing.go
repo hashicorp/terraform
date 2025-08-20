@@ -2,6 +2,7 @@ package plugin6
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
@@ -31,9 +32,10 @@ func newMockReadStateBytesClient(chunks []string, opts mockOpts) mockReadStateBy
 
 	recvCount := 0
 	return mockReadStateBytesClient{
-		chunks:      chunkMap,
-		totalLength: totalLength,
-		recvCount:   &recvCount,
+		chunks:         chunkMap,
+		totalLength:    totalLength,
+		recvCount:      &recvCount,
+		recvDiagnostic: opts.recvDiagnostic,
 	}
 }
 
@@ -42,13 +44,19 @@ var _ proto.Provider_ReadStateBytesClient = mockReadStateBytesClient{}
 type mockOpts struct {
 	overrideTotalLength bool
 	newTotalLength      int64
+	recvDiagnostic      *proto.Diagnostic
 }
 
 type mockReadStateBytesClient struct {
 	chunks      map[int][]byte
 	totalLength int64
 
-	// Need a pointer because all methods have value receivers; need to track despite that
+	// If recvDiagnostic is set, the Recv method will return this diagnostic
+	// on the first invocation.
+	recvDiagnostic *proto.Diagnostic
+
+	// We need a pointer for tracking how many times the Recv method has been called
+	// because all proto.Provider_ReadStateBytesClient methods have value receivers.
 	recvCount *int
 }
 
@@ -70,8 +78,11 @@ func (m mockReadStateBytesClient) Header() (metadata.MD, error) {
 // this method has been invoked. When no bytes are found for an invocation the method will
 // act like it's reached the end of the available data and return an io.EOF error.
 func (m mockReadStateBytesClient) Recv() (*proto.ReadStateBytes_ResponseChunk, error) {
-	chunk := proto.ReadStateBytes_ResponseChunk{
-		TotalLength: m.totalLength,
+	var chunk proto.ReadStateBytes_ResponseChunk
+
+	if m.recvDiagnostic != nil {
+		chunk.Diagnostics = append(chunk.Diagnostics, m.recvDiagnostic)
+		return &chunk, errors.New("returning error diagnostic supplied to mock client")
 	}
 
 	chunkBytes, exists := m.chunks[*m.recvCount]
@@ -85,6 +96,7 @@ func (m mockReadStateBytesClient) Recv() (*proto.ReadStateBytes_ResponseChunk, e
 		return nil, io.ErrUnexpectedEOF
 	}
 	chunk.Bytes = chunkBytes
+	chunk.TotalLength = m.totalLength
 
 	delete(m.chunks, *m.recvCount)
 	*m.recvCount++
