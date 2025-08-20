@@ -3491,19 +3491,24 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Make the call to ReadStateBytes return a mock client
+		// Mock the call to ReadStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
 		chunks := []string{"hello", "world"}
-		client.EXPECT().ReadStateBytes(
-			gomock.Any(),
-			gomock.Any(),
-		).Return(newMockReadStateBytesClient(chunks, mockReadStateBytesOpts{overrideTotalLength: false}), nil)
-
-		request := providers.ReadStateBytesRequest{
+		expectedReq := &proto.ReadStateBytes_Request{
 			TypeName: "mock_store",
 			StateId:  backend.DefaultStateName,
 		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Eq(expectedReq),
+		).Return(newMockReadStateBytesClient(chunks, mockReadStateBytesOpts{}), nil)
 
 		// Act
+		request := providers.ReadStateBytesRequest{
+			TypeName: expectedReq.TypeName,
+			StateId:  expectedReq.StateId,
+		}
 		resp := p.ReadStateBytes(request)
 
 		// Assert returned values
@@ -3520,24 +3525,29 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Make the call to ReadStateBytes return a mock client
+		// Mock the call to ReadStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
 		chunks := []string{"hello", "world"}
 		var length int64 = 999
 		opts := mockReadStateBytesOpts{
 			overrideTotalLength: true,
 			newTotalLength:      length,
 		}
-		client.EXPECT().ReadStateBytes(
-			gomock.Any(),
-			gomock.Any(),
-		).Return(newMockReadStateBytesClient(chunks, opts), nil)
-
-		request := providers.ReadStateBytesRequest{
+		expectedReq := &proto.ReadStateBytes_Request{
 			TypeName: "mock_store",
 			StateId:  backend.DefaultStateName,
 		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Eq(expectedReq),
+		).Return(newMockReadStateBytesClient(chunks, opts), nil)
 
 		// Act
+		request := providers.ReadStateBytesRequest{
+			TypeName: expectedReq.TypeName,
+			StateId:  expectedReq.StateId,
+		}
 		resp := p.ReadStateBytes(request)
 
 		// Assert returned values
@@ -3588,7 +3598,9 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Make the call to ReadStateBytes return a mock client
+		// Mock the call to ReadStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
 		opts := mockReadStateBytesOpts{
 			recvDiagnostic: &proto.Diagnostic{
 				Severity: proto.Diagnostic_ERROR,
@@ -3596,17 +3608,20 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 				Detail:   "This error is forced by the test case",
 			},
 		}
-		client.EXPECT().ReadStateBytes(
-			gomock.Any(),
-			gomock.Any(),
-		).Return(newMockReadStateBytesClient(nil, opts), nil)
-
-		request := providers.ReadStateBytesRequest{
+		expectedReq := &proto.ReadStateBytes_Request{
 			TypeName: "mock_store",
 			StateId:  backend.DefaultStateName,
 		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Eq(expectedReq),
+		).Return(newMockReadStateBytesClient(nil, opts), nil)
 
 		// Act
+		request := providers.ReadStateBytesRequest{
+			TypeName: expectedReq.TypeName,
+			StateId:  expectedReq.StateId,
+		}
 		resp := p.ReadStateBytes(request)
 
 		// Assert returned values
