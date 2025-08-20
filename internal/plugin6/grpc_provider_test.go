@@ -3491,12 +3491,12 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Call ReadStateBytes
+		// Make the call to ReadStateBytes return a mock client
 		chunks := []string{"hello", "world"}
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
 			gomock.Any(),
-		).Return(newMockReadStateBytesClient(chunks), nil)
+		).Return(newMockReadStateBytesClient(chunks, mockOpts{OverrideTotalLength: false}), nil)
 
 		request := providers.ReadStateBytesRequest{
 			TypeName: "mock_store",
@@ -3513,4 +3513,41 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		}
 	})
 
+	t.Run("error returned when final length does not match expectations", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Make the call to ReadStateBytes return a mock client
+		chunks := []string{"hello", "world"}
+		var length int64 = 999
+		opts := mockOpts{
+			OverrideTotalLength: true,
+			NewTotalLength:      length,
+		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(newMockReadStateBytesClient(chunks, opts), nil)
+
+		request := providers.ReadStateBytesRequest{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+		}
+
+		// Act
+		resp := p.ReadStateBytes(request)
+
+		// Assert returned values
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErr := fmt.Sprintf("expected state file of total %d bytes, received 10 bytes", length)
+		if resp.Diagnostics.Err().Error() != expectedErr {
+			t.Fatalf("expected error diagnostic %q, but got: %q", expectedErr, resp.Diagnostics.Err())
+		}
+		if len(resp.Bytes) != 0 {
+			t.Fatalf("expected data to be omitted in error condition, but got: %q", string(resp.Bytes))
+		}
+	})
 }
