@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'workspace: Updated the `workspace delete` command to reject `""` as an invalid workspace name'
-time: 2025-06-26T14:02:48.899952+01:00
-custom:
-    Issue: "37275"

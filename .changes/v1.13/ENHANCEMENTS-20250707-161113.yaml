@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: 'type checking: improve error message on type mismatches.'
-time: 2025-07-07T16:11:13.755853+02:00
-custom:
-    Issue: "37298"
