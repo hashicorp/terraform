@@ -4,13 +4,12 @@
 package plugin6
 
 import (
-	"context"
 	"errors"
 	"io"
 
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 
-	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc"
 )
 
 // newMockReadStateBytesClient returns a mock that will return data in
@@ -61,21 +60,15 @@ type mockReadStateBytesClient struct {
 	// We need a pointer for tracking how many times the Recv method has been called
 	// because all proto.Provider_ReadStateBytesClient methods have value receivers.
 	recvCount *int
+
+	// Embedding this interface helps minimize what's implemented in this mock
+	// Any calls to the unimplemented methods will fail due to a nil pointer error,
+	// as we aren't supplying an instance of the embedded type when making the
+	// `mockReadStateBytesClient` used in tests
+	grpc.ClientStream
 }
 
 var _ proto.Provider_ReadStateBytesClient = mockReadStateBytesClient{}
-
-func (m mockReadStateBytesClient) CloseSend() error {
-	panic("not implemented") // Not invoked by code under test
-}
-
-func (m mockReadStateBytesClient) Context() context.Context {
-	panic("not implemented") // Not invoked by code under test
-}
-
-func (m mockReadStateBytesClient) Header() (metadata.MD, error) {
-	panic("not implemented") // Not invoked by code under test
-}
 
 // Recv returns the bytes in m.chunks (map[int][]byte) that correspond to how many times
 // this method has been invoked. When no bytes are found for an invocation the method will
@@ -105,16 +98,4 @@ func (m mockReadStateBytesClient) Recv() (*proto.ReadStateBytes_ResponseChunk, e
 	*m.recvCount++
 
 	return &chunk, nil
-}
-
-func (m mockReadStateBytesClient) RecvMsg(a any) error {
-	panic("not implemented") // Not invoked by code under test
-}
-
-func (m mockReadStateBytesClient) SendMsg(a any) error {
-	panic("not implemented") // Not invoked by code under test
-}
-
-func (m mockReadStateBytesClient) Trailer() metadata.MD {
-	panic("not implemented") // Not invoked by code under test
 }
