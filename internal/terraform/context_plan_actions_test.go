@@ -729,10 +729,12 @@ resource "test_object" "a" {
 `,
 			},
 
-			planActionResponse: &providers.PlanActionResponse{
-				Diagnostics: tfdiags.Diagnostics{
-					tfdiags.Sourceless(tfdiags.Warning, "Warning during planning", "Test case simulates a warning while planning"),
-				},
+			planActionFn: func(t *testing.T, par providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Warning, "Warning during planning", "Test case simulates a warning while planning"),
+					},
+				}
 			},
 
 			expectPlanActionCalled: true,
