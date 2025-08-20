@@ -16,7 +16,7 @@ import (
 // defined chunks. Each element in the array will be returned in separate
 // calls to the client's Recv method, and subsequent calls will return
 // io.EOF errors.
-func newMockReadStateBytesClient(chunks []string, opts mockOpts) mockReadStateBytesClient {
+func newMockReadStateBytesClient(chunks []string, opts mockReadStateBytesOpts) mockReadStateBytesClient {
 	// Calculate the total length of the chunks together when in byte form
 	var totalLength int64
 	chunkMap := map[int][]byte{}
@@ -43,7 +43,7 @@ func newMockReadStateBytesClient(chunks []string, opts mockOpts) mockReadStateBy
 
 var _ proto.Provider_ReadStateBytesClient = mockReadStateBytesClient{}
 
-type mockOpts struct {
+type mockReadStateBytesOpts struct {
 	overrideTotalLength bool
 	newTotalLength      int64
 	recvDiagnostic      *proto.Diagnostic
