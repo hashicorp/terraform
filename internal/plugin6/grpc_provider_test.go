@@ -3581,4 +3581,42 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		}
 	})
 
+	t.Run("error returned when the client errors", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Make the call to ReadStateBytes return a mock client
+		opts := mockOpts{
+			recvDiagnostic: &proto.Diagnostic{
+				Severity: proto.Diagnostic_ERROR,
+				Summary:  "Error from test",
+				Detail:   "This error is forced by the test case",
+			},
+		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(newMockReadStateBytesClient(nil, opts), nil)
+
+		request := providers.ReadStateBytesRequest{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+		}
+
+		// Act
+		resp := p.ReadStateBytes(request)
+
+		// Assert returned values
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErr := "returning error diagnostic supplied to mock client"
+		if resp.Diagnostics.Err().Error() != expectedErr {
+			t.Fatalf("expected error diagnostic %q, but got: %q", expectedErr, resp.Diagnostics.Err())
+		}
+		if len(resp.Bytes) != 0 {
+			t.Fatalf("expected data to be omitted in error condition, but got: %q", string(resp.Bytes))
+		}
+	})
 }
