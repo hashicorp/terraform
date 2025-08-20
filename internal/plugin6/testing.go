@@ -24,9 +24,9 @@ func newMockReadStateBytesClient(chunks []string, opts mockOpts) mockReadStateBy
 		totalLength += int64(len(chunkBytes))
 	}
 
-	if opts.OverrideTotalLength {
+	if opts.overrideTotalLength {
 		// We're forcing this to be a given value
-		totalLength = opts.NewTotalLength
+		totalLength = opts.newTotalLength
 	}
 
 	recvCount := 0
@@ -40,8 +40,8 @@ func newMockReadStateBytesClient(chunks []string, opts mockOpts) mockReadStateBy
 var _ proto.Provider_ReadStateBytesClient = mockReadStateBytesClient{}
 
 type mockOpts struct {
-	OverrideTotalLength bool
-	NewTotalLength      int64
+	overrideTotalLength bool
+	newTotalLength      int64
 }
 
 type mockReadStateBytesClient struct {

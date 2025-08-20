@@ -3496,7 +3496,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
 			gomock.Any(),
-		).Return(newMockReadStateBytesClient(chunks, mockOpts{OverrideTotalLength: false}), nil)
+		).Return(newMockReadStateBytesClient(chunks, mockOpts{overrideTotalLength: false}), nil)
 
 		request := providers.ReadStateBytesRequest{
 			TypeName: "mock_store",
@@ -3524,8 +3524,8 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		chunks := []string{"hello", "world"}
 		var length int64 = 999
 		opts := mockOpts{
-			OverrideTotalLength: true,
-			NewTotalLength:      length,
+			overrideTotalLength: true,
+			newTotalLength:      length,
 		}
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
