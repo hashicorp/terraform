@@ -118,6 +118,8 @@ type Deferred struct {
 	// a deferred data source, then that resource should be deferred as well.
 	partialExpandedEphemeralResourceDeferred addrs.Map[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]]
 
+	partialExpandedActionsDeferred addrs.Map[addrs.ConfigAction, addrs.Map[addrs.PartialExpandedAction, *plans.DeferredResourceInstanceChange]]
+
 	// partialExpandedModulesDeferred tracks all of the partial-expanded module
 	// prefixes we were notified about.
 	//
@@ -146,6 +148,7 @@ func NewDeferred(enabled bool) *Deferred {
 		partialExpandedResourcesDeferred:         addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedDataSourcesDeferred:       addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedEphemeralResourceDeferred: addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
+		partialExpandedActionsDeferred:           addrs.MakeMap[addrs.ConfigAction, addrs.Map[addrs.PartialExpandedAction, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedModulesDeferred:           addrs.MakeSet[addrs.PartialExpandedModule](),
 	}
 }
@@ -227,6 +230,7 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			d.partialExpandedResourcesDeferred.Len() != 0 ||
 			d.partialExpandedDataSourcesDeferred.Len() != 0 ||
 			d.partialExpandedEphemeralResourceDeferred.Len() != 0 ||
+			d.partialExpandedActionsDeferred.Len() != 0 ||
 			len(d.partialExpandedModulesDeferred) != 0)
 }
 
@@ -529,6 +533,28 @@ func (d *Deferred) ReportEphemeralResourceExpansionDeferred(addr addrs.PartialEx
 	}
 
 	configMap := d.partialExpandedEphemeralResourceDeferred.Get(configAddr)
+	if configMap.Has(addr) {
+		// This indicates a bug in the caller, since our graph walk should
+		// ensure that we visit and evaluate each distinct partial-expanded
+		// prefix only once.
+		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
+	}
+	configMap.Put(addr, &plans.DeferredResourceInstanceChange{
+		DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+		Change:         nil, // since we don't serialize this we can get away with no change, we store the addr, that should be enough
+	})
+}
+
+func (d *Deferred) ReportActionExpansionDeferred(addr addrs.PartialExpandedAction) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	configAddr := addr.ConfigAction()
+	if !d.partialExpandedActionsDeferred.Has(configAddr) {
+		d.partialExpandedActionsDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedAction, *plans.DeferredResourceInstanceChange]())
+	}
+
+	configMap := d.partialExpandedActionsDeferred.Get(configAddr)
 	if configMap.Has(addr) {
 		// This indicates a bug in the caller, since our graph walk should
 		// ensure that we visit and evaluate each distinct partial-expanded
