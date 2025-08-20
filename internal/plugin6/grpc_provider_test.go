@@ -3550,4 +3550,35 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			t.Fatalf("expected data to be omitted in error condition, but got: %q", string(resp.Bytes))
 		}
 	})
+
+	t.Run("error returned when store type does not exist", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// In this scenario the method returns before the call to the
+		// ReadStateBytes RPC, so no mocking needed
+
+		badStoreType := "doesnt_exist"
+		request := providers.ReadStateBytesRequest{
+			TypeName: badStoreType,
+			StateId:  backend.DefaultStateName,
+		}
+
+		// Act
+		resp := p.ReadStateBytes(request)
+
+		// Assert returned values
+		checkDiagsHasError(t, resp.Diagnostics)
+		expectedErr := fmt.Sprintf("unknown state store type %q", badStoreType)
+		if resp.Diagnostics.Err().Error() != expectedErr {
+			t.Fatalf("expected error diagnostic %q, but got: %q", expectedErr, resp.Diagnostics.Err())
+		}
+		if len(resp.Bytes) != 0 {
+			t.Fatalf("expected data to be omitted in error condition, but got: %q", string(resp.Bytes))
+		}
+	})
+
 }
