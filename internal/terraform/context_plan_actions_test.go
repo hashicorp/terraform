@@ -543,7 +543,6 @@ resource "test_object" "a" {
 			},
 		},
 		"expanded resource - expanded action": {
-			//toBeImplemented: true, // TODO: Not sure why this panics
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {
