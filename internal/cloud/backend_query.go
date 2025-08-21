@@ -92,6 +92,8 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 	if err != nil {
 		return err
 	}
+	configs := map[string]string{}
+	wantConfig := len(op.GenerateConfigOut) > 0
 
 	if b.CLI != nil {
 		reader := bufio.NewReaderSize(logs, 64*1024)
@@ -134,6 +136,10 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 						results[log.ListQueryStart.Address] = make([]*viewsjson.QueryResult, 0)
 					case jsonformat.LogListResourceFound:
 						results[log.ListQueryResult.Address] = append(results[log.ListQueryResult.Address], log.ListQueryResult)
+						if wantConfig {
+							configs[log.ListQueryResult.Address] +=
+								fmt.Sprintf("%s\n%s\n\n", log.ListQueryResult.Config, log.ListQueryResult.ImportConfig)
+						}
 					case jsonformat.LogListComplete:
 						addr := log.ListQueryComplete.Address
 
@@ -164,23 +170,29 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 		}
 	}
 
-	// Get the run's current status and include the workspace and plan. We will check if
-	// the run has errored, if structured output is enabled, and if the plan
-	run, err = b.client.QueryRuns.Read(ctx, run.ID)
-	if err != nil {
-		return err
-	}
+	if wantConfig && len(configs) > 0 {
+		diags := genconfig.ValidateTargetFile(op.GenerateConfigOut)
+		if diags.HasErrors() {
+			return diags.Err()
+		}
 
-	// TODO maybe write configuration
-	// if len(op.GenerateConfigOut) > 0 {
-	// 	diags := maybeWriteGeneratedConfig(redactedPlan, op.GenerateConfigOut)
-	// 	if diags.HasErrors() {
-	// 		return diags.Err()
-	// 	}
-	// }
+		var writer io.Writer
+		for addr, config := range configs {
+			change := genconfig.Change{
+				Addr:            addr,
+				GeneratedConfig: config,
+			}
+
+			writer, _, diags = change.MaybeWriteConfig(writer, op.GenerateConfigOut)
+			if diags.HasErrors() {
+				return diags.Err()
+			}
+		}
+	}
 
 	return nil
 }
+
 func (b *Cloud) waitForQueryRun(stopCtx, cancelCtx context.Context, r *tfe.QueryRun) (*tfe.QueryRun, error) {
 	started := time.Now()
 	updated := started
