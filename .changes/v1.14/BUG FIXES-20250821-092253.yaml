@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix regression that caused `terraform test` with zero tests to return a non-zero exit code.
+time: 2025-08-21T09:22:53.392949+02:00
+custom:
+    Issue: "37478"
