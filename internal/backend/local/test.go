@@ -146,6 +146,10 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 	}
 
+	if suite.Status == moduletest.Pending {
+		suite.Status = moduletest.Pass
+	}
+
 	return suite.Status, diags
 }
 
