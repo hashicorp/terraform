@@ -16,9 +16,11 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 func (b *Cloud) opQuery(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.QueryRun, error) {
@@ -93,6 +95,7 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 
 	if b.CLI != nil {
 		reader := bufio.NewReaderSize(logs, 64*1024)
+		results := map[string][]*viewsjson.QueryResult{}
 
 		for next := true; next; {
 			var l, line []byte
@@ -121,19 +124,40 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 					continue
 				}
 
-				// We will ignore plan output, change summary or outputs logs
-				// during the plan phase.
-				if log.Type == jsonformat.LogOutputs ||
-					log.Type == jsonformat.LogChangeSummary ||
-					log.Type == jsonformat.LogPlannedChange {
-					continue
-				}
-
 				if b.renderer != nil {
-					// Otherwise, we will print the log
-					err := b.renderer.RenderLog(log)
-					if err != nil {
-						return err
+					// Instead of using renderer.RenderLog for individual log messages,
+					// we collect all logs of a list block and output them at once.
+					// This allows us to ensure all messages of a list block are grouped
+					// and indented as in the PostListQuery hook.
+					switch log.Type {
+					case jsonformat.LogListStart:
+						results[log.ListQueryStart.Address] = make([]*viewsjson.QueryResult, 0)
+					case jsonformat.LogListResourceFound:
+						results[log.ListQueryResult.Address] = append(results[log.ListQueryResult.Address], log.ListQueryResult)
+					case jsonformat.LogListComplete:
+						addr := log.ListQueryComplete.Address
+
+						identities := make([]string, 0, len(results[addr]))
+						displayNames := make([]string, 0, len(results[addr]))
+						maxIdentityLen := 0
+						for _, result := range results[addr] {
+							identity := formatIdentity(result.Identity)
+							if len(identity) > maxIdentityLen {
+								maxIdentityLen = len(identity)
+							}
+							identities = append(identities, identity)
+
+							displayNames = append(displayNames, result.DisplayName)
+						}
+
+						result := strings.Builder{}
+						for i, identity := range identities {
+							result.WriteString(fmt.Sprintf("%s   %-*s   %s\n", addr, maxIdentityLen, identity, displayNames[i]))
+						}
+
+						if result.Len() > 0 {
+							b.renderer.Streams.Println(result.String())
+						}
 					}
 				}
 			}
@@ -231,6 +255,24 @@ func (b *Cloud) cancelQueryRun(cancelCtx context.Context, op *backendrun.Operati
 	}
 
 	return nil
+}
+
+// formatIdentity formats the identity map into a string representation.
+// It flattens the map into a string of key=value pairs, separated by commas.
+func formatIdentity(identity map[string]json.RawMessage) string {
+	parts := make([]string, 0, len(identity))
+	for key, value := range identity {
+		ty, err := ctyjson.ImpliedType(value)
+		if err != nil {
+			continue
+		}
+		v, err := ctyjson.Unmarshal(value, ty)
+		if err != nil {
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%s=%s", key, tfdiags.ValueToString(v)))
+	}
+	return strings.Join(parts, ",")
 }
 
 const queryDefaultHeader = `
