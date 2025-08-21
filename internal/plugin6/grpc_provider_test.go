@@ -3496,7 +3496,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Mock the call to ReadStateBytes
+		// Call to ReadStateBytes
 		// > Assert the arguments received
 		// > Define the returned mock client
 		chunks := []string{"hello", "world"}
@@ -3530,7 +3530,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Mock the call to ReadStateBytes
+		// Call to ReadStateBytes
 		// > Assert the arguments received
 		// > Define the returned mock client
 		chunks := []string{"hello", "world"}
@@ -3603,7 +3603,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Mock the call to ReadStateBytes
+		// Call to ReadStateBytes
 		// > Assert the arguments received
 		// > Define the returned mock client
 		opts := mockReadStateBytesOpts{
@@ -3656,9 +3656,8 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Mock the call to WriteStateBytes
-		// > Assert the arguments received
-		// > Define the returned mock client
+		// Assert there will be a call to WriteStateBytes
+		// & make it return the mock client
 		mockWriteClient := mockWriteStateBytesClient(t)
 		client.EXPECT().WriteStateBytes(
 			gomock.Any(),
@@ -3713,9 +3712,8 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			ctx:    context.Background(),
 		}
 
-		// Mock the call to WriteStateBytes
-		// > Assert the arguments received
-		// > Define the returned mock client
+		// Assert there will be a call to WriteStateBytes
+		// & make it return the mock client
 		mockWriteClient := mockWriteStateBytesClient(t)
 		client.EXPECT().WriteStateBytes(
 			gomock.Any(),
