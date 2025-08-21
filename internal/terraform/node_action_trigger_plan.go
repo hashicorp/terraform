@@ -72,9 +72,8 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
 
 			// The n.Addr was derived from the ActionRef hcl.Expression referenced inside the resource's lifecycle block, and has not yet been
-			// expanded or fully evaluated.
-			// so do that.
-
+			// expanded or fully evaluated, so we will do that now.
+			// Grab the instance key, necessary if the action uses [count.index] or [each.key]
 			repData := instances.RepetitionData{}
 			switch k := key.(type) {
 			case addrs.IntKey:
