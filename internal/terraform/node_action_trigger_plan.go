@@ -7,14 +7,17 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type nodeActionTriggerPlanExpand struct {
 	Addr             addrs.ConfigAction
+	ActionExpr       hcl.Expression
 	resolvedProvider addrs.AbsProviderConfig
 	Config           *configs.Action
 
@@ -28,6 +31,7 @@ type lifecycleActionTrigger struct {
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
+	actionExpr              hcl.Expression
 }
 
 func (at *lifecycleActionTrigger) Name() string {
@@ -63,17 +67,37 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 	moduleInstances := expander.ExpandModule(n.lifecycleActionTrigger.resourceAddress.Module, false)
 
 	for _, module := range moduleInstances {
-		actionAddr := n.Addr.Action.Absolute(module)
-
 		_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
 		for _, key := range keys {
 			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
 
-			// this is the action referenced inside the resource's lifecycle block, so it uses the resource's key.
-			absActionAddr := actionAddr.Instance(key)
+			// The n.Addr was derived from the ActionRef hcl.Expression referenced inside the resource's lifecycle block, and has not yet been
+			// expanded or fully evaluated.
+			// so do that.
+
+			repData := instances.RepetitionData{}
+			switch k := key.(type) {
+			case addrs.IntKey:
+				repData.CountIndex = k.Value()
+			case addrs.StringKey:
+				repData.EachKey = k.Value()
+				repData.EachValue = cty.DynamicVal
+			}
+
+			ref, evalActionDiags := evaluateActionExpression(n.lifecycleActionTrigger.actionExpr, repData)
+			diags = append(diags, evalActionDiags...)
+
+			// The reference is either an action or action instance
+			var actionAddr addrs.AbsActionInstance
+			switch sub := ref.Subject.(type) {
+			case addrs.Action:
+				actionAddr = sub.Absolute(module).Instance(addrs.NoKey)
+			case addrs.ActionInstance:
+				actionAddr = sub.Absolute(module)
+			}
 
 			node := nodeActionTriggerPlanInstance{
-				actionAddress:    absActionAddr,
+				actionAddress:    actionAddr,
 				resolvedProvider: n.resolvedProvider,
 				actionConfig:     n.Config,
 				lifecycleActionTrigger: &lifecycleActionTriggerInstance{

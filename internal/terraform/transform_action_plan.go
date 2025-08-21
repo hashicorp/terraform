@@ -81,7 +81,7 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 					case addrs.ActionInstance:
 						configAction = a.Action.InModule(config.Path)
 					case addrs.CountAttr, addrs.ForEachAttr:
-						// nothing to do, these will get evaluate later
+						// nothing to do, these will get evaluated later
 					default:
 						// This should have been caught during validation
 						panic(fmt.Sprintf("unexpected action address %T", a))
@@ -106,6 +106,7 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 					lifecycleActionTrigger: &lifecycleActionTrigger{
 						events:                  at.Events,
 						resourceAddress:         resourceAddr,
+						actionExpr:              action.Expr,
 						actionTriggerBlockIndex: i,
 						actionListIndex:         j,
 						invokingSubject:         action.Expr.Range().Ptr(),

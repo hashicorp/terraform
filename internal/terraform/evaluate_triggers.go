@@ -8,10 +8,11 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func evalReplaceTriggeredByExpr(expr hcl.Expression, keyData instances.RepetitionData) (*addrs.Reference, tfdiags.Diagnostics) {
@@ -81,7 +82,7 @@ func triggersExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 }
 
 // parseReplaceTriggeredByKeyExpr takes an hcl.Expression and parses it as an index key, while
-// evaluating any references to count.index or each.key.
+// evaluating any references to count.index or each.key. This is also used in evaluateActionExpression.
 func parseReplaceTriggeredByKeyExpr(expr hcl.Expression, keyData instances.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
 	idx := hcl.TraverseIndex{
 		SrcRange: expr.Range(),
