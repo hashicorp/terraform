@@ -6,6 +6,7 @@ package plugin6
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"testing"
@@ -3758,5 +3759,145 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 
 		// Assert returned values
 		checkDiags(t, resp.Diagnostics)
+	})
+
+	t.Run("grpc errors when sending data are returned in diagnostics", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Assert there will be a call to WriteStateBytes
+		// & make it return the mock client
+		mockWriteClient := mockWriteStateBytesClient(t)
+		client.EXPECT().WriteStateBytes(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(mockWriteClient, nil)
+
+		mockError := errors.New("grpc error forced in test")
+		mockWriteClient.EXPECT().Send(gomock.Any()).Return(mockError)
+
+		// Act
+		request := providers.WriteStateBytesRequest{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+			Bytes:    []byte("helloworld"),
+		}
+		resp := p.WriteStateBytes(request)
+
+		// Assert returned values
+		checkDiagsHasError(t, resp.Diagnostics)
+		wantErr := fmt.Sprintf("Plugin error: The plugin returned an unexpected error from plugin6.(*GRPCProvider).WriteStateBytes: %s", mockError)
+		if resp.Diagnostics.Err().Error() != wantErr {
+			t.Fatalf("unexpected error, wanted %q, got: %s", wantErr, resp.Diagnostics.Err())
+		}
+	})
+
+	t.Run("error diagnostics from the provider when closing the connection are returned", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Assert there will be a call to WriteStateBytes
+		// & make it return the mock client
+		mockWriteClient := mockWriteStateBytesClient(t)
+		client.EXPECT().WriteStateBytes(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(mockWriteClient, nil)
+
+		data := []byte("helloworld")
+		mockReq := &proto.WriteStateBytes_RequestChunk{
+			TypeName:    "mock_store",
+			StateId:     backend.DefaultStateName,
+			Bytes:       data,
+			TotalLength: int64(len(data)),
+			Range: &proto.StateRange{
+				Start: 0,
+				End:   int64(len(data)),
+			},
+		}
+		mockResp := &proto.WriteStateBytes_Response{
+			Diagnostics: []*proto.Diagnostic{
+				{
+					Severity: proto.Diagnostic_ERROR,
+					Summary:  "Error from test mock",
+					Detail:   "This error is returned from the test mock",
+				},
+			},
+		}
+		mockWriteClient.EXPECT().Send(gomock.Eq(mockReq)).Times(1).Return(nil)
+		mockWriteClient.EXPECT().CloseAndRecv().Times(1).Return(mockResp, nil)
+
+		// Act
+		request := providers.WriteStateBytesRequest{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+			Bytes:    data,
+		}
+		resp := p.WriteStateBytes(request)
+
+		// Assert returned values
+		checkDiagsHasError(t, resp.Diagnostics)
+		if resp.Diagnostics.Err().Error() != "Error from test mock: This error is returned from the test mock" {
+			t.Fatal()
+		}
+	})
+
+	t.Run("warning diagnostics from the provider when closing the connection are returned", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Assert there will be a call to WriteStateBytes
+		// & make it return the mock client
+		mockWriteClient := mockWriteStateBytesClient(t)
+		client.EXPECT().WriteStateBytes(
+			gomock.Any(),
+			gomock.Any(),
+		).Return(mockWriteClient, nil)
+
+		data := []byte("helloworld")
+		mockReq := &proto.WriteStateBytes_RequestChunk{
+			TypeName:    "mock_store",
+			StateId:     backend.DefaultStateName,
+			Bytes:       data,
+			TotalLength: int64(len(data)),
+			Range: &proto.StateRange{
+				Start: 0,
+				End:   int64(len(data)),
+			},
+		}
+		mockResp := &proto.WriteStateBytes_Response{
+			Diagnostics: []*proto.Diagnostic{
+				{
+					Severity: proto.Diagnostic_WARNING,
+					Summary:  "Warning from test mock",
+					Detail:   "This warning is returned from the test mock",
+				},
+			},
+		}
+		mockWriteClient.EXPECT().Send(gomock.Eq(mockReq)).Times(1).Return(nil)
+		mockWriteClient.EXPECT().CloseAndRecv().Times(1).Return(mockResp, nil)
+
+		// Act
+		request := providers.WriteStateBytesRequest{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+			Bytes:    data,
+		}
+		resp := p.WriteStateBytes(request)
+
+		// Assert returned values
+		checkDiags(t, resp.Diagnostics)
+		if resp.Diagnostics.ErrWithWarnings().Error() != "Warning from test mock: This warning is returned from the test mock" {
+			t.Fatal()
+		}
 	})
 }
