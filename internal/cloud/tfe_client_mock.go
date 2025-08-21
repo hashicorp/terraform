@@ -1079,9 +1079,9 @@ func (m *MockProjects) Update(ctx context.Context, projectID string, options tfe
 
 func (m *MockProjects) Delete(ctx context.Context, projectID string) error {
 	var p *tfe.Project = nil
-	for _, p := range m.projects {
-		if p.ID == projectID {
-
+	for _, pp := range m.projects {
+		if pp.ID == projectID {
+			p = pp
 			break
 		}
 	}
@@ -1110,6 +1110,11 @@ func newMockRegistryModules(client *MockClient) *MockRegistryModules {
 		Modules:       make(map[string]*tfe.RegistryModule),
 		organizations: make(map[string][]*tfe.RegistryModule),
 	}
+}
+
+func (m *MockRegistryModules) ReadTerraformRegistryModule(context.Context, tfe.RegistryModuleID, string) (*tfe.TerraformRegistryModule, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (m *MockRegistryModules) List(ctx context.Context, organization string, options *tfe.RegistryModuleListOptions) (*tfe.RegistryModuleList, error) {
@@ -1441,6 +1446,10 @@ func (m *MockRuns) Apply(ctx context.Context, runID string, options tfe.RunApply
 		r.Apply.Status = tfe.ApplyRunning
 	}
 	return nil
+}
+
+func (m *MockRuns) ListForOrganization(context.Context, string, *tfe.RunListForOrganizationOptions) (*tfe.OrganizationRunList, error) {
+	panic("not implemented")
 }
 
 func (m *MockRuns) Cancel(ctx context.Context, runID string, options tfe.RunCancelOptions) error {
@@ -1880,6 +1889,11 @@ func newMockVariables(client *MockClient) *MockVariables {
 		client:     client,
 		workspaces: make(map[string]*tfe.VariableList),
 	}
+}
+
+func (m *MockVariables) ListAll(ctx context.Context, workspaceID string, options *tfe.VariableListOptions) (*tfe.VariableList, error) {
+	vl := m.workspaces[workspaceID]
+	return vl, nil
 }
 
 func (m *MockVariables) List(ctx context.Context, workspaceID string, options *tfe.VariableListOptions) (*tfe.VariableList, error) {

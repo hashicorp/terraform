@@ -23,6 +23,7 @@ import (
 type MockCommandServiceClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockCommandServiceClientMockRecorder
+	isgomock struct{}
 }
 
 // MockCommandServiceClientMockRecorder is the mock recorder for MockCommandServiceClient.
@@ -43,10 +44,10 @@ func (m *MockCommandServiceClient) EXPECT() *MockCommandServiceClientMockRecorde
 }
 
 // Execute mocks base method.
-func (m *MockCommandServiceClient) Execute(arg0 context.Context, arg1 *stacksproto1.CommandRequest, arg2 ...grpc.CallOption) (stacksproto1.CommandService_ExecuteClient, error) {
+func (m *MockCommandServiceClient) Execute(ctx context.Context, in *stacksproto1.CommandRequest, opts ...grpc.CallOption) (stacksproto1.CommandService_ExecuteClient, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []any{ctx, in}
+	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Execute", varargs...)
@@ -56,9 +57,9 @@ func (m *MockCommandServiceClient) Execute(arg0 context.Context, arg1 *stackspro
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockCommandServiceClientMockRecorder) Execute(arg0, arg1 any, arg2 ...any) *gomock.Call {
+func (mr *MockCommandServiceClientMockRecorder) Execute(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
+	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockCommandServiceClient)(nil).Execute), varargs...)
 }
 
@@ -66,6 +67,7 @@ func (mr *MockCommandServiceClientMockRecorder) Execute(arg0, arg1 any, arg2 ...
 type MockCommandService_ExecuteClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockCommandService_ExecuteClientMockRecorder
+	isgomock struct{}
 }
 
 // MockCommandService_ExecuteClientMockRecorder is the mock recorder for MockCommandService_ExecuteClient.
@@ -144,31 +146,31 @@ func (mr *MockCommandService_ExecuteClientMockRecorder) Recv() *gomock.Call {
 }
 
 // RecvMsg mocks base method.
-func (m *MockCommandService_ExecuteClient) RecvMsg(arg0 any) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RecvMsg", arg0)
+func (m_2 *MockCommandService_ExecuteClient) RecvMsg(m any) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "RecvMsg", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RecvMsg indicates an expected call of RecvMsg.
-func (mr *MockCommandService_ExecuteClientMockRecorder) RecvMsg(arg0 any) *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder) RecvMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).RecvMsg), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).RecvMsg), m)
 }
 
 // SendMsg mocks base method.
-func (m *MockCommandService_ExecuteClient) SendMsg(arg0 any) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMsg", arg0)
+func (m_2 *MockCommandService_ExecuteClient) SendMsg(m any) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "SendMsg", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendMsg indicates an expected call of SendMsg.
-func (mr *MockCommandService_ExecuteClientMockRecorder) SendMsg(arg0 any) *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder) SendMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).SendMsg), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).SendMsg), m)
 }
 
 // Trailer mocks base method.
