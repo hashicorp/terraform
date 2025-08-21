@@ -44,7 +44,9 @@ type JSONLog struct {
 	TestState          *State                        `json:"test_state,omitempty"`
 	TestPlan           *Plan                         `json:"test_plan,omitempty"`
 
-	ListQueryResult *viewsjson.QueryResult `json:"list_resource_found,omitempty"`
+	ListQueryStart    *viewsjson.QueryStart    `json:"list_start,omitempty"`
+	ListQueryResult   *viewsjson.QueryResult   `json:"list_resource_found,omitempty"`
+	ListQueryComplete *viewsjson.QueryComplete `json:"list_complete,omitempty"`
 }
 
 const (
@@ -164,7 +166,9 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		LogTestPlan,
 		LogTestState,
 		LogTestInterrupt,
-		LogListStart:
+		LogListStart,
+		LogListResourceFound,
+		LogListComplete:
 		// We won't display these types of logs
 		return nil
 
@@ -297,19 +301,6 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 				renderer.Streams.Eprintf(" - %s\n", resource.Instance)
 			}
 		}
-
-	case LogListResourceFound:
-		// TODO: revisit once the cloud backend support list runs
-		// We will need to transform the identity to a more human-readable form
-		result := log.ListQueryResult
-		renderer.Streams.Printf("%s\t%s\t%s\n",
-			result.Address,
-			result.Identity,
-			result.DisplayName)
-
-	case LogListComplete:
-		// Print an empty line to separate the list output
-		renderer.Streams.Println("")
 
 	default:
 		// If the log type is not a known log type, we will just print the log message
