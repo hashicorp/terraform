@@ -62,6 +62,11 @@ func mockProviderClient(t *testing.T) *mockproto.MockProviderClient {
 	return client
 }
 
+func mockWriteStateBytesClient(t *testing.T) *mockproto.MockProvider_WriteStateBytesClient {
+	ctrl := gomock.NewController(t)
+	return mockproto.NewMockProvider_WriteStateBytesClient(ctrl)
+}
+
 func checkDiags(t *testing.T, d tfdiags.Diagnostics) {
 	t.Helper()
 	if d.HasErrors() {
@@ -3654,7 +3659,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 		// Mock the call to WriteStateBytes
 		// > Assert the arguments received
 		// > Define the returned mock client
-		mockWriteClient := newMockWriteStateBytesClient(t, mockWriteStateBytesOpts{})
+		mockWriteClient := mockWriteStateBytesClient(t)
 		client.EXPECT().WriteStateBytes(
 			gomock.Any(),
 			gomock.Any(),
@@ -3675,6 +3680,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			},
 		}
 		mockWriteClient.EXPECT().Send(gomock.Eq(expectedReq)).Times(1).Return(nil)
+		mockWriteClient.EXPECT().CloseAndRecv().Times(1).Return(&proto.WriteStateBytes_Response{}, nil)
 
 		// Act
 		request := providers.WriteStateBytesRequest{
@@ -3710,7 +3716,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 		// Mock the call to WriteStateBytes
 		// > Assert the arguments received
 		// > Define the returned mock client
-		mockWriteClient := newMockWriteStateBytesClient(t, mockWriteStateBytesOpts{})
+		mockWriteClient := mockWriteStateBytesClient(t)
 		client.EXPECT().WriteStateBytes(
 			gomock.Any(),
 			gomock.Any(),
@@ -3742,6 +3748,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			},
 		}
 		mockWriteClient.EXPECT().Send(gomock.AnyOf(req1, req2)).Times(2).Return(nil)
+		mockWriteClient.EXPECT().CloseAndRecv().Times(1).Return(&proto.WriteStateBytes_Response{}, nil)
 
 		// Act
 		request := providers.WriteStateBytesRequest{
