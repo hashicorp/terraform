@@ -134,8 +134,10 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			addr := a.Addr().InModule(path)
 			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
 			node := &nodeExpandActionDeclaration{
-				Addr:   addr,
-				Config: *a,
+				nodeAbstractActionDeclaration: &nodeAbstractActionDeclaration{
+					Addr:   addr,
+					Config: *a,
+				},
 			}
 			g.Add(node)
 		}

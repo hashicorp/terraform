@@ -5,28 +5,13 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-// GraphNodeConfigAction is implemented by any nodes that represent an action.
-// The type of operation cannot be assumed, only that this node represents
-// the given resource.
-type GraphNodeConfigAction interface {
-	ActionAddr() addrs.ConfigAction
-}
 
 // nodeExpandActionDeclaration represents an action config block in a configuration module,
 // which has not yet been expanded.
 type nodeExpandActionDeclaration struct {
-	Addr   addrs.ConfigAction
-	Config configs.Action
-
-	Schema           *providers.ActionSchema
-	ResolvedProvider addrs.AbsProviderConfig
+	*nodeAbstractActionDeclaration
 }
 
 var (
@@ -37,52 +22,6 @@ var (
 	_ GraphNodeProviderConsumer   = (*nodeExpandActionDeclaration)(nil)
 	_ GraphNodeAttachActionSchema = (*nodeExpandActionDeclaration)(nil)
 )
-
-func (n *nodeExpandActionDeclaration) Name() string {
-	return n.Addr.String() + " (expand)"
-}
-
-func (n *nodeExpandActionDeclaration) ActionAddr() addrs.ConfigAction {
-	return n.Addr
-}
-
-func (n *nodeExpandActionDeclaration) ReferenceableAddrs() []addrs.Referenceable {
-	return []addrs.Referenceable{n.Addr.Action}
-}
-
-// GraphNodeModulePath
-func (n *nodeExpandActionDeclaration) ModulePath() addrs.Module {
-	return n.Addr.Module
-}
-
-// GraphNodeAttachActionSchema
-func (n *nodeExpandActionDeclaration) AttachActionSchema(schema *providers.ActionSchema) {
-	n.Schema = schema
-}
-
-func (n *nodeExpandActionDeclaration) DotNode(string, *dag.DotOpts) *dag.DotNode {
-	return &dag.DotNode{
-		Name: n.Name(),
-	}
-}
-
-// GraphNodeReferencer
-func (n *nodeExpandActionDeclaration) References() []*addrs.Reference {
-	var result []*addrs.Reference
-	c := n.Config
-
-	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Count)
-	result = append(result, refs...)
-	refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
-	result = append(result, refs...)
-
-	if n.Schema != nil {
-		refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
-		result = append(result, refs...)
-	}
-
-	return result
-}
 
 func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
@@ -173,29 +112,4 @@ func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr add
 	}
 
 	return diags
-}
-
-// GraphNodeProviderConsumer
-func (n *nodeExpandActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool) {
-	// Once the provider is fully resolved, we can return the known value.
-	if n.ResolvedProvider.Provider.Type != "" {
-		return n.ResolvedProvider, true
-	}
-
-	// Since we always have a config, we can use it
-	relAddr := n.Config.ProviderConfigAddr()
-	return addrs.LocalProviderConfig{
-		LocalName: relAddr.LocalName,
-		Alias:     relAddr.Alias,
-	}, false
-}
-
-// GraphNodeProviderConsumer
-func (n *nodeExpandActionDeclaration) Provider() addrs.Provider {
-	return n.Config.Provider
-}
-
-// GraphNodeProviderConsumer
-func (n *nodeExpandActionDeclaration) SetProvider(p addrs.AbsProviderConfig) {
-	n.ResolvedProvider = p
 }
