@@ -1510,7 +1510,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 		return resp
 	}
 
-	var buf *bytes.Buffer
+	buf := &bytes.Buffer{}
 	var expectedTotalLength int
 	for {
 		chunk, err := client.Recv()
@@ -1519,7 +1519,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 			break
 		}
 		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 			break
 		}
 		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(chunk.Diagnostics))
@@ -1576,39 +1576,52 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 	// TODO: Configurable chunk size
 	chunkSize := 4 * 1_000_000 // 4MB
 
-	if len(r.Bytes) < chunkSize {
+	client, err := p.client.WriteStateBytes(ctx)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	buf := bytes.NewBuffer(r.Bytes)
+	var totalLength int64 = int64(len(r.Bytes))
+	var totalBytesProcessed int
+	for {
+		chunk := buf.Next(chunkSize)
+
+		if len(chunk) == 0 {
+			// The previous iteration read the last of the data. Now we finish up.
+			protoResp, err := client.CloseAndRecv()
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+				return resp
+			}
+			resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+			if resp.Diagnostics.HasErrors() {
+				return resp
+			}
+			break
+		}
+
+		// There is more data to write
 		protoReq := &proto6.WriteStateBytes_RequestChunk{
 			TypeName:    r.TypeName,
 			StateId:     r.StateId,
-			Bytes:       r.Bytes,
-			TotalLength: int64(len(r.Bytes)),
+			Bytes:       chunk,
+			TotalLength: totalLength,
 			Range: &proto6.StateRange{
-				Start: 0,
-				End:   int64(len(r.Bytes)),
+				Start: int64(totalBytesProcessed),
+				End:   int64(totalBytesProcessed + len(chunk)),
 			},
-		}
-		client, err := p.client.WriteStateBytes(ctx)
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
-			return resp
 		}
 		err = client.Send(protoReq)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 			return resp
 		}
-		protoResp, err := client.CloseAndRecv()
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
-			return resp
-		}
-		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
-		if resp.Diagnostics.HasErrors() {
-			return resp
-		}
-	}
 
-	// TODO: implement chunking for state files larger than chunkSize
+		// Track progress before next iteration
+		totalBytesProcessed += len(chunk)
+	}
 
 	return resp
 }
