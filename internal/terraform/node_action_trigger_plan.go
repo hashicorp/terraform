@@ -17,7 +17,6 @@ import (
 
 type nodeActionTriggerPlanExpand struct {
 	Addr             addrs.ConfigAction
-	ActionExpr       hcl.Expression
 	resolvedProvider addrs.AbsProviderConfig
 	Config           *configs.Action
 
@@ -65,7 +64,6 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	// First we expand the module
 	moduleInstances := expander.ExpandModule(n.lifecycleActionTrigger.resourceAddress.Module, false)
-
 	for _, module := range moduleInstances {
 		_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
 		for _, key := range keys {
