@@ -977,6 +977,7 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
     subnet_id  = "subnet-123"
   }
 }
+
 import {
   to       = aws_instance.example_0
   provider = aws
@@ -997,6 +998,7 @@ resource "aws_instance" "example_1" {
     subnet_id  = "subnet-456"
   }
 }
+
 import {
   to       = aws_instance.example_1
   provider = aws
@@ -1004,6 +1006,7 @@ import {
     id = "i-123456"
   }
 }
+
 `
 	// Normalize both strings by removing extra whitespace for comparison
 	normalizeString := func(s string) string {
@@ -1018,9 +1021,9 @@ import {
 	normalizedExpected := normalizeString(expectedContent)
 
 	var merged string
-	res := content.Results
-	for _, addr := range res {
-		merged += addr.String()
+
+	for _, imp := range content.Imports {
+		merged += imp.Resource.String()
 	}
 	normalizedActual := normalizeString(content.String())
 

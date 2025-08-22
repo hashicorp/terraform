@@ -884,7 +884,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 // generateHCLResourceDef generates the HCL definition for the resource
 // instance, including the surrounding block. This is used to generate the
 // configuration for the resource instance when importing or generating
-func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (*genconfig.Resource, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (genconfig.ImportGroup, tfdiags.Diagnostics) {
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
