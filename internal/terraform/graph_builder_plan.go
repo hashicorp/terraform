@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -77,6 +78,7 @@ type PlanGraphBuilder struct {
 	ConcreteResourceOrphan          ConcreteResourceInstanceNodeFunc
 	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
 	ConcreteModule                  ConcreteModuleNodeFunc
+	ConcreteAction                  ConcreteActionDeclarationNodeFunc
 
 	// Plan Operation this graph will be used for.
 	Operation walkOperation
@@ -124,11 +126,14 @@ type PlanGraphBuilder struct {
 // See GraphBuilder
 func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] building graph for %s", b.Operation)
-	return (&BasicGraphBuilder{
+	x, d := (&BasicGraphBuilder{
 		Steps:               b.Steps(),
 		Name:                "PlanGraphBuilder",
 		SkipGraphValidation: b.SkipGraphValidation,
 	}).Build(path)
+	fmt.Print(string(x.Dot(nil)))
+
+	return x, d
 }
 
 // See GraphBuilder
@@ -153,9 +158,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete: b.ConcreteResource,
-			Config:   b.Config,
-			destroy:  b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			Concrete:       b.ConcreteResource,
+			ConcreteAction: b.ConcreteAction,
+			Config:         b.Config,
+			destroy:        b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
 			resourceMatcher: func(mode addrs.ResourceMode) bool {
 				// all resources are included during validation.
 				if b.Operation == walkValidate {
@@ -344,6 +350,12 @@ func (b *PlanGraphBuilder) initPlan() {
 			forgetModules:   b.forgetModules,
 		}
 	}
+
+	b.ConcreteAction = func(a *NodeAbstractActionDeclaration) dag.Vertex {
+		return nodeExpandActionDeclaration{
+			NodeAbstractActionDeclaration: a,
+		}
+	}
 }
 
 func (b *PlanGraphBuilder) initDestroy() {
@@ -354,6 +366,11 @@ func (b *PlanGraphBuilder) initDestroy() {
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
+		}
+	}
+	b.ConcreteAction = func(a *NodeAbstractActionDeclaration) dag.Vertex {
+		return nodeExpandActionDeclaration{
+			NodeAbstractActionDeclaration: a,
 		}
 	}
 }
@@ -400,6 +417,11 @@ func (b *PlanGraphBuilder) initImport() {
 			// as the new state, and users are not expecting the import process
 			// to update any other instances in state.
 			skipRefresh: true,
+		}
+	}
+	b.ConcreteAction = func(a *NodeAbstractActionDeclaration) dag.Vertex {
+		return nodeExpandActionDeclaration{
+			NodeAbstractActionDeclaration: a,
 		}
 	}
 }

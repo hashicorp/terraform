@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -11,7 +13,7 @@ import (
 // nodeExpandActionDeclaration represents an action config block in a configuration module,
 // which has not yet been expanded.
 type nodeExpandActionDeclaration struct {
-	*nodeAbstractActionDeclaration
+	*NodeAbstractActionDeclaration
 }
 
 var (
@@ -23,7 +25,12 @@ var (
 	_ GraphNodeAttachActionSchema = (*nodeExpandActionDeclaration)(nil)
 )
 
+func (n *nodeExpandActionDeclaration) String() string {
+	return fmt.Sprintf("%s (expand)", n.Addr)
+}
+
 func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+
 	var g Graph
 	var diags tfdiags.Diagnostics
 	expander := ctx.InstanceExpander()
