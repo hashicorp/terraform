@@ -1519,7 +1519,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 			break
 		}
 		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 			break
 		}
 		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(chunk.Diagnostics))
