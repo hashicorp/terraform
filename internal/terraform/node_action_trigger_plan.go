@@ -7,16 +7,18 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type nodeActionTriggerPlanExpand struct {
-	actionAddress     addrs.ConfigAction
-	actionInstanceKey addrs.InstanceKey // TODO: This should probably be a new address? Look at resources
-	resolvedProvider  addrs.AbsProviderConfig
-	actionConfig      *configs.Action
+	Addr             addrs.ConfigAction
+	resolvedProvider addrs.AbsProviderConfig
+	Config           *configs.Action
 
 	lifecycleActionTrigger *lifecycleActionTrigger
 }
@@ -28,6 +30,7 @@ type lifecycleActionTrigger struct {
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
+	actionExpr              hcl.Expression
 }
 
 func (at *lifecycleActionTrigger) Name() string {
@@ -47,7 +50,7 @@ func (n *nodeActionTriggerPlanExpand) Name() string {
 		triggeredBy += "unknown"
 	}
 
-	return fmt.Sprintf("%s %s", n.actionAddress.String(), triggeredBy)
+	return fmt.Sprintf("%s %s", n.Addr.String(), triggeredBy)
 }
 
 func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
@@ -65,12 +68,35 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 		_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
 		for _, key := range keys {
 			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
-			absActionAddr := n.actionAddress.Absolute(module).Instance(n.actionInstanceKey)
+
+			// The n.Addr was derived from the ActionRef hcl.Expression referenced inside the resource's lifecycle block, and has not yet been
+			// expanded or fully evaluated, so we will do that now.
+			// Grab the instance key, necessary if the action uses [count.index] or [each.key]
+			repData := instances.RepetitionData{}
+			switch k := key.(type) {
+			case addrs.IntKey:
+				repData.CountIndex = k.Value()
+			case addrs.StringKey:
+				repData.EachKey = k.Value()
+				repData.EachValue = cty.DynamicVal
+			}
+
+			ref, evalActionDiags := evaluateActionExpression(n.lifecycleActionTrigger.actionExpr, repData)
+			diags = append(diags, evalActionDiags...)
+
+			// The reference is either an action or action instance
+			var actionAddr addrs.AbsActionInstance
+			switch sub := ref.Subject.(type) {
+			case addrs.Action:
+				actionAddr = sub.Absolute(module).Instance(addrs.NoKey)
+			case addrs.ActionInstance:
+				actionAddr = sub.Absolute(module)
+			}
 
 			node := nodeActionTriggerPlanInstance{
-				actionAddress:    absActionAddr,
+				actionAddress:    actionAddr,
 				resolvedProvider: n.resolvedProvider,
-				actionConfig:     n.actionConfig,
+				actionConfig:     n.Config,
 				lifecycleActionTrigger: &lifecycleActionTriggerInstance{
 					resourceAddress:         absResourceInstanceAddr,
 					events:                  n.lifecycleActionTrigger.events,
@@ -89,13 +115,13 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 }
 
 func (n *nodeActionTriggerPlanExpand) ModulePath() addrs.Module {
-	return n.actionAddress.Module
+	return n.Addr.Module
 }
 
 func (n *nodeActionTriggerPlanExpand) References() []*addrs.Reference {
 	var refs []*addrs.Reference
 	refs = append(refs, &addrs.Reference{
-		Subject: n.actionAddress.Action,
+		Subject: n.Addr.Action,
 	})
 
 	if n.lifecycleActionTrigger != nil {
@@ -113,7 +139,7 @@ func (n *nodeActionTriggerPlanExpand) ProvidedBy() (addr addrs.ProviderConfig, e
 	}
 
 	// Since we always have a config, we can use it
-	relAddr := n.actionConfig.ProviderConfigAddr()
+	relAddr := n.Config.ProviderConfigAddr()
 	return addrs.LocalProviderConfig{
 		LocalName: relAddr.LocalName,
 		Alias:     relAddr.Alias,
@@ -121,7 +147,7 @@ func (n *nodeActionTriggerPlanExpand) ProvidedBy() (addr addrs.ProviderConfig, e
 }
 
 func (n *nodeActionTriggerPlanExpand) Provider() (provider addrs.Provider) {
-	return n.actionConfig.Provider
+	return n.Config.Provider
 }
 
 func (n *nodeActionTriggerPlanExpand) SetProvider(config addrs.AbsProviderConfig) {

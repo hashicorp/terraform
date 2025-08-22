@@ -399,7 +399,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			}
 		}
 
-		// FIXME: here we udpate the change to reflect the reason for
+		// FIXME: here we update the change to reflect the reason for
 		// replacement, but we still overload forceReplace to get the correct
 		// change planned.
 		if len(n.replaceTriggeredBy) > 0 {
@@ -507,7 +507,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		// Even if we don't plan changes, we do still need to at least update
 		// the working state to reflect the refresh result. If not, then e.g.
-		// any output values refering to this will not react to the drift.
+		// any output values referring to this will not react to the drift.
 		// (Even if we didn't actually refresh above, this will still save
 		// the result of any schema upgrading we did in readResourceInstanceState.)
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, workingState))

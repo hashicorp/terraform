@@ -10,13 +10,19 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+// There are many ways of handling plurality in error messages (linked_resource
+// vs linked_resources); this is one of them.
+type diagFn func(*hcl.Range) *hcl.Diagnostic
 
 func invalidLinkedResourceDiag(subj *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
-		Summary:  `Invalid "linked_resource"`,
-		Detail:   `"linked_resource" must only refer to a managed resource in the current module.`,
+		Summary:  `Invalid linked_resource`,
+		Detail:   `linked_resource must only refer to a managed resource in the current module.`,
 		Subject:  subj,
 	}
 }
@@ -24,8 +30,17 @@ func invalidLinkedResourceDiag(subj *hcl.Range) *hcl.Diagnostic {
 func invalidLinkedResourcesDiag(subj *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
-		Summary:  `Invalid "linked_resources"`,
-		Detail:   `"linked_resources" must only refer to managed resources in the current module.`,
+		Summary:  `Invalid linked_resources`,
+		Detail:   `linked_resources must only refer to managed resources in the current module.`,
+		Subject:  subj,
+	}
+}
+
+func invalidActionDiag(subj *hcl.Range) *hcl.Diagnostic {
+	return &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  `Invalid action argument inside action_triggers`,
+		Detail:   `action_triggers.actions must only refer to actions in the current module.`,
 		Subject:  subj,
 	}
 }
@@ -39,7 +54,7 @@ type Action struct {
 	ForEach hcl.Expression
 	// DependsOn []hcl.Traversal // not yet supported
 
-	LinkedResources []hcl.Traversal
+	LinkedResources []hcl.Expression
 
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
@@ -76,8 +91,7 @@ const (
 
 // ActionRef represents a reference to a configured Action
 type ActionRef struct {
-	Traversal hcl.Traversal
-
+	Expr  hcl.Expression
 	Range hcl.Range
 }
 
@@ -142,37 +156,9 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 	}
 
 	if attr, exists := content.Attributes["actions"]; exists {
-		exprs, ediags := hcl.ExprList(attr.Expr)
+		actionRefs, ediags := decodeActionTriggerRef(attr.Expr)
 		diags = append(diags, ediags...)
-		actions := []ActionRef{}
-		for _, expr := range exprs {
-			traversal, travDiags := hcl.AbsTraversalForExpr(expr)
-			diags = append(diags, travDiags...)
-
-			if len(traversal) > 0 {
-				// verify that the traversal is an action
-				ref, refDiags := addrs.ParseRef(traversal)
-				diags = append(diags, refDiags.ToHCL()...)
-
-				switch ref.Subject.(type) {
-				case addrs.ActionInstance, addrs.Action:
-					actionRef := ActionRef{
-						Traversal: traversal,
-						Range:     expr.Range(),
-					}
-					actions = append(actions, actionRef)
-				default:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid actions argument inside action_triggers",
-						Detail:   "action_triggers.actions accepts a list of one or more actions, which must be in the current module.",
-						Subject:  expr.Range().Ptr(),
-					})
-					continue
-				}
-			}
-		}
-		a.Actions = actions
+		a.Actions = actionRefs
 	}
 
 	if len(a.Actions) == 0 {
@@ -250,30 +236,9 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 				Subject:  &attr.NameRange,
 			})
 		}
-
-		traversal, travDiags := hcl.AbsTraversalForExpr(attr.Expr)
-		diags = append(diags, travDiags...)
-		if len(traversal) != 0 {
-			ref, refDiags := addrs.ParseRef(traversal)
-			diags = append(diags, refDiags.ToHCL()...)
-
-			switch res := ref.Subject.(type) {
-			case addrs.Resource:
-				if res.Mode != addrs.ManagedResourceMode {
-					diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
-				} else {
-					a.LinkedResources = []hcl.Traversal{traversal}
-				}
-			case addrs.ResourceInstance:
-				if res.Resource.Mode != addrs.ManagedResourceMode {
-					diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
-				} else {
-					a.LinkedResources = []hcl.Traversal{traversal}
-				}
-			default:
-				diags = append(diags, invalidLinkedResourceDiag(&attr.NameRange))
-			}
-		}
+		lr, lrDiags := decodeLinkedResource(attr.Expr)
+		diags = append(diags, lrDiags...)
+		a.LinkedResources = []hcl.Expression{lr}
 	}
 
 	if attr, exists := content.Attributes["linked_resources"]; exists {
@@ -286,29 +251,9 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 			})
 		}
 
-		exprs, exprDiags := hcl.ExprList(attr.Expr)
-		diags = append(diags, exprDiags...)
-
-		if len(exprs) > 0 {
-			lrs := make([]hcl.Traversal, 0, len(exprs))
-			for _, expr := range exprs {
-				traversal, travDiags := hcl.AbsTraversalForExpr(expr)
-				diags = append(diags, travDiags...)
-
-				if len(traversal) != 0 {
-					ref, refDiags := addrs.ParseRef(traversal)
-					diags = append(diags, refDiags.ToHCL()...)
-
-					switch ref.Subject.(type) {
-					case addrs.Resource, addrs.ResourceInstance:
-						lrs = append(lrs, traversal)
-					default:
-						diags = append(diags, invalidLinkedResourcesDiag(&attr.NameRange))
-					}
-				}
-			}
-			a.LinkedResources = lrs
-		}
+		lrs, lrDiags := decodeLinkedResources(attr.Expr)
+		diags = append(diags, lrDiags...)
+		a.LinkedResources = lrs
 	}
 
 	for _, block := range content.Blocks {
@@ -421,4 +366,199 @@ func (a *Action) ProviderConfigAddr() addrs.LocalProviderConfig {
 		LocalName: a.ProviderConfigRef.Name,
 		Alias:     a.ProviderConfigRef.Alias,
 	}
+}
+
+// decodeActionTriggerRef decodes and does basic validation of the Actions
+// expression list inside a resource's ActionTrigger block, ensuring each only
+// reference a single action. This function was largely copied from
+// decodeReplaceTriggeredBy, but is much more permissive in what References are
+// allowed.
+func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) {
+	exprs, diags := hcl.ExprList(expr)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	actionRefs := make([]ActionRef, len(exprs))
+
+	for i, expr := range exprs {
+		// Since we are manually parsing the action_trigger.Actions argument, we
+		// need to specially handle json configs, in which case the values will
+		// be json strings rather than hcl. To simplify parsing however we will
+		// decode the individual list elements, rather than the entire
+		// expression.
+		var jsDiags hcl.Diagnostics
+		expr, jsDiags = unwrapJSONRefExpr(expr)
+		diags = diags.Extend(jsDiags)
+		if diags.HasErrors() {
+			continue
+		}
+		actionRefs[i] = ActionRef{
+			Expr:  expr,
+			Range: expr.Range(),
+		}
+
+		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+		for _, diag := range refDiags {
+			severity := hcl.DiagError
+			if diag.Severity() == tfdiags.Warning {
+				severity = hcl.DiagWarning
+			}
+
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: severity,
+				Summary:  diag.Description().Summary,
+				Detail:   diag.Description().Detail,
+				Subject:  expr.Range().Ptr(),
+			})
+		}
+
+		if refDiags.HasErrors() {
+			continue
+		}
+
+		actionCount := 0
+		for _, ref := range refs {
+			switch ref.Subject.(type) {
+			case addrs.Action, addrs.ActionInstance:
+				actionCount++
+			case addrs.ModuleCall, addrs.ModuleCallInstance, addrs.ModuleCallInstanceOutput:
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid reference to action outside this module",
+					Detail:   "Actions can only be referenced in the module they are declared in.",
+					Subject:  expr.Range().Ptr(),
+				})
+				continue
+			case addrs.Resource, addrs.ResourceInstance:
+				// definitely not an action
+				diags = append(diags, invalidActionDiag(expr.Range().Ptr()))
+				continue
+			default:
+				// we've checked what we can
+			}
+		}
+
+		switch {
+		case actionCount == 0:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "No actions specified",
+				Detail:   "At least one action must be specified for an action_trigger.",
+				Subject:  expr.Range().Ptr(),
+			})
+		case actionCount > 1:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid action expression",
+				Detail:   "Multiple action references in actions expression.",
+				Subject:  expr.Range().Ptr(),
+			})
+		}
+
+	}
+
+	return actionRefs, diags
+}
+
+// decodeLinkedResources decodes and does basic validation of an Action's
+// LinkedResources.
+func decodeLinkedResources(expr hcl.Expression) ([]hcl.Expression, hcl.Diagnostics) {
+	exprs, diags := hcl.ExprList(expr)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	for i, expr := range exprs {
+		// We are manually parsing config, so we need to handle json configs, in
+		// which case the values will be json strings rather than hcl.
+		var jsDiags hcl.Diagnostics
+		expr, jsDiags = unwrapJSONRefExpr(expr)
+		diags = diags.Extend(jsDiags)
+		if diags.HasErrors() {
+			continue
+		}
+
+		// re-assign the value in case it was modified by unwrapJSONRefExpr
+		exprs[i] = expr
+
+		_, lrDiags := decodeUnwrappedLinkedResource(expr, invalidLinkedResourcesDiag)
+		diags = append(diags, lrDiags...)
+
+	}
+
+	return exprs, diags
+}
+
+func decodeLinkedResource(expr hcl.Expression) (hcl.Expression, hcl.Diagnostics) {
+	// Handle possible json configs
+	expr, diags := unwrapJSONRefExpr(expr)
+	if diags.HasErrors() {
+		return expr, diags
+	}
+
+	return decodeUnwrappedLinkedResource(expr, invalidLinkedResourceDiag)
+}
+
+func decodeUnwrappedLinkedResource(expr hcl.Expression, diagFunc diagFn) (hcl.Expression, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	for _, diag := range refDiags {
+		severity := hcl.DiagError
+		if diag.Severity() == tfdiags.Warning {
+			severity = hcl.DiagWarning
+		}
+
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: severity,
+			Summary:  diag.Description().Summary,
+			Detail:   diag.Description().Detail,
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+
+	if refDiags.HasErrors() {
+		return expr, diags
+	}
+
+	resourceCount := 0
+	for _, ref := range refs {
+		switch sub := ref.Subject.(type) {
+		case addrs.ResourceInstance:
+			if sub.Resource.Mode == addrs.ManagedResourceMode {
+				diags = append(diags, diagFunc(expr.Range().Ptr()))
+			} else {
+				resourceCount++
+			}
+		case addrs.Resource:
+			if sub.Mode != addrs.ManagedResourceMode {
+				diags = append(diags, diagFunc(expr.Range().Ptr()))
+			} else {
+				resourceCount++
+			}
+		case addrs.ModuleCall, addrs.ModuleCallInstance, addrs.ModuleCallInstanceOutput:
+			diags = append(diags, diagFunc(expr.Range().Ptr()))
+		default:
+			// we've checked what we can without evaluating references!
+		}
+	}
+
+	switch {
+	case resourceCount == 0:
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid linked_resource expression",
+			Detail:   "Missing resource reference in linked_resource expression.",
+			Subject:  expr.Range().Ptr(),
+		})
+	case resourceCount > 1:
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid linked_resource expression",
+			Detail:   "Multiple resource references in linked_resource expression.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+
+	return expr, diags
 }
