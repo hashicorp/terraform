@@ -17,8 +17,8 @@ type GraphNodeConfigAction interface {
 	ActionAddr() addrs.ConfigAction
 }
 
-// nodeAbstractActionDeclaration represents an action config block in a configuration module.
-type nodeAbstractActionDeclaration struct {
+// NodeAbstractActionDeclaration represents an action config block in a configuration module.
+type NodeAbstractActionDeclaration struct {
 	Addr   addrs.ConfigAction
 	Config configs.Action
 
@@ -27,37 +27,37 @@ type nodeAbstractActionDeclaration struct {
 }
 
 var (
-	_ GraphNodeConfigAction       = (*nodeAbstractActionDeclaration)(nil)
-	_ GraphNodeReferenceable      = (*nodeAbstractActionDeclaration)(nil)
-	_ GraphNodeReferencer         = (*nodeAbstractActionDeclaration)(nil)
-	_ GraphNodeProviderConsumer   = (*nodeAbstractActionDeclaration)(nil)
-	_ GraphNodeAttachActionSchema = (*nodeAbstractActionDeclaration)(nil)
+	_ GraphNodeConfigAction       = (*NodeAbstractActionDeclaration)(nil)
+	_ GraphNodeReferenceable      = (*NodeAbstractActionDeclaration)(nil)
+	_ GraphNodeReferencer         = (*NodeAbstractActionDeclaration)(nil)
+	_ GraphNodeProviderConsumer   = (*NodeAbstractActionDeclaration)(nil)
+	_ GraphNodeAttachActionSchema = (*NodeAbstractActionDeclaration)(nil)
 )
 
-func (n *nodeAbstractActionDeclaration) Name() string {
+func (n *NodeAbstractActionDeclaration) Name() string {
 	return n.Addr.String()
 }
 
-func (n *nodeAbstractActionDeclaration) ActionAddr() addrs.ConfigAction {
+func (n *NodeAbstractActionDeclaration) ActionAddr() addrs.ConfigAction {
 	return n.Addr
 }
 
-func (n *nodeAbstractActionDeclaration) ReferenceableAddrs() []addrs.Referenceable {
+func (n *NodeAbstractActionDeclaration) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Action}
 }
 
 // GraphNodeModulePath
-func (n *nodeAbstractActionDeclaration) ModulePath() addrs.Module {
+func (n *NodeAbstractActionDeclaration) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
 // GraphNodeAttachActionSchema
-func (n *nodeAbstractActionDeclaration) AttachActionSchema(schema *providers.ActionSchema) {
+func (n *NodeAbstractActionDeclaration) AttachActionSchema(schema *providers.ActionSchema) {
 	n.Schema = schema
 }
 
 // GraphNodeReferencer
-func (n *nodeAbstractActionDeclaration) References() []*addrs.Reference {
+func (n *NodeAbstractActionDeclaration) References() []*addrs.Reference {
 	var result []*addrs.Reference
 	c := n.Config
 
@@ -75,7 +75,7 @@ func (n *nodeAbstractActionDeclaration) References() []*addrs.Reference {
 }
 
 // GraphNodeProviderConsumer
-func (n *nodeAbstractActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool) {
+func (n *NodeAbstractActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// Once the provider is fully resolved, we can return the known value.
 	if n.ResolvedProvider.Provider.Type != "" {
 		return n.ResolvedProvider, true
@@ -90,11 +90,11 @@ func (n *nodeAbstractActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool
 }
 
 // GraphNodeProviderConsumer
-func (n *nodeAbstractActionDeclaration) Provider() addrs.Provider {
+func (n *NodeAbstractActionDeclaration) Provider() addrs.Provider {
 	return n.Config.Provider
 }
 
 // GraphNodeProviderConsumer
-func (n *nodeAbstractActionDeclaration) SetProvider(p addrs.AbsProviderConfig) {
+func (n *NodeAbstractActionDeclaration) SetProvider(p addrs.AbsProviderConfig) {
 	n.ResolvedProvider = p
 }

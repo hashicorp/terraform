@@ -26,7 +26,8 @@ import (
 // all resources including module resources, rather than creating module
 // nodes that are then "flattened".
 type ConfigTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete       ConcreteResourceNodeFunc
+	ConcreteAction ConcreteActionDeclarationNodeFunc
 
 	// Module is the module to add resources from.
 	Config *configs.Config
@@ -133,11 +134,13 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		if a != nil {
 			addr := a.Addr().InModule(path)
 			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
-			node := &nodeExpandActionDeclaration{
-				nodeAbstractActionDeclaration: &nodeAbstractActionDeclaration{
-					Addr:   addr,
-					Config: *a,
-				},
+			abstract := &NodeAbstractActionDeclaration{
+				Addr:   addr,
+				Config: *a,
+			}
+			var node dag.Vertex = abstract
+			if f := t.ConcreteAction; f != nil {
+				node = f(abstract)
 			}
 			g.Add(node)
 		}
