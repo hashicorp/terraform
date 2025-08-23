@@ -556,7 +556,6 @@ resource "test_object" "b" {
 		},
 
 		"action with secrets in configuration": {
-			toBeImplemented: true, // We currently don't suppport sensitive values in the plan
 			module: map[string]string{
 				"main.tf": `
 variable "secret_value" {

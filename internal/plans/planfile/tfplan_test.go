@@ -335,6 +335,24 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						"id": cty.StringVal("testing"),
 					}), objTy),
 				},
+				{
+					Addr:         addrs.Action{Type: "example", Name: "baz"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: provider,
+					ActionTrigger: plans.LifecycleActionTrigger{
+						ActionTriggerEvent:      configs.BeforeCreate,
+						ActionTriggerBlockIndex: 2,
+						ActionsListIndex:        1,
+						TriggeringResourceAddr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "woot",
+						}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					},
+					ConfigValue: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("secret"),
+					}), objTy),
+					SensitiveConfigPaths: []cty.Path{cty.GetAttrPath("id")},
+				},
 			},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{

@@ -1365,6 +1365,11 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 			return nil, fmt.Errorf("invalid config value: %s", err)
 		}
 		ret.ConfigValue = configVal
+		sensitiveConfigPaths, err := pathsFromTfplan(rawAction.SensitiveConfigPaths)
+		if err != nil {
+			return nil, err
+		}
+		ret.SensitiveConfigPaths = sensitiveConfigPaths
 	}
 
 	return ret, nil
@@ -1412,6 +1417,11 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 
 	if action.ConfigValue != nil {
 		ret.ConfigValue = valueToTfplan(action.ConfigValue)
+		sensitiveConfigPaths, err := pathsToTfplan(action.SensitiveConfigPaths)
+		if err != nil {
+			return nil, err
+		}
+		ret.SensitiveConfigPaths = sensitiveConfigPaths
 	}
 
 	return ret, nil

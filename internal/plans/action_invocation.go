@@ -4,9 +4,13 @@
 package plans
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -109,8 +113,15 @@ func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*Act
 			ty = schema.ConfigSchema.ImpliedType()
 		}
 
+		unmarkedConfigValue, pvms := ai.ConfigValue.UnmarkDeepWithPaths()
+		sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+		if len(otherMarks) > 0 {
+			return nil, fmt.Errorf("%s: error serializing action invocation with unexpected marks on config value: %#v. This is a bug in Terraform.", tfdiags.FormatCtyPath(otherMarks[0].Path), otherMarks[0].Marks)
+		}
+
 		var err error
-		ret.ConfigValue, err = NewDynamicValue(ai.ConfigValue, ty)
+		ret.ConfigValue, err = NewDynamicValue(unmarkedConfigValue, ty)
+		ret.SensitiveConfigPaths = sensitivePaths
 		if err != nil {
 			return nil, err
 		}
