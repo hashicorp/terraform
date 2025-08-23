@@ -568,7 +568,8 @@ type ActionInvocationInstanceSrc struct {
 	Addr          addrs.AbsActionInstance
 	ActionTrigger ActionTrigger
 
-	ConfigValue DynamicValue
+	ConfigValue          DynamicValue
+	SensitiveConfigPaths []cty.Path
 
 	ProviderAddr addrs.AbsProviderConfig
 }
@@ -584,12 +585,13 @@ func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (
 	if err != nil {
 		return nil, fmt.Errorf("error decoding 'config' value: %s", err)
 	}
+	markedConfigValue := marks.MarkPaths(config, marks.Sensitive, acs.SensitiveConfigPaths)
 
 	ai := &ActionInvocationInstance{
 		Addr:          acs.Addr,
 		ActionTrigger: acs.ActionTrigger,
 		ProviderAddr:  acs.ProviderAddr,
-		ConfigValue:   config,
+		ConfigValue:   markedConfigValue,
 	}
 	return ai, nil
 }

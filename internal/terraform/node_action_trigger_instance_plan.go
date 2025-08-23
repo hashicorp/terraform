@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -120,9 +121,23 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		return diags
 	}
 
+	// We remove the marks for planning, we will record the sensitive values in the plans.ActionInvocationInstance
+	unmarkedConfig, pvms := actionInstance.ConfigValue.UnmarkDeepWithPaths()
+	// We only support sensitive marks, all other marks cause an error
+	_, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	if len(otherMarks) > 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported marks",
+			Detail:   "Only sensitive marks are supported in action configuration",
+			Subject:  &n.actionConfig.DeclRange,
+		})
+		return diags
+	}
+
 	resp := provider.PlanAction(providers.PlanActionRequest{
 		ActionType:         n.actionAddress.Action.Action.Type,
-		ProposedActionData: actionInstance.ConfigValue,
+		ProposedActionData: unmarkedConfig,
 		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 

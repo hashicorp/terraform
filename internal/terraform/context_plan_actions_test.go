@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -22,6 +23,19 @@ import (
 )
 
 func TestContextPlan_actions(t *testing.T) {
+	unlinkedActionSchema := providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"attr": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
+
+		Unlinked: &providers.UnlinkedAction{},
+	}
+
 	for name, tc := range map[string]struct {
 		toBeImplemented bool
 		module          map[string]string
@@ -1315,6 +1329,56 @@ resource "test_object" "a" {
 				}
 			},
 		},
+
+		"secret values": {
+			module: map[string]string{
+				"main.tf": `
+variable "secret" {
+  type           = string
+  sensitive      = true
+}
+action "test_unlinked" "hello" {
+  config {
+    attr = var.secret
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"secret": &InputValue{
+						Value:      cty.StringVal("secret"),
+						SourceType: ValueFromCLIArg,
+					}},
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				ac, err := action.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("expected action to decode successfully, but got error: %v", err)
+				}
+
+				if !marks.Has(ac.ConfigValue.GetAttr("attr"), marks.Sensitive) {
+					t.Fatalf("expected attribute 'attr' to be marked as sensitive")
+				}
+			},
+		},
+
 		"provider deferring action while not allowed": {
 			module: map[string]string{
 				"main.tf": `
@@ -1656,18 +1720,7 @@ resource "test_object" "a" {
 			p := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
-						"test_unlinked": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
-							},
-
-							Unlinked: &providers.UnlinkedAction{},
-						},
+						"test_unlinked": unlinkedActionSchema,
 
 						"test_lifecycle": {
 							ConfigSchema: &configschema.Block{

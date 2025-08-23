@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -25,7 +26,8 @@ type ActionInvocation struct {
 	Name string `json:"name,omitempty"`
 
 	// ConfigValues is the JSON representation of the values in the config block of the action
-	ConfigValues map[string]json.RawMessage `json:"config_values,omitempty"`
+	ConfigValues    map[string]json.RawMessage `json:"config_values,omitempty"`
+	ConfigSensitive json.RawMessage            `json:"config_sensitive,omitempty"`
 
 	// ProviderName allows the property "type" to be interpreted unambiguously
 	// in the unusual situation where a provider offers a type whose
@@ -85,7 +87,7 @@ func marshalConfigValues(value cty.Value) map[string]json.RawMessage {
 	}
 
 	ret := make(map[string]json.RawMessage)
-	it := value.ElementIterator()
+	it := v.ElementIterator()
 	for it.Next() {
 		k, v := it.Element()
 		vJSON, _ := ctyjson.Marshal(v, v.Type())
@@ -99,7 +101,7 @@ func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, sche
 	for _, action := range actions {
 		ai, err := MarshalActionInvocation(action, schemas)
 		if err != nil {
-			return nil, err
+			return ret, fmt.Errorf("failed to decode action %s: %w", action.Addr, err)
 		}
 		ret = append(ret, ai)
 	}
@@ -113,7 +115,6 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 		Name:         action.Addr.Action.Action.Name,
 		ProviderName: action.ProviderAddr.Provider.String(),
 	}
-
 	schema := schemas.ActionTypeConfig(
 		action.ProviderAddr.Provider,
 		action.Addr.Action.Action.Type,
@@ -140,12 +141,8 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 	}
 
 	if actionDec.ConfigValue != cty.NilVal {
-		// TODO: Support sensitive and ephemeral values in action invocations.
 		_, pvms := actionDec.ConfigValue.UnmarkDeepWithPaths()
 		sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
-		if len(sensitivePaths) > 0 {
-			return ai, fmt.Errorf("action %s has sensitive config values, which are not supported in action invocations", action.Addr)
-		}
 		ephemeralPaths, otherMarks := marks.PathsWithMark(otherMarks, marks.Ephemeral)
 		if len(ephemeralPaths) > 0 {
 			return ai, fmt.Errorf("action %s has ephemeral config values, which are not supported in action invocations", action.Addr)
@@ -154,12 +151,18 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 			return ai, fmt.Errorf("action %s has config values with unsupported marks: %v", action.Addr, otherMarks)
 		}
 
-		if actionDec.ConfigValue.IsWhollyKnown() {
-			ai.ConfigValues = marshalConfigValues(actionDec.ConfigValue)
-		} else {
-			knowns := omitUnknowns(actionDec.ConfigValue)
-			ai.ConfigValues = marshalConfigValues(knowns)
+		configValue := actionDec.ConfigValue
+		if !configValue.IsWhollyKnown() {
+			configValue = omitUnknowns(actionDec.ConfigValue)
 		}
+		cs := jsonstate.SensitiveAsBool(marks.MarkPaths(configValue, marks.Sensitive, sensitivePaths))
+		configSensitive, err := ctyjson.Marshal(cs, cs.Type())
+		if err != nil {
+			return ai, err
+		}
+
+		ai.ConfigValues = marshalConfigValues(configValue)
+		ai.ConfigSensitive = configSensitive
 	}
 	return ai, nil
 }
