@@ -168,6 +168,7 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 
 	if stderr != "" {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
+		t.Logf("(a \"Failed to query available provider packages\" error can happen here if you have a .terraformrc CLI configuration file present in your home directory)")
 	}
 
 	if !strings.Contains(stdout, "Terraform has been successfully initialized!") {
