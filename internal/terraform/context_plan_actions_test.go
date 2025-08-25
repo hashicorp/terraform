@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -1748,6 +1749,7 @@ action "test_unlinked_wo" "hello" {
 }
 `,
 			},
+
 			planOpts: SimplePlanOpts(plans.NormalMode, InputValues{
 				"attr": {
 					Value: cty.StringVal("wo-plan"),
@@ -1767,6 +1769,163 @@ action "test_unlinked_wo" "hello" {
 
 				if !ai.ConfigValue.GetAttr("attr").IsNull() {
 					t.Fatal("should have converted ephemeral value to null in the plan")
+				}
+			},
+		},
+
+		"boolean condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+action "test_unlinked" "bye" {}
+resource "test_object" "foo" {
+name = "foo"
+}
+resource "test_object" "a" {
+lifecycle {
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "foo"
+    actions = [action.test_unlinked.hello, action.test_unlinked.world]
+  }
+  action_trigger {
+    events = [after_create]
+    condition = test_object.foo.name == "bye"
+    actions = [action.test_unlinked.bye]
+  }
+}
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				invokedActionAddrs := []string{}
+				for _, action := range p.Changes.ActionInvocations {
+					invokedActionAddrs = append(invokedActionAddrs, action.Addr.String())
+				}
+				slices.Sort(invokedActionAddrs)
+				expectedActions := []string{
+					"action.test_unlinked.hello",
+					"action.test_unlinked.world",
+				}
+				if !cmp.Equal(expectedActions, invokedActionAddrs) {
+					t.Fatalf("expected actions: %v, got %v", expectedActions, invokedActionAddrs)
+				}
+			},
+		},
+
+		"unknown condition": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+variable "cond" {
+    type = string
+}
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = var.cond == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.UnknownVal(cty.String),
+						SourceType: ValueFromCaller,
+					},
+				},
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				// TODO: Expect "might be triggered"
+			},
+		},
+
+		"non-boolean condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "foo" {
+  name = "foo"
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = test_object.foo.name
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Incorrect value type",
+					Detail:   "Invalid expression value: a bool is required.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 196},
+						End:      hcl.Pos{Line: 10, Column: 39, Byte: 216},
+					},
+				})
+			},
+		},
+
+		"using self in condition": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = self.name == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [before_create]
+      condition = self.name == "bar"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action.test_unlinked.hello, got %s", p.Changes.ActionInvocations[0].Addr.String())
 				}
 			},
 		},
