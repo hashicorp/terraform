@@ -342,8 +342,11 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 		return cty.DynamicVal, diags
 	}
 
-	val := d.Evaluator.NamedValues.GetLocalValue(addr.Absolute(d.ModulePath))
-	return val, diags
+	if target := addr.Absolute(d.ModulePath); d.Evaluator.NamedValues.HasLocalValue(target) {
+		return d.Evaluator.NamedValues.GetLocalValue(addr.Absolute(d.ModulePath)), diags
+	}
+
+	return cty.DynamicVal, diags
 }
 
 func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -541,6 +544,21 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// result for _all_ of its work, rather than continuing to duplicate a bunch
 	// of the logic we've tried to encapsulate over ther already.
 	if d.Operation == walkPlan || d.Operation == walkApply {
+		if !d.Evaluator.Instances.ResourceInstanceExpanded(addr.Absolute(moduleAddr)) {
+			// Then we've asked for a resource that hasn't been evaluated yet.
+			// This means that either something has gone wrong in the graph or
+			// the console or test command has an errored plan and is attempting
+			// to load an invalid resource from it.
+
+			unknownVal := cty.DynamicVal
+
+			// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
+			if addr.Mode == addrs.EphemeralResourceMode {
+				unknownVal = unknownVal.Mark(marks.Ephemeral)
+			}
+			return unknownVal, diags
+		}
+
 		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
 			// There really isn't anything interesting we can do in this situation,
 			// because it means we have an unknown for_each/count, in which case
