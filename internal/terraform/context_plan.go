@@ -841,7 +841,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 
 	if !schemaDiags.HasErrors() {
-		deferredResources, deferredDiags := c.deferredResources(config, walker.Deferrals.GetDeferredChanges(), priorState)
+		deferredResources, deferredDiags := c.deferredResources(schemas, walker.Deferrals.GetDeferredChanges())
 		diags = diags.Append(deferredDiags)
 		plan.DeferredResources = deferredResources
 
@@ -890,16 +890,11 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	return plan, evalScope, diags
 }
 
-func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.DeferredResourceInstanceChange, state *states.State) ([]*plans.DeferredResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+func (c *Context) deferredResources(schemas *Schemas, deferrals []*plans.DeferredResourceInstanceChange) ([]*plans.DeferredResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	var deferredResources []*plans.DeferredResourceInstanceChangeSrc
 
-	schemas, diags := c.Schemas(config, state)
-	if diags.HasErrors() {
-		return deferredResources, diags
-	}
-
 	for _, deferral := range deferrals {
-
 		schema := schemas.ResourceTypeConfig(
 			deferral.Change.ProviderAddr.Provider,
 			deferral.Change.Addr.Resource.Resource.Mode,
