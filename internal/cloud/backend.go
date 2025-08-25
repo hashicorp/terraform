@@ -955,43 +955,85 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 
 		defer b.opLock.Unlock()
 
-		r, opErr := f(stopCtx, cancelCtx, op, w)
-		if opErr != nil && opErr != context.Canceled {
-			var diags tfdiags.Diagnostics
-			diags = diags.Append(opErr)
-			op.ReportResult(runningOp, diags)
-			return
-		}
-
-		if r == nil && opErr == context.Canceled {
-			runningOp.Result = backendrun.OperationFailure
-			return
-		}
-
-		if r != nil {
-			// Retrieve the run to get its current status.
-			r, err := b.client.Runs.Read(cancelCtx, r.ID)
-			if err != nil {
+		// Execute another code path for a query operation
+		// In Terraform a query operation is very similar to a regular plan, but
+		// in HCP Terraform there is a different set of endpoints
+		if op.Query {
+			r, opErr := b.opQuery(stopCtx, cancelCtx, op, w)
+			if opErr != nil && opErr != context.Canceled {
 				var diags tfdiags.Diagnostics
-				diags = diags.Append(b.generalError("Failed to retrieve run", err))
+				diags = diags.Append(opErr)
 				op.ReportResult(runningOp, diags)
 				return
 			}
 
-			// Record if there are any changes.
-			runningOp.PlanEmpty = !r.HasChanges
+			if r == nil && opErr == context.Canceled {
+				runningOp.Result = backendrun.OperationFailure
+				return
+			}
 
-			if opErr == context.Canceled {
-				if err := b.cancel(cancelCtx, op, r); err != nil {
+			if r != nil {
+				// Retrieve the run to get its current status.
+				r, err := b.client.QueryRuns.Read(cancelCtx, r.ID)
+				if err != nil {
+					var diags tfdiags.Diagnostics
+					diags = diags.Append(b.generalError("Failed to retrieve query run", err))
+					op.ReportResult(runningOp, diags)
+					return
+				}
+
+				if opErr == context.Canceled {
+					if err := b.cancelQueryRun(cancelCtx, op, r); err != nil {
+						var diags tfdiags.Diagnostics
+						diags = diags.Append(b.generalError("Failed to retrieve query run", err))
+						op.ReportResult(runningOp, diags)
+						return
+					}
+				}
+
+				if r.Status == tfe.QueryRunCanceled || r.Status == tfe.QueryRunErrored {
+					runningOp.Result = backendrun.OperationFailure
+				}
+			}
+		} else {
+			r, opErr := f(stopCtx, cancelCtx, op, w)
+			if opErr != nil && opErr != context.Canceled {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(opErr)
+				op.ReportResult(runningOp, diags)
+				return
+			}
+
+			if r == nil && opErr == context.Canceled {
+				runningOp.Result = backendrun.OperationFailure
+				return
+			}
+
+			if r != nil {
+				// Retrieve the run to get its current status.
+				r, err := b.client.Runs.Read(cancelCtx, r.ID)
+				if err != nil {
 					var diags tfdiags.Diagnostics
 					diags = diags.Append(b.generalError("Failed to retrieve run", err))
 					op.ReportResult(runningOp, diags)
 					return
 				}
-			}
 
-			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
-				runningOp.Result = backendrun.OperationFailure
+				// Record if there are any changes.
+				runningOp.PlanEmpty = !r.HasChanges
+
+				if opErr == context.Canceled {
+					if err := b.cancel(cancelCtx, op, r); err != nil {
+						var diags tfdiags.Diagnostics
+						diags = diags.Append(b.generalError("Failed to retrieve run", err))
+						op.ReportResult(runningOp, diags)
+						return
+					}
+				}
+
+				if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+					runningOp.Result = backendrun.OperationFailure
+				}
 			}
 		}
 	}()
