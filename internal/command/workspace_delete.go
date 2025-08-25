@@ -79,11 +79,13 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// This command will not write state
 	c.ignoreRemoteVersionConflict(b)
 
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
+	workspaces, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
 	// Is the user attempting to delete a workspace that doesn't exist?
 	workspace := args[0]
@@ -182,11 +184,13 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// be delegated from the Backend to the State itself.
 	stateLocker.Unlock()
 
-	err = b.DeleteWorkspace(workspace, force)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	dwDiags := b.DeleteWorkspace(workspace, force)
+	diags = diags.Append(dwDiags)
+	if dwDiags.HasErrors() {
+		c.Ui.Error(dwDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
 	c.Ui.Output(
 		c.Colorize().Color(

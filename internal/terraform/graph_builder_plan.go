@@ -166,6 +166,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
 
+		&ActionPlanTransformer{
+			Config:    b.Config,
+			Operation: b.Operation,
+		},
+
 		// Add dynamic values
 		&RootVariableTransformer{
 			Config:       b.Config,

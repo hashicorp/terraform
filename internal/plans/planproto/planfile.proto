@@ -451,10 +451,18 @@ message ActionInvocationInstance {
     repeated ResourceInstanceActionChange linked_resources = 3;
     DynamicValue config_value = 4;
 
-    string triggering_resource_addr = 5;
-    ActionTriggerEvent trigger_event = 6;
-    int64 action_trigger_block_index = 7;
-    int64 actions_list_index = 8;
+    oneof action_trigger {
+        LifecycleActionTrigger lifecycle_action_trigger = 5;
+    }
+}
+
+// LifecycleActionTrigger contains details on the conditions that led to the
+// triggering of an action.
+message LifecycleActionTrigger {
+  string triggering_resource_addr = 1;
+  ActionTriggerEvent trigger_event = 2;
+  int64 action_trigger_block_index = 3;
+  int64 actions_list_index = 4;
 }
 
 message ResourceInstanceActionChange {

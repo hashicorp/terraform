@@ -254,6 +254,10 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			v.view.PlannedChange(json.NewResourceInstanceChange(change))
 		}
 	}
+	cs.ActionInvocation = len(plan.Changes.ActionInvocations)
+	for _, action := range plan.Changes.ActionInvocations {
+		v.view.PlannedActionInvocation(json.NewPlannedActionInvocation(action))
+	}
 
 	v.view.ChangeSummary(cs)
 

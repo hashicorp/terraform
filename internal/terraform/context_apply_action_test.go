@@ -4,9 +4,12 @@
 package terraform
 
 import (
+	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -31,7 +34,7 @@ func TestContext2Apply_actions(t *testing.T) {
 		expectInvokeActionCalled bool
 		expectInvokeActionCalls  []providers.InvokeActionRequest
 
-		expectDiagnostics tfdiags.Diagnostics
+		expectDiagnostics func(m *configs.Config) tfdiags.Diagnostics
 	}{
 		"unreferenced": {
 			module: map[string]string{
@@ -175,12 +178,17 @@ resource "test_object" "a" {
 				}
 			},
 
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to apply actions before test_object.a",
-					"An error occured while invoking action action.act_unlinked.hello: test case for failing: this simulates a provider failing\n",
-				),
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Error when invoking action",
+					Detail:   "test case for failing: this simulates a provider failing",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 18, Byte: 146},
+						End:      hcl.Pos{Line: 7, Column: 43, Byte: 171},
+					},
+				})
 			},
 		},
 
@@ -225,16 +233,20 @@ resource "test_object" "a" {
 				}
 			},
 
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to apply actions before test_object.a",
-					`An error occured while invoking action action.act_unlinked.failure: test case for failing: this simulates a provider failing
-The following actions were successfully invoked:
-- action.act_unlinked.hello
-- action.act_unlinked.world
-As the resource did not change, these actions will be re-invoked in the next apply.`,
-				),
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   `test case for failing: this simulates a provider failing`,
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 13, Column: 72, Byte: 305},
+							End:      hcl.Pos{Line: 13, Column: 99, Byte: 332},
+						},
+					},
+				)
+
 			},
 		},
 
@@ -262,112 +274,87 @@ resource "test_object" "a" {
 					),
 				}
 			},
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to apply actions before test_object.a",
-					"An error occured while invoking action action.act_unlinked.hello: test case for failing: this simulates a provider failing before the action is invoked\n",
-				),
-			},
-		},
-
-		"after_create failing": {
-			module: map[string]string{
-				"main.tf": `
-action "act_unlinked" "hello" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.act_unlinked.hello]
-    }
-  }
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
-				return []providers.InvokeActionEvent{
-					providers.InvokeActionEvent_Completed{
-						Diagnostics: tfdiags.Diagnostics{
-							tfdiags.Sourceless(
-								tfdiags.Error,
-								"test case for failing",
-								"this simulates a provider failing",
-							),
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   "test case for failing: this simulates a provider failing before the action is invoked",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 146},
+							End:      hcl.Pos{Line: 7, Column: 43, Byte: 171},
 						},
 					},
-				}
-			},
-
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to apply actions after test_object.a",
-					`An error occured while invoking action action.act_unlinked.hello: test case for failing: this simulates a provider failing
-
-The following actions were not yet invoked:
-- action.act_unlinked.hello
-These actions will not be triggered in the next apply, please run "terraform invoke" to invoke them.`,
-				),
+				)
 			},
 		},
 
-		"after_create failing with successfully completed actions": {
+		"failing an action by action event stops next actions in list": {
 			module: map[string]string{
 				"main.tf": `
 action "act_unlinked" "hello" {}
-action "act_unlinked" "world" {}
 action "act_unlinked" "failure" {
   config {
     attr = "failure"
   }
 }
+action "act_unlinked" "goodbye" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
-      events = [after_create]
-      actions = [action.act_unlinked.hello, action.act_unlinked.world, action.act_unlinked.failure]
+      events = [before_create]
+      actions = [action.act_unlinked.hello, action.act_unlinked.failure, action.act_unlinked.goodbye]
     }
   }
 }
 `,
 			},
 			expectInvokeActionCalled: true,
-			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
-				if !req.PlannedActionData.IsNull() && req.PlannedActionData.GetAttr("attr").AsString() == "failure" {
+			events: func(r providers.InvokeActionRequest) []providers.InvokeActionEvent {
+				if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
 					return []providers.InvokeActionEvent{
 						providers.InvokeActionEvent_Completed{
-							Diagnostics: tfdiags.Diagnostics{
-								tfdiags.Sourceless(
-									tfdiags.Error,
-									"test case for failing",
-									"this simulates a provider failing",
-								),
-							},
+							Diagnostics: tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(tfdiags.Error, "test case for failing", "this simulates a provider failing")),
 						},
 					}
-				} else {
-					return []providers.InvokeActionEvent{
-						providers.InvokeActionEvent_Completed{},
-					}
 				}
+
+				return []providers.InvokeActionEvent{
+					providers.InvokeActionEvent_Completed{},
+				}
+
+			},
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   "test case for failing: this simulates a provider failing",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 13, Column: 45, Byte: 280},
+							End:      hcl.Pos{Line: 13, Column: 72, Byte: 307},
+						},
+					},
+				)
 			},
 
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to apply actions after test_object.a",
-					`An error occured while invoking action action.act_unlinked.failure: test case for failing: this simulates a provider failing
-
-The following actions were not yet invoked:
-- action.act_unlinked.failure
-These actions will not be triggered in the next apply, please run "terraform invoke" to invoke them.`,
-				),
-			},
+			// We expect two calls but not the third one, because the second action fails
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("failure"),
+				}),
+			}},
 		},
 
-		"failing an action stops next actions in list": {
+		"failing an action during invocation stops next actions in list": {
 			module: map[string]string{
 				"main.tf": `
 action "act_unlinked" "hello" {}
@@ -401,15 +388,19 @@ resource "test_object" "a" {
 				}
 				return tfdiags.Diagnostics{}
 			},
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to apply actions before test_object.a",
-					`An error occured while invoking action action.act_unlinked.failure: test case for failing: this simulates a provider failing
-The following actions were successfully invoked:
-- action.act_unlinked.hello
-As the resource did not change, these actions will be re-invoked in the next apply.`,
-				),
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   "test case for failing: this simulates a provider failing",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 13, Column: 45, Byte: 280},
+							End:      hcl.Pos{Line: 13, Column: 72, Byte: 307},
+						},
+					},
+				)
 			},
 
 			// We expect two calls but not the third one, because the second action fails
@@ -468,15 +459,19 @@ resource "test_object" "a" {
 				}
 				return tfdiags.Diagnostics{}
 			},
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to apply actions before test_object.a",
-					`An error occured while invoking action action.act_unlinked.failure: test case for failing: this simulates a provider failing
-The following actions were successfully invoked:
-- action.act_unlinked.hello
-As the resource did not change, these actions will be re-invoked in the next apply.`,
-				),
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   "test case for failing: this simulates a provider failing",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 17, Column: 18, Byte: 355},
+							End:      hcl.Pos{Line: 17, Column: 45, Byte: 382},
+						},
+					},
+				)
 			},
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
@@ -642,6 +637,197 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 		},
+
+		"after_create with config cycle": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_object_a"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("test_object_a"),
+				}),
+			}},
+		},
+
+		"triggered within module": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"triggered within module instance": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    count = 2
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"provider is within module": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+`,
+				"mod/mod.tf": `
+provider "act" {
+    alias = "inthemodule"
+}
+action "act_unlinked" "hello" {
+  provider = act.inthemodule
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"action for_each": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  for_each = toset(["a", "b"])
+  
+  config {
+    attr = "value-${each.key}"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello["a"], action.act_unlinked.hello["b"]]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-a"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-b"),
+				}),
+			}},
+		},
+
+		"action count": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  count = 2
+
+  config {
+    attr = "value-${count.index}"
+  }
+}
+
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello[0], action.act_unlinked.hello[1]]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-0"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-1"),
+				}),
+			}},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -764,8 +950,8 @@ resource "test_object" "a" {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			_, diags = ctx.Apply(plan, m, nil)
-			if tc.expectDiagnostics.HasErrors() {
-				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics)
+			if tc.expectDiagnostics != nil {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
 			} else {
 				tfdiags.AssertNoDiagnostics(t, diags)
 			}

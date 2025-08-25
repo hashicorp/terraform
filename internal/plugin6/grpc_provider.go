@@ -1345,12 +1345,23 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 			break
 		}
 
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
+		if resp.Diagnostics.HasErrors() {
+			// If we have errors, we stop processing and return early
+			break
+		}
+
+		if resp.Diagnostics.HasWarnings() &&
+			(event.Identity == nil || event.Identity.IdentityData == nil) {
+			// If we have warnings but no identity data, we continue with the next event
+			continue
+		}
+
 		obj := map[string]cty.Value{
 			"display_name": cty.StringVal(event.DisplayName),
 			"state":        cty.NullVal(resourceSchema.Body.ImpliedType()),
 			"identity":     cty.NullVal(resourceSchema.Identity.ImpliedType()),
 		}
-		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
 
 		// Handle identity data - it must be present
 		if event.Identity == nil || event.Identity.IdentityData == nil {
@@ -1376,11 +1387,11 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		}
 
 		if resp.Diagnostics.HasErrors() {
+			// If validation errors occurred, we stop processing and return early
 			break
 		}
 
 		results = append(results, cty.ObjectVal(obj))
-
 	}
 
 	// The provider result of a list resource is always a list, but
@@ -1394,20 +1405,132 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	return resp
 }
 
-func (p *GRPCProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
-	panic("not implemented")
+func (p *GRPCProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreConfigRequest) (resp providers.ValidateStateStoreConfigResponse) {
+	logger.Trace("GRPCProvider.v6: ValidateStateStoreConfig")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	ssSchema, ok := schema.StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	mp, err := msgpack.Marshal(r.Config, ssSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.ValidateStateStore_Request{
+		TypeName: r.TypeName,
+		Config:   &proto6.DynamicValue{Msgpack: mp},
+	}
+
+	protoResp, err := p.client.ValidateStateStoreConfig(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
 }
 
-func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	panic("not implemented")
+func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreRequest) (resp providers.ConfigureStateStoreResponse) {
+	logger.Trace("GRPCProvider.v6: ConfigureStateStore")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	ssSchema, ok := schema.StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	mp, err := msgpack.Marshal(r.Config, ssSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.ConfigureStateStore_Request{
+		TypeName: r.TypeName,
+		Config: &proto6.DynamicValue{
+			Msgpack: mp,
+		},
+	}
+
+	protoResp, err := p.client.ConfigureStateStore(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
 }
 
-func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) providers.GetStatesResponse {
-	panic("not implemented")
+func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) (resp providers.GetStatesResponse) {
+	logger.Trace("GRPCProvider.v6: GetStates")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto6.GetStates_Request{
+		TypeName: r.TypeName,
+	}
+
+	protoResp, err := p.client.GetStates(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.States = protoResp.StateId
+	return resp
 }
 
-func (p *GRPCProvider) DeleteState(r providers.DeleteStateRequest) providers.DeleteStateResponse {
-	panic("not implemented")
+func (p *GRPCProvider) DeleteState(r providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
+	logger.Trace("GRPCProvider.v6: DeleteState")
+
+	protoReq := &proto6.DeleteState_Request{
+		TypeName: r.TypeName,
+	}
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoResp, err := p.client.DeleteState(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.

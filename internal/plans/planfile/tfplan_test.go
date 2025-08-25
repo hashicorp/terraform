@@ -305,28 +305,32 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 			},
 			ActionInvocations: []*plans.ActionInvocationInstanceSrc{
 				{
-					Addr:                    addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					ProviderAddr:            provider,
-					TriggerEvent:            configs.BeforeCreate,
-					ActionTriggerBlockIndex: 2,
-					ActionsListIndex:        0,
-					TriggeringResourceAddr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_thing",
-						Name: "woot",
-					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					Addr:         addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: provider,
+					ActionTrigger: plans.LifecycleActionTrigger{
+						ActionTriggerEvent:      configs.BeforeCreate,
+						ActionTriggerBlockIndex: 2,
+						ActionsListIndex:        0,
+						TriggeringResourceAddr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "woot",
+						}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					},
 				},
 				{
-					Addr:                    addrs.Action{Type: "example", Name: "bar"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					ProviderAddr:            provider,
-					TriggerEvent:            configs.BeforeCreate,
-					ActionTriggerBlockIndex: 2,
-					ActionsListIndex:        1,
-					TriggeringResourceAddr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_thing",
-						Name: "woot",
-					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					Addr:         addrs.Action{Type: "example", Name: "bar"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: provider,
+					ActionTrigger: plans.LifecycleActionTrigger{
+						ActionTriggerEvent:      configs.BeforeCreate,
+						ActionTriggerBlockIndex: 2,
+						ActionsListIndex:        1,
+						TriggeringResourceAddr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "woot",
+						}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					},
 					ConfigValue: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("testing"),
 					}), objTy),
