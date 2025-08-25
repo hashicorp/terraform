@@ -1706,6 +1706,147 @@ resource "test_object" "a" {
 				},
 			},
 		},
+		"conditions": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+count = 3
+config {
+  attr = "value-${count.index}"
+}
+}
+resource "test_object" "foo" {
+name = "foo"
+}
+resource "test_object" "resource" {
+name = "resource"
+lifecycle {
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "bar"
+    actions = [action.act_unlinked.hello[0]]
+  }
+  
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "foo"
+    actions = [action.act_unlinked.hello[1], action.act_unlinked.hello[2]]
+  }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-1"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-2"),
+				}),
+			}},
+		},
+
+		"simple condition evaluation - true": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = "foo" == "foo"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"simple condition evaluation - false": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = "foo" == "bar"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+		},
+
+		"using count.index in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 3
+  name = "item-${count.index}"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = count.index == 1
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"using each.key in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar"])
+  name = each.key
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = each.key == "foo"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"using each.value in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = {"foo" = "value1", "bar" = "value2"}
+  name = each.value
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = each.value == "value1"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {

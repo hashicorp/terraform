@@ -24,13 +24,13 @@ type nodeActionTriggerPlanExpand struct {
 }
 
 type lifecycleActionTrigger struct {
-	resourceAddress addrs.ConfigResource
-	events          []configs.ActionTriggerEvent
-	//condition       hcl.Expression
+	resourceAddress         addrs.ConfigResource
+	events                  []configs.ActionTriggerEvent
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
 	actionExpr              hcl.Expression
+	conditionExpr           hcl.Expression
 }
 
 func (at *lifecycleActionTrigger) Name() string {
@@ -103,6 +103,7 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
 					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
 					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
+					conditionExpr:           n.lifecycleActionTrigger.conditionExpr,
 				},
 			}
 
