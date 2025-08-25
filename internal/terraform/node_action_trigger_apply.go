@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -18,6 +19,7 @@ type nodeActionTriggerApply struct {
 	ActionInvocation   *plans.ActionInvocationInstanceSrc
 	resolvedProvider   addrs.AbsProviderConfig
 	ActionTriggerRange *hcl.Range
+	ConditionExpr      hcl.Expression
 }
 
 var (
@@ -33,7 +35,26 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 	var diags tfdiags.Diagnostics
 	actionInvocation := n.ActionInvocation
 
-	// TODO: Handle verifying the condition here, if we have any.
+	if n.ConditionExpr != nil {
+		condition, conditionDiags := evaluateCondition(ctx, n.ConditionExpr)
+		diags = diags.Append(conditionDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+		if !condition.IsWhollyKnown() {
+			return diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Condition expression is not known",
+				Detail:   "During apply the condition expression must be known, and must evaluate to a boolean value",
+				Subject:  n.ConditionExpr.Range().Ptr(),
+			})
+		}
+		// If the condition evaluates to false, skip the action
+		if condition.False() {
+			return diags
+		}
+	}
+
 	ai := ctx.Changes().GetActionInvocation(actionInvocation.Addr, actionInvocation.ActionTrigger)
 	if ai == nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -158,12 +179,25 @@ func (n *nodeActionTriggerApply) References() []*addrs.Reference {
 		Subject: n.ActionInvocation.Addr.Action,
 	})
 
+	conditionRefs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, n.ConditionExpr)
+	if refDiags.HasErrors() {
+		panic(fmt.Sprintf("error parsing references in expression: %v", refDiags))
+	}
+	if conditionRefs != nil {
+		refs = append(refs, conditionRefs...)
+	}
+
 	return refs
 }
 
 // GraphNodeModulePath
 func (n *nodeActionTriggerApply) ModulePath() addrs.Module {
 	return n.ActionInvocation.Addr.Module.Module()
+}
+
+// GraphNodeModuleInstance
+func (n *nodeActionTriggerApply) Path() addrs.ModuleInstance {
+	return n.ActionInvocation.Addr.Module
 }
 
 func (n *nodeActionTriggerApply) AddSubjectToDiagnostics(input tfdiags.Diagnostics) tfdiags.Diagnostics {
