@@ -402,6 +402,9 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"3 passed, 0 failed."},
 			code:        0,
 		},
+		"no-tests": {
+			code: 0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
