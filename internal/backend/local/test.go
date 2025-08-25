@@ -102,7 +102,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	suite.Status = moduletest.Pass
 	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
 		if runner.Cancelled {
-			return suite.Status, diags
+			return moduletest.Error, diags
 		}
 
 		file := suite.Files[name]
