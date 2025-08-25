@@ -1759,7 +1759,6 @@ resource "test_object" "a" {
 		},
 
 		"unknown condition": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 variable "cond" {
@@ -1865,6 +1864,49 @@ resource "test_object" "a" {
 				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
 					t.Fatalf("expected action.test_unlinked.hello, got %s", p.Changes.ActionInvocations[0].Addr.String())
 				}
+			},
+		},
+
+		"non-boolean unknown condition": {
+			module: map[string]string{
+				"main.tf": `
+variable "cond" {
+    type = string
+}
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = var.cond
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.UnknownVal(cty.String),
+						SourceType: ValueFromCaller,
+					},
+				},
+			},
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Incorrect value type",
+					Detail:   "Invalid expression value: a bool is required.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 196},
+						End:      hcl.Pos{Line: 10, Column: 39, Byte: 216},
+					},
+				})
 			},
 		},
 	} {
