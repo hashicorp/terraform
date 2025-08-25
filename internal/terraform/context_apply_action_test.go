@@ -29,7 +29,8 @@ func TestContext2Apply_actions(t *testing.T) {
 		events                          func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
 		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
 
-		planOpts *PlanOpts
+		planOpts  *PlanOpts
+		applyOpts *ApplyOpts
 
 		expectInvokeActionCalled            bool
 		expectInvokeActionCalls             []providers.InvokeActionRequest
@@ -1291,6 +1292,135 @@ resource "test_object" "resource" {
 				}),
 			}},
 		},
+
+		"conditions": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  count = 3
+  config {
+    attr = "value-${count.index}"
+  }
+}
+resource "test_object" "foo" {
+  name = "foo"
+}
+resource "test_object" "resource" {
+  name = "resource"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = test_object.foo.name == "bar"
+      actions = [action.act_unlinked.hello[0]]
+    }
+    
+    action_trigger {
+      events = [before_create]
+      condition = test_object.foo.name == "foo"
+      actions = [action.act_unlinked.hello[1], action.act_unlinked.hello[2]]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-1"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-2"),
+				}),
+			}},
+		},
+
+		"condition computing to true": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+variable "cond" {
+  type = string
+}
+
+action "act_unlinked" "hello" {}
+resource "test_object" "resource" {
+  name = "resource"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = var.cond == "bar"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.UnknownVal(cty.String),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			applyOpts: &ApplyOpts{
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.StringVal("bar"),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType:        "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{}),
+			}},
+		},
+		"condition computing to false": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+variable "cond" {
+  type = string
+}
+
+action "act_unlinked" "hello" {}
+resource "test_object" "resource" {
+  name = "resource"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = var.cond == "bar"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.UnknownVal(cty.String),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			applyOpts: &ApplyOpts{
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.StringVal("foo"),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			expectInvokeActionCalled: false,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1412,7 +1542,7 @@ resource "test_object" "resource" {
 			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			_, diags = ctx.Apply(plan, m, nil)
+			_, diags = ctx.Apply(plan, m, tc.applyOpts)
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
 			} else {

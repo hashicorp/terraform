@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeActionTriggerPlanInstance struct {
@@ -31,6 +32,7 @@ type lifecycleActionTriggerInstance struct {
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
+	conditionExpr           hcl.Expression
 }
 
 func (at *lifecycleActionTriggerInstance) Name() string {
@@ -106,6 +108,21 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	if triggeringEvent == nil {
 		panic("triggeringEvent cannot be nil")
 	}
+
+	// Evaluate the condition expression if it exists (otherwise it's true)
+	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
+		condition, conditionDiags := evaluateCondition(ctx, n.lifecycleActionTrigger.conditionExpr)
+		diags = diags.Append(conditionDiags)
+		if conditionDiags.HasErrors() {
+			return conditionDiags
+		}
+
+		// The condition is false so we skip the action
+		if condition.False() {
+			return diags
+		}
+	}
+
 	// We need to set the triggering event on the action invocation
 	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent)
 
@@ -188,4 +205,29 @@ func (n *nodeActionTriggerPlanInstance) Path() addrs.ModuleInstance {
 	// or by resources during plan/apply in which case both the resource and action must belong
 	// to the same module. So we can simply return the module path of the action.
 	return n.actionAddress.Module
+}
+
+func evaluateCondition(ctx EvalContext, conditionExpr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
+	// TODO: Support self in conditions
+	val, diags := ctx.EvaluateExpr(conditionExpr, cty.Bool, nil)
+	if diags.HasErrors() {
+		return cty.False, diags
+	}
+
+	// TODO: Support unknown condition values
+	if !val.IsWhollyKnown() {
+		panic("condition is not wholly known")
+	}
+	// If the condition is neither true nor false, it's an error
+	if !(val.True() || val.False()) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid condition",
+			Detail:   "The condition must be either true or false",
+			Subject:  conditionExpr.Range().Ptr(),
+		})
+		return cty.False, diags
+	}
+
+	return val, nil
 }
