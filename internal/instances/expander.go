@@ -181,6 +181,21 @@ func (e *Expander) ExpandAbsModuleCall(addr addrs.AbsModuleCall) (keyType addrs.
 	return keyType, instKeys, true
 }
 
+// AbsModuleCallExpanded checks if the specified module call has been visited
+// and expanded previously.
+func (e *Expander) AbsModuleCallExpanded(addr addrs.AbsModuleCall) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	expParent, ok := e.findModule(addr.Module)
+	if !ok {
+		return false
+	}
+
+	_, ok = expParent.moduleCalls[addr.Call]
+	return ok
+}
+
 // expandModule allows skipping unexpanded module addresses by setting skipUnregistered to true.
 // This is used by instances.Set, which is only concerned with the expanded
 // instances, and should not panic when looking up unknown addresses.
@@ -448,6 +463,20 @@ func (e *Expander) ResourceInstanceKeys(addr addrs.AbsResource) (keyType addrs.I
 		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
 	}
 	return exp.instanceKeys()
+}
+
+// ResourceInstanceExpanded checks if the specified resource has been visited
+// and expanded previously.
+func (e *Expander) ResourceInstanceExpanded(addr addrs.AbsResource) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	parentMod, known := e.findModule(addr.Module)
+	if !known {
+		return false
+	}
+	_, ok := parentMod.resources[addr.Resource]
+	return ok
 }
 
 // AllInstances returns a set of all of the module and resource instances known
