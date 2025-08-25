@@ -42,8 +42,8 @@ type ActionInvocation struct {
 type LifecycleActionTrigger struct {
 	TriggeringResourceAddress string `json:"triggering_resource_address,omitempty"`
 	ActionTriggerEvent        string `json:"action_trigger_event,omitempty"`
-	ActionTriggerBlockIndex   int    `json:"action_trigger_block_index,omitempty"`
-	ActionsListIndex          int    `json:"actions_list_index,omitempty"`
+	ActionTriggerBlockIndex   int    `json:"action_trigger_block_index"`
+	ActionsListIndex          int    `json:"actions_list_index"`
 }
 
 type InvokeCmdActionTrigger struct {
