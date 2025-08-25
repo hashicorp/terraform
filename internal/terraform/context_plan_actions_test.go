@@ -2328,6 +2328,460 @@ resource "test_object" "a" {
 				}
 			},
 		},
+
+		"boolean condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+action "test_unlinked" "bye" {}
+resource "test_object" "foo" {
+name = "foo"
+}
+resource "test_object" "a" {
+lifecycle {
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "foo"
+    actions = [action.test_unlinked.hello, action.test_unlinked.world]
+  }
+  action_trigger {
+    events = [after_create]
+    condition = test_object.foo.name == "bye"
+    actions = [action.test_unlinked.bye]
+  }
+}
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				invokedActionAddrs := []string{}
+				for _, action := range p.Changes.ActionInvocations {
+					invokedActionAddrs = append(invokedActionAddrs, action.Addr.String())
+				}
+				slices.Sort(invokedActionAddrs)
+				expectedActions := []string{
+					"action.test_unlinked.hello",
+					"action.test_unlinked.world",
+				}
+				if !cmp.Equal(expectedActions, invokedActionAddrs) {
+					t.Fatalf("expected actions: %v, got %v", expectedActions, invokedActionAddrs)
+				}
+			},
+		},
+
+		"unknown condition": {
+			module: map[string]string{
+				"main.tf": `
+variable "cond" {
+    type = string
+}
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = var.cond == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.UnknownVal(cty.String),
+						SourceType: ValueFromCaller,
+					},
+				},
+			},
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Condition must be known",
+					Detail:   "The condition expression resulted in an unknown value, but it must be a known boolean value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 186},
+						End:      hcl.Pos{Line: 10, Column: 36, Byte: 203},
+					},
+				})
+			},
+		},
+
+		"non-boolean condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "foo" {
+  name = "foo"
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = test_object.foo.name
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Incorrect value type",
+					Detail:   "Invalid expression value: a bool is required.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 196},
+						End:      hcl.Pos{Line: 10, Column: 39, Byte: 216},
+					},
+				})
+			},
+		},
+
+		"using self in before_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = self.name == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_update]
+      condition = self.name == "bar"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				// We only expect one diagnostic, as the other condition is valid
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Self reference not allowed",
+					Detail:   `The condition expression cannot reference "self".`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 199},
+						End:      hcl.Pos{Line: 11, Column: 37, Byte: 217},
+					},
+				})
+			},
+		},
+
+		"using self in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = self.name == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_update]
+      condition = self.name == "bar"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				// We only expect one diagnostic, as the other condition is valid
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Self reference not allowed",
+					Detail:   `The condition expression cannot reference "self".`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 198},
+						End:      hcl.Pos{Line: 11, Column: 37, Byte: 216},
+					},
+				})
+			},
+		},
+
+		"using each in before_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar"])
+  name = each.key
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = each.key == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 12, Column: 19, Byte: 237},
+						End:      hcl.Pos{Line: 12, Column: 36, Byte: 254},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 12, Column: 19, Byte: 237},
+						End:      hcl.Pos{Line: 12, Column: 36, Byte: 254},
+					},
+				})
+			},
+		},
+
+		"using each in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar"])
+  name = each.key
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = each.key == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_update]
+      condition = each.key == "bar"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Errorf("Expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Errorf("Expected action 'action.test_unlinked.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+				}
+			},
+		},
+
+		"using count.index in before_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+				count = 3
+				name = "item-${count.index}"
+				lifecycle {
+						action_trigger {
+								events = [before_create]
+								condition = count.index == 1
+								actions = [action.test_unlinked.hello]
+						}
+						action_trigger {
+								events = [before_update]
+								condition = count.index == 2
+								actions = [action.test_unlinked.world]
+						}
+				}
+}
+				`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 226},
+						End:      hcl.Pos{Line: 11, Column: 35, Byte: 242},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 226},
+						End:      hcl.Pos{Line: 11, Column: 35, Byte: 242},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 226},
+						End:      hcl.Pos{Line: 11, Column: 35, Byte: 242},
+					},
+				})
+			},
+		},
+
+		"using count.index in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+				count = 3
+				name = "item-${count.index}"
+				lifecycle {
+						action_trigger {
+								events = [after_create]
+								condition = count.index == 1
+								actions = [action.test_unlinked.hello]
+						}
+						action_trigger {
+								events = [after_update]
+								condition = count.index == 2
+								actions = [action.test_unlinked.world]
+						}
+				}
+}
+				`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Errorf("Expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Errorf("Expected action invocation %q, got %q", "action.test_unlinked.hello", p.Changes.ActionInvocations[0].Addr.String())
+				}
+			},
+		},
+
+		"using each.value in before_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+				for_each = {"foo" = "value1", "bar" = "value2"}
+				name = each.value
+				lifecycle {
+						action_trigger {
+								events = [before_create]
+								condition = each.value == "value1"
+								actions = [action.test_unlinked.hello]
+						}
+						action_trigger {
+								events = [before_update]
+								condition = each.value == "value2"
+								actions = [action.test_unlinked.world]
+						}
+				}
+}
+				`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 253},
+						End:      hcl.Pos{Line: 11, Column: 41, Byte: 275},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 253},
+						End:      hcl.Pos{Line: 11, Column: 41, Byte: 275},
+					},
+				})
+			},
+		},
+
+		"using each.value in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+				for_each = {"foo" = "value1", "bar" = "value2"}
+				name = each.value
+				lifecycle {
+						action_trigger {
+								events = [after_create]
+								condition = each.value == "value1"
+								actions = [action.test_unlinked.hello]
+						}
+						action_trigger {
+								events = [after_update]
+								condition = each.value == "value2"
+								actions = [action.test_unlinked.world]
+						}
+				}
+}
+				`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Errorf("Expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Errorf("Expected action 'action.test_unlinked.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
