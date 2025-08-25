@@ -110,14 +110,21 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	concreteAction := func(a *NodeAbstractActionDeclaration) dag.Vertex {
+		return &nodeExpandActionDeclaration{
+			NodeAbstractActionDeclaration: a,
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config. During apply,
 		// we use this just to ensure that the whole-resource metadata is
 		// updated to reflect things such as whether the count argument is
 		// set in config, or which provider configuration manages each resource.
 		&ConfigTransformer{
-			Concrete: concreteResource,
-			Config:   b.Config,
+			Concrete:       concreteResource,
+			ConcreteAction: concreteAction,
+			Config:         b.Config,
 			resourceMatcher: func(mode addrs.ResourceMode) bool {
 				// list resources are not added to the graph during apply
 				return mode != addrs.ListResourceMode

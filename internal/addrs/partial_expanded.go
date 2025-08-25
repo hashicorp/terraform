@@ -514,6 +514,13 @@ func ParsePartialExpandedResource(traversal hcl.Traversal) (PartialExpandedResou
 	}, remain, diags
 }
 
+// PartialExpandedAction represents a partially-expanded action address.
+// See PartialExpandedResource for more information.
+type PartialExpandedAction struct {
+	module PartialExpandedModule
+	action Action
+}
+
 // UnexpandedResource returns the address of a child resource expressed as a
 // [PartialExpandedResource].
 //
@@ -531,6 +538,15 @@ func (m ModuleInstance) UnexpandedResource(resource Resource) PartialExpandedRes
 	}
 }
 
+func (m ModuleInstance) UnexpandedAction(action Action) PartialExpandedAction {
+	return PartialExpandedAction{
+		module: PartialExpandedModule{
+			expandedPrefix: m,
+		},
+		action: action,
+	}
+}
+
 // UnexpandedResource returns the receiver reinterpreted as a
 // [PartialExpandedResource], which is an alternative form we use in situations
 // where we might also need to mix in resources belonging to not-yet-fully-known
@@ -541,6 +557,15 @@ func (r AbsResource) UnexpandedResource() PartialExpandedResource {
 			expandedPrefix: r.Module,
 		},
 		resource: r.Resource,
+	}
+}
+
+func (a *AbsAction) UnexpandedAction(action Action) PartialExpandedAction {
+	return PartialExpandedAction{
+		module: PartialExpandedModule{
+			expandedPrefix: a.Module,
+		},
+		action: action,
 	}
 }
 
@@ -605,6 +630,25 @@ func (per PartialExpandedResource) AbsResource() (AbsResource, bool) {
 		Module:   per.module.expandedPrefix,
 		Resource: per.resource,
 	}, true
+}
+func (per PartialExpandedAction) AbsAction() (AbsAction, bool) {
+	if len(per.module.unexpandedSuffix) != 0 {
+		return AbsAction{}, false
+	}
+
+	return AbsAction{
+		Module: per.module.expandedPrefix,
+		Action: per.action,
+	}, true
+}
+
+// ConfigAction returns the unexpanded action address that this
+// partially-expanded action address originates from.
+func (per PartialExpandedAction) ConfigAction() ConfigAction {
+	return ConfigAction{
+		Module: per.module.Module(),
+		Action: per.action,
+	}
 }
 
 // ConfigResource returns the unexpanded resource address that this
@@ -790,6 +834,30 @@ type partialExpandedResourceKey string
 var _ UniqueKey = partialExpandedModuleKey("")
 
 func (partialExpandedResourceKey) uniqueKeySigil() {}
+
+func (pea PartialExpandedAction) String() string {
+	moduleAddr := pea.module.String()
+	if len(moduleAddr) != 0 {
+		return moduleAddr + "." + pea.action.String() + "[*]"
+	}
+	return pea.action.String() + "[*]"
+}
+
+func (pea PartialExpandedAction) UniqueKey() UniqueKey {
+	// If this address is equivalent to an AbsAction address then we'll
+	// return its instance key here so that function Equivalent will consider
+	// the two as equivalent.
+	if ar, ok := pea.AbsAction(); ok {
+		return ar.UniqueKey()
+	}
+	// For not-fully-expanded module paths we'll use a distinct address type
+	// since there is no other address type equivalent to those.
+	return partialExpandedActionKey(pea.String())
+}
+
+type partialExpandedActionKey string
+
+func (partialExpandedActionKey) uniqueKeySigil() {}
 
 // InPartialExpandedModule is a generic type used for all address types that
 // represent objects that exist inside module instances but do not have any

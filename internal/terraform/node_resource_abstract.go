@@ -21,6 +21,10 @@ import (
 // abstract resource to a concrete one of some type.
 type ConcreteResourceNodeFunc func(*NodeAbstractResource) dag.Vertex
 
+// ConcreteActionDeclarationNodeFunc is a callback type used to convert an
+// abstract action to a concrete one of some type.
+type ConcreteActionDeclarationNodeFunc func(*NodeAbstractActionDeclaration) dag.Vertex
+
 // GraphNodeConfigResource is implemented by any nodes that represent a resource.
 // The type of operation cannot be assumed, only that this node represents
 // the given resource.
