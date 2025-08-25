@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeActionTriggerPlanInstance struct {
@@ -31,18 +32,20 @@ type lifecycleActionTriggerInstance struct {
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
+	conditionExpr           hcl.Expression
 }
 
 func (at *lifecycleActionTriggerInstance) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
-func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) plans.LifecycleActionTrigger {
+func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent, willCertainlyBeTriggered bool) plans.LifecycleActionTrigger {
 	return plans.LifecycleActionTrigger{
-		TriggeringResourceAddr:  at.resourceAddress,
-		ActionTriggerBlockIndex: at.actionTriggerBlockIndex,
-		ActionsListIndex:        at.actionListIndex,
-		ActionTriggerEvent:      triggeringEvent,
+		TriggeringResourceAddr:   at.resourceAddress,
+		ActionTriggerBlockIndex:  at.actionTriggerBlockIndex,
+		ActionsListIndex:         at.actionListIndex,
+		ActionTriggerEvent:       triggeringEvent,
+		WillCertainlyBeTriggered: willCertainlyBeTriggered,
 	}
 }
 
@@ -85,7 +88,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	ai := plans.ActionInvocationInstance{
 		Addr:          n.actionAddress,
 		ProviderAddr:  actionInstance.ProviderAddr,
-		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
+		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown, false),
 		ConfigValue:   actionInstance.ConfigValue,
 	}
 
@@ -106,8 +109,31 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	if triggeringEvent == nil {
 		panic("triggeringEvent cannot be nil")
 	}
+
+	// It is only uncertain an action will be triggered if the condition is unknown
+	willCertainlyBeTriggered := true
+	// Evaluate the condition expression if it exists (otherwise it's true)
+	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
+		condition, conditionDiags := evaluateCondition(ctx, n.lifecycleActionTrigger.conditionExpr)
+		diags = diags.Append(conditionDiags)
+		if conditionDiags.HasErrors() {
+			return conditionDiags
+		}
+
+		if condition.IsWhollyKnown() {
+			// The condition is false so we skip the action
+			if condition.False() {
+				return diags
+			}
+		} else {
+			// If the condition is unknown, we cannot be certain the action will be triggered
+			// but we still need to plan the action as if it will be triggered
+			willCertainlyBeTriggered = false
+		}
+	}
+
 	// We need to set the triggering event on the action invocation
-	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent)
+	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent, willCertainlyBeTriggered)
 
 	provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
 	if err != nil {
@@ -188,4 +214,37 @@ func (n *nodeActionTriggerPlanInstance) Path() addrs.ModuleInstance {
 	// or by resources during plan/apply in which case both the resource and action must belong
 	// to the same module. So we can simply return the module path of the action.
 	return n.actionAddress.Module
+}
+
+func evaluateCondition(ctx EvalContext, conditionExpr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
+	// TODO: Support self in conditions
+	val, diags := ctx.EvaluateExpr(conditionExpr, cty.Bool, nil)
+	if diags.HasErrors() {
+		return cty.False, diags
+	}
+
+	if !val.IsWhollyKnown() {
+		// TODO: Make sure we need this
+		if val.Type() != cty.Bool {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid condition type",
+				Detail:   "The condition must be of type bool",
+				Subject:  conditionExpr.Range().Ptr(),
+			})
+		}
+		return val, diags
+	}
+	// If the condition is neither true nor false, it's an error
+	if !(val.True() || val.False()) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid condition",
+			Detail:   "The condition must be either true or false",
+			Subject:  conditionExpr.Range().Ptr(),
+		})
+		return cty.False, diags
+	}
+
+	return val, nil
 }

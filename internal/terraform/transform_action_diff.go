@@ -57,6 +57,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 
 			act := triggerBlock.Actions[at.ActionsListIndex]
 			node.ActionTriggerRange = &act.Range
+			node.ConditionExpr = triggerBlock.Condition
 		}
 
 		g.Add(node)

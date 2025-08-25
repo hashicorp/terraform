@@ -110,6 +110,7 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 						actionTriggerBlockIndex: i,
 						actionListIndex:         j,
 						invokingSubject:         action.Expr.Range().Ptr(),
+						conditionExpr:           at.Condition,
 					},
 				}
 
