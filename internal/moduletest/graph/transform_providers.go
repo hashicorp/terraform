@@ -85,6 +85,9 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 			configure: configure,
 			close:     close,
 		}
+
+		// make sure the provider is only closed after the provider starts.
+		g.Connect(dag.BasicEdge(close, configure))
 	}
 
 	for vertex := range g.VerticesSeq() {

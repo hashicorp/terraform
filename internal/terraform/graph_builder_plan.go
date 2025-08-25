@@ -146,10 +146,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		panic("invalid plan operation: " + b.Operation.String())
 	}
 
-	if b.overridePreventDestroy && b.Operation != walkPlanDestroy {
-		panic("overridePreventDestroy can only be set during walkPlanDestroy operations")
-	}
-
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
@@ -314,6 +310,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
 			skipRefresh:          b.skipRefresh,
@@ -324,6 +321,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResourceOrphan = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
@@ -334,6 +332,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResourceInstanceDeposed = func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDeposedResourceInstanceObject{
 			NodeAbstractResourceInstance: a,
 			DeposedKey:                   key,

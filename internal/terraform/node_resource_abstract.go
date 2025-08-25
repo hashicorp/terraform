@@ -87,6 +87,11 @@ type NodeAbstractResource struct {
 	generateConfigPath string
 
 	forceCreateBeforeDestroy bool
+
+	// overridePreventDestroy is set during test cleanup operations to allow
+	// tests to clean up any created infrastructure regardless of this setting
+	// in the configuration.
+	overridePreventDestroy bool
 }
 
 var (
