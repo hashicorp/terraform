@@ -442,6 +442,26 @@ func (mr *MockProviderClientMockRecorder) ReadResource(arg0, arg1 any, arg2 ...a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadResource", reflect.TypeOf((*MockProviderClient)(nil).ReadResource), varargs...)
 }
 
+// ReadStateBytes mocks base method.
+func (m *MockProviderClient) ReadStateBytes(arg0 context.Context, arg1 *tfplugin6.ReadStateBytes_Request, arg2 ...grpc.CallOption) (tfplugin6.Provider_ReadStateBytesClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ReadStateBytes", varargs...)
+	ret0, _ := ret[0].(tfplugin6.Provider_ReadStateBytesClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadStateBytes indicates an expected call of ReadStateBytes.
+func (mr *MockProviderClientMockRecorder) ReadStateBytes(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadStateBytes", reflect.TypeOf((*MockProviderClient)(nil).ReadStateBytes), varargs...)
+}
+
 // RenewEphemeralResource mocks base method.
 func (m *MockProviderClient) RenewEphemeralResource(arg0 context.Context, arg1 *tfplugin6.RenewEphemeralResource_Request, arg2 ...grpc.CallOption) (*tfplugin6.RenewEphemeralResource_Response, error) {
 	m.ctrl.T.Helper()
@@ -660,6 +680,26 @@ func (mr *MockProviderClientMockRecorder) ValidateStateStoreConfig(arg0, arg1 an
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStateStoreConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateStateStoreConfig), varargs...)
+}
+
+// WriteStateBytes mocks base method.
+func (m *MockProviderClient) WriteStateBytes(arg0 context.Context, arg1 ...grpc.CallOption) (tfplugin6.Provider_WriteStateBytesClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "WriteStateBytes", varargs...)
+	ret0, _ := ret[0].(tfplugin6.Provider_WriteStateBytesClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WriteStateBytes indicates an expected call of WriteStateBytes.
+func (mr *MockProviderClientMockRecorder) WriteStateBytes(arg0 any, arg1 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteStateBytes", reflect.TypeOf((*MockProviderClient)(nil).WriteStateBytes), varargs...)
 }
 
 // MockProvider_InvokeActionClient is a mock of Provider_InvokeActionClient interface.

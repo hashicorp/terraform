@@ -1418,6 +1418,14 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 	panic("not implemented")
 }
 
+func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	panic("not implemented")
+}
+
+func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	panic("not implemented")
+}
+
 func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) providers.GetStatesResponse {
 	panic("not implemented")
 }
