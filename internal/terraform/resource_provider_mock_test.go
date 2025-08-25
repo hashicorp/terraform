@@ -128,6 +128,7 @@ type providerSchema struct {
 	IdentityTypeSchemaVersions     map[string]uint64
 	ListResourceTypes              map[string]*configschema.Block
 	ListResourceTypeSchemaVersions map[string]uint64
+	Actions                        map[string]providers.ActionSchema
 }
 
 // getProviderSchemaResponseFromProviderSchema is a test helper to convert a
@@ -139,6 +140,7 @@ func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema)
 		ResourceTypes:     map[string]providers.Schema{},
 		DataSources:       map[string]providers.Schema{},
 		ListResourceTypes: map[string]providers.Schema{},
+		Actions:           map[string]providers.ActionSchema{},
 	}
 
 	for name, schema := range providerSchema.ResourceTypes {
@@ -168,5 +170,8 @@ func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema)
 		resp.ListResourceTypes[name] = ps
 	}
 
+	for name, schema := range providerSchema.Actions {
+		resp.Actions[name] = schema
+	}
 	return resp
 }

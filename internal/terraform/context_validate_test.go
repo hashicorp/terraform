@@ -12,9 +12,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -3568,6 +3567,79 @@ func TestContext2Validate_queryList(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestContext2Validate_action(t *testing.T) {
+	tests := map[string]struct {
+		config     string
+		expectErrs []string
+	}{
+		"valid config": {
+			`
+terraform {	
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
+}
+
+action "cmdb_register" "test" {
+  config {
+      host = "cmdb.snot"
+  }
+}
+
+resource "aws_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.cmdb_register.test]
+    }
+  }
+}
+`,
+			nil,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{"main.tf": test.config})
+
+			p := testProvider("aws")
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"aws_instance": {
+						Attributes: map[string]*configschema.Attribute{
+							"foo": {Type: cty.String, Optional: true},
+							"num": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+				Actions: map[string]providers.ActionSchema{
+					"restart_instance": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"host": {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			})
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				},
+			})
+
+			diags := ctx.Validate(m, nil)
+			if diags.HasErrors() {
+				fmt.Println(diags)
+			}
 		})
 	}
 }
