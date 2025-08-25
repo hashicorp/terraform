@@ -8,6 +8,8 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -28,17 +30,17 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
-	setVariables, testOnlyVariables, setVariableDiags := n.FilterVariablesToModule(variables)
+	setVariables, testOnlyVariables, setVariableDiags := FilterVariablesToModule(run.ModuleConfig, variables)
 	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
 
 	// ignore diags because validate has covered it
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
-	planScope, plan, originalDiags := n.plan(ctx, tfCtx, setVariables, providers, mocks, waiter)
+	planScope, plan, originalDiags := plan(ctx, tfCtx, file.Config, run.Config, run.ModuleConfig, setVariables, providers, mocks, waiter)
 	// We exclude the diagnostics that are expected to fail from the plan
 	// diagnostics, and if an expected failure is not found, we add a new error diagnostic.
-	planDiags := run.ValidateExpectedFailures(originalDiags)
+	planDiags := moduletest.ValidateExpectedFailures(run.Config, originalDiags)
 
 	if ctx.Verbose() {
 		// in verbose mode, we still add all the original diagnostics for
@@ -82,24 +84,35 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	// of the run. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
 	// previous run blocks.
-	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, planScope, testOnlyVariables)
-	run.Status = newStatus
+	status, outputVals, moreDiags := ctx.EvaluateRun(run.Config, run.ModuleConfig.Module, planScope, testOnlyVariables)
+	run.Status = run.Status.Merge(status)
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
 	run.Outputs = outputVals
 }
 
-func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
-	file, run := n.File(), n.run
-	config := run.ModuleConfig
-	log.Printf("[TRACE] TestFileRunner: called plan for %s/%s", file.Name, run.Name)
+func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, run *configs.TestRun, module *configs.Config, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
+	log.Printf("[TRACE] TestFileRunner: called plan for %s", run.Name)
 
 	var diags tfdiags.Diagnostics
 
-	targets, targetDiags := run.GetTargets()
+	targets, targetDiags := moduletest.GetRunTargets(run)
 	diags = diags.Append(targetDiags)
 
-	replaces, replaceDiags := run.GetReplaces()
+	replaces, replaceDiags := moduletest.GetRunReplaces(run)
 	diags = diags.Append(replaceDiags)
+
+	references, referenceDiags := moduletest.GetRunReferences(run)
+	diags = diags.Append(referenceDiags)
+
+	state, err := ctx.LoadState(run)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to load state",
+			Detail:   fmt.Sprintf("Could not retrieve state for run %s: %s.", run.Name, err),
+			Subject:  run.Backend.DeclRange.Ptr(),
+		})
+	}
 
 	if diags.HasErrors() {
 		return nil, nil, diags
@@ -107,7 +120,7 @@ func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables
 
 	planOpts := &terraform.PlanOpts{
 		Mode: func() plans.Mode {
-			switch run.Config.Options.Mode {
+			switch run.Options.Mode {
 			case configs.RefreshOnlyTestMode:
 				return plans.RefreshOnlyMode
 			default:
@@ -116,20 +129,19 @@ func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables
 		}(),
 		Targets:            targets,
 		ForceReplace:       replaces,
-		SkipRefresh:        !run.Config.Options.Refresh,
+		SkipRefresh:        !run.Options.Refresh,
 		SetVariables:       variables,
-		ExternalReferences: n.References(),
+		ExternalReferences: references,
 		ExternalProviders:  providers,
-		Overrides:          mocking.PackageOverrides(run.Config, file.Config, mocks),
+		Overrides:          mocking.PackageOverrides(run, file, mocks),
 		DeferralAllowed:    ctx.deferralAllowed,
 	}
 
 	waiter.update(tfCtx, moduletest.Running, nil)
-	log.Printf("[DEBUG] TestFileRunner: starting plan for %s/%s", file.Name, run.Name)
-	state := ctx.GetFileState(run.Config.StateKey).State
-	plan, planScope, planDiags := tfCtx.PlanAndEval(config, state, planOpts)
-	log.Printf("[DEBUG] TestFileRunner: completed plan for %s/%s", file.Name, run.Name)
+	log.Printf("[DEBUG] TestFileRunner: starting plan for %s", run.Name)
+	plan, scope, planDiags := tfCtx.PlanAndEval(module, state, planOpts)
+	log.Printf("[DEBUG] TestFileRunner: completed plan for %s", run.Name)
 	diags = diags.Append(planDiags)
 
-	return planScope, plan, diags
+	return scope, plan, diags
 }

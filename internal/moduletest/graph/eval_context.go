@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -22,7 +23,9 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -52,16 +55,10 @@ type EvalContext struct {
 	providersLock  sync.Mutex
 
 	// FileStates is a mapping of module keys to it's last applied state
-	// file.
-	//
-	// This is used to clean up the infrastructure created during the test after
-	// the test has finished.
-	FileStates map[string]*TestFileState
+	// file. This is tracked and returned to log state files of ongoing test
+	// operations.
+	FileStates map[string]*teststates.TestRunState
 	stateLock  sync.Mutex
-
-	// This is a manifest that is used to keep track of the state files created
-	// during the test runs.
-	manifest *TestManifest
 
 	// cancelContext and stopContext can be used to terminate the evaluation of the
 	// test suite when a cancellation or stop signal is received.
@@ -75,9 +72,19 @@ type EvalContext struct {
 	renderer      views.Test
 	verbose       bool
 
+	// mode and repair affect the behaviour of the cleanup process of the graph.
+	//
+	// in cleanup mode, the tests will actually be skipped and the cleanup nodes
+	// are executed immediately. Normally, the skip_cleanup attributes will
+	// be skipped in cleanup mode with all states being destroyed completely.
+	//
+	// in repair mode, the skip_cleanup attributes are still respected. this
+	// means only states that were left behind due to an error will be
+	// destroyed.
+	mode moduletest.CommandMode
+
 	deferralAllowed bool
 	evalSem         terraform.Semaphore
-	evalSem terraform.Semaphore
 
 	// repair is true if the test suite is being run in cleanup repair mode.
 	// It is only set when in test cleanup mode.
@@ -90,11 +97,12 @@ type EvalContextOpts struct {
 	Render            views.Test
 	CancelCtx         context.Context
 	StopCtx           context.Context
-	Manifest          *TestManifest
 	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 	Config            *configs.Config
+	FileStates        map[string]*teststates.TestRunState
 	Concurrency       int
 	DeferralAllowed   bool
+	Mode              moduletest.CommandMode
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -114,19 +122,19 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		providers:         make(map[addrs.RootProviderConfig]providers.Interface),
 		providerStatus:    make(map[addrs.RootProviderConfig]moduletest.Status),
 		providersLock:     sync.Mutex{},
-		FileStates:        make(map[string]*TestFileState),
+		FileStates:        opts.FileStates,
 		stateLock:         sync.Mutex{},
 		cancelContext:     cancelCtx,
 		cancelFunc:        cancel,
 		stopContext:       stopCtx,
 		stopFunc:          stop,
+		config:            opts.Config,
 		verbose:           opts.Verbose,
 		repair:            opts.Repair,
 		renderer:          opts.Render,
-		config:            opts.Config,
+		mode:              opts.Mode,
 		deferralAllowed:   opts.DeferralAllowed,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
-		manifest:          opts.Manifest,
 	}
 }
 
@@ -257,19 +265,14 @@ func (ec *EvalContext) HclContext(references []*addrs.Reference) (*hcl.EvalConte
 // already available in resultScope in case there are additional input
 // variables that were defined only for use in the test suite. Any variable
 // not defined in extraVariableVals will be evaluated through resultScope instead.
-func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
+func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	if run.ModuleConfig == nil {
-		// This should never happen, but if it does, we can't evaluate the run
-		return moduletest.Error, cty.NilVal, tfdiags.Diagnostics{}
-	}
 
-	mod := run.ModuleConfig.Module
 	// We need a derived evaluation scope that also supports referring to
 	// the prior run output values using the "run.NAME" syntax.
 	evalData := &evaluationData{
 		ctx:       ec,
-		module:    mod,
+		module:    module,
 		current:   resultScope.Data,
 		extraVars: extraVariableVals,
 	}
@@ -283,14 +286,14 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		ExternalFuncs: resultScope.ExternalFuncs,
 	}
 
-	log.Printf("[TRACE] EvalContext.Evaluate for %s", run.Addr())
+	log.Printf("[TRACE] EvalContext.Evaluate for %s", run.Name)
 
 	// We're going to assume the run has passed, and then if anything fails this
 	// value will be updated.
-	status := run.Status.Merge(moduletest.Pass)
+	status := moduletest.Pass
 
 	// Now validate all the assertions within this run block.
-	for i, rule := range run.Config.CheckRules {
+	for i, rule := range run.CheckRules {
 		var ruleDiags tfdiags.Diagnostics
 
 		refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, rule.Condition)
@@ -310,7 +313,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		if moreDiags.HasErrors() {
 			// if we can't evaluate the context properly, we can't evaluate the rule
 			// we add the diagnostics to the main diags and continue to the next rule
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evaluate the context, so cannot evaluate it", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, run.Name)
 			status = status.Merge(moduletest.Error)
 			diags = diags.Append(ruleDiags)
 			continue
@@ -324,7 +327,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 
 		diags = diags.Append(ruleDiags)
 		if ruleDiags.HasErrors() {
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, so cannot evaluate it", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, so cannot evaluate it", i, run.Name)
 			status = status.Merge(moduletest.Error)
 			continue
 		}
@@ -339,7 +342,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has null condition result", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has null condition result", i, run.Name)
 			continue
 		}
 
@@ -353,7 +356,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has unknown condition result", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has unknown condition result", i, run.Name)
 			continue
 		}
 
@@ -368,7 +371,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has non-boolean condition result", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has non-boolean condition result", i, run.Name)
 			continue
 		}
 
@@ -377,7 +380,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		runVal, _ = runVal.Unmark()
 
 		if runVal.False() {
-			log.Printf("[TRACE] EvalContext.Evaluate: test assertion failed for %s assertion %d", run.Addr(), i)
+			log.Printf("[TRACE] EvalContext.Evaluate: test assertion failed for %s assertion %d", run.Name, i)
 			status = status.Merge(moduletest.Fail)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
@@ -393,16 +396,16 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 			})
 			continue
 		} else {
-			log.Printf("[TRACE] EvalContext.Evaluate: test assertion succeeded for %s assertion %d", run.Addr(), i)
+			log.Printf("[TRACE] EvalContext.Evaluate: test assertion succeeded for %s assertion %d", run.Name, i)
 		}
 	}
 
 	// Our result includes an object representing all of the output values
 	// from the module we've just tested, which will then be available in
 	// any subsequent test cases in the same test suite.
-	outputVals := make(map[string]cty.Value, len(mod.Outputs))
-	runRng := tfdiags.SourceRangeFromHCL(run.Config.DeclRange)
-	for _, oc := range mod.Outputs {
+	outputVals := make(map[string]cty.Value, len(module.Outputs))
+	runRng := tfdiags.SourceRangeFromHCL(run.DeclRange)
+	for _, oc := range module.Outputs {
 		addr := oc.Addr()
 		v, moreDiags := scope.Data.GetOutput(addr, runRng)
 		diags = diags.Append(moreDiags)
@@ -565,43 +568,82 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 	return diags
 }
 
-// UpdateStateFile updates the internal state file for a given state_key value.
-// The TestFileState argument is used to update only the exported fields in the
-// preexisting TestFileState value. Unexported fields' values are preserved
-// from when they are first set while building the test graph.
-//
-// If there isn't a state file for the given state_key then UpdateStateFile will use
-// the TestFileState argument to set its value.
-func (ec *EvalContext) UpdateStateFile(key string, state *TestFileState) {
+func (ec *EvalContext) SetFileState(key string, run *moduletest.Run, state *states.State, reason teststates.StateReason) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
-	oldState, exists := ec.FileStates[key]
 
-	if !exists {
-		ec.FileStates[key] = state
-	}
+	current := ec.getState(key)
 
-	ec.FileStates[key] = &TestFileState{
-		File:   state.File,
-		Run:    state.Run,
-		State:  state.State,
-		Reason: state.Reason,
+	// Whatever happens we're going to record the latest state for this key.
+	current.State = state
+	current.Manifest.Reason = reason
 
-		backend: oldState.backend,
+	if run.Config.SkipCleanup {
+		// if skip cleanup is set on the run block, we're going to track it
+		// as the thing to target regardless of what else might be true.
+		current.Run = run
+
+		// we'll mark the state as being restored to the current run block
+		// if (a) we're not in cleanup mode (meaning everything should be
+		// destroyed) or (b) we are in cleanup mode but with the repair flag
+		// which means that only errored states should be destroyed.
+		current.RestoreState = ec.mode != moduletest.CleanupMode || ec.repair
+	} else if !current.RestoreState {
+		// otherwise, only set the new run block if we haven't been told the
+		// earlier run block is more relevant.
+		current.Run = run
 	}
 }
 
-func (ec *EvalContext) GetFileState(key string) *TestFileState {
+// GetState retrieves the current state for the specified key, exactly as it
+// specified within the current cache.
+func (ec *EvalContext) GetState(key string) *teststates.TestRunState {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
-	return ec.FileStates[key]
+	return ec.getState(key)
 }
 
-func (ec *EvalContext) WriteFileState(key string, state *TestFileState) error {
-	ec.UpdateStateFile(key, state)
+func (ec *EvalContext) getState(key string) *teststates.TestRunState {
+	current := ec.FileStates[key]
+	if current == nil {
+		// this shouldn't happen, all the states must be initialised prior to
+		// the evaluation context being created.
+		//
+		// panic here, where the origin of the bug is instead of returning a
+		// null state to panic later.
+		panic("null state found in test execution")
+	}
+	return current
+}
+
+// LoadState returns the correct state for the specified run block. This differs
+// from GetState in that it will load the state from any remote backend
+// specified within the run block rather than simply retrieve the cached state
+// (which might be empty for a run block with a backend if it hasn't executed
+// yet).
+func (ec *EvalContext) LoadState(run *configs.TestRun) (*states.State, error) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
-	return ec.manifest.writeState(key, state)
+
+	current := ec.getState(run.StateKey)
+
+	if run.Backend != nil {
+		// Then we'll load the state from the backend instead of just using
+		// whatever was in the state.
+
+		stmgr, err := current.Backend.StateMgr(backend.DefaultStateName)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := stmgr.RefreshState(); err != nil {
+			return nil, err
+		}
+
+		return stmgr.State(), nil
+	}
+
+	return current.State, nil
 }
 
 // ReferencesCompleted returns true if all the listed references were actually

@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -24,47 +23,38 @@ type GraphNodeExecutable interface {
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
 type TestGraphBuilder struct {
-	Config         *configs.Config
-	File           *moduletest.File
-	ContextOpts    *terraform.ContextOpts
-	BackendFactory func(string) backend.InitFn
-	StateManifest  *TestManifest
-	CommandMode    moduletest.CommandMode
+	Config      *configs.Config
+	File        *moduletest.File
+	ContextOpts *terraform.ContextOpts
+	CommandMode moduletest.CommandMode
 }
 
 type graphOptions struct {
-	File          *moduletest.File
-	ContextOpts   *terraform.ContextOpts
-	StateManifest *TestManifest
-	CommandMode   moduletest.CommandMode
-	EvalContext   *EvalContext
+	File        *moduletest.File
+	ContextOpts *terraform.ContextOpts
 }
 
 // See GraphBuilder
-func (b *TestGraphBuilder) Build(ctx *EvalContext) (*terraform.Graph, tfdiags.Diagnostics) {
+func (b *TestGraphBuilder) Build() (*terraform.Graph, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] building graph for terraform test")
-	opts := &graphOptions{
-		File:          b.File,
-		ContextOpts:   b.ContextOpts,
-		StateManifest: b.StateManifest,
-		CommandMode:   b.CommandMode,
-		EvalContext:   ctx,
-	}
 	return (&terraform.BasicGraphBuilder{
-		Steps: b.Steps(opts),
+		Steps: b.Steps(),
 		Name:  "TestGraphBuilder",
 	}).Build(addrs.RootModuleInstance)
 }
 
 // See GraphBuilder
-func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransformer {
+func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
+	opts := &graphOptions{
+		File:        b.File,
+		ContextOpts: b.ContextOpts,
+	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts: opts, mode: b.CommandMode},
 		&TestVariablesTransformer{File: b.File},
-		&TestStateTransformer{graphOptions: opts, BackendFactory: b.BackendFactory},
 		terraform.DynamicTransformer(validateRunConfigs),
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
-			cleanup := &TeardownSubgraph{opts: opts, parent: g}
+			cleanup := &TeardownSubgraph{opts: opts, parent: g, mode: b.CommandMode}
 			g.Add(cleanup)
 
 			// ensure that the teardown node runs after all the run nodes

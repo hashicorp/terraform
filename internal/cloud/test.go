@@ -121,7 +121,7 @@ func (runner *TestSuiteRunner) Cancel() {
 	runner.Cancelled = true
 }
 
-func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
+func (runner *TestSuiteRunner) Test(_ bool) (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	configDirectory, err := filepath.Abs(runner.ConfigDirectory)
