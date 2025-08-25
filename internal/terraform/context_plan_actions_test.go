@@ -457,7 +457,7 @@ resource "test_object" "a" {
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Reference to non-existant action instance",
+					Summary:  "Reference to non-existent action instance",
 					Detail:   "Action instance was not found in the current context.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -492,7 +492,7 @@ resource "test_object" "a" {
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Reference to non-existant action instance",
+					Summary:  "Reference to non-existent action instance",
 					Detail:   "Action instance was not found in the current context.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),

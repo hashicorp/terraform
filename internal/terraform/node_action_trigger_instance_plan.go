@@ -73,7 +73,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	if !ok {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Reference to non-existant action instance",
+			Summary:  "Reference to non-existent action instance",
 			Detail:   "Action instance was not found in the current context.",
 			Subject:  n.lifecycleActionTrigger.invokingSubject,
 		})
