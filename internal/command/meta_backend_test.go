@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -21,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -626,7 +629,7 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 }
 
 // Saved backend state matching config
-func TestMetaBackend_configuredUnchanged(t *testing.T) {
+func TestMetaBackend_configuredBackendUnchanged(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	t.Chdir(td)
@@ -2077,72 +2080,165 @@ func Test_determineInitReason(t *testing.T) {
 }
 
 // Newly configured state store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
+// Working directory has state_store in config but no preexisting backend state file
 func TestMetaBackend_configureNewStateStore(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-new"), td)
-	t.Chdir(td)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+	cases := map[string]struct {
+		// setup
+		isInitCommand          bool
+		createDefaultWorkspace bool
+		// assertions
+		expectedError                string
+		expectDefaultWorkspaceExists bool
+	}{
+		"an init command creates the default workspace by default": {
+			createDefaultWorkspace:       true,
+			isInitCommand:                true,
+			expectDefaultWorkspaceExists: true,
+		},
+		"an init command with the flag -create-default-workspace=false will not make the default workspace": {
+			createDefaultWorkspace:       false,
+			isInitCommand:                true,
+			expectDefaultWorkspaceExists: false,
+		},
+		"during a non-init command, the command ends in with an error telling the user to run an init command": {
+			isInitCommand: false,
+			expectedError: "State store initialization required, please run \"terraform init\": Reason: Initial configuration of the requested state_store \"foo_bar\" in provider foo (\"registry.terraform.io/my-org/foo\")",
+		},
 	}
 
-	// Get mock provider factory to be used during init
-	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath("state-store-new"), td)
+			t.Chdir(td)
+
+			// Setup the meta
+			m := testMetaBackend(t, nil)
+			m.AllowExperimentalFeatures = true
+
+			// Get the state store's config
+			mod, loadDiags := m.loadSingleModule(td)
+			if loadDiags.HasErrors() {
+				t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+			}
+
+			// Get mock provider factory to be used during init
+			//
+			// This imagines a provider called foo that contains
+			// a pluggable state store implementation called bar.
+			pssName := "foo_bar"
+			mock := &testing_provider.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					Provider: providers.Schema{
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"region": {Type: cty.String, Optional: true},
+							},
+						},
 					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
+					DataSources:       map[string]providers.Schema{},
+					ResourceTypes:     map[string]providers.Schema{},
+					ListResourceTypes: map[string]providers.Schema{},
+					StateStores: map[string]providers.Schema{
+						pssName: {
+							Body: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"bar": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
 							},
 						},
 					},
 				},
-			},
-		},
-	}
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
+				// TODO: Add logic that makes the call to WriteState create a workspace within
+				// the mock
+			}
+			factory := func() (providers.Interface, error) {
+				return mock, nil
+			}
 
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Configuring a state store for the first time is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
+			// Create locks - these would normally be the locks derived from config
+			locks := depsfile.NewLocks()
+			constraint, err := providerreqs.ParseVersionConstraints(">9.0.0")
+			if err != nil {
+				t.Fatalf("test setup failed when making constraint: %s", err)
+			}
+			expectedVersionString := "9.9.9"
+			expectedProviderSource := "registry.terraform.io/my-org/foo"
+			locks.SetProvider(
+				addrs.MustParseProviderSourceString(expectedProviderSource),
+				versions.MustParseVersion(expectedVersionString),
+				constraint,
+				[]providerreqs.Hash{"h1:foo"},
+			)
 
+			// Act - get the operations backend
+			b, beDiags := m.Backend(&BackendOpts{
+				Init:                   tc.isInitCommand, // Changes with test case
+				StateStoreConfig:       mod.StateStore,
+				ProviderFactory:        factory,
+				Locks:                  locks,
+				CreateDefaultWorkspace: tc.createDefaultWorkspace,
+			})
+			if beDiags.HasErrors() {
+				if tc.expectedError == "" {
+					t.Fatalf("unexpected error: %s", beDiags.Err())
+				}
+				if !strings.Contains(cleanString(beDiags.Err().Error()), tc.expectedError) {
+					t.Fatalf("expected error to contain %s, but instead got: %s", tc.expectedError, cleanString(beDiags.Err().Error()))
+				}
+				return // error is as expected
+			}
+			if tc.expectedError != "" && !beDiags.HasErrors() {
+				t.Fatal("expected error missing")
+			}
+
+			// Check the backend state file exists & assert its contents
+			s := testDataStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
+			if s == nil {
+				t.Fatal("expected backend state file to be created, but it was missing")
+			}
+
+			if s.StateStore.Type != pssName {
+				t.Fatalf("backend state file contains unexpected state store type, want %q, got %q", pssName, s.StateStore.Type)
+			}
+			if s.StateStore.Provider.Version.String() != expectedVersionString {
+				t.Fatalf("backend state file contains unexpected version, want %q, got %q", expectedVersionString, s.StateStore.Provider.Version)
+			}
+			if s.StateStore.Provider.Source.String() != expectedProviderSource {
+				t.Fatalf("backend state file contains unexpected source, want %q, got %q", expectedProviderSource, s.StateStore.Provider.Source)
+			}
+			expectedProviderConfig := "{ \"region\": \"mars\" }"
+			expectedStoreConfig := "{ \"bar\": \"foobar\" }"
+			if cleanString(string(s.StateStore.Provider.ConfigRaw)) != expectedProviderConfig {
+				t.Fatalf("backend state file contains unexpected raw config data for the provider, want %q, got %q", expectedProviderConfig, cleanString(string(s.StateStore.Provider.ConfigRaw)))
+			}
+			if cleanString(string(s.StateStore.ConfigRaw)) != expectedStoreConfig {
+				t.Fatalf("backend state file contains unexpected raw config data for the state store, want %q, got %q", expectedStoreConfig, cleanString(string(s.StateStore.ConfigRaw)))
+			}
+
+			w, err := b.Workspaces()
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if len(w) == 0 {
+				if tc.expectDefaultWorkspaceExists {
+					t.Fatal("expected the default workspace to exist, but there are no workspaces")
+				}
+				return
+			}
+			if len(w) > 0 {
+				if tc.expectDefaultWorkspaceExists {
+					if len(w) == 1 && w[0] != "default" {
+						t.Fatalf("expected the default workspace to exist, but instead got: %v", w)
+					}
+				}
+				t.Fatalf("expected the default workspace to be the only existing workspace, but instead got: %v", w)
+			}
+		})
+	}
 }
 
 // Unsetting a saved state store
@@ -2244,11 +2340,27 @@ func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 		return mock, nil
 	}
 
+	// Create locks - these would normally be the locks derived from config
+	locks := depsfile.NewLocks()
+	constraint, err := providerreqs.ParseVersionConstraints(">9.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	expectedVersionString := "9.9.9"
+	expectedProviderSource := "registry.terraform.io/my-org/foo"
+	locks.SetProvider(
+		addrs.MustParseProviderSourceString(expectedProviderSource),
+		versions.MustParseVersion(expectedVersionString),
+		constraint,
+		[]providerreqs.Hash{"h1:foo"},
+	)
+
 	// Get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  factory,
+		Locks:            locks,
 	})
 
 	if !beDiags.HasErrors() {

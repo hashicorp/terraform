@@ -5,7 +5,9 @@ terraform {
     }
   }
   state_store "foo_bar" {
-    provider "foo" {}
+    provider "foo" {
+      region = "mars"
+    }
 
     bar = "foobar"
   }
