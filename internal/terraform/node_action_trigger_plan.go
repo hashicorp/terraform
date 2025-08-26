@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -129,6 +130,9 @@ func (n *nodeActionTriggerPlanExpand) References() []*addrs.Reference {
 		refs = append(refs, &addrs.Reference{
 			Subject: n.lifecycleActionTrigger.resourceAddress.Resource,
 		})
+
+		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.lifecycleActionTrigger.conditionExpr)
+		refs = append(refs, conditionRefs...)
 	}
 
 	return refs
