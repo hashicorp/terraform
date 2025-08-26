@@ -89,11 +89,18 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
 	}
 
+	// This is generating configuration, so the only marks should be coming from
+	// the schema itself.
+	stateVal, _ = stateVal.UnmarkDeep()
+
+	// filter the state down to a suitable config value
+	stateVal = extractConfigFromState(schema, stateVal)
+
 	if stateVal.RawEquals(cty.NilVal) {
 		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocks(addr, &buf, schema.BlockTypes, 2))
 	} else {
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2, optionalOrRequiredProcessor))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, stateVal, schema.BlockTypes, 2))
 	}
 
@@ -178,7 +185,7 @@ func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.
 	buf.WriteString(fmt.Sprintf("  to = %s\n", addr.String()))
 	buf.WriteString(fmt.Sprintf("  provider = %s\n", pc.StringCompact()))
 	buf.WriteString("  identity = {\n")
-	diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, identity, idSchema.Attributes, 2, allowAllAttributesProcessor))
+	diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, identity, idSchema.Attributes, 2))
 	buf.WriteString(strings.Repeat(" ", 2))
 	buf.WriteString("}\n}\n")
 
@@ -233,16 +240,7 @@ func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder,
 	return diags
 }
 
-func optionalOrRequiredProcessor(attr *configschema.Attribute) bool {
-	// Exclude computed-only attributes
-	return attr.Optional || attr.Required
-}
-
-func allowAllAttributesProcessor(attr *configschema.Attribute) bool {
-	return true
-}
-
-func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int, processAttr func(*configschema.Attribute) bool) tfdiags.Diagnostics {
+func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if len(attrs) == 0 {
 		return diags
@@ -251,78 +249,77 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 	// Sort attribute names so the output will be consistent between runs.
 	for _, name := range slices.Sorted(maps.Keys(attrs)) {
 		attrS := attrs[name]
+
+		var val cty.Value
+		if !stateVal.IsNull() && stateVal.Type().HasAttribute(name) {
+			val = stateVal.GetAttr(name)
+		} else {
+			val = attrS.EmptyValue()
+		}
+
+		if attrS.Computed && val.IsNull() {
+			// Computed attributes should never be written in the config. These
+			// will be filtered out of the given cty value if they are not also
+			// optional, and we want to skip writing `null` in the config.
+			continue
+		}
+
+		if attrS.Deprecated {
+			// We also want to skip showing deprecated attributes as null in the HCL.
+			continue
+		}
+
 		if attrS.NestedType != nil {
 			writeConfigNestedTypeAttributeFromExisting(addr, buf, name, attrS, stateVal, indent)
 			continue
 		}
 
-		if processAttr != nil && processAttr(attrS) {
-			buf.WriteString(strings.Repeat(" ", indent))
-			buf.WriteString(fmt.Sprintf("%s = ", name))
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(fmt.Sprintf("%s = ", name))
 
-			var val cty.Value
-			if !stateVal.IsNull() && stateVal.Type().HasAttribute(name) {
-				val = stateVal.GetAttr(name)
-			} else {
-				val = attrS.EmptyValue()
-			}
-			if val.Type() == cty.String {
-				// Before we inspect the string, take off any marks.
-				unmarked, marks := val.Unmark()
-
-				// SHAMELESS HACK: If we have "" for an optional value, assume
-				// it is actually null, due to the legacy SDK.
-				if !unmarked.IsNull() && attrS.Optional && len(unmarked.AsString()) == 0 {
-					unmarked = attrS.EmptyValue()
+		if attrS.Sensitive {
+			buf.WriteString("null # sensitive")
+		} else {
+			// If the value is a string storing a JSON value we want to represent it in a terraform native way
+			// and encapsulate it in `jsonencode` as it is the idiomatic representation
+			if !val.IsNull() && val.Type() == cty.String && json.Valid([]byte(val.AsString())) {
+				var ctyValue ctyjson.SimpleJSONValue
+				err := ctyValue.UnmarshalJSON([]byte(val.AsString()))
+				if err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Failed to parse JSON",
+						Detail:   fmt.Sprintf("Could not parse JSON value of attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted. This is most likely a bug in Terraform, please report it.", name, addr),
+						Extra:    err,
+					})
+					continue
 				}
 
-				// Before we carry on, add the marks back.
-				val = unmarked.WithMarks(marks)
-			}
-			if attrS.Sensitive || val.IsMarked() {
-				buf.WriteString("null # sensitive")
-			} else {
-				// If the value is a string storing a JSON value we want to represent it in a terraform native way
-				// and encapsulate it in `jsonencode` as it is the idiomatic representation
-				if val.IsKnown() && !val.IsNull() && val.Type() == cty.String && json.Valid([]byte(val.AsString())) {
-					var ctyValue ctyjson.SimpleJSONValue
-					err := ctyValue.UnmarshalJSON([]byte(val.AsString()))
-					if err != nil {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagWarning,
-							Summary:  "Failed to parse JSON",
-							Detail:   fmt.Sprintf("Could not parse JSON value of attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted. This is most likely a bug in Terraform, please report it.", name, addr),
-							Extra:    err,
-						})
-						continue
-					}
-
-					// Lone deserializable primitive types are valid json, but should be treated as strings
-					if ctyValue.Type().IsPrimitiveType() {
-						if d := writeTokens(val, buf); d != nil {
-							diags = diags.Append(d)
-							continue
-						}
-					} else {
-						buf.WriteString("jsonencode(")
-
-						if d := writeTokens(ctyValue.Value, buf); d != nil {
-							diags = diags.Append(d)
-							continue
-						}
-
-						buf.WriteString(")")
-					}
-				} else {
+				// Lone deserializable primitive types are valid json, but should be treated as strings
+				if ctyValue.Type().IsPrimitiveType() {
 					if d := writeTokens(val, buf); d != nil {
 						diags = diags.Append(d)
 						continue
 					}
+				} else {
+					buf.WriteString("jsonencode(")
+
+					if d := writeTokens(ctyValue.Value, buf); d != nil {
+						diags = diags.Append(d)
+						continue
+					}
+
+					buf.WriteString(")")
+				}
+			} else {
+				if d := writeTokens(val, buf); d != nil {
+					diags = diags.Append(d)
+					continue
 				}
 			}
-
-			buf.WriteString("\n")
 		}
+
+		buf.WriteString("\n")
 	}
 	return diags
 }
@@ -456,11 +453,10 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 
 func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	processor := optionalOrRequiredProcessor
 
 	switch schema.NestedType.Nesting {
 	case configschema.NestingSingle:
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = {} # sensitive\n", name))
 			return diags
@@ -484,39 +480,35 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2, processor))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2))
 		buf.WriteString("}\n")
 		return diags
 
 	case configschema.NestingList, configschema.NestingSet:
 
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = [] # sensitive\n", name))
 			return diags
 		}
 
-		listVals := ctyCollectionValues(stateVal.GetAttr(name))
-		if listVals == nil {
+		vals := stateVal.GetAttr(name)
+		if vals.IsNull() {
 			// There is a difference between an empty list and a null list
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = null\n", name))
 			return diags
 		}
 
+		listVals := vals.AsValueSlice()
+
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = [\n", name))
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent+2))
 
-			// The entire element is marked.
-			if listVals[i].IsMarked() {
-				buf.WriteString("{}, # sensitive\n")
-				continue
-			}
-
 			buf.WriteString("{\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4, processor))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("},\n")
 		}
@@ -525,7 +517,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 		return diags
 
 	case configschema.NestingMap:
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = {} # sensitive\n", name))
 			return diags
@@ -547,14 +539,8 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString(fmt.Sprintf("%s = {", hclEscapeString(key)))
 
-			// This entire value is marked
-			if vals[key].IsMarked() {
-				buf.WriteString("} # sensitive\n")
-				continue
-			}
-
 			buf.WriteString("\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4, processor))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("}\n")
 		}
@@ -570,59 +556,37 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.NestedBlock, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	processAttr := optionalOrRequiredProcessor
+	if stateVal.IsNull() {
+		return diags
+	}
 
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
-		if stateVal.IsNull() {
-			return diags
-		}
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s {", name))
 
-		// If the entire value is marked, don't print any nested attributes
-		if stateVal.IsMarked() {
-			buf.WriteString("} # sensitive\n")
-			return diags
-		}
 		buf.WriteString("\n")
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2, processAttr))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, stateVal, schema.BlockTypes, indent+2))
 		buf.WriteString("}\n")
 		return diags
 	case configschema.NestingList, configschema.NestingSet:
-		if stateVal.IsMarked() {
-			buf.WriteString(strings.Repeat(" ", indent))
-			buf.WriteString(fmt.Sprintf("%s {} # sensitive\n", name))
-			return diags
-		}
-		listVals := ctyCollectionValues(stateVal)
+		listVals := stateVal.AsValueSlice()
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s {\n", name))
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2, processAttr))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, listVals[i], schema.BlockTypes, indent+2))
 			buf.WriteString("}\n")
 		}
 		return diags
 	case configschema.NestingMap:
-		// If the entire value is marked, don't print any nested attributes
-		if stateVal.IsMarked() {
-			buf.WriteString(fmt.Sprintf("%s {} # sensitive\n", name))
-			return diags
-		}
-
 		vals := stateVal.AsValueMap()
 		for _, key := range slices.Sorted(maps.Keys(vals)) {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s %q {", name, key))
-			// This entire map element is marked
-			if vals[key].IsMarked() {
-				buf.WriteString("} # sensitive\n")
-				return diags
-			}
 			buf.WriteString("\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2, processAttr))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, vals[key], schema.BlockTypes, indent+2))
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString("}\n")
@@ -656,29 +620,6 @@ func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedB
 	}
 }
 
-// copied from command/format/diff
-func ctyCollectionValues(val cty.Value) []cty.Value {
-	if !val.IsKnown() || val.IsNull() {
-		return nil
-	}
-
-	var len int
-	if val.IsMarked() {
-		val, _ = val.Unmark()
-		len = val.LengthInt()
-	} else {
-		len = val.LengthInt()
-	}
-
-	ret := make([]cty.Value, 0, len)
-	for it := val.ElementIterator(); it.Next(); {
-		_, value := it.Element()
-		ret = append(ret, value)
-	}
-
-	return ret
-}
-
 // hclEscapeString formats the input string into a format that is safe for
 // rendering within HCL.
 //
@@ -695,4 +636,70 @@ func hclEscapeString(str string) string {
 		return fmt.Sprintf("%q", str)
 	}
 	return str
+}
+
+// extractConfigFromState takes the state value of a resource, and filters the
+// value down to what would be acceptable as a resource configuration value.
+// This is used when the provider does not implement GenerateResourceConfig to
+// create a suitable value.
+func extractConfigFromState(schema *configschema.Block, state cty.Value) cty.Value {
+	config, _ := cty.Transform(state, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		if v.IsNull() {
+			return v, nil
+		}
+
+		if len(path) == 0 {
+			return v, nil
+		}
+
+		ty := v.Type()
+		null := cty.NullVal(ty)
+
+		// find the attribute or block schema representing the value
+		attr := schema.AttributeByPath(path)
+		block := schema.BlockByPath(path)
+		switch {
+		case attr != nil:
+			// deprecated attributes
+			if attr.Deprecated {
+				return null, nil
+			}
+
+			// read-only attributes are not written in the configuration
+			if attr.Computed && !attr.Optional {
+				return null, nil
+			}
+
+			// The legacy SDK adds an Optional+Computed "id" attribute to the
+			// resource schema even if not defined in provider code.
+			// During validation, however, the presence of an extraneous "id"
+			// attribute in config will cause an error.
+			// Remove this attribute so we do not generate an "id" attribute
+			// where there is a risk that it is not in the real resource schema.
+			if path.Equals(cty.GetAttrPath("id")) && attr.Computed && attr.Optional {
+				return null, nil
+			}
+
+			// If we have "" for an optional value, assume it is actually null
+			// due to the legacy SDK.
+			if ty == cty.String {
+				if !v.IsNull() && attr.Optional && len(v.AsString()) == 0 {
+					return null, nil
+				}
+			}
+			return v, nil
+
+		case block != nil:
+			if block.Deprecated {
+				return null, nil
+			}
+		}
+
+		// We're only filtering out values which correspond to specific
+		// attributes or blocks from the schema, anything else is passed through
+		// as it will be a leaf value within a container.
+		return v, nil
+	})
+
+	return config
 }
