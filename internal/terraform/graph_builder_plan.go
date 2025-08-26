@@ -77,6 +77,7 @@ type PlanGraphBuilder struct {
 	ConcreteResourceOrphan          ConcreteResourceInstanceNodeFunc
 	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
 	ConcreteModule                  ConcreteModuleNodeFunc
+	ConcreteAction                  ConcreteActionNodeFunc
 
 	// Plan Operation this graph will be used for.
 	Operation walkOperation
@@ -153,9 +154,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete: b.ConcreteResource,
-			Config:   b.Config,
-			destroy:  b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			Concrete:       b.ConcreteResource,
+			ConcreteAction: b.ConcreteAction,
+			Config:         b.Config,
+			destroy:        b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
 			resourceMatcher: func(mode addrs.ResourceMode) bool {
 				// all resources are included during validation.
 				if b.Operation == walkValidate {
@@ -344,6 +346,12 @@ func (b *PlanGraphBuilder) initPlan() {
 			forgetModules:   b.forgetModules,
 		}
 	}
+
+	b.ConcreteAction = func(a *NodeAbstractAction) dag.Vertex {
+		return &nodeExpandActionDeclaration{
+			NodeAbstractAction: a,
+		}
+	}
 }
 
 func (b *PlanGraphBuilder) initDestroy() {
@@ -377,6 +385,12 @@ func (b *PlanGraphBuilder) initValidate() {
 			nodeExpandModule: *n,
 		}
 	}
+
+	// b.ConcreteAction = func(a *NodeAbstractAction) dag.Vertex {
+	// 	return &NodeValidatableAction{
+	// 		NodeAbstractAction: a,
+	// 	}
+	// }
 }
 
 func (b *PlanGraphBuilder) initImport() {

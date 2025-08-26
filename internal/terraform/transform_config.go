@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -26,7 +27,8 @@ import (
 // all resources including module resources, rather than creating module
 // nodes that are then "flattened".
 type ConfigTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete       ConcreteResourceNodeFunc
+	ConcreteAction ConcreteActionNodeFunc
 
 	// Module is the module to add resources from.
 	Config *configs.Config
@@ -133,9 +135,14 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		if a != nil {
 			addr := a.Addr().InModule(path)
 			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
-			node := &nodeExpandActionDeclaration{
+			abstract := &NodeAbstractAction{
 				Addr:   addr,
 				Config: *a,
+			}
+
+			var node dag.Vertex = abstract
+			if f := t.ConcreteAction; f != nil {
+				node = f(abstract)
 			}
 			g.Add(node)
 		}

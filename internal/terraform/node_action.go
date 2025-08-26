@@ -11,7 +11,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -28,8 +27,7 @@ type GraphNodeConfigAction interface {
 // nodeExpandActionDeclaration represents an action config block in a configuration module,
 // which has not yet been expanded.
 type nodeExpandActionDeclaration struct {
-	Addr   addrs.ConfigAction
-	Config configs.Action
+	*NodeAbstractAction
 
 	Schema           *providers.ActionSchema
 	ResolvedProvider addrs.AbsProviderConfig
