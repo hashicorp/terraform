@@ -359,6 +359,7 @@ type actionStart struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
 	ActionsIndex       int          `json:"actions_index"`
+	TriggerEvent       string       `json:"trigger_event"`
 	Action             ActionAddr   `json:"action"`
 }
 
@@ -382,6 +383,7 @@ func NewActionStart(id terraform.HookActionIdentity) Hook {
 		TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
 		TriggerIndex:       at.ActionTriggerBlockIndex,
 		ActionsIndex:       at.ActionsListIndex,
+		TriggerEvent:       at.ActionTriggerEvent.String(),
 		Action:             newActionAddr(id.Addr),
 	}
 }
@@ -390,6 +392,7 @@ type actionProgress struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
 	ActionsIndex       int          `json:"actions_index"`
+	TriggerEvent       string       `json:"trigger_event"`
 	Action             ActionAddr   `json:"action"`
 	Message            string       `json:"message"`
 }
@@ -413,6 +416,7 @@ func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
 		TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
 		TriggerIndex:       at.ActionTriggerBlockIndex,
 		ActionsIndex:       at.ActionsListIndex,
+		TriggerEvent:       at.ActionTriggerEvent.String(),
 		Action:             newActionAddr(id.Addr),
 		Message:            message,
 	}
@@ -422,6 +426,7 @@ type actionComplete struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
 	ActionsIndex       int          `json:"actions_index"`
+	TriggerEvent       string       `json:"trigger_event"`
 	Action             ActionAddr   `json:"action"`
 }
 
@@ -444,6 +449,7 @@ func NewActionComplete(id terraform.HookActionIdentity) Hook {
 		TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
 		TriggerIndex:       at.ActionTriggerBlockIndex,
 		ActionsIndex:       at.ActionsListIndex,
+		TriggerEvent:       at.ActionTriggerEvent.String(),
 		Action:             newActionAddr(id.Addr),
 	}
 }
@@ -452,6 +458,7 @@ type actionErrored struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
 	ActionsIndex       int          `json:"actions_index"`
+	TriggerEvent       string       `json:"trigger_event"`
 	Action             ActionAddr   `json:"action"`
 	Error              string       `json:"error"`
 }
@@ -475,6 +482,7 @@ func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
 		TriggeringResource: newResourceAddr(at.TriggeringResourceAddr),
 		TriggerIndex:       at.ActionTriggerBlockIndex,
 		ActionsIndex:       at.ActionsListIndex,
+		TriggerEvent:       at.ActionTriggerEvent.String(),
 		Action:             newActionAddr(id.Addr),
 		Error:              err.Error(),
 	}

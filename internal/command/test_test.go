@@ -402,6 +402,9 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"3 passed, 0 failed."},
 			code:        0,
 		},
+		"no-tests": {
+			code: 0,
+		},
 		"expect-failures-assertions": {
 			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"Test assertion failed"},

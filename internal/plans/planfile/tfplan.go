@@ -132,6 +132,15 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.DeferredResources = append(plan.DeferredResources, change)
 	}
 
+	for _, rawDAI := range rawPlan.DeferredActionInvocations {
+		change, err := deferredActionInvocationFromTfplan(rawDAI)
+		if err != nil {
+			return nil, err
+		}
+
+		plan.DeferredActionInvocations = append(plan.DeferredActionInvocations, change)
+	}
+
 	for _, rawRA := range rawPlan.RelevantAttributes {
 		ra, err := resourceAttrFromTfplan(rawRA)
 		if err != nil {
@@ -541,6 +550,27 @@ func deferredChangeFromTfplan(dc *planproto.DeferredResourceInstanceChange) (*pl
 	}, nil
 }
 
+func deferredActionInvocationFromTfplan(dai *planproto.DeferredActionInvocation) (*plans.DeferredActionInvocationSrc, error) {
+	if dai == nil {
+		return nil, fmt.Errorf("deferred action invocation object is absent")
+	}
+
+	actionInvocation, err := actionInvocationFromTfplan(dai.ActionInvocation)
+	if err != nil {
+		return nil, err
+	}
+
+	reason, err := DeferredReasonFromProto(dai.Deferred.Reason)
+	if err != nil {
+		return nil, err
+	}
+
+	return &plans.DeferredActionInvocationSrc{
+		DeferredReason:              reason,
+		ActionInvocationInstanceSrc: actionInvocation,
+	}, nil
+}
+
 func DeferredReasonFromProto(reason planproto.DeferredReason) (providers.DeferredReason, error) {
 	switch reason {
 	case planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN:
@@ -644,6 +674,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 			return err
 		}
 		rawPlan.DeferredChanges = append(rawPlan.DeferredChanges, rawDC)
+	}
+
+	for _, dai := range plan.DeferredActionInvocations {
+		rawDAI, err := deferredActionInvocationToTfplan(dai)
+		if err != nil {
+			return err
+		}
+		rawPlan.DeferredActionInvocations = append(rawPlan.DeferredActionInvocations, rawDAI)
 	}
 
 	for _, ra := range plan.RelevantAttributes {
@@ -1049,6 +1087,25 @@ func deferredChangeToTfplan(dc *plans.DeferredResourceInstanceChangeSrc) (*planp
 	}, nil
 }
 
+func deferredActionInvocationToTfplan(dai *plans.DeferredActionInvocationSrc) (*planproto.DeferredActionInvocation, error) {
+	actionInvocation, err := actionInvocationToTfPlan(dai.ActionInvocationInstanceSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	reason, err := DeferredReasonToProto(dai.DeferredReason)
+	if err != nil {
+		return nil, err
+	}
+
+	return &planproto.DeferredActionInvocation{
+		Deferred: &planproto.Deferred{
+			Reason: reason,
+		},
+		ActionInvocation: actionInvocation,
+	}, nil
+}
+
 func DeferredReasonToProto(reason providers.DeferredReason) (planproto.DeferredReason, error) {
 	switch reason {
 	case providers.DeferredReasonInstanceCountUnknown:
@@ -1308,6 +1365,11 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 			return nil, fmt.Errorf("invalid config value: %s", err)
 		}
 		ret.ConfigValue = configVal
+		sensitiveConfigPaths, err := pathsFromTfplan(rawAction.SensitiveConfigPaths)
+		if err != nil {
+			return nil, err
+		}
+		ret.SensitiveConfigPaths = sensitiveConfigPaths
 	}
 
 	return ret, nil
@@ -1355,6 +1417,11 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 
 	if action.ConfigValue != nil {
 		ret.ConfigValue = valueToTfplan(action.ConfigValue)
+		sensitiveConfigPaths, err := pathsToTfplan(action.SensitiveConfigPaths)
+		if err != nil {
+			return nil, err
+		}
+		ret.SensitiveConfigPaths = sensitiveConfigPaths
 	}
 
 	return ret, nil

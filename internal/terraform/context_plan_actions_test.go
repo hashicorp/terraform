@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -22,13 +23,26 @@ import (
 )
 
 func TestContextPlan_actions(t *testing.T) {
+	unlinkedActionSchema := providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"attr": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
+
+		Unlinked: &providers.UnlinkedAction{},
+	}
 
 	for name, tc := range map[string]struct {
-		toBeImplemented    bool
-		module             map[string]string
-		buildState         func(*states.SyncState)
-		planActionResponse *providers.PlanActionResponse
-		planOpts           *PlanOpts
+		toBeImplemented bool
+		module          map[string]string
+		buildState      func(*states.SyncState)
+		planActionFn    func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse
+		planResourceFn  func(*testing.T, providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
+		planOpts        *PlanOpts
 
 		expectPlanActionCalled bool
 
@@ -457,7 +471,7 @@ resource "test_object" "a" {
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Reference to non-existant action instance",
+					Summary:  "Reference to non-existent action instance",
 					Detail:   "Action instance was not found in the current context.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -492,7 +506,7 @@ resource "test_object" "a" {
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Reference to non-existant action instance",
+					Summary:  "Reference to non-existent action instance",
 					Detail:   "Action instance was not found in the current context.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -683,10 +697,13 @@ resource "test_object" "a" {
 `,
 			},
 
-			planActionResponse: &providers.PlanActionResponse{
-				Diagnostics: tfdiags.Diagnostics{
-					tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
-				},
+			planActionFn: func(_ *testing.T, _ providers.PlanActionRequest) providers.PlanActionResponse {
+				t.Helper()
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
+					},
+				}
 			},
 
 			expectPlanActionCalled: true,
@@ -726,10 +743,12 @@ resource "test_object" "a" {
 `,
 			},
 
-			planActionResponse: &providers.PlanActionResponse{
-				Diagnostics: tfdiags.Diagnostics{
-					tfdiags.Sourceless(tfdiags.Warning, "Warning during planning", "Test case simulates a warning while planning"),
-				},
+			planActionFn: func(t *testing.T, par providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Warning, "Warning during planning", "Test case simulates a warning while planning"),
+					},
+				}
 			},
 
 			expectPlanActionCalled: true,
@@ -1310,6 +1329,386 @@ resource "test_object" "a" {
 				}
 			},
 		},
+
+		"secret values": {
+			module: map[string]string{
+				"main.tf": `
+variable "secret" {
+  type           = string
+  sensitive      = true
+}
+action "test_unlinked" "hello" {
+  config {
+    attr = var.secret
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"secret": &InputValue{
+						Value:      cty.StringVal("secret"),
+						SourceType: ValueFromCLIArg,
+					}},
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				action := p.Changes.ActionInvocations[0]
+				ac, err := action.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("expected action to decode successfully, but got error: %v", err)
+				}
+
+				if !marks.Has(ac.ConfigValue.GetAttr("attr"), marks.Sensitive) {
+					t.Fatalf("expected attribute 'attr' to be marked as sensitive")
+				}
+			},
+		},
+
+		"provider deferring action while not allowed": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: false,
+			},
+			planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Provider deferred changes when Terraform did not allow deferrals",
+						`The provider signaled a deferred action for "action.test_unlinked.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
+					),
+				}
+			},
+		},
+
+		"provider deferring action": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected 1 deferred action in plan, got %d", len(p.DeferredActionInvocations))
+				}
+				deferredActionInvocation := p.DeferredActionInvocations[0]
+				if deferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", deferredActionInvocation.DeferredReason)
+				}
+				if deferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+			},
+		},
+
+		"deferred after actions defer following actions": {
+			module: map[string]string{
+				"main.tf": `
+// Using this provider to have another provider type for an easier assertion
+terraform {
+  required_providers {
+    ecosystem = {
+      source = "danielmschmidt/ecosystem"
+    }
+  }
+}
+action "test_unlinked" "hello" {}
+action "ecosystem_unlinked" "world" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello, action.ecosystem_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			planActionFn: func(t *testing.T, r providers.PlanActionRequest) providers.PlanActionResponse {
+				if r.ActionType == "ecosystem_unlinked" {
+					t.Fatalf("expected second action to not be planned, but it was planned")
+				}
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 2 {
+					t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
+				}
+				firstDeferredActionInvocation := p.DeferredActionInvocations[0]
+				if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
+				}
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				secondDeferredActionInvocation := p.DeferredActionInvocations[1]
+				if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
+				}
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem_unlinked.world" {
+					t.Fatalf("expected second deferred action to be triggered by action.ecosystem_unlinked.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+			},
+		},
+
+		"deferred before actions defer following actions and resource": {
+			module: map[string]string{
+				"main.tf": `
+// Using this provider to have another provider type for an easier assertion
+terraform {
+  required_providers {
+    ecosystem = {
+      source = "danielmschmidt/ecosystem"
+    }
+  }
+}
+action "test_unlinked" "hello" {}
+action "ecosystem_unlinked" "world" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_create]
+      actions = [action.ecosystem_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			planActionFn: func(t *testing.T, r providers.PlanActionRequest) providers.PlanActionResponse {
+				if r.ActionType == "ecosystem_unlinked" {
+					t.Fatalf("expected second action to not be planned, but it was planned")
+				}
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 2 {
+					t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
+				}
+				firstDeferredActionInvocation := p.DeferredActionInvocations[0]
+				if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
+				}
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				secondDeferredActionInvocation := p.DeferredActionInvocations[1]
+				if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
+				}
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem_unlinked.world" {
+					t.Fatalf("expected second deferred action to be triggered by action.ecosystem_unlinked.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				if len(p.DeferredResources) != 1 {
+					t.Fatalf("expected 1 resource to be deferred, got %d", len(p.DeferredResources))
+				}
+				deferredResource := p.DeferredResources[0]
+
+				if deferredResource.ChangeSrc.Addr.String() != "test_object.a" {
+					t.Fatalf("Expected resource %s to be deferred, but it was not", deferredResource.ChangeSrc.Addr)
+				}
+
+				if deferredResource.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("Expected deferred reason to be deferred prereq, got %s", deferredResource.DeferredReason)
+				}
+			},
+		},
+
+		"deferred resources also defer the actions they trigger": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+
+			planResourceFn: func(_ *testing.T, req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				return providers.PlanResourceChangeResponse{
+					PlannedState:   req.ProposedNewState,
+					PlannedPrivate: req.PriorPrivate,
+					Diagnostics:    nil,
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 2 {
+					t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
+				}
+				firstDeferredActionInvocation := p.DeferredActionInvocations[0]
+				if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected deferred action to be deferred due to deferred prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
+				}
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				secondDeferredActionInvocation := p.DeferredActionInvocations[1]
+				if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
+				}
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected second deferred action to be triggered by action.test_unlinked.hello, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				if len(p.DeferredResources) != 1 {
+					t.Fatalf("expected 1 resource to be deferred, got %d", len(p.DeferredResources))
+				}
+				deferredResource := p.DeferredResources[0]
+
+				if deferredResource.ChangeSrc.Addr.String() != "test_object.a" {
+					t.Fatalf("Expected resource %s to be deferred, but it was not", deferredResource.ChangeSrc.Addr)
+				}
+
+				if deferredResource.DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("Expected deferred reason to be absent prereq, got %s", deferredResource.DeferredReason)
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1321,18 +1720,7 @@ resource "test_object" "a" {
 			p := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
-						"test_unlinked": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
-							},
-
-							Unlinked: &providers.UnlinkedAction{},
-						},
+						"test_unlinked": unlinkedActionSchema,
 
 						"test_lifecycle": {
 							ConfigSchema: &configschema.Block{
@@ -1421,8 +1809,16 @@ resource "test_object" "a" {
 				},
 			}
 
-			if tc.planActionResponse != nil {
-				p.PlanActionResponse = *tc.planActionResponse
+			if tc.planActionFn != nil {
+				p.PlanActionFn = func(r providers.PlanActionRequest) providers.PlanActionResponse {
+					return tc.planActionFn(t, r)
+				}
+			}
+
+			if tc.planResourceFn != nil {
+				p.PlanResourceChangeFn = func(r providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+					return tc.planResourceFn(t, r)
+				}
 			}
 
 			ctx := testContext2(t, &ContextOpts{

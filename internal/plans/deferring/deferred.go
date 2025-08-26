@@ -80,6 +80,12 @@ type Deferred struct {
 	// all of those options to decide if each instance is relevant.
 	ephemeralResourceInstancesDeferred addrs.Map[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]]
 
+	// actionInvocationDeferred tracks the action invocations that have been
+	// deferred despite their full addresses being known. This can happen
+	// either because an upstream change was already deferred, or because
+	// the action invocation is not yet ready to be executed.
+	actionInvocationDeferred []*plans.DeferredActionInvocation
+
 	// partialExpandedResourcesDeferred tracks placeholders that cover an
 	// unbounded set of potential resource instances in situations where we
 	// don't yet even have enough information to predict which instances of
@@ -176,6 +182,11 @@ func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange 
 	return changes
 }
 
+// GetDeferredActionInvocations returns a list of all deferred action invocations.
+func (d *Deferred) GetDeferredActionInvocations() []*plans.DeferredActionInvocation {
+	return d.actionInvocationDeferred
+}
+
 // SetExternalDependencyDeferred modifies a freshly-constructed [Deferred]
 // so that it will consider all resource instances as needing their actions
 // deferred, even if there's no other reason to do that.
@@ -212,6 +223,7 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			d.resourceInstancesDeferred.Len() != 0 ||
 			d.dataSourceInstancesDeferred.Len() != 0 ||
 			d.ephemeralResourceInstancesDeferred.Len() != 0 ||
+			len(d.actionInvocationDeferred) != 0 ||
 			d.partialExpandedResourcesDeferred.Len() != 0 ||
 			d.partialExpandedDataSourcesDeferred.Len() != 0 ||
 			d.partialExpandedEphemeralResourceDeferred.Len() != 0 ||
@@ -626,8 +638,67 @@ func (d *Deferred) ReportModuleExpansionDeferred(addr addrs.PartialExpandedModul
 	d.partialExpandedModulesDeferred.Add(addr)
 }
 
+func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInstance, reason providers.DeferredReason) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	// Check if the action invocation is already deferred
+	for _, deferred := range d.actionInvocationDeferred {
+		if deferred.ActionInvocationInstance.Equals(&ai) {
+			// This indicates a bug in the caller, since our graph walk should
+			// ensure that we visit and evaluate each distinct action invocation
+			// only once.
+			panic(fmt.Sprintf("duplicate deferral report for action %s invoked by %s", ai.Addr.String(), ai.ActionTrigger.TriggerEvent().String()))
+		}
+	}
+
+	d.actionInvocationDeferred = append(d.actionInvocationDeferred, &plans.DeferredActionInvocation{
+		ActionInvocationInstance: &ai,
+		DeferredReason:           reason,
+	})
+}
+
+// ShouldDeferActionInvocation returns true if there is a reason to defer the action invocation instance
+// We want to defer an action invocation if
+// a) the resource was deferred
+// or
+// b) a previously run action was deferred
+func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	// We only want to defer actions that are lifecycle triggered
+	at, ok := ai.ActionTrigger.(plans.LifecycleActionTrigger)
+	if !ok {
+		return false
+	}
+
+	// If the resource was deferred, we also need to defer any action potentially triggering from this
+	if configResourceMap, ok := d.resourceInstancesDeferred.GetOk(at.TriggeringResourceAddr.ConfigResource()); ok {
+		if configResourceMap.Has(at.TriggeringResourceAddr) {
+			return true
+		}
+	}
+
+	// Since all actions plan in order we can just check if an action for this resource instance
+	// has been deferred already
+	for _, deferred := range d.actionInvocationDeferred {
+		deferredAt, deferredOk := deferred.ActionInvocationInstance.ActionTrigger.(plans.LifecycleActionTrigger)
+		if !deferredOk {
+			continue // We only care about lifecycle triggered actions here
+		}
+
+		if deferredAt.TriggeringResourceAddr.Equal(at.TriggeringResourceAddr) {
+			return true
+		}
+	}
+
+	// We found no reason, so we return false
+	return false
+}
+
 // UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
 // provider was deferred although deferrals were not allowed.
-func UnexpectedProviderDeferralDiagnostic(addrs addrs.AbsResourceInstance) tfdiags.Diagnostic {
+func UnexpectedProviderDeferralDiagnostic(addrs fmt.Stringer) tfdiags.Diagnostic {
 	return tfdiags.Sourceless(tfdiags.Error, "Provider deferred changes when Terraform did not allow deferrals", fmt.Sprintf("The provider signaled a deferred action for %q, but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.", addrs.String()))
 }

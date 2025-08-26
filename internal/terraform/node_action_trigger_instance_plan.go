@@ -9,7 +9,9 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -35,6 +37,15 @@ func (at *lifecycleActionTriggerInstance) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
+func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) plans.LifecycleActionTrigger {
+	return plans.LifecycleActionTrigger{
+		TriggeringResourceAddr:  at.resourceAddress,
+		ActionTriggerBlockIndex: at.actionTriggerBlockIndex,
+		ActionsListIndex:        at.actionListIndex,
+		ActionTriggerEvent:      triggeringEvent,
+	}
+}
+
 var (
 	_ GraphNodeModuleInstance = (*nodeActionTriggerPlanInstance)(nil)
 	_ GraphNodeExecutable     = (*nodeActionTriggerPlanInstance)(nil)
@@ -53,9 +64,35 @@ func (n *nodeActionTriggerPlanInstance) Name() string {
 
 func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	deferrals := ctx.Deferrals()
 
 	if n.lifecycleActionTrigger == nil {
 		panic("Only actions triggered by plan and apply are supported")
+	}
+
+	actionInstance, ok := ctx.Actions().GetActionInstance(n.actionAddress)
+	if !ok {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to non-existent action instance",
+			Detail:   "Action instance was not found in the current context.",
+			Subject:  n.lifecycleActionTrigger.invokingSubject,
+		})
+		return diags
+	}
+
+	// We need the action invocation early to check if we need to
+	ai := plans.ActionInvocationInstance{
+		Addr:          n.actionAddress,
+		ProviderAddr:  actionInstance.ProviderAddr,
+		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
+		ConfigValue:   actionInstance.ConfigValue,
+	}
+
+	// If we already deferred an action invocation on the same resource with an earlier trigger we can defer this one as well
+	if deferrals.DeferralAllowed() && deferrals.ShouldDeferActionInvocation(ai) {
+		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
+		return diags
 	}
 
 	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
@@ -69,18 +106,8 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	if triggeringEvent == nil {
 		panic("triggeringEvent cannot be nil")
 	}
-
-	actionInstance, ok := ctx.Actions().GetActionInstance(n.actionAddress)
-
-	if !ok {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reference to non-existant action instance",
-			Detail:   "Action instance was not found in the current context.",
-			Subject:  n.lifecycleActionTrigger.invokingSubject,
-		})
-		return diags
-	}
+	// We need to set the triggering event on the action invocation
+	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent)
 
 	provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
 	if err != nil {
@@ -94,9 +121,23 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		return diags
 	}
 
+	// We remove the marks for planning, we will record the sensitive values in the plans.ActionInvocationInstance
+	unmarkedConfig, pvms := actionInstance.ConfigValue.UnmarkDeepWithPaths()
+	// We only support sensitive marks, all other marks cause an error
+	_, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	if len(otherMarks) > 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported marks",
+			Detail:   "Only sensitive marks are supported in action configuration",
+			Subject:  &n.actionConfig.DeclRange,
+		})
+		return diags
+	}
+
 	resp := provider.PlanAction(providers.PlanActionRequest{
 		ActionType:         n.actionAddress.Action.Action.Type,
-		ProposedActionData: actionInstance.ConfigValue,
+		ProposedActionData: unmarkedConfig,
 		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 
@@ -117,23 +158,24 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 			Subject:  n.lifecycleActionTrigger.invokingSubject,
 		})
 	}
+	if resp.Deferred != nil && !deferrals.DeferralAllowed() {
+		diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.actionAddress))
+	}
 	if resp.Diagnostics.HasErrors() {
 		return diags
 	}
 
-	// TODO: Deal with deferred responses
-	ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-		Addr:         n.actionAddress,
-		ProviderAddr: actionInstance.ProviderAddr,
-		ActionTrigger: plans.LifecycleActionTrigger{
-			TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress,
-			ActionTriggerEvent:      *triggeringEvent,
-			ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
-			ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
-		},
-		ConfigValue: actionInstance.ConfigValue,
-	})
+	if resp.Deferred != nil {
+		deferrals.ReportActionInvocationDeferred(ai, resp.Deferred.Reason)
 
+		// If we run as part of a before action we need to retrospectively defer the triggering resource
+		// For this we remove the change and report the deferral
+		ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
+		deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
+		return diags
+	}
+
+	ctx.Changes().AppendActionInvocation(&ai)
 	return diags
 }
 
