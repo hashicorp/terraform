@@ -8544,7 +8544,7 @@ func TestResourceChange_actions(t *testing.T) {
 					},
 				},
 			}
-			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema, false)
+			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema, true)
 			diffs := precomputeDiffs(Plan{
 				ResourceChanges:   []jsonplan.ResourceChange{defaultResourceChange},
 				ActionInvocations: tc.actionInvocations,
