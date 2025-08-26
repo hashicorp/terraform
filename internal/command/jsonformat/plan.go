@@ -419,6 +419,9 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 
 func renderActionInvocation(renderer Renderer, ai actionInvocation) string {
 	var buf bytes.Buffer
+	if ai.invocation.LifecycleActionTrigger != nil && ai.invocation.LifecycleActionTrigger.Tentative {
+		buf.WriteString(renderer.Colorize.Color("\n    # The condition is unknown, this action might not be invoked.\n"))
+	}
 	buf.WriteString(fmt.Sprintf("    action %q %q {\n", ai.invocation.Type, ai.invocation.Name))
 	if len(ai.invocation.ConfigValues) > 0 {
 		buf.WriteString("        config ")
