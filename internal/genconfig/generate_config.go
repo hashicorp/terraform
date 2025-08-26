@@ -259,8 +259,13 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 
 		if attrS.Computed && val.IsNull() {
 			// Computed attributes should never be written in the config. These
-			// will be filtered out of the given cty value here, but we should
-			// also skip writing `null` in the config.
+			// will be filtered out of the given cty value if they are not also
+			// optional, and we want to skip writing `null` in the config.
+			continue
+		}
+
+		if attrS.Deprecated {
+			// We also want to skip showing deprecated attributes as null in the HCL.
 			continue
 		}
 
@@ -277,7 +282,7 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 		} else {
 			// If the value is a string storing a JSON value we want to represent it in a terraform native way
 			// and encapsulate it in `jsonencode` as it is the idiomatic representation
-			if val.IsKnown() && !val.IsNull() && val.Type() == cty.String && json.Valid([]byte(val.AsString())) {
+			if !val.IsNull() && val.Type() == cty.String && json.Valid([]byte(val.AsString())) {
 				var ctyValue ctyjson.SimpleJSONValue
 				err := ctyValue.UnmarshalJSON([]byte(val.AsString()))
 				if err != nil {
@@ -487,13 +492,15 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			return diags
 		}
 
-		listVals := ctyCollectionValues(stateVal.GetAttr(name))
-		if listVals == nil {
+		vals := stateVal.GetAttr(name)
+		if vals.IsNull() {
 			// There is a difference between an empty list and a null list
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = null\n", name))
 			return diags
 		}
+
+		listVals := vals.AsValueSlice()
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = [\n", name))
@@ -549,12 +556,12 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.NestedBlock, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	if stateVal.IsNull() {
+		return diags
+	}
 
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
-		if stateVal.IsNull() {
-			return diags
-		}
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s {", name))
 
@@ -564,7 +571,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		buf.WriteString("}\n")
 		return diags
 	case configschema.NestingList, configschema.NestingSet:
-		listVals := ctyCollectionValues(stateVal)
+		listVals := stateVal.AsValueSlice()
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s {\n", name))
@@ -613,23 +620,6 @@ func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedB
 	}
 }
 
-// copied from command/format/diff
-func ctyCollectionValues(val cty.Value) []cty.Value {
-	if !val.IsKnown() || val.IsNull() {
-		return nil
-	}
-
-	len := val.LengthInt()
-
-	ret := make([]cty.Value, 0, len)
-	for it := val.ElementIterator(); it.Next(); {
-		_, value := it.Element()
-		ret = append(ret, value)
-	}
-
-	return ret
-}
-
 // hclEscapeString formats the input string into a format that is safe for
 // rendering within HCL.
 //
@@ -670,7 +660,12 @@ func extractConfigFromState(schema *configschema.Block, state cty.Value) cty.Val
 		block := schema.BlockByPath(path)
 		switch {
 		case attr != nil:
-			// read-only and deprecated are not written in the configuration
+			// deprecated attributes
+			if attr.Deprecated {
+				return null, nil
+			}
+
+			// read-only attributes are not written in the configuration
 			if attr.Computed && !attr.Optional {
 				return null, nil
 			}

@@ -365,6 +365,10 @@ resource "tfcoremock_simple_resource" "empty" {
 									Type:     cty.String,
 									Optional: true,
 								},
+								"deprecated": {
+									Type:     cty.String,
+									Optional: true,
+								},
 							},
 						},
 					},
