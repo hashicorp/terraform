@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -17,7 +19,6 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContext2Apply_actions(t *testing.T) {
@@ -29,7 +30,8 @@ func TestContext2Apply_actions(t *testing.T) {
 		events                          func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
 		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
 
-		planOpts *PlanOpts
+		planOpts  *PlanOpts
+		applyOpts *ApplyOpts
 
 		expectInvokeActionCalled            bool
 		expectInvokeActionCalls             []providers.InvokeActionRequest
@@ -1291,6 +1293,54 @@ resource "test_object" "resource" {
 				}),
 			}},
 		},
+
+		"write-only attributes": {
+			module: map[string]string{
+				"main.tf": `
+variable "attr" {
+  type = string
+  ephemeral = true
+}
+
+resource "test_object" "resource" {
+  name = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked_wo.hello]
+    }
+  }
+}
+
+action "act_unlinked_wo" "hello" {
+  config {
+    attr = var.attr
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked_wo",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("wo-apply"),
+					}),
+				},
+			},
+			planOpts: SimplePlanOpts(plans.NormalMode, InputValues{
+				"attr": {
+					Value: cty.StringVal("wo-plan"),
+				},
+			}),
+			applyOpts: &ApplyOpts{
+				SetVariables: InputValues{
+					"attr": {
+						Value: cty.StringVal("wo-apply"),
+					},
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1362,6 +1412,19 @@ resource "test_object" "resource" {
 
 							Unlinked: &providers.UnlinkedAction{},
 						},
+						"act_unlinked_wo": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:      cty.String,
+										Optional:  true,
+										WriteOnly: true,
+									},
+								},
+							},
+
+							Unlinked: &providers.UnlinkedAction{},
+						},
 					},
 					ResourceTypes: map[string]providers.Schema{},
 				},
@@ -1412,7 +1475,7 @@ resource "test_object" "resource" {
 			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			_, diags = ctx.Apply(plan, m, nil)
+			_, diags = ctx.Apply(plan, m, tc.applyOpts)
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
 			} else {

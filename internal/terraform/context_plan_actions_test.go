@@ -35,6 +35,19 @@ func TestContextPlan_actions(t *testing.T) {
 
 		Unlinked: &providers.UnlinkedAction{},
 	}
+	writeOnlyUnlinkedActionSchema := providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"attr": {
+					Type:      cty.String,
+					Optional:  true,
+					WriteOnly: true,
+				},
+			},
+		},
+
+		Unlinked: &providers.UnlinkedAction{},
+	}
 
 	for name, tc := range map[string]struct {
 		toBeImplemented bool
@@ -1709,6 +1722,54 @@ resource "test_object" "a" {
 				}
 			},
 		},
+
+		"write-only attributes": {
+			module: map[string]string{
+				"main.tf": `
+variable "attr" {
+  type = string
+  ephemeral = true
+}
+
+resource "test_object" "resource" {
+  name = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked_wo.hello]
+    }
+  }
+}
+
+action "test_unlinked_wo" "hello" {
+  config {
+    attr = var.attr
+  }
+}
+`,
+			},
+			planOpts: SimplePlanOpts(plans.NormalMode, InputValues{
+				"attr": {
+					Value: cty.StringVal("wo-plan"),
+				},
+			}),
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&writeOnlyUnlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if !ai.ConfigValue.GetAttr("attr").IsNull() {
+					t.Fatal("should have converted ephemeral value to null in the plan")
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1721,6 +1782,8 @@ resource "test_object" "a" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
 						"test_unlinked": unlinkedActionSchema,
+
+						"test_unlinked_wo": writeOnlyUnlinkedActionSchema,
 
 						"test_lifecycle": {
 							ConfigSchema: &configschema.Block{

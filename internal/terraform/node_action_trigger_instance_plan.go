@@ -7,9 +7,10 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -86,7 +87,11 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		Addr:          n.actionAddress,
 		ProviderAddr:  actionInstance.ProviderAddr,
 		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
-		ConfigValue:   actionInstance.ConfigValue,
+
+		// with resources, the provider would be expected to strip the ephemeral
+		// values out. with actions, we don't get the value back from the
+		// provider so we'll do that ourselves now.
+		ConfigValue: ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue),
 	}
 
 	// If we already deferred an action invocation on the same resource with an earlier trigger we can defer this one as well
@@ -122,18 +127,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	}
 
 	// We remove the marks for planning, we will record the sensitive values in the plans.ActionInvocationInstance
-	unmarkedConfig, pvms := actionInstance.ConfigValue.UnmarkDeepWithPaths()
-	// We only support sensitive marks, all other marks cause an error
-	_, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
-	if len(otherMarks) > 0 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported marks",
-			Detail:   "Only sensitive marks are supported in action configuration",
-			Subject:  &n.actionConfig.DeclRange,
-		})
-		return diags
-	}
+	unmarkedConfig, _ := actionInstance.ConfigValue.UnmarkDeepWithPaths()
 
 	resp := provider.PlanAction(providers.PlanActionRequest{
 		ActionType:         n.actionAddress.Action.Action.Type,
