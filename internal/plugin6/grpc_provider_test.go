@@ -3730,7 +3730,57 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		}
 	})
 
-	t.Run("grpcs errors when reading data are returned", func(t *testing.T) {
+	t.Run("warning diagnostics from the provider are returned", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Call to ReadStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
+		mockReadBytesClient := mockReadStateBytesClient(t)
+
+		expectedReq := &proto.ReadStateBytes_Request{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Eq(expectedReq),
+		).Return(mockReadBytesClient, nil)
+
+		// Define what will be returned by each call to Recv
+		mockReadBytesClient.EXPECT().Recv().Return(&proto.ReadStateBytes_ResponseChunk{
+			Diagnostics: []*proto.Diagnostic{
+				&proto.Diagnostic{
+					Severity: proto.Diagnostic_WARNING,
+					Summary:  "Warning from test",
+					Detail:   "This warning is forced by the test case",
+				},
+			},
+		}, nil)
+
+		// Act
+		request := providers.ReadStateBytesRequest{
+			TypeName: expectedReq.TypeName,
+			StateId:  expectedReq.StateId,
+		}
+		resp := p.ReadStateBytes(request)
+
+		// Assert returned values
+		checkDiags(t, resp.Diagnostics)
+		expectedWarn := "Warning from test: This warning is forced by the test case"
+		if resp.Diagnostics.ErrWithWarnings().Error() != expectedWarn {
+			t.Fatalf("expected warning diagnostic %q, but got: %q", expectedWarn, resp.Diagnostics.ErrWithWarnings().Error())
+		}
+		if len(resp.Bytes) != 0 {
+			t.Fatalf("expected data to be omitted in error condition, but got: %q", string(resp.Bytes))
+		}
+	})
+
+	t.Run("when reading data, grpc errors are surfaced via diagnostics", func(t *testing.T) {
 		client := mockProviderClient(t)
 		p := &GRPCProvider{
 			client: client,
@@ -3891,7 +3941,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 		checkDiags(t, resp.Diagnostics)
 	})
 
-	t.Run("grpc errors when sending data are returned in diagnostics", func(t *testing.T) {
+	t.Run("when writing data, grpc errors are surfaced via diagnostics", func(t *testing.T) {
 		client := mockProviderClient(t)
 		p := &GRPCProvider{
 			client: client,
