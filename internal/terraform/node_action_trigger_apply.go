@@ -7,7 +7,9 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -77,17 +79,16 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 		return diags
 	}
 
-	// We don't want to send the marks, but all marks are okay in the context of an action invocation.
-	unmarkedConfigValue, _ := actionData.ConfigValue.UnmarkDeep()
+	configValue := actionData.ConfigValue
 
 	// Validate that what we planned matches the action data we have.
-	errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, unmarkedConfigValue)
+	errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configValue))
 	for _, err := range errs {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Provider produced inconsistent final plan",
-			Detail: fmt.Sprintf("When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				ai.Addr, actionData.ProviderAddr.Provider.String(), tfdiags.FormatError(err)),
+			Detail: fmt.Sprintf("When expanding the plan for %s to include new values learned so far during apply, Terraform produced an invalid new value for %s.\n\nThis is a bug in Terraform, which should be reported.",
+				ai.Addr, tfdiags.FormatError(err)),
 			Subject: n.ActionTriggerRange,
 		})
 	}
@@ -100,6 +101,11 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 	ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.StartAction(hookIdentity)
 	})
+
+	// We don't want to send the marks, but all marks are okay in the context
+	// of an action invocation. We can't reuse our ephemeral free value from
+	// above because we want the ephemeral values to be included.
+	unmarkedConfigValue, _ := configValue.UnmarkDeep()
 	resp := provider.InvokeAction(providers.InvokeActionRequest{
 		ActionType:         ai.Addr.Action.Action.Type,
 		PlannedActionData:  unmarkedConfigValue,
