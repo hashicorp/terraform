@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeActionTriggerApply struct {
@@ -35,13 +36,25 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 	var diags tfdiags.Diagnostics
 	actionInvocation := n.ActionInvocation
 
-	var self *addrs.AbsResourceInstance
+	ai := ctx.Changes().GetActionInvocation(actionInvocation.Addr, actionInvocation.ActionTrigger)
+	if ai == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action invocation not found in plan",
+			Detail:   "Could not find action invocation for address " + actionInvocation.Addr.String(),
+			Subject:  n.ActionTriggerRange,
+		})
+		return diags
+	}
+
+	var self *addrs.ResourceInstance
 	if at, ok := n.ActionInvocation.ActionTrigger.(plans.LifecycleActionTrigger); ok {
-		self = &at.TriggeringResourceAddr
+		self = &at.TriggeringResourceAddr.Resource
 	}
 
 	if n.ConditionExpr != nil {
-		condition, conditionDiags := evaluateCondition(ctx, self, n.ConditionExpr)
+		scope := ctx.EvaluationScope(self, nil, ai.ConditionRepetitionData)
+		condition, conditionDiags := scope.EvalExpr(n.ConditionExpr, cty.Bool)
 		diags = diags.Append(conditionDiags)
 		if diags.HasErrors() {
 			return diags
@@ -60,16 +73,6 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 		}
 	}
 
-	ai := ctx.Changes().GetActionInvocation(actionInvocation.Addr, actionInvocation.ActionTrigger)
-	if ai == nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Action invocation not found in plan",
-			Detail:   "Could not find action invocation for address " + actionInvocation.Addr.String(),
-			Subject:  n.ActionTriggerRange,
-		})
-		return diags
-	}
 	actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
 	if !ok {
 		diags = diags.Append(&hcl.Diagnostic{

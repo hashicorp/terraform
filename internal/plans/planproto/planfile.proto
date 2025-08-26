@@ -472,9 +472,11 @@ message ActionInvocationInstance {
     // sensitive. Values at these paths should be obscured in human-readable
     // output.
     repeated Path sensitive_config_paths = 5;
+    
+    RepetitionData condition_repetition_data = 6; // TODO: This needs to live in the LifecycleActionTrigger
 
     oneof action_trigger {
-        LifecycleActionTrigger lifecycle_action_trigger = 6;
+        LifecycleActionTrigger lifecycle_action_trigger = 7;
     }
 }
 
@@ -501,4 +503,10 @@ message ResourceInstanceActionChange {
     // Description of the proposed change. 
     // May use "update", "replace", "delete" and "no-op" actions.
     Change change = 3;
+}
+
+message RepetitionData {
+    DynamicValue count_index = 1;
+    DynamicValue each_key = 2;
+    DynamicValue each_value = 3;
 }

@@ -104,7 +104,7 @@ var _ ActionTrigger = (*LifecycleActionTrigger)(nil)
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*ActionInvocationInstanceSrc, error) {
-
+	var err error
 	ret := &ActionInvocationInstanceSrc{
 		Addr:          ai.Addr,
 		ActionTrigger: ai.ActionTrigger,
@@ -123,12 +123,16 @@ func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*Act
 			return nil, fmt.Errorf("%s: error serializing action invocation with unexpected marks on config value: %#v. This is a bug in Terraform.", tfdiags.FormatCtyPath(otherMarks[0].Path), otherMarks[0].Marks)
 		}
 
-		var err error
 		ret.ConfigValue, err = NewDynamicValue(unmarkedConfigValue, ty)
 		ret.SensitiveConfigPaths = sensitivePaths
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	ret.ConditionRepetitionData, err = MarshalRepetitionData(ai.ConditionRepetitionData)
+	if err != nil {
+		return nil, err
 	}
 
 	return ret, nil
@@ -156,4 +160,26 @@ func (ai *ActionInvocationInstance) DeepCopy() *ActionInvocationInstance {
 
 	ret := *ai
 	return &ret
+}
+
+func MarshalRepetitionData(data instances.RepetitionData) (RepetitionDataSrc, error) {
+	var err error
+	ret := RepetitionDataSrc{}
+
+	ret.CountIndex, err = NewDynamicValue(data.CountIndex, cty.DynamicPseudoType)
+	if err != nil {
+		return ret, err
+	}
+
+	ret.EachKey, err = NewDynamicValue(data.EachKey, cty.DynamicPseudoType)
+	if err != nil {
+		return ret, err
+	}
+
+	ret.EachValue, err = NewDynamicValue(data.EachValue, cty.DynamicPseudoType)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, err
 }

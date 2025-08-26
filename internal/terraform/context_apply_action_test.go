@@ -1421,6 +1421,231 @@ resource "test_object" "resource" {
 			},
 			expectInvokeActionCalled: false,
 		},
+
+		"condition with count": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 3
+  name = "resource-${count.index}"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = count.index == 1
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"condition with for_each": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar", "baz"])
+  name = each.value
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = each.key == "bar"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"condition with count false": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 3
+  name = "resource-${count.index}"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = count.index == 5
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+		},
+
+		"condition with for_each false": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar", "baz"])
+  name = each.value
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = each.key == "missing"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+		},
+
+		"condition with count and attribute reference": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "reference" {
+  name = "ref-resource"
+}
+resource "test_object" "a" {
+  count = 3
+  name = "resource-${count.index}"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = count.index == 1 && test_object.reference.name == "ref-resource"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"condition with for_each and multiple conditions": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = tomap({
+    "dev" = "development",
+    "prod" = "production", 
+    "test" = "testing"
+  })
+  name = each.value
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = each.key == "prod" || each.key == "dev"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled:            true,
+			expectInvokeActionCallsAreUnordered: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"condition with count range check": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 5
+  name = "resource-${count.index}"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = count.index >= 2 && count.index <= 3
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled:            true,
+			expectInvokeActionCallsAreUnordered: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"condition with for_each value matching": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = tomap({
+    "web" = "webserver",
+    "db" = "database",
+    "cache" = "redis"
+  })
+  name = each.value
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = length(each.value) > 7
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled:            true,
+			expectInvokeActionCallsAreUnordered: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {

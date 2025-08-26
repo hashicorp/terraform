@@ -1373,6 +1373,14 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 		ret.SensitiveConfigPaths = sensitiveConfigPaths
 	}
 
+	if rawAction.ConditionRepetitionData != nil {
+		conditionRepetitionData, err := repetitionDataFromTfplan(rawAction.ConditionRepetitionData)
+		if err != nil {
+			return nil, err
+		}
+		ret.ConditionRepetitionData = conditionRepetitionData
+	}
+
 	return ret, nil
 }
 
@@ -1426,5 +1434,38 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		ret.SensitiveConfigPaths = sensitiveConfigPaths
 	}
 
+	ret.ConditionRepetitionData = repetitionDataToTfplan(action.ConditionRepetitionData)
+
 	return ret, nil
+}
+
+func repetitionDataFromTfplan(raw *planproto.RepetitionData) (plans.RepetitionDataSrc, error) {
+	var err error
+	ret := plans.RepetitionDataSrc{}
+	if raw == nil {
+		return ret, nil
+	}
+
+	ret.CountIndex, err = valueFromTfplan(raw.CountIndex)
+	if err != nil {
+		return ret, fmt.Errorf("failed to convert count index: %w", err)
+	}
+	ret.EachKey, err = valueFromTfplan(raw.EachKey)
+	if err != nil {
+		return ret, fmt.Errorf("failed to convert each key: %w", err)
+	}
+	ret.EachValue, err = valueFromTfplan(raw.EachValue)
+	if err != nil {
+		return ret, fmt.Errorf("failed to convert each value: %w", err)
+	}
+
+	return ret, nil
+}
+
+func repetitionDataToTfplan(raw plans.RepetitionDataSrc) *planproto.RepetitionData {
+	return &planproto.RepetitionData{
+		CountIndex: valueToTfplan(raw.CountIndex),
+		EachKey:    valueToTfplan(raw.EachKey),
+		EachValue:  valueToTfplan(raw.EachValue),
+	}
 }

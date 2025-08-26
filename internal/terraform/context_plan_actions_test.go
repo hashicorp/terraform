@@ -1800,8 +1800,8 @@ resource "test_object" "a" {
 				if !ok {
 					t.Fatalf("expected action trigger to be lifecycleActionTrigger, got %T", ai.ActionTrigger)
 				}
-				if at.WillCertainlyBeTriggered != false {
-					t.Fatalf("expected certainty to be false, got %t", at.WillCertainlyBeTriggered)
+				if at.Tentative != true {
+					t.Fatalf("expected certainty to be true, got %t", at.Tentative)
 				}
 			},
 		},
