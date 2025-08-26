@@ -1836,6 +1836,7 @@ type LifecycleActionTrigger struct {
 	TriggerEvent            ActionTriggerEvent     `protobuf:"varint,2,opt,name=trigger_event,json=triggerEvent,proto3,enum=tfplan.ActionTriggerEvent" json:"trigger_event,omitempty"`
 	ActionTriggerBlockIndex int64                  `protobuf:"varint,3,opt,name=action_trigger_block_index,json=actionTriggerBlockIndex,proto3" json:"action_trigger_block_index,omitempty"`
 	ActionsListIndex        int64                  `protobuf:"varint,4,opt,name=actions_list_index,json=actionsListIndex,proto3" json:"actions_list_index,omitempty"`
+	Tentative               bool                   `protobuf:"varint,5,opt,name=tentative,proto3" json:"tentative,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -1896,6 +1897,13 @@ func (x *LifecycleActionTrigger) GetActionsListIndex() int64 {
 		return x.ActionsListIndex
 	}
 	return 0
+}
+
+func (x *LifecycleActionTrigger) GetTentative() bool {
+	if x != nil {
+		return x.Tentative
+	}
+	return false
 }
 
 type ResourceInstanceActionChange struct {
@@ -2291,12 +2299,13 @@ const file_planfile_proto_rawDesc = "" +
 	"\fconfig_value\x18\x04 \x01(\v2\x14.tfplan.DynamicValueR\vconfigValue\x12B\n" +
 	"\x16sensitive_config_paths\x18\x05 \x03(\v2\f.tfplan.PathR\x14sensitiveConfigPaths\x12Z\n" +
 	"\x18lifecycle_action_trigger\x18\x06 \x01(\v2\x1e.tfplan.LifecycleActionTriggerH\x00R\x16lifecycleActionTriggerB\x10\n" +
-	"\x0eaction_trigger\"\xfe\x01\n" +
+	"\x0eaction_trigger\"\x9c\x02\n" +
 	"\x16LifecycleActionTrigger\x128\n" +
 	"\x18triggering_resource_addr\x18\x01 \x01(\tR\x16triggeringResourceAddr\x12?\n" +
 	"\rtrigger_event\x18\x02 \x01(\x0e2\x1a.tfplan.ActionTriggerEventR\ftriggerEvent\x12;\n" +
 	"\x1aaction_trigger_block_index\x18\x03 \x01(\x03R\x17actionTriggerBlockIndex\x12,\n" +
-	"\x12actions_list_index\x18\x04 \x01(\x03R\x10actionsListIndex\"{\n" +
+	"\x12actions_list_index\x18\x04 \x01(\x03R\x10actionsListIndex\x12\x1c\n" +
+	"\ttentative\x18\x05 \x01(\bR\ttentative\"{\n" +
 	"\x1cResourceInstanceActionChange\x12\x12\n" +
 	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x1f\n" +
 	"\vdeposed_key\x18\x02 \x01(\tR\n" +

@@ -1347,6 +1347,7 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 			ActionTriggerBlockIndex: int(at.LifecycleActionTrigger.ActionTriggerBlockIndex),
 			ActionsListIndex:        int(at.LifecycleActionTrigger.ActionsListIndex),
 			ActionTriggerEvent:      ate,
+			Tentative:               at.LifecycleActionTrigger.Tentative,
 		}
 	default:
 		// This should be exhaustive
@@ -1408,6 +1409,7 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 				TriggeringResourceAddr:  at.TriggeringResourceAddr.String(),
 				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
 				ActionsListIndex:        int64(at.ActionsListIndex),
+				Tentative:               at.Tentative,
 			},
 		}
 	default:

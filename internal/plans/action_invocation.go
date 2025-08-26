@@ -57,6 +57,8 @@ type LifecycleActionTrigger struct {
 	ActionTriggerBlockIndex int
 	// The index of the action in the events list of the action_trigger block
 	ActionsListIndex int
+	// Set to false if the condition is unknown, true otherwise
+	Tentative bool
 }
 
 func (t LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {

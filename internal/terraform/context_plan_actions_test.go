@@ -1759,7 +1759,6 @@ resource "test_object" "a" {
 		},
 
 		"unknown condition": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 variable "cond" {
@@ -1864,6 +1863,132 @@ resource "test_object" "a" {
 				}
 				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
 					t.Fatalf("expected action.test_unlinked.hello, got %s", p.Changes.ActionInvocations[0].Addr.String())
+				}
+			},
+		},
+
+		"non-boolean unknown condition": {
+			module: map[string]string{
+				"main.tf": `
+variable "cond" {
+    type = number
+}
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = var.cond + 12
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.UnknownVal(cty.Number),
+						SourceType: ValueFromCaller,
+					},
+				},
+			},
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Incorrect value type",
+					Detail:   "Invalid expression value: bool required, but have number.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 186},
+						End:      hcl.Pos{Line: 10, Column: 39, Byte: 199},
+					},
+				})
+			},
+		},
+
+		"using count in condition": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+
+resource "test_object" "a" {
+  count = 2
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = count.index == 1
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [before_create]
+      condition = count.index == 2
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action.test_unlinked.hello, got %s", p.Changes.ActionInvocations[0].Addr.String())
+				}
+				at := p.Changes.ActionInvocations[0].ActionTrigger.(plans.LifecycleActionTrigger)
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a[1]")) {
+					t.Fatalf("expected test_object.a[1], got %s", at.TriggeringResourceAddr.String())
+				}
+			},
+		},
+		"using for_each in condition": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar"])
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = for_each.key == "bar"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [before_create]
+      condition = for_each.key == "baz"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action.test_unlinked.hello, got %s", p.Changes.ActionInvocations[0].Addr.String())
+				}
+				at := p.Changes.ActionInvocations[0].ActionTrigger.(plans.LifecycleActionTrigger)
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr(`test_object.a["bar"]`)) {
+					t.Fatalf(`expected test_object.a["bar"], got %s`, at.TriggeringResourceAddr.String())
 				}
 			},
 		},

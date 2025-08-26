@@ -70,6 +70,7 @@ func NewPlannedActionInvocation(aiSrc *plans.ActionInvocationInstanceSrc) *Actio
 			TriggeringEvent:         at.ActionTriggerEvent.String(),
 			ActionTriggerBlockIndex: at.ActionTriggerBlockIndex,
 			ActionsListIndex:        at.ActionsListIndex,
+			Tentative:               at.Tentative,
 		}
 	}
 
@@ -93,6 +94,7 @@ type ActionInvocationLifecycleTrigger struct {
 	TriggeringEvent         string       `json:"triggering_event"`
 	ActionTriggerBlockIndex int          `json:"action_trigger_block_index"`
 	ActionsListIndex        int          `json:"actions_list_index"`
+	Tentative               bool         `json:"tentative"`
 }
 
 type ChangeAction string

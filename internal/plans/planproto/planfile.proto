@@ -485,6 +485,7 @@ message LifecycleActionTrigger {
   ActionTriggerEvent trigger_event = 2;
   int64 action_trigger_block_index = 3;
   int64 actions_list_index = 4;
+  bool tentative = 5;
 }
 
 message ResourceInstanceActionChange {
