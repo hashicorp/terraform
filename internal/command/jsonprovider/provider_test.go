@@ -33,7 +33,6 @@ func TestMarshalProvider(t *testing.T) {
 				DataSourceSchemas:        map[string]*Schema{},
 				EphemeralResourceSchemas: map[string]*Schema{},
 				ResourceIdentitySchemas:  map[string]*IdentitySchema{},
-				ActionSchemas:            map[string]*ActionSchema{},
 			},
 		},
 		{
@@ -213,7 +212,6 @@ func TestMarshalProvider(t *testing.T) {
 					},
 				},
 				ResourceIdentitySchemas: map[string]*IdentitySchema{},
-				ActionSchemas:           map[string]*ActionSchema{},
 			},
 		},
 		{
@@ -223,8 +221,21 @@ func TestMarshalProvider(t *testing.T) {
 						Version: 1,
 						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
-								"filter": {Type: cty.String, Optional: true},
-								"items":  {Type: cty.List(cty.String), Required: true},
+								"data": {
+									Type:     cty.DynamicPseudoType,
+									Computed: true,
+								},
+							},
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"config": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"filter": {Type: cty.String, Optional: true},
+											"items":  {Type: cty.List(cty.String), Required: true},
+										},
+									},
+									Nesting: configschema.NestingSingle,
+								},
 							},
 						},
 					},
@@ -483,8 +494,21 @@ func testProvider() providers.ProviderSchema {
 				Version: 1,
 				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"filter": {Type: cty.String, Optional: true},
-						"items":  {Type: cty.List(cty.String), Required: true},
+						"data": {
+							Type:     cty.DynamicPseudoType,
+							Computed: true,
+						},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"config": {
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"filter": {Type: cty.String, Optional: true},
+									"items":  {Type: cty.List(cty.String), Required: true},
+								},
+							},
+							Nesting: configschema.NestingSingle,
+						},
 					},
 				},
 			},
