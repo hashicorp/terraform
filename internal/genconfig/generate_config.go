@@ -100,7 +100,7 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocks(addr, &buf, schema.BlockTypes, 2))
 	} else {
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2, optionalOrRequiredProcessor))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, stateVal, schema.BlockTypes, 2))
 	}
 
@@ -185,7 +185,7 @@ func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.
 	buf.WriteString(fmt.Sprintf("  to = %s\n", addr.String()))
 	buf.WriteString(fmt.Sprintf("  provider = %s\n", pc.StringCompact()))
 	buf.WriteString("  identity = {\n")
-	diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, identity, idSchema.Attributes, 2, allowAllAttributesProcessor))
+	diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, identity, idSchema.Attributes, 2))
 	buf.WriteString(strings.Repeat(" ", 2))
 	buf.WriteString("}\n}\n")
 
@@ -240,16 +240,7 @@ func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder,
 	return diags
 }
 
-func optionalOrRequiredProcessor(attr *configschema.Attribute) bool {
-	// Exclude computed-only attributes
-	return attr.Optional || attr.Required
-}
-
-func allowAllAttributesProcessor(attr *configschema.Attribute) bool {
-	return true
-}
-
-func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int, processAttr func(*configschema.Attribute) bool) tfdiags.Diagnostics {
+func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if len(attrs) == 0 {
 		return diags
@@ -258,66 +249,72 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 	// Sort attribute names so the output will be consistent between runs.
 	for _, name := range slices.Sorted(maps.Keys(attrs)) {
 		attrS := attrs[name]
+
+		var val cty.Value
+		if !stateVal.IsNull() && stateVal.Type().HasAttribute(name) {
+			val = stateVal.GetAttr(name)
+		} else {
+			val = attrS.EmptyValue()
+		}
+
+		if attrS.Computed && val.IsNull() {
+			// Computed attributes should never be written in the config. These
+			// will be filtered out of the given cty value here, but we should
+			// also skip writing `null` in the config.
+			continue
+		}
+
 		if attrS.NestedType != nil {
 			writeConfigNestedTypeAttributeFromExisting(addr, buf, name, attrS, stateVal, indent)
 			continue
 		}
 
-		if processAttr != nil && processAttr(attrS) {
-			buf.WriteString(strings.Repeat(" ", indent))
-			buf.WriteString(fmt.Sprintf("%s = ", name))
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(fmt.Sprintf("%s = ", name))
 
-			var val cty.Value
-			if !stateVal.IsNull() && stateVal.Type().HasAttribute(name) {
-				val = stateVal.GetAttr(name)
-			} else {
-				val = attrS.EmptyValue()
-			}
+		if attrS.Sensitive {
+			buf.WriteString("null # sensitive")
+		} else {
+			// If the value is a string storing a JSON value we want to represent it in a terraform native way
+			// and encapsulate it in `jsonencode` as it is the idiomatic representation
+			if val.IsKnown() && !val.IsNull() && val.Type() == cty.String && json.Valid([]byte(val.AsString())) {
+				var ctyValue ctyjson.SimpleJSONValue
+				err := ctyValue.UnmarshalJSON([]byte(val.AsString()))
+				if err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Failed to parse JSON",
+						Detail:   fmt.Sprintf("Could not parse JSON value of attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted. This is most likely a bug in Terraform, please report it.", name, addr),
+						Extra:    err,
+					})
+					continue
+				}
 
-			if attrS.Sensitive {
-				buf.WriteString("null # sensitive")
-			} else {
-				// If the value is a string storing a JSON value we want to represent it in a terraform native way
-				// and encapsulate it in `jsonencode` as it is the idiomatic representation
-				if val.IsKnown() && !val.IsNull() && val.Type() == cty.String && json.Valid([]byte(val.AsString())) {
-					var ctyValue ctyjson.SimpleJSONValue
-					err := ctyValue.UnmarshalJSON([]byte(val.AsString()))
-					if err != nil {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagWarning,
-							Summary:  "Failed to parse JSON",
-							Detail:   fmt.Sprintf("Could not parse JSON value of attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted. This is most likely a bug in Terraform, please report it.", name, addr),
-							Extra:    err,
-						})
-						continue
-					}
-
-					// Lone deserializable primitive types are valid json, but should be treated as strings
-					if ctyValue.Type().IsPrimitiveType() {
-						if d := writeTokens(val, buf); d != nil {
-							diags = diags.Append(d)
-							continue
-						}
-					} else {
-						buf.WriteString("jsonencode(")
-
-						if d := writeTokens(ctyValue.Value, buf); d != nil {
-							diags = diags.Append(d)
-							continue
-						}
-
-						buf.WriteString(")")
-					}
-				} else {
+				// Lone deserializable primitive types are valid json, but should be treated as strings
+				if ctyValue.Type().IsPrimitiveType() {
 					if d := writeTokens(val, buf); d != nil {
 						diags = diags.Append(d)
 						continue
 					}
+				} else {
+					buf.WriteString("jsonencode(")
+
+					if d := writeTokens(ctyValue.Value, buf); d != nil {
+						diags = diags.Append(d)
+						continue
+					}
+
+					buf.WriteString(")")
+				}
+			} else {
+				if d := writeTokens(val, buf); d != nil {
+					diags = diags.Append(d)
+					continue
 				}
 			}
-
-			buf.WriteString("\n")
 		}
+
+		buf.WriteString("\n")
 	}
 	return diags
 }
@@ -451,7 +448,6 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 
 func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	processor := optionalOrRequiredProcessor
 
 	switch schema.NestedType.Nesting {
 	case configschema.NestingSingle:
@@ -479,7 +475,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2, processor))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2))
 		buf.WriteString("}\n")
 		return diags
 
@@ -505,7 +501,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			buf.WriteString(strings.Repeat(" ", indent+2))
 
 			buf.WriteString("{\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4, processor))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("},\n")
 		}
@@ -537,7 +533,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			buf.WriteString(fmt.Sprintf("%s = {", hclEscapeString(key)))
 
 			buf.WriteString("\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4, processor))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("}\n")
 		}
@@ -553,7 +549,6 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.NestedBlock, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	processAttr := optionalOrRequiredProcessor
 
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
@@ -564,7 +559,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		buf.WriteString(fmt.Sprintf("%s {", name))
 
 		buf.WriteString("\n")
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2, processAttr))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, stateVal, schema.BlockTypes, indent+2))
 		buf.WriteString("}\n")
 		return diags
@@ -573,7 +568,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s {\n", name))
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2, processAttr))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, listVals[i], schema.BlockTypes, indent+2))
 			buf.WriteString("}\n")
 		}
@@ -584,7 +579,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s %q {", name, key))
 			buf.WriteString("\n")
-			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2, processAttr))
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, vals[key], schema.BlockTypes, indent+2))
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString("}\n")
