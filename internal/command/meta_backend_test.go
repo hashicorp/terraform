@@ -2208,11 +2208,13 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			}
 			if len(w) > 0 {
 				if tc.expectDefaultWorkspaceExists {
-					if len(w) == 1 && w[0] != "default" {
-						t.Fatalf("expected the default workspace to exist, but instead got: %v", w)
+					if len(w) != 1 || w[0] != "default" {
+						t.Fatalf("expected only the default workspace to exist, but instead got: %v", w)
 					}
+					return // we've got the expected default workspace
 				}
-				t.Fatalf("expected the default workspace to be the only existing workspace, but instead got: %v", w)
+
+				t.Fatalf("got unexpected workspaces: %v", w)
 			}
 		})
 	}

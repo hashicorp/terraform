@@ -169,8 +169,9 @@ type MockProvider struct {
 	UnlockStateRequest  providers.UnlockStateRequest
 	UnlockStateFn       func(providers.UnlockStateRequest) providers.UnlockStateResponse
 
-	// states is an internal field that tracks which workspaces have been created in a test
-	states map[string]interface{}
+	// MockStates is an internal field that tracks which workspaces have been created in a test
+	// The map keys are state ids (workspaces) and the value depends on the test.
+	MockStates map[string]interface{}
 
 	GetStatesCalled   bool
 	GetStatesResponse *providers.GetStatesResponse
@@ -1075,7 +1076,7 @@ func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 	}
 
 	// If the mock has no further inputs, return the internal states list
-	resp.States = slices.Sorted(maps.Keys(p.states))
+	resp.States = slices.Sorted(maps.Keys(p.MockStates))
 
 	return resp
 }
@@ -1102,8 +1103,8 @@ func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp provide
 		return p.DeleteStateFn(r)
 	}
 
-	if _, match := p.states[r.StateId]; match {
-		delete(p.states, r.StateId)
+	if _, match := p.MockStates[r.StateId]; match {
+		delete(p.MockStates, r.StateId)
 	} else {
 		resp.Diagnostics.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
