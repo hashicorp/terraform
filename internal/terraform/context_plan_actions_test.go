@@ -1792,7 +1792,17 @@ resource "test_object" "a" {
 					t.Fatalf("expected 1 actions in plan, got %d", len(p.Changes.ActionInvocations))
 				}
 
-				// TODO: Expect "might be triggered"
+				ai := p.Changes.ActionInvocations[0]
+				if ai.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action address: action.test_unlinked.hello, got %s", ai.Addr.String())
+				}
+				at, ok := ai.ActionTrigger.(plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be lifecycleActionTrigger, got %T", ai.ActionTrigger)
+				}
+				if at.WillCertainlyBeTriggered != false {
+					t.Fatalf("expected certainty to be false, got %t", at.WillCertainlyBeTriggered)
+				}
 			},
 		},
 
@@ -1831,7 +1841,6 @@ resource "test_object" "a" {
 		},
 
 		"using self in condition": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 
@@ -1911,7 +1920,6 @@ resource "test_object" "a" {
 		},
 
 		"using count in condition": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 
@@ -1952,7 +1960,6 @@ resource "test_object" "a" {
 			},
 		},
 		"using for_each in condition": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 
@@ -1965,12 +1972,12 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      condition = for_each.key == "bar"
+      condition = each.key == "bar"
       actions = [action.test_unlinked.hello]
     }
     action_trigger {
       events = [before_create]
-      condition = for_each.key == "baz"
+      condition = each.key == "baz"
       actions = [action.test_unlinked.world]
     }
   }

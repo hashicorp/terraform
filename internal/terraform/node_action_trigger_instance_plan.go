@@ -114,10 +114,15 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	tentative := false
 	// Evaluate the condition expression if it exists
 	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
-		condition, conditionDiags := evaluateCondition(ctx, n.lifecycleActionTrigger.conditionExpr)
-		diags = diags.Append(conditionDiags)
-		if conditionDiags.HasErrors() {
-			return conditionDiags
+		expander := ctx.InstanceExpander()
+		ai.ConditionRepetitionData = expander.GetResourceInstanceRepetitionData(n.lifecycleActionTrigger.resourceAddress)
+		var selfRef addrs.Referenceable = n.lifecycleActionTrigger.resourceAddress.Resource
+		scope := ctx.EvaluationScope(selfRef, nil, ai.ConditionRepetitionData)
+		condition, conditionEvalDiags := scope.EvalExpr(n.lifecycleActionTrigger.conditionExpr, cty.Bool)
+
+		diags = diags.Append(conditionEvalDiags)
+		if conditionEvalDiags.HasErrors() {
+			return diags
 		}
 
 		if condition.IsWhollyKnown() {
@@ -214,18 +219,4 @@ func (n *nodeActionTriggerPlanInstance) Path() addrs.ModuleInstance {
 	// or by resources during plan/apply in which case both the resource and action must belong
 	// to the same module. So we can simply return the module path of the action.
 	return n.actionAddress.Module
-}
-
-func evaluateCondition(ctx EvalContext, conditionExpr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
-	// TODO: Support self in conditions
-	val, diags := ctx.EvaluateExpr(conditionExpr, cty.Bool, nil)
-	if diags.HasErrors() {
-		return cty.False, diags
-	}
-
-	if !val.IsWhollyKnown() {
-		return val, diags
-	}
-
-	return val, nil
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -24,7 +25,8 @@ type ActionInvocationInstance struct {
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
 
-	ConfigValue cty.Value
+	ConfigValue             cty.Value
+	ConditionRepetitionData instances.RepetitionData
 }
 
 func (ai *ActionInvocationInstance) Equals(other *ActionInvocationInstance) bool {

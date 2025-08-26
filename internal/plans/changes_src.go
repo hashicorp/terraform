@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/genconfig"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -564,6 +565,30 @@ func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocati
 	c.ActionInvocations = append(c.ActionInvocations, a)
 }
 
+type RepetitionDataSrc struct {
+	CountIndex DynamicValue
+	EachKey    DynamicValue
+	EachValue  DynamicValue
+}
+
+func (r *RepetitionDataSrc) Decode() (instances.RepetitionData, error) {
+	var err error
+	rd := instances.RepetitionData{}
+	rd.CountIndex, err = r.CountIndex.Decode(cty.DynamicPseudoType)
+	if err != nil {
+		return rd, err
+	}
+	rd.EachKey, err = r.EachKey.Decode(cty.DynamicPseudoType)
+	if err != nil {
+		return rd, err
+	}
+	rd.EachValue, err = r.EachValue.Decode(cty.DynamicPseudoType)
+	if err != nil {
+		return rd, err
+	}
+	return rd, nil
+}
+
 type ActionInvocationInstanceSrc struct {
 	Addr          addrs.AbsActionInstance
 	ActionTrigger ActionTrigger
@@ -571,7 +596,8 @@ type ActionInvocationInstanceSrc struct {
 	ConfigValue          DynamicValue
 	SensitiveConfigPaths []cty.Path
 
-	ProviderAddr addrs.AbsProviderConfig
+	ProviderAddr            addrs.AbsProviderConfig
+	ConditionRepetitionData RepetitionDataSrc
 }
 
 // Decode unmarshals the raw representation of any linked resources.
@@ -587,11 +613,18 @@ func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (
 	}
 	markedConfigValue := marks.MarkPaths(config, marks.Sensitive, acs.SensitiveConfigPaths)
 
+	// Decode repetition data source
+	repetitionData, err := acs.ConditionRepetitionData.Decode()
+	if err != nil {
+		return nil, fmt.Errorf("error decoding 'conditionRepetitionData' value: %s", err)
+	}
+
 	ai := &ActionInvocationInstance{
-		Addr:          acs.Addr,
-		ActionTrigger: acs.ActionTrigger,
-		ProviderAddr:  acs.ProviderAddr,
-		ConfigValue:   markedConfigValue,
+		Addr:                    acs.Addr,
+		ActionTrigger:           acs.ActionTrigger,
+		ProviderAddr:            acs.ProviderAddr,
+		ConfigValue:             markedConfigValue,
+		ConditionRepetitionData: repetitionData,
 	}
 	return ai, nil
 }

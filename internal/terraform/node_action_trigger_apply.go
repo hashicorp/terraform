@@ -35,8 +35,13 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 	var diags tfdiags.Diagnostics
 	actionInvocation := n.ActionInvocation
 
+	var self *addrs.AbsResourceInstance
+	if at, ok := n.ActionInvocation.ActionTrigger.(plans.LifecycleActionTrigger); ok {
+		self = &at.TriggeringResourceAddr
+	}
+
 	if n.ConditionExpr != nil {
-		condition, conditionDiags := evaluateCondition(ctx, n.ConditionExpr)
+		condition, conditionDiags := evaluateCondition(ctx, self, n.ConditionExpr)
 		diags = diags.Append(conditionDiags)
 		if diags.HasErrors() {
 			return diags
