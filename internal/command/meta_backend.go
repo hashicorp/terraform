@@ -1672,7 +1672,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 			case ws == backend.DefaultStateName:
 				// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
 				if opts.CreateDefaultWorkspace {
-					m.createDefaultWorkspace(c, b)
+					diags = diags.Append(m.createDefaultWorkspace(c, b))
 				} else {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagWarning,
