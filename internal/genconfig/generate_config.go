@@ -89,6 +89,13 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
 	}
 
+	// This is generating configuration, so the only marks should be coming from
+	// the schema itself.
+	stateVal, _ = stateVal.UnmarkDeep()
+
+	// filter the state down to a suitable config value
+	stateVal = extractConfigFromState(schema, stateVal)
+
 	if stateVal.RawEquals(cty.NilVal) {
 		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocks(addr, &buf, schema.BlockTypes, 2))
@@ -266,20 +273,8 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 			} else {
 				val = attrS.EmptyValue()
 			}
-			if val.Type() == cty.String {
-				// Before we inspect the string, take off any marks.
-				unmarked, marks := val.Unmark()
 
-				// SHAMELESS HACK: If we have "" for an optional value, assume
-				// it is actually null, due to the legacy SDK.
-				if !unmarked.IsNull() && attrS.Optional && len(unmarked.AsString()) == 0 {
-					unmarked = attrS.EmptyValue()
-				}
-
-				// Before we carry on, add the marks back.
-				val = unmarked.WithMarks(marks)
-			}
-			if attrS.Sensitive || val.IsMarked() {
+			if attrS.Sensitive {
 				buf.WriteString("null # sensitive")
 			} else {
 				// If the value is a string storing a JSON value we want to represent it in a terraform native way
@@ -460,7 +455,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 	switch schema.NestedType.Nesting {
 	case configschema.NestingSingle:
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = {} # sensitive\n", name))
 			return diags
@@ -490,7 +485,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 	case configschema.NestingList, configschema.NestingSet:
 
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = [] # sensitive\n", name))
 			return diags
@@ -509,12 +504,6 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent+2))
 
-			// The entire element is marked.
-			if listVals[i].IsMarked() {
-				buf.WriteString("{}, # sensitive\n")
-				continue
-			}
-
 			buf.WriteString("{\n")
 			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4, processor))
 			buf.WriteString(strings.Repeat(" ", indent+2))
@@ -525,7 +514,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 		return diags
 
 	case configschema.NestingMap:
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = {} # sensitive\n", name))
 			return diags
@@ -546,12 +535,6 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 		for _, key := range slices.Sorted(maps.Keys(vals)) {
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString(fmt.Sprintf("%s = {", hclEscapeString(key)))
-
-			// This entire value is marked
-			if vals[key].IsMarked() {
-				buf.WriteString("} # sensitive\n")
-				continue
-			}
 
 			buf.WriteString("\n")
 			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4, processor))
@@ -580,22 +563,12 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s {", name))
 
-		// If the entire value is marked, don't print any nested attributes
-		if stateVal.IsMarked() {
-			buf.WriteString("} # sensitive\n")
-			return diags
-		}
 		buf.WriteString("\n")
 		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2, processAttr))
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, stateVal, schema.BlockTypes, indent+2))
 		buf.WriteString("}\n")
 		return diags
 	case configschema.NestingList, configschema.NestingSet:
-		if stateVal.IsMarked() {
-			buf.WriteString(strings.Repeat(" ", indent))
-			buf.WriteString(fmt.Sprintf("%s {} # sensitive\n", name))
-			return diags
-		}
 		listVals := ctyCollectionValues(stateVal)
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent))
@@ -606,21 +579,10 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		}
 		return diags
 	case configschema.NestingMap:
-		// If the entire value is marked, don't print any nested attributes
-		if stateVal.IsMarked() {
-			buf.WriteString(fmt.Sprintf("%s {} # sensitive\n", name))
-			return diags
-		}
-
 		vals := stateVal.AsValueMap()
 		for _, key := range slices.Sorted(maps.Keys(vals)) {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s %q {", name, key))
-			// This entire map element is marked
-			if vals[key].IsMarked() {
-				buf.WriteString("} # sensitive\n")
-				return diags
-			}
 			buf.WriteString("\n")
 			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2, processAttr))
 			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, vals[key], schema.BlockTypes, indent+2))
@@ -662,13 +624,7 @@ func ctyCollectionValues(val cty.Value) []cty.Value {
 		return nil
 	}
 
-	var len int
-	if val.IsMarked() {
-		val, _ = val.Unmark()
-		len = val.LengthInt()
-	} else {
-		len = val.LengthInt()
-	}
+	len := val.LengthInt()
 
 	ret := make([]cty.Value, 0, len)
 	for it := val.ElementIterator(); it.Next(); {
@@ -695,4 +651,65 @@ func hclEscapeString(str string) string {
 		return fmt.Sprintf("%q", str)
 	}
 	return str
+}
+
+// extractConfigFromState takes the state value of a resource, and filters the
+// value down to what would be acceptable as a resource configuration value.
+// This is used when the provider does not implement GenerateResourceConfig to
+// create a suitable value.
+func extractConfigFromState(schema *configschema.Block, state cty.Value) cty.Value {
+	config, _ := cty.Transform(state, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		if v.IsNull() {
+			return v, nil
+		}
+
+		if len(path) == 0 {
+			return v, nil
+		}
+
+		ty := v.Type()
+		null := cty.NullVal(ty)
+
+		// find the attribute or block schema representing the value
+		attr := schema.AttributeByPath(path)
+		block := schema.BlockByPath(path)
+		switch {
+		case attr != nil:
+			// read-only and deprecated are not written in the configuration
+			if attr.Computed && !attr.Optional {
+				return null, nil
+			}
+
+			// The legacy SDK adds an Optional+Computed "id" attribute to the
+			// resource schema even if not defined in provider code.
+			// During validation, however, the presence of an extraneous "id"
+			// attribute in config will cause an error.
+			// Remove this attribute so we do not generate an "id" attribute
+			// where there is a risk that it is not in the real resource schema.
+			if path.Equals(cty.GetAttrPath("id")) && attr.Computed && attr.Optional {
+				return null, nil
+			}
+
+			// If we have "" for an optional value, assume it is actually null
+			// due to the legacy SDK.
+			if ty == cty.String {
+				if !v.IsNull() && attr.Optional && len(v.AsString()) == 0 {
+					return null, nil
+				}
+			}
+			return v, nil
+
+		case block != nil:
+			if block.Deprecated {
+				return null, nil
+			}
+		}
+
+		// We're only filtering out values which correspond to specific
+		// attributes or blocks from the schema, anything else is passed through
+		// as it will be a leaf value within a container.
+		return v, nil
+	})
+
+	return config
 }
