@@ -56,3 +56,23 @@ func (o *Object) AttributeByPath(path cty.Path) *Attribute {
 	}
 	return nil
 }
+
+// BlockByPath looks up the Block schema which corresponds to the given
+// cty.Path. A nil value is returned if the given path does not correspond to a
+// specific attribute.
+func (b *Block) BlockByPath(path cty.Path) *Block {
+	for i, step := range path {
+		switch step := step.(type) {
+		case cty.GetAttrStep:
+			if blockType := b.BlockTypes[step.Name]; blockType != nil {
+				if len(blockType.Block.BlockTypes) > 0 && i < len(path)-1 {
+					return blockType.Block.BlockByPath(path[i+1:])
+				} else if i < len(path)-1 {
+					return nil
+				}
+				return &blockType.Block
+			}
+		}
+	}
+	return nil
+}
