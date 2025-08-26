@@ -68,7 +68,6 @@ func marshalProvider(tps providers.ProviderSchema, includeExperimentalSchemas bo
 		EphemeralResourceSchemas: marshalSchemas(tps.EphemeralResourceTypes),
 		Functions:                jsonfunction.MarshalProviderFunctions(tps.Functions),
 		ResourceIdentitySchemas:  marshalIdentitySchemas(tps.ResourceTypes),
-		ActionSchemas:            marshalActionSchemas(tps.Actions),
 	}
 
 	if includeExperimentalSchemas {
@@ -84,6 +83,8 @@ func marshalProvider(tps providers.ProviderSchema, includeExperimentalSchemas bo
 			}
 		}
 		p.ListResourceSchemas = marshalSchemas(listSchemas)
+
+		p.ActionSchemas = marshalActionSchemas(tps.Actions)
 	}
 
 	return p
