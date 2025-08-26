@@ -40,12 +40,13 @@ func (at *lifecycleActionTriggerInstance) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
-func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) plans.LifecycleActionTrigger {
+func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent, Tentative bool) plans.LifecycleActionTrigger {
 	return plans.LifecycleActionTrigger{
 		TriggeringResourceAddr:  at.resourceAddress,
 		ActionTriggerBlockIndex: at.actionTriggerBlockIndex,
 		ActionsListIndex:        at.actionListIndex,
 		ActionTriggerEvent:      triggeringEvent,
+		Tentative:               Tentative,
 	}
 }
 
@@ -88,7 +89,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	ai := plans.ActionInvocationInstance{
 		Addr:          n.actionAddress,
 		ProviderAddr:  actionInstance.ProviderAddr,
-		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
+		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown, false),
 
 		// with resources, the provider would be expected to strip the ephemeral
 		// values out. with actions, we don't get the value back from the
@@ -114,7 +115,9 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		panic("triggeringEvent cannot be nil")
 	}
 
-	// Evaluate the condition expression if it exists (otherwise it's true)
+	// It is only uncertain an action will be triggered if the condition is unknown
+	tentative := false
+	// Evaluate the condition expression if it exists
 	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
 		condition, conditionDiags := evaluateCondition(ctx, n.lifecycleActionTrigger.conditionExpr)
 		diags = diags.Append(conditionDiags)
@@ -122,14 +125,20 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 			return conditionDiags
 		}
 
-		// The condition is false so we skip the action
-		if condition.False() {
-			return diags
+		if condition.IsWhollyKnown() {
+			// The condition is false so we skip the action
+			if condition.False() {
+				return diags
+			}
+		} else {
+			// If the condition is unknown, we cannot be certain the action will be triggered
+			// but we still need to plan the action as if it will be triggered
+			tentative = true
 		}
 	}
 
 	// We need to set the triggering event on the action invocation
-	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent)
+	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent, tentative)
 
 	provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
 	if err != nil {
@@ -208,19 +217,8 @@ func evaluateCondition(ctx EvalContext, conditionExpr hcl.Expression) (cty.Value
 		return cty.False, diags
 	}
 
-	// TODO: Support unknown condition values
 	if !val.IsWhollyKnown() {
-		panic("condition is not wholly known")
-	}
-	// If the condition is neither true nor false, it's an error
-	if !(val.True() || val.False()) {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid condition",
-			Detail:   "The condition must be either true or false",
-			Subject:  conditionExpr.Range().Ptr(),
-		})
-		return cty.False, diags
+		return val, diags
 	}
 
 	return val, nil

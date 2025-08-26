@@ -680,6 +680,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 				"lifecycle_trigger": map[string]interface{}{
 					"action_trigger_block_index": float64(0),
 					"actions_list_index":         float64(0),
+					"tentative":                  false,
 					"triggering_event":           "AfterCreate",
 					"triggering_resource": map[string]interface{}{
 						"addr":             `test_resource.boop`,
@@ -712,6 +713,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 				"lifecycle_trigger": map[string]interface{}{
 					"action_trigger_block_index": float64(0),
 					"actions_list_index":         float64(1),
+					"tentative":                  false,
 					"triggering_event":           "AfterCreate",
 					"triggering_resource": map[string]interface{}{
 						"addr":             `test_resource.boop`,
@@ -744,6 +746,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 				"lifecycle_trigger": map[string]interface{}{
 					"action_trigger_block_index": float64(1),
 					"actions_list_index":         float64(0),
+					"tentative":                  false,
 					"triggering_event":           "BeforeUpdate",
 					"triggering_resource": map[string]interface{}{
 						"addr":             `module.vpc.test_resource.beep[0]`,

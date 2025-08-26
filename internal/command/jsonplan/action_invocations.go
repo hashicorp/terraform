@@ -44,6 +44,7 @@ type LifecycleActionTrigger struct {
 	ActionTriggerEvent        string `json:"action_trigger_event,omitempty"`
 	ActionTriggerBlockIndex   int    `json:"action_trigger_block_index"`
 	ActionsListIndex          int    `json:"actions_list_index"`
+	Tentative                 bool   `json:"tentative"`
 }
 
 type InvokeCmdActionTrigger struct {
@@ -135,6 +136,7 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 			ActionTriggerEvent:        at.TriggerEvent().String(),
 			ActionTriggerBlockIndex:   at.ActionTriggerBlockIndex,
 			ActionsListIndex:          at.ActionsListIndex,
+			Tentative:                 at.Tentative,
 		}
 	default:
 		return ai, fmt.Errorf("unsupported action trigger type: %T", at)
