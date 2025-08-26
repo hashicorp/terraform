@@ -2143,8 +2143,32 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 						},
 					},
 				},
-				// TODO: Add logic that makes the call to WriteState create a workspace within
-				// the mock
+			}
+			mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+				// Workspaces exist once the artefact representing it is written
+				if _, exist := mock.MockStates[req.StateId]; !exist {
+					// Ensure non-nil map
+					if mock.MockStates == nil {
+						mock.MockStates = make(map[string]interface{})
+					}
+
+					mock.MockStates[req.StateId] = req.Bytes
+				}
+				return providers.WriteStateBytesResponse{
+					Diagnostics: nil, // success
+				}
+			}
+			mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+				state := []byte{}
+				if v, exist := mock.MockStates[req.StateId]; exist {
+					if s, ok := v.([]byte); ok {
+						state = s
+					}
+				}
+				return providers.ReadStateBytesResponse{
+					Bytes:       state,
+					Diagnostics: nil, // success
+				}
 			}
 			factory := func() (providers.Interface, error) {
 				return mock, nil
@@ -2222,11 +2246,13 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			}
 			if len(w) > 0 {
 				if tc.expectDefaultWorkspaceExists {
-					if len(w) == 1 && w[0] != "default" {
-						t.Fatalf("expected the default workspace to exist, but instead got: %v", w)
+					if len(w) != 1 || w[0] != "default" {
+						t.Fatalf("expected only the default workspace to exist, but instead got: %v", w)
 					}
+					return // we've got the expected default workspace
 				}
-				t.Fatalf("expected the default workspace to be the only existing workspace, but instead got: %v", w)
+
+				t.Fatalf("got unexpected workspaces: %v", w)
 			}
 		})
 	}
