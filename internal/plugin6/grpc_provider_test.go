@@ -3835,7 +3835,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 		}
 		data := dataBuff.Bytes()
 		dataFirstChunk := dataBuffCopy.Next(chunkSize)  // First write will have a full chunk
-		dataSecondChunk := dataBuffCopy.Next(chunkSize) // This will be the exta 10 bytes
+		dataSecondChunk := dataBuffCopy.Next(chunkSize) // This will be the extra 10 bytes
 
 		client := mockProviderClient(t)
 		p := &GRPCProvider{
