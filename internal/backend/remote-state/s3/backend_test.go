@@ -2735,8 +2735,8 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// remove the state with extra subkey
-	if err := client.Delete(); err != nil {
-		t.Fatal(err)
+	if diags := client.Delete(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// delete the real workspace

@@ -50,9 +50,9 @@ func Test_grpcClient_Delete(t *testing.T) {
 		stateId:  stateId,
 	}
 
-	err := c.Delete()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	diags := c.Delete()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 
 	if !provider.DeleteStateCalled {

@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type remoteClient struct {
@@ -48,7 +49,8 @@ func (e errorUnlockFailed) Error() string {
 var _ Fatal = errorUnlockFailed{}
 
 // Get the remote state.
-func (r *remoteClient) Get() (*remote.Payload, error) {
+func (r *remoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	ctx := context.Background()
 
 	sv, err := r.client.StateVersions.ReadCurrent(ctx, r.workspace.ID)
@@ -57,12 +59,12 @@ func (r *remoteClient) Get() (*remote.Payload, error) {
 			// If no state exists, then return nil.
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Error retrieving state: %v", err)
+		return nil, diags.Append(fmt.Errorf("Error retrieving state: %v", err))
 	}
 
 	state, err := r.client.StateVersions.Download(ctx, sv.DownloadURL)
 	if err != nil {
-		return nil, fmt.Errorf("Error downloading state: %v", err)
+		return nil, diags.Append(fmt.Errorf("Error downloading state: %v", err))
 	}
 
 	// If the state is empty, then return nil.
@@ -105,22 +107,23 @@ func (r *remoteClient) uploadStateFallback(ctx context.Context, stateFile *state
 }
 
 // Put the remote state.
-func (r *remoteClient) Put(state []byte) error {
+func (r *remoteClient) Put(state []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	ctx := context.Background()
 
 	// Read the raw state into a Terraform state.
 	stateFile, err := statefile.Read(bytes.NewReader(state))
 	if err != nil {
-		return fmt.Errorf("error reading state: %s", err)
+		return diags.Append(fmt.Errorf("error reading state: %s", err))
 	}
 
 	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootOutputValues)
 	if err != nil {
-		return fmt.Errorf("error reading output values: %s", err)
+		return diags.Append(fmt.Errorf("error reading output values: %s", err))
 	}
 	o, err := json.Marshal(ov)
 	if err != nil {
-		return fmt.Errorf("error converting output values to json: %s", err)
+		return diags.Append(fmt.Errorf("error converting output values to json: %s", err))
 	}
 
 	options := tfe.StateVersionUploadOptions{
@@ -146,21 +149,22 @@ func (r *remoteClient) Put(state []byte) error {
 	if errors.Is(err, tfe.ErrStateVersionUploadNotSupported) {
 		// Create the new state with content included in the request (Terraform Enterprise v202306-1 and below)
 		log.Println("[INFO] Detected that state version upload is not supported. Retrying using compatibility state upload.")
-		return r.uploadStateFallback(ctx, stateFile, state, o)
+		return diags.Append(r.uploadStateFallback(ctx, stateFile, state, o))
 	}
 	if err != nil {
 		r.stateUploadErr = true
-		return fmt.Errorf("error uploading state: %v", err)
+		return diags.Append(fmt.Errorf("error uploading state: %v", err))
 	}
 
 	return nil
 }
 
 // Delete the remote state.
-func (r *remoteClient) Delete() error {
+func (r *remoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	err := r.client.Workspaces.Delete(context.Background(), r.organization, r.workspace.Name)
 	if err != nil && err != tfe.ErrResourceNotFound {
-		return fmt.Errorf("error deleting workspace %s: %v", r.workspace.Name, err)
+		return diags.Append(fmt.Errorf("error deleting workspace %s: %v", r.workspace.Name, err))
 	}
 
 	return nil

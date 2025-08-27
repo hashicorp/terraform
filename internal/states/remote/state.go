@@ -135,9 +135,9 @@ func (s *State) RefreshState() error {
 // that we can make internal calls to it from methods that are already holding
 // the s.mu lock.
 func (s *State) refreshState() error {
-	payload, err := s.Client.Get()
-	if err != nil {
-		return err
+	payload, diags := s.Client.Get()
+	if diags.HasErrors() {
+		return diags.Err()
 	}
 
 	// no remote state is OK
@@ -210,9 +210,9 @@ func (s *State) PersistState(schemas *schemarepo.Schemas) error {
 		return err
 	}
 
-	err = s.Client.Put(buf.Bytes())
-	if err != nil {
-		return err
+	diags := s.Client.Put(buf.Bytes())
+	if diags.HasErrors() {
+		return diags.Err()
 	}
 
 	// After we've successfully persisted, what we just wrote is our new

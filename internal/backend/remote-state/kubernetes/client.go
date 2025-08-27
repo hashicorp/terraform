@@ -25,6 +25,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"maps"
 
@@ -52,14 +53,14 @@ type RemoteClient struct {
 	workspace              string
 }
 
-func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
+func (c *RemoteClient) Get() (payload *remote.Payload, diags tfdiags.Diagnostics) {
 	secretList, err := c.getSecrets()
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	if len(secretList) == 0 {
-		return nil, nil
+		return nil, diags
 	}
 
 	var data []string
@@ -68,14 +69,14 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 		stateRaw, ok := secretData[tfstateKey]
 		if !ok {
 			// The secret exists but there is no state in it
-			return nil, nil
+			return nil, diags
 		}
 		data = append(data, stateRaw.(string))
 	}
 
 	state, err := uncompressState(data)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	md5 := md5.Sum(state)
@@ -83,7 +84,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 		Data: state,
 		MD5:  md5[:],
 	}
-	return p, nil
+	return p, diags
 }
 
 func (c *RemoteClient) getSecrets() ([]unstructured.Unstructured, error) {
@@ -115,30 +116,31 @@ func (c *RemoteClient) getSecrets() ([]unstructured.Unstructured, error) {
 	return items, nil
 }
 
-func (c *RemoteClient) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	ctx := context.Background()
 
 	payload, err := compressState(data)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
 	chunks := chunkPayload(payload, defaultChunkSize)
 	existingSecrets, err := c.getSecrets()
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
 	for idx, data := range chunks {
 		secretName, err := c.createSecretName(idx)
 		if err != nil {
-			return err
+			return diags.Append(err)
 		}
 
 		secret, err := c.getSecret(secretName)
 		if err != nil {
 			if !k8serrors.IsNotFound(err) {
-				return err
+				return diags.Append(err)
 			}
 			secret = &unstructured.Unstructured{
 				Object: map[string]interface{}{
@@ -152,14 +154,14 @@ func (c *RemoteClient) Put(data []byte) error {
 			}
 			secret, err = c.kubernetesSecretClient.Create(ctx, secret, metav1.CreateOptions{})
 			if err != nil {
-				return err
+				return diags.Append(err)
 			}
 		}
 
 		setState(secret, data)
 		_, err = c.kubernetesSecretClient.Update(ctx, secret, metav1.UpdateOptions{})
 		if err != nil {
-			return err
+			return diags.Append(err)
 		}
 	}
 
@@ -167,19 +169,19 @@ func (c *RemoteClient) Put(data []byte) error {
 	existingSecretCount := len(existingSecrets)
 	newSecretCount := len(chunks)
 	if existingSecretCount == newSecretCount {
-		return nil
+		return diags
 	}
 	for i := newSecretCount; i < existingSecretCount; i++ {
 		secretName, err := c.createSecretName(i)
 		if err != nil {
-			return err
+			return diags.Append(err)
 		}
 		err = c.deleteSecret(secretName)
 		if err != nil {
-			return err
+			return diags.Append(err)
 		}
 	}
-	return nil
+	return diags
 }
 
 // chunkPayload splits the state payload into byte arrays of the given size
@@ -197,38 +199,40 @@ func chunkPayload(buf []byte, size int) [][]byte {
 }
 
 // Delete the state secret
-func (c *RemoteClient) Delete() error {
+func (c *RemoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	secretList, err := c.getSecrets()
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
 	for i, _ := range secretList {
 		secretName, err := c.createSecretName(i)
 		if err != nil {
-			return err
+			return diags.Append(err)
 		}
 
 		err = c.deleteSecret(secretName)
 		if err != nil {
 			if !k8serrors.IsNotFound(err) {
-				return err
+				return diags.Append(err)
 			}
 		}
 	}
 
 	leaseName, err := c.createLeaseName()
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
 	err = c.deleteLease(leaseName)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return err
+			return diags.Append(err)
 		}
 	}
-	return nil
+	return diags
 }
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
