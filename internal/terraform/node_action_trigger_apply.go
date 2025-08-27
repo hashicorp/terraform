@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -38,22 +39,27 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 	actionInvocation := n.ActionInvocation
 
 	if n.ConditionExpr != nil {
-		condition, conditionDiags := evaluateCondition(ctx, n.ConditionExpr)
+		// We know this must be a lifecycle action, otherwise we would have no condition
+		at := actionInvocation.ActionTrigger.(plans.LifecycleActionTrigger)
+		condition, conditionDiags := evaluateCondition(ctx, conditionContext{
+			// For applying the triggering event is sufficient, if the condition could not have
+			// been evaluated due to in invalid mix of events we would have caught it durin planning.
+			events:          []configs.ActionTriggerEvent{at.ActionTriggerEvent},
+			conditionExpr:   n.ConditionExpr,
+			resourceAddress: at.TriggeringResourceAddr,
+		})
 		diags = diags.Append(conditionDiags)
 		if diags.HasErrors() {
 			return diags
 		}
-		if !condition.IsWhollyKnown() {
+
+		if !condition {
 			return diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Condition expression is not known",
-				Detail:   "During apply the condition expression must be known, and must evaluate to a boolean value",
+				Summary:  "Condition changed evaluation during apply",
+				Detail:   "The condition evaluated to false during apply, but was true during planning. This may lead to unexpected behavior.",
 				Subject:  n.ConditionExpr.Range().Ptr(),
 			})
-		}
-		// If the condition evaluates to false, skip the action
-		if condition.False() {
-			return diags
 		}
 	}
 

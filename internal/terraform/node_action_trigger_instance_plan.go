@@ -10,7 +10,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -116,14 +118,18 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 
 	// Evaluate the condition expression if it exists (otherwise it's true)
 	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
-		condition, conditionDiags := evaluateCondition(ctx, n.lifecycleActionTrigger.conditionExpr)
+		condition, conditionDiags := evaluateCondition(ctx, conditionContext{
+			events:          n.lifecycleActionTrigger.events,
+			conditionExpr:   n.lifecycleActionTrigger.conditionExpr,
+			resourceAddress: n.lifecycleActionTrigger.resourceAddress,
+		})
 		diags = diags.Append(conditionDiags)
 		if conditionDiags.HasErrors() {
 			return conditionDiags
 		}
 
 		// The condition is false so we skip the action
-		if condition.False() {
+		if !condition {
 			return diags
 		}
 	}
@@ -201,27 +207,92 @@ func (n *nodeActionTriggerPlanInstance) Path() addrs.ModuleInstance {
 	return n.actionAddress.Module
 }
 
-func evaluateCondition(ctx EvalContext, conditionExpr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
-	// TODO: Support self in conditions
-	val, diags := ctx.EvaluateExpr(conditionExpr, cty.Bool, nil)
-	if diags.HasErrors() {
-		return cty.False, diags
+type conditionContext struct {
+	events          []configs.ActionTriggerEvent
+	conditionExpr   hcl.Expression
+	resourceAddress addrs.AbsResourceInstance
+}
+
+func evaluateCondition(ctx EvalContext, at conditionContext) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	rd := instances.RepetitionData{}
+	var self addrs.Referenceable = nil
+	if containsBeforeEvent(at.events) {
+		// If events contains a before event we want to error if count, each, or self is used
+		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, at.conditionExpr)
+		diags = diags.Append(refDiags)
+		if diags.HasErrors() {
+			return false, diags
+		}
+
+		for _, ref := range refs {
+			if ref.Subject == addrs.Self {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Self reference not allowed",
+					Detail:   `The condition expression cannot reference "self" if the action is run before the resource is applied.`,
+					Subject:  at.conditionExpr.Range().Ptr(),
+				})
+			}
+
+			if _, ok := ref.Subject.(addrs.CountAttr); ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject:  at.conditionExpr.Range().Ptr(),
+				})
+			}
+
+			if _, ok := ref.Subject.(addrs.ForEachAttr); ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject:  at.conditionExpr.Range().Ptr(),
+				})
+			}
+
+			if diags.HasErrors() {
+				return false, diags
+			}
+		}
+	} else {
+		// If there are only after events we allow self, count, and each
+		expander := ctx.InstanceExpander()
+		rd = expander.GetResourceInstanceRepetitionData(at.resourceAddress)
+		self = at.resourceAddress.Resource
 	}
 
-	// TODO: Support unknown condition values
-	if !val.IsWhollyKnown() {
-		panic("condition is not wholly known")
+	scope := ctx.EvaluationScope(self, nil, rd)
+	val, conditionEvalDiags := scope.EvalExpr(at.conditionExpr, cty.Bool)
+	diags = diags.Append(conditionEvalDiags)
+	if diags.HasErrors() {
+		return false, diags
 	}
-	// If the condition is neither true nor false, it's an error
-	if !(val.True() || val.False()) {
+
+	if !val.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid condition",
-			Detail:   "The condition must be either true or false",
-			Subject:  conditionExpr.Range().Ptr(),
+			Summary:  "Condition must be known",
+			Detail:   "The condition expression resulted in an unknown value, but it must be a known boolean value.",
+			Subject:  at.conditionExpr.Range().Ptr(),
 		})
-		return cty.False, diags
+		return false, diags
 	}
 
-	return val, nil
+	return val.True(), nil
+}
+
+func containsBeforeEvent(events []configs.ActionTriggerEvent) bool {
+	for _, event := range events {
+		switch event {
+		case configs.BeforeCreate, configs.BeforeUpdate:
+			return true
+		default:
+			continue
+		}
+	}
+	return false
 }
