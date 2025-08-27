@@ -2467,6 +2467,50 @@ resource "test_object" "a" {
     }
     action_trigger {
       events = [after_update]
+<<<<<<< HEAD
+=======
+      condition = self.name == "bar"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				// We only expect one diagnostic, as the other condition is valid
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Self reference not allowed",
+					Detail:   `The condition expression cannot reference "self" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 199},
+						End:      hcl.Pos{Line: 11, Column: 37, Byte: 217},
+					},
+				})
+			},
+		},
+
+		"using self in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = self.name == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_update]
+>>>>>>> 92bf31941e (support count, each, and self for after_ actions)
       condition = self.name == "bar"
       actions = [action.test_unlinked.world]
     }
