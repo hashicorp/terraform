@@ -67,6 +67,14 @@ type PlanOpts struct {
 	// warnings as part of the planning result.
 	Targets []addrs.Targetable
 
+	// ActionTargets represents the actions that should be triggered by this
+	// execution. This is incompatible with the `Targets` attribute, only one
+	// can be set. Also, Mode must be plans.RefreshOnly when using
+	// ActionTargets.
+	//
+	// TEMP: For now, only support a single entry in this slice.
+	ActionTargets []addrs.Targetable
+
 	// ForceReplace is a set of resource instance addresses whose corresponding
 	// objects should be forced planned for replacement if the provider's
 	// plan would otherwise have been to either update the object in-place or
