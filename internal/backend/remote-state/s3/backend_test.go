@@ -423,7 +423,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 		config           map[string]any
 		vars             map[string]string
 		expectedEndpoint string
-		expectedDiags    tfdiags.Diagnostics
+		expectedDiags    func(hcl.Body) tfdiags.Diagnostics
 	}{
 		"none": {
 			expectedEndpoint: defaultEndpointDynamo(region),
@@ -443,8 +443,12 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				},
 			},
 			expectedEndpoint: "dynamo.test/",
-			expectedDiags: tfdiags.Diagnostics{
-				legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"deprecated config URL": {
@@ -452,8 +456,12 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				"dynamodb_endpoint": "https://dynamo.test",
 			},
 			expectedEndpoint: "https://dynamo.test/",
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+				}
+				// One of the expected diags comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"deprecated config hostname": {
@@ -461,9 +469,13 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				"dynamodb_endpoint": "dynamo.test",
 			},
 			expectedEndpoint: "dynamo.test/",
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
-				legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("dynamodb_endpoint")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+					legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("dynamodb_endpoint")),
+				}
+				// One of the expected diags comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"config conflict": {
@@ -473,15 +485,20 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 					"dynamodb": "https://dynamo.test",
 				},
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
-				wholeBodyErrDiag(
-					"Conflicting Parameters",
-					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
-						pathString(cty.GetAttrPath("dynamodb_endpoint")),
-						pathString(cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+					wholeBodyErrDiag(
+						"Conflicting Parameters",
+						fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+							pathString(cty.GetAttrPath("dynamodb_endpoint")),
+							pathString(cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+						),
 					),
-				)},
+				}
+				// One of the expected diags comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
+			},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -494,8 +511,10 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				"AWS_DYNAMODB_ENDPOINT": "https://dynamo.test",
 			},
 			expectedEndpoint: "https://dynamo.test/",
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedEnvVarDiag("AWS_DYNAMODB_ENDPOINT", "AWS_ENDPOINT_URL_DYNAMODB"),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					deprecatedEnvVarDiag("AWS_DYNAMODB_ENDPOINT", "AWS_ENDPOINT_URL_DYNAMODB"),
+				}
 			},
 		},
 	}
@@ -528,7 +547,11 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			var expectedDiags tfdiags.Diagnostics
+			if tc.expectedDiags != nil {
+				expectedDiags = tc.expectedDiags(backend.TestWrapConfig(config))
+			}
+			if diff := cmp.Diff(diags, expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -564,7 +587,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 	cases := map[string]struct {
 		config        map[string]any
 		vars          map[string]string
-		expectedDiags tfdiags.Diagnostics
+		expectedDiags func(hcl.Body) tfdiags.Diagnostics
 	}{
 		"none": {},
 		"config URL": {
@@ -580,25 +603,37 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 					"iam": "iam.test",
 				},
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				legacyIncompleteURLDiag("iam.test", cty.GetAttrPath("endpoints").GetAttr("iam")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					legacyIncompleteURLDiag("iam.test", cty.GetAttrPath("endpoints").GetAttr("iam")),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"deprecated config URL": {
 			config: map[string]any{
 				"iam_endpoint": "https://iam.test",
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"deprecated config hostname": {
 			config: map[string]any{
 				"iam_endpoint": "iam.test",
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
-				legacyIncompleteURLDiag("iam.test", cty.GetAttrPath("iam_endpoint")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+					legacyIncompleteURLDiag("iam.test", cty.GetAttrPath("iam_endpoint")),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"config conflict": {
@@ -608,15 +643,19 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 					"iam": "https://iam.test",
 				},
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
-				wholeBodyErrDiag(
-					"Conflicting Parameters",
-					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
-						pathString(cty.GetAttrPath("iam_endpoint")),
-						pathString(cty.GetAttrPath("endpoints").GetAttr("iam")),
-					),
-				)},
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+					wholeBodyErrDiag(
+						"Conflicting Parameters",
+						fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+							pathString(cty.GetAttrPath("iam_endpoint")),
+							pathString(cty.GetAttrPath("endpoints").GetAttr("iam")),
+						),
+					)}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
+			},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -627,8 +666,10 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 			vars: map[string]string{
 				"AWS_IAM_ENDPOINT": "https://iam.test",
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedEnvVarDiag("AWS_IAM_ENDPOINT", "AWS_ENDPOINT_URL_IAM"),
+			expectedDiags: func(_ hcl.Body) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					deprecatedEnvVarDiag("AWS_IAM_ENDPOINT", "AWS_ENDPOINT_URL_IAM"),
+				}
 			},
 		},
 	}
@@ -660,7 +701,11 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 
 			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			var expectedDiags tfdiags.Diagnostics
+			if tc.expectedDiags != nil {
+				expectedDiags = tc.expectedDiags(backend.TestWrapConfig(config))
+			}
+			if diff := cmp.Diff(diags, expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -678,7 +723,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 		config           map[string]any
 		vars             map[string]string
 		expectedEndpoint string
-		expectedDiags    tfdiags.Diagnostics
+		expectedDiags    func(hcl.Body) tfdiags.Diagnostics
 	}{
 		"none": {
 			expectedEndpoint: defaultEndpointS3(region),
@@ -698,8 +743,12 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				},
 			},
 			expectedEndpoint: "/s3.test",
-			expectedDiags: tfdiags.Diagnostics{
-				legacyIncompleteURLDiag("s3.test", cty.GetAttrPath("endpoints").GetAttr("s3")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					legacyIncompleteURLDiag("s3.test", cty.GetAttrPath("endpoints").GetAttr("s3")),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"deprecated config URL": {
@@ -707,8 +756,12 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				"endpoint": "https://s3.test",
 			},
 			expectedEndpoint: "https://s3.test/",
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"deprecated config hostname": {
@@ -716,9 +769,13 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				"endpoint": "s3.test",
 			},
 			expectedEndpoint: "/s3.test",
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
-				legacyIncompleteURLDiag("s3.test", cty.GetAttrPath("endpoint")),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+					legacyIncompleteURLDiag("s3.test", cty.GetAttrPath("endpoint")),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"config conflict": {
@@ -728,15 +785,19 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 					"s3": "https://s3.test",
 				},
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
-				wholeBodyErrDiag(
-					"Conflicting Parameters",
-					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
-						pathString(cty.GetAttrPath("endpoint")),
-						pathString(cty.GetAttrPath("endpoints").GetAttr("s3")),
-					),
-				)},
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+					wholeBodyErrDiag(
+						"Conflicting Parameters",
+						fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+							pathString(cty.GetAttrPath("endpoint")),
+							pathString(cty.GetAttrPath("endpoints").GetAttr("s3")),
+						),
+					)}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
+			},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -749,8 +810,10 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				"AWS_S3_ENDPOINT": "https://s3.test",
 			},
 			expectedEndpoint: "https://s3.test/",
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedEnvVarDiag("AWS_S3_ENDPOINT", "AWS_ENDPOINT_URL_S3"),
+			expectedDiags: func(_ hcl.Body) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					deprecatedEnvVarDiag("AWS_S3_ENDPOINT", "AWS_ENDPOINT_URL_S3"),
+				}
 			},
 		},
 	}
@@ -783,7 +846,11 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			var expectedDiags tfdiags.Diagnostics
+			if tc.expectedDiags != nil {
+				expectedDiags = tc.expectedDiags(backend.TestWrapConfig(config))
+			}
+			if diff := cmp.Diff(diags, expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -820,7 +887,7 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 		config           map[string]any
 		vars             map[string]string
 		expectedEndpoint string
-		expectedDiags    tfdiags.Diagnostics
+		expectedDiags    func(hcl.Body) tfdiags.Diagnostics
 	}{
 		"none": {
 			expectedEndpoint: "http://169.254.169.254/latest/meta-data",
@@ -835,12 +902,16 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 			config: map[string]any{
 				"ec2_metadata_service_endpoint": "ec2.test",
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "ec2.test"`,
-					cty.GetAttrPath("ec2_metadata_service_endpoint"),
-				),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					attributeErrDiag(
+						"Invalid Value",
+						`The value must be a valid URL containing at least a scheme and hostname. Had "ec2.test"`,
+						cty.GetAttrPath("ec2_metadata_service_endpoint"),
+					),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"config IPv4 mode": {
@@ -862,12 +933,16 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 				"ec2_metadata_service_endpoint":      "https://ec2.test",
 				"ec2_metadata_service_endpoint_mode": "invalid",
 			},
-			expectedDiags: tfdiags.Diagnostics{
-				attributeErrDiag(
-					"Invalid Value",
-					"Value must be one of [IPv4, IPv6]",
-					cty.GetAttrPath("ec2_metadata_service_endpoint_mode"),
-				),
+			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
+				diags := tfdiags.Diagnostics{
+					attributeErrDiag(
+						"Invalid Value",
+						"Value must be one of [IPv4, IPv6]",
+						cty.GetAttrPath("ec2_metadata_service_endpoint_mode"),
+					),
+				}
+				// The expected diag comes from config, so we need to add context
+				return diags.InConfigBody(config, "")
 			},
 		},
 		"envvar": {
@@ -896,12 +971,14 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "invalid",
 			},
 			// expectedEndpoint: "ec2.test",
-			expectedDiags: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"unknown EC2 IMDS endpoint mode, must be either IPv6 or IPv4",
-					"",
-				),
+			expectedDiags: func(_ hcl.Body) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"unknown EC2 IMDS endpoint mode, must be either IPv6 or IPv4",
+						"",
+					),
+				}
 			},
 		},
 		"deprecated envvar": {
@@ -909,8 +986,10 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 				"AWS_METADATA_URL": "https://ec2.test",
 			},
 			expectedEndpoint: "https://ec2.test/latest/meta-data",
-			expectedDiags: tfdiags.Diagnostics{
-				deprecatedEnvVarDiag("AWS_METADATA_URL", "AWS_EC2_METADATA_SERVICE_ENDPOINT"),
+			expectedDiags: func(_ hcl.Body) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					deprecatedEnvVarDiag("AWS_METADATA_URL", "AWS_EC2_METADATA_SERVICE_ENDPOINT"),
+				}
 			},
 		},
 	}
@@ -943,7 +1022,11 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			var expectedDiags tfdiags.Diagnostics
+			if tc.expectedDiags != nil {
+				expectedDiags = tc.expectedDiags(backend.TestWrapConfig(config))
+			}
+			if diff := cmp.Diff(diags, expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
