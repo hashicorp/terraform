@@ -3578,7 +3578,7 @@ func TestContext2Validate_action(t *testing.T) {
 	}{
 		"valid config": {
 			`
-terraform {	
+terraform {
 	required_providers {
 		test = {
 			source = "hashicorp/test"
@@ -3587,17 +3587,17 @@ terraform {
 	}
 }
 
-action "cmdb_register" "test" {
+action "test_register" "foo" {
   config {
       host = "cmdb.snot"
   }
 }
 
-resource "aws_instance" "foo" {
+resource "test_instance" "foo" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.cmdb_register.test]
+      actions = [action.test_register.foo]
     }
   }
 }
@@ -3610,10 +3610,10 @@ resource "aws_instance" "foo" {
 		t.Run(name, func(t *testing.T) {
 			m := testModuleInline(t, map[string]string{"main.tf": test.config})
 
-			p := testProvider("aws")
+			p := testProvider("test")
 			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 				ResourceTypes: map[string]*configschema.Block{
-					"aws_instance": {
+					"test_instance": {
 						Attributes: map[string]*configschema.Attribute{
 							"foo": {Type: cty.String, Optional: true},
 							"num": {Type: cty.String, Optional: true},
@@ -3621,7 +3621,7 @@ resource "aws_instance" "foo" {
 					},
 				},
 				Actions: map[string]providers.ActionSchema{
-					"restart_instance": {
+					"test_register": {
 						ConfigSchema: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"host": {Type: cty.String, Optional: true},

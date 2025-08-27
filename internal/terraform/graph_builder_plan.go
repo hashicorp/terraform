@@ -77,7 +77,8 @@ type PlanGraphBuilder struct {
 	ConcreteResourceOrphan          ConcreteResourceInstanceNodeFunc
 	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
 	ConcreteModule                  ConcreteModuleNodeFunc
-	ConcreteAction                  ConcreteActionNodeFunc
+	// ConcreteAction is only used by the ConfigTransformer during the Validate Graph walk; otherwise we fall back to the DefaultConcreteActionFunc.
+	ConcreteAction ConcreteActionNodeFunc
 
 	// Plan Operation this graph will be used for.
 	Operation walkOperation
@@ -346,12 +347,6 @@ func (b *PlanGraphBuilder) initPlan() {
 			forgetModules:   b.forgetModules,
 		}
 	}
-
-	b.ConcreteAction = func(a *NodeAbstractAction) dag.Vertex {
-		return &nodeExpandActionDeclaration{
-			NodeAbstractAction: a,
-		}
-	}
 }
 
 func (b *PlanGraphBuilder) initDestroy() {
@@ -386,11 +381,11 @@ func (b *PlanGraphBuilder) initValidate() {
 		}
 	}
 
-	// b.ConcreteAction = func(a *NodeAbstractAction) dag.Vertex {
-	// 	return &NodeValidatableAction{
-	// 		NodeAbstractAction: a,
-	// 	}
-	// }
+	b.ConcreteAction = func(a *NodeAbstractAction) dag.Vertex {
+		return &NodeValidatableAction{
+			NodeAbstractAction: a,
+		}
+	}
 }
 
 func (b *PlanGraphBuilder) initImport() {

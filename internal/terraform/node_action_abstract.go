@@ -18,7 +18,7 @@ type NodeAbstractAction struct {
 	// you're running those transforms, but also can be explicitly set if you
 	// already have that information.
 
-	// The address of the provider this resource will use
+	// The address of the provider this action will use
 	ResolvedProvider addrs.AbsProviderConfig
 	Schema           *providers.ActionSchema
 }
@@ -33,23 +33,31 @@ func NewNodeAbstractAction(addr addrs.ConfigAction, config configs.Action) *Node
 }
 
 var (
-	_ GraphNodeModuleInstance     = (*NodeValidatableAction)(nil)
-	_ GraphNodeExecutable         = (*NodeValidatableAction)(nil)
-	_ GraphNodeReferenceable      = (*NodeValidatableAction)(nil)
-	_ GraphNodeReferencer         = (*NodeValidatableAction)(nil)
-	_ GraphNodeConfigAction       = (*NodeValidatableAction)(nil)
-	_ GraphNodeAttachActionSchema = (*NodeValidatableAction)(nil)
-	_ GraphNodeProviderConsumer   = (*NodeValidatableAction)(nil)
+	_ GraphNodeReferenceable      = (*NodeAbstractAction)(nil)
+	_ GraphNodeReferencer         = (*NodeAbstractAction)(nil)
+	_ GraphNodeConfigAction       = (*NodeAbstractAction)(nil)
+	_ GraphNodeAttachActionSchema = (*NodeAbstractAction)(nil)
+	_ GraphNodeProviderConsumer   = (*NodeAbstractAction)(nil)
 )
 
 func (n NodeAbstractAction) Name() string {
 	return n.Addr.String()
 }
 
-// ConcreteResourceNodeFunc is a callback type used to convert an
+// ConcreteActionNodeFunc is a callback type used to convert an
 // abstract action to a concrete one of some type.
 type ConcreteActionNodeFunc func(*NodeAbstractAction) dag.Vertex
 
+// I'm not sure why my ConcreteActionNodeFUnction kept being nil in tests, but
+// this is much more robust. If it isn't a validate walk, we need
+// nodeExpandActionDeclaration.
+func DefaultConcreteActionNodeFunc(a *NodeAbstractAction) dag.Vertex {
+	return &nodeExpandActionDeclaration{
+		NodeAbstractAction: a,
+	}
+}
+
+// GraphNodeConfigAction
 func (n NodeAbstractAction) ActionAddr() addrs.ConfigAction {
 	return n.Addr
 }
@@ -84,10 +92,12 @@ func (n *NodeAbstractAction) AttachActionSchema(schema *providers.ActionSchema) 
 }
 
 func (n *NodeAbstractAction) ProvidedBy() (addrs.ProviderConfig, bool) {
+	// If the resolvedProvider is set, use that
 	if n.ResolvedProvider.Provider.Type != "" {
 		return n.ResolvedProvider, true
 	}
 
+	// otherwise refer back to the config
 	relAddr := n.Config.ProviderConfigAddr()
 	return addrs.LocalProviderConfig{
 		LocalName: relAddr.LocalName,
@@ -96,8 +106,8 @@ func (n *NodeAbstractAction) ProvidedBy() (addrs.ProviderConfig, bool) {
 }
 
 func (n *NodeAbstractAction) Provider() addrs.Provider {
-	if n.ResolvedProvider.Provider.Type != "" {
-		return n.ResolvedProvider.Provider
+	if n.Config.Provider.Type != "" {
+		return n.Config.Provider
 	}
 
 	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Action.ImpliedProvider())
