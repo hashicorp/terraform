@@ -13,6 +13,7 @@ type hclDiagnostic struct {
 }
 
 var _ Diagnostic = hclDiagnostic{}
+var _ ComparableDiagnostic = hclDiagnostic{}
 
 func (d hclDiagnostic) Severity() Severity {
 	switch d.diag.Severity {
