@@ -11,6 +11,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	_ "github.com/lib/pq"
 )
 
@@ -23,7 +24,8 @@ type RemoteClient struct {
 	info *statemgr.LockInfo
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	query := `SELECT data FROM %s.%s WHERE name = $1`
 	row := c.Client.QueryRow(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
 	var data []byte
@@ -31,36 +33,40 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	switch {
 	case err == sql.ErrNoRows:
 		// No existing state returns empty.
-		return nil, nil
+		return nil, diags
 	case err != nil:
-		return nil, err
+		return nil, diags.Append(err)
 	default:
 		md5 := md5.Sum(data)
 		return &remote.Payload{
 			Data: data,
 			MD5:  md5[:],
-		}, nil
+		}, diags
 	}
 }
 
-func (c *RemoteClient) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	query := `INSERT INTO %s.%s (name, data) VALUES ($1, $2)
 		ON CONFLICT (name) DO UPDATE
 		SET data = $2 WHERE %s.name = $1`
 	_, err := c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName, statesTableName), c.Name, data)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
-	return nil
+	return diags
 }
 
-func (c *RemoteClient) Delete() error {
+func (c *RemoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	query := `DELETE FROM %s.%s WHERE name = $1`
 	_, err := c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
-	return nil
+	return diags
 }
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {

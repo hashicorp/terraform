@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -52,15 +53,16 @@ type RemoteClient struct {
 	otsTable             string
 }
 
-func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
+func (c *RemoteClient) Get() (payload *remote.Payload, diags tfdiags.Diagnostics) {
 	deadline := time.Now().Add(consistencyRetryTimeout)
 
 	// If we have a checksum, and the returned payload doesn't match, we retry
 	// up until deadline.
 	for {
+		var err error
 		payload, err = c.getObj()
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// If the remote state was manually removed the payload will be nil,
@@ -87,18 +89,19 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 				continue
 			}
 
-			return nil, fmt.Errorf(errBadChecksumFmt, digest)
+			return nil, diags.Append(fmt.Errorf(errBadChecksumFmt, digest))
 		}
 
 		break
 	}
-	return payload, nil
+	return payload, diags
 }
 
-func (c *RemoteClient) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	bucket, err := c.ossClient.Bucket(c.bucketName)
 	if err != nil {
-		return fmt.Errorf("error getting bucket: %#v", err)
+		return diags.Append(fmt.Errorf("error getting bucket: %#v", err))
 	}
 
 	body := bytes.NewReader(data)
@@ -115,7 +118,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	if body != nil {
 		if err := bucket.PutObject(c.stateFile, body, options...); err != nil {
-			return fmt.Errorf("failed to upload state %s: %#v", c.stateFile, err)
+			return diags.Append(fmt.Errorf("failed to upload state %s: %#v", c.stateFile, err))
 		}
 	}
 
@@ -123,27 +126,28 @@ func (c *RemoteClient) Put(data []byte) error {
 	if err := c.putMD5(sum[:]); err != nil {
 		// if this errors out, we unfortunately have to error out altogether,
 		// since the next Get will inevitably fail.
-		return fmt.Errorf("failed to store state MD5: %s", err)
+		return diags.Append(fmt.Errorf("failed to store state MD5: %s", err))
 	}
-	return nil
+	return diags
 }
 
-func (c *RemoteClient) Delete() error {
+func (c *RemoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	bucket, err := c.ossClient.Bucket(c.bucketName)
 	if err != nil {
-		return fmt.Errorf("error getting bucket %s: %#v", c.bucketName, err)
+		return diags.Append(fmt.Errorf("error getting bucket %s: %#v", c.bucketName, err))
 	}
 
 	log.Printf("[DEBUG] Deleting remote state from OSS: %#v", c.stateFile)
 
 	if err := bucket.DeleteObject(c.stateFile); err != nil {
-		return fmt.Errorf("error deleting state %s: %#v", c.stateFile, err)
+		return diags.Append(fmt.Errorf("error deleting state %s: %#v", c.stateFile, err))
 	}
 
 	if err := c.deleteMD5(); err != nil {
 		log.Printf("[WARN] Error deleting state MD5: %s", err)
 	}
-	return nil
+	return diags
 }
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {

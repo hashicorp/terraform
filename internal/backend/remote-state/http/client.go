@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // httpClient is a remote client that stores data in Consul or HTTP REST.
@@ -144,10 +145,11 @@ func (c *httpClient) Unlock(id string) error {
 	}
 }
 
-func (c *httpClient) Get() (*remote.Payload, error) {
+func (c *httpClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	resp, err := c.httpRequest("GET", c.URL, nil, "get state")
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 	defer resp.Body.Close()
 
@@ -156,23 +158,23 @@ func (c *httpClient) Get() (*remote.Payload, error) {
 	case http.StatusOK:
 		// Handled after
 	case http.StatusNoContent:
-		return nil, nil
+		return nil, diags
 	case http.StatusNotFound:
-		return nil, nil
+		return nil, diags
 	case http.StatusUnauthorized:
-		return nil, fmt.Errorf("HTTP remote state endpoint requires auth")
+		return nil, diags.Append(fmt.Errorf("HTTP remote state endpoint requires auth"))
 	case http.StatusForbidden:
-		return nil, fmt.Errorf("HTTP remote state endpoint invalid auth")
+		return nil, diags.Append(fmt.Errorf("HTTP remote state endpoint invalid auth"))
 	case http.StatusInternalServerError:
-		return nil, fmt.Errorf("HTTP remote state internal server error")
+		return nil, diags.Append(fmt.Errorf("HTTP remote state internal server error"))
 	default:
-		return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+		return nil, diags.Append(fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode))
 	}
 
 	// Read in the body
 	buf := bytes.NewBuffer(nil)
 	if _, err := io.Copy(buf, resp.Body); err != nil {
-		return nil, fmt.Errorf("Failed to read remote state: %s", err)
+		return nil, diags.Append(fmt.Errorf("Failed to read remote state: %s", err))
 	}
 
 	// Create the payload
@@ -182,15 +184,15 @@ func (c *httpClient) Get() (*remote.Payload, error) {
 
 	// If there was no data, then return nil
 	if len(payload.Data) == 0 {
-		return nil, nil
+		return nil, diags
 	}
 
 	// Check for the MD5
 	if raw := resp.Header.Get("Content-MD5"); raw != "" {
 		md5, err := base64.StdEncoding.DecodeString(raw)
 		if err != nil {
-			return nil, fmt.Errorf(
-				"Failed to decode Content-MD5 '%s': %s", raw, err)
+			return nil, diags.Append(fmt.Errorf(
+				"Failed to decode Content-MD5 '%s': %s", raw, err))
 		}
 
 		payload.MD5 = md5
@@ -200,10 +202,12 @@ func (c *httpClient) Get() (*remote.Payload, error) {
 		payload.MD5 = hash[:]
 	}
 
-	return payload, nil
+	return payload, diags
 }
 
-func (c *httpClient) Put(data []byte) error {
+func (c *httpClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	// Copy the target URL
 	base := *c.URL
 
@@ -228,32 +232,34 @@ func (c *httpClient) Put(data []byte) error {
 	}
 	resp, err := c.httpRequest(method, &base, &data, "upload state")
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 	defer resp.Body.Close()
 
 	// Handle the error codes
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
-		return nil
+		return diags
 	default:
-		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
+		return diags.Append(fmt.Errorf("HTTP error: %d", resp.StatusCode))
 	}
 }
 
-func (c *httpClient) Delete() error {
+func (c *httpClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	// Make the request
 	resp, err := c.httpRequest("DELETE", c.URL, nil, "delete state")
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 	defer resp.Body.Close()
 
 	// Handle the error codes
 	switch resp.StatusCode {
 	case http.StatusOK:
-		return nil
+		return diags
 	default:
-		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
+		return diags.Append(fmt.Errorf("HTTP error: %d", resp.StatusCode))
 	}
 }

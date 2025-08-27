@@ -100,7 +100,7 @@ func TestRemoteClient_Put_withRunID(t *testing.T) {
 
 	// Store the new state to verify (this will be done
 	// by the mock that is used) that the run ID is set.
-	if err := client.Put(buf.Bytes()); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if diags := client.Put(buf.Bytes()); diags.HasErrors() {
+		t.Fatalf("expected no error, got %v", diags.Err())
 	}
 }

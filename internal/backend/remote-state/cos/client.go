@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -41,16 +42,17 @@ type remoteClient struct {
 }
 
 // Get returns remote state file
-func (c *remoteClient) Get() (*remote.Payload, error) {
+func (c *remoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 	log.Printf("[DEBUG] get remote state file %s", c.stateFile)
+	var diags tfdiags.Diagnostics
 
 	exists, data, checksum, err := c.getObject(c.stateFile)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	if !exists {
-		return nil, nil
+		return nil, diags
 	}
 
 	payload := &remote.Payload{
@@ -58,21 +60,23 @@ func (c *remoteClient) Get() (*remote.Payload, error) {
 		MD5:  []byte(checksum),
 	}
 
-	return payload, nil
+	return payload, diags
 }
 
 // Put put state file to remote
-func (c *remoteClient) Put(data []byte) error {
+func (c *remoteClient) Put(data []byte) tfdiags.Diagnostics {
 	log.Printf("[DEBUG] put remote state file %s", c.stateFile)
+	var diags tfdiags.Diagnostics
 
-	return c.putObject(c.stateFile, data)
+	return diags.Append(c.putObject(c.stateFile, data))
 }
 
 // Delete delete remote state file
-func (c *remoteClient) Delete() error {
+func (c *remoteClient) Delete() tfdiags.Diagnostics {
 	log.Printf("[DEBUG] delete remote state file %s", c.stateFile)
+	var diags tfdiags.Diagnostics
 
-	return c.deleteObject(c.stateFile)
+	return diags.Append(c.deleteObject(c.stateFile))
 }
 
 // Lock lock remote state file for writing
