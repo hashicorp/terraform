@@ -118,7 +118,7 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 	workspace := backend.DefaultStateName
 	stmgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
-		t.Fatalf("unexpected error returned from StateMgr: %w", sDiags.Err())
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	defaultStatePath := fmt.Sprintf("%s/%s", td, path)
 	if _, err := os.Stat(defaultStatePath); !strings.Contains(err.Error(), "no such file or directory") {
@@ -188,7 +188,7 @@ func TestLocal_pathAttributeWrongExtension(t *testing.T) {
 	workspace := backend.DefaultStateName
 	stmgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
-		t.Fatalf("unexpected error returned from StateMgr: %w", sDiags.Err())
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	s := states.NewState()
 	s.RootOutputValues = map[string]*states.OutputValue{
@@ -235,7 +235,7 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 	defaultStatePath := fmt.Sprintf("%s/terraform.tfstate", td)
 	stmgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
-		t.Fatalf("unexpected error returned from StateMgr: %w", sDiags.Err())
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	s := states.NewState()
 	s.RootOutputValues = map[string]*states.OutputValue{
