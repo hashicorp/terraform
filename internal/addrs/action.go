@@ -140,6 +140,7 @@ func (a ActionInstance) Absolute(module ModuleInstance) AbsActionInstance {
 
 // AbsAction is an absolute address for an action under a given module path.
 type AbsAction struct {
+	targetable
 	Module ModuleInstance
 	Action Action
 }
@@ -172,16 +173,28 @@ func (a AbsAction) Config() ConfigAction {
 	}
 }
 
+// TargetContains implements Targetable
+func (a AbsAction) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+	case AbsAction:
+		return a.Equal(to)
+	case AbsActionInstance:
+		return a.Equal(to.ContainingAction())
+	default:
+		return false
+	}
+}
+
+// AddrType implements Targetable
+func (a AbsAction) AddrType() TargetableAddrType {
+	return ActionInstanceAddrType
+}
+
 func (a AbsAction) String() string {
 	if len(a.Module) == 0 {
 		return a.Action.String()
 	}
 	return fmt.Sprintf("%s.%s", a.Module.String(), a.Action.String())
-}
-
-// AffectedAbsAction returns the AbsAction.
-func (a AbsAction) AffectedAbsAction() AbsAction {
-	return a
 }
 
 func (a AbsAction) Equal(o AbsAction) bool {
@@ -211,6 +224,7 @@ func (a AbsAction) UniqueKey() UniqueKey {
 // AbsActionInstance is an absolute address for an action instance under a
 // given module path.
 type AbsActionInstance struct {
+	targetable
 	Module ModuleInstance
 	Action ActionInstance
 }
@@ -255,12 +269,21 @@ func (a AbsActionInstance) String() string {
 	return fmt.Sprintf("%s.%s", a.Module.String(), a.Action.String())
 }
 
-// AffectedAbsAction returns the AbsAction for the instance.
-func (a AbsActionInstance) AffectedAbsAction() AbsAction {
-	return AbsAction{
-		Module: a.Module,
-		Action: a.Action.Action,
+// TargetContains implements Targetable
+func (a AbsActionInstance) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+	case AbsAction:
+		return to.Equal(a.ContainingAction()) && a.Action.Key == NoKey
+	case AbsActionInstance:
+		return to.Equal(a)
+	default:
+		return false
 	}
+}
+
+// AddrType implements Targetable
+func (a AbsActionInstance) AddrType() TargetableAddrType {
+	return ActionInstanceAddrType
 }
 
 func (a AbsActionInstance) Equal(o AbsActionInstance) bool {
