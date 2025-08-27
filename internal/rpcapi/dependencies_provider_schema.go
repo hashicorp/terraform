@@ -73,7 +73,7 @@ func unconfiguredProviderPluginInstance(cached *providercache.CachedProvider) (p
 
 	config := &plugin.ClientConfig{
 		HandshakeConfig:  tfplugin.Handshake,
-		Logger:           logging.NewProviderLogger(""),
+		Logger:           logging.NewProviderLogger("", cached.Provider.Type),
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 		Managed:          true,
 		Cmd:              exec.Command(execFile),

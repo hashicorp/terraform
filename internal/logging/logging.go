@@ -125,13 +125,13 @@ func NewLogger(name string) hclog.Logger {
 
 // NewProviderLogger returns a logger for the provider plugin, possibly with a
 // different log level from the global logger.
-func NewProviderLogger(prefix string) hclog.Logger {
+func NewProviderLogger(prefix string, providerTypeName string) hclog.Logger {
 	l := &logPanicWrapper{
 		Logger: logger.Named(prefix + "provider"),
 	}
 
-	level := providerLogLevel()
-	logger.Debug("created provider logger", "level", level)
+	level := providerLogLevel(providerTypeName)
+	logger.Debug("created provider logger", "provider_type", providerTypeName, "level", level)
 
 	l.SetLevel(level)
 	return l
@@ -171,8 +171,25 @@ func CurrentLogLevel() string {
 	return strings.ToUpper(ll.String())
 }
 
-func providerLogLevel() hclog.Level {
-	providerEnvLevel := strings.ToUpper(os.Getenv(envLogProvider))
+func providerLogLevel(providerTypeName string) hclog.Level {
+	var providerEnvLevel string
+
+	// First, try provider-specific environment variable if provider type name is given
+	// e.g., for provider type "aws", check TF_LOG_PROVIDER_AWS
+	if providerTypeName != "" {
+		// Convert provider type name to uppercase and replace hyphens with underscores
+		normalizedName := strings.ToUpper(providerTypeName)
+		normalizedName = strings.ReplaceAll(normalizedName, "-", "_")
+		providerSpecificEnv := fmt.Sprintf("%s_%s", envLogProvider, normalizedName)
+		providerEnvLevel = strings.ToUpper(os.Getenv(providerSpecificEnv))
+	}
+
+	// Fall back to general TF_LOG_PROVIDER
+	if providerEnvLevel == "" {
+		providerEnvLevel = strings.ToUpper(os.Getenv(envLogProvider))
+	}
+
+	// Fall back to general TF_LOG
 	if providerEnvLevel == "" {
 		providerEnvLevel = strings.ToUpper(os.Getenv(envLog))
 	}
