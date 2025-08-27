@@ -1,4 +1,4 @@
-## 1.14.0 (Unreleased)
+## 1.14.0-alpha20250827 (August 27, 2025)
 
 
 ENHANCEMENTS:
@@ -6,6 +6,13 @@ ENHANCEMENTS:
 * terraform test: expected diagnostics will be included in test output when running in verbose mode" ([#37362](https://github.com/hashicorp/terraform/issues/37362))
 
 * terraform test: ignore prevent_destroy attribute during when cleaning up tests" ([#37364](https://github.com/hashicorp/terraform/issues/37364))
+
+
+UPGRADE NOTES:
+
+* The parallelism of Terraform operations within container runtimes may be reduced depending on the CPU bandwidth limit setting. ([#37436](https://github.com/hashicorp/terraform/issues/37436))
+
+* Building Terraform 1.14 requires macOS Monterey or later (due to being built on Go 1.25 which imposes these requirements) ([#37436](https://github.com/hashicorp/terraform/issues/37436))
 
 
 EXPERIMENTS:
