@@ -290,9 +290,8 @@ func (ev *forEachEvaluator) ValidateResourceValue() tfdiags.Diagnostics {
 	return diags.Append(ev.validateResourceOrActionForEach(val, "resource"))
 }
 
-// ValidateResourceValue is used from validation walks to verify the validity
-// of the resource for_Each expression, while still allowing for unknown
-// values.
+// ValidateActionValue is used from validation walks to verify the validity of
+// the action for_Each expression, while still allowing for unknown values.
 func (ev *forEachEvaluator) ValidateActionValue() tfdiags.Diagnostics {
 	val, diags := ev.Value()
 	if diags.HasErrors() {

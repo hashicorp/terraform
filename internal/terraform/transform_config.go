@@ -143,6 +143,8 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			var node dag.Vertex = abstract
 			if f := t.ConcreteAction; f != nil {
 				node = f(abstract)
+			} else {
+				node = DefaultConcreteActionNodeFunc(abstract)
 			}
 			g.Add(node)
 		}

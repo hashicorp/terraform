@@ -56,6 +56,7 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		// of this will happen when we DynamicExpand during the plan walk.
 		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx)
 		diags = diags.Append(countDiags)
+
 	case n.Config.ForEach != nil:
 		keyData = InstanceKeyEvalData{
 			EachKey:   cty.UnknownVal(cty.String),
