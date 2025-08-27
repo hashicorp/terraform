@@ -207,7 +207,7 @@ type QueryInstanceSrc struct {
 	Addr         addrs.AbsResourceInstance
 	ProviderAddr addrs.AbsProviderConfig
 	Results      DynamicValue
-	Generated    *genconfig.ImportGroup
+	Generated    genconfig.ImportGroup
 }
 
 func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, error) {

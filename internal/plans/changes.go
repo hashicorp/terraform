@@ -296,7 +296,7 @@ type QueryInstance struct {
 
 type QueryResults struct {
 	Value     cty.Value
-	Generated *genconfig.ImportGroup
+	Generated genconfig.ImportGroup
 }
 
 func (qi *QueryInstance) DeepCopy() *QueryInstance {

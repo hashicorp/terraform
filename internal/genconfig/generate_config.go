@@ -53,14 +53,40 @@ func (r Resource) String() string {
 	return string(formatted)
 }
 
-func (r *ImportGroup) String() string {
+func (i ImportGroup) String() string {
 	var buf strings.Builder
 
-	for _, imp := range r.Imports {
+	for _, imp := range i.Imports {
 		buf.WriteString(imp.Resource.String())
 		buf.WriteString("\n\n")
 		buf.WriteString(string(imp.ImportBody))
 		buf.WriteString("\n\n")
+	}
+
+	// The output better be valid HCL which can be parsed and formatted.
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(formatted)
+}
+
+func (i ImportGroup) ResourcesString() string {
+	var buf strings.Builder
+
+	for _, imp := range i.Imports {
+		buf.WriteString(imp.Resource.String())
+		buf.WriteString("\n")
+	}
+
+	// The output better be valid HCL which can be parsed and formatted.
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(formatted)
+}
+
+func (i ImportGroup) ImportsString() string {
+	var buf strings.Builder
+
+	for _, imp := range i.Imports {
+		buf.WriteString(string(imp.ImportBody))
+		buf.WriteString("\n")
 	}
 
 	// The output better be valid HCL which can be parsed and formatted.

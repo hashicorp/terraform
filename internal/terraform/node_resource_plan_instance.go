@@ -884,21 +884,22 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 // generateHCLResourceDef generates the HCL definition for the resource
 // instance, including the surrounding block. This is used to generate the
 // configuration for the resource instance when importing or generating
-func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (genconfig.ImportGroup, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (genconfig.Resource, tfdiags.Diagnostics) {
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
 	}
 
-	switch addr.Resource.Resource.Mode {
-	case addrs.ManagedResourceMode:
-		return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, state, false)
-	case addrs.ListResourceMode:
-		identitySchema := schema.Identity
-		return genconfig.GenerateListResourceContents(addr, schema.Body, identitySchema, providerAddr, state)
-	default:
-		panic(fmt.Sprintf("unexpected resource mode %s for resource %s", addr.Resource.Resource.Mode, addr))
+	return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, state, false)
+}
+
+func (n *NodePlannableResourceInstance) generateHCLListResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (genconfig.ImportGroup, tfdiags.Diagnostics) {
+	providerAddr := addrs.LocalProviderConfig{
+		LocalName: n.ResolvedProvider.Provider.Type,
+		Alias:     n.ResolvedProvider.Alias,
 	}
+
+	return genconfig.GenerateListResourceContents(addr, schema.Body, schema.Identity, providerAddr, state)
 }
 
 // mergeDeps returns the union of 2 sets of dependencies
