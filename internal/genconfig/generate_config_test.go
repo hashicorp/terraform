@@ -829,7 +829,11 @@ resource "tfcoremock_sensitive_values" "values" {
 			if err != nil {
 				t.Fatalf("schema failed InternalValidate: %s", err)
 			}
-			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value, false)
+
+			val, _ := tc.value.UnmarkDeep()
+			config := ExtractLegacyConfigFromState(tc.schema, val)
+
+			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, config, false)
 			if len(diags) > 0 {
 				t.Errorf("expected no diagnostics but found %s", diags)
 			}
@@ -957,8 +961,29 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
 		LocalName: "aws",
 	}
 
+	// the handling of the list value was moved to the caller, so break it back down in the same way here
+	var listElements []ResourceListElement
+
+	iter := value.ElementIterator()
+	for iter.Next() {
+		_, val := iter.Element()
+		// we still need to generate the resource block even if the state is not given,
+		// so that the import block can reference it.
+		stateVal := cty.NilVal
+		if val.Type().HasAttribute("state") {
+			stateVal = val.GetAttr("state")
+		}
+
+		stateVal, _ = stateVal.UnmarkDeep()
+		config := ExtractLegacyConfigFromState(schema, stateVal)
+
+		idVal := val.GetAttr("identity")
+
+		listElements = append(listElements, ResourceListElement{Config: config, Identity: idVal})
+	}
+
 	// Generate content
-	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, value)
+	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, listElements)
 	// Check for diagnostics
 	if diags.HasErrors() {
 		t.Fatalf("unexpected diagnostics: %s", diags.Err())

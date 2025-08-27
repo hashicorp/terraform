@@ -890,7 +890,13 @@ func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsRes
 		Alias:     n.ResolvedProvider.Alias,
 	}
 
-	return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, state, false)
+	// This is generating configuration, so the only marks should be coming from
+	// the schema itself.
+	state, _ = state.UnmarkDeep()
+	// filter the state down to a suitable config value
+	config := genconfig.ExtractLegacyConfigFromState(schema.Body, state)
+
+	return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, config, false)
 }
 
 func (n *NodePlannableResourceInstance) generateHCLListResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (genconfig.ImportGroup, tfdiags.Diagnostics) {
@@ -899,7 +905,30 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(addr addrs.Ab
 		Alias:     n.ResolvedProvider.Alias,
 	}
 
-	return genconfig.GenerateListResourceContents(addr, schema.Body, schema.Identity, providerAddr, state)
+	if !state.CanIterateElements() {
+		panic(fmt.Sprintf("invalid list resource data: %#v\n", state))
+	}
+
+	var listElements []genconfig.ResourceListElement
+
+	iter := state.ElementIterator()
+	for iter.Next() {
+		_, val := iter.Element()
+		// we still need to generate the resource block even if the state is not given,
+		// so that the import block can reference it.
+		stateVal := cty.NilVal
+		if val.Type().HasAttribute("state") {
+			stateVal = val.GetAttr("state")
+		}
+
+		stateVal, _ = stateVal.UnmarkDeep()
+		config := genconfig.ExtractLegacyConfigFromState(schema.Body, stateVal)
+		idVal := val.GetAttr("identity")
+
+		listElements = append(listElements, genconfig.ResourceListElement{Config: config, Identity: idVal})
+	}
+
+	return genconfig.GenerateListResourceContents(addr, schema.Body, schema.Identity, providerAddr, listElements)
 }
 
 // mergeDeps returns the union of 2 sets of dependencies

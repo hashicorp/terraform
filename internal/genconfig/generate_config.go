@@ -103,7 +103,7 @@ func (i ImportGroup) ImportsString() string {
 func GenerateResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
 	pc addrs.LocalProviderConfig,
-	stateVal cty.Value,
+	configVal cty.Value,
 	forceProviderAddr bool,
 ) (Resource, tfdiags.Diagnostics) {
 	var buf strings.Builder
@@ -117,19 +117,12 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
 	}
 
-	// This is generating configuration, so the only marks should be coming from
-	// the schema itself.
-	stateVal, _ = stateVal.UnmarkDeep()
-
-	// filter the state down to a suitable config value
-	stateVal = extractConfigFromState(schema, stateVal)
-
-	if stateVal.RawEquals(cty.NilVal) {
+	if configVal.RawEquals(cty.NilVal) {
 		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocks(addr, &buf, schema.BlockTypes, 2))
 	} else {
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2))
-		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, stateVal, schema.BlockTypes, 2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, configVal, schema.Attributes, 2))
+		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, configVal, schema.BlockTypes, 2))
 	}
 
 	// The output better be valid HCL which can be parsed and formatted.
@@ -137,27 +130,27 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 	return Resource{Addr: addr, Body: formatted}, diags
 }
 
+// ResourceListElement is a single Resource state and identity pair derived from
+// a list resource response.
+type ResourceListElement struct {
+	// Config is the cty value extracted from the resource state which is
+	// intended to be written into the HCL resource block.
+	Config cty.Value
+
+	Identity cty.Value
+}
+
 func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
 	idSchema *configschema.Object,
 	pc addrs.LocalProviderConfig,
-	stateVal cty.Value,
+	resources []ResourceListElement,
 ) (ImportGroup, tfdiags.Diagnostics) {
+
 	var diags tfdiags.Diagnostics
 	ret := ImportGroup{}
 
-	if !stateVal.CanIterateElements() {
-		diags = diags.Append(
-			hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid resource instance value",
-				Detail:   fmt.Sprintf("Resource instance %s has nil or non-iterable value", addr),
-			})
-		return ret, diags
-	}
-
-	iter := stateVal.ElementIterator()
-	for idx := 0; iter.Next(); idx++ {
+	for idx, res := range resources {
 		// Generate a unique resource name for each instance in the list.
 		resAddr := addrs.AbsResourceInstance{
 			Module: addr.Module,
@@ -171,14 +164,7 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 			},
 		}
 
-		_, val := iter.Element()
-		// we still need to generate the resource block even if the state is not given,
-		// so that the import block can reference it.
-		stateVal := cty.NilVal
-		if val.Type().HasAttribute("state") {
-			stateVal = val.GetAttr("state")
-		}
-		content, gDiags := GenerateResourceContents(resAddr, schema, pc, stateVal, true)
+		content, gDiags := GenerateResourceContents(resAddr, schema, pc, res.Config, true)
 		if gDiags.HasErrors() {
 			diags = diags.Append(gDiags)
 			continue
@@ -191,8 +177,7 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 			},
 		}
 
-		idVal := val.GetAttr("identity")
-		importContent, gDiags := GenerateImportBlock(resAddr, idSchema, pc, idVal)
+		importContent, gDiags := GenerateImportBlock(resAddr, idSchema, pc, res.Identity)
 		if gDiags.HasErrors() {
 			diags = diags.Append(gDiags)
 			continue
@@ -667,11 +652,11 @@ func hclEscapeString(str string) string {
 	return str
 }
 
-// extractConfigFromState takes the state value of a resource, and filters the
+// ExtractLegacyConfigFromState takes the state value of a resource, and filters the
 // value down to what would be acceptable as a resource configuration value.
 // This is used when the provider does not implement GenerateResourceConfig to
 // create a suitable value.
-func extractConfigFromState(schema *configschema.Block, state cty.Value) cty.Value {
+func ExtractLegacyConfigFromState(schema *configschema.Block, state cty.Value) cty.Value {
 	config, _ := cty.Transform(state, func(path cty.Path, v cty.Value) (cty.Value, error) {
 		if v.IsNull() {
 			return v, nil
