@@ -2989,7 +2989,13 @@ func TestBackendWrongRegion(t *testing.T) {
 	if _, err := b.StateMgr(backend.DefaultStateName); err == nil {
 		t.Fatal("expected error, got none")
 	} else {
-		if regionErr, ok := As[bucketRegionError](err); ok {
+		var comparableErr error
+		if errValue, isDiag := err.(tfdiags.DiagnosticsAsError); isDiag {
+			// To use `As` below we need to extract the error that's wrapped
+			// in a diagnostic.
+			comparableErr = errValue.WrappedErrors()[0]
+		}
+		if regionErr, ok := As[bucketRegionError](comparableErr); ok {
 			if a, e := regionErr.bucketRegion, bucketRegion; a != e {
 				t.Errorf("expected bucket region %q, got %q", e, a)
 			}
