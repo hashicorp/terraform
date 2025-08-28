@@ -461,13 +461,9 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				"dynamodb_endpoint": "dynamo.test",
 			},
 			expectedEndpoint: "dynamo.test/",
-			expectedDiags: func(config hcl.Body) tfdiags.Diagnostics {
-				diags := tfdiags.Diagnostics{
-					deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
-					legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("dynamodb_endpoint")),
-				}
-				// One of the expected diags comes from config, so we need to add context
-				return diags.InConfigBody(config, "")
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+				legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("dynamodb_endpoint")),
 			},
 		},
 		"config conflict": {
