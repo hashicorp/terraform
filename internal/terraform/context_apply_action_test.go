@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestContext2Apply_actions(t *testing.T) {
+func TestContextApply_actions(t *testing.T) {
 	for name, tc := range map[string]struct {
 		toBeImplemented                 bool
 		module                          map[string]string
