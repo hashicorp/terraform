@@ -39,15 +39,6 @@ func TestContext2Apply_actions(t *testing.T) {
 
 		expectDiagnostics func(m *configs.Config) tfdiags.Diagnostics
 	}{
-		"unreferenced": {
-			module: map[string]string{
-				"main.tf": `
-action "act_unlinked" "hello" {}
-		`,
-			},
-			expectInvokeActionCalled: false,
-		},
-
 		"before_create triggered": {
 			module: map[string]string{
 				"main.tf": `
@@ -1084,6 +1075,23 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: false,
 			planOpts:                 SimplePlanOpts(plans.DestroyMode, InputValues{}),
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"name":"previous_run"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
 		},
 
 		"destroying expanded node": {
@@ -1513,6 +1521,10 @@ action "act_unlinked" "two" {
 
 			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
 			tfdiags.AssertNoDiagnostics(t, diags)
+
+			if !plan.Applyable {
+				t.Fatalf("plan is not applyable but should be")
+			}
 
 			_, diags = ctx.Apply(plan, m, tc.applyOpts)
 			if tc.expectDiagnostics != nil {

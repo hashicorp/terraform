@@ -83,6 +83,9 @@ action "test_unlinked" "hello" {}
 				if len(p.Changes.ActionInvocations) != 0 {
 					t.Fatalf("expected no actions in plan, got %d", len(p.Changes.ActionInvocations))
 				}
+				if p.Applyable {
+					t.Fatalf("should not be able to apply this plan")
+				}
 			},
 		},
 

@@ -63,6 +63,11 @@ func (c *ChangesSrc) Empty() bool {
 		}
 	}
 
+	if len(c.ActionInvocations) > 0 {
+		// action invocations can be applied
+		return false
+	}
+
 	return true
 }
 

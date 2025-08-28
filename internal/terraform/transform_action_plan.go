@@ -42,6 +42,10 @@ func (t *ActionPlanTransformer) Transform(g *Graph) error {
 				}
 			}
 
+			if config == nil {
+				return fmt.Errorf("action %s does not exist in the configuration", target.String())
+			}
+
 			g.Add(&nodeActionInvokeExpand{
 				Target: target,
 				Config: config,
