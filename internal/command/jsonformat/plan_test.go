@@ -67,7 +67,7 @@ func TestRenderHuman_InvokeActionPlan(t *testing.T) {
 	plan.renderHuman(renderer, plans.RefreshOnlyMode)
 
 	want := `
-Terraform will invoke the following 1 action(s):
+Terraform will invoke the following action(s):
 
   # action.test_action.action will be invoked
     action "test_action" "action" {
@@ -179,7 +179,7 @@ objects.
 
 ─────────────────────────────────────────────────────────────────────────────
 
-Terraform will invoke the following 1 action(s):
+Terraform will invoke the following action(s):
 
   # action.test_action.action will be invoked
     action "test_action" "action" {

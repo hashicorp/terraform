@@ -256,7 +256,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 	}
 
 	if len(actions) > 0 {
-		renderer.Streams.Printf(renderer.Colorize.Color("\nTerraform will [bold]invoke[reset] the following %d action(s):\n\n"), actionCount)
+		renderer.Streams.Print(renderer.Colorize.Color("\nTerraform will invoke the following action(s):\n\n"))
 		renderer.Streams.Printf("%s\n", actions)
 	}
 
@@ -505,8 +505,7 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 func renderHumanActionInvocations(renderer Renderer, actionInvocations []actionInvocation) (string, int) {
 	var invocations []string
 	for _, invocation := range actionInvocations {
-		header := fmt.Sprintf("  # %s will be invoked", invocation.invocation.Address)
-
+		header := fmt.Sprintf(renderer.Colorize.Color("  [bold]# %s[reset] will be invoked"), invocation.invocation.Address)
 		invocations = append(invocations, fmt.Sprintf("%s\n%s", header, renderActionInvocation(renderer, invocation)))
 	}
 	return strings.Join(invocations, "\n"), len(invocations)
