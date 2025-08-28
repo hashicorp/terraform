@@ -1055,7 +1055,7 @@ func (p *MockProvider) beginWrite() func() {
 }
 
 func (p *MockProvider) ValidateActionConfig(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
-	defer p.beginWrite()
+	defer p.beginWrite()()
 
 	p.ValidateActionCalled = true
 	p.ValidateActionConfigRequest = r

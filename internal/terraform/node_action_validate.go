@@ -79,10 +79,35 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		return diags
 	}
 
-	configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.ConfigSchema, nil, keyData)
-	diags = diags.Append(valDiags)
-	if valDiags.HasErrors() {
+	// We currently only support unlinked actions, so we send a diagnostic for other types
+	if n.Schema.Lifecycle != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Lifecycle actions are not supported",
+			Detail:   "This version of Terraform does not support lifecycle actions",
+			Subject:  n.Config.DeclRange.Ptr(),
+		})
 		return diags
+	}
+
+	if n.Schema.Linked != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Linked actions are not supported",
+			Detail:   "This version of Terraform does not support linked actions",
+			Subject:  n.Config.DeclRange.Ptr(),
+		})
+		return diags
+	}
+
+	var configVal cty.Value
+	var valDiags tfdiags.Diagnostics
+	if n.Config.Config != nil {
+		configVal, _, valDiags = ctx.EvaluateBlock(n.Config.Config, schema.ConfigSchema, nil, keyData)
+		diags = diags.Append(valDiags)
+		if valDiags.HasErrors() {
+			return diags
+		}
 	}
 
 	// Use unmarked value for validate request

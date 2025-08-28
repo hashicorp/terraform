@@ -4,8 +4,6 @@
 package terraform
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
@@ -191,7 +189,6 @@ func (n *nodeExpandActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool) 
 // GraphNodeProviderConsumer
 func (n *nodeExpandActionDeclaration) Provider() addrs.Provider {
 	if n.ResolvedProvider.Provider.Type != "" {
-		fmt.Println("returning resolved provider")
 		return n.ResolvedProvider.Provider
 	}
 	return n.Config.Provider
