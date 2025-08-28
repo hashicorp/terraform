@@ -47,9 +47,3 @@ func (ss ProviderSchema) SchemaForActionType(typeName string) (schema ActionSche
 	}
 	return ActionSchema{}
 }
-
-// SchemaForActionAddr attempts to find a schema for the type from the given
-// action address. Returns an empty schema if none is available.
-func (ss ProviderSchema) SchemaForActionAddr(addr addrs.Action) (schema ActionSchema) {
-	return ss.SchemaForActionType(addr.Type)
-}
