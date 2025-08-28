@@ -1341,6 +1341,45 @@ action "act_unlinked_wo" "hello" {
 				},
 			},
 		},
+		"simple action invoke": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "act_unlinked" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "act_unlinked",
+								Name: "one",
+							},
+							Key: addrs.NoKey,
+						},
+					},
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {

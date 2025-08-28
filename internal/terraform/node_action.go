@@ -23,7 +23,7 @@ type GraphNodeConfigAction interface {
 // which has not yet been expanded.
 type nodeExpandActionDeclaration struct {
 	Addr   addrs.ConfigAction
-	Config configs.Action
+	Config *configs.Action
 
 	Schema           *providers.ActionSchema
 	ResolvedProvider addrs.AbsProviderConfig

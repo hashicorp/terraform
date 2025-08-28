@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -135,7 +136,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
 			node := &nodeExpandActionDeclaration{
 				Addr:   addr,
-				Config: *a,
+				Config: a,
 			}
 			g.Add(node)
 		}

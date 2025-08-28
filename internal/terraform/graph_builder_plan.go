@@ -52,6 +52,9 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
+	// ActionTargets are actions that should be triggered.
+	ActionTargets []addrs.Targetable
+
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace
 	// action instead. Create and Delete actions are not affected.
@@ -173,6 +176,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ActionPlanTransformer{
 			Config:    b.Config,
 			Operation: b.Operation,
+			Targets:   b.ActionTargets,
 		},
 
 		// Add dynamic values

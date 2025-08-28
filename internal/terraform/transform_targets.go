@@ -23,22 +23,27 @@ type GraphNodeTargetable interface {
 // list of resources to target, limits the graph to only those resources and
 // their dependencies.
 type TargetsTransformer struct {
-	// List of targeted resource names specified by the user
+	// List of targeted resource names specified by the user.
 	Targets []addrs.Targetable
+
+	// List of targeted actions specified by the user.
+	ActionTargets []addrs.Targetable
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
-	if len(t.Targets) > 0 {
-		targetedNodes, err := t.selectTargetedNodes(g, t.Targets)
-		if err != nil {
-			return err
-		}
+	if len(t.Targets) == 0 && len(t.ActionTargets) == 0 {
+		return nil
+	}
 
-		for _, v := range g.Vertices() {
-			if !targetedNodes.Include(v) {
-				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
-				g.Remove(v)
-			}
+	// in practice, these are mutually exclusive so only one of these function
+	// calls will do any work
+
+	targetedNodes := t.selectTargetedNodes(g, t.Targets)
+	targetedActions := t.selectTargetedNodes(g, t.ActionTargets)
+	for _, v := range g.Vertices() {
+		if !targetedNodes.Include(v) && !targetedActions.Include(v) {
+			log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
+			g.Remove(v)
 		}
 	}
 
@@ -48,8 +53,11 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) (dag.Set, error) {
+func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) dag.Set {
 	targetedNodes := make(dag.Set)
+	if len(addrs) == 0 {
+		return targetedNodes
+	}
 
 	vertices := g.Vertices()
 
@@ -119,7 +127,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 		}
 	}
 
-	return targetedNodes, nil
+	return targetedNodes
 }
 
 func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
@@ -145,6 +153,10 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 		vertexAddr = r.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
+	case *nodeActionInvokeExpand:
+		vertexAddr = r.Target
+	case *nodeActionTriggerApply:
+		vertexAddr = r.ActionInvocation.Addr
 
 	default:
 		// Only partial nodes and resource and resource instance nodes can be

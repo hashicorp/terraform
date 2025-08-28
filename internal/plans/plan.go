@@ -71,6 +71,7 @@ type Plan struct {
 	DeferredResources         []*DeferredResourceInstanceChangeSrc
 	DeferredActionInvocations []*DeferredActionInvocationSrc
 	TargetAddrs               []addrs.Targetable
+	ActionTargetAddrs         []addrs.Targetable // TODO(liamcervante)
 	ForceReplaceAddrs         []addrs.AbsResourceInstance
 
 	Backend    Backend

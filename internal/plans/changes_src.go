@@ -612,12 +612,12 @@ func (acs *ActionInvocationInstanceSrc) Less(other *ActionInvocationInstanceSrc)
 	return acs.ActionTrigger.Less(other.ActionTrigger)
 }
 
-func (needle *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
-	needleLat := needle.ActionTrigger.(LifecycleActionTrigger)
+func (acs *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
+	needleLat := acs.ActionTrigger.(*LifecycleActionTrigger)
 
 	var laterInvocations []*ActionInvocationInstanceSrc
 	for _, invocation := range actionInvocations {
-		if lat, ok := invocation.ActionTrigger.(LifecycleActionTrigger); ok {
+		if lat, ok := invocation.ActionTrigger.(*LifecycleActionTrigger); ok {
 			if lat.TriggeringResourceAddr.Equal(needleLat.TriggeringResourceAddr) && (lat.ActionTriggerBlockIndex > needleLat.ActionTriggerBlockIndex || lat.ActionTriggerBlockIndex == needleLat.ActionTriggerBlockIndex && lat.ActionsListIndex > needleLat.ActionsListIndex) {
 				laterInvocations = append(laterInvocations, invocation)
 			}

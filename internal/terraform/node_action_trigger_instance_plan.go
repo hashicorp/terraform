@@ -38,8 +38,8 @@ func (at *lifecycleActionTriggerInstance) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
-func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) plans.LifecycleActionTrigger {
-	return plans.LifecycleActionTrigger{
+func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) *plans.LifecycleActionTrigger {
+	return &plans.LifecycleActionTrigger{
 		TriggeringResourceAddr:  at.resourceAddress,
 		ActionTriggerBlockIndex: at.actionTriggerBlockIndex,
 		ActionsListIndex:        at.actionListIndex,
@@ -95,7 +95,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	}
 
 	// If we already deferred an action invocation on the same resource with an earlier trigger we can defer this one as well
-	if deferrals.DeferralAllowed() && deferrals.ShouldDeferActionInvocation(ai) {
+	if deferrals.DeferralAllowed() && deferrals.ShouldDeferActionInvocation(ai.ActionTrigger) {
 		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
 		return diags
 	}

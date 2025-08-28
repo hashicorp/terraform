@@ -5,13 +5,14 @@ package terraform
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeActionDeclarationInstance represents an action in a particular module.
@@ -21,7 +22,7 @@ import (
 // when they are referenced we can get the configuration for the action directly.
 type NodeActionDeclarationInstance struct {
 	Addr             addrs.AbsActionInstance
-	Config           configs.Action
+	Config           *configs.Action
 	Schema           *providers.ActionSchema
 	ResolvedProvider addrs.AbsProviderConfig
 }

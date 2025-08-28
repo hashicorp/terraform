@@ -374,7 +374,7 @@ func (h *actionStart) String() string {
 }
 
 func NewActionStart(id terraform.HookActionIdentity) Hook {
-	at, ok := id.ActionTrigger.(plans.LifecycleActionTrigger)
+	at, ok := id.ActionTrigger.(*plans.LifecycleActionTrigger)
 	if !ok {
 		panic("invalid action trigger")
 	}
@@ -408,7 +408,7 @@ func (h *actionProgress) String() string {
 }
 
 func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
-	at, ok := id.ActionTrigger.(plans.LifecycleActionTrigger)
+	at, ok := id.ActionTrigger.(*plans.LifecycleActionTrigger)
 	if !ok {
 		panic("invalid action trigger")
 	}
@@ -441,7 +441,7 @@ func (h *actionComplete) String() string {
 }
 
 func NewActionComplete(id terraform.HookActionIdentity) Hook {
-	at, ok := id.ActionTrigger.(plans.LifecycleActionTrigger)
+	at, ok := id.ActionTrigger.(*plans.LifecycleActionTrigger)
 	if !ok {
 		panic("invalid action trigger")
 	}
@@ -474,7 +474,7 @@ func (h *actionErrored) String() string {
 }
 
 func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
-	at, ok := id.ActionTrigger.(plans.LifecycleActionTrigger)
+	at, ok := id.ActionTrigger.(*plans.LifecycleActionTrigger)
 	if !ok {
 		panic("invalid action trigger")
 	}
