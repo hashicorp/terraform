@@ -306,9 +306,9 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	}
 
 	bytes := []byte(randString(20))
-	err = remoteClient.Put(bytes)
-	if err != nil {
-		t.Fatalf("Error putting data: %+v", err)
+	diags := remoteClient.Put(bytes)
+	if diags.HasErrors() {
+		t.Fatalf("Error putting data: %+v", diags.Err())
 	}
 
 	// Verify it still exists

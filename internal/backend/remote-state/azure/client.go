@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -44,7 +45,8 @@ type RemoteClient struct {
 	snapshot           bool
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	options := blobs.GetInput{}
 	if c.leaseID != "" {
 		options.LeaseID = &c.leaseID
@@ -56,11 +58,11 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		if response.WasNotFound(blob.HttpResponse) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	if blob.Contents == nil {
-		return nil, nil
+		return nil, diags
 	}
 
 	payload := &remote.Payload{
@@ -69,13 +71,15 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 
 	// If there was no data, then return nil
 	if len(payload.Data) == 0 {
-		return nil, nil
+		return nil, diags
 	}
 
-	return payload, nil
+	return payload, diags
 }
 
-func (c *RemoteClient) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	getOptions := blobs.GetPropertiesInput{}
 	setOptions := blobs.SetPropertiesInput{}
 	putOptions := blobs.PutBlockBlobInput{}
@@ -95,7 +99,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
 		if _, err := c.giovanniBlobClient.Snapshot(ctx, c.containerName, c.keyName, snapshotInput); err != nil {
-			return fmt.Errorf("error snapshotting Blob %q (Container %q / Account %q): %+v", c.keyName, c.containerName, c.accountName, err)
+			return diags.Append(fmt.Errorf("error snapshotting Blob %q (Container %q / Account %q): %+v", c.keyName, c.containerName, c.accountName, err))
 		}
 
 		log.Print("[DEBUG] Created blob snapshot")
@@ -104,7 +108,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, getOptions)
 	if err != nil {
 		if !response.WasNotFound(blob.HttpResponse) {
-			return err
+			return diags.Append(err)
 		}
 	}
 
@@ -114,10 +118,12 @@ func (c *RemoteClient) Put(data []byte) error {
 	putOptions.MetaData = blob.MetaData
 	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putOptions)
 
-	return err
+	return diags.Append(err)
 }
 
-func (c *RemoteClient) Delete() error {
+func (c *RemoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	options := blobs.DeleteInput{}
 
 	if c.leaseID != "" {
@@ -128,10 +134,10 @@ func (c *RemoteClient) Delete() error {
 	resp, err := c.giovanniBlobClient.Delete(ctx, c.containerName, c.keyName, options)
 	if err != nil {
 		if !response.WasNotFound(resp.HttpResponse) {
-			return err
+			return diags.Append(err)
 		}
 	}
-	return nil
+	return diags
 }
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {

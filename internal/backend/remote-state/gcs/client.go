@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // remoteClient is used by "state/remote".State to read and write
@@ -29,26 +30,26 @@ type remoteClient struct {
 	kmsKeyName    string
 }
 
-func (c *remoteClient) Get() (payload *remote.Payload, err error) {
+func (c *remoteClient) Get() (payload *remote.Payload, diags tfdiags.Diagnostics) {
 	ctx := context.TODO()
 	stateFileReader, err := c.stateFile().NewReader(ctx)
 	if err != nil {
 		if err == storage.ErrObjectNotExist {
-			return nil, nil
+			return nil, diags
 		} else {
-			return nil, fmt.Errorf("Failed to open state file at %v: %v", c.stateFileURL(), err)
+			return nil, diags.Append(fmt.Errorf("Failed to open state file at %v: %v", c.stateFileURL(), err))
 		}
 	}
 	defer stateFileReader.Close()
 
 	stateFileContents, err := ioutil.ReadAll(stateFileReader)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read state file from %v: %v", c.stateFileURL(), err)
+		return nil, diags.Append(fmt.Errorf("Failed to read state file from %v: %v", c.stateFileURL(), err))
 	}
 
 	stateFileAttrs, err := c.stateFile().Attrs(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read state file attrs from %v: %v", c.stateFileURL(), err)
+		return nil, diags.Append(fmt.Errorf("Failed to read state file attrs from %v: %v", c.stateFileURL(), err))
 	}
 
 	result := &remote.Payload{
@@ -56,10 +57,11 @@ func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 		MD5:  stateFileAttrs.MD5,
 	}
 
-	return result, nil
+	return result, diags
 }
 
-func (c *remoteClient) Put(data []byte) error {
+func (c *remoteClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	ctx := context.TODO()
 	err := func() error {
 		stateFileWriter := c.stateFile().NewWriter(ctx)
@@ -72,19 +74,21 @@ func (c *remoteClient) Put(data []byte) error {
 		return stateFileWriter.Close()
 	}()
 	if err != nil {
-		return fmt.Errorf("Failed to upload state to %v: %v", c.stateFileURL(), err)
+		return diags.Append(fmt.Errorf("Failed to upload state to %v: %v", c.stateFileURL(), err))
 	}
 
-	return nil
+	return diags
 }
 
-func (c *remoteClient) Delete() error {
+func (c *remoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	ctx := context.TODO()
 	if err := c.stateFile().Delete(ctx); err != nil {
-		return fmt.Errorf("Failed to delete state file %v: %v", c.stateFileURL(), err)
+		return diags.Append(fmt.Errorf("Failed to delete state file %v: %v", c.stateFileURL(), err))
 	}
 
-	return nil
+	return diags
 }
 
 // Lock writes to a lock file, ensuring file creation. Returns the generation

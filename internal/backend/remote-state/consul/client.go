@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -71,7 +72,9 @@ type RemoteClient struct {
 	sessionCancel context.CancelFunc
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -79,10 +82,10 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 
 	chunked, hash, chunks, pair, err := c.chunkedMode()
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 	if pair == nil {
-		return nil, nil
+		return nil, diags
 	}
 
 	c.modifyIndex = pair.ModifyIndex
@@ -92,10 +95,10 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		for _, c := range chunks {
 			pair, _, err := kv.Get(c, nil)
 			if err != nil {
-				return nil, err
+				return nil, diags.Append(err)
 			}
 			if pair == nil {
-				return nil, fmt.Errorf("Key %q could not be found", c)
+				return nil, diags.Append(fmt.Errorf("Key %q could not be found", c))
 			}
 			payload = append(payload, pair.Value[:]...)
 		}
@@ -107,23 +110,23 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	if len(payload) >= 1 && payload[0] == '\x1f' {
 		payload, err = uncompressState(payload)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 	}
 
 	md5 := md5.Sum(payload)
 
 	if hash != "" && fmt.Sprintf("%x", md5) != hash {
-		return nil, fmt.Errorf("The remote state does not match the expected hash")
+		return nil, diags.Append(fmt.Errorf("The remote state does not match the expected hash"))
 	}
 
 	return &remote.Payload{
 		Data: payload,
 		MD5:  md5[:],
-	}, nil
+	}, diags
 }
 
-func (c *RemoteClient) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	// The state can be stored in 4 different ways, based on the payload size
 	// and whether the user enabled gzip:
 	//  - single entry mode with plain JSON: a single JSON is stored at
@@ -161,6 +164,8 @@ func (c *RemoteClient) Put(data []byte) error {
 	//    in chunked mode and we will need to remove the old chunks (whether or
 	//    not we were using gzip does not matter in that case).
 
+	var diags tfdiags.Diagnostics
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -169,7 +174,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	// First we determine what mode we were using and to prepare the cleanup
 	chunked, hash, _, _, err := c.chunkedMode()
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 	cleanupOldChunks := func() {}
 	if chunked {
@@ -188,7 +193,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		if compressedState, err := compressState(data); err == nil {
 			payload = compressedState
 		} else {
-			return err
+			return diags.Append(err)
 		}
 	}
 
@@ -256,10 +261,10 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	if err = store(payload); err == nil {
 		// The payload was small enough to be stored
-		return nil
+		return diags
 	} else if !strings.Contains(err.Error(), "too large") {
 		// We failed for some other reason, report this to the user
-		return err
+		return diags.Append(err)
 	}
 
 	// The payload was too large so we split it in multiple chunks
@@ -278,7 +283,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		}, nil)
 
 		if err != nil {
-			return err
+			return diags.Append(err)
 		}
 	}
 
@@ -288,12 +293,13 @@ func (c *RemoteClient) Put(data []byte) error {
 		"chunks":       chunkPaths,
 	})
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
-	return store(payload)
+	return diags.Append(store(payload))
 }
 
-func (c *RemoteClient) Delete() error {
+func (c *RemoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -301,7 +307,7 @@ func (c *RemoteClient) Delete() error {
 
 	chunked, hash, _, _, err := c.chunkedMode()
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
 	_, err = kv.Delete(c.Path, nil)
@@ -312,7 +318,7 @@ func (c *RemoteClient) Delete() error {
 		kv.DeleteTree(path, nil)
 	}
 
-	return err
+	return diags.Append(err)
 }
 
 func (c *RemoteClient) lockPath() string {
