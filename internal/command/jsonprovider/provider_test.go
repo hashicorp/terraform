@@ -33,6 +33,7 @@ func TestMarshalProvider(t *testing.T) {
 				DataSourceSchemas:        map[string]*Schema{},
 				EphemeralResourceSchemas: map[string]*Schema{},
 				ResourceIdentitySchemas:  map[string]*IdentitySchema{},
+				ActionSchemas:            map[string]*ActionSchema{},
 			},
 		},
 		{
@@ -212,6 +213,7 @@ func TestMarshalProvider(t *testing.T) {
 					},
 				},
 				ResourceIdentitySchemas: map[string]*IdentitySchema{},
+				ActionSchemas:           map[string]*ActionSchema{},
 			},
 		},
 		{
