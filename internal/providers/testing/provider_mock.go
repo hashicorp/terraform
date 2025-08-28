@@ -751,7 +751,16 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 
 func (p *MockProvider) GenerateResourceConfig(r providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
 	defer p.beginWrite()()
-	panic("not implemented")
+
+	if p.GenerateResourceConfigResponse != nil {
+		return *p.GenerateResourceConfigResponse
+	}
+
+	if p.GenerateResourceConfigFn != nil {
+		return p.GenerateResourceConfigFn(r)
+	}
+
+	panic("GenerateResourceConfigFn or GenerateResourceConfigResponse required")
 }
 
 func (p *MockProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
