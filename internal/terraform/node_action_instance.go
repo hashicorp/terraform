@@ -51,6 +51,20 @@ func (n *NodeActionDeclarationInstance) Path() addrs.ModuleInstance {
 func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	if n.Addr.Action.Key == addrs.WildcardKey {
+		if ctx.Deferrals().DeferralAllowed() {
+			ctx.Deferrals().ReportActionDeferred(n.Addr, providers.DeferredReasonInstanceCountUnknown)
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Action expansion was deferred",
+				Detail:   "Deferral is not allowed in this context",
+				Subject:  n.Config.DeclRange.Ptr(),
+			})
+		}
+		return diags
+	}
+
 	// This should have been caught already
 	if n.Schema == nil {
 		panic("NodeActionDeclarationInstance.Execute called without a schema")

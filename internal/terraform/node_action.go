@@ -85,6 +85,28 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 
+	// The possibility of partial-expanded modules and resources is guarded by a
+	// top-level option for the whole plan, so that we can preserve mainline
+	// behavior for the modules runtime. So, we currently branch off into an
+	// entirely-separate codepath in those situations, at the expense of
+	// duplicating some of the logic for behavior this method would normally
+	// handle.
+	if ctx.Deferrals().DeferralAllowed() {
+		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
+
+		for _, moduleAddr := range pem {
+			resourceAddr := moduleAddr.Action(n.Addr.Action)
+
+			// And add a node to the graph for this action.
+			g.Add(&NodeActionDeclarationPartialExpanded{
+				addr:             resourceAddr,
+				config:           n.Config,
+				resolvedProvider: n.ResolvedProvider,
+			})
+		}
+		addRootNodeToGraph(&g)
+	}
+
 	for _, module := range moduleInstances {
 		absActAddr := n.Addr.Absolute(module)
 
@@ -92,28 +114,40 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 		moduleCtx := evalContextForModuleInstance(ctx, module)
 
 		// recordActionData is responsible for informing the expander of what
-		// repetition mode this resource has, which allows expander.ExpandResource
+		// repetition mode this resource has, which allows expander.ExpandAction
 		// to work below.
 		moreDiags := n.recordActionData(moduleCtx, absActAddr)
+
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			return nil, diags
 		}
 
-		// Expand the action instances for this module.
-		for _, absActInstance := range expander.ExpandAction(absActAddr) {
+		_, knownInstKeys, haveUnknownKeys := expander.ActionInstanceKeys(absActAddr)
+		if haveUnknownKeys {
 			node := NodeActionDeclarationInstance{
-				Addr:             absActInstance,
+				Addr:             absActAddr.Instance(addrs.WildcardKey),
 				Config:           n.Config,
 				Schema:           n.Schema,
 				ResolvedProvider: n.ResolvedProvider,
 			}
-
 			g.Add(&node)
-		}
-	}
+		} else {
+			// Expand the action instances for this module.
+			for _, knownInstKey := range knownInstKeys {
+				node := NodeActionDeclarationInstance{
+					Addr:             absActAddr.Instance(knownInstKey),
+					Config:           n.Config,
+					Schema:           n.Schema,
+					ResolvedProvider: n.ResolvedProvider,
+				}
 
-	addRootNodeToGraph(&g)
+				g.Add(&node)
+			}
+		}
+
+		addRootNodeToGraph(&g)
+	}
 
 	return &g, diags
 }
@@ -131,8 +165,7 @@ func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr add
 	// If this is false then the codepaths that handle unknown values below
 	// become unreachable, because the evaluate functions will reject unknown
 	// values as an error.
-	// allowUnknown := ctx.Deferrals().DeferralAllowed()
-	allowUnknown := false
+	allowUnknown := ctx.Deferrals().DeferralAllowed()
 
 	switch {
 	case n.Config.Count != nil:

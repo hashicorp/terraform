@@ -67,6 +67,18 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	var diags tfdiags.Diagnostics
 	deferrals := ctx.Deferrals()
 
+	// We need the action invocation early to check if we need to
+	ai := plans.ActionInvocationInstance{
+		Addr: n.actionAddress,
+
+		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
+	}
+
+	if deferrals.ShouldDeferActionInvocation(ai) {
+		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
+		return nil
+	}
+
 	if n.lifecycleActionTrigger == nil {
 		panic("Only actions triggered by plan and apply are supported")
 	}
@@ -81,24 +93,11 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		})
 		return diags
 	}
-
-	// We need the action invocation early to check if we need to
-	ai := plans.ActionInvocationInstance{
-		Addr:          n.actionAddress,
-		ProviderAddr:  actionInstance.ProviderAddr,
-		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
-
-		// with resources, the provider would be expected to strip the ephemeral
-		// values out. with actions, we don't get the value back from the
-		// provider so we'll do that ourselves now.
-		ConfigValue: ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue),
-	}
-
-	// If we already deferred an action invocation on the same resource with an earlier trigger we can defer this one as well
-	if deferrals.DeferralAllowed() && deferrals.ShouldDeferActionInvocation(ai) {
-		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
-		return diags
-	}
+	ai.ProviderAddr = actionInstance.ProviderAddr
+	// with resources, the provider would be expected to strip the ephemeral
+	// values out. with actions, we don't get the value back from the
+	// provider so we'll do that ourselves now.
+	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue)
 
 	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
 	if change == nil {
