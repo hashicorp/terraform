@@ -187,7 +187,7 @@ func (a AbsAction) TargetContains(other Targetable) bool {
 
 // AddrType implements Targetable
 func (a AbsAction) AddrType() TargetableAddrType {
-	return ActionInstanceAddrType
+	return ActionAddrType
 }
 
 func (a AbsAction) String() string {

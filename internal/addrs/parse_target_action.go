@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -39,6 +40,24 @@ func ParseTargetAction(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 
 	target, moreDiags := parseActionInstanceUnderModule(path, remain, tfdiags.SourceRangeFromHCL(traversal.SourceRange()))
 	return target, diags.Append(moreDiags)
+}
+
+// ParseTargetActionStr is a helper wrapper around ParseTargetAction that takes
+// a string and parses it into HCL before interpreting it.
+//
+// All the same cautions apply to this as with the equivalent ParseTargetStr.
+func ParseTargetActionStr(str string) (*Target, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+
+	target, targetDiags := ParseTargetAction(traversal)
+	diags = diags.Append(targetDiags)
+	return target, diags
 }
 
 func parseActionInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traversal, srcRng tfdiags.SourceRange) (*Target, tfdiags.Diagnostics) {
