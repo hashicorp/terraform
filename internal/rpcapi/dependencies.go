@@ -690,7 +690,7 @@ func providerFactoriesForLocks(locks *depsfile.Locks, pluginsDir *providercache.
 		ret[addr] = func() (providers.Interface, error) {
 			config := &plugin.ClientConfig{
 				HandshakeConfig:  tfplugin.Handshake,
-				Logger:           logging.NewProviderLogger(""),
+				Logger:           logging.NewProviderLogger("", addr.Type),
 				AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 				Managed:          true,
 				Cmd:              exec.Command(exeFilename),
