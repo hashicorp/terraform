@@ -35,6 +35,10 @@ func (n *NodeValidatableAction) Path() addrs.ModuleInstance {
 func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	if n.Config.Config == nil {
+		return diags
+	}
+
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
