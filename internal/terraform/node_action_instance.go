@@ -6,6 +6,7 @@ package terraform
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -50,6 +51,20 @@ func (n *NodeActionDeclarationInstance) Path() addrs.ModuleInstance {
 
 func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+
+	if n.Addr.Action.Key == addrs.WildcardKey {
+		if ctx.Deferrals().DeferralAllowed() {
+			ctx.Deferrals().ReportActionDeferred(n.Addr, providers.DeferredReasonInstanceCountUnknown)
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Action expansion was deferred",
+				Detail:   "Deferral is not allowed in this context",
+				Subject:  n.Config.DeclRange.Ptr(),
+			})
+		}
+		return diags
+	}
 
 	// This should have been caught already
 	if n.Schema == nil {
