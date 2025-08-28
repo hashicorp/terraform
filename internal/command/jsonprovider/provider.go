@@ -72,7 +72,18 @@ func marshalProvider(tps providers.ProviderSchema, includeExperimentalSchemas bo
 	}
 
 	if includeExperimentalSchemas {
-		p.ListResourceSchemas = marshalSchemas(tps.ListResourceTypes)
+		// List resource schemas are nested under a "config" block, so we need to
+		// extract that block to get the actual provider schema for the list resource.
+		// When getting the provider schemas, Terraform adds this extra level to
+		// better match the actual configuration structure.
+		listSchemas := make(map[string]providers.Schema, len(tps.ListResourceTypes))
+		for k, v := range tps.ListResourceTypes {
+			listSchemas[k] = providers.Schema{
+				Body:    &v.Body.BlockTypes["config"].Block,
+				Version: v.Version,
+			}
+		}
+		p.ListResourceSchemas = marshalSchemas(listSchemas)
 	}
 
 	return p

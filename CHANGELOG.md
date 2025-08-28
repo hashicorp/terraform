@@ -8,6 +8,13 @@ ENHANCEMENTS:
 * terraform test: ignore prevent_destroy attribute during when cleaning up tests" ([#37364](https://github.com/hashicorp/terraform/issues/37364))
 
 
+UPGRADE NOTES:
+
+* The parallelism of Terraform operations within container runtimes may be reduced depending on the CPU bandwidth limit setting. ([#37436](https://github.com/hashicorp/terraform/issues/37436))
+
+* Building Terraform 1.14 requires macOS Monterey or later (due to being built on Go 1.25 which imposes these requirements) ([#37436](https://github.com/hashicorp/terraform/issues/37436))
+
+
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
