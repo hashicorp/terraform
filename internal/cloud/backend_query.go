@@ -23,7 +23,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
-func (b *Cloud) opQuery(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.QueryRun, error) {
+func (b *Cloud) opQuery(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (OperationResult, error) {
 	log.Printf("[INFO] cloud: starting Query operation")
 
 	var diags tfdiags.Diagnostics
@@ -35,13 +35,13 @@ func (b *Cloud) opQuery(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 	}
 
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return &QueryRunResult{}, diags.Err()
 	}
 
 	return b.query(stopCtx, cancelCtx, op, w)
 }
 
-func (b *Cloud) query(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.QueryRun, error) {
+func (b *Cloud) query(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (OperationResult, error) {
 	if b.CLI != nil {
 		header := fmt.Sprintf(queryDefaultHeader, b.appName)
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
@@ -52,7 +52,7 @@ func (b *Cloud) query(stopCtx, cancelCtx context.Context, op *backendrun.Operati
 	}
 	cv, err := b.uploadConfigurationVersion(stopCtx, cancelCtx, op, w, configOptions)
 	if err != nil {
-		return nil, err
+		return &QueryRunResult{}, err
 	}
 
 	queryRunOptions := tfe.QueryRunCreateOptions{
@@ -65,7 +65,7 @@ func (b *Cloud) query(stopCtx, cancelCtx context.Context, op *backendrun.Operati
 
 	r, err := b.client.QueryRuns.Create(stopCtx, queryRunOptions)
 	if err != nil {
-		return nil, b.generalError("Failed to create query run", err)
+		return &QueryRunResult{}, b.generalError("Failed to create query run", err)
 	}
 
 	if b.CLI != nil {
@@ -76,15 +76,15 @@ func (b *Cloud) query(stopCtx, cancelCtx context.Context, op *backendrun.Operati
 
 	r, err = b.waitForQueryRun(stopCtx, cancelCtx, r)
 	if err != nil {
-		return r, err
+		return &QueryRunResult{run: r, backend: b}, err
 	}
 
 	err = b.renderQueryRunLogs(stopCtx, op, r)
 	if err != nil {
-		return r, err
+		return &QueryRunResult{run: r, backend: b}, err
 	}
 
-	return r, nil
+	return &QueryRunResult{run: r, backend: b}, nil
 }
 
 func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation, run *tfe.QueryRun) error {

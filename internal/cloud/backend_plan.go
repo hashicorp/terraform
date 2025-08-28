@@ -30,7 +30,7 @@ import (
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
 
-func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (OperationResult, error) {
 	log.Printf("[INFO] cloud: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
@@ -42,7 +42,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 			"The provided credentials have insufficient rights to generate a plan. In order "+
 				"to generate plans, at least plan permissions on the workspace are required.",
 		))
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	if w.VCSRepo != nil && op.PlanOutPath != "" {
@@ -52,7 +52,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 			"A workspace that is connected to a VCS requires the VCS-driven workflow "+
 				"to ensure that the VCS remains the single source of truth.",
 		))
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	if b.ContextOpts != nil && b.ContextOpts.Parallelism != defaultParallelism {
@@ -91,13 +91,13 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 
 	// Return if there are any errors.
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	// If the run errored, exit before checking whether to save a plan file
 	run, err := b.plan(stopCtx, cancelCtx, op, w)
 	if err != nil {
-		return nil, err
+		return &RunResult{}, err
 	}
 
 	// Save plan file if -out <FILE> was specified
@@ -105,14 +105,14 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.Hostname)
 		err = bookmark.Save(op.PlanOutPath)
 		if err != nil {
-			return nil, err
+			return &RunResult{}, err
 		}
 	}
 
 	// Everything succeded, so display next steps
 	op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
 
-	return run, nil
+	return &RunResult{run: run, backend: b}, nil
 }
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
