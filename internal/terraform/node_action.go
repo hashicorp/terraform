@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -22,11 +21,7 @@ type GraphNodeConfigAction interface {
 // nodeExpandActionDeclaration represents an action config block in a configuration module,
 // which has not yet been expanded.
 type nodeExpandActionDeclaration struct {
-	Addr   addrs.ConfigAction
-	Config configs.Action
-
-	Schema           *providers.ActionSchema
-	ResolvedProvider addrs.AbsProviderConfig
+	*NodeAbstractAction
 }
 
 var (
@@ -193,6 +188,9 @@ func (n *nodeExpandActionDeclaration) ProvidedBy() (addrs.ProviderConfig, bool) 
 
 // GraphNodeProviderConsumer
 func (n *nodeExpandActionDeclaration) Provider() addrs.Provider {
+	if n.ResolvedProvider.Provider.Type != "" {
+		return n.ResolvedProvider.Provider
+	}
 	return n.Config.Provider
 }
 
