@@ -106,7 +106,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	// If a path is specified, generate the config for the resource
 	if n.generateConfigPath != "" {
 		var gDiags tfdiags.Diagnostics
-		results.Generated, gDiags = n.generateHCLListResourceDef(addr, resp.Result.GetAttr("data"), providerSchema.ResourceTypes[n.Config.Type])
+		results.Generated, gDiags = n.generateHCLListResourceDef(ctx, addr, resp.Result.GetAttr("data"))
 		diags = diags.Append(gDiags)
 		if diags.HasErrors() {
 			return diags

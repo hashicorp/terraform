@@ -838,7 +838,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 
 		// Generate the HCL string first, then parse the HCL body from it.
-		generatedResource, generatedDiags := n.generateHCLResourceDef(n.Addr, instanceRefreshState.Value, schema)
+		generatedResource, generatedDiags := n.generateHCLResourceDef(ctx, n.Addr, instanceRefreshState.Value)
 		diags = diags.Append(generatedDiags)
 
 		// This wraps the content of the resource block in an enclosing resource block
@@ -884,25 +884,52 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 // generateHCLResourceDef generates the HCL definition for the resource
 // instance, including the surrounding block. This is used to generate the
 // configuration for the resource instance when importing or generating
-func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (genconfig.Resource, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) generateHCLResourceDef(ctx EvalContext, addr addrs.AbsResourceInstance, state cty.Value) (genconfig.Resource, tfdiags.Diagnostics) {
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
 	}
 
-	// This is generating configuration, so the only marks should be coming from
-	// the schema itself.
-	state, _ = state.UnmarkDeep()
-	// filter the state down to a suitable config value
-	config := genconfig.ExtractLegacyConfigFromState(schema.Body, state)
+	var diags tfdiags.Diagnostics
+
+	providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+	if err != nil {
+		return genconfig.Resource{}, diags.Append(err)
+	}
+
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		return genconfig.Resource{}, diags
+	}
+
+	config, genDiags := n.generateResourceConfig(ctx, state)
+	diags = diags.Append(genDiags)
+	if diags.HasErrors() {
+		return genconfig.Resource{}, diags
+	}
 
 	return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, config, false)
 }
 
-func (n *NodePlannableResourceInstance) generateHCLListResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (genconfig.ImportGroup, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalContext, addr addrs.AbsResourceInstance, state cty.Value) (genconfig.ImportGroup, tfdiags.Diagnostics) {
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
+	}
+	var diags tfdiags.Diagnostics
+
+	providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+	if err != nil {
+		return genconfig.ImportGroup{}, diags.Append(err)
+	}
+
+	schema := providerSchema.ResourceTypes[n.Addr.Resource.Resource.Type]
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		return genconfig.ImportGroup{}, diags
 	}
 
 	if !state.CanIterateElements() {
@@ -916,19 +943,62 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(addr addrs.Ab
 		_, val := iter.Element()
 		// we still need to generate the resource block even if the state is not given,
 		// so that the import block can reference it.
-		stateVal := cty.NilVal
+		stateVal := cty.NullVal(schema.Body.ImpliedType())
 		if val.Type().HasAttribute("state") {
 			stateVal = val.GetAttr("state")
 		}
 
-		stateVal, _ = stateVal.UnmarkDeep()
-		config := genconfig.ExtractLegacyConfigFromState(schema.Body, stateVal)
+		config, genDiags := n.generateResourceConfig(ctx, stateVal)
+		diags = diags.Append(genDiags)
+		if diags.HasErrors() {
+			return genconfig.ImportGroup{}, diags
+		}
 		idVal := val.GetAttr("identity")
 
 		listElements = append(listElements, genconfig.ResourceListElement{Config: config, Identity: idVal})
 	}
 
 	return genconfig.GenerateListResourceContents(addr, schema.Body, schema.Identity, providerAddr, listElements)
+}
+
+func (n *NodePlannableResourceInstance) generateResourceConfig(ctx EvalContext, state cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// There should be no marks when generating config, because this is entirely
+	// new config being generated. We already have the schema for any relevant
+	// metadata.
+	state, _ = state.UnmarkDeep()
+
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		return cty.DynamicVal, diags
+	}
+
+	// Use the config value from providers which can generate it themselves
+	if providerSchema.ServerCapabilities.GenerateResourceConfig {
+		req := providers.GenerateResourceConfigRequest{
+			TypeName: n.Addr.Resource.Resource.Type,
+			State:    state,
+		}
+
+		resp := provider.GenerateResourceConfig(req)
+		diags = diags.Append(resp.Diagnostics)
+		if diags.HasErrors() {
+			return cty.DynamicVal, diags
+		}
+
+		return resp.Config, diags
+	}
+
+	// or fallback to the default process of guessing at a legacy config.
+	return genconfig.ExtractLegacyConfigFromState(schema.Body, state), diags
 }
 
 // mergeDeps returns the union of 2 sets of dependencies
