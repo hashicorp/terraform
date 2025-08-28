@@ -66,6 +66,13 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 
 	diags = diags.Append(refresh.Operation.Parse())
 
+	if len(refresh.Operation.ActionTargets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid arguments",
+			"Actions cannot be specified during refresh operations."))
+	}
+
 	// JSON view currently does not support input, so we disable it here
 	if json {
 		refresh.InputEnabled = false
