@@ -1900,7 +1900,7 @@ resource "test_instance" "a" {
 }
 
 resource "test_instance" "b" {
-  // one dymamic block can satisfy MinItems of 2
+  // one dynamic block can satisfy MinItems of 2
   dynamic "foo" {
 	for_each = test_instance.a.things
 	content {
@@ -3571,10 +3571,11 @@ func TestContext2Validate_queryList(t *testing.T) {
 	}
 }
 
+// Action Validation is largely exercised in context_plan_actions_test.go
 func TestContext2Validate_action(t *testing.T) {
 	tests := map[string]struct {
-		config     string
-		expectErrs []string
+		config  string
+		wantErr string
 	}{
 		"valid config": {
 			`
@@ -3602,7 +3603,7 @@ resource "test_instance" "foo" {
   }
 }
 `,
-			nil,
+			"",
 		},
 	}
 
@@ -3632,13 +3633,22 @@ resource "test_instance" "foo" {
 			})
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 				},
 			})
 
 			diags := ctx.Validate(m, nil)
-			if diags.HasErrors() {
-				fmt.Println(diags)
+
+			if test.wantErr != "" {
+				if !diags.HasErrors() {
+					t.Errorf("unexpected success\nwant errors: %s", test.wantErr)
+				} else if got, want := diags.Err().Error(), test.wantErr; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+			} else {
+				if diags.HasErrors() {
+					t.Errorf("unexpected error\ngot: %s", diags.Err().Error())
+				}
 			}
 		})
 	}
