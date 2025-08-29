@@ -26,6 +26,7 @@ type TestGraphBuilder struct {
 	Config      *configs.Config
 	File        *moduletest.File
 	ContextOpts *terraform.ContextOpts
+	CommandMode moduletest.CommandMode
 }
 
 type graphOptions struct {
@@ -49,11 +50,11 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		ContextOpts: b.ContextOpts,
 	}
 	steps := []terraform.GraphTransformer{
-		&TestRunTransformer{opts},
+		&TestRunTransformer{opts: opts, mode: b.CommandMode},
 		&TestVariablesTransformer{File: b.File},
 		terraform.DynamicTransformer(validateRunConfigs),
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
-			cleanup := &TeardownSubgraph{opts: opts, parent: g}
+			cleanup := &TeardownSubgraph{opts: opts, parent: g, mode: b.CommandMode}
 			g.Add(cleanup)
 
 			// ensure that the teardown node runs after all the run nodes
@@ -70,7 +71,6 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 			File:      b.File,
 			Providers: opts.ContextOpts.Providers,
 		},
-		&EvalContextTransformer{File: b.File},
 		&ReferenceTransformer{},
 		&CloseTestGraphTransformer{},
 		&terraform.TransitiveReductionTransformer{},
@@ -88,16 +88,6 @@ func validateRunConfigs(g *terraform.Graph) error {
 		}
 	}
 	return nil
-}
-
-// dynamicNode is a helper node which can be added to the graph to execute
-// a dynamic function at some desired point in the graph.
-type dynamicNode struct {
-	eval func(*EvalContext)
-}
-
-func (n *dynamicNode) Execute(evalCtx *EvalContext) {
-	n.eval(evalCtx)
 }
 
 func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {

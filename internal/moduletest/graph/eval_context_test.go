@@ -746,7 +746,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				run.Outputs = test.priorOutputs[run.Name]
 				testCtx.runBlocks[run.Name] = run
 			}
-			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run, planScope, test.testOnlyVars)
+			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run.Config, run.ModuleConfig.Module, planScope, test.testOnlyVars)
 
 			if got, want := gotStatus, test.expectedStatus; got != want {
 				t.Errorf("wrong status %q; want %q", got, want)
