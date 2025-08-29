@@ -217,25 +217,30 @@ func evaluateCondition(ctx EvalContext, at conditionContext) (bool, tfdiags.Diag
 	var diags tfdiags.Diagnostics
 
 	rd := instances.RepetitionData{}
-	var self addrs.Referenceable = nil
-	if containsBeforeEvent(at.events) {
-		// If events contains a before event we want to error if count, each, or self is used
-		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, at.conditionExpr)
-		diags = diags.Append(refDiags)
-		if diags.HasErrors() {
-			return false, diags
+	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, at.conditionExpr)
+	diags = diags.Append(refDiags)
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	for _, ref := range refs {
+		if ref.Subject == addrs.Self {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Self reference not allowed",
+				Detail:   `The condition expression cannot reference "self".`,
+				Subject:  at.conditionExpr.Range().Ptr(),
+			})
 		}
+	}
 
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	if containsBeforeEvent(at.events) {
+		// If events contains a before event we want to error if count or each is used
 		for _, ref := range refs {
-			if ref.Subject == addrs.Self {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Self reference not allowed",
-					Detail:   `The condition expression cannot reference "self" if the action is run before the resource is applied.`,
-					Subject:  at.conditionExpr.Range().Ptr(),
-				})
-			}
-
 			if _, ok := ref.Subject.(addrs.CountAttr); ok {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -262,10 +267,9 @@ func evaluateCondition(ctx EvalContext, at conditionContext) (bool, tfdiags.Diag
 		// If there are only after events we allow self, count, and each
 		expander := ctx.InstanceExpander()
 		rd = expander.GetResourceInstanceRepetitionData(at.resourceAddress)
-		self = at.resourceAddress.Resource
 	}
 
-	scope := ctx.EvaluationScope(self, nil, rd)
+	scope := ctx.EvaluationScope(nil, nil, rd)
 	val, conditionEvalDiags := scope.EvalExpr(at.conditionExpr, cty.Bool)
 	diags = diags.Append(conditionEvalDiags)
 	if diags.HasErrors() {
