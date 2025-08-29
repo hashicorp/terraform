@@ -35,6 +35,7 @@ type MockClient struct {
 	RedactedPlans         *MockRedactedPlans
 	PolicyChecks          *MockPolicyChecks
 	Projects              *MockProjects
+	QueryRuns             *MockQueryRuns
 	RegistryModules       *MockRegistryModules
 	Runs                  *MockRuns
 	RunEvents             *MockRunEvents
@@ -56,6 +57,7 @@ func NewMockClient() *MockClient {
 	c.PolicySetOutcomes = newMockPolicySetOutcomes(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Projects = newMockProjects(c)
+	c.QueryRuns = newMockQueryRuns(c)
 	c.RegistryModules = newMockRegistryModules(c)
 	c.Runs = newMockRuns(c)
 	c.RunEvents = newMockRunEvents(c)
@@ -2407,6 +2409,175 @@ func (s *MockWorkspaces) SetDataRetentionPolicyDeleteOlder(ctx context.Context, 
 }
 
 func (s *MockWorkspaces) SetDataRetentionPolicyDontDelete(ctx context.Context, workspaceID string, options tfe.DataRetentionPolicyDontDeleteSetOptions) (*tfe.DataRetentionPolicyDontDelete, error) {
+	panic("not implemented")
+}
+
+type MockQueryRuns struct {
+	sync.Mutex
+
+	client     *MockClient
+	logs       map[string]string
+	Runs       map[string]*tfe.QueryRun
+	workspaces map[string][]*tfe.QueryRun
+}
+
+func newMockQueryRuns(client *MockClient) *MockQueryRuns {
+	return &MockQueryRuns{
+		client:     client,
+		logs:       make(map[string]string),
+		Runs:       make(map[string]*tfe.QueryRun),
+		workspaces: make(map[string][]*tfe.QueryRun),
+	}
+}
+
+func (m *MockQueryRuns) List(ctx context.Context, workspaceID string, options *tfe.QueryRunListOptions) (*tfe.QueryRunList, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	rl := &tfe.QueryRunList{}
+	for _, run := range m.workspaces[w.ID] {
+		rc := copy.DeepCopyValue(run)
+		rl.Items = append(rl.Items, rc)
+	}
+
+	rl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(rl.Items),
+	}
+
+	return rl, nil
+}
+
+func (m *MockQueryRuns) Create(ctx context.Context, options tfe.QueryRunCreateOptions) (*tfe.QueryRun, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	id := GenerateID("qry-")
+	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+
+	r := &tfe.QueryRun{
+		ID:         id,
+		LogReadURL: url,
+		Status:     tfe.QueryRunPending,
+	}
+
+	w, ok := m.client.Workspaces.workspaceIDs[options.Workspace.ID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	r.Workspace = &tfe.Workspace{
+		ID:                         w.ID,
+		StructuredRunOutputEnabled: w.StructuredRunOutputEnabled,
+		TerraformVersion:           w.TerraformVersion,
+	}
+
+	m.logs[url] = filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[options.ConfigurationVersion.ID],
+		w.WorkingDirectory,
+		"query.log",
+	)
+
+	m.Runs[r.ID] = r
+	m.workspaces[options.Workspace.ID] = append(m.workspaces[options.Workspace.ID], r)
+
+	return r, nil
+}
+
+func (m *MockQueryRuns) Read(ctx context.Context, queryRunID string) (*tfe.QueryRun, error) {
+	return m.ReadWithOptions(ctx, queryRunID, nil)
+}
+
+func (m *MockQueryRuns) ReadWithOptions(ctx context.Context, queryRunID string, options *tfe.QueryRunReadOptions) (*tfe.QueryRun, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	r, ok := m.Runs[queryRunID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	pending := false
+	for _, r := range m.Runs {
+		if r.ID != queryRunID && r.Status == tfe.QueryRunPending {
+			pending = true
+			break
+		}
+	}
+
+	if !pending && r.Status == tfe.QueryRunPending {
+		// Only update the status if there are no other pending runs.
+		r.Status = tfe.QueryRunRunning
+	}
+
+	logs, _ := os.ReadFile(m.client.QueryRuns.logs[r.LogReadURL])
+	if r.Status == tfe.QueryRunRunning {
+		hasError := bytes.Contains(logs, []byte("null_resource.foo: 1 error")) ||
+			bytes.Contains(logs, []byte("Error: Unsupported block type")) ||
+			bytes.Contains(logs, []byte("Error: Conflicting configuration arguments"))
+		if hasError {
+			r.Status = tfe.QueryRunErrored
+		} else {
+			r.Status = tfe.QueryRunFinished
+		}
+	}
+
+	// we must return a copy for the client
+	r = copy.DeepCopyValue(r)
+
+	return r, nil
+}
+
+func (m *MockQueryRuns) Logs(ctx context.Context, queryRunID string) (io.Reader, error) {
+	r, err := m.Read(ctx, queryRunID)
+	if err != nil {
+		return nil, err
+	}
+
+	logfile, ok := m.logs[r.LogReadURL]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return bytes.NewBufferString("logfile does not exist"), nil
+	}
+
+	logs, err := os.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	done := func() (bool, error) {
+		r, err := m.Read(ctx, queryRunID)
+		if err != nil {
+			return false, err
+		}
+		if r.Status != tfe.QueryRunFinished {
+			return false, nil
+		}
+		return true, nil
+	}
+
+	return &mockLogReader{
+		done: done,
+		logs: bytes.NewBuffer(logs),
+	}, nil
+}
+
+func (m *MockQueryRuns) Cancel(ctx context.Context, queryRunID string) error {
+	panic("not implemented")
+}
+
+func (m *MockQueryRuns) ForceCancel(ctx context.Context, queryRunID string) error {
 	panic("not implemented")
 }
 
