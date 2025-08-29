@@ -10,11 +10,14 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeActionTriggerPlanInstance struct {
@@ -32,6 +35,7 @@ type lifecycleActionTriggerInstance struct {
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
+	conditionExpr           hcl.Expression
 }
 
 func (at *lifecycleActionTriggerInstance) Name() string {
@@ -111,6 +115,25 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	if triggeringEvent == nil {
 		panic("triggeringEvent cannot be nil")
 	}
+
+	// Evaluate the condition expression if it exists (otherwise it's true)
+	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
+		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
+			events:          n.lifecycleActionTrigger.events,
+			conditionExpr:   n.lifecycleActionTrigger.conditionExpr,
+			resourceAddress: n.lifecycleActionTrigger.resourceAddress,
+		})
+		diags = diags.Append(conditionDiags)
+		if conditionDiags.HasErrors() {
+			return conditionDiags
+		}
+
+		// The condition is false so we skip the action
+		if !condition {
+			return diags
+		}
+	}
+
 	// We need to set the triggering event on the action invocation
 	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent)
 
@@ -182,4 +205,98 @@ func (n *nodeActionTriggerPlanInstance) Path() addrs.ModuleInstance {
 	// or by resources during plan/apply in which case both the resource and action must belong
 	// to the same module. So we can simply return the module path of the action.
 	return n.actionAddress.Module
+}
+
+type actionConditionContext struct {
+	events          []configs.ActionTriggerEvent
+	conditionExpr   hcl.Expression
+	resourceAddress addrs.AbsResourceInstance
+}
+
+func evaluateActionCondition(ctx EvalContext, at actionConditionContext) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	rd := instances.RepetitionData{}
+	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, at.conditionExpr)
+	diags = diags.Append(refDiags)
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	for _, ref := range refs {
+		if ref.Subject == addrs.Self {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Self reference not allowed",
+				Detail:   `The condition expression cannot reference "self".`,
+				Subject:  at.conditionExpr.Range().Ptr(),
+			})
+		}
+	}
+
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	if containsBeforeEvent(at.events) {
+		// If events contains a before event we want to error if count or each is used
+		for _, ref := range refs {
+			if _, ok := ref.Subject.(addrs.CountAttr); ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject:  at.conditionExpr.Range().Ptr(),
+				})
+			}
+
+			if _, ok := ref.Subject.(addrs.ForEachAttr); ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject:  at.conditionExpr.Range().Ptr(),
+				})
+			}
+
+			if diags.HasErrors() {
+				return false, diags
+			}
+		}
+	} else {
+		// If there are only after events we allow self, count, and each
+		expander := ctx.InstanceExpander()
+		rd = expander.GetResourceInstanceRepetitionData(at.resourceAddress)
+	}
+
+	scope := ctx.EvaluationScope(nil, nil, rd)
+	val, conditionEvalDiags := scope.EvalExpr(at.conditionExpr, cty.Bool)
+	diags = diags.Append(conditionEvalDiags)
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	if !val.IsWhollyKnown() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Condition must be known",
+			Detail:   "The condition expression resulted in an unknown value, but it must be a known boolean value.",
+			Subject:  at.conditionExpr.Range().Ptr(),
+		})
+		return false, diags
+	}
+
+	return val.True(), nil
+}
+
+func containsBeforeEvent(events []configs.ActionTriggerEvent) bool {
+	for _, event := range events {
+		switch event {
+		case configs.BeforeCreate, configs.BeforeUpdate:
+			return true
+		default:
+			continue
+		}
+	}
+	return false
 }

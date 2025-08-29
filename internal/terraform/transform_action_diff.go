@@ -20,9 +20,9 @@ type ActionDiffTransformer struct {
 }
 
 func (t *ActionDiffTransformer) Transform(g *Graph) error {
-	applyNodes := addrs.MakeMap[addrs.ConfigResource, *nodeExpandApplyableResource]()
+	applyNodes := addrs.MakeMap[addrs.AbsResourceInstance, *NodeApplyableResourceInstance]()
 	for _, vs := range g.Vertices() {
-		applyableResource, ok := vs.(*nodeExpandApplyableResource)
+		applyableResource, ok := vs.(*NodeApplyableResourceInstance)
 		if !ok {
 			continue
 		}
@@ -57,6 +57,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 
 			act := triggerBlock.Actions[at.ActionsListIndex]
 			node.ActionTriggerRange = &act.Range
+			node.ConditionExpr = triggerBlock.Condition
 		}
 
 		g.Add(node)
@@ -65,7 +66,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 		// Add edge to triggering resource
 		if lat, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger); ok {
 			// Add edges for lifecycle action triggers
-			resourceNode, ok := applyNodes.GetOk(lat.TriggeringResourceAddr.ConfigResource())
+			resourceNode, ok := applyNodes.GetOk(lat.TriggeringResourceAddr)
 			if !ok {
 				panic("Could not find resource node for lifecycle action trigger")
 			}

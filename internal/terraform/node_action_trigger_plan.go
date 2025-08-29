@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -24,13 +25,13 @@ type nodeActionTriggerPlanExpand struct {
 }
 
 type lifecycleActionTrigger struct {
-	resourceAddress addrs.ConfigResource
-	events          []configs.ActionTriggerEvent
-	//condition       hcl.Expression
+	resourceAddress         addrs.ConfigResource
+	events                  []configs.ActionTriggerEvent
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
 	actionExpr              hcl.Expression
+	conditionExpr           hcl.Expression
 }
 
 func (at *lifecycleActionTrigger) Name() string {
@@ -103,6 +104,7 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
 					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
 					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
+					conditionExpr:           n.lifecycleActionTrigger.conditionExpr,
 				},
 			}
 
@@ -128,6 +130,9 @@ func (n *nodeActionTriggerPlanExpand) References() []*addrs.Reference {
 		refs = append(refs, &addrs.Reference{
 			Subject: n.lifecycleActionTrigger.resourceAddress.Resource,
 		})
+
+		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.lifecycleActionTrigger.conditionExpr)
+		refs = append(refs, conditionRefs...)
 	}
 
 	return refs
