@@ -653,6 +653,29 @@ in order to capture the filesystem context the remote workspace expects:
 	return cv, nil
 }
 
+func (b *Cloud) parseRunVariables(op *backendrun.Operation) ([]*tfe.RunVariable, error) {
+	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
+	if configDiags.HasErrors() {
+		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
+	}
+
+	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
+
+	if varDiags.HasErrors() {
+		return nil, varDiags.Err()
+	}
+
+	runVariables := make([]*tfe.RunVariable, 0, len(variables))
+	for name, value := range variables {
+		runVariables = append(runVariables, &tfe.RunVariable{
+			Key:   name,
+			Value: value,
+		})
+	}
+
+	return runVariables, nil
+}
+
 // This method will fetch the redacted plan output as a byte slice, mirroring
 // the behavior of the similar client.Plans.ReadJSONOutput method.
 //

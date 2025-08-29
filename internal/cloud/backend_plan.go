@@ -178,23 +178,9 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		}
 	}
 
-	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
-	if configDiags.HasErrors() {
-		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
-	}
-
-	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
-
-	if varDiags.HasErrors() {
-		return nil, varDiags.Err()
-	}
-
-	runVariables := make([]*tfe.RunVariable, 0, len(variables))
-	for name, value := range variables {
-		runVariables = append(runVariables, &tfe.RunVariable{
-			Key:   name,
-			Value: value,
-		})
+	runVariables, err := b.parseRunVariables(op)
+	if err != nil {
+		return nil, err
 	}
 	runOptions.Variables = runVariables
 

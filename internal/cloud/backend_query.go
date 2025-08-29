@@ -61,7 +61,11 @@ func (b *Cloud) query(stopCtx, cancelCtx context.Context, op *backendrun.Operati
 		Source:               tfe.QueryRunSourceAPI,
 	}
 
-	// TODO variables
+	runVariables, err := b.parseRunVariables(op)
+	if err != nil {
+		return nil, err
+	}
+	queryRunOptions.Variables = runVariables
 
 	r, err := b.client.QueryRuns.Create(stopCtx, queryRunOptions)
 	if err != nil {
