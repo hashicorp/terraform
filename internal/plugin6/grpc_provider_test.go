@@ -3545,7 +3545,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 				err: nil,
 			},
 			2: {
-				resp: nil,
+				resp: &proto.ReadStateBytes_Response{},
 				err:  io.EOF,
 			},
 		}
@@ -3621,7 +3621,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 				err: nil,
 			},
 			2: {
-				resp: nil,
+				resp: &proto.ReadStateBytes_Response{},
 				err:  io.EOF,
 			},
 		}
