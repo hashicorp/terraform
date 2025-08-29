@@ -6,12 +6,13 @@ package plans
 import (
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type ActionInvocationInstance struct {
@@ -46,6 +47,7 @@ type ActionTrigger interface {
 
 var (
 	_ ActionTrigger = (*LifecycleActionTrigger)(nil)
+	_ ActionTrigger = (*InvokeActionTrigger)(nil)
 )
 
 type LifecycleActionTrigger struct {
@@ -59,18 +61,18 @@ type LifecycleActionTrigger struct {
 	ActionsListIndex int
 }
 
-func (t LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+func (t *LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 	return t.ActionTriggerEvent
 }
 
-func (t LifecycleActionTrigger) actionTriggerSigil() {}
+func (t *LifecycleActionTrigger) actionTriggerSigil() {}
 
-func (t LifecycleActionTrigger) String() string {
+func (t *LifecycleActionTrigger) String() string {
 	return t.TriggeringResourceAddr.String()
 }
 
-func (t LifecycleActionTrigger) Equals(other ActionTrigger) bool {
-	o, ok := other.(LifecycleActionTrigger)
+func (t *LifecycleActionTrigger) Equals(other ActionTrigger) bool {
+	o, ok := other.(*LifecycleActionTrigger)
 	if !ok {
 		return false
 	}
@@ -80,8 +82,8 @@ func (t LifecycleActionTrigger) Equals(other ActionTrigger) bool {
 		t.ActionsListIndex == o.ActionsListIndex
 }
 
-func (t LifecycleActionTrigger) Less(other ActionTrigger) bool {
-	o, ok := other.(LifecycleActionTrigger)
+func (t *LifecycleActionTrigger) Less(other ActionTrigger) bool {
+	o, ok := other.(*LifecycleActionTrigger)
 	if !ok {
 		return false // We always want to show non-lifecycle actions first
 	}
@@ -94,7 +96,32 @@ func (t LifecycleActionTrigger) Less(other ActionTrigger) bool {
 			t.ActionsListIndex < o.ActionsListIndex)
 }
 
-var _ ActionTrigger = (*LifecycleActionTrigger)(nil)
+type InvokeActionTrigger struct{}
+
+func (t *InvokeActionTrigger) actionTriggerSigil() {}
+
+func (t *InvokeActionTrigger) String() string {
+	return "CLI"
+}
+
+func (t *InvokeActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+	return configs.Invoke
+}
+
+func (t *InvokeActionTrigger) Equals(other ActionTrigger) bool {
+	_, ok := other.(*InvokeActionTrigger)
+	if !ok {
+		return false
+	}
+
+	return true // InvokeActionTriggers are always considered equal
+}
+
+func (t *InvokeActionTrigger) Less(other ActionTrigger) bool {
+	// always return true, actions that are equal are already ordered by
+	// address externally. these actions should go first anyway.
+	return true
+}
 
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the

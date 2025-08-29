@@ -122,10 +122,20 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 					}
 
 				case "state_store":
-					stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
-					diags = append(diags, cfgDiags...)
-					if stateStoreCfg != nil {
-						file.StateStores = append(file.StateStores, stateStoreCfg)
+					if allowExperiments {
+						stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
+						diags = append(diags, cfgDiags...)
+						if stateStoreCfg != nil {
+							file.StateStores = append(file.StateStores, stateStoreCfg)
+						}
+					} else {
+						// Prevent parsing of state_store blocks in all commands unless experiments enabled.
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unsupported block type",
+							Detail:   "Blocks of type \"state_store\" are not expected here.",
+							Subject:  &innerBlock.TypeRange,
+						})
 					}
 				case "cloud":
 					cloudCfg, cfgDiags := decodeCloudBlock(innerBlock)

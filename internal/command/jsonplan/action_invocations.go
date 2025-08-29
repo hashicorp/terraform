@@ -7,14 +7,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
+
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 type ActionInvocation struct {
@@ -36,7 +38,7 @@ type ActionInvocation struct {
 	ProviderName string `json:"provider_name,omitempty"`
 
 	LifecycleActionTrigger *LifecycleActionTrigger `json:"lifecycle_action_trigger,omitempty"`
-	InvokeCmdActionTrigger *InvokeCmdActionTrigger `json:"invoke_cmd_action_trigger,omitempty"`
+	InvokeActionTrigger    *InvokeActionTrigger    `json:"invoke_action_trigger,omitempty"`
 }
 
 type LifecycleActionTrigger struct {
@@ -46,11 +48,24 @@ type LifecycleActionTrigger struct {
 	ActionsListIndex          int    `json:"actions_list_index"`
 }
 
-type InvokeCmdActionTrigger struct {
-	ActionTriggerEvent string `json:"action_trigger_event,omitempty"`
-}
+type InvokeActionTrigger struct{}
 
 func ActionInvocationCompare(a, b ActionInvocation) int {
+
+	// invoke action triggers go first, then compare addresses between invoke
+	// action triggers.
+
+	if a.InvokeActionTrigger != nil {
+		if b.InvokeActionTrigger != nil {
+			return strings.Compare(a.Address, b.Address)
+		}
+		return -1
+	}
+
+	if b.InvokeActionTrigger != nil {
+		return 1
+	}
+
 	if a.LifecycleActionTrigger != nil && b.LifecycleActionTrigger != nil {
 		latA := *a.LifecycleActionTrigger
 		latB := *b.LifecycleActionTrigger
@@ -129,13 +144,15 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 	}
 
 	switch at := action.ActionTrigger.(type) {
-	case plans.LifecycleActionTrigger:
+	case *plans.LifecycleActionTrigger:
 		ai.LifecycleActionTrigger = &LifecycleActionTrigger{
 			TriggeringResourceAddress: at.TriggeringResourceAddr.String(),
 			ActionTriggerEvent:        at.TriggerEvent().String(),
 			ActionTriggerBlockIndex:   at.ActionTriggerBlockIndex,
 			ActionsListIndex:          at.ActionsListIndex,
 		}
+	case *plans.InvokeActionTrigger:
+		ai.InvokeActionTrigger = new(InvokeActionTrigger)
 	default:
 		return ai, fmt.Errorf("unsupported action trigger type: %T", at)
 	}

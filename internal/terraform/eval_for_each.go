@@ -85,7 +85,7 @@ func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags
 	}
 
 	// validate the for_each value for use in resource expansion
-	diags = diags.Append(ev.validateResource(forEachVal))
+	diags = diags.Append(ev.validateResourceOrActionForEach(forEachVal, "resource"))
 	if diags.HasErrors() {
 		return res, false, diags
 	}
@@ -287,21 +287,39 @@ func (ev *forEachEvaluator) ValidateResourceValue() tfdiags.Diagnostics {
 		return diags
 	}
 
-	return diags.Append(ev.validateResource(val))
+	return diags.Append(ev.validateResourceOrActionForEach(val, "resource"))
 }
 
-// validateResource validates the type and values of the forEachVal, while
-// still allowing unknown values for use within the validation walk.
-func (ev *forEachEvaluator) validateResource(forEachVal cty.Value) tfdiags.Diagnostics {
+// ValidateActionValue is used from validation walks to verify the validity of
+// the action for_Each expression, while still allowing for unknown values.
+func (ev *forEachEvaluator) ValidateActionValue() tfdiags.Diagnostics {
+	val, diags := ev.Value()
+	if diags.HasErrors() {
+		return diags
+	}
+
+	return diags.Append(ev.validateResourceOrActionForEach(val, "action"))
+}
+
+// validateResourceOrActionForEach validates the type and values of the
+// forEachVal, while still allowing unknown values for use within the validation
+// walk. The "blocktype" parameter is used to craft the diagnostic messages and
+// indicates if the block was a resource or action. You can also use the
+// ValidateActionValue or ValidateResourceValue helper methods to avoid this.
+func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value, blocktype string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Sensitive values are not allowed because otherwise the sensitive keys
 	// would get exposed as part of the instance addresses.
+	msg := "a resource"
+	if blocktype == "action" {
+		msg = "an action"
+	}
 	if forEachVal.HasMark(marks.Sensitive) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     "Invalid for_each argument",
-			Detail:      "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+			Detail:      fmt.Sprintf("Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as %s instance key.", msg),
 			Subject:     ev.expr.Range().Ptr(),
 			Expression:  ev.expr,
 			EvalContext: ev.hclCtx,

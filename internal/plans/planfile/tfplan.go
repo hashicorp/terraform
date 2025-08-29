@@ -157,6 +157,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
 	}
 
+	for _, rawActionAddr := range rawPlan.ActionTargetAddrs {
+		target, diags := addrs.ParseTargetActionStr(rawActionAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("plan contains invalid action target address %q: %s", target, diags.Err())
+		}
+		plan.ActionTargetAddrs = append(plan.ActionTargetAddrs, target.Subject)
+	}
+
 	for _, rawReplaceAddr := range rawPlan.ForceReplaceAddrs {
 		addr, diags := addrs.ParseAbsResourceInstanceStr(rawReplaceAddr)
 		if diags.HasErrors() {
@@ -694,6 +702,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for _, targetAddr := range plan.TargetAddrs {
 		rawPlan.TargetAddrs = append(rawPlan.TargetAddrs, targetAddr.String())
+	}
+
+	for _, actionAddr := range plan.ActionTargetAddrs {
+		rawPlan.ActionTargetAddrs = append(rawPlan.ActionTargetAddrs, actionAddr.String())
 	}
 
 	for _, replaceAddr := range plan.ForceReplaceAddrs {
@@ -1342,12 +1354,14 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 		default:
 			return nil, fmt.Errorf("invalid action trigger event %s", at.LifecycleActionTrigger.TriggerEvent)
 		}
-		ret.ActionTrigger = plans.LifecycleActionTrigger{
+		ret.ActionTrigger = &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  triggeringResourceAddrs,
 			ActionTriggerBlockIndex: int(at.LifecycleActionTrigger.ActionTriggerBlockIndex),
 			ActionsListIndex:        int(at.LifecycleActionTrigger.ActionsListIndex),
 			ActionTriggerEvent:      ate,
 		}
+	case *planproto.ActionInvocationInstance_InvokeActionTrigger:
+		ret.ActionTrigger = new(plans.InvokeActionTrigger)
 	default:
 		// This should be exhaustive
 		return nil, fmt.Errorf("unsupported action trigger type %t", rawAction.ActionTrigger)
@@ -1386,7 +1400,7 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 	}
 
 	switch at := action.ActionTrigger.(type) {
-	case plans.LifecycleActionTrigger:
+	case *plans.LifecycleActionTrigger:
 		triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
 		switch at.ActionTriggerEvent {
 		case configs.BeforeCreate:
@@ -1410,6 +1424,8 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 				ActionsListIndex:        int64(at.ActionsListIndex),
 			},
 		}
+	case *plans.InvokeActionTrigger:
+		ret.ActionTrigger = new(planproto.ActionInvocationInstance_InvokeActionTrigger)
 	default:
 		// This should be exhaustive
 		return nil, fmt.Errorf("unsupported action trigger type: %T", at)

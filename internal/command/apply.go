@@ -270,7 +270,6 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = args.Refresh
 	opReq.Targets = args.Targets
-	opReq.ActionTargets = args.ActionTargets
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
@@ -279,6 +278,7 @@ func (c *ApplyCommand) OperationRequest(
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
 		opReq.DeferralAllowed = args.DeferralAllowed
+		opReq.ActionTargets = args.ActionTargets
 	} else if args.DeferralAllowed {
 		// Belated flag parse error, since we don't know about experiments
 		// support at actual parse time.
@@ -286,6 +286,15 @@ func (c *ApplyCommand) OperationRequest(
 			tfdiags.Error,
 			"Failed to parse command-line flags",
 			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	} else if len(args.ActionTargets) > 0 {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -invoke flag is only valid in experimental builds of Terraform.",
 		))
 		return nil, diags
 	}

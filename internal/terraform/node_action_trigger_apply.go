@@ -28,7 +28,7 @@ var (
 )
 
 func (n *nodeActionTriggerApply) Name() string {
-	return "action_apply_" + n.ActionInvocation.Addr.String()
+	return n.ActionInvocation.Addr.String() + " (instance)"
 }
 
 func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {

@@ -159,7 +159,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			continue
 		}
 
-		o.Targets = append(o.Targets, target.Subject)
+		o.ActionTargets = append(o.ActionTargets, target.Subject)
 	}
 
 	if len(o.ActionTargets) > 0 && len(o.Targets) > 0 {
@@ -236,15 +236,6 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		} else {
 			o.PlanMode = plans.NormalMode
 		}
-	}
-
-	if !o.Refresh && len(o.ActionTargets) > 0 {
-		// TODO: Check this? Can we trigger actions without refreshing?
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Incompatible refresh options",
-			"Action invocations will always refresh the relevant resources before execution.",
-		))
 	}
 
 	return diags
