@@ -26,15 +26,6 @@ type NodeAbstractAction struct {
 	Schema           *providers.ActionSchema
 }
 
-// NewNodeAbstractAction creates an abstract action graph node for
-// the given action config address.
-func NewNodeAbstractAction(addr addrs.ConfigAction, config configs.Action) *NodeAbstractAction {
-	return &NodeAbstractAction{
-		Addr:   addr,
-		Config: config, // we don't have an "attach action config" transformer
-	}
-}
-
 var (
 	_ GraphNodeReferenceable      = (*NodeAbstractAction)(nil)
 	_ GraphNodeReferencer         = (*NodeAbstractAction)(nil)

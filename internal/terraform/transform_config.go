@@ -137,7 +137,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
 			abstract := &NodeAbstractAction{
 				Addr:   addr,
-				Config: a,
+				Config: *a,
 			}
 			var node dag.Vertex
 			if f := t.ConcreteAction; f != nil {

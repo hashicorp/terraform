@@ -161,7 +161,7 @@ type MockProvider struct {
 	InvokeActionRequest  providers.InvokeActionRequest
 	InvokeActionFn       func(providers.InvokeActionRequest) providers.InvokeActionResponse
 
-	ValidateActionCalled         bool
+	ValidateActionConfigCalled   bool
 	ValidateActionConfigRequest  providers.ValidateActionConfigRequest
 	ValidateActionConfigResponse *providers.ValidateActionConfigResponse
 	ValidateActionConfigFn       func(providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse
@@ -1055,10 +1055,22 @@ func (p *MockProvider) beginWrite() func() {
 }
 
 func (p *MockProvider) ValidateActionConfig(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
-	defer p.beginWrite()
+	defer p.beginWrite()()
 
-	p.ValidateActionCalled = true
+	p.ValidateActionConfigCalled = true
 	p.ValidateActionConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol
+	actionSchema, ok := p.getProviderSchema().Actions[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+	_, err := msgpack.Marshal(r.Config, actionSchema.ConfigSchema.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	if p.ValidateActionConfigFn != nil {
 		return p.ValidateActionConfigFn(r)
