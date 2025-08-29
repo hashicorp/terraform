@@ -1,0 +1,3 @@
+kind: NEW FEATURES
+body: "**List Resources**: List resources can be defined in `*.tfquery.hcl` files and allow querying and filterting existing infrastructure."
+time: 2025-08-29T18:34:04.250038+02:00
