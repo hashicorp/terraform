@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: A new GenerateResourceConfiguration RPC allows providers to create more precise configuration values during import.
+time: 2025-08-29T15:19:46.781245-04:00
+custom:
+    Issue: "37515"

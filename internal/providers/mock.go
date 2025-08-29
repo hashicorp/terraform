@@ -323,6 +323,10 @@ func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response
 	return response
 }
 
+func (m *Mock) GenerateResourceConfig(request GenerateResourceConfigRequest) (response GenerateResourceConfigResponse) {
+	panic("not implemented")
+}
+
 func (m *Mock) MoveResourceState(request MoveResourceStateRequest) MoveResourceStateResponse {
 	// The MoveResourceState operation happens offline, so we can just hand this
 	// off to the underlying provider.

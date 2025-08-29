@@ -22,43 +22,71 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// ImportGroup represents one or more resource and import configuration blocks.
+type ImportGroup struct {
+	Imports []ResourceImport
+}
+
+// ResourceImport pairs up the import and associated resource when generating
+// configuration, so that query output can be more structured for easier
+// consumption.
+type ResourceImport struct {
+	ImportBody []byte
+	Resource   Resource
+}
+
 type Resource struct {
+	Addr addrs.AbsResourceInstance
+
 	// HCL Body of the resource, which is the attributes and blocks
 	// that are part of the resource.
 	Body []byte
-
-	// Import is the HCL code for the import block. This is only
-	// generated for list resource results.
-	Import  []byte
-	Addr    addrs.AbsResourceInstance
-	Results []*Resource
 }
 
-func (r *Resource) String() string {
+func (r Resource) String() string {
 	var buf strings.Builder
-	switch r.Addr.Resource.Resource.Mode {
-	case addrs.ListResourceMode:
-		last := len(r.Results) - 1
-		// sort the results by their keys so the output is consistent
-		for idx, managed := range r.Results {
-			if managed.Body != nil {
-				buf.WriteString(managed.String())
-				buf.WriteString("\n")
-			}
-			if managed.Import != nil {
-				buf.WriteString(string(managed.Import))
-				buf.WriteString("\n")
-			}
-			if idx != last {
-				buf.WriteString("\n")
-			}
-		}
-	case addrs.ManagedResourceMode:
-		buf.WriteString(fmt.Sprintf("resource %q %q {\n", r.Addr.Resource.Resource.Type, r.Addr.Resource.Resource.Name))
-		buf.Write(r.Body)
-		buf.WriteString("}")
-	default:
-		panic(fmt.Errorf("unsupported resource mode %s", r.Addr.Resource.Resource.Mode))
+	buf.WriteString(fmt.Sprintf("resource %q %q {\n", r.Addr.Resource.Resource.Type, r.Addr.Resource.Resource.Name))
+	buf.Write(r.Body)
+	buf.WriteString("}")
+
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(formatted)
+}
+
+func (i ImportGroup) String() string {
+	var buf strings.Builder
+
+	for _, imp := range i.Imports {
+		buf.WriteString(imp.Resource.String())
+		buf.WriteString("\n\n")
+		buf.WriteString(string(imp.ImportBody))
+		buf.WriteString("\n\n")
+	}
+
+	// The output better be valid HCL which can be parsed and formatted.
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(formatted)
+}
+
+func (i ImportGroup) ResourcesString() string {
+	var buf strings.Builder
+
+	for _, imp := range i.Imports {
+		buf.WriteString(imp.Resource.String())
+		buf.WriteString("\n")
+	}
+
+	// The output better be valid HCL which can be parsed and formatted.
+	formatted := hclwrite.Format([]byte(buf.String()))
+	return string(formatted)
+}
+
+func (i ImportGroup) ImportsString() string {
+	var buf strings.Builder
+
+	for _, imp := range i.Imports {
+		buf.WriteString(string(imp.ImportBody))
+		buf.WriteString("\n")
 	}
 
 	// The output better be valid HCL which can be parsed and formatted.
@@ -75,9 +103,9 @@ func (r *Resource) String() string {
 func GenerateResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
 	pc addrs.LocalProviderConfig,
-	stateVal cty.Value,
+	configVal cty.Value,
 	forceProviderAddr bool,
-) (*Resource, tfdiags.Diagnostics) {
+) (Resource, tfdiags.Diagnostics) {
 	var buf strings.Builder
 
 	var diags tfdiags.Diagnostics
@@ -89,49 +117,40 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
 	}
 
-	// This is generating configuration, so the only marks should be coming from
-	// the schema itself.
-	stateVal, _ = stateVal.UnmarkDeep()
-
-	// filter the state down to a suitable config value
-	stateVal = extractConfigFromState(schema, stateVal)
-
-	if stateVal.RawEquals(cty.NilVal) {
+	if configVal.RawEquals(cty.NilVal) {
 		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))
 		diags = diags.Append(writeConfigBlocks(addr, &buf, schema.BlockTypes, 2))
 	} else {
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2))
-		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, stateVal, schema.BlockTypes, 2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, configVal, schema.Attributes, 2))
+		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, configVal, schema.BlockTypes, 2))
 	}
 
 	// The output better be valid HCL which can be parsed and formatted.
 	formatted := hclwrite.Format([]byte(buf.String()))
-	return &Resource{
-		Body: formatted,
-		Addr: addr,
-	}, diags
+	return Resource{Addr: addr, Body: formatted}, diags
+}
+
+// ResourceListElement is a single Resource state and identity pair derived from
+// a list resource response.
+type ResourceListElement struct {
+	// Config is the cty value extracted from the resource state which is
+	// intended to be written into the HCL resource block.
+	Config cty.Value
+
+	Identity cty.Value
 }
 
 func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
 	idSchema *configschema.Object,
 	pc addrs.LocalProviderConfig,
-	stateVal cty.Value,
-) (*Resource, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	if !stateVal.CanIterateElements() {
-		diags = diags.Append(
-			hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid resource instance value",
-				Detail:   fmt.Sprintf("Resource instance %s has nil or non-iterable value", addr),
-			})
-		return nil, diags
-	}
+	resources []ResourceListElement,
+) (ImportGroup, tfdiags.Diagnostics) {
 
-	ret := make([]*Resource, stateVal.LengthInt())
-	iter := stateVal.ElementIterator()
-	for idx := 0; iter.Next(); idx++ {
+	var diags tfdiags.Diagnostics
+	ret := ImportGroup{}
+
+	for idx, res := range resources {
 		// Generate a unique resource name for each instance in the list.
 		resAddr := addrs.AbsResourceInstance{
 			Module: addr.Module,
@@ -144,39 +163,34 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 				Key: addr.Resource.Key,
 			},
 		}
-		ls := &Resource{Addr: resAddr}
-		ret[idx] = ls
 
-		_, val := iter.Element()
-		// we still need to generate the resource block even if the state is not given,
-		// so that the import block can reference it.
-		stateVal := cty.NilVal
-		if val.Type().HasAttribute("state") {
-			stateVal = val.GetAttr("state")
-		}
-		content, gDiags := GenerateResourceContents(resAddr, schema, pc, stateVal, true)
+		content, gDiags := GenerateResourceContents(resAddr, schema, pc, res.Config, true)
 		if gDiags.HasErrors() {
 			diags = diags.Append(gDiags)
 			continue
 		}
-		ls.Body = content.Body
 
-		idVal := val.GetAttr("identity")
-		importContent, gDiags := generateImportBlock(resAddr, idSchema, pc, idVal)
+		resImport := ResourceImport{
+			Resource: Resource{
+				Addr: resAddr,
+				Body: content.Body,
+			},
+		}
+
+		importContent, gDiags := GenerateImportBlock(resAddr, idSchema, pc, res.Identity)
 		if gDiags.HasErrors() {
 			diags = diags.Append(gDiags)
 			continue
 		}
-		ls.Import = bytes.TrimSpace(hclwrite.Format([]byte(importContent)))
+
+		resImport.ImportBody = bytes.TrimSpace(hclwrite.Format(importContent.ImportBody))
+		ret.Imports = append(ret.Imports, resImport)
 	}
 
-	return &Resource{
-		Results: ret,
-		Addr:    addr,
-	}, diags
+	return ret, diags
 }
 
-func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.Object, pc addrs.LocalProviderConfig, identity cty.Value) (string, tfdiags.Diagnostics) {
+func GenerateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.Object, pc addrs.LocalProviderConfig, identity cty.Value) (ResourceImport, tfdiags.Diagnostics) {
 	var buf strings.Builder
 	var diags tfdiags.Diagnostics
 
@@ -190,7 +204,7 @@ func generateImportBlock(addr addrs.AbsResourceInstance, idSchema *configschema.
 	buf.WriteString("}\n}\n")
 
 	formatted := hclwrite.Format([]byte(buf.String()))
-	return string(formatted), diags
+	return ResourceImport{ImportBody: formatted}, diags
 }
 
 func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
@@ -638,11 +652,11 @@ func hclEscapeString(str string) string {
 	return str
 }
 
-// extractConfigFromState takes the state value of a resource, and filters the
+// ExtractLegacyConfigFromState takes the state value of a resource, and filters the
 // value down to what would be acceptable as a resource configuration value.
 // This is used when the provider does not implement GenerateResourceConfig to
 // create a suitable value.
-func extractConfigFromState(schema *configschema.Block, state cty.Value) cty.Value {
+func ExtractLegacyConfigFromState(schema *configschema.Block, state cty.Value) cty.Value {
 	config, _ := cty.Transform(state, func(path cty.Path, v cty.Value) (cty.Value, error) {
 		if v.IsNull() {
 			return v, nil

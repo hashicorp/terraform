@@ -972,6 +972,114 @@ import {
 	})
 }
 
+// Generate configuration based on the provider's supplied config value
+func TestContext2Plan_importResourceProviderConfigGen(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to   = test_object.a
+  id   = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Body: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": providers.Schema{Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					// a real computed+optional id attribute, not like the SDK
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+						Optional: true,
+					},
+					"is_default": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+					"identifier": {
+						Type:     cty.Number,
+						Computed: true,
+					},
+					"required": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			}},
+		},
+		ServerCapabilities: providers.ServerCapabilities{
+			GenerateResourceConfig: true,
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.GenerateResourceConfigResponse = &providers.GenerateResourceConfigResponse{
+		Config: cty.ObjectVal(map[string]cty.Value{
+			"id":         cty.StringVal("not_the_default"),
+			"is_default": cty.NullVal(cty.String),
+			"identifier": cty.NullVal(cty.String),
+			"required":   cty.StringVal("for_config"),
+		}),
+	}
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id":         cty.StringVal("not_the_default"),
+			"is_default": cty.StringVal("default"),
+			"identifier": cty.StringVal("123456789"),
+			"required":   cty.StringVal("for_config"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":         cty.NullVal(cty.String),
+					"identifier": cty.StringVal("123456789"),
+					"is_default": cty.NullVal(cty.String),
+					"required":   cty.NullVal(cty.String),
+				}),
+			},
+		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	instPlan := plan.Changes.ResourceInstance(addr)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addr)
+	}
+
+	want := `resource "test_object" "a" {
+  id       = "not_the_default"
+  required = "for_config"
+}`
+	got := instPlan.GeneratedConfig
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
 func TestContext2Plan_importResourceConfigGenWithAlias(t *testing.T) {
 	addr := mustResourceInstanceAddr("test_object.a")
 	m := testModuleInline(t, map[string]string{

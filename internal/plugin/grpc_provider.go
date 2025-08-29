@@ -206,6 +206,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 		resp.ServerCapabilities.GetProviderSchemaOptional = protoResp.ServerCapabilities.GetProviderSchemaOptional
 		resp.ServerCapabilities.MoveResourceState = protoResp.ServerCapabilities.MoveResourceState
+		resp.ServerCapabilities.GenerateResourceConfig = protoResp.ServerCapabilities.GenerateResourceConfig
 	}
 
 	// set the global cache if we can
@@ -936,6 +937,45 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 
 		resp.ImportedResources = append(resp.ImportedResources, resource)
 	}
+
+	return resp
+}
+
+func (p *GRPCProvider) GenerateResourceConfig(r providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
+	logger.Trace("GRPCProvider: GenerateResourceConfig")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	resSchema, ok := schema.ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto.GenerateResourceConfig_Request{
+		TypeName: r.TypeName,
+		State:    nil,
+	}
+
+	protoResp, err := p.client.GenerateResourceConfig(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	ty := resSchema.Body.ImpliedType()
+
+	state, err := decodeDynamicValue(protoResp.Config, ty)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.Config = state
 
 	return resp
 }

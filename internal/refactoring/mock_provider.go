@@ -81,6 +81,10 @@ func (provider *mockProvider) ImportResourceState(providers.ImportResourceStateR
 	panic("not implemented in mock")
 }
 
+func (p *mockProvider) GenerateResourceConfig(r providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) MoveResourceState(providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
 	if provider.moveResourceError != nil {
 		return providers.MoveResourceStateResponse{

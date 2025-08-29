@@ -42,12 +42,10 @@ func NewQueryStart(addr addrs.AbsResourceInstance, input_config cty.Value) Query
 	}
 }
 
-func NewQueryResult(listAddr addrs.AbsResourceInstance, value cty.Value, generated *genconfig.Resource) QueryResult {
-	var config, importConfig string
-	if generated != nil {
-		config = generated.String()
-		importConfig = string(generated.Import)
-	}
+func NewQueryResult(listAddr addrs.AbsResourceInstance, value cty.Value, generated genconfig.ResourceImport) QueryResult {
+	config := generated.Resource.String()
+	importConfig := string(generated.ImportBody)
+
 	result := QueryResult{
 		Address:        listAddr.String(),
 		DisplayName:    value.GetAttr("display_name").AsString(),

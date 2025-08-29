@@ -112,6 +112,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
 		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
 		MoveResourceState:         p.schema.ServerCapabilities.MoveResourceState,
+		GenerateResourceConfig:    p.schema.ServerCapabilities.GenerateResourceConfig,
 	}
 
 	// include any diagnostics from the original GetSchema call
@@ -561,6 +562,10 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 	}
 
 	return resp, nil
+}
+
+func (p *provider) GenerateResourceConfig(context.Context, *tfplugin5.GenerateResourceConfig_Request) (*tfplugin5.GenerateResourceConfig_Response, error) {
+	panic("not implemented")
 }
 
 func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveResourceState_Request) (*tfplugin5.MoveResourceState_Response, error) {
