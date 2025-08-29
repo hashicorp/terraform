@@ -15,6 +15,9 @@ type rpcFriendlyDiag struct {
 	Context_  *SourceRange
 }
 
+var _ Diagnostic = &rpcFriendlyDiag{}
+var _ ComparableDiagnostic = &rpcFriendlyDiag{}
+
 // rpcFriendlyDiag transforms a given diagnostic so that is more friendly to
 // RPC.
 //
