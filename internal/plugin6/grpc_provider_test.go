@@ -3760,7 +3760,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					Detail:   "This warning is forced by the test case",
 				},
 			},
-		}, nil)
+		}, io.EOF)
 
 		// Act
 		request := providers.ReadStateBytesRequest{
