@@ -28,6 +28,7 @@ func TestContext2Apply_actions(t *testing.T) {
 		mode                            plans.Mode
 		prevRunState                    *states.State
 		events                          func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
+		readResourceFn                  func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
 		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
 
 		planOpts  *PlanOpts
@@ -1388,6 +1389,189 @@ action "act_unlinked" "two" {
 				},
 			},
 		},
+
+		"action invoke with count (all)": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+action "act_unlinked" "two" {
+  count = 2
+
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "act_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("0"),
+					}),
+				},
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("1"),
+					}),
+				},
+			},
+			expectInvokeActionCallsAreUnordered: true,
+		},
+
+		"action invoke with count (instance)": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+action "act_unlinked" "two" {
+  count = 2
+
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "act_unlinked",
+								Name: "one",
+							},
+							Key: addrs.IntKey(0),
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("0"),
+					}),
+				},
+			},
+		},
+
+		"invoke action with reference": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "act_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "act_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+
+		"invoke action with reference (drift)": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "act_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "act_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("drifted value"),
+					}),
+				},
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1413,6 +1597,12 @@ action "act_unlinked" "two" {
 						},
 					},
 				},
+			}
+			
+			if tc.readResourceFn != nil {
+				testProvider.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+					return tc.readResourceFn(t, r)
+				}
 			}
 
 			invokeActionFn := func(req providers.InvokeActionRequest) providers.InvokeActionResponse {

@@ -38,7 +38,7 @@ func (t *ActionPlanTransformer) Transform(g *Graph) error {
 			case addrs.AbsActionInstance:
 				module := t.Config.DescendantForInstance(target.Module)
 				if module != nil {
-					config = module.Module.Actions[target.Action.String()]
+					config = module.Module.Actions[target.Action.Action.String()]
 				}
 			}
 

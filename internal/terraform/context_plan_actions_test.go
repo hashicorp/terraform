@@ -6,6 +6,7 @@ package terraform
 import (
 	"path/filepath"
 	"slices"
+	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -57,6 +58,7 @@ func TestContextPlan_actions(t *testing.T) {
 		buildState      func(*states.SyncState)
 		planActionFn    func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse
 		planResourceFn  func(*testing.T, providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
+		readResourceFn  func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
 		planOpts        *PlanOpts
 
 		expectPlanActionCalled bool
@@ -1833,6 +1835,279 @@ action "test_unlinked" "two" {
 				}
 			},
 		},
+
+		"action invoke with count (all)": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+action "test_unlinked" "two" {
+  count = 2
+
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected exactly two invocations, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				sort.Slice(plan.Changes.ActionInvocations, func(i, j int) bool {
+					return plan.Changes.ActionInvocations[i].Addr.Less(plan.Changes.ActionInvocations[j].Addr)
+				})
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("0"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[0]")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+
+				ais = plan.Changes.ActionInvocations[1]
+				ai, err = ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected = cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("1"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[1]")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+		},
+
+		"action invoke with count (instance)": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+action "test_unlinked" "two" {
+  count = 2
+
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "test_unlinked",
+								Name: "one",
+							},
+							Key: addrs.IntKey(0),
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("0"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[0]")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+		},
+
+		"invoke action with reference": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "test_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			buildState: func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("hello"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+		},
+
+		"invoke action with reference (drift)": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "test_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			buildState: func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("drifted value"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1944,6 +2219,12 @@ action "test_unlinked" "two" {
 			if tc.planResourceFn != nil {
 				p.PlanResourceChangeFn = func(r providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 					return tc.planResourceFn(t, r)
+				}
+			}
+
+			if tc.readResourceFn != nil {
+				p.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+					return tc.readResourceFn(t, r)
 				}
 			}
 
