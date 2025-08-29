@@ -1622,6 +1622,90 @@ action "act_unlinked" "one" {
 				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 			}),
 		},
+
+		"nested action config single + list blocks applies": {
+			module: map[string]string{
+				"main.tf": `
+action "act_nested" "with_blocks" {
+  config {
+    top_attr = "top"
+    settings {
+      name = "primary"
+      rule { value = "r1" }
+      rule { value = "r2" }
+    }
+  }
+}
+resource "test_object" "a" {
+  name = "object"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.act_nested.with_blocks]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_nested",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"top_attr": cty.StringVal("top"),
+						"settings": cty.ObjectVal(map[string]cty.Value{
+							"name": cty.StringVal("primary"),
+							"rule": cty.ListVal([]cty.Value{
+								cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("r1")}),
+								cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("r2")}),
+							}),
+						}),
+						"settings_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+							"id": cty.String,
+						})),
+					}),
+				},
+			},
+		},
+		"nested action config top-level list blocks applies": {
+			module: map[string]string{
+				"main.tf": `
+action "act_nested" "with_list" {
+  config {
+    settings_list { id = "one" }
+    settings_list { id = "two" }
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.act_nested.with_list]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_nested",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"top_attr": cty.NullVal(cty.String),
+						"settings": cty.NullVal(cty.Object(map[string]cty.Type{
+							"name": cty.String,
+							"rule": cty.List(cty.Object(map[string]cty.Type{
+								"value": cty.String,
+							})),
+						})),
+						"settings_list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("one")}),
+							cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("two")}),
+						}),
+					}),
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1710,6 +1794,43 @@ action "act_unlinked" "one" {
 								},
 							},
 
+							Unlinked: &providers.UnlinkedAction{},
+						},
+						// Added nested action schema with nested blocks
+						"act_nested": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"top_attr": {Type: cty.String, Optional: true},
+								},
+								BlockTypes: map[string]*configschema.NestedBlock{
+									"settings": {
+										Nesting: configschema.NestingSingle,
+										Block: configschema.Block{
+											Attributes: map[string]*configschema.Attribute{
+												"name": {Type: cty.String, Required: true},
+											},
+											BlockTypes: map[string]*configschema.NestedBlock{
+												"rule": {
+													Nesting: configschema.NestingList,
+													Block: configschema.Block{
+														Attributes: map[string]*configschema.Attribute{
+															"value": {Type: cty.String, Required: true},
+														},
+													},
+												},
+											},
+										},
+									},
+									"settings_list": {
+										Nesting: configschema.NestingList,
+										Block: configschema.Block{
+											Attributes: map[string]*configschema.Attribute{
+												"id": {Type: cty.String, Required: true},
+											},
+										},
+									},
+								},
+							},
 							Unlinked: &providers.UnlinkedAction{},
 						},
 					},
