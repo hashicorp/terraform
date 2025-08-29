@@ -240,7 +240,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 		}
 	}
 
-	return local, nil
+	return local, diags
 }
 
 // selectWorkspace gets a list of existing workspaces and then checks
