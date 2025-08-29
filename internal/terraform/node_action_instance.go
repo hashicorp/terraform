@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -55,27 +54,6 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 	// This should have been caught already
 	if n.Schema == nil {
 		panic("NodeActionDeclarationInstance.Execute called without a schema")
-	}
-
-	// We currently only support unlinked actions, so we send a diagnostic for other types
-	if n.Schema.Lifecycle != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Lifecycle actions are not supported",
-			Detail:   "This version of Terraform does not support lifecycle actions",
-			Subject:  n.Config.DeclRange.Ptr(),
-		})
-		return diags
-	}
-
-	if n.Schema.Linked != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Linked actions are not supported",
-			Detail:   "This version of Terraform does not support linked actions",
-			Subject:  n.Config.DeclRange.Ptr(),
-		})
-		return diags
 	}
 
 	allInsts := ctx.InstanceExpander()
