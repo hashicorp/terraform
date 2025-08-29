@@ -3519,11 +3519,11 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		chunks := []string{"hello", "world"}
 		totalLength := len(chunks[0]) + len(chunks[1])
 		mockResp := map[int]struct {
-			resp *proto.ReadStateBytes_ResponseChunk
+			resp *proto.ReadStateBytes_Response
 			err  error
 		}{
 			0: {
-				resp: &proto.ReadStateBytes_ResponseChunk{
+				resp: &proto.ReadStateBytes_Response{
 					Bytes:       []byte(chunks[0]),
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
@@ -3534,7 +3534,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 				err: nil,
 			},
 			1: {
-				resp: &proto.ReadStateBytes_ResponseChunk{
+				resp: &proto.ReadStateBytes_Response{
 					Bytes:       []byte(chunks[1]),
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
@@ -3550,7 +3550,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			},
 		}
 		var count int
-		mockReadBytesClient.EXPECT().Recv().DoAndReturn(func() (*proto.ReadStateBytes_ResponseChunk, error) {
+		mockReadBytesClient.EXPECT().Recv().DoAndReturn(func() (*proto.ReadStateBytes_Response, error) {
 			ret := mockResp[count]
 			count++
 			return ret.resp, ret.err
@@ -3595,11 +3595,11 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		var incorrectLength int64 = 999
 		correctLength := len(chunks[0]) + len(chunks[1])
 		mockResp := map[int]struct {
-			resp *proto.ReadStateBytes_ResponseChunk
+			resp *proto.ReadStateBytes_Response
 			err  error
 		}{
 			0: {
-				resp: &proto.ReadStateBytes_ResponseChunk{
+				resp: &proto.ReadStateBytes_Response{
 					Bytes:       []byte(chunks[0]),
 					TotalLength: incorrectLength,
 					Range: &proto.StateRange{
@@ -3610,7 +3610,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 				err: nil,
 			},
 			1: {
-				resp: &proto.ReadStateBytes_ResponseChunk{
+				resp: &proto.ReadStateBytes_Response{
 					Bytes:       []byte(chunks[1]),
 					TotalLength: incorrectLength,
 					Range: &proto.StateRange{
@@ -3626,7 +3626,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			},
 		}
 		var count int
-		mockReadBytesClient.EXPECT().Recv().DoAndReturn(func() (*proto.ReadStateBytes_ResponseChunk, error) {
+		mockReadBytesClient.EXPECT().Recv().DoAndReturn(func() (*proto.ReadStateBytes_Response, error) {
 			ret := mockResp[count]
 			count++
 			return ret.resp, ret.err
@@ -3702,7 +3702,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		).Return(mockReadBytesClient, nil)
 
 		// Define what will be returned by each call to Recv
-		mockReadBytesClient.EXPECT().Recv().Return(&proto.ReadStateBytes_ResponseChunk{
+		mockReadBytesClient.EXPECT().Recv().Return(&proto.ReadStateBytes_Response{
 			Diagnostics: []*proto.Diagnostic{
 				&proto.Diagnostic{
 					Severity: proto.Diagnostic_ERROR,
@@ -3752,7 +3752,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		).Return(mockReadBytesClient, nil)
 
 		// Define what will be returned by each call to Recv
-		mockReadBytesClient.EXPECT().Recv().Return(&proto.ReadStateBytes_ResponseChunk{
+		mockReadBytesClient.EXPECT().Recv().Return(&proto.ReadStateBytes_Response{
 			Diagnostics: []*proto.Diagnostic{
 				&proto.Diagnostic{
 					Severity: proto.Diagnostic_WARNING,
@@ -3801,7 +3801,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		).Return(mockClient, nil)
 
 		mockError := errors.New("grpc error forced in test")
-		mockClient.EXPECT().Recv().Return(&proto.ReadStateBytes_ResponseChunk{}, mockError)
+		mockClient.EXPECT().Recv().Return(&proto.ReadStateBytes_Response{}, mockError)
 
 		// Act
 		request := providers.ReadStateBytesRequest{
