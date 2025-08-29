@@ -111,6 +111,8 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		if valDiags.HasErrors() {
 			return diags
 		}
+	} else {
+		configVal = cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
 	}
 
 	// Use unmarked value for validate request
@@ -119,7 +121,6 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 	req := providers.ValidateActionConfigRequest{
 		TypeName: n.Config.Type,
 		Config:   unmarkedConfigVal,
-		// LinkedResources: lifecycle actions not yet implemented
 	}
 
 	resp := provider.ValidateActionConfig(req)

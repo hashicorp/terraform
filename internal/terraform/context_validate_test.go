@@ -3604,6 +3604,53 @@ resource "test_instance" "foo" {
 `,
 			"",
 		},
+		"missing required config": {
+			`
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
+}
+action "test_register" "foo" {
+    config {}
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_register.foo]
+    }
+  }
+}
+`,
+			"host is null",
+		},
+		"invalid nil config config": {
+			`
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
+}
+action "test_register" "foo" {
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_register.foo]
+    }
+  }
+}
+`,
+			"config is null",
+		},
 	}
 
 	for name, test := range tests {
@@ -3630,6 +3677,17 @@ resource "test_instance" "foo" {
 					},
 				},
 			})
+			p.ValidateActionConfigFn = func(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
+				if r.Config.IsNull() {
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("config is null"))
+					return
+				}
+				if r.Config.GetAttr("host").IsNull() {
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("host is null"))
+				}
+				return
+			}
+
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
@@ -3637,6 +3695,9 @@ resource "test_instance" "foo" {
 			})
 
 			diags := ctx.Validate(m, nil)
+			if !p.ValidateActionConfigCalled {
+				t.Fatal("ValidateAction RPC was not called")
+			}
 
 			if test.wantErr != "" {
 				if !diags.HasErrors() {
