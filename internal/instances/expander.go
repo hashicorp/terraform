@@ -1061,3 +1061,31 @@ func (e *Expander) GetActionInstanceRepetitionData(addr addrs.AbsActionInstance)
 	}
 	return exp.repetitionData(addr.Action.Key)
 }
+
+// ActionInstanceKeys determines the child instance keys for one specific
+// instance of an action.
+//
+// keyType describes the expected type of all keys in knownKeys, which typically
+// also implies what data type would be used to describe the full set of
+// instances: [addrs.IntKeyType] as a list or tuple, [addrs.StringKeyType] as
+// a map or object, and [addrs.NoKeyType] as just a single value.
+//
+// If unknownKeys is true then there might be additional keys that we can't know
+// yet because the call's expansion isn't known.
+func (e *Expander) ActionInstanceKeys(addr addrs.AbsAction) (keyType addrs.InstanceKeyType, knownKeys []addrs.InstanceKey, unknownKeys bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	parentMod, known := e.findModule(addr.Module)
+	if !known {
+		// If we're nested inside something unexpanded then we don't even
+		// know yet what kind of instance key to expect. (The caller might
+		// be able to infer this itself using configuration info, though.)
+		return addrs.UnknownKeyType, nil, true
+	}
+	exp, ok := parentMod.actions[addr.Action]
+	if !ok {
+		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
+	}
+	return exp.instanceKeys()
+}
