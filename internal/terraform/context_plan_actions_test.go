@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -121,7 +122,9 @@ func TestContextPlan_actions(t *testing.T) {
 		assertValidateDiagnostics func(*testing.T, tfdiags.Diagnostics)
 
 		expectPlanDiagnostics func(m *configs.Config) tfdiags.Diagnostics
-		assertPlan            func(*testing.T, *plans.Plan)
+		assertPlanDiagnostics func(*testing.T, tfdiags.Diagnostics)
+
+		assertPlan func(*testing.T, *plans.Plan)
 	}{
 		"unreferenced": {
 			module: map[string]string{
@@ -423,30 +426,6 @@ resource "test_object" "a" {
 			},
 		},
 
-		"action for_each with auto-expansion": {
-			toBeImplemented: true, // TODO: Look into this
-			module: map[string]string{
-				"main.tf": `
-action "test_unlinked" "hello" {
-  for_each = toset(["a", "b"])
-  
-  config {
-    attr = "value-${each.key}"
-  }
-}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_unlinked.hello] # This will auto-expand to action.test_unlinked.hello["a"] and action.test_unlinked.hello["b"]
-    }
-  }
-}
-`,
-			},
-			expectPlanActionCalled: true,
-		},
-
 		"action count": {
 			module: map[string]string{
 				"main.tf": `
@@ -490,31 +469,6 @@ resource "test_object" "a" {
 
 				// TODO: Test that action the triggering resource address is set correctly
 			},
-		},
-
-		"action count with auto-expansion": {
-			toBeImplemented: true, // TODO: Look into this
-			module: map[string]string{
-				"main.tf": `
-action "test_unlinked" "hello" {
-  count = 2
-
-  config {
-    attr = "value-${count.index}"
-  }
-}
-
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_unlinked.hello] # This will auto-expand to action.test_unlinked.hello[0] and action.test_unlinked.hello[1]
-    }
-  }
-}
-`,
-			},
-			expectPlanActionCalled: true,
 		},
 
 		"action for_each invalid access": {
@@ -1368,7 +1322,6 @@ resource "test_object" "a" {
 		},
 
 		"action config refers to before triggering resource leads to validation error": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {
@@ -1377,25 +1330,35 @@ action "test_unlinked" "hello" {
   }
 }
 resource "test_object" "a" {
+  name = "test_name"
   lifecycle {
     action_trigger {
-      events = [after_create]
+      events = [before_create]
       actions = [action.test_unlinked.hello]
     }
   }
 }
 `,
 			},
-			expectPlanActionCalled: false,
-			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+			expectPlanActionCalled: true, // The cycle only appears in the apply graph
+			assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
 				if !diags.HasErrors() {
 					t.Fatalf("expected diagnostics to have errors, but it does not")
 				}
 				if len(diags) != 1 {
 					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
 				}
-				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
-					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+				// We expect the diagnostic to be about a cycle
+				if !strings.Contains(diags[0].Description().Summary, "Cycle") {
+					t.Fatalf("expected diagnostic summary to contain 'Cycle', got '%s'", diags[0].Description().Summary)
+				}
+				// We expect the action node to be part of the cycle
+				if !strings.Contains(diags[0].Description().Summary, "action.test_unlinked.hello") {
+					t.Fatalf("expected diagnostic summary to contain 'action.test_unlinked.hello', got '%s'", diags[0].Description().Summary)
+				}
+				// We expect the resource node to be part of the cycle
+				if !strings.Contains(diags[0].Description().Summary, "test_object.a") {
+					t.Fatalf("expected diagnostic summary to contain 'test_object.a', got '%s'", diags[0].Description().Summary)
 				}
 			},
 		},
@@ -2565,6 +2528,8 @@ resource "test_object" "a" {
 
 			if tc.expectPlanDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
+			} else if tc.assertPlanDiagnostics != nil {
+				tc.assertPlanDiagnostics(t, diags)
 			} else {
 				tfdiags.AssertNoDiagnostics(t, diags)
 			}
