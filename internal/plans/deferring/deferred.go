@@ -663,12 +663,12 @@ func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInsta
 // a) the resource was deferred
 // or
 // b) a previously run action was deferred
-func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance) bool {
+func (d *Deferred) ShouldDeferActionInvocation(trigger plans.ActionTrigger) bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	// We only want to defer actions that are lifecycle triggered
-	at, ok := ai.ActionTrigger.(plans.LifecycleActionTrigger)
+	at, ok := trigger.(*plans.LifecycleActionTrigger)
 	if !ok {
 		return false
 	}
@@ -683,7 +683,7 @@ func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance
 	// Since all actions plan in order we can just check if an action for this resource instance
 	// has been deferred already
 	for _, deferred := range d.actionInvocationDeferred {
-		deferredAt, deferredOk := deferred.ActionInvocationInstance.ActionTrigger.(plans.LifecycleActionTrigger)
+		deferredAt, deferredOk := deferred.ActionInvocationInstance.ActionTrigger.(*plans.LifecycleActionTrigger)
 		if !deferredOk {
 			continue // We only care about lifecycle triggered actions here
 		}

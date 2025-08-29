@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -18,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOperation_stopping(t *testing.T) {
@@ -572,7 +573,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 
 	act1 := &plans.ActionInvocationInstanceSrc{
 		Addr: addrs.Action{Type: "test_unlinked_action", Name: "hello"}.Instance(addrs.NoKey).Absolute(root),
-		ActionTrigger: plans.LifecycleActionTrigger{
+		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  boop,
 			ActionTriggerEvent:      configs.AfterCreate,
 			ActionTriggerBlockIndex: 0,
@@ -581,7 +582,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 	}
 	act2 := &plans.ActionInvocationInstanceSrc{
 		Addr: addrs.Action{Type: "test_unlinked_other_action", Name: "world"}.Instance(addrs.NoKey).Absolute(root),
-		ActionTrigger: plans.LifecycleActionTrigger{
+		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  boop,
 			ActionTriggerEvent:      configs.AfterCreate,
 			ActionTriggerBlockIndex: 0,
@@ -590,7 +591,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 	}
 	act3 := &plans.ActionInvocationInstanceSrc{
 		Addr: addrs.Action{Type: "test_unlinked_action", Name: "goodbye"}.Instance(addrs.IntKey(0)).Absolute(vpc),
-		ActionTrigger: plans.LifecycleActionTrigger{
+		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  beep,
 			ActionTriggerEvent:      configs.BeforeUpdate,
 			ActionTriggerBlockIndex: 1,

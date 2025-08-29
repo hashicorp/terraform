@@ -39,7 +39,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 
 		// If the action invocations is triggered within the lifecycle of a resource
 		// we want to add information about the source location to the apply node
-		if at, ok := action.ActionTrigger.(plans.LifecycleActionTrigger); ok {
+		if at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger); ok {
 			moduleInstance := t.Config.DescendantForInstance(at.TriggeringResourceAddr.Module)
 			if moduleInstance == nil {
 				panic(fmt.Sprintf("Could not find module instance for resource %s in config", at.TriggeringResourceAddr.String()))
@@ -63,7 +63,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 		invocationMap[action] = node
 
 		// Add edge to triggering resource
-		if lat, ok := action.ActionTrigger.(plans.LifecycleActionTrigger); ok {
+		if lat, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger); ok {
 			// Add edges for lifecycle action triggers
 			resourceNode, ok := applyNodes.GetOk(lat.TriggeringResourceAddr.ConfigResource())
 			if !ok {
@@ -83,6 +83,12 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 
 	// Find all dependencies between action invocations
 	for _, action := range t.Changes.ActionInvocations {
+		if _, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger); !ok {
+			// only add dependencies between lifecycle actions. invoke actions
+			// all act independently.
+			continue
+		}
+
 		node := invocationMap[action]
 		others := action.FilterLaterActionInvocations(t.Changes.ActionInvocations)
 		for _, other := range others {

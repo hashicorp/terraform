@@ -264,6 +264,32 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		return nil, nil, diags
 	}
 
+	if len(opts.ActionTargets) > 0 {
+		// We panic here, as the command package shouldn't be setting
+
+		if len(opts.Targets) != 0 {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"Cannot include both targets and action invocations. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+
+		if opts.Mode != plans.RefreshOnlyMode {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"Must be in RefreshOnlyMode when invoking actions. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+	}
+
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
 	// caller's responsibility to have already handled the decoding of these
@@ -381,7 +407,11 @@ The -target option is not for routine use, and is provided only for exceptional 
 		if len(varMarks) > 0 {
 			plan.VariableMarks = varMarks
 		}
+
+		// Append all targets into the plans targets, note that opts.Targets
+		// and opts.ActionTargets should never both be populated.
 		plan.TargetAddrs = opts.Targets
+		plan.ActionTargetAddrs = opts.ActionTargets
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
 	}
@@ -874,7 +904,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 			// In refresh-only mode we explicitly don't expect to propose any
 			// actions, but the plan is applyable if the state was changed
 			// in an interesting way by the refresh step.
-			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState) || !plan.PriorState.RootOutputValuesEqual(plan.PrevRunState)
+			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState) ||
+				!plan.PriorState.RootOutputValuesEqual(plan.PrevRunState) ||
+				len(plan.Changes.ActionInvocations) > 0
 		} else {
 			// For other planning modes a plan is applyable if its "changes"
 			// are not considered empty (by whatever rules the plans package
@@ -988,7 +1020,8 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			RootVariableValues:      opts.SetVariables,
 			ExternalProviderConfigs: externalProviderConfigs,
 			Plugins:                 c.plugins,
-			Targets:                 opts.Targets,
+			Targets:                 append(opts.Targets, opts.ActionTargets...),
+			ActionTargets:           opts.ActionTargets,
 			skipRefresh:             opts.SkipRefresh,
 			skipPlanChanges:         true, // this activates "refresh only" mode.
 			Operation:               walkPlan,

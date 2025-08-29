@@ -159,7 +159,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			continue
 		}
 
-		o.Targets = append(o.Targets, target.Subject)
+		o.ActionTargets = append(o.ActionTargets, target.Subject)
 	}
 
 	if len(o.ActionTargets) > 0 && len(o.Targets) > 0 {

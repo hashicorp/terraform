@@ -307,7 +307,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.LifecycleActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        0,
@@ -321,7 +321,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "bar"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.LifecycleActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        1,
@@ -338,7 +338,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "baz"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.LifecycleActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        1,
@@ -443,7 +443,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				DeferredReason: providers.DeferredReasonDeferredPrereq,
 				ActionInvocationInstanceSrc: &plans.ActionInvocationInstanceSrc{
 					Addr: addrs.Action{Type: "test_unlinked", Name: "generic_action"}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
-					ActionTrigger: plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.LifecycleActionTrigger{
 						TriggeringResourceAddr: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
 							Type: "test_thing",

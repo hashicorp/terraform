@@ -64,7 +64,7 @@ func NewPlannedActionInvocation(aiSrc *plans.ActionInvocationInstanceSrc) *Actio
 		Action: newActionAddr(aiSrc.Addr),
 	}
 
-	if at, ok := aiSrc.ActionTrigger.(plans.LifecycleActionTrigger); ok {
+	if at, ok := aiSrc.ActionTrigger.(*plans.LifecycleActionTrigger); ok {
 		ai.LifecycleTrigger = &ActionInvocationLifecycleTrigger{
 			TriggeringResource:      newResourceAddr(at.TriggeringResourceAddr),
 			TriggeringEvent:         at.ActionTriggerEvent.String(),
