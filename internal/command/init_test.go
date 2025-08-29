@@ -3317,7 +3317,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		// Check output
 		output := testOutput.All()
-		expectedOutput := `Initializing the state store...`
+		expectedOutput := `Terraform has been configured to skip creation of the default workspace`
 		if !strings.Contains(output, expectedOutput) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
 		}
