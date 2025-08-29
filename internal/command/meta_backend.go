@@ -1677,7 +1677,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagWarning,
 						Summary:  "The default workspace does not exist",
-						Detail:   "Terraform has been configured to skip creation of the default workspace in the state store.",
+						Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. To create it, either run an 'init' command without `-create-default-workspace=true`, or create it using a 'workspace new' command",
 					})
 				}
 			default:
