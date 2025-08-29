@@ -118,7 +118,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 
 	// Evaluate the condition expression if it exists (otherwise it's true)
 	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
-		condition, conditionDiags := evaluateCondition(ctx, conditionContext{
+		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
 			events:          n.lifecycleActionTrigger.events,
 			conditionExpr:   n.lifecycleActionTrigger.conditionExpr,
 			resourceAddress: n.lifecycleActionTrigger.resourceAddress,
@@ -207,13 +207,13 @@ func (n *nodeActionTriggerPlanInstance) Path() addrs.ModuleInstance {
 	return n.actionAddress.Module
 }
 
-type conditionContext struct {
+type actionConditionContext struct {
 	events          []configs.ActionTriggerEvent
 	conditionExpr   hcl.Expression
 	resourceAddress addrs.AbsResourceInstance
 }
 
-func evaluateCondition(ctx EvalContext, at conditionContext) (bool, tfdiags.Diagnostics) {
+func evaluateActionCondition(ctx EvalContext, at actionConditionContext) (bool, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	rd := instances.RepetitionData{}
