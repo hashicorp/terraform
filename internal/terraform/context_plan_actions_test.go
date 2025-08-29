@@ -2477,15 +2477,14 @@ resource "test_object" "a" {
 			expectPlanActionCalled: false,
 
 			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				// We only expect one diagnostic, as the other condition is valid
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Self reference not allowed",
 					Detail:   `The condition expression cannot reference "self".`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 199},
-						End:      hcl.Pos{Line: 11, Column: 37, Byte: 217},
+						Start:    hcl.Pos{Line: 9, Column: 19, Byte: 197},
+						End:      hcl.Pos{Line: 9, Column: 37, Byte: 215},
 					},
 				})
 			},
@@ -2523,8 +2522,8 @@ resource "test_object" "a" {
 					Detail:   `The condition expression cannot reference "self".`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 198},
-						End:      hcl.Pos{Line: 11, Column: 37, Byte: 216},
+						Start:    hcl.Pos{Line: 9, Column: 19, Byte: 196},
+						End:      hcl.Pos{Line: 9, Column: 37, Byte: 214},
 					},
 				})
 			},
@@ -2557,8 +2556,8 @@ resource "test_object" "a" {
 					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 12, Column: 19, Byte: 237},
-						End:      hcl.Pos{Line: 12, Column: 36, Byte: 254},
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 235},
+						End:      hcl.Pos{Line: 10, Column: 36, Byte: 252},
 					},
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -2566,8 +2565,8 @@ resource "test_object" "a" {
 					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 12, Column: 19, Byte: 237},
-						End:      hcl.Pos{Line: 12, Column: 36, Byte: 254},
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 235},
+						End:      hcl.Pos{Line: 10, Column: 36, Byte: 252},
 					},
 				})
 			},
@@ -2640,8 +2639,8 @@ resource "test_object" "a" {
 					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 226},
-						End:      hcl.Pos{Line: 11, Column: 35, Byte: 242},
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
+						End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
 					},
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -2649,8 +2648,8 @@ resource "test_object" "a" {
 					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 226},
-						End:      hcl.Pos{Line: 11, Column: 35, Byte: 242},
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
+						End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
 					},
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -2658,8 +2657,8 @@ resource "test_object" "a" {
 					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 226},
-						End:      hcl.Pos{Line: 11, Column: 35, Byte: 242},
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
+						End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
 					},
 				})
 			},
@@ -2732,8 +2731,8 @@ resource "test_object" "a" {
 					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 253},
-						End:      hcl.Pos{Line: 11, Column: 41, Byte: 275},
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 264},
+						End:      hcl.Pos{Line: 10, Column: 43, Byte: 286},
 					},
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -2741,8 +2740,8 @@ resource "test_object" "a" {
 					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 11, Column: 19, Byte: 253},
-						End:      hcl.Pos{Line: 11, Column: 41, Byte: 275},
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 264},
+						End:      hcl.Pos{Line: 10, Column: 43, Byte: 286},
 					},
 				})
 			},
