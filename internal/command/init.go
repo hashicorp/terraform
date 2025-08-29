@@ -191,34 +191,9 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		return nil, true, diags
 	case root.StateStore != nil:
 		// state_store config present
-		// Access provider factories
-		ctxOpts, err := c.contextOpts()
-		if err != nil {
-			diags = diags.Append(err)
-			return nil, true, diags
-		}
-
-		if root.StateStore.ProviderAddr.IsZero() {
-			// This should not happen; this data is populated when parsing config,
-			// even for builtin providers
-			panic(fmt.Sprintf("unknown provider while beginning to initialize state store %q from provider %q",
-				root.StateStore.Type,
-				root.StateStore.Provider.Name))
-		}
-
-		var exists bool
-		factory, exists := ctxOpts.Providers[root.StateStore.ProviderAddr]
-		if !exists {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Provider unavailable",
-				Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
-					root.StateStore.Provider.Name,
-					root.StateStore.ProviderAddr,
-					root.StateStore.Type,
-				),
-				Subject: &root.StateStore.TypeRange,
-			})
+		factory, fDiags := c.Meta.getStateStoreProviderFactory(root.StateStore)
+		diags = diags.Append(fDiags)
+		if fDiags.HasErrors() {
 			return nil, true, diags
 		}
 
