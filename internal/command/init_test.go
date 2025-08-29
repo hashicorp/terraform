@@ -20,6 +20,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -108,6 +109,130 @@ func TestInit_only_test_files(t *testing.T) {
 	actual := cleanString(done(t).All())
 	if !strings.Contains(actual, cleanString(exp)) {
 		t.Fatalf("expected output to be %q\n, got %q", exp, actual)
+	}
+}
+
+func TestInit_two_step_provider_download(t *testing.T) {
+	cases := map[string]struct {
+		workDirPath          string
+		flags                []string
+		expectedDownloadMsgs []string
+	}{
+		"providers required by only the state file": {
+			// TODO - should the output indicate that no providers were found in config?
+			workDirPath: "init-provider-download/state-file-only",
+			expectedDownloadMsgs: []string{
+				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
+				`Initializing provider plugins found in the configuration...
+				Initializing the backend...`, // No providers found in the configuration so next output is backend-related
+				`Initializing provider plugins found in the state...
+				- Finding latest version of hashicorp/random...
+				- Installing hashicorp/random v9.9.9...`, // The latest version is expected, as state has no version constraints
+			},
+		},
+		"different providers required by config and state": {
+			workDirPath: "init-provider-download/config-and-state-different-providers",
+			expectedDownloadMsgs: []string{
+				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
+
+				// Config - this provider is affected by a version constraint
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/null versions matching "< 9.0.0"...
+				- Installing hashicorp/null v1.0.0...
+				- Installed hashicorp/null v1.0.0`,
+
+				// State - the latest version of this provider is expected, as state has no version constraints
+				`Initializing provider plugins found in the state...
+				- Finding latest version of hashicorp/random...
+				- Installing hashicorp/random v9.9.9...`,
+			},
+		},
+		"does not re-download providers that are present in both config and state": {
+			workDirPath: "init-provider-download/config-and-state-same-providers",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/random versions matching "< 9.0.0"...
+				- Installing hashicorp/random v1.0.0...
+				- Installed hashicorp/random v1.0.0`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random
+				- Using previously-installed hashicorp/random v1.0.0`,
+			},
+		},
+		"reuses providers already represented in a dependency lock file": {
+			workDirPath: "init-provider-download/config-state-file-and-lockfile",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Installing hashicorp/random v1.0.0...
+				- Installed hashicorp/random v1.0.0`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random
+				- Using previously-installed hashicorp/random v1.0.0`,
+			},
+		},
+		"using the -upgrade flag causes provider download to ignore the lock file": {
+			workDirPath: "init-provider-download/config-state-file-and-lockfile",
+			flags:       []string{"-upgrade"},
+			expectedDownloadMsgs: []string{
+				// Config - lock file is not mentioned due to the -upgrade flag
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/random versions matching "< 9.0.0"...
+				- Installing hashicorp/random v1.0.0...
+				- Installed hashicorp/random v1.0.0`,
+				// State - reuses the provider download from the config
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random
+				- Using previously-installed hashicorp/random v1.0.0`,
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+
+			// Create a temporary working directory no tf configuration but has state
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(tc.workDirPath), td)
+			os.MkdirAll(td, 0755)
+			t.Chdir(td)
+
+			// A provider source containing the random and null providers
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"hashicorp/random": {"1.0.0", "9.9.9"},
+				"hashicorp/null":   {"1.0.0", "9.9.9"},
+			})
+			defer close()
+
+			ui := new(cli.MockUi)
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					ProviderSource:   providerSource,
+
+					AllowExperimentalFeatures: true, // Needed to test init changes for PSS project
+				},
+			}
+
+			args := append(tc.flags, "-enable-pluggable-state-storage-experiment") // Needed to test init changes for PSS project
+			if code := c.Run(args); code != 0 {
+				t.Fatalf("bad: \n%s", done(t).All())
+			}
+
+			actual := cleanString(done(t).All())
+			for _, downloadMsg := range tc.expectedDownloadMsgs {
+				if !strings.Contains(cleanString(actual), cleanString(downloadMsg)) {
+					t.Fatalf("expected output to contain %q\n, got %q", cleanString(downloadMsg), cleanString(actual))
+				}
+			}
+		})
 	}
 }
 
@@ -3133,6 +3258,111 @@ func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
 	}
 }
 
+// Testing init's behaviors when run in an empty working directory
+func TestInit_stateStore_newWorkingDir(t *testing.T) {
+	t.Run("an init command creates the default workspace by default", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutput := `Initializing the state store...`
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+		}
+
+		// Assert the default workspace was created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to be created during init, but it is missing")
+		}
+	})
+
+	t.Run("an init command with the flag -create-default-workspace=false will not make the default workspace", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true", "-create-default-workspace=false"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutput := `Terraform has been configured to skip creation of the default workspace`
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+		}
+
+		// Assert the default workspace was created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
+			t.Fatal("expected Terraform to skip creating the default workspace, but it has been created")
+		}
+	})
+
+	// TODO: Add test cases below once PSS feature isn't experimental.
+	// Currently these tests are handled at a lower level in `internal/command/meta_backend_test.go`:
+	// > "during a non-init command, the command ends in with an error telling the user to run an init command"
+}
+
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).
@@ -3272,4 +3502,66 @@ func expectedPackageInstallPath(name, version string, exe bool) string {
 	return filepath.ToSlash(filepath.Join(
 		baseDir, fmt.Sprintf("registry.terraform.io/hashicorp/%s/%s/%s", name, version, platform),
 	))
+}
+
+func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
+	// Create a mock provider to use for PSS
+	// Get mock provider factory to be used during init
+	//
+	// This imagines a provider called `test` that contains
+	// a pluggable state store implementation called `store`.
+	pssName := "test_store"
+	mock := testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				pssName: {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"bar": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+		// Workspaces exist once the artefact representing it is written
+		if _, exist := mock.MockStates[req.StateId]; !exist {
+			// Ensure non-nil map
+			if mock.MockStates == nil {
+				mock.MockStates = make(map[string]interface{})
+			}
+
+			mock.MockStates[req.StateId] = req.Bytes
+		}
+		return providers.WriteStateBytesResponse{
+			Diagnostics: nil, // success
+		}
+	}
+	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+		state := []byte{}
+		if v, exist := mock.MockStates[req.StateId]; exist {
+			if s, ok := v.([]byte); ok {
+				state = s
+			}
+		}
+		return providers.ReadStateBytesResponse{
+			Bytes:       state,
+			Diagnostics: nil, // success
+		}
+	}
+	return &mock
 }

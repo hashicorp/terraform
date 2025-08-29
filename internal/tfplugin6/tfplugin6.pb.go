@@ -7010,7 +7010,7 @@ func (x *ReadStateBytes_Request) GetStateId() string {
 	return ""
 }
 
-type ReadStateBytes_ResponseChunk struct {
+type ReadStateBytes_Response struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Bytes         []byte                 `protobuf:"bytes,1,opt,name=bytes,proto3" json:"bytes,omitempty"`
 	TotalLength   int64                  `protobuf:"varint,2,opt,name=total_length,json=totalLength,proto3" json:"total_length,omitempty"`
@@ -7020,20 +7020,20 @@ type ReadStateBytes_ResponseChunk struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ReadStateBytes_ResponseChunk) Reset() {
-	*x = ReadStateBytes_ResponseChunk{}
+func (x *ReadStateBytes_Response) Reset() {
+	*x = ReadStateBytes_Response{}
 	mi := &file_tfplugin6_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ReadStateBytes_ResponseChunk) String() string {
+func (x *ReadStateBytes_Response) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ReadStateBytes_ResponseChunk) ProtoMessage() {}
+func (*ReadStateBytes_Response) ProtoMessage() {}
 
-func (x *ReadStateBytes_ResponseChunk) ProtoReflect() protoreflect.Message {
+func (x *ReadStateBytes_Response) ProtoReflect() protoreflect.Message {
 	mi := &file_tfplugin6_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -7045,33 +7045,33 @@ func (x *ReadStateBytes_ResponseChunk) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReadStateBytes_ResponseChunk.ProtoReflect.Descriptor instead.
-func (*ReadStateBytes_ResponseChunk) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReadStateBytes_Response.ProtoReflect.Descriptor instead.
+func (*ReadStateBytes_Response) Descriptor() ([]byte, []int) {
 	return file_tfplugin6_proto_rawDescGZIP(), []int{39, 1}
 }
 
-func (x *ReadStateBytes_ResponseChunk) GetBytes() []byte {
+func (x *ReadStateBytes_Response) GetBytes() []byte {
 	if x != nil {
 		return x.Bytes
 	}
 	return nil
 }
 
-func (x *ReadStateBytes_ResponseChunk) GetTotalLength() int64 {
+func (x *ReadStateBytes_Response) GetTotalLength() int64 {
 	if x != nil {
 		return x.TotalLength
 	}
 	return 0
 }
 
-func (x *ReadStateBytes_ResponseChunk) GetRange() *StateRange {
+func (x *ReadStateBytes_Response) GetRange() *StateRange {
 	if x != nil {
 		return x.Range
 	}
 	return nil
 }
 
-func (x *ReadStateBytes_ResponseChunk) GetDiagnostics() []*Diagnostic {
+func (x *ReadStateBytes_Response) GetDiagnostics() []*Diagnostic {
 	if x != nil {
 		return x.Diagnostics
 	}
@@ -7079,12 +7079,13 @@ func (x *ReadStateBytes_ResponseChunk) GetDiagnostics() []*Diagnostic {
 }
 
 type WriteStateBytes_RequestChunk struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TypeName      string                 `protobuf:"bytes,1,opt,name=type_name,json=typeName,proto3" json:"type_name,omitempty"`
-	Bytes         []byte                 `protobuf:"bytes,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
-	StateId       string                 `protobuf:"bytes,3,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
-	TotalLength   int64                  `protobuf:"varint,4,opt,name=total_length,json=totalLength,proto3" json:"total_length,omitempty"`
-	Range         *StateRange            `protobuf:"bytes,5,opt,name=range,proto3" json:"range,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// TODO: Can we decouple this outside of the stream?
+	TypeName      string      `protobuf:"bytes,1,opt,name=type_name,json=typeName,proto3" json:"type_name,omitempty"`
+	StateId       string      `protobuf:"bytes,3,opt,name=state_id,json=stateId,proto3" json:"state_id,omitempty"`
+	Bytes         []byte      `protobuf:"bytes,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	TotalLength   int64       `protobuf:"varint,4,opt,name=total_length,json=totalLength,proto3" json:"total_length,omitempty"`
+	Range         *StateRange `protobuf:"bytes,5,opt,name=range,proto3" json:"range,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7126,18 +7127,18 @@ func (x *WriteStateBytes_RequestChunk) GetTypeName() string {
 	return ""
 }
 
-func (x *WriteStateBytes_RequestChunk) GetBytes() []byte {
-	if x != nil {
-		return x.Bytes
-	}
-	return nil
-}
-
 func (x *WriteStateBytes_RequestChunk) GetStateId() string {
 	if x != nil {
 		return x.StateId
 	}
 	return ""
+}
+
+func (x *WriteStateBytes_RequestChunk) GetBytes() []byte {
+	if x != nil {
+		return x.Bytes
+	}
+	return nil
 }
 
 func (x *WriteStateBytes_RequestChunk) GetTotalLength() int64 {
@@ -8587,21 +8588,21 @@ const file_tfplugin6_proto_rawDesc = "" +
 	"\ttype_name\x18\x01 \x01(\tR\btypeName\x12/\n" +
 	"\x06config\x18\x02 \x01(\v2\x17.tfplugin6.DynamicValueR\x06config\x1aC\n" +
 	"\bResponse\x127\n" +
-	"\vdiagnostics\x18\x01 \x03(\v2\x15.tfplugin6.DiagnosticR\vdiagnostics\"\x84\x02\n" +
+	"\vdiagnostics\x18\x01 \x03(\v2\x15.tfplugin6.DiagnosticR\vdiagnostics\"\xff\x01\n" +
 	"\x0eReadStateBytes\x1aA\n" +
 	"\aRequest\x12\x1b\n" +
 	"\ttype_name\x18\x01 \x01(\tR\btypeName\x12\x19\n" +
-	"\bstate_id\x18\x02 \x01(\tR\astateId\x1a\xae\x01\n" +
-	"\rResponseChunk\x12\x14\n" +
+	"\bstate_id\x18\x02 \x01(\tR\astateId\x1a\xa9\x01\n" +
+	"\bResponse\x12\x14\n" +
 	"\x05bytes\x18\x01 \x01(\fR\x05bytes\x12!\n" +
 	"\ftotal_length\x18\x02 \x01(\x03R\vtotalLength\x12+\n" +
 	"\x05range\x18\x03 \x01(\v2\x15.tfplugin6.StateRangeR\x05range\x127\n" +
 	"\vdiagnostics\x18\x04 \x03(\v2\x15.tfplugin6.DiagnosticR\vdiagnostics\"\x85\x02\n" +
 	"\x0fWriteStateBytes\x1a\xac\x01\n" +
 	"\fRequestChunk\x12\x1b\n" +
-	"\ttype_name\x18\x01 \x01(\tR\btypeName\x12\x14\n" +
-	"\x05bytes\x18\x02 \x01(\fR\x05bytes\x12\x19\n" +
-	"\bstate_id\x18\x03 \x01(\tR\astateId\x12!\n" +
+	"\ttype_name\x18\x01 \x01(\tR\btypeName\x12\x19\n" +
+	"\bstate_id\x18\x03 \x01(\tR\astateId\x12\x14\n" +
+	"\x05bytes\x18\x02 \x01(\fR\x05bytes\x12!\n" +
 	"\ftotal_length\x18\x04 \x01(\x03R\vtotalLength\x12+\n" +
 	"\x05range\x18\x05 \x01(\v2\x15.tfplugin6.StateRangeR\x05range\x1aC\n" +
 	"\bResponse\x127\n" +
@@ -8682,7 +8683,7 @@ const file_tfplugin6_proto_rawDesc = "" +
 	"\n" +
 	"StringKind\x12\t\n" +
 	"\x05PLAIN\x10\x00\x12\f\n" +
-	"\bMARKDOWN\x10\x012\xfb\x19\n" +
+	"\bMARKDOWN\x10\x012\xf6\x19\n" +
 	"\bProvider\x12N\n" +
 	"\vGetMetadata\x12\x1e.tfplugin6.GetMetadata.Request\x1a\x1f.tfplugin6.GetMetadata.Response\x12`\n" +
 	"\x11GetProviderSchema\x12$.tfplugin6.GetProviderSchema.Request\x1a%.tfplugin6.GetProviderSchema.Response\x12o\n" +
@@ -8708,8 +8709,8 @@ const file_tfplugin6_proto_rawDesc = "" +
 	"\fGetFunctions\x12\x1f.tfplugin6.GetFunctions.Request\x1a .tfplugin6.GetFunctions.Response\x12Q\n" +
 	"\fCallFunction\x12\x1f.tfplugin6.CallFunction.Request\x1a .tfplugin6.CallFunction.Response\x12i\n" +
 	"\x18ValidateStateStoreConfig\x12%.tfplugin6.ValidateStateStore.Request\x1a&.tfplugin6.ValidateStateStore.Response\x12f\n" +
-	"\x13ConfigureStateStore\x12&.tfplugin6.ConfigureStateStore.Request\x1a'.tfplugin6.ConfigureStateStore.Response\x12^\n" +
-	"\x0eReadStateBytes\x12!.tfplugin6.ReadStateBytes.Request\x1a'.tfplugin6.ReadStateBytes.ResponseChunk0\x01\x12a\n" +
+	"\x13ConfigureStateStore\x12&.tfplugin6.ConfigureStateStore.Request\x1a'.tfplugin6.ConfigureStateStore.Response\x12Y\n" +
+	"\x0eReadStateBytes\x12!.tfplugin6.ReadStateBytes.Request\x1a\".tfplugin6.ReadStateBytes.Response0\x01\x12a\n" +
 	"\x0fWriteStateBytes\x12'.tfplugin6.WriteStateBytes.RequestChunk\x1a#.tfplugin6.WriteStateBytes.Response(\x01\x12H\n" +
 	"\tGetStates\x12\x1c.tfplugin6.GetStates.Request\x1a\x1d.tfplugin6.GetStates.Response\x12N\n" +
 	"\vDeleteState\x12\x1e.tfplugin6.DeleteState.Request\x1a\x1f.tfplugin6.DeleteState.Response\x12K\n" +
@@ -8871,7 +8872,7 @@ var file_tfplugin6_proto_goTypes = []any{
 	(*ConfigureStateStore_Request)(nil),                 // 134: tfplugin6.ConfigureStateStore.Request
 	(*ConfigureStateStore_Response)(nil),                // 135: tfplugin6.ConfigureStateStore.Response
 	(*ReadStateBytes_Request)(nil),                      // 136: tfplugin6.ReadStateBytes.Request
-	(*ReadStateBytes_ResponseChunk)(nil),                // 137: tfplugin6.ReadStateBytes.ResponseChunk
+	(*ReadStateBytes_Response)(nil),                     // 137: tfplugin6.ReadStateBytes.Response
 	(*WriteStateBytes_RequestChunk)(nil),                // 138: tfplugin6.WriteStateBytes.RequestChunk
 	(*WriteStateBytes_Response)(nil),                    // 139: tfplugin6.WriteStateBytes.Response
 	(*GetStates_Request)(nil),                           // 140: tfplugin6.GetStates.Request
@@ -9043,8 +9044,8 @@ var file_tfplugin6_proto_depIdxs = []int32{
 	7,   // 147: tfplugin6.ValidateStateStore.Response.diagnostics:type_name -> tfplugin6.Diagnostic
 	6,   // 148: tfplugin6.ConfigureStateStore.Request.config:type_name -> tfplugin6.DynamicValue
 	7,   // 149: tfplugin6.ConfigureStateStore.Response.diagnostics:type_name -> tfplugin6.Diagnostic
-	47,  // 150: tfplugin6.ReadStateBytes.ResponseChunk.range:type_name -> tfplugin6.StateRange
-	7,   // 151: tfplugin6.ReadStateBytes.ResponseChunk.diagnostics:type_name -> tfplugin6.Diagnostic
+	47,  // 150: tfplugin6.ReadStateBytes.Response.range:type_name -> tfplugin6.StateRange
+	7,   // 151: tfplugin6.ReadStateBytes.Response.diagnostics:type_name -> tfplugin6.Diagnostic
 	47,  // 152: tfplugin6.WriteStateBytes.RequestChunk.range:type_name -> tfplugin6.StateRange
 	7,   // 153: tfplugin6.WriteStateBytes.Response.diagnostics:type_name -> tfplugin6.Diagnostic
 	7,   // 154: tfplugin6.GetStates.Response.diagnostics:type_name -> tfplugin6.Diagnostic
@@ -9135,7 +9136,7 @@ var file_tfplugin6_proto_depIdxs = []int32{
 	127, // 239: tfplugin6.Provider.CallFunction:output_type -> tfplugin6.CallFunction.Response
 	133, // 240: tfplugin6.Provider.ValidateStateStoreConfig:output_type -> tfplugin6.ValidateStateStore.Response
 	135, // 241: tfplugin6.Provider.ConfigureStateStore:output_type -> tfplugin6.ConfigureStateStore.Response
-	137, // 242: tfplugin6.Provider.ReadStateBytes:output_type -> tfplugin6.ReadStateBytes.ResponseChunk
+	137, // 242: tfplugin6.Provider.ReadStateBytes:output_type -> tfplugin6.ReadStateBytes.Response
 	139, // 243: tfplugin6.Provider.WriteStateBytes:output_type -> tfplugin6.WriteStateBytes.Response
 	141, // 244: tfplugin6.Provider.GetStates:output_type -> tfplugin6.GetStates.Response
 	143, // 245: tfplugin6.Provider.DeleteState:output_type -> tfplugin6.DeleteState.Response
@@ -9539,7 +9540,7 @@ func (c *providerClient) ReadStateBytes(ctx context.Context, in *ReadStateBytes_
 }
 
 type Provider_ReadStateBytesClient interface {
-	Recv() (*ReadStateBytes_ResponseChunk, error)
+	Recv() (*ReadStateBytes_Response, error)
 	grpc.ClientStream
 }
 
@@ -9547,8 +9548,8 @@ type providerReadStateBytesClient struct {
 	grpc.ClientStream
 }
 
-func (x *providerReadStateBytesClient) Recv() (*ReadStateBytes_ResponseChunk, error) {
-	m := new(ReadStateBytes_ResponseChunk)
+func (x *providerReadStateBytesClient) Recv() (*ReadStateBytes_Response, error) {
+	m := new(ReadStateBytes_Response)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -10298,7 +10299,7 @@ func _Provider_ReadStateBytes_Handler(srv interface{}, stream grpc.ServerStream)
 }
 
 type Provider_ReadStateBytesServer interface {
-	Send(*ReadStateBytes_ResponseChunk) error
+	Send(*ReadStateBytes_Response) error
 	grpc.ServerStream
 }
 
@@ -10306,7 +10307,7 @@ type providerReadStateBytesServer struct {
 	grpc.ServerStream
 }
 
-func (x *providerReadStateBytesServer) Send(m *ReadStateBytes_ResponseChunk) error {
+func (x *providerReadStateBytesServer) Send(m *ReadStateBytes_Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -21,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -626,7 +629,7 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 }
 
 // Saved backend state matching config
-func TestMetaBackend_configuredUnchanged(t *testing.T) {
+func TestMetaBackend_configuredBackendUnchanged(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	t.Chdir(td)
@@ -2068,10 +2071,11 @@ func Test_determineInitReason(t *testing.T) {
 }
 
 // Newly configured state store
+// Working directory has state_store in config but no preexisting backend state file
 //
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_configureNewStateStore(t *testing.T) {
+// Tests that, during a non-init command, the command ends in with an error telling the user to run an init command
+func TestMetaBackend_nonInitCommandInterrupted_uninitializedStateStore(t *testing.T) {
+
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-store-new"), td)
 	t.Chdir(td)
@@ -2090,6 +2094,7 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
+	pssName := "foo_bar"
 	mock := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
@@ -2103,7 +2108,7 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			ResourceTypes:     map[string]providers.Schema{},
 			ListResourceTypes: map[string]providers.Schema{},
 			StateStores: map[string]providers.Schema{
-				"foo_bar": {
+				pssName: {
 					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"bar": {
@@ -2116,24 +2121,65 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 			},
 		},
 	}
+	mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+		// Workspaces exist once the artefact representing it is written
+		if _, exist := mock.MockStates[req.StateId]; !exist {
+			// Ensure non-nil map
+			if mock.MockStates == nil {
+				mock.MockStates = make(map[string]interface{})
+			}
+
+			mock.MockStates[req.StateId] = req.Bytes
+		}
+		return providers.WriteStateBytesResponse{
+			Diagnostics: nil, // success
+		}
+	}
+	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+		state := []byte{}
+		if v, exist := mock.MockStates[req.StateId]; exist {
+			if s, ok := v.([]byte); ok {
+				state = s
+			}
+		}
+		return providers.ReadStateBytesResponse{
+			Bytes:       state,
+			Diagnostics: nil, // success
+		}
+	}
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
 
-	// Get the operations backend
+	// Create locks - these would normally be the locks derived from config
+	locks := depsfile.NewLocks()
+	constraint, err := providerreqs.ParseVersionConstraints(">9.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	expectedVersionString := "9.9.9"
+	expectedProviderSource := "registry.terraform.io/my-org/foo"
+	locks.SetProvider(
+		addrs.MustParseProviderSourceString(expectedProviderSource),
+		versions.MustParseVersion(expectedVersionString),
+		constraint,
+		[]providerreqs.Hash{"h1:foo"},
+	)
+
+	// Act - get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
+		Init:             false,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  factory,
+		Locks:            locks,
 	})
 	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
+		t.Fatal("expected an error but got none")
 	}
-	wantErr := "Configuring a state store for the first time is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+	expectedError := "State store initialization required, please run \"terraform init\": Reason: Initial configuration of the requested state_store \"foo_bar\" in provider foo (\"registry.terraform.io/my-org/foo\")"
+	if !strings.Contains(cleanString(beDiags.Err().Error()), expectedError) {
+		t.Fatalf("expected error to contain %s, but instead got: %s", expectedError, cleanString(beDiags.Err().Error()))
 	}
-
 }
 
 // Unsetting a saved state store
@@ -2235,11 +2281,27 @@ func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 		return mock, nil
 	}
 
+	// Create locks - these would normally be the locks derived from config
+	locks := depsfile.NewLocks()
+	constraint, err := providerreqs.ParseVersionConstraints(">9.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	expectedVersionString := "9.9.9"
+	expectedProviderSource := "registry.terraform.io/my-org/foo"
+	locks.SetProvider(
+		addrs.MustParseProviderSourceString(expectedProviderSource),
+		versions.MustParseVersion(expectedVersionString),
+		constraint,
+		[]providerreqs.Hash{"h1:foo"},
+	)
+
 	// Get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  factory,
+		Locks:            locks,
 	})
 
 	if !beDiags.HasErrors() {
