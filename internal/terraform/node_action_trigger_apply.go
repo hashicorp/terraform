@@ -40,7 +40,7 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 
 	if n.ConditionExpr != nil {
 		// We know this must be a lifecycle action, otherwise we would have no condition
-		at := actionInvocation.ActionTrigger.(plans.LifecycleActionTrigger)
+		at := actionInvocation.ActionTrigger.(*plans.LifecycleActionTrigger)
 		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
 			// For applying the triggering event is sufficient, if the condition could not have
 			// been evaluated due to in invalid mix of events we would have caught it durin planning.
