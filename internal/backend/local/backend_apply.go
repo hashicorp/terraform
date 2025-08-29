@@ -145,13 +145,19 @@ func (b *Local) opApply(
 				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
 			case plans.RefreshOnlyMode:
-				if op.Workspace != "default" {
-					query = "Would you like to update the Terraform state for \"" + op.Workspace + "\" to reflect these detected changes?"
+				if len(plan.ActionTargetAddrs) > 0 {
+					query = "Would you like to invoke the specified actions?"
+					desc = "Terraform will invoke the actions described above, and any changes will be written to the state without modifying real infrastructure\n" +
+						"There is no undo. Only 'yes' will be accepted to confirm."
 				} else {
-					query = "Would you like to update the Terraform state to reflect these detected changes?"
+					if op.Workspace != "default" {
+						query = "Would you like to update the Terraform state for \"" + op.Workspace + "\" to reflect these detected changes?"
+					} else {
+						query = "Would you like to update the Terraform state to reflect these detected changes?"
+					}
+					desc = "Terraform will write these changes to the state without modifying any real infrastructure.\n" +
+						"There is no undo. Only 'yes' will be accepted to confirm."
 				}
-				desc = "Terraform will write these changes to the state without modifying any real infrastructure.\n" +
-					"There is no undo. Only 'yes' will be accepted to confirm."
 			default:
 				if op.Workspace != "default" {
 					query = "Do you want to perform these actions in workspace \"" + op.Workspace + "\"?"
