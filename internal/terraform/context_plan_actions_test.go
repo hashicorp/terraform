@@ -2109,6 +2109,74 @@ action "test_unlinked" "one" {
 			},
 		},
 
+		"invoke action with reference (drift, no refresh)": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "test_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode:        plans.RefreshOnlyMode,
+				SkipRefresh: true,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			buildState: func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("hello"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+		},
+
 		"non-referenced resource isn't refreshed during invoke": {
 			module: map[string]string{
 				"main.tf": `
