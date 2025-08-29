@@ -338,9 +338,9 @@ func getStateFromPath(path string) (*statefile.File, error) {
 // getStateFromBackend returns the State for the current workspace, if available.
 func getStateFromBackend(b backend.Backend, workspace string) (*statefile.File, error) {
 	// Get the state store for the given workspace
-	stateStore, err := b.StateMgr(workspace)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to load state manager: %w", err)
+	stateStore, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		return nil, fmt.Errorf("Failed to load state manager: %w", sDiags.Err())
 	}
 
 	// Refresh the state store with the latest state snapshot from persistent storage

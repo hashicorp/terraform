@@ -62,9 +62,9 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
 		return 1
 	}
-	stateMgr, err := b.StateMgr(env)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+	stateMgr, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {

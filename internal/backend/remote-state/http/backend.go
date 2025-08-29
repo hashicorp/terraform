@@ -306,12 +306,14 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, configVal cty.Value
 	return nil
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	if name != backend.DefaultStateName {
-		return nil, backend.ErrWorkspacesNotSupported
+		return nil, diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
-	return &remote.State{Client: b.client}, nil
+	return &remote.State{Client: b.client}, diags
 }
 
 func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {

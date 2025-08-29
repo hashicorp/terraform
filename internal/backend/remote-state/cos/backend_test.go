@@ -149,9 +149,9 @@ func TestRemoteLocks(t *testing.T) {
 	defer teardownBackend(t, be)
 
 	remoteClient := func() (remote.Client, error) {
-		ss, err := be.StateMgr(backend.DefaultStateName)
-		if err != nil {
-			return nil, err
+		ss, sDiags := be.StateMgr(backend.DefaultStateName)
+		if sDiags.HasErrors() {
+			t.Fatal(sDiags.Err())
 		}
 
 		rs, ok := ss.(*remote.State)

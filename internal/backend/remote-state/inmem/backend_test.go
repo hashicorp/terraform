@@ -36,9 +36,9 @@ func TestBackendConfig(t *testing.T) {
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	c := s.(*remote.State).Client.(*RemoteClient)
@@ -73,9 +73,9 @@ func TestRemoteState(t *testing.T) {
 	workspace := "workspace"
 
 	// create a new workspace in this backend
-	s, err := b.StateMgr(workspace)
-	if err != nil {
-		t.Fatal(err)
+	s, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	// force overwriting the remote state

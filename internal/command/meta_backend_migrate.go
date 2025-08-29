@@ -264,10 +264,10 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	log.Printf("[INFO] backendMigrateState: single-to-single migrating %q workspace to %q workspace", opts.sourceWorkspace, opts.destinationWorkspace)
 
-	sourceState, err := opts.Source.StateMgr(opts.sourceWorkspace)
-	if err != nil {
+	sourceState, sDiags := opts.Source.StateMgr(opts.sourceWorkspace)
+	if sDiags.HasErrors() {
 		return fmt.Errorf(strings.TrimSpace(
-			errMigrateSingleLoadDefault), opts.SourceType, err)
+			errMigrateSingleLoadDefault), opts.SourceType, sDiags.Err())
 	}
 	if err := sourceState.RefreshState(); err != nil {
 		return fmt.Errorf(strings.TrimSpace(
@@ -280,8 +280,9 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		return nil
 	}
 
-	destinationState, err := opts.Destination.StateMgr(opts.destinationWorkspace)
-	if err == backend.ErrDefaultWorkspaceNotSupported {
+	var err error
+	destinationState, sDiags := opts.Destination.StateMgr(opts.destinationWorkspace)
+	if sDiags.HasErrors() && sDiags.Err().Error() == backend.ErrDefaultWorkspaceNotSupported.Error() {
 		// If the backend doesn't support using the default state, we ask the user
 		// for a new name and migrate the default state to the given named state.
 		destinationState, err = func() (statemgr.Full, error) {
@@ -294,9 +295,9 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 			// Update the name of the destination state.
 			opts.destinationWorkspace = name
 
-			destinationState, err := opts.Destination.StateMgr(opts.destinationWorkspace)
-			if err != nil {
-				return nil, err
+			destinationState, sDiags := opts.Destination.StateMgr(opts.destinationWorkspace)
+			if sDiags.HasErrors() {
+				return nil, sDiags.Err()
 			}
 
 			// Ignore invalid workspace name as it is irrelevant in this context.
@@ -609,9 +610,9 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 
 		// If the current workspace is has no state we do not need to ask
 		// if they want to migrate the state.
-		sourceState, err := opts.Source.StateMgr(currentWorkspace)
-		if err != nil {
-			return err
+		sourceState, sDiags := opts.Source.StateMgr(currentWorkspace)
+		if sDiags.HasErrors() {
+			return sDiags.Err()
 		}
 		if err := sourceState.RefreshState(); err != nil {
 			return err

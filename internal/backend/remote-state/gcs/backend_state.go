@@ -95,17 +95,19 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 
 // StateMgr reads and returns the named state from GCS. If the named state does
 // not yet exist, a new state file is created.
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	c, err := b.client(name)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	st := &remote.State{Client: c}
 
 	// Grab the value
 	if err := st.RefreshState(); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// If we have no state, we have to create an empty state
@@ -115,7 +117,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockID, err := st.Lock(lockInfo)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// Local helper function so we can call it multiple places
@@ -138,20 +140,22 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		if err := st.WriteState(states.NewState()); err != nil {
-			return nil, unlock(err)
+			unlockErr := unlock(err)
+			return nil, diags.Append(unlockErr)
 		}
 		if err := st.PersistState(nil); err != nil {
-			return nil, unlock(err)
+			unlockErr := unlock(err)
+			return nil, diags.Append(unlockErr)
 		}
 
 		// Unlock, the state should now be initialized
 		if err := unlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 	}
 
-	return st, nil
+	return st, diags
 }
 
 func (b *Backend) stateFile(name string) string {

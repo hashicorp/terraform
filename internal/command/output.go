@@ -83,9 +83,9 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 	}
 
 	// Get the state
-	stateStore, err := b.StateMgr(env)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+	stateStore, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", sDiags.Err()))
 		return nil, diags
 	}
 
