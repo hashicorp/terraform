@@ -1598,7 +1598,7 @@ action "act_unlinked" "one" {
 					},
 				},
 			}
-			
+
 			if tc.readResourceFn != nil {
 				testProvider.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
 					return tc.readResourceFn(t, r)
