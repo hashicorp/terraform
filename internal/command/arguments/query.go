@@ -64,6 +64,13 @@ func ParseQuery(args []string) (*Query, tfdiags.Diagnostics) {
 
 	diags = diags.Append(query.Operation.Parse())
 
+	if len(query.Operation.ActionTargets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid arguments",
+			"Actions cannot be specified during query operations."))
+	}
+
 	switch {
 	case json:
 		query.ViewType = ViewJSON
