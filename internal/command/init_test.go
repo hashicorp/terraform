@@ -20,6 +20,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -3257,6 +3258,111 @@ func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
 	}
 }
 
+// Testing init's behaviors when run in an empty working directory
+func TestInit_stateStore_newWorkingDir(t *testing.T) {
+	t.Run("an init command creates the default workspace by default", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutput := `Initializing the state store...`
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+		}
+
+		// Assert the default workspace was created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to be created during init, but it is missing")
+		}
+	})
+
+	t.Run("an init command with the flag -create-default-workspace=false will not make the default workspace", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true", "-create-default-workspace=false"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutput := `Initializing the state store...`
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+		}
+
+		// Assert the default workspace was created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
+			t.Fatal("expected Terraform to skip creating the default workspace, but it has been created")
+		}
+	})
+
+	// TODO: Add test cases below once PSS feature isn't experimental.
+	// Currently these tests are handled at a lower level in `internal/command/meta_backend_test.go`:
+	// > "during a non-init command, the command ends in with an error telling the user to run an init command"
+}
+
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).
@@ -3396,4 +3502,66 @@ func expectedPackageInstallPath(name, version string, exe bool) string {
 	return filepath.ToSlash(filepath.Join(
 		baseDir, fmt.Sprintf("registry.terraform.io/hashicorp/%s/%s/%s", name, version, platform),
 	))
+}
+
+func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
+	// Create a mock provider to use for PSS
+	// Get mock provider factory to be used during init
+	//
+	// This imagines a provider called `test` that contains
+	// a pluggable state store implementation called `store`.
+	pssName := "test_store"
+	mock := testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				pssName: {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"bar": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+		// Workspaces exist once the artefact representing it is written
+		if _, exist := mock.MockStates[req.StateId]; !exist {
+			// Ensure non-nil map
+			if mock.MockStates == nil {
+				mock.MockStates = make(map[string]interface{})
+			}
+
+			mock.MockStates[req.StateId] = req.Bytes
+		}
+		return providers.WriteStateBytesResponse{
+			Diagnostics: nil, // success
+		}
+	}
+	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+		state := []byte{}
+		if v, exist := mock.MockStates[req.StateId]; exist {
+			if s, ok := v.([]byte); ok {
+				state = s
+			}
+		}
+		return providers.ReadStateBytesResponse{
+			Bytes:       state,
+			Diagnostics: nil, // success
+		}
+	}
+	return &mock
 }
