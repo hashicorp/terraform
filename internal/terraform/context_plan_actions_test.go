@@ -52,6 +52,56 @@ func TestContextPlan_actions(t *testing.T) {
 		Unlinked: &providers.UnlinkedAction{},
 	}
 
+	// Action schema with nested blocks used for tests exercising block handling.
+	nestedActionSchema := providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"top_attr": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+			BlockTypes: map[string]*configschema.NestedBlock{
+				"settings": {
+					Nesting: configschema.NestingSingle,
+					Block: configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"rule": {
+								Nesting: configschema.NestingList,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"value": {
+											Type:     cty.String,
+											Required: true,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				"settings_list": {
+					Nesting: configschema.NestingList,
+					Block: configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		Unlinked: &providers.UnlinkedAction{},
+	}
+
 	for name, tc := range map[string]struct {
 		toBeImplemented bool
 		module          map[string]string
@@ -2244,6 +2294,116 @@ action "test_unlinked" "one" {
 				return
 			},
 		},
+
+		"action config nested single + list blocks": {
+			module: map[string]string{
+				"main.tf": `
+action "test_nested" "with_blocks" {
+  config {
+    top_attr = "top"
+    settings {
+      name = "primary"
+      rule {
+        value = "r1"
+      }
+      rule {
+        value = "r2"
+      }
+    }
+  }
+}
+resource "test_object" "a" {
+  name = "object"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.test_nested.with_blocks]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+				}
+				ais := p.Changes.ActionInvocations[0]
+				decoded, err := ais.Decode(&nestedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding nested action: %s", err)
+				}
+				cv := decoded.ConfigValue
+				if cv.GetAttr("top_attr").AsString() != "top" {
+					t.Fatalf("expected top_attr = top, got %s", cv.GetAttr("top_attr").GoString())
+				}
+				settings := cv.GetAttr("settings")
+				if !settings.Type().IsObjectType() {
+					t.Fatalf("expected settings object, got %s", settings.Type().FriendlyName())
+				}
+				if settings.GetAttr("name").AsString() != "primary" {
+					t.Fatalf("expected settings.name = primary, got %s", settings.GetAttr("name").GoString())
+				}
+				rules := settings.GetAttr("rule")
+				if !rules.Type().IsListType() || rules.LengthInt() != 2 {
+					t.Fatalf("expected 2 rule blocks, got type %s length %d", rules.Type().FriendlyName(), rules.LengthInt())
+				}
+				first := rules.Index(cty.NumberIntVal(0)).GetAttr("value").AsString()
+				second := rules.Index(cty.NumberIntVal(1)).GetAttr("value").AsString()
+				if first != "r1" || second != "r2" {
+					t.Fatalf("expected rule values r1,r2 got %s,%s", first, second)
+				}
+			},
+		},
+
+		"action config top-level list block": {
+			module: map[string]string{
+				"main.tf": `
+action "test_nested" "with_list" {
+  config {
+    settings_list {
+      id = "one"
+    }
+    settings_list {
+      id = "two"
+    }
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.test_nested.with_list]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+				}
+				ais := p.Changes.ActionInvocations[0]
+				decoded, err := ais.Decode(&nestedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding nested action: %s", err)
+				}
+				cv := decoded.ConfigValue
+				if !cv.GetAttr("top_attr").IsNull() {
+					t.Fatalf("expected top_attr to be null, got %s", cv.GetAttr("top_attr").GoString())
+				}
+				sl := cv.GetAttr("settings_list")
+				if !sl.Type().IsListType() || sl.LengthInt() != 2 {
+					t.Fatalf("expected 2 settings_list blocks, got type %s length %d", sl.Type().FriendlyName(), sl.LengthInt())
+				}
+				first := sl.Index(cty.NumberIntVal(0)).GetAttr("id").AsString()
+				second := sl.Index(cty.NumberIntVal(1)).GetAttr("id").AsString()
+				if first != "one" || second != "two" {
+					t.Fatalf("expected ids one,two got %s,%s", first, second)
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -2255,9 +2415,9 @@ action "test_unlinked" "one" {
 			p := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
-						"test_unlinked": unlinkedActionSchema,
-
+						"test_unlinked":    unlinkedActionSchema,
 						"test_unlinked_wo": writeOnlyUnlinkedActionSchema,
+						"test_nested":      nestedActionSchema,
 
 						"test_lifecycle": {
 							ConfigSchema: &configschema.Block{
