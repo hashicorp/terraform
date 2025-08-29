@@ -11,9 +11,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -548,6 +551,129 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backendrun.Operation, opts 
 	}()
 
 	return <-result
+}
+
+func (b *Cloud) uploadConfigurationVersion(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace, configOptions tfe.ConfigurationVersionCreateOptions) (*tfe.ConfigurationVersion, error) {
+	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
+	if err != nil {
+		return nil, b.generalError("Failed to create configuration version", err)
+	}
+
+	var configDir string
+	if op.ConfigDir != "" {
+		// De-normalize the configuration directory path.
+		configDir, err = filepath.Abs(op.ConfigDir)
+		if err != nil {
+			return nil, b.generalError(
+				"Failed to get absolute path of the configuration directory: %v", err)
+		}
+
+		// Make sure to take the working directory into account by removing
+		// the working directory from the current path. This will result in
+		// a path that points to the expected root of the workspace.
+		configDir = filepath.Clean(strings.TrimSuffix(
+			filepath.Clean(configDir),
+			filepath.Clean(w.WorkingDirectory),
+		))
+
+		// If the workspace has a subdirectory as its working directory then
+		// our configDir will be some parent directory of the current working
+		// directory. Users are likely to find that surprising, so we'll
+		// produce an explicit message about it to be transparent about what
+		// we are doing and why.
+		if w.WorkingDirectory != "" && filepath.Base(configDir) != w.WorkingDirectory {
+			if b.CLI != nil {
+				b.CLI.Output(fmt.Sprintf(strings.TrimSpace(`
+The remote workspace is configured to work with configuration at
+%s relative to the target repository.
+
+Terraform will upload the contents of the following directory,
+excluding files or directories as defined by a .terraformignore file
+at %s/.terraformignore (if it is present),
+in order to capture the filesystem context the remote workspace expects:
+    %s
+`), w.WorkingDirectory, configDir, configDir) + "\n")
+			}
+		}
+
+	} else {
+		// We did a check earlier to make sure we either have a config dir,
+		// or the plan is run with -destroy. So this else clause will only
+		// be executed when we are destroying and doesn't need the config.
+		configDir, err = os.MkdirTemp("", "tf")
+		if err != nil {
+			return nil, b.generalError("Failed to create temporary directory", err)
+		}
+		defer os.RemoveAll(configDir)
+
+		// Make sure the configured working directory exists.
+		err = os.MkdirAll(filepath.Join(configDir, w.WorkingDirectory), 0700)
+		if err != nil {
+			return nil, b.generalError(
+				"Failed to create temporary working directory", err)
+		}
+	}
+
+	log.Printf("[TRACE] backend/cloud: starting configuration upload at %q", configDir)
+	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
+	if err != nil {
+		return nil, b.generalError("Failed to upload configuration files", err)
+	}
+	log.Printf("[TRACE] backend/cloud: finished configuration upload")
+
+	uploaded := false
+	for i := 0; i < 60 && !uploaded; i++ {
+		select {
+		case <-stopCtx.Done():
+			log.Printf("[TRACE] backend/cloud: deadline reached while waiting for configuration status")
+			return nil, context.Canceled
+		case <-cancelCtx.Done():
+			log.Printf("[TRACE] backend/cloud: operation cancelled while waiting for configuration status")
+			return nil, context.Canceled
+		case <-time.After(planConfigurationVersionsPollInterval):
+			log.Printf("[TRACE] backend/cloud: reading configuration status")
+			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
+			if err != nil {
+				return nil, b.generalError("Failed to retrieve configuration version", err)
+			}
+
+			if cv.Status == tfe.ConfigurationUploaded {
+				uploaded = true
+			}
+		}
+	}
+
+	if !uploaded {
+		return nil, b.generalError(
+			"Failed to upload configuration files", errors.New("operation timed out"))
+	}
+
+	log.Printf("[TRACE] backend/cloud: configuration uploaded and ready")
+
+	return cv, nil
+}
+
+func (b *Cloud) parseRunVariables(op *backendrun.Operation) ([]*tfe.RunVariable, error) {
+	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
+	if configDiags.HasErrors() {
+		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
+	}
+
+	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
+
+	if varDiags.HasErrors() {
+		return nil, varDiags.Err()
+	}
+
+	runVariables := make([]*tfe.RunVariable, 0, len(variables))
+	for name, value := range variables {
+		runVariables = append(runVariables, &tfe.RunVariable{
+			Key:   name,
+			Value: value,
+		})
+	}
+
+	return runVariables, nil
 }
 
 // This method will fetch the redacted plan output as a byte slice, mirroring

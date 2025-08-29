@@ -7,13 +7,10 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -33,7 +30,7 @@ import (
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
 
-func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (OperationResult, error) {
 	log.Printf("[INFO] cloud: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
@@ -45,7 +42,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 			"The provided credentials have insufficient rights to generate a plan. In order "+
 				"to generate plans, at least plan permissions on the workspace are required.",
 		))
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	if w.VCSRepo != nil && op.PlanOutPath != "" {
@@ -55,7 +52,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 			"A workspace that is connected to a VCS requires the VCS-driven workflow "+
 				"to ensure that the VCS remains the single source of truth.",
 		))
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	if b.ContextOpts != nil && b.ContextOpts.Parallelism != defaultParallelism {
@@ -92,24 +89,15 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		diags = diags.Append(genconfig.ValidateTargetFile(op.GenerateConfigOut))
 	}
 
-	if op.Query {
-		// We don't support running a query operation with the cloud backend for now
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Query operations are not supported",
-			fmt.Sprintf("%s does not support query operations at this time.", b.appName),
-		))
-	}
-
 	// Return if there are any errors.
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	// If the run errored, exit before checking whether to save a plan file
 	run, err := b.plan(stopCtx, cancelCtx, op, w)
 	if err != nil {
-		return nil, err
+		return &RunResult{}, err
 	}
 
 	// Save plan file if -out <FILE> was specified
@@ -117,14 +105,14 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.Hostname)
 		err = bookmark.Save(op.PlanOutPath)
 		if err != nil {
-			return nil, err
+			return &RunResult{}, err
 		}
 	}
 
 	// Everything succeded, so display next steps
 	op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
 
-	return run, nil
+	return &RunResult{run: run, backend: b}, nil
 }
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
@@ -146,101 +134,11 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		Provisional:   tfe.Bool(provisional),
 	}
 
-	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
+	cv, err := b.uploadConfigurationVersion(stopCtx, cancelCtx, op, w, configOptions)
 	if err != nil {
-		return nil, b.generalError("Failed to create configuration version", err)
+		return nil, err
 	}
 
-	var configDir string
-	if op.ConfigDir != "" {
-		// De-normalize the configuration directory path.
-		configDir, err = filepath.Abs(op.ConfigDir)
-		if err != nil {
-			return nil, b.generalError(
-				"Failed to get absolute path of the configuration directory: %v", err)
-		}
-
-		// Make sure to take the working directory into account by removing
-		// the working directory from the current path. This will result in
-		// a path that points to the expected root of the workspace.
-		configDir = filepath.Clean(strings.TrimSuffix(
-			filepath.Clean(configDir),
-			filepath.Clean(w.WorkingDirectory),
-		))
-
-		// If the workspace has a subdirectory as its working directory then
-		// our configDir will be some parent directory of the current working
-		// directory. Users are likely to find that surprising, so we'll
-		// produce an explicit message about it to be transparent about what
-		// we are doing and why.
-		if w.WorkingDirectory != "" && filepath.Base(configDir) != w.WorkingDirectory {
-			if b.CLI != nil {
-				b.CLI.Output(fmt.Sprintf(strings.TrimSpace(`
-The remote workspace is configured to work with configuration at
-%s relative to the target repository.
-
-Terraform will upload the contents of the following directory,
-excluding files or directories as defined by a .terraformignore file
-at %s/.terraformignore (if it is present),
-in order to capture the filesystem context the remote workspace expects:
-    %s
-`), w.WorkingDirectory, configDir, configDir) + "\n")
-			}
-		}
-
-	} else {
-		// We did a check earlier to make sure we either have a config dir,
-		// or the plan is run with -destroy. So this else clause will only
-		// be executed when we are destroying and doesn't need the config.
-		configDir, err = ioutil.TempDir("", "tf")
-		if err != nil {
-			return nil, b.generalError("Failed to create temporary directory", err)
-		}
-		defer os.RemoveAll(configDir)
-
-		// Make sure the configured working directory exists.
-		err = os.MkdirAll(filepath.Join(configDir, w.WorkingDirectory), 0700)
-		if err != nil {
-			return nil, b.generalError(
-				"Failed to create temporary working directory", err)
-		}
-	}
-
-	log.Printf("[TRACE] backend/cloud: starting configuration upload at %q", configDir)
-	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
-	if err != nil {
-		return nil, b.generalError("Failed to upload configuration files", err)
-	}
-	log.Printf("[TRACE] backend/cloud: finished configuration upload")
-
-	uploaded := false
-	for i := 0; i < 60 && !uploaded; i++ {
-		select {
-		case <-stopCtx.Done():
-			log.Printf("[TRACE] backend/cloud: deadline reached while waiting for configuration status")
-			return nil, context.Canceled
-		case <-cancelCtx.Done():
-			log.Printf("[TRACE] backend/cloud: operation cancelled while waiting for configuration status")
-			return nil, context.Canceled
-		case <-time.After(planConfigurationVersionsPollInterval):
-			log.Printf("[TRACE] backend/cloud: reading configuration status")
-			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
-			if err != nil {
-				return nil, b.generalError("Failed to retrieve configuration version", err)
-			}
-
-			if cv.Status == tfe.ConfigurationUploaded {
-				uploaded = true
-			}
-		}
-	}
-
-	if !uploaded {
-		return nil, b.generalError(
-			"Failed to upload configuration files", errors.New("operation timed out"))
-	}
-
-	log.Printf("[TRACE] backend/cloud: configuration uploaded and ready")
 	runOptions := tfe.RunCreateOptions{
 		ConfigurationVersion: cv,
 		Refresh:              tfe.Bool(op.PlanRefresh),
@@ -280,23 +178,9 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 	}
 
-	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
-	if configDiags.HasErrors() {
-		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
-	}
-
-	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
-
-	if varDiags.HasErrors() {
-		return nil, varDiags.Err()
-	}
-
-	runVariables := make([]*tfe.RunVariable, 0, len(variables))
-	for name, value := range variables {
-		runVariables = append(runVariables, &tfe.RunVariable{
-			Key:   name,
-			Value: value,
-		})
+	runVariables, err := b.parseRunVariables(op)
+	if err != nil {
+		return nil, err
 	}
 	runOptions.Variables = runVariables
 

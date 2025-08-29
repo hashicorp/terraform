@@ -905,10 +905,14 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 	op.Workspace = w.Name
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backendrun.Operation, *tfe.Workspace) (*tfe.Run, error)
+	var f func(context.Context, context.Context, *backendrun.Operation, *tfe.Workspace) (OperationResult, error)
 	switch op.Type {
 	case backendrun.OperationTypePlan:
-		f = b.opPlan
+		if op.Query {
+			f = b.opQuery
+		} else {
+			f = b.opPlan
+		}
 	case backendrun.OperationTypeApply:
 		f = b.opApply
 	case backendrun.OperationTypeRefresh:
@@ -963,14 +967,14 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 			return
 		}
 
-		if r == nil && opErr == context.Canceled {
+		if !r.HasResult() && opErr == context.Canceled {
 			runningOp.Result = backendrun.OperationFailure
 			return
 		}
 
-		if r != nil {
+		if r.HasResult() {
 			// Retrieve the run to get its current status.
-			r, err := b.client.Runs.Read(cancelCtx, r.ID)
+			latest, err := r.Read(cancelCtx)
 			if err != nil {
 				var diags tfdiags.Diagnostics
 				diags = diags.Append(b.generalError("Failed to retrieve run", err))
@@ -979,10 +983,10 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 			}
 
 			// Record if there are any changes.
-			runningOp.PlanEmpty = !r.HasChanges
+			runningOp.PlanEmpty = !latest.HasChanges()
 
 			if opErr == context.Canceled {
-				if err := b.cancel(cancelCtx, op, r); err != nil {
+				if err := latest.Cancel(cancelCtx, op); err != nil {
 					var diags tfdiags.Diagnostics
 					diags = diags.Append(b.generalError("Failed to retrieve run", err))
 					op.ReportResult(runningOp, diags)
@@ -990,7 +994,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 				}
 			}
 
-			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+			if latest.IsCanceled() || latest.IsErrored() {
 				runningOp.Result = backendrun.OperationFailure
 			}
 		}
