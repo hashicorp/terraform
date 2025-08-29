@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -35,6 +34,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/version"
+	"golang.org/x/net/http/httpproxy"
 )
 
 // Deprecated in favor of flattening assume_role_* options
@@ -414,7 +414,10 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 	options = append(options, oss.UserAgent(fmt.Sprintf("%s/%s", TerraformUA, TerraformVersion)))
 
-	proxyUrl := getHttpProxyUrl()
+	proxyUrl, err := getHttpProxyUrl(endpoint)
+	if err != nil {
+		return err
+	}
 	if proxyUrl != nil {
 		options = append(options, oss.Proxy(proxyUrl.String()))
 	}
@@ -706,19 +709,11 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 	return accessKeyId.(string), accessKeySecret.(string), securityToken.(string), nil
 }
 
-func getHttpProxyUrl() *url.URL {
-	for _, v := range []string{"HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"} {
-		value := strings.Trim(os.Getenv(v), " ")
-		if value != "" {
-			if !regexp.MustCompile(`^http(s)?://`).MatchString(value) {
-				value = fmt.Sprintf("https://%s", value)
-			}
-			proxyUrl, err := url.Parse(value)
-			if err == nil {
-				return proxyUrl
-			}
-			break
-		}
+func getHttpProxyUrl(rawUrl string) (*url.URL, error) {
+	pc := httpproxy.FromEnvironment()
+	u, err := url.Parse(rawUrl)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return pc.ProxyFunc()(u)
 }
