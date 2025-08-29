@@ -892,10 +892,10 @@ func (mr *MockProvider_ReadStateBytesClientMockRecorder) Header() *gomock.Call {
 }
 
 // Recv mocks base method.
-func (m *MockProvider_ReadStateBytesClient) Recv() (*tfplugin6.ReadStateBytes_ResponseChunk, error) {
+func (m *MockProvider_ReadStateBytesClient) Recv() (*tfplugin6.ReadStateBytes_Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
-	ret0, _ := ret[0].(*tfplugin6.ReadStateBytes_ResponseChunk)
+	ret0, _ := ret[0].(*tfplugin6.ReadStateBytes_Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

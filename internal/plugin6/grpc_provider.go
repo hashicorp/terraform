@@ -1516,6 +1516,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 		chunk, err := client.Recv()
 		if err == io.EOF {
 			// End of stream, we're done
+			resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(chunk.Diagnostics))
 			break
 		}
 		if err != nil {
