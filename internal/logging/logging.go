@@ -204,10 +204,24 @@ func globalLogLevel() (hclog.Level, bool) {
 	if envLevel == "" {
 		envLevel = strings.ToUpper(os.Getenv(envLogCore))
 	}
-	if envLevel == "JSON" {
-		json = true
-	}
+
+	// Check if JSON formatting is requested by any subsystem
+	json = isJSONFormatRequested()
+
 	return parseLogLevel(envLevel), json
+}
+
+// isJSONFormatRequested checks if any logging subsystem has requested JSON formatting
+func isJSONFormatRequested() bool {
+	logEnvVars := []string{envLog, envLogCore, envLogProvider, envLogCloud, envLogStacks}
+
+	for _, envVar := range logEnvVars {
+		if strings.ToUpper(os.Getenv(envVar)) == "JSON" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func parseLogLevel(envLevel string) hclog.Level {
