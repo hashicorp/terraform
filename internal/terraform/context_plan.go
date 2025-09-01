@@ -225,10 +225,9 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	case plans.NormalMode, plans.DestroyMode:
 		// OK
 	case plans.RefreshOnlyMode:
-		if opts.SkipRefresh && len(opts.ActionTargets) == 0 {
+		if opts.SkipRefresh {
 			// The CLI layer (and other similar callers) should prevent this
-			// combination of options - although it is okay if we are invoking
-			// actions.
+			// combination of options.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Incompatible plan options",
@@ -266,6 +265,8 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	}
 
 	if len(opts.ActionTargets) > 0 {
+		// We panic here, as the command package shouldn't be setting
+
 		if len(opts.Targets) != 0 {
 			// The CLI layer (and other similar callers) should prevent this
 			// combination of options.

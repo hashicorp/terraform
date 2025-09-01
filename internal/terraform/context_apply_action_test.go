@@ -1573,56 +1573,6 @@ action "act_unlinked" "one" {
 			}),
 		},
 
-		"invoke action with reference (drift, skip refresh)": {
-			module: map[string]string{
-				"main.tf": `
-resource "test_object" "a" {
-  name = "hello"
-}
-
-action "act_unlinked" "one" {
-  config {
-    attr = test_object.a.name
-  }
-}
-`,
-			},
-			planOpts: &PlanOpts{
-				Mode:        plans.RefreshOnlyMode,
-				SkipRefresh: true,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsAction{
-						Action: addrs.Action{
-							Type: "act_unlinked",
-							Name: "one",
-						},
-					},
-				},
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "act_unlinked",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("hello"),
-					}),
-				},
-			},
-			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
-				return providers.ReadResourceResponse{
-					NewState: cty.ObjectVal(map[string]cty.Value{
-						"name": cty.StringVal("drifted value"),
-					}),
-				}
-			},
-			prevRunState: states.BuildState(func(state *states.SyncState) {
-				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
-					AttrsJSON: []byte(`{"name":"hello"}`),
-					Status:    states.ObjectReady,
-				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-			}),
-		},
-
 		"nested action config single + list blocks applies": {
 			module: map[string]string{
 				"main.tf": `
