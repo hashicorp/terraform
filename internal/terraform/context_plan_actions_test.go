@@ -2781,7 +2781,6 @@ resource "test_object" "a" {
 				}
 			},
 		},
-
 		"splat is not supported": {
 			module: map[string]string{
 				"main.tf": `
@@ -2792,7 +2791,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello[*]]
+      actions = [action.test_unlinked.hello[*]] 
     }
   }
 }
@@ -2810,6 +2809,61 @@ resource "test_object" "a" {
 						End:      hcl.Pos{Line: 9, Column: 47, Byte: 190},
 					},
 				})
+			},
+		},
+		"deferring resource dependencies should defer action": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "origin" {
+  name = "origin"
+}
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.origin.name
+  }
+}
+resource "test_object" "a" {
+  name = "a"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				if req.Config.GetAttr("name").AsString() == "origin" {
+					return providers.PlanResourceChangeResponse{
+						Deferred: &providers.Deferred{
+							Reason: providers.DeferredReasonAbsentPrereq,
+						},
+					}
+				}
+				return providers.PlanResourceChangeResponse{
+					PlannedState:    req.ProposedNewState,
+					PlannedPrivate:  req.PriorPrivate,
+					PlannedIdentity: req.PriorIdentity,
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Errorf("Expected 1 deferred action invocation, got %d", len(p.DeferredActionInvocations))
+				}
+				if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Errorf("Expected action.test_unlinked.hello, got %s", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
+				}
+				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredActionInvocations[0].DeferredReason)
+				}
 			},
 		},
 	} {

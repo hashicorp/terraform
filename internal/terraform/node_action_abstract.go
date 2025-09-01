@@ -24,6 +24,7 @@ type NodeAbstractAction struct {
 	// The address of the provider this action will use
 	ResolvedProvider addrs.AbsProviderConfig
 	Schema           *providers.ActionSchema
+	Dependencies     []addrs.ConfigResource
 }
 
 var (
@@ -32,6 +33,7 @@ var (
 	_ GraphNodeConfigAction       = (*NodeAbstractAction)(nil)
 	_ GraphNodeAttachActionSchema = (*NodeAbstractAction)(nil)
 	_ GraphNodeProviderConsumer   = (*NodeAbstractAction)(nil)
+	_ GraphNodeAttachDependencies = (*NodeAbstractAction)(nil)
 )
 
 func (n NodeAbstractAction) Name() string {
@@ -109,4 +111,8 @@ func (n *NodeAbstractAction) Provider() addrs.Provider {
 
 func (n *NodeAbstractAction) SetProvider(p addrs.AbsProviderConfig) {
 	n.ResolvedProvider = p
+}
+
+func (n *NodeAbstractAction) AttachDependencies(deps []addrs.ConfigResource) {
+	n.Dependencies = deps
 }
