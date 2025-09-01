@@ -2791,7 +2791,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello[*]] 
+      actions = [action.test_unlinked.hello[*]]
     }
   }
 }
@@ -2811,6 +2811,198 @@ resource "test_object" "a" {
 				})
 			},
 		},
+		"action expansion with unknown instances": {
+			module: map[string]string{
+				"main.tf": `
+variable "each" {
+  type = set(string)
+}
+action "test_unlinked" "hello" {
+  for_each = var.each
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello["a"]]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				SetVariables: InputValues{
+					"each": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(p.DeferredActionInvocations))
+				}
+
+				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected.DeferredReasonDeferredPrereq, got %s", p.DeferredActionInvocations[0].DeferredReason)
+				}
+
+				ai := p.DeferredActionInvocations[0].ActionInvocationInstanceSrc
+				if ai.Addr.String() != `action.test_unlinked.hello["a"]` {
+					t.Fatalf(`expected action invocation for action.test_unlinked.hello["a"], got %s`, ai.Addr.String())
+				}
+			},
+		},
+		"action with unknown module expansion": {
+			// We have an unknown module expansion (for_each over an unknown value). The
+			// action and its triggering resource both live inside the (currently
+			// un-expanded) module instances. Since we cannot expand the module yet, the
+			// action invocation must be deferred.
+			module: map[string]string{
+				"main.tf": `
+variable "mods" {
+  type = set(string)
+}
+module "mod" {
+  source   = "./mod"
+  for_each = var.mods
+}
+`,
+				"mod/mod.tf": `
+action "test_unlinked" "hello" {
+  config {
+    attr = "static"
+  }
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				SetVariables: InputValues{
+					"mods": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				// No concrete action invocations can be produced yet.
+				if got := len(p.Changes.ActionInvocations); got != 0 {
+					t.Fatalf("expected 0 planned action invocations, got %d", got)
+				}
+
+				if got := len(p.DeferredActionInvocations); got != 0 {
+					t.Fatalf("expected 0 deferred action invocations, got %d", got)
+				}
+
+				if got := len(p.DeferredPartialActionInvocations); got != 1 {
+					t.Fatalf("expected 1 deferred action invocations, got %d", got)
+				}
+				ac, err := p.DeferredPartialActionInvocations[0].Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding action invocation: %s", err)
+				}
+				if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
+					t.Fatalf("expected DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
+				}
+				if ac.ActionInvocationInstance.ConfigValue.GetAttr("attr").AsString() != "static" {
+					t.Fatalf("expected attr to be static, got %s", ac.ActionInvocationInstance.ConfigValue.GetAttr("attr").AsString())
+				}
+
+			},
+		},
+		"action with unknown module expansion and unknown instances": {
+			// Here both the module expansion and the action for_each expansion are unknown.
+			// The action is referenced (with a specific key) inside the module so we should
+			// get a single deferred action invocation for that specific (yet still
+			// unresolved) instance address.
+			module: map[string]string{
+				"main.tf": `
+variable "mods" {
+  type = set(string)
+}
+variable "actions" {
+  type = set(string)
+}
+module "mod" {
+  source   = "./mod"
+  for_each = var.mods
+  
+  actions = var.actions
+}
+`,
+				"mod/mod.tf": `
+variable "actions" {
+  type = set(string)
+}
+action "test_unlinked" "hello" {
+  // Unknown for_each inside the module instance.
+  for_each = var.actions
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      // We reference a specific (yet unknown) action instance key.
+      actions = [action.test_unlinked.hello["a"]]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				SetVariables: InputValues{
+					"mods": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+					"actions": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 planned action invocations, got %d", len(p.Changes.ActionInvocations))
+				}
+				if got := len(p.DeferredActionInvocations); got != 0 {
+					t.Fatalf("expected 0 deferred action invocations, got %d", got)
+				}
+
+				if len(p.DeferredPartialActionInvocations) != 1 {
+					t.Fatalf("expected 1 deferred partial action invocations, got %d", len(p.DeferredPartialActionInvocations))
+				}
+
+				ac, err := p.DeferredPartialActionInvocations[0].Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding action invocation: %s", err)
+				}
+				if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
+					t.Fatalf("expected deferred reason to be DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
+				}
+				if !ac.ActionInvocationInstance.ConfigValue.IsNull() {
+					t.Fatalf("expected config value to be null")
+				}
+			},
+		},
+
 		"deferring resource dependencies should defer action": {
 			module: map[string]string{
 				"main.tf": `
@@ -2834,7 +3026,6 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: false,
-
 			planOpts: &PlanOpts{
 				Mode:            plans.NormalMode,
 				DeferralAllowed: true,
