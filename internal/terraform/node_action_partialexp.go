@@ -6,7 +6,10 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeActionDeclarationPartialExpanded is a graph node that stands in for
@@ -21,6 +24,7 @@ import (
 type NodeActionDeclarationPartialExpanded struct {
 	addr             addrs.PartialExpandedAction
 	config           configs.Action
+	Schema           *providers.ActionSchema
 	resolvedProvider addrs.AbsProviderConfig
 }
 
@@ -53,6 +57,18 @@ func (n *NodeActionDeclarationPartialExpanded) ActionAddr() addrs.ConfigAction {
 
 // Execute implements GraphNodeExecutable.
 func (n *NodeActionDeclarationPartialExpanded) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	ctx.Deferrals().ReportActionExpansionDeferred(n.addr)
+	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
+	if n.config.Config != nil {
+		var configDiags tfdiags.Diagnostics
+		configVal, _, configDiags = ctx.EvaluateBlock(n.config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, instances.TotallyUnknownRepetitionData)
+
+		diags = diags.Append(configDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+	ctx.Actions().AddPartialExpandedAction(n.addr, configVal, n.resolvedProvider)
 	return nil
 }

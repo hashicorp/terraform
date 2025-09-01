@@ -50,12 +50,13 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
 
 		for _, moduleAddr := range pem {
-			resourceAddr := moduleAddr.Action(n.Addr.Action)
+			actionAddr := moduleAddr.Action(n.Addr.Action)
 
 			// And add a node to the graph for this action.
 			g.Add(&NodeActionDeclarationPartialExpanded{
-				addr:             resourceAddr,
+				addr:             actionAddr,
 				config:           n.Config,
+				Schema:           n.Schema,
 				resolvedProvider: n.ResolvedProvider,
 			})
 		}

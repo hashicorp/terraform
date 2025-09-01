@@ -1832,7 +1832,11 @@ module "mod" {
 }
 `,
 				"mod/mod.tf": `
-action "test_unlinked" "hello" {}
+action "test_unlinked" "hello" {
+  config {
+    attr = "static"
+  }
+}
 
 resource "other_object" "a" {
   lifecycle {
@@ -1844,7 +1848,7 @@ resource "other_object" "a" {
 }
 `,
 			},
-			expectPlanActionCalled: false,
+			expectPlanActionCalled: true,
 			planOpts: &PlanOpts{
 				Mode:            plans.NormalMode,
 				DeferralAllowed: true,
@@ -1861,11 +1865,24 @@ resource "other_object" "a" {
 					t.Fatalf("expected 0 planned action invocations, got %d", got)
 				}
 
-				// If the entire module expansion is deferred, we don't know which actions could
-				// possibly be triggered, so we have no deferred action invocations.
 				if got := len(p.DeferredActionInvocations); got != 0 {
 					t.Fatalf("expected 0 deferred action invocations, got %d", got)
 				}
+
+				if got := len(p.DeferredPartialActionInvocations); got != 1 {
+					t.Fatalf("expected 1 deferred action invocations, got %d", got)
+				}
+				ac, err := p.DeferredPartialActionInvocations[0].Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding action invocation: %s", err)
+				}
+				if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
+					t.Fatalf("expected DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
+				}
+				if ac.ActionInvocationInstance.ConfigValue.GetAttr("attr").AsString() != "static" {
+					t.Fatalf("expected attr to be static, got %s", ac.ActionInvocationInstance.ConfigValue.GetAttr("attr").AsString())
+				}
+
 			},
 		},
 		"action with unknown module expansion and unknown instances": {
@@ -1910,7 +1927,7 @@ resource "other_object" "a" {
 }
 `,
 			},
-			expectPlanActionCalled: false,
+			expectPlanActionCalled: true,
 			planOpts: &PlanOpts{
 				Mode:            plans.NormalMode,
 				DeferralAllowed: true,
@@ -1929,10 +1946,23 @@ resource "other_object" "a" {
 				if len(p.Changes.ActionInvocations) != 0 {
 					t.Fatalf("expected 0 planned action invocations, got %d", len(p.Changes.ActionInvocations))
 				}
-				// If the entire module expansion is deferred, we don't know which actions could
-				// possibly be triggered, so we have no deferred action invocations.
 				if got := len(p.DeferredActionInvocations); got != 0 {
 					t.Fatalf("expected 0 deferred action invocations, got %d", got)
+				}
+
+				if len(p.DeferredPartialActionInvocations) != 1 {
+					t.Fatalf("expected 1 deferred partial action invocations, got %d", len(p.DeferredPartialActionInvocations))
+				}
+
+				ac, err := p.DeferredPartialActionInvocations[0].Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding action invocation: %s", err)
+				}
+				if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
+					t.Fatalf("expected deferred reason to be DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
+				}
+				if !ac.ActionInvocationInstance.ConfigValue.IsNull() {
+					t.Fatalf("expected config value to be null")
 				}
 			},
 		},

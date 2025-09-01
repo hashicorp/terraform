@@ -62,6 +62,37 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 	}
 
 	expander := ctx.InstanceExpander()
+
+	// The possibility of partial-expanded modules and resources is guarded by a
+	// top-level option for the whole plan, so that we can preserve mainline
+	// behavior for the modules runtime. So, we currently branch off into an
+	// entirely-separate codepath in those situations, at the expense of
+	// duplicating some of the logic for behavior this method would normally
+	// handle.
+	if ctx.Deferrals().DeferralAllowed() {
+		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
+
+		for _, moduleAddr := range pem {
+			actionAddr := moduleAddr.Action(n.Addr.Action)
+			resourceAddr := moduleAddr.Resource(n.lifecycleActionTrigger.resourceAddress.Resource)
+
+			// And add a node to the graph for this action.
+			g.Add(&NodeActionTriggerPartialExpanded{
+				addr:             actionAddr,
+				config:           n.Config,
+				resolvedProvider: n.resolvedProvider,
+				lifecycleActionTrigger: &lifecycleActionTriggerPartialExpanded{
+					resourceAddress:         resourceAddr,
+					events:                  n.lifecycleActionTrigger.events,
+					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
+					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
+					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
+				},
+			})
+		}
+		addRootNodeToGraph(&g)
+	}
+
 	// First we expand the module
 	moduleInstances := expander.ExpandModule(n.lifecycleActionTrigger.resourceAddress.Module, false)
 	for _, module := range moduleInstances {

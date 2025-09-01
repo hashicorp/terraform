@@ -217,3 +217,103 @@ func MarshalDeferredActionInvocations(dais []*plans.DeferredActionInvocationSrc,
 	}
 	return deferredInvocations, nil
 }
+
+func MarshalDeferredPartialActionInvocations(dais []*plans.DeferredPartialExpandedActionInvocationSrc, schemas *terraform.Schemas) ([]DeferredActionInvocation, error) {
+	var deferredInvocations []DeferredActionInvocation
+
+	// sortedActions := append([]*plans.DeferredActionInvocationSrc{}, dais...)
+	// sort.Slice(sortedActions, func(i, j int) bool {
+	// 	return sortedActions[i].ActionInvocationInstanceSrc.Less(sortedActions[j].ActionInvocationInstanceSrc)
+	// })
+
+	for _, daiSrc := range dais {
+		ai, err := MarshalPartialActionInvocation(daiSrc.ActionInvocationInstanceSrc, schemas)
+		if err != nil {
+			return nil, err
+		}
+
+		dai := DeferredActionInvocation{
+			ActionInvocation: ai,
+		}
+		switch daiSrc.DeferredReason {
+		case providers.DeferredReasonInstanceCountUnknown:
+			dai.Reason = DeferredReasonInstanceCountUnknown
+		case providers.DeferredReasonResourceConfigUnknown:
+			dai.Reason = DeferredReasonResourceConfigUnknown
+		case providers.DeferredReasonProviderConfigUnknown:
+			dai.Reason = DeferredReasonProviderConfigUnknown
+		case providers.DeferredReasonAbsentPrereq:
+			dai.Reason = DeferredReasonAbsentPrereq
+		case providers.DeferredReasonDeferredPrereq:
+			dai.Reason = DeferredReasonDeferredPrereq
+		default:
+			// If we find a reason we don't know about, we'll just mark it as
+			// unknown. This is a bit of a safety net to ensure that we don't
+			// break if new reasons are introduced in future versions of the
+			// provider protocol.
+			dai.Reason = DeferredReasonUnknown
+		}
+
+		deferredInvocations = append(deferredInvocations, dai)
+	}
+	return deferredInvocations, nil
+}
+
+func MarshalPartialActionInvocation(action *plans.PartialExpandedActionInvocationInstanceSrc, schemas *terraform.Schemas) (ActionInvocation, error) {
+	ai := ActionInvocation{
+		Address:      action.Addr.String(),
+		Type:         action.Addr.ConfigAction().Action.Type,
+		Name:         action.Addr.ConfigAction().Action.Name,
+		ProviderName: action.ProviderAddr.Provider.String(),
+	}
+	schema := schemas.ActionTypeConfig(
+		action.ProviderAddr.Provider,
+		action.Addr.ConfigAction().Action.Type,
+	)
+	if schema.ConfigSchema == nil {
+		return ai, fmt.Errorf("no schema found for %s (in provider %s)", action.Addr.ConfigAction().Action.Type, action.ProviderAddr.Provider)
+	}
+
+	actionDec, err := action.Decode(&schema)
+	if err != nil {
+		return ai, fmt.Errorf("failed to decode action %s: %w", action.Addr, err)
+	}
+
+	switch at := action.ActionTrigger.(type) {
+	case plans.PartialLifecycleActionTrigger:
+		ai.LifecycleActionTrigger = &LifecycleActionTrigger{
+			TriggeringResourceAddress: at.TriggeringResourceAddr.String(),
+			ActionTriggerEvent:        at.TriggerEvent().String(),
+			ActionTriggerBlockIndex:   at.ActionTriggerBlockIndex,
+			ActionsListIndex:          at.ActionsListIndex,
+		}
+	default:
+		return ai, fmt.Errorf("unsupported action trigger type: %T", at)
+	}
+
+	if actionDec.ConfigValue != cty.NilVal {
+		_, pvms := actionDec.ConfigValue.UnmarkDeepWithPaths()
+		sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+		ephemeralPaths, otherMarks := marks.PathsWithMark(otherMarks, marks.Ephemeral)
+		if len(ephemeralPaths) > 0 {
+			return ai, fmt.Errorf("action %s has ephemeral config values, which are not supported in action invocations", action.Addr)
+		}
+		if len(otherMarks) > 0 {
+			return ai, fmt.Errorf("action %s has config values with unsupported marks: %v", action.Addr, otherMarks)
+		}
+
+		configValue := actionDec.ConfigValue
+		if !configValue.IsWhollyKnown() {
+			configValue = omitUnknowns(actionDec.ConfigValue)
+		}
+		cs := jsonstate.SensitiveAsBool(marks.MarkPaths(configValue, marks.Sensitive, sensitivePaths))
+		configSensitive, err := ctyjson.Marshal(cs, cs.Type())
+		if err != nil {
+			return ai, err
+		}
+
+		ai.ConfigValues = marshalConfigValues(configValue)
+		ai.ConfigSensitive = configSensitive
+	}
+	return ai, nil
+}
