@@ -768,6 +768,12 @@ func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance
 	return false
 }
 
+// ShouldDeferAction returns true if the action should be deferred. This is the case if a
+// dependency of the action is deferred.
+func (d *Deferred) ShouldDeferAction(deps []addrs.ConfigResource) bool {
+	return d.DependenciesDeferred(deps)
+}
+
 // UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
 // provider was deferred although deferrals were not allowed.
 func UnexpectedProviderDeferralDiagnostic(addrs fmt.Stringer) tfdiags.Diagnostic {
