@@ -932,6 +932,10 @@ func (pea PartialExpandedAction) String() string {
 	return pea.action.String() + "[*]"
 }
 
+func (pea PartialExpandedAction) Equal(other PartialExpandedAction) bool {
+	return pea.module.MatchesPartial(other.module.expandedPrefix.PartialModule()) && pea.action.Equal(other.action)
+}
+
 func (pea PartialExpandedAction) UniqueKey() UniqueKey {
 	// If this address is equivalent to an AbsAction address then we'll
 	// return its instance key here so that function Equivalent will consider

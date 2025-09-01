@@ -29,9 +29,8 @@ type nodeActionTriggerPlanInstance struct {
 }
 
 type lifecycleActionTriggerInstance struct {
-	resourceAddress addrs.AbsResourceInstance
-	events          []configs.ActionTriggerEvent
-	//condition       hcl.Expression
+	resourceAddress         addrs.AbsResourceInstance
+	events                  []configs.ActionTriggerEvent
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
