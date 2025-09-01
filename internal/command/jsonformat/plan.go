@@ -94,9 +94,9 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 	// Precompute the outputs and actions early, so we can make a decision about whether we
 	// display the "there are no changes messages".
 	outputs := renderHumanDiffOutputs(renderer, diffs.outputs)
-	actions, actionCount := renderHumanActionInvocations(renderer, diffs.actions)
+	actions := renderHumanActionInvocations(renderer, plan.ActionInvocations)
 
-	if len(changes) == 0 && len(outputs) == 0 && actionCount == 0 {
+	if len(changes) == 0 && len(outputs) == 0 && len(actions) == 0 {
 		// If we didn't find any changes to report at all then this is a
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
@@ -256,7 +256,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 	}
 
 	if len(actions) > 0 {
-		renderer.Streams.Print(renderer.Colorize.Color("\nTerraform will invoke the following action(s):\n\n"))
+		renderer.Streams.Print("\nActions to be invoked:\n")
 		renderer.Streams.Printf("%s\n", actions)
 	}
 
@@ -502,13 +502,8 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 
 // All actions that run based on the resource lifecycle should be rendered as part of the resource
 // changes, therefore this function only renders actions that are invoked by the CLI
-func renderHumanActionInvocations(renderer Renderer, actionInvocations []actionInvocation) (string, int) {
-	var invocations []string
-	for _, invocation := range actionInvocations {
-		header := fmt.Sprintf(renderer.Colorize.Color("  [bold]# %s[reset] will be invoked"), invocation.invocation.Address)
-		invocations = append(invocations, fmt.Sprintf("%s\n%s", header, renderActionInvocation(renderer, invocation)))
-	}
-	return strings.Join(invocations, "\n"), len(invocations)
+func renderHumanActionInvocations(renderer Renderer, actionInvocations []jsonplan.ActionInvocation) string {
+	return "" // TODO: We will use this function once we support CLI invoked actions.
 }
 
 func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action, changeCause string) string {

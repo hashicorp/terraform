@@ -84,8 +84,8 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 		slices.SortFunc(before, jsonplan.ActionInvocationCompare)
 		slices.SortFunc(after, jsonplan.ActionInvocationCompare)
 
-		var beforeActionsTriggered []actionInvocation
-		var afterActionsTriggered []actionInvocation
+		beforeActionsTriggered := []actionInvocation{}
+		afterActionsTriggered := []actionInvocation{}
 		for _, action := range before {
 			schema := plan.getActionSchema(action)
 			beforeActionsTriggered = append(beforeActionsTriggered, actionInvocation{
@@ -106,17 +106,6 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			diff:                   differ.ComputeDiffForBlock(structuredChange, schema.Block),
 			beforeActionsTriggered: beforeActionsTriggered,
 			afterActionsTriggered:  afterActionsTriggered,
-		})
-	}
-
-	for _, action := range plan.ActionInvocations {
-		if action.InvokeActionTrigger == nil {
-			// lifecycle actions are handled within the resource
-			continue
-		}
-		diffs.actions = append(diffs.actions, actionInvocation{
-			invocation: action,
-			schema:     plan.getActionSchema(action),
 		})
 	}
 
@@ -144,7 +133,6 @@ type diffs struct {
 	drift    []diff
 	changes  []diff
 	deferred []deferredDiff
-	actions  []actionInvocation
 	outputs  map[string]computed.Diff
 }
 
