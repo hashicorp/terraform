@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -127,6 +128,15 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.DeferredResources = append(plan.DeferredResources, change)
 	}
 
+	for _, rawDAI := range rawPlan.DeferredActionInvocations {
+		change, err := deferredActionInvocationFromTfplan(rawDAI)
+		if err != nil {
+			return nil, err
+		}
+
+		plan.DeferredActionInvocations = append(plan.DeferredActionInvocations, change)
+	}
+
 	for _, rawRA := range rawPlan.RelevantAttributes {
 		ra, err := resourceAttrFromTfplan(rawRA)
 		if err != nil {
@@ -141,6 +151,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("plan contains invalid target address %q: %s", target, diags.Err())
 		}
 		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+	}
+
+	for _, rawActionAddr := range rawPlan.ActionTargetAddrs {
+		target, diags := addrs.ParseTargetActionStr(rawActionAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("plan contains invalid action target address %q: %s", target, diags.Err())
+		}
+		plan.ActionTargetAddrs = append(plan.ActionTargetAddrs, target.Subject)
 	}
 
 	for _, rawReplaceAddr := range rawPlan.ForceReplaceAddrs {
@@ -175,9 +193,27 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		)
 	}
 
-	if rawBackend := rawPlan.Backend; rawBackend == nil {
-		return nil, fmt.Errorf("plan file has no backend settings; backend settings are required")
-	} else {
+	for _, rawAction := range rawPlan.ActionInvocations {
+		action, err := actionInvocationFromTfplan(rawAction)
+		if err != nil {
+			// errors from actionInvocationFromTfplan already include context
+			return nil, err
+		}
+
+		plan.Changes.ActionInvocations = append(plan.Changes.ActionInvocations, action)
+	}
+
+	switch {
+	case rawPlan.Backend == nil && rawPlan.StateStore == nil:
+		// Similar validation in writeTfPlan should prevent this occurring
+		return nil,
+			fmt.Errorf("plan file has neither backend nor state_store settings; one of these settings is required. This is a bug in Terraform and should be reported.")
+	case rawPlan.Backend != nil && rawPlan.StateStore != nil:
+		// Similar validation in writeTfPlan should prevent this occurring
+		return nil,
+			fmt.Errorf("plan file contains both backend and state_store settings when only one of these settings should be set. This is a bug in Terraform and should be reported.")
+	case rawPlan.Backend != nil:
+		rawBackend := rawPlan.Backend
 		config, err := valueFromTfplan(rawBackend.Config)
 		if err != nil {
 			return nil, fmt.Errorf("plan file has invalid backend configuration: %s", err)
@@ -186,6 +222,28 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Type:      rawBackend.Type,
 			Config:    config,
 			Workspace: rawBackend.Workspace,
+		}
+	case rawPlan.StateStore != nil:
+		rawStateStore := rawPlan.StateStore
+		config, err := valueFromTfplan(rawStateStore.Config)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store configuration: %s", err)
+		}
+		provider := &plans.Provider{}
+		err = provider.SetSource(rawStateStore.Provider.Source)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store provider source: %s", err)
+		}
+		err = provider.SetVersion(rawStateStore.Provider.Version)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store provider version: %s", err)
+		}
+
+		plan.StateStore = plans.StateStore{
+			Type:      rawStateStore.Type,
+			Provider:  provider,
+			Config:    config,
+			Workspace: rawStateStore.Workspace,
 		}
 	}
 
@@ -496,6 +554,27 @@ func deferredChangeFromTfplan(dc *planproto.DeferredResourceInstanceChange) (*pl
 	}, nil
 }
 
+func deferredActionInvocationFromTfplan(dai *planproto.DeferredActionInvocation) (*plans.DeferredActionInvocationSrc, error) {
+	if dai == nil {
+		return nil, fmt.Errorf("deferred action invocation object is absent")
+	}
+
+	actionInvocation, err := actionInvocationFromTfplan(dai.ActionInvocation)
+	if err != nil {
+		return nil, err
+	}
+
+	reason, err := DeferredReasonFromProto(dai.Deferred.Reason)
+	if err != nil {
+		return nil, err
+	}
+
+	return &plans.DeferredActionInvocationSrc{
+		DeferredReason:              reason,
+		ActionInvocationInstanceSrc: actionInvocation,
+	}, nil
+}
+
 func DeferredReasonFromProto(reason planproto.DeferredReason) (providers.DeferredReason, error) {
 	switch reason {
 	case planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN:
@@ -527,12 +606,13 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
 
-		Variables:       map[string]*planproto.DynamicValue{},
-		OutputChanges:   []*planproto.OutputChange{},
-		CheckResults:    []*planproto.CheckResults{},
-		ResourceChanges: []*planproto.ResourceInstanceChange{},
-		ResourceDrift:   []*planproto.ResourceInstanceChange{},
-		DeferredChanges: []*planproto.DeferredResourceInstanceChange{},
+		Variables:         map[string]*planproto.DynamicValue{},
+		OutputChanges:     []*planproto.OutputChange{},
+		CheckResults:      []*planproto.CheckResults{},
+		ResourceChanges:   []*planproto.ResourceInstanceChange{},
+		ResourceDrift:     []*planproto.ResourceInstanceChange{},
+		DeferredChanges:   []*planproto.DeferredResourceInstanceChange{},
+		ActionInvocations: []*planproto.ActionInvocationInstance{},
 	}
 
 	rawPlan.Applyable = plan.Applyable
@@ -600,6 +680,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.DeferredChanges = append(rawPlan.DeferredChanges, rawDC)
 	}
 
+	for _, dai := range plan.DeferredActionInvocations {
+		rawDAI, err := deferredActionInvocationToTfplan(dai)
+		if err != nil {
+			return err
+		}
+		rawPlan.DeferredActionInvocations = append(rawPlan.DeferredActionInvocations, rawDAI)
+	}
+
 	for _, ra := range plan.RelevantAttributes {
 		rawRA, err := resourceAttrToTfplan(ra)
 		if err != nil {
@@ -610,6 +698,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for _, targetAddr := range plan.TargetAddrs {
 		rawPlan.TargetAddrs = append(rawPlan.TargetAddrs, targetAddr.String())
+	}
+
+	for _, actionAddr := range plan.ActionTargetAddrs {
+		rawPlan.ActionTargetAddrs = append(rawPlan.ActionTargetAddrs, actionAddr.String())
 	}
 
 	for _, replaceAddr := range plan.ForceReplaceAddrs {
@@ -632,17 +724,43 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		)
 	}
 
-	if plan.Backend.Type == "" || plan.Backend.Config == nil {
-		// This suggests a bug in the code that created the plan, since it
-		// ought to always have a backend populated, even if it's the default
-		// "local" backend with a local state file.
-		return fmt.Errorf("plan does not have a backend configuration")
+	for _, action := range plan.Changes.ActionInvocations {
+		rawAction, err := actionInvocationToTfPlan(action)
+		if err != nil {
+			return err
+		}
+		rawPlan.ActionInvocations = append(rawPlan.ActionInvocations, rawAction)
 	}
 
-	rawPlan.Backend = &planproto.Backend{
-		Type:      plan.Backend.Type,
-		Config:    valueToTfplan(plan.Backend.Config),
-		Workspace: plan.Backend.Workspace,
+	// Store details about accessing state
+	backendInUse := plan.Backend.Type != "" && plan.Backend.Config != nil
+	stateStoreInUse := plan.StateStore.Type != "" && plan.StateStore.Config != nil
+	switch {
+	case !backendInUse && !stateStoreInUse:
+		// This suggests a bug in the code that created the plan, since it
+		// ought to always have either a backend or state_store populated, even if it's the default
+		// "local" backend with a local state file.
+		return fmt.Errorf("plan does not have a backend or state_store configuration")
+	case backendInUse && stateStoreInUse:
+		// This suggests a bug in the code that created the plan, since it
+		// should never have both a backend and state_store populated.
+		return fmt.Errorf("plan contains both backend and state_store configurations, only one is expected")
+	case backendInUse:
+		rawPlan.Backend = &planproto.Backend{
+			Type:      plan.Backend.Type,
+			Config:    valueToTfplan(plan.Backend.Config),
+			Workspace: plan.Backend.Workspace,
+		}
+	case stateStoreInUse:
+		rawPlan.StateStore = &planproto.StateStore{
+			Type: plan.StateStore.Type,
+			Provider: &planproto.Provider{
+				Version: plan.StateStore.Provider.Version.String(),
+				Source:  plan.StateStore.Provider.Source.String(),
+			},
+			Config:    valueToTfplan(plan.StateStore.Config),
+			Workspace: plan.StateStore.Workspace,
+		}
 	}
 
 	rawPlan.Timestamp = plan.Timestamp.Format(time.RFC3339)
@@ -700,7 +818,7 @@ func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceA
 // in its own wire format while using a different overall container.
 func ResourceChangeToProto(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
 	if change == nil {
-		// We assume this represents the absense of a change, then.
+		// We assume this represents the absence of a change, then.
 		return nil, nil
 	}
 	return resourceChangeToTfplan(change)
@@ -977,6 +1095,25 @@ func deferredChangeToTfplan(dc *plans.DeferredResourceInstanceChangeSrc) (*planp
 	}, nil
 }
 
+func deferredActionInvocationToTfplan(dai *plans.DeferredActionInvocationSrc) (*planproto.DeferredActionInvocation, error) {
+	actionInvocation, err := actionInvocationToTfPlan(dai.ActionInvocationInstanceSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	reason, err := DeferredReasonToProto(dai.DeferredReason)
+	if err != nil {
+		return nil, err
+	}
+
+	return &planproto.DeferredActionInvocation{
+		Deferred: &planproto.Deferred{
+			Reason: reason,
+		},
+		ActionInvocation: actionInvocation,
+	}, nil
+}
+
 func DeferredReasonToProto(reason providers.DeferredReason) (planproto.DeferredReason, error) {
 	switch reason {
 	case providers.DeferredReasonInstanceCountUnknown:
@@ -1171,4 +1308,133 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	} else {
 		return nil, nil
 	}
+}
+
+func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
+	if rawAction == nil {
+		// Should never happen in practice, since protobuf can't represent
+		// a nil value in a list.
+		return nil, fmt.Errorf("action invocation object is absent")
+	}
+
+	ret := &plans.ActionInvocationInstanceSrc{}
+	actionAddr, diags := addrs.ParseAbsActionInstanceStr(rawAction.Addr)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("invalid action instance address %q: %w", rawAction.Addr, diags.Err())
+	}
+	ret.Addr = actionAddr
+
+	switch at := rawAction.ActionTrigger.(type) {
+	case *planproto.ActionInvocationInstance_LifecycleActionTrigger:
+		triggeringResourceAddrs, diags := addrs.ParseAbsResourceInstanceStr(at.LifecycleActionTrigger.TriggeringResourceAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("invalid resource instance address %q: %w",
+				at.LifecycleActionTrigger.TriggeringResourceAddr, diags.Err())
+		}
+
+		var ate configs.ActionTriggerEvent
+		switch at.LifecycleActionTrigger.TriggerEvent {
+		case planproto.ActionTriggerEvent_BEFORE_CERATE:
+			ate = configs.BeforeCreate
+		case planproto.ActionTriggerEvent_AFTER_CREATE:
+			ate = configs.AfterCreate
+		case planproto.ActionTriggerEvent_BEFORE_UPDATE:
+			ate = configs.BeforeUpdate
+		case planproto.ActionTriggerEvent_AFTER_UPDATE:
+			ate = configs.AfterUpdate
+		case planproto.ActionTriggerEvent_BEFORE_DESTROY:
+			ate = configs.BeforeDestroy
+		case planproto.ActionTriggerEvent_AFTER_DESTROY:
+			ate = configs.AfterDestroy
+
+		default:
+			return nil, fmt.Errorf("invalid action trigger event %s", at.LifecycleActionTrigger.TriggerEvent)
+		}
+		ret.ActionTrigger = &plans.LifecycleActionTrigger{
+			TriggeringResourceAddr:  triggeringResourceAddrs,
+			ActionTriggerBlockIndex: int(at.LifecycleActionTrigger.ActionTriggerBlockIndex),
+			ActionsListIndex:        int(at.LifecycleActionTrigger.ActionsListIndex),
+			ActionTriggerEvent:      ate,
+		}
+	case *planproto.ActionInvocationInstance_InvokeActionTrigger:
+		ret.ActionTrigger = new(plans.InvokeActionTrigger)
+	default:
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type %t", rawAction.ActionTrigger)
+	}
+
+	providerAddr, diags := addrs.ParseAbsProviderConfigStr(rawAction.Provider)
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+	ret.ProviderAddr = providerAddr
+
+	if rawAction.ConfigValue != nil {
+		configVal, err := valueFromTfplan(rawAction.ConfigValue)
+		if err != nil {
+			return nil, fmt.Errorf("invalid config value: %s", err)
+		}
+		ret.ConfigValue = configVal
+		sensitiveConfigPaths, err := pathsFromTfplan(rawAction.SensitiveConfigPaths)
+		if err != nil {
+			return nil, err
+		}
+		ret.SensitiveConfigPaths = sensitiveConfigPaths
+	}
+
+	return ret, nil
+}
+
+func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {
+	if action == nil {
+		return nil, nil
+	}
+
+	ret := &planproto.ActionInvocationInstance{
+		Addr:     action.Addr.String(),
+		Provider: action.ProviderAddr.String(),
+	}
+
+	switch at := action.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
+		switch at.ActionTriggerEvent {
+		case configs.BeforeCreate:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_CERATE
+		case configs.AfterCreate:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_CREATE
+		case configs.BeforeUpdate:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_UPDATE
+		case configs.AfterUpdate:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_UPDATE
+		case configs.BeforeDestroy:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_DESTROY
+		case configs.AfterDestroy:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
+		}
+		ret.ActionTrigger = &planproto.ActionInvocationInstance_LifecycleActionTrigger{
+			LifecycleActionTrigger: &planproto.LifecycleActionTrigger{
+				TriggerEvent:            triggerEvent,
+				TriggeringResourceAddr:  at.TriggeringResourceAddr.String(),
+				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(at.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		ret.ActionTrigger = new(planproto.ActionInvocationInstance_InvokeActionTrigger)
+	default:
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
+	}
+
+	if action.ConfigValue != nil {
+		ret.ConfigValue = valueToTfplan(action.ConfigValue)
+		sensitiveConfigPaths, err := pathsToTfplan(action.SensitiveConfigPaths)
+		if err != nil {
+			return nil, err
+		}
+		ret.SensitiveConfigPaths = sensitiveConfigPaths
+	}
+
+	return ret, nil
 }

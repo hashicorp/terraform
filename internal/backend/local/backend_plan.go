@@ -41,18 +41,30 @@ func (b *Local) opPlan(
 		return
 	}
 
-	// Local planning requires a config, unless we're planning to destroy.
-	if op.PlanMode != plans.DestroyMode && !op.HasConfig() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"No configuration files",
-			"Plan requires configuration to be present. Planning without a configuration would "+
-				"mark everything for destruction, which is normally not what is desired. If you "+
-				"would like to destroy everything, run plan with the -destroy option. Otherwise, "+
-				"create a Terraform configuration file (.tf file) and try again.",
-		))
-		op.ReportResult(runningOp, diags)
-		return
+	if !op.HasConfig() {
+		switch {
+		case op.Query:
+			// Special diag for terraform query command
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No configuration files",
+				"Query requires a query configuration to be present. Create a Terraform query configuration file (.tfquery.hcl file) and try again.",
+			))
+			op.ReportResult(runningOp, diags)
+			return
+		case op.PlanMode != plans.DestroyMode:
+			// Local planning requires a config, unless we're planning to destroy.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No configuration files",
+				"Plan requires configuration to be present. Planning without a configuration would "+
+					"mark everything for destruction, which is normally not what is desired. If you "+
+					"would like to destroy everything, run plan with the -destroy option. Otherwise, "+
+					"create a Terraform configuration file (.tf file) and try again.",
+			))
+			op.ReportResult(runningOp, diags)
+			return
+		}
 	}
 
 	if len(op.GenerateConfigOut) > 0 {
@@ -238,6 +250,21 @@ func maybeWriteGeneratedConfig(plan *plans.Plan, out string) (wroteConfig bool, 
 
 			var moreDiags tfdiags.Diagnostics
 			writer, wroteConfig, moreDiags = change.MaybeWriteConfig(writer, out)
+			if moreDiags.HasErrors() {
+				return false, diags.Append(moreDiags)
+			}
+		}
+
+		// When running a list operation, the results are stored as queries and the
+		// resource changes above are not populated.
+		for _, q := range plan.Changes.Queries {
+			change := genconfig.Change{
+				Addr:            q.Addr.String(),
+				GeneratedConfig: q.Generated.String(),
+			}
+
+			var moreDiags tfdiags.Diagnostics
+			writer, _, moreDiags = change.MaybeWriteConfig(writer, out)
 			if moreDiags.HasErrors() {
 				return false, diags.Append(moreDiags)
 			}

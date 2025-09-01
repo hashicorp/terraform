@@ -281,8 +281,14 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		g.Connect(dag.BasicEdge(closer, p))
 	}
 
+	// We collect all action nodes to use later
+	actionNodes := addrs.MakeMap[addrs.ConfigAction, addrs.AbsProviderConfig]()
+
 	// Now look for all provider consumers and connect them to the appropriate closers.
 	for _, v := range g.Vertices() {
+		if actionNode, ok := v.(*nodeExpandActionDeclaration); ok {
+			actionNodes.Put(actionNode.ActionAddr(), actionNode.ResolvedProvider)
+		}
 		pc, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue

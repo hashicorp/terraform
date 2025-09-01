@@ -7,13 +7,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-
-	"maps"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -202,11 +201,13 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 	planOpts := &terraform.PlanOpts{
 		Mode:               op.PlanMode,
 		Targets:            op.Targets,
+		ActionTargets:      op.ActionTargets,
 		ForceReplace:       op.ForceReplace,
 		SetVariables:       variables,
 		SkipRefresh:        op.Type != backendrun.OperationTypeRefresh && !op.PlanRefresh,
 		GenerateConfigPath: op.GenerateConfigOut,
 		DeferralAllowed:    op.DeferralAllowed,
+		Query:              op.Query,
 	}
 	run.PlanOpts = planOpts
 

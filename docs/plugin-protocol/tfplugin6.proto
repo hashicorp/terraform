@@ -144,6 +144,19 @@ message ResourceIdentityData {
     DynamicValue identity_data = 1;
 }
 
+// ActionSchema defines the schema for an action that can be invoked by Terraform.
+message ActionSchema {
+    // An Unlinked action is an action that is not linked to any resources. It may contain
+    // references to resources but it can not change the resource state of any resource.
+    message Unlinked {}
+
+    Schema schema = 1; // of the action itself
+
+    oneof type {
+        Unlinked unlinked = 2;
+    }
+}
+
 // Schema is the configuration schema for a Resource or Provider.
 message Schema {
     message Block {
@@ -328,9 +341,9 @@ service Provider {
 
     // GetMetadata returns upfront information about server capabilities and
     // supported resource types without requiring the server to instantiate all
-    // schema information, which may be memory intensive. This RPC is optional,
-    // where clients may receive an unimplemented RPC error. Clients should
-    // ignore the error and call the GetProviderSchema RPC as a fallback.
+    // schema information, which may be memory intensive.
+    // This method is CURRENTLY UNUSED and it serves mostly for convenience
+    // of code generation inside of terraform-plugin-mux.
     rpc GetMetadata(GetMetadata.Request) returns (GetMetadata.Response);
 
     // GetSchema returns schema information for the provider, data resources,
@@ -375,6 +388,21 @@ service Provider {
     //////// Provider-contributed Functions
     rpc CallFunction(CallFunction.Request) returns (CallFunction.Response);
 
+    // ValidateStateStoreConfig performs configuration validation
+    rpc ValidateStateStoreConfig(ValidateStateStore.Request) returns (ValidateStateStore.Response);
+    // ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
+    rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
+
+    // GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
+    rpc GetStates(GetStates.Request) returns (GetStates.Response);
+    // DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
+    rpc DeleteState(DeleteState.Request) returns (DeleteState.Response);
+
+    //////// Actions
+    rpc PlanAction(PlanAction.Request) returns (PlanAction.Response);
+    rpc InvokeAction(InvokeAction.Request) returns (stream InvokeAction.Event);
+    rpc ValidateActionConfig(ValidateActionConfig.Request) returns (ValidateActionConfig.Response);
+
     //////// Graceful Shutdown
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
 }
@@ -392,6 +420,8 @@ message GetMetadata {
         repeated FunctionMetadata functions = 5;
         repeated EphemeralMetadata ephemeral_resources = 6;
         repeated ListResourceMetadata list_resources = 7;
+        repeated StateStoreMetadata state_stores = 8;
+        repeated ActionMetadata actions = 9;
     }
 
     message EphemeralMetadata {
@@ -414,6 +444,14 @@ message GetMetadata {
     message ListResourceMetadata {
         string type_name = 1;
     }
+
+    message StateStoreMetadata {
+        string type_name = 1;
+    }
+    
+    message ActionMetadata {
+        string type_name = 1;
+    }
 }
 
 message GetProviderSchema {
@@ -426,6 +464,8 @@ message GetProviderSchema {
         map<string, Function> functions = 7;
         map<string, Schema> ephemeral_resource_schemas = 8;
         map<string, Schema> list_resource_schemas = 9;
+        map<string, Schema> state_store_schemas = 10;
+        map<string, ActionSchema> action_schemas = 11;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
@@ -813,6 +853,10 @@ message ListResource {
         // when include_resource_object is set to true, the provider should
         // include the full resource object for each result
         bool include_resource_object = 3;
+
+        // The maximum number of results that Terraform is expecting.
+        // The stream will stop, once this limit is reached.
+        int64 limit = 4;
     }
 
     message Event {
@@ -834,8 +878,145 @@ message ValidateListResourceConfig {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
+        DynamicValue include_resource_object = 3;
+        DynamicValue limit = 4;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
     }
+}
+
+
+message ValidateStateStore {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ConfigureStateStore {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message GetStates {
+	message Request {
+		string type_name = 1;
+    }
+    message Response {
+        repeated string state_id = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message DeleteState {
+	message Request {
+		string type_name = 1;
+		string state_id = 2;
+    }
+	message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message PlanAction {
+    message Request {
+        message LinkedResource {
+            // prior_state is the state of the linked resource before the action is planned.
+            DynamicValue prior_state = 1; 
+            // planned_state describes the value the linked resource has been last planned with.
+            // This could also be the output of a predecessor action.
+            DynamicValue planned_state = 2;
+            DynamicValue config = 3;
+            ResourceIdentityData prior_identity = 4;
+        }
+        string action_type = 1;
+        // linked resources, this should match the order the resources are specified in the schema.
+        repeated LinkedResource linked_resources = 2;
+        // config of the action, based on the schema of the actual action
+        DynamicValue config = 3;
+        // metadata
+        ClientCapabilities client_capabilities = 4;
+    }
+
+    message Response {
+        message LinkedResource {
+            DynamicValue planned_state = 1;
+            ResourceIdentityData planned_identity = 2;
+        }
+        // planned changes to the linked resources in the order they are specified in the schema.
+        repeated LinkedResource linked_resources = 1;
+        repeated Diagnostic diagnostics = 2;
+        // metadata
+        Deferred deferred = 3;
+    }
+}
+
+message InvokeAction {
+    message Request {
+        message LinkedResource {
+            DynamicValue prior_state = 1; 
+            // planned_state describes the value the linked resource has been last planned 
+            // with. This could also be the output of a predecessor action.
+            DynamicValue planned_state = 2;
+            DynamicValue config = 3;
+            ResourceIdentityData planned_identity = 4;
+        }
+
+        string action_type = 1;
+        // linked resources, matching the order they are specified in the schema
+        repeated LinkedResource linked_resources = 2;
+        // response from the plan
+        DynamicValue config = 3;
+        // metadata
+        ClientCapabilities client_capabilities = 4;
+    }
+
+    message Event {
+      message Progress {
+        // message to be printed in the console / HCPT
+        string message = 1;
+      }
+
+      message Completed {
+        message LinkedResource {
+            DynamicValue new_state = 1;
+            ResourceIdentityData new_identity = 2;
+            // Can only be set if error diagnostics are present. 
+            bool requires_replace = 3;
+        }
+        // linked resources, matching the order they are specified in the schema
+        repeated LinkedResource linked_resources = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+
+    oneof type {
+      Progress progress = 1;
+      Completed completed = 2;
+    }
+  }
+}
+
+message ValidateActionConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+        repeated LinkedResourceConfig linked_resources = 3;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message LinkedResourceConfig {
+    string type_name = 1;
+    DynamicValue config = 2;
 }

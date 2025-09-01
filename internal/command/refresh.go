@@ -124,8 +124,8 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType argument
 
 	// Load the backend
 	be, beDiags := c.Backend(&BackendOpts{
-		Config:   backendConfig,
-		ViewType: viewType,
+		BackendConfig: backendConfig,
+		ViewType:      viewType,
 	})
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
@@ -146,7 +146,20 @@ func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view 
 	opReq.Targets = args.Targets
 	opReq.Type = backendrun.OperationTypeRefresh
 	opReq.View = view.Operation()
-	opReq.DeferralAllowed = args.DeferralAllowed
+
+	// EXPERIMENTAL: maybe enable deferred actions
+	if c.AllowExperimentalFeatures {
+		opReq.DeferralAllowed = args.DeferralAllowed
+	} else if args.DeferralAllowed {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()

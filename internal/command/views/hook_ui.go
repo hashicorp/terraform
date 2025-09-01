@@ -12,9 +12,9 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -504,6 +504,73 @@ func (h *UiHook) PostEphemeralOp(rId terraform.HookResourceIdentity, action plan
 		rId.Addr, msg, elapsedTime,
 	))
 
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value) (terraform.HookAction, error) {
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults) (terraform.HookAction, error) {
+	addr := id.Addr
+	data := results.Value.GetAttr("data")
+
+	identities := make([]string, 0, data.LengthInt())
+	displayNames := make([]string, 0, data.LengthInt())
+	maxIdentityLen := 0
+	for it := data.ElementIterator(); it.Next(); {
+		_, value := it.Element()
+		identity := tfdiags.ObjectToString(value.GetAttr("identity"))
+		if len(identity) > maxIdentityLen {
+			maxIdentityLen = len(identity)
+		}
+		identities = append(identities, identity)
+
+		displayNames = append(displayNames, value.GetAttr("display_name").AsString())
+	}
+
+	result := strings.Builder{}
+	for i, identity := range identities {
+		result.WriteString(fmt.Sprintf("%s   %-*s   %s\n", addr.String(), maxIdentityLen, identity, displayNames[i]))
+	}
+
+	if result.Len() > 0 {
+		h.println(result.String())
+	}
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]Action started: %s[reset]"),
+		id.String(),
+	))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]Action %s:[reset] %s[reset]"),
+		id.String(),
+		progress,
+	))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+	if err != nil {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold][red]Action failed: %s - %v[reset]"),
+			id.String(),
+			err,
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold][green]Action complete: %s[reset]"),
+			id.String(),
+		))
+	}
 	return terraform.HookActionContinue, nil
 }
 

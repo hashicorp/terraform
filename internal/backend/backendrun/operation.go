@@ -8,6 +8,7 @@ import (
 	"log"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -111,6 +112,7 @@ type Operation struct {
 	PlanMode             plans.Mode
 	AutoApprove          bool
 	Targets              []addrs.Targetable
+	ActionTargets        []addrs.Targetable
 	ForceReplace         []addrs.AbsResourceInstance
 	Variables            map[string]UnparsedVariableValue
 	StatePersistInterval int
@@ -154,6 +156,9 @@ type Operation struct {
 	// for unmatched import targets and where any generated config should be
 	// written to.
 	GenerateConfigOut string
+
+	// Query is true if the operation should be a query operation
+	Query bool
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value

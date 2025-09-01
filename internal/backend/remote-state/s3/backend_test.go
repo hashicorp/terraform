@@ -362,7 +362,7 @@ func TestBackendConfig_InvalidRegion(t *testing.T) {
 			confDiags := b.Configure(configSchema)
 			diags = diags.Append(confDiags)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -528,7 +528,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -616,7 +616,8 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 						pathString(cty.GetAttrPath("iam_endpoint")),
 						pathString(cty.GetAttrPath("endpoints").GetAttr("iam")),
 					),
-				)},
+				),
+			},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -660,7 +661,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 
 			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -736,7 +737,8 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 						pathString(cty.GetAttrPath("endpoint")),
 						pathString(cty.GetAttrPath("endpoints").GetAttr("s3")),
 					),
-				)},
+				),
+			},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -783,7 +785,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -943,7 +945,7 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -1435,7 +1437,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
 
-			if diff := cmp.Diff(valDiags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(valDiags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -2497,7 +2499,7 @@ func TestBackendConfigKmsKeyId(t *testing.T) {
 				diags = diags.Append(confDiags)
 			}
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -2627,7 +2629,7 @@ func TestBackendSSECustomerKey(t *testing.T) {
 				diags = diags.Append(confDiags)
 			}
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -2738,8 +2740,8 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// delete the real workspace
-	if err := b.DeleteWorkspace("s2", true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace("s2", true); diags.HasErrors() {
+		t.Fatal(diags)
 	}
 
 	if err := checkStateList(b, []string{"default", "s1"}); err != nil {
@@ -2989,7 +2991,13 @@ func TestBackendWrongRegion(t *testing.T) {
 	if _, err := b.StateMgr(backend.DefaultStateName); err == nil {
 		t.Fatal("expected error, got none")
 	} else {
-		if regionErr, ok := As[bucketRegionError](err); ok {
+		var comparableErr error
+		if errValue, isDiag := err.(tfdiags.DiagnosticsAsError); isDiag {
+			// To use `As` below we need to extract the error that's wrapped
+			// in a diagnostic.
+			comparableErr = errValue.WrappedErrors()[0]
+		}
+		if regionErr, ok := As[bucketRegionError](comparableErr); ok {
 			if a, e := regionErr.bucketRegion, bucketRegion; a != e {
 				t.Errorf("expected bucket region %q, got %q", e, a)
 			}
@@ -3281,7 +3289,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateNestedAttribute(assumeRoleSchema, config, path, &diags)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -3461,9 +3469,9 @@ func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
 }
 
 func checkStateList(b backend.Backend, expected []string) error {
-	states, err := b.Workspaces()
-	if err != nil {
-		return err
+	states, diags := b.Workspaces()
+	if diags.HasErrors() {
+		return diags.Err()
 	}
 
 	if !reflect.DeepEqual(states, expected) {

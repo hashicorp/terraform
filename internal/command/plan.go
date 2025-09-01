@@ -131,8 +131,8 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.V
 
 	// Load the backend
 	be, beDiags := c.Backend(&BackendOpts{
-		Config:   backendConfig,
-		ViewType: viewType,
+		BackendConfig: backendConfig,
+		ViewType:      viewType,
 	})
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
@@ -164,7 +164,30 @@ func (c *PlanCommand) OperationRequest(
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
-	opReq.DeferralAllowed = args.DeferralAllowed
+
+	// EXPERIMENTAL: maybe enable deferred actions
+	if c.AllowExperimentalFeatures {
+		opReq.DeferralAllowed = args.DeferralAllowed
+		opReq.ActionTargets = args.ActionTargets
+	} else if args.DeferralAllowed {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	} else if len(args.ActionTargets) > 0 {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -invoke flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()

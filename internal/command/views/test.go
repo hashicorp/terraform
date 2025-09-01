@@ -199,7 +199,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 					ProviderFormatVersion: jsonprovider.FormatVersion,
 					RootModule:            root,
 					RootModuleOutputs:     outputs,
-					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 				}
 
 				t.view.streams.Println() // Separate the state from any previous statements.
@@ -208,7 +208,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 			}
 		} else {
 			// We'll print the plan.
-			outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
@@ -221,8 +221,9 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 					OutputChanges:         outputs,
 					ResourceChanges:       changed,
 					ResourceDrift:         drift,
-					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 					RelevantAttributes:    attrs,
+					ActionInvocations:     actions,
 				}
 
 				var opts []plans.Quality
@@ -560,7 +561,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					ProviderFormatVersion: jsonprovider.FormatVersion,
 					RootModule:            root,
 					RootModuleOutputs:     outputs,
-					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 				}
 
 				t.view.log.Info(
@@ -571,7 +572,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					"@testrun", run.Name)
 			}
 		} else {
-			outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
@@ -584,8 +585,9 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					OutputChanges:         outputs,
 					ResourceChanges:       changed,
 					ResourceDrift:         drift,
-					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 					RelevantAttributes:    attrs,
+					ActionInvocations:     actions,
 				}
 
 				t.view.log.Info(

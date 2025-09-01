@@ -4,11 +4,16 @@
 package jsonformat
 
 import (
+	"fmt"
+	"slices"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -56,9 +61,62 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	for _, change := range plan.ResourceChanges {
 		schema := plan.getSchema(change)
 		structuredChange := structured.FromJsonChange(change.Change, attribute_path.AlwaysMatcher())
+
+		before := []jsonplan.ActionInvocation{}
+		after := []jsonplan.ActionInvocation{}
+
+		for _, action := range plan.ActionInvocations {
+			if action.LifecycleActionTrigger == nil || action.LifecycleActionTrigger.TriggeringResourceAddress != change.Address {
+				continue
+			}
+
+			switch action.LifecycleActionTrigger.ActionTriggerEvent {
+			case configs.BeforeCreate.String(), configs.BeforeUpdate.String(), configs.BeforeDestroy.String():
+				before = append(before, action)
+			case configs.AfterCreate.String(), configs.AfterUpdate.String(), configs.AfterDestroy.String():
+				after = append(after, action)
+			default:
+				// The switch should be exhaustive.
+				panic(fmt.Sprintf("Unexpected triggering event when rendering action %s", action.LifecycleActionTrigger.ActionTriggerEvent))
+			}
+		}
+
+		slices.SortFunc(before, jsonplan.ActionInvocationCompare)
+		slices.SortFunc(after, jsonplan.ActionInvocationCompare)
+
+		var beforeActionsTriggered []actionInvocation
+		var afterActionsTriggered []actionInvocation
+		for _, action := range before {
+			schema := plan.getActionSchema(action)
+			beforeActionsTriggered = append(beforeActionsTriggered, actionInvocation{
+				invocation: action,
+				schema:     schema,
+			})
+		}
+		for _, action := range after {
+			schema := plan.getActionSchema(action)
+			afterActionsTriggered = append(afterActionsTriggered, actionInvocation{
+				invocation: action,
+				schema:     schema,
+			})
+		}
+
 		diffs.changes = append(diffs.changes, diff{
-			change: change,
-			diff:   differ.ComputeDiffForBlock(structuredChange, schema.Block),
+			change:                 change,
+			diff:                   differ.ComputeDiffForBlock(structuredChange, schema.Block),
+			beforeActionsTriggered: beforeActionsTriggered,
+			afterActionsTriggered:  afterActionsTriggered,
+		})
+	}
+
+	for _, action := range plan.ActionInvocations {
+		if action.InvokeActionTrigger == nil {
+			// lifecycle actions are handled within the resource
+			continue
+		}
+		diffs.actions = append(diffs.actions, actionInvocation{
+			invocation: action,
+			schema:     plan.getActionSchema(action),
 		})
 	}
 
@@ -86,6 +144,7 @@ type diffs struct {
 	drift    []diff
 	changes  []diff
 	deferred []deferredDiff
+	actions  []actionInvocation
 	outputs  map[string]computed.Diff
 }
 
@@ -106,8 +165,15 @@ func (d diffs) Empty() bool {
 }
 
 type diff struct {
-	change jsonplan.ResourceChange
-	diff   computed.Diff
+	change                 jsonplan.ResourceChange
+	diff                   computed.Diff
+	beforeActionsTriggered []actionInvocation
+	afterActionsTriggered  []actionInvocation
+}
+
+type actionInvocation struct {
+	invocation jsonplan.ActionInvocation
+	schema     *jsonprovider.ActionSchema
 }
 
 func (d diff) Moved() bool {

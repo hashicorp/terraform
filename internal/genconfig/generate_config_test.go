@@ -365,6 +365,10 @@ resource "tfcoremock_simple_resource" "empty" {
 									Type:     cty.String,
 									Optional: true,
 								},
+								"deprecated": {
+									Type:     cty.String,
+									Optional: true,
+								},
 							},
 						},
 					},
@@ -825,12 +829,12 @@ resource "tfcoremock_sensitive_values" "values" {
 			if err != nil {
 				t.Fatalf("schema failed InternalValidate: %s", err)
 			}
-			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value)
+			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value, false)
 			if len(diags) > 0 {
 				t.Errorf("expected no diagnostics but found %s", diags)
 			}
 
-			got := WrapResourceContents(tc.addr, contents)
+			got := contents.String()
 			want := strings.TrimSpace(tc.expected)
 			if diff := cmp.Diff(got, want); len(diff) > 0 {
 				t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
@@ -844,5 +848,183 @@ func sensitiveAttribute(t cty.Type) *configschema.Attribute {
 		Type:      t,
 		Optional:  true,
 		Sensitive: true,
+	}
+}
+
+func TestGenerateResourceAndIDContents(t *testing.T) {
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"name": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"id": {
+				Type:     cty.String,
+				Computed: true,
+			},
+			"tags": {
+				Type:     cty.Map(cty.String),
+				Optional: true,
+			},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"network_interface": {
+				Nesting: configschema.NestingList,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"subnet_id": {
+							Type:     cty.String,
+							Required: true,
+						},
+						"ip_address": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Define the identity schema
+	idSchema := &configschema.Object{
+		Nesting: configschema.NestingSingle,
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+
+	// Create mock resource instance values
+	value := cty.TupleVal([]cty.Value{
+		cty.ObjectVal(map[string]cty.Value{
+			"state": cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("instance-1"),
+				"id":   cty.StringVal("i-abcdef"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"Environment": cty.StringVal("Dev"),
+					"Owner":       cty.StringVal("Team1"),
+				}),
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"subnet_id":  cty.StringVal("subnet-123"),
+						"ip_address": cty.StringVal("10.0.0.1"),
+					}),
+				}),
+			}),
+			"identity": cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-abcdef"),
+			}),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"state": cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("instance-2"),
+				"id":   cty.StringVal("i-123456"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"Environment": cty.StringVal("Prod"),
+					"Owner":       cty.StringVal("Team2"),
+				}),
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"subnet_id":  cty.StringVal("subnet-456"),
+						"ip_address": cty.StringVal("10.0.0.2"),
+					}),
+				}),
+			}),
+			"identity": cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-123456"),
+			}),
+		}),
+	})
+
+	// Create test resource address
+	addr := addrs.AbsResource{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.Resource{
+			Mode: addrs.ListResourceMode,
+			Type: "aws_instance",
+			Name: "example",
+		},
+	}
+
+	// Create instance addresses for each instance
+	instAddr1 := addr.Instance(addrs.NoKey)
+
+	// Create provider config
+	pc := addrs.LocalProviderConfig{
+		LocalName: "aws",
+	}
+
+	// Generate content
+	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, value)
+	// Check for diagnostics
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.Err())
+	}
+
+	// Check the generated content
+	expectedContent := `resource "aws_instance" "example_0" {
+  provider = aws
+  name     = "instance-1"
+  tags = {
+    Environment = "Dev"
+    Owner       = "Team1"
+  }
+  network_interface {
+    ip_address = "10.0.0.1"
+    subnet_id  = "subnet-123"
+  }
+}
+import {
+  to       = aws_instance.example_0
+  provider = aws
+  identity = {
+    id = "i-abcdef"
+  }
+}
+
+resource "aws_instance" "example_1" {
+  provider = aws
+  name     = "instance-2"
+  tags = {
+    Environment = "Prod"
+    Owner       = "Team2"
+  }
+  network_interface {
+    ip_address = "10.0.0.2"
+    subnet_id  = "subnet-456"
+  }
+}
+import {
+  to       = aws_instance.example_1
+  provider = aws
+  identity = {
+    id = "i-123456"
+  }
+}
+`
+	// Normalize both strings by removing extra whitespace for comparison
+	normalizeString := func(s string) string {
+		// Remove spaces at the end of lines and replace multiple newlines with a single one
+		lines := strings.Split(s, "\n")
+		for i, line := range lines {
+			lines[i] = strings.TrimRight(line, " \t")
+		}
+		return strings.Join(lines, "\n")
+	}
+
+	normalizedExpected := normalizeString(expectedContent)
+
+	var merged string
+	res := content.Results
+	for _, addr := range res {
+		merged += addr.String()
+	}
+	normalizedActual := normalizeString(content.String())
+
+	if diff := cmp.Diff(normalizedExpected, normalizedActual); diff != "" {
+		t.Errorf("Generated content doesn't match expected. want:\n%s\ngot:\n%s\ndiff:\n%s", normalizedExpected, normalizedActual, diff)
 	}
 }

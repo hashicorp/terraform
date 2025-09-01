@@ -73,6 +73,11 @@ type Init struct {
 	PluginPath FlagStringSlice
 
 	Args []string
+
+	// The -enable-pluggable-state-storage-experiment flag is used in control flow logic in the init command.
+	// TODO(SarahFrench/radeksimko): Remove this once the feature is no longer
+	// experimental
+	EnablePssExperiment bool
 }
 
 // ParseInit processes CLI arguments, returning an Init value and errors.
@@ -106,6 +111,9 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&init.Json, "json", false, "json")
 	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
+
+	// Used for enabling experimental code that's invoked before configuration is parsed.
+	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(

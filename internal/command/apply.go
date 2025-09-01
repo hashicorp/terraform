@@ -229,8 +229,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 		}
 
 		be, beDiags = c.Backend(&BackendOpts{
-			Config:   backendConfig,
-			ViewType: viewType,
+			BackendConfig: backendConfig,
+			ViewType:      viewType,
 		})
 	}
 
@@ -274,7 +274,30 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
-	opReq.DeferralAllowed = args.DeferralAllowed
+
+	// EXPERIMENTAL: maybe enable deferred actions
+	if c.AllowExperimentalFeatures {
+		opReq.DeferralAllowed = args.DeferralAllowed
+		opReq.ActionTargets = args.ActionTargets
+	} else if args.DeferralAllowed {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	} else if len(args.ActionTargets) > 0 {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -invoke flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -371,10 +394,15 @@ Options:
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
+                         Legacy option for the local backend only. See the local
+                         backend's documentation for more information.
 
   -state-out=path        Path to write state to that is different than
                          "-state". This can be used to preserve the old
                          state.
+                         Legacy option for the local backend only. See the local
+                         backend's documentation for more information.
+
                          
   -var 'foo=bar'         Set a value for one of the input variables in the root
                          module of the configuration. Use this option more than

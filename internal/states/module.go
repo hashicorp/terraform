@@ -14,22 +14,13 @@ type Module struct {
 	// Resources contains the state for each resource. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Resources map[string]*Resource
-
-	// ListResources contains the state of the result of each list resource.
-	// The keys in this map are the config address of the list resource
-	// itself. The values are maps of the list resource instance addresses to the
-	// remote resource instance objects that are the result of the list
-	// resource.
-	// e.g "list.aws_instance.test" -> map["list.aws_instance.test[0]"] = ["resource.aws_instance.test[0]", "resource.aws_instance.test[1]"]
-	ListResources map[string]addrs.Map[addrs.AbsResourceInstance, *ResourceInstanceObject]
 }
 
 // NewModule constructs an empty module state for the given module address.
 func NewModule(addr addrs.ModuleInstance) *Module {
 	return &Module{
-		Addr:          addr,
-		Resources:     map[string]*Resource{},
-		ListResources: map[string]addrs.Map[addrs.AbsResourceInstance, *ResourceInstanceObject]{},
+		Addr:      addr,
+		Resources: map[string]*Resource{},
 	}
 }
 

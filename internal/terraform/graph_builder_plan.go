@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"log"
-	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -53,6 +52,9 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
+	// ActionTargets are actions that should be triggered.
+	ActionTargets []addrs.Targetable
+
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace
 	// action instead. Create and Delete actions are not affected.
@@ -78,6 +80,9 @@ type PlanGraphBuilder struct {
 	ConcreteResourceOrphan          ConcreteResourceInstanceNodeFunc
 	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
 	ConcreteModule                  ConcreteModuleNodeFunc
+	// ConcreteAction is only used by the ConfigTransformer during the Validate
+	// Graph walk; otherwise we fall back to the DefaultConcreteActionFunc.
+	ConcreteAction ConcreteActionNodeFunc
 
 	// Plan Operation this graph will be used for.
 	Operation walkOperation
@@ -111,6 +116,15 @@ type PlanGraphBuilder struct {
 	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
 	SkipGraphValidation bool
+
+	// If true, the graph builder will generate a query plan instead of a
+	// normal plan. This is used for the "terraform query" command.
+	queryPlan bool
+
+	// overridePreventDestroy is only applicable during destroy operations, and
+	// allows Terraform to ignore the configuration attribute prevent_destroy
+	// to destroy resources regardless.
+	overridePreventDestroy bool
 }
 
 // See GraphBuilder
@@ -138,19 +152,35 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		panic("invalid plan operation: " + b.Operation.String())
 	}
 
+	if b.overridePreventDestroy && b.Operation != walkPlanDestroy {
+		panic("overridePreventDestroy can only be set during walkPlanDestroy operations")
+	}
+
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete: b.ConcreteResource,
-			Config:   b.Config,
-			destroy:  b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			Concrete:       b.ConcreteResource,
+			ConcreteAction: b.ConcreteAction,
+			Config:         b.Config,
+			destroy:        b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			resourceMatcher: func(mode addrs.ResourceMode) bool {
+				// all resources are included during validation.
+				if b.Operation == walkValidate {
+					return true
+				}
+
+				return b.queryPlan == (mode == addrs.ListResourceMode)
+			},
 
 			importTargets: b.ImportTargets,
 
-			// the validate walk also needs to include query-related nodes.
-			includeQuery: slices.Contains([]walkOperation{walkValidate, walkQuery}, b.Operation),
-			// We only want to generate config during a plan operation.
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
+		},
+
+		&ActionPlanTransformer{
+			Config:    b.Config,
+			Operation: b.Operation,
+			Targets:   b.ActionTargets,
 		},
 
 		// Add dynamic values
@@ -328,6 +358,7 @@ func (b *PlanGraphBuilder) initDestroy() {
 	b.initPlan()
 
 	b.ConcreteResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
@@ -352,6 +383,12 @@ func (b *PlanGraphBuilder) initValidate() {
 	b.ConcreteModule = func(n *nodeExpandModule) dag.Vertex {
 		return &nodeValidateModule{
 			nodeExpandModule: *n,
+		}
+	}
+
+	b.ConcreteAction = func(a *NodeAbstractAction) dag.Vertex {
+		return &NodeValidatableAction{
+			NodeAbstractAction: a,
 		}
 	}
 }

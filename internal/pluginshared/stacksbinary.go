@@ -26,13 +26,15 @@ func NewStacksBinaryManager(ctx context.Context, stacksPluginDataDir, overridePa
 		return nil, fmt.Errorf("could not initialize stacksplugin version manager: %w", err)
 	}
 
+	// read from the data dir to find the cached stacksplugin binary location
+
 	return &StacksBinaryManager{
 		BinaryManager{
 			pluginDataDir: stacksPluginDataDir,
 			overridePath:  overridePath,
 			host:          svchost.Hostname(serviceURL.Host),
 			client:        client,
-			binaryName:    "terraform-stacksplugin",
+			binaryName:    "tfstacks",
 			pluginName:    "stacksplugin",
 			goos:          goos,
 			arch:          arch,

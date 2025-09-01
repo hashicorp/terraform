@@ -190,6 +190,9 @@ Options:
 
   -state=PATH             Path to the state file to update. Defaults to the
                           current workspace state.
+                          Legacy option for the local backend only. See
+                          the local backend's documentation for more
+                          information.
 
   -ignore-remote-version  Continue even if remote and local Terraform versions
                           are incompatible. This may result in an unusable

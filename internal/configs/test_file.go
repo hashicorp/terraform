@@ -40,11 +40,25 @@ const (
 	RefreshOnlyTestMode TestMode = 'R'
 )
 
+const (
+	// TestMainStateIdentifier is the default state identifier for the main
+	// state of the test file.
+	TestMainStateIdentifier = ""
+)
+
 // TestFile represents a single test file within a `terraform test` execution.
 //
 // A test file is made up of a sequential list of run blocks, each designating
 // a command to execute and a series of validations to check after the command.
 type TestFile struct {
+
+	// VariableDefinitions allows users to specify variables that should be
+	// provided externally (eg. from the command line or external files).
+	//
+	// This conflicts with the Variables block. Variables specified in the
+	// VariableDefinitions cannot also be specified within the Variables block.
+	VariableDefinitions map[string]*Variable
+
 	// Variables defines a set of global variable definitions that should be set
 	// for every run block within the test file.
 	Variables map[string]hcl.Expression
@@ -327,8 +341,9 @@ type TestRunOptions struct {
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	tf := &TestFile{
-		Providers: make(map[string]*Provider),
-		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+		VariableDefinitions: make(map[string]*Variable),
+		Providers:           make(map[string]*Provider),
+		Overrides:           addrs.MakeMap[addrs.Targetable, *Override](),
 	}
 
 	// we need to retrieve the file config block first, because the run blocks
@@ -370,6 +385,31 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			}
 			runBlockNames[run.Name] = run.DeclRange
 
+		case "variable":
+			variable, variableDiags := decodeVariableBlock(block, false)
+			diags = append(diags, variableDiags...)
+			if !variableDiags.HasErrors() {
+				if existing, exists := tf.VariableDefinitions[variable.Name]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate \"variable\" block names",
+						Detail:   fmt.Sprintf("This test file already has a variable named %s defined at %s.", variable.Name, existing.DeclRange),
+						Subject:  variable.DeclRange.Ptr(),
+					})
+					continue
+				}
+				tf.VariableDefinitions[variable.Name] = variable
+
+				if existing, exists := tf.Variables[variable.Name]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate \"variable\" block names",
+						Detail:   fmt.Sprintf("This test file already has a variable named %s defined at %s.", variable.Name, existing.Range()),
+						Subject:  variable.DeclRange.Ptr(),
+					})
+				}
+			}
+
 		case "variables":
 			if tf.Variables != nil {
 				diags = append(diags, &hcl.Diagnostic{
@@ -388,6 +428,15 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			diags = append(diags, varsDiags...)
 			for _, v := range vars {
 				tf.Variables[v.Name] = v.Expr
+
+				if existing, exists := tf.VariableDefinitions[v.Name]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate \"variable\" block names",
+						Detail:   fmt.Sprintf("This test file already has a variable named %s defined at %s.", v.Name, v.Range),
+						Subject:  existing.DeclRange.Ptr(),
+					})
+				}
 			}
 		case "provider":
 			provider, providerDiags := decodeProviderBlock(block, true)
@@ -700,6 +749,10 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 	if attr, exists := content.Attributes["state_key"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
 		diags = append(diags, rawDiags...)
+	} else if r.Module != nil {
+		r.StateKey = r.Module.Source.String()
+	} else {
+		r.StateKey = TestMainStateIdentifier // redundant, but let's be explicit
 	}
 
 	if attr, exists := content.Attributes["parallel"]; exists {
@@ -886,6 +939,10 @@ var testFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type:       "mock_provider",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type:       "variable",
 			LabelNames: []string{"name"},
 		},
 		{

@@ -109,15 +109,15 @@ func TestActionInstanceEqual(t *testing.T) {
 func TestAbsActionInstanceEqual(t *testing.T) {
 	actions := []AbsActionInstance{
 		{
-			RootModuleInstance,
-			ActionInstance{
+			Module: RootModuleInstance,
+			Action: ActionInstance{
 				Action: Action{Type: "foo", Name: "bar"},
 				Key:    NoKey,
 			},
 		},
 		{
-			mustParseModuleInstanceStr("module.child"),
-			ActionInstance{
+			Module: mustParseModuleInstanceStr("module.child"),
+			Action: ActionInstance{
 				Action: Action{Type: "the", Name: "bloop"},
 				Key:    StringKey("fish"),
 			},
@@ -139,15 +139,15 @@ func TestAbsActionInstanceEqual(t *testing.T) {
 	}{
 		{ // different keys
 			AbsActionInstance{
-				RootModuleInstance,
-				ActionInstance{
+				Module: RootModuleInstance,
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    NoKey,
 				},
 			},
 			AbsActionInstance{
-				RootModuleInstance,
-				ActionInstance{
+				Module: RootModuleInstance,
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    IntKey(1),
 				},
@@ -156,15 +156,15 @@ func TestAbsActionInstanceEqual(t *testing.T) {
 
 		{ // different module
 			AbsActionInstance{
-				RootModuleInstance,
-				ActionInstance{
+				Module: RootModuleInstance,
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    NoKey,
 				},
 			},
 			AbsActionInstance{
-				mustParseModuleInstanceStr("module.child[1]"),
-				ActionInstance{
+				Module: mustParseModuleInstanceStr("module.child[1]"),
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    NoKey,
 				},
@@ -173,15 +173,15 @@ func TestAbsActionInstanceEqual(t *testing.T) {
 
 		{ // totally different
 			AbsActionInstance{
-				RootModuleInstance,
-				ActionInstance{
+				Module: RootModuleInstance,
+				Action: ActionInstance{
 					Action: Action{Type: "oof", Name: "rab"},
 					Key:    NoKey,
 				},
 			},
 			AbsActionInstance{
-				mustParseModuleInstanceStr("module.foo"),
-				ActionInstance{
+				Module: mustParseModuleInstanceStr("module.foo"),
+				Action: ActionInstance{
 					Action: Action{Type: "foo", Name: "bar"},
 					Key:    IntKey(11),
 				},
@@ -337,6 +337,78 @@ func TestAbsActionUniqueKey(t *testing.T) {
 					test.Receiver, test.Other, test.Other,
 					gotEqual, test.WantEqual,
 				)
+			}
+		})
+	}
+}
+
+func TestParseAbsActionInstance(t *testing.T) {
+	tests := []struct {
+		input     string
+		want      AbsActionInstance
+		expectErr bool
+	}{
+		{
+			"",
+			AbsActionInstance{},
+			true,
+		},
+		{
+			"action.example.foo",
+			AbsActionInstance{
+				Action: ActionInstance{
+					Action: Action{
+						Type: "example",
+						Name: "foo",
+					},
+					Key: NoKey,
+				},
+				Module: RootModuleInstance,
+			},
+			false,
+		},
+		{
+			"action.example.foo[0]",
+			AbsActionInstance{
+				Action: ActionInstance{
+					Action: Action{
+						Type: "example",
+						Name: "foo",
+					},
+					Key: IntKey(0),
+				},
+				Module: RootModuleInstance,
+			},
+			false,
+		},
+		{
+			"action.example.foo[\"bar\"]",
+			AbsActionInstance{
+				Action: ActionInstance{
+					Action: Action{
+						Type: "example",
+						Name: "foo",
+					},
+					Key: StringKey("bar"),
+				},
+				Module: RootModuleInstance,
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("ParseAbsActionStr(%s)", test.input), func(t *testing.T) {
+			got, gotDiags := ParseAbsActionInstanceStr(test.input)
+			if gotDiags.HasErrors() != test.expectErr {
+				if !test.expectErr {
+					t.Fatalf("wrong results! Expected success, got error: %s\n", gotDiags.Err())
+				} else {
+					t.Fatal("wrong results! Expected error(s), got success!")
+				}
+			}
+			if !got.Equal(test.want) {
+				t.Fatalf("wrong result! Got %s, wanted %s", got.String(), test.want.String())
 			}
 		})
 	}

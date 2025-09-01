@@ -8,25 +8,27 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// ConfigTransformer is a GraphTransformer that adds all the resources
-// from the configuration to the graph.
+// ConfigTransformer is a GraphTransformer that adds all the resources and
+// action declarations from the configuration to the graph.
 //
 // The module used to configure this transformer must be the root module.
 //
-// Only resources are added to the graph. Variables, outputs, and
-// providers must be added via other transforms.
+// Only resources and action declarations are added to the graph. Variables,
+// outputs, and providers must be added via other transforms.
 //
-// Unlike ConfigTransformerOld, this transformer creates a graph with
-// all resources including module resources, rather than creating module
-// nodes that are then "flattened".
+// Unlike ConfigTransformerOld, this transformer creates a graph with all
+// resources including module resources, rather than creating module nodes that
+// are then "flattened".
 type ConfigTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete       ConcreteResourceNodeFunc
+	ConcreteAction ConcreteActionNodeFunc
 
 	// Module is the module to add resources from.
 	Config *configs.Config
@@ -37,9 +39,6 @@ type ConfigTransformer struct {
 
 	// some actions are skipped during the destroy process
 	destroy bool
-
-	// includeQuery is true if the graph should include query nodes.
-	includeQuery bool
 
 	// importTargets specifies a slice of addresses that will have state
 	// imported for them.
@@ -53,6 +52,8 @@ type ConfigTransformer struct {
 	// try to delete the imported resource unless the config is updated
 	// manually.
 	generateConfigPathForImportTargets string
+
+	resourceMatcher func(addrs.ResourceMode) bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -103,9 +104,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		for _, r := range module.DataResources {
 			allResources = append(allResources, r)
 		}
-	}
-
-	if t.includeQuery {
 		for _, r := range module.ListResources {
 			allResources = append(allResources, r)
 		}
@@ -133,11 +131,34 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 	}
 
+	for _, a := range module.Actions {
+		if a != nil {
+			addr := a.Addr().InModule(path)
+			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
+			abstract := &NodeAbstractAction{
+				Addr:   addr,
+				Config: *a,
+			}
+			var node dag.Vertex
+			if f := t.ConcreteAction; f != nil {
+				node = f(abstract)
+			} else {
+				node = DefaultConcreteActionNodeFunc(abstract)
+			}
+			g.Add(node)
+		}
+	}
+
 	for _, r := range allResources {
 		relAddr := r.Addr()
 
 		if t.ModeFilter && relAddr.Mode != t.Mode {
 			// Skip non-matching modes
+			continue
+		}
+
+		if t.resourceMatcher != nil && !t.resourceMatcher(r.Mode) {
+			// Skip resources that do not match the filter
 			continue
 		}
 
@@ -173,11 +194,12 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 
 		abstract := &NodeAbstractResource{
-			Addr: addrs.ConfigResource{
-				Resource: relAddr,
-				Module:   path,
-			},
+			Addr:          configAddr,
 			importTargets: imports,
+		}
+
+		if r.List != nil {
+			abstract.generateConfigPath = t.generateConfigPathForImportTargets
 		}
 
 		var node dag.Vertex = abstract
@@ -191,6 +213,11 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// If any import targets were not claimed by resources we may be
 	// generating configuration. Add them to the graph for validation.
 	for _, i := range importTargets {
+		if t.resourceMatcher != nil && !t.resourceMatcher(i.Config.ToResource.Resource.Mode) {
+			// Skip resources that do not match the filter
+			continue
+		}
+
 		log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
 
 		// TODO: if config generation is ever supported for for_each

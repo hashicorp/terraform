@@ -40,6 +40,7 @@ var (
 						"create_wait_seconds":  {Type: cty.Number, Optional: true},
 						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
 						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
+						"defer":                {Type: cty.Bool, Optional: true},
 					},
 				},
 			},
@@ -61,6 +62,7 @@ var (
 						"destroy_fail":         {Type: cty.Bool, Computed: true},
 						"create_wait_seconds":  {Type: cty.Number, Computed: true},
 						"destroy_wait_seconds": {Type: cty.Number, Computed: true},
+						"defer":                {Type: cty.Bool, Computed: true},
 					},
 				},
 			},
@@ -192,8 +194,7 @@ func (provider *TestProvider) DataSourceCount() int {
 }
 
 func (provider *TestProvider) count(prefix string) int {
-	provider.Store.mutex.RLock()
-	defer provider.Store.mutex.RUnlock()
+	defer provider.Store.beginRead()()
 
 	if len(prefix) == 0 {
 		return len(provider.Store.Data)
@@ -209,8 +210,7 @@ func (provider *TestProvider) count(prefix string) int {
 }
 
 func (provider *TestProvider) string(prefix string) string {
-	provider.Store.mutex.RLock()
-	defer provider.Store.mutex.RUnlock()
+	defer provider.Store.beginRead()()
 
 	var keys []string
 	for key := range provider.Store.Data {
@@ -229,9 +229,18 @@ func (provider *TestProvider) ConfigureProvider(request providers.ConfigureProvi
 
 func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	if request.ProposedNewState.IsNull() {
+
+		var deferred *providers.Deferred
+		if shouldBeDeferred := request.PriorState.GetAttr("defer"); !shouldBeDeferred.IsNull() && shouldBeDeferred.True() {
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonResourceConfigUnknown,
+			}
+		}
+
 		// Then this is a delete operation.
 		return providers.PlanResourceChangeResponse{
 			PlannedState: request.ProposedNewState,
+			Deferred:     deferred,
 		}
 	}
 
@@ -254,8 +263,16 @@ func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceC
 		resource = cty.ObjectVal(vals)
 	}
 
+	var deferred *providers.Deferred
+	if shouldBeDeferred := resource.GetAttr("defer"); !shouldBeDeferred.IsKnown() || (!shouldBeDeferred.IsNull() && shouldBeDeferred.True()) {
+		deferred = &providers.Deferred{
+			Reason: providers.DeferredReasonResourceConfigUnknown,
+		}
+	}
+
 	return providers.PlanResourceChangeResponse{
 		PlannedState: resource,
+		Deferred:     deferred,
 	}
 }
 
@@ -399,8 +416,7 @@ type ResourceStore struct {
 }
 
 func (store *ResourceStore) Delete(key string) cty.Value {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
+	defer store.beginWrite()()
 
 	if resource, ok := store.Data[key]; ok {
 		delete(store.Data, key)
@@ -410,15 +426,13 @@ func (store *ResourceStore) Delete(key string) cty.Value {
 }
 
 func (store *ResourceStore) Get(key string) cty.Value {
-	store.mutex.RLock()
-	defer store.mutex.RUnlock()
+	defer store.beginRead()()
 
 	return store.get(key)
 }
 
 func (store *ResourceStore) Put(key string, resource cty.Value) cty.Value {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
+	defer store.beginWrite()()
 
 	old := store.get(key)
 	store.Data[key] = resource
@@ -430,4 +444,14 @@ func (store *ResourceStore) get(key string) cty.Value {
 		return resource
 	}
 	return cty.NilVal
+}
+
+func (store *ResourceStore) beginWrite() func() {
+	store.mutex.Lock()
+	return store.mutex.Unlock
+
+}
+func (store *ResourceStore) beginRead() func() {
+	store.mutex.RLock()
+	return store.mutex.RUnlock
 }

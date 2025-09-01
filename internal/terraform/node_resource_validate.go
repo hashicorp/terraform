@@ -482,16 +482,31 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
+		blockVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return diags
 		}
+
+		limit, _, limitDiags := newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
+		diags = diags.Append(limitDiags)
+		if limitDiags.HasErrors() {
+			return diags
+		}
+
+		includeResource, _, includeDiags := newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
+		diags = diags.Append(includeDiags)
+		if includeDiags.HasErrors() {
+			return diags
+		}
+
 		// Use unmarked value for validate request
-		unmarkedConfigVal, _ := configVal.UnmarkDeep()
+		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
 		req := providers.ValidateListResourceConfigRequest{
-			TypeName: n.Config.Type,
-			Config:   unmarkedConfigVal,
+			TypeName:              n.Config.Type,
+			Config:                unmarkedBlockVal,
+			IncludeResourceObject: includeResource,
+			Limit:                 limit,
 		}
 
 		resp := provider.ValidateListResourceConfig(req)

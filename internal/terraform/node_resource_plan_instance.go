@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
@@ -79,6 +78,8 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		return n.dataResourceExecute(ctx)
 	case addrs.EphemeralResourceMode:
 		return n.ephemeralResourceExecute(ctx)
+	case addrs.ListResourceMode:
+		return n.listResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
@@ -397,7 +398,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			}
 		}
 
-		// FIXME: here we udpate the change to reflect the reason for
+		// FIXME: here we update the change to reflect the reason for
 		// replacement, but we still overload forceReplace to get the correct
 		// change planned.
 		if len(n.replaceTriggeredBy) > 0 {
@@ -505,7 +506,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		// Even if we don't plan changes, we do still need to at least update
 		// the working state to reflect the refresh result. If not, then e.g.
-		// any output values refering to this will not react to the drift.
+		// any output values referring to this will not react to the drift.
 		// (Even if we didn't actually refresh above, this will still save
 		// the result of any schema upgrading we did in readResourceInstanceState.)
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, workingState))
@@ -837,16 +838,15 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 
 		// Generate the HCL string first, then parse the HCL body from it.
-		// First we generate the contents of the resource block for use within
-		// the planning node. Then we wrap it in an enclosing resource block to
-		// pass into the plan for rendering.
-		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema.Body)
+		generatedResource, generatedDiags := n.generateHCLResourceDef(n.Addr, instanceRefreshState.Value, schema)
 		diags = diags.Append(generatedDiags)
 
-		n.generatedConfigHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
+		// This wraps the content of the resource block in an enclosing resource block
+		// to pass into the plan for rendering.
+		n.generatedConfigHCL = generatedResource.String()
 
-		// parse the "file" as HCL to get the hcl.Body
-		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), filepath.Base(n.generateConfigPath), hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		// parse the "file" body as HCL to get the hcl.Body
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig(generatedResource.Body, filepath.Base(n.generateConfigPath), hcl.Pos{Byte: 0, Line: 1, Column: 1})
 		diags = diags.Append(hclDiags)
 		if hclDiags.HasErrors() {
 			return instanceRefreshState, nil, diags
@@ -881,35 +881,24 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	return instanceRefreshState, deferred, diags
 }
 
-// generateHCLStringAttributes produces a string in HCL format for the given
-// resource state and schema without the surrounding block.
-func (n *NodePlannableResourceInstance) generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, tfdiags.Diagnostics) {
-	filteredSchema := schema.Filter(
-		configschema.FilterOr(
-			configschema.FilterReadOnlyAttribute,
-			configschema.FilterDeprecatedAttribute,
-
-			// The legacy SDK adds an Optional+Computed "id" attribute to the
-			// resource schema even if not defined in provider code.
-			// During validation, however, the presence of an extraneous "id"
-			// attribute in config will cause an error.
-			// Remove this attribute so we do not generate an "id" attribute
-			// where there is a risk that it is not in the real resource schema.
-			//
-			// TRADEOFF: Resources in which there actually is an
-			// Optional+Computed "id" attribute in the schema will have that
-			// attribute missing from generated config.
-			configschema.FilterHelperSchemaIdAttribute,
-		),
-		configschema.FilterDeprecatedBlock,
-	)
-
+// generateHCLResourceDef generates the HCL definition for the resource
+// instance, including the surrounding block. This is used to generate the
+// configuration for the resource instance when importing or generating
+func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (*genconfig.Resource, tfdiags.Diagnostics) {
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
 	}
 
-	return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state.Value)
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, state, false)
+	case addrs.ListResourceMode:
+		identitySchema := schema.Identity
+		return genconfig.GenerateListResourceContents(addr, schema.Body, identitySchema, providerAddr, state)
+	default:
+		panic(fmt.Sprintf("unexpected resource mode %s for resource %s", addr.Resource.Resource.Mode, addr))
+	}
 }
 
 // mergeDeps returns the union of 2 sets of dependencies
@@ -967,4 +956,32 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 		}
 	}
 	return true
+}
+
+func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) (*configs.ActionTriggerEvent, bool) {
+	for _, event := range events {
+		switch event {
+		case configs.BeforeCreate, configs.AfterCreate:
+			if action.IsReplace() || action == plans.Create {
+				return &event, true
+			} else {
+				continue
+			}
+		case configs.BeforeUpdate, configs.AfterUpdate:
+			if action == plans.Update {
+				return &event, true
+			} else {
+				continue
+			}
+		case configs.BeforeDestroy, configs.AfterDestroy:
+			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
+				return &event, true
+			} else {
+				continue
+			}
+		default:
+			panic(fmt.Sprintf("unknown action trigger event %s", event))
+		}
+	}
+	return nil, false
 }

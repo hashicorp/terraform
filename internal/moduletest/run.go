@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -19,18 +20,10 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const (
-	MainStateIdentifier = ""
-)
-
 type Run struct {
 	Config *configs.TestRun
 
-	// ModuleConfig is a copy of the module configuration that the run is testing.
-	// The variables and provider configurations are copied so that the run can
-	// modify them safely without affecting the original configuration.
-	// However, any other fields in the module configuration are still shared between
-	// all runs that use the same module configuration.
+	// ModuleConfig is the config that this run block is executing against.
 	ModuleConfig *configs.Config
 
 	Verbose *Verbose
@@ -38,6 +31,12 @@ type Run struct {
 	Name   string
 	Index  int
 	Status Status
+
+	// Outputs are set by the Terraform Test graph once this run block is
+	// executed. Callers should only access this if the Status field is set to
+	// Pass or Fail as both of these cases indicate the run block was executed
+	// successfully, and actually had values to write.
+	Outputs cty.Value
 
 	Diagnostics tfdiags.Diagnostics
 
@@ -55,25 +54,9 @@ type Run struct {
 }
 
 func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {
-	// Make a copy the module configuration variables and provider configuration maps
-	// so that the run can modify the map safely.
-	newModuleConfig := *moduleConfig
-	if moduleConfig.Module != nil {
-		newModule := *moduleConfig.Module
-		newModule.Variables = make(map[string]*configs.Variable, len(moduleConfig.Module.Variables))
-		for name, variable := range moduleConfig.Module.Variables {
-			newModule.Variables[name] = variable
-		}
-		newModule.ProviderConfigs = make(map[string]*configs.Provider, len(moduleConfig.Module.ProviderConfigs))
-		for name, provider := range moduleConfig.Module.ProviderConfigs {
-			newModule.ProviderConfigs[name] = provider
-		}
-		newModuleConfig.Module = &newModule
-	}
-
 	return &Run{
 		Config:       config,
-		ModuleConfig: &newModuleConfig,
+		ModuleConfig: moduleConfig,
 		Name:         config.Name,
 		Index:        index,
 	}
@@ -180,25 +163,28 @@ func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
 		references = append(references, moreRefs...)
 	}
 
+	for name, variable := range run.ModuleConfig.Module.Variables {
+
+		// because we also draw implicit references back to any variables
+		// defined in the test file with the same name as actual variables, then
+		// we'll count these as references as well.
+
+		if _, ok := run.Config.Variables[name]; ok {
+
+			// BUT, if the variable is defined within the list of variables
+			// within the run block then we don't want to draw an implicit
+			// reference as the data comes from that expression.
+
+			continue
+		}
+
+		references = append(references, &addrs.Reference{
+			Subject:     addrs.InputVariable{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
+		})
+	}
+
 	return references, diagnostics
-}
-
-// GetStateKey returns the run's state key. If an explicit state key is set in
-// the run's configuration, that key is returned. Otherwise, if the run is using
-// an alternate module under test, the source of that module is returned as the
-// state key. If neither of these conditions are met, an empty string is
-// returned, and this denotes that the run is using the root module under test.
-func (run *Run) GetStateKey() string {
-	if run.Config.StateKey != "" {
-		return run.Config.StateKey
-	}
-
-	// The run has an alternate module under test, so we can use the module's source
-	if run.Config.ConfigUnderTest != nil {
-		return run.Config.Module.Source.String()
-	}
-
-	return MainStateIdentifier
 }
 
 // GetModuleConfigID returns the identifier for the module configuration that

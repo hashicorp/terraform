@@ -6,81 +6,120 @@ package graph
 import (
 	"slices"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+var (
+	_ GraphNodeExecutable = &TeardownSubgraph{}
+	_ Subgrapher          = &TeardownSubgraph{}
+)
+
+type Subgrapher interface {
+	isSubGrapher()
+}
+
+// TeardownSubgraph is a subgraph for cleaning up the state of
+// resources defined in the state files created by the test runs.
+type TeardownSubgraph struct {
+	opts   *graphOptions
+	parent *terraform.Graph
+}
+
+func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
+	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
+
+	// work out the transitive state dependencies for each run node in the parent graph
+	runRefMap := make(map[addrs.Run][]string)
+	for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
+		refs := b.parent.Ancestors(runNode)
+		for _, ref := range refs {
+			if ref, ok := ref.(*NodeTestRun); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
+				runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
+			}
+		}
+	}
+
+	// Create a new graph for the cleanup nodes
+	g, diags := (&terraform.BasicGraphBuilder{
+		Steps: []terraform.GraphTransformer{
+			&TestStateCleanupTransformer{opts: b.opts, runStateRefs: runRefMap},
+			&CloseTestGraphTransformer{},
+			&terraform.TransitiveReductionTransformer{},
+		},
+		Name: "TeardownSubgraph",
+	}).Build(addrs.RootModuleInstance)
+	b.opts.File.AppendDiagnostics(diags)
+
+	if diags.HasErrors() {
+		return
+	}
+
+	diags = Walk(g, ctx)
+	b.opts.File.AppendDiagnostics(diags)
+}
+
+func (b *TeardownSubgraph) isSubGrapher() {}
 
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
 type TestStateCleanupTransformer struct {
-	opts *graphOptions
+	opts         *graphOptions
+	runStateRefs map[addrs.Run][]string
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
+	arr := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
 
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
+	// dependency map for state keys, which will be used to traverse
+	// the cleanup nodes in a depth-first manner.
+	depStateKeys := make(map[string][]string)
+
+	// iterate in reverse order of the run index, so that the last run for each state key
+	// is attached to the cleanup node.
+	for _, run := range slices.Backward(t.opts.File.Runs) {
+		key := run.Config.StateKey
+
+		if _, exists := cleanupMap[key]; !exists {
+			node := &NodeStateCleanup{
+				stateKey: key,
+				opts:     t.opts,
+			}
+			cleanupMap[key] = node
+			arr = append(arr, node)
+			g.Add(node)
+
+			// The dependency map for the state's last run will be used for the cleanup node.
+			depStateKeys[key] = t.runStateRefs[run.Addr()]
 			continue
 		}
-		key := node.run.GetStateKey()
-		if _, exists := cleanupMap[key]; !exists {
-			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts}
-			g.Add(cleanupMap[key])
-		}
-
-		// Connect the cleanup node to the test run node.
-		g.Connect(dag.BasicEdge(cleanupMap[key], node))
 	}
 
-	// Add a root cleanup node that runs before cleanup nodes for each state.
-	// Right now it just simply renders a teardown summary, so as to maintain
-	// existing CLI output.
-	rootCleanupNode := t.addRootCleanupNode(g)
-
-	for _, v := range g.Vertices() {
-		switch node := v.(type) {
-		case *NodeTestRun:
-			// All the runs that share the same state, must share the same cleanup node,
-			// which only executes once after all the dependent runs have completed.
-			g.Connect(dag.BasicEdge(rootCleanupNode, node))
-		case *NodeStateCleanup:
-			// Connect the cleanup node to the root cleanup node.
-			g.Connect(dag.BasicEdge(node, rootCleanupNode))
-		}
+	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
+	// If an edge would create a cycle, we skip it.
+	visited := make(map[string]bool)
+	for _, node := range arr {
+		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
 	}
-
-	// connect all cleanup nodes in reverse-sequential order of run index to
-	// preserve existing behavior, starting from the root cleanup node.
-	// TODO: Parallelize cleanup nodes execution instead of sequential.
-	added := make(map[string]bool)
-	var prev dag.Vertex
-	for _, v := range slices.Backward(t.opts.File.Runs) {
-		key := v.GetStateKey()
-		if _, exists := added[key]; !exists {
-			node := cleanupMap[key]
-			if prev != nil {
-				g.Connect(dag.BasicEdge(node, prev))
-			}
-			prev = node
-			added[key] = true
-		}
-	}
-
 	return nil
 }
 
-func (t *TestStateCleanupTransformer) addRootCleanupNode(g *terraform.Graph) *dynamicNode {
-	rootCleanupNode := &dynamicNode{
-		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
-			var diags tfdiags.Diagnostics
-			ctx.Renderer().File(t.opts.File, moduletest.TearDown)
-			return diags
-		},
+func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
+	if visited[node.stateKey] {
+		return
 	}
-	g.Add(rootCleanupNode)
-	return rootCleanupNode
+	visited[node.stateKey] = true
+
+	for _, refStateKey := range depStateKeys[node.stateKey] {
+		// If the reference node has already been visited, skip it.
+		if visited[refStateKey] {
+			continue
+		}
+		refNode := cleanupNodes[refStateKey]
+		g.Connect(dag.BasicEdge(refNode, node))
+		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
+	}
 }

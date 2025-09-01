@@ -39,6 +39,17 @@ func (cs *ChangesSync) AppendResourceInstanceChange(change *ResourceInstanceChan
 	cs.changes.Resources = append(cs.changes.Resources, s)
 }
 
+func (cs *ChangesSync) AppendQueryInstance(query *QueryInstance) {
+	if cs == nil {
+		panic("AppendQueryInstance on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	s := query.DeepCopy() // TODO do we need to deep copy here?
+	cs.changes.Queries = append(cs.changes.Queries, s)
+}
+
 // GetResourceInstanceChange searches the set of resource instance changes for
 // one matching the given address and deposed key, returning it if it exists.
 // Use [addrs.NotDeposed] as the deposed key to represent the "current"
@@ -104,6 +115,19 @@ func (cs *ChangesSync) GetChangesForAbsResource(addr addrs.AbsResource) []*Resou
 		changes = append(changes, c.DeepCopy())
 	}
 	return changes
+}
+
+func (cs *ChangesSync) GetQueryInstancesForAbsResource(addr addrs.AbsResource) []*QueryInstance {
+	if cs == nil {
+		panic("GetQueryInstancesForAbsResource on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+	var queries []*QueryInstance
+	for _, q := range cs.changes.QueriesForAbsResource(addr) {
+		queries = append(queries, q.DeepCopy())
+	}
+	return queries
 }
 
 // RemoveResourceInstanceChange searches the set of resource instance changes
@@ -211,6 +235,56 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 		}
 		copy(cs.changes.Outputs[i:], cs.changes.Outputs[i+1:])
 		cs.changes.Outputs = cs.changes.Outputs[:len(cs.changes.Outputs)-1]
+		return
+	}
+}
+
+// GetActionInvocation gets an action invocation based on the action address, the triggering
+// resource address, the action trigger block index, and the action list index.
+func (cs *ChangesSync) GetActionInvocation(addr addrs.AbsActionInstance, actionTrigger ActionTrigger) *ActionInvocationInstance {
+	if cs == nil {
+		panic("GetActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	for _, a := range cs.changes.ActionInvocations {
+		if a.Addr.Equal(addr) {
+			if a.ActionTrigger.Equals(actionTrigger) {
+				return a
+			}
+		}
+	}
+	return nil
+}
+
+// AppendActionInvocation
+func (cs *ChangesSync) AppendActionInvocation(action *ActionInvocationInstance) {
+	if cs == nil {
+		panic("AppendActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	cs.changes.ActionInvocations = append(cs.changes.ActionInvocations, action)
+}
+
+// RemoveActionInvocation searches the set of action invocations for one
+// matching the given address, and removes it from the set if it exists.
+func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInstance) {
+	if cs == nil {
+		panic("RemoveActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	addrStr := addr.String()
+	for i, a := range cs.changes.ActionInvocations {
+		if a.Addr.String() != addrStr {
+			continue
+		}
+		copy(cs.changes.ActionInvocations[i:], cs.changes.ActionInvocations[i+1:])
+		cs.changes.ActionInvocations = cs.changes.ActionInvocations[:len(cs.changes.ActionInvocations)-1]
 		return
 	}
 }

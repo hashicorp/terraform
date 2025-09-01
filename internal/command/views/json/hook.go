@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 type Hook interface {
@@ -351,6 +352,184 @@ func NewRefreshComplete(addr addrs.AbsResourceInstance, idKey, idValue string) H
 		IDKey:    idKey,
 		IDValue:  idValue,
 	}
+}
+
+// ActionStart: triggered by StartAction hook
+type actionStart struct {
+	Action           ActionAddr              `json:"action"`
+	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
+	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
+}
+
+type lifecycleActionTrigger struct {
+	TriggeringResource ResourceAddr `json:"resource"`
+	TriggerIndex       int          `json:"trigger_index"`
+	ActionsIndex       int          `json:"actions_index"`
+	TriggerEvent       string       `json:"trigger_event"`
+}
+
+type invokeActionTrigger struct{}
+
+var _ Hook = (*actionStart)(nil)
+
+func (h *actionStart) HookType() MessageType {
+	return MessageActionStart
+}
+
+func (h *actionStart) String() string {
+	switch {
+	case h.LifecycleTrigger != nil:
+		return fmt.Sprintf("%s.trigger[%d]: Action started: %s", h.LifecycleTrigger.TriggeringResource.Addr, h.LifecycleTrigger.TriggerIndex, h.Action.Addr)
+	default:
+		return fmt.Sprintf("Action started: %s", h.Action.Addr)
+	}
+}
+
+func NewActionStart(id terraform.HookActionIdentity) Hook {
+	action := &actionStart{
+		Action: newActionAddr(id.Addr),
+	}
+
+	switch trigger := id.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		action.LifecycleTrigger = &lifecycleActionTrigger{
+			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggerIndex:       trigger.ActionTriggerBlockIndex,
+			ActionsIndex:       trigger.ActionsListIndex,
+			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+		}
+	case *plans.InvokeActionTrigger:
+		action.InvokeTrigger = new(invokeActionTrigger)
+	}
+
+	return action
+}
+
+type actionProgress struct {
+	Action           ActionAddr              `json:"action"`
+	Message          string                  `json:"message"`
+	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
+	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
+}
+
+var _ Hook = (*actionProgress)(nil)
+
+func (h *actionProgress) HookType() MessageType {
+	return MessageActionProgress
+}
+
+func (h *actionProgress) String() string {
+	switch {
+	case h.LifecycleTrigger != nil:
+		return fmt.Sprintf("%s (%d): %s - %s", h.LifecycleTrigger.TriggeringResource.Addr, h.LifecycleTrigger.TriggerIndex, h.Action.Addr, h.Message)
+	default:
+		return fmt.Sprintf("%s - %s", h.Action.Addr, h.Message)
+	}
+}
+
+func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
+	action := &actionProgress{
+		Action:  newActionAddr(id.Addr),
+		Message: message,
+	}
+
+	switch trigger := id.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		action.LifecycleTrigger = &lifecycleActionTrigger{
+			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggerIndex:       trigger.ActionTriggerBlockIndex,
+			ActionsIndex:       trigger.ActionsListIndex,
+			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+		}
+	case *plans.InvokeActionTrigger:
+		action.InvokeTrigger = new(invokeActionTrigger)
+	}
+
+	return action
+}
+
+type actionComplete struct {
+	Action           ActionAddr              `json:"action"`
+	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
+	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
+}
+
+var _ Hook = (*actionComplete)(nil)
+
+func (h *actionComplete) HookType() MessageType {
+	return MessageActionComplete
+}
+
+func (h *actionComplete) String() string {
+	switch {
+	case h.LifecycleTrigger != nil:
+		return fmt.Sprintf("%s (%d): Action complete: %s", h.LifecycleTrigger.TriggeringResource.Addr, h.LifecycleTrigger.TriggerIndex, h.Action.Addr)
+	default:
+		return fmt.Sprintf("Action complete: %s", h.Action.Addr)
+	}
+}
+
+func NewActionComplete(id terraform.HookActionIdentity) Hook {
+	action := &actionComplete{
+		Action: newActionAddr(id.Addr),
+	}
+
+	switch trigger := id.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		action.LifecycleTrigger = &lifecycleActionTrigger{
+			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggerIndex:       trigger.ActionTriggerBlockIndex,
+			ActionsIndex:       trigger.ActionsListIndex,
+			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+		}
+	case *plans.InvokeActionTrigger:
+		action.InvokeTrigger = new(invokeActionTrigger)
+	}
+
+	return action
+}
+
+type actionErrored struct {
+	Action           ActionAddr              `json:"action"`
+	Error            string                  `json:"error"`
+	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
+	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
+}
+
+var _ Hook = (*actionErrored)(nil)
+
+func (h *actionErrored) HookType() MessageType {
+	return MessageActionErrored
+}
+
+func (h *actionErrored) String() string {
+	switch {
+	case h.LifecycleTrigger != nil:
+		return fmt.Sprintf("%s (%d): Action errored: %s - %s", h.LifecycleTrigger.TriggeringResource.Addr, h.LifecycleTrigger.TriggerIndex, h.Action.Addr, h.Error)
+	default:
+		return fmt.Sprintf("Action errored: %s - %s", h.Action.Addr, h.Error)
+	}
+}
+
+func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
+	action := &actionErrored{
+		Action: newActionAddr(id.Addr),
+		Error:  err.Error(),
+	}
+
+	switch trigger := id.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		action.LifecycleTrigger = &lifecycleActionTrigger{
+			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggerIndex:       trigger.ActionTriggerBlockIndex,
+			ActionsIndex:       trigger.ActionsListIndex,
+			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+		}
+	case *plans.InvokeActionTrigger:
+		action.InvokeTrigger = new(invokeActionTrigger)
+	}
+
+	return action
 }
 
 // Convert the subset of plans.Action values we expect to receive into a

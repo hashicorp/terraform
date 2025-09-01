@@ -372,7 +372,6 @@ func TestModuleOverride_action_and_trigger(t *testing.T) {
 		Config:            nil,
 		Count:             nil,
 		ForEach:           nil,
-		DependsOn:         nil,
 		ProviderConfigRef: nil,
 		Provider:          addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
 		DeclRange: hcl.Range{
@@ -419,5 +418,5 @@ func TestModuleOverride_action_and_trigger(t *testing.T) {
 
 	// verify the resource action trigger event changed
 	at := mod.ManagedResources["test_instance.test"].Managed.ActionTriggers[0]
-	assertResultDeepEqual(t, at.Events, []ActionTriggerEvent{AfterDestroy})
+	assertResultDeepEqual(t, at.Events, []ActionTriggerEvent{BeforeCreate})
 }

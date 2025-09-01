@@ -105,6 +105,20 @@ func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) pr
 	return schema
 }
 
+func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
+	schema := providers.ActionSchema{
+		ConfigSchema: ProtoToConfigSchema(s.Schema.Block),
+	}
+
+	switch s.Type.(type) {
+	case *proto.ActionSchema_Unlinked_:
+		schema.Unlinked = &providers.UnlinkedAction{}
+	default:
+		panic("Unknown Action Type, expected unlinked action")
+	}
+	return schema
+}
+
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
 // to a terraform *configschema.Block.
 func ProtoToConfigSchema(b *proto.Schema_Block) *configschema.Block {

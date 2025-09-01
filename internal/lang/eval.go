@@ -359,6 +359,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			rawSubj = addr.Call
 		case addrs.ModuleCallInstanceOutput:
 			rawSubj = addr.Call.Call
+		case addrs.ActionInstance:
+			rawSubj = addr.Action
 		}
 
 		switch subj := rawSubj.(type) {
@@ -435,6 +437,15 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			val, valDiags := normalizeRefValue(s.Data.GetRunBlock(subj, rng))
 			diags = diags.Append(valDiags)
 			runBlocks[subj.Name] = val
+
+		// Actions can not be accessed.
+		case addrs.Action:
+			return nil, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+				Subject:  rng.ToHCL().Ptr(),
+			})
 
 		default:
 			// Should never happen

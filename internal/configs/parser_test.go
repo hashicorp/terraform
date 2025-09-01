@@ -52,6 +52,18 @@ func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
 	return cfg, append(diags, moreDiags...)
 }
 
+// testModuleFromFileWithExperiments File reads a single file from the given path as a
+// module and returns its configuration. This is a helper for use in unit tests.
+func testModuleFromFileWithExperiments(filename string) (*Config, hcl.Diagnostics) {
+	parser := NewParser(nil)
+	parser.AllowLanguageExperiments(true)
+	f, diags := parser.LoadConfigFile(filename)
+	mod, modDiags := NewModule([]*File{f}, nil)
+	diags = append(diags, modDiags...)
+	cfg, moreDiags := BuildConfig(mod, nil, nil)
+	return cfg, append(diags, moreDiags...)
+}
+
 // testModuleFromDir reads configuration from the given directory path as
 // a module and returns it. This is a helper for use in unit tests.
 func testModuleFromDir(path string) (*Module, hcl.Diagnostics) {

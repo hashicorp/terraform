@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
@@ -25,6 +26,175 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
+
+func TestRenderHuman_InvokeActionPlan(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	streams, done := terminal.StreamsForTesting(t)
+
+	plan := Plan{
+		ActionInvocations: []jsonplan.ActionInvocation{
+			{
+				Address: "action.test_action.action",
+				Type:    "test_action",
+				Name:    "action",
+				ConfigValues: map[string]json.RawMessage{
+					"attr": []byte("\"one\""),
+				},
+				ConfigSensitive:     nil,
+				ProviderName:        "test",
+				InvokeActionTrigger: new(jsonplan.InvokeActionTrigger),
+			},
+		},
+		ProviderSchemas: map[string]*jsonprovider.Provider{
+			"test": {
+				ActionSchemas: map[string]*jsonprovider.ActionSchema{
+					"test_action": {
+						ConfigSchema: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"attr": {
+									AttributeType: []byte("\"string\""),
+								},
+							},
+						},
+						Unlinked: new(jsonprovider.UnlinkedAction),
+					},
+				},
+			},
+		},
+	}
+
+	renderer := Renderer{Colorize: color, Streams: streams}
+	plan.renderHuman(renderer, plans.RefreshOnlyMode)
+
+	want := `
+Terraform will invoke the following action(s):
+
+  # action.test_action.action will be invoked
+    action "test_action" "action" {
+        config {
+            attr = "one"
+        }
+    }
+
+`
+
+	got := done(t).Stdout()
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
+func TestRenderHuman_InvokeActionPlanWithRefresh(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	streams, done := terminal.StreamsForTesting(t)
+
+	plan := Plan{
+		ActionInvocations: []jsonplan.ActionInvocation{
+			{
+				Address: "action.test_action.action",
+				Type:    "test_action",
+				Name:    "action",
+				ConfigValues: map[string]json.RawMessage{
+					"attr": []byte("\"one\""),
+				},
+				ConfigSensitive:     nil,
+				ProviderName:        "test",
+				InvokeActionTrigger: new(jsonplan.InvokeActionTrigger),
+			},
+		},
+		ResourceDrift: []jsonplan.ResourceChange{
+			{
+				Address:      "aws_instance.foo",
+				Mode:         "managed",
+				Type:         "aws_instance",
+				Name:         "foo",
+				IndexUnknown: true,
+				ProviderName: "aws",
+				Change: jsonplan.Change{
+					Actions: []string{"update"},
+					Before: marshalJson(t, map[string]interface{}{
+						"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+						"value": "Hello, World!",
+					}),
+					After: marshalJson(t, map[string]interface{}{
+						"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+						"value": "Hello, World!",
+					}),
+				},
+			},
+		},
+		ProviderSchemas: map[string]*jsonprovider.Provider{
+			"test": {
+				ActionSchemas: map[string]*jsonprovider.ActionSchema{
+					"test_action": {
+						ConfigSchema: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"attr": {
+									AttributeType: []byte("\"string\""),
+								},
+							},
+						},
+						Unlinked: new(jsonprovider.UnlinkedAction),
+					},
+				},
+			},
+			"aws": {
+				ResourceSchemas: map[string]*jsonprovider.Schema{
+					"aws_instance": {
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"id": {
+									AttributeType: marshalJson(t, "string"),
+								},
+								"ami": {
+									AttributeType: marshalJson(t, "string"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	renderer := Renderer{Colorize: color, Streams: streams}
+	plan.renderHuman(renderer, plans.RefreshOnlyMode)
+
+	want := `
+Note: Objects have changed outside of Terraform
+
+Terraform detected the following changes made outside of Terraform since the
+last "terraform apply" which may have affected this plan:
+
+  # aws_instance.foo has changed
+  ~ resource "aws_instance" "foo" {
+        id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+    }
+
+
+This is a refresh-only plan, so Terraform will not take any actions to undo
+these. If you were expecting these changes then you can apply this plan to
+record the updated values in the Terraform state without changing any remote
+objects.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Terraform will invoke the following action(s):
+
+  # action.test_action.action will be invoked
+    action "test_action" "action" {
+        config {
+            attr = "one"
+        }
+    }
+
+`
+
+	got := done(t).Stdout()
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
 
 func TestRenderHuman_EmptyPlan(t *testing.T) {
 	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
@@ -7899,7 +8069,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				return
 			}
 
-			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas)
+			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas, false)
 			change := structured.FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher())
 			renderer := Renderer{Colorize: color}
 			diff := diff{
@@ -8249,7 +8419,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 			}
 
 			renderer := Renderer{Colorize: color}
-			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema)
+			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema, false)
 			diffs := precomputeDiffs(Plan{
 				DeferredChanges: deferredChanges,
 				ProviderSchemas: jsonschemas,
@@ -8263,6 +8433,320 @@ func TestResourceChange_deferredActions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResourceChange_actions(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	triggeringResourceAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "example",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	defaultResourceChange := jsonplan.ResourceChange{
+		Address:      triggeringResourceAddr.String(),
+		Mode:         "managed",
+		Type:         "test_instance",
+		Name:         "example",
+		IndexUnknown: true,
+		ProviderName: "registry.terraform.io/hashicorp/test",
+		Change: jsonplan.Change{
+			Actions: []string{"create"},
+			After: marshalJson(t, map[string]interface{}{
+				"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+				"value": "Hello, World!",
+			}),
+		},
+	}
+
+	for name, tc := range map[string]struct {
+		actionInvocations []jsonplan.ActionInvocation
+		output            string
+	}{
+		"before actions": {
+			actionInvocations: []jsonplan.ActionInvocation{
+				{
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
+					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"),
+						"disk": cty.ObjectVal(map[string]cty.Value{
+							"size": cty.StringVal("100"),
+						}),
+						"root_block_device": cty.ObjectVal(map[string]cty.Value{
+							"volume_type": cty.StringVal("gp2"),
+						}),
+					})),
+				},
+			},
+			output: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+    }
+
+    # Actions to be invoked before this change in order:
+    action "test_unlinked" "hello" {
+        config {
+            disk = {
+                size = "100"
+            }
+            id   = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+        
+            root_block_device {
+                volume_type = "gp2"
+            }
+        }
+    }
+`,
+		},
+		"after actions": {
+			actionInvocations: []jsonplan.ActionInvocation{
+				{
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "AfterCreate",
+					},
+					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"),
+						"disk": cty.ObjectVal(map[string]cty.Value{
+							"size": cty.StringVal("100"),
+						}),
+						"root_block_device": cty.ObjectVal(map[string]cty.Value{
+							"volume_type": cty.StringVal("gp2"),
+						}),
+					})),
+				},
+			},
+			output: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+    }
+
+    # Actions to be invoked after this change in order:
+    action "test_unlinked" "hello" {
+        config {
+            disk = {
+                size = "100"
+            }
+            id   = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+        
+            root_block_device {
+                volume_type = "gp2"
+            }
+        }
+    }
+`,
+		},
+		"before and after actions": {
+			actionInvocations: []jsonplan.ActionInvocation{
+				{
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
+					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("first-block-and-action"),
+					})),
+				},
+				{
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          1,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
+					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("first-block-second-action"),
+					})),
+				},
+				{
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   1,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "AfterCreate",
+					},
+					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("second-block-first-action"),
+					})),
+				},
+				{
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   2,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "AfterCreate",
+					},
+					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("third-block-first-action"),
+					})),
+				},
+				{
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   3,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
+					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("fourth-block-first-action"),
+					})),
+				},
+			},
+			output: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+    }
+
+    # Actions to be invoked before this change in order:
+    action "test_unlinked" "hello" {
+        config {
+            id = "first-block-and-action"
+        }
+    }
+    action "test_unlinked" "hello" {
+        config {
+            id = "first-block-second-action"
+        }
+    }
+    action "test_unlinked" "hello" {
+        config {
+            id = "fourth-block-first-action"
+        }
+    }
+
+
+    # Actions to be invoked after this change in order:
+    action "test_unlinked" "hello" {
+        config {
+            id = "second-block-first-action"
+        }
+    }
+    action "test_unlinked" "hello" {
+        config {
+            id = "third-block-first-action"
+        }
+    }
+`,
+		},
+		"no config value": {
+			actionInvocations: []jsonplan.ActionInvocation{
+				{
+					Address:      "action.test_unlinked.hello",
+					Type:         "test_unlinked",
+					Name:         "hello",
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
+						ActionTriggerBlockIndex:   0,
+						ActionsListIndex:          0,
+						TriggeringResourceAddress: triggeringResourceAddr.String(),
+						ActionTriggerEvent:        "BeforeCreate",
+					},
+				},
+			},
+			output: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+    }
+
+    # Actions to be invoked before this change in order:
+    action "test_unlinked" "hello" {
+    }
+`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			renderer := Renderer{Colorize: color}
+			providerAddr := addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+			}
+			blockSchema := testSchema(configschema.NestingSingle)
+			fullSchema := &terraform.Schemas{
+				Providers: map[addrs.Provider]providers.ProviderSchema{
+					providerAddr.Provider: {
+						ResourceTypes: map[string]providers.Schema{
+							"test_instance": {
+								Body: blockSchema,
+							},
+						},
+						Actions: map[string]providers.ActionSchema{
+							"test_unlinked": {
+								ConfigSchema: blockSchema,
+								Unlinked:     &providers.UnlinkedAction{},
+							},
+						},
+					},
+				},
+			}
+			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema, false)
+			diffs := precomputeDiffs(Plan{
+				ResourceChanges:   []jsonplan.ResourceChange{defaultResourceChange},
+				ActionInvocations: tc.actionInvocations,
+				ProviderSchemas:   jsonschemas,
+			}, plans.NormalMode)
+
+			if len(diffs.changes) != 1 {
+				t.Fatalf("expected exactly one change, got %d", len(diffs.changes))
+			}
+
+			output, _ := renderHumanDiff(renderer, diffs.changes[0], proposedChange)
+			if diff := cmp.Diff(tc.output, output); len(diff) > 0 {
+				t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", output, tc.output, diff)
+			}
+		})
+	}
+}
+func marshalConfigValues(value cty.Value) map[string]json.RawMessage {
+	// unmark our value to show all values
+	v, _ := value.UnmarkDeep()
+
+	if v == cty.NilVal || v.IsNull() {
+		return nil
+	}
+
+	ret := make(map[string]json.RawMessage)
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		vJSON, _ := ctyjson.Marshal(v, v.Type())
+		ret[k.AsString()] = json.RawMessage(vJSON)
+	}
+	return ret
 }
 
 func outputChange(name string, before, after cty.Value, sensitive bool) *plans.OutputChangeSrc {

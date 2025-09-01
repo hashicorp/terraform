@@ -8,10 +8,11 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ConfigSchemaToProto takes a *configschema.Block and converts it to a
@@ -108,6 +109,20 @@ func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) pr
 		schema.Identity = ProtoToIdentitySchema(id.IdentityAttributes)
 	}
 
+	return schema
+}
+
+func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
+	schema := providers.ActionSchema{
+		ConfigSchema: ProtoToConfigSchema(s.Schema.Block),
+	}
+
+	switch s.Type.(type) {
+	case *proto.ActionSchema_Unlinked_:
+		schema.Unlinked = &providers.UnlinkedAction{}
+	default:
+		panic("Unknown Action Type, expected unlinked action")
+	}
 	return schema
 }
 

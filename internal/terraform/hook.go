@@ -33,6 +33,18 @@ type HookResourceIdentity struct {
 	ProviderAddr addrs.Provider
 }
 
+// HookActionIdentity is passed to Hook interface methods to fully identify
+// the action being performed.
+type HookActionIdentity struct {
+	Addr addrs.AbsActionInstance
+
+	ActionTrigger plans.ActionTrigger
+}
+
+func (i *HookActionIdentity) String() string {
+	return i.Addr.String() + " (triggered by " + i.ActionTrigger.String() + ")"
+}
+
 // Hook is the interface that must be implemented to hook into various
 // parts of Terraform, allowing you to inspect or change behavior at runtime.
 //
@@ -102,6 +114,17 @@ type Hook interface {
 	// such as opening, renewal or closing
 	PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error)
 	PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error)
+
+	// PreListQuery and PostListQuery are called during a query operation before and after
+	// resources are queried from the provider.
+	PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error)
+	PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error)
+
+	// StartAction, ProgressAction, and CompleteAction are called during the
+	// lifecycle of an action invocation.
+	StartAction(id HookActionIdentity) (HookAction, error)
+	ProgressAction(id HookActionIdentity, progress string) (HookAction, error)
+	CompleteAction(id HookActionIdentity, err error) (HookAction, error)
 
 	// Stopping is called if an external signal requests that Terraform
 	// gracefully abort an operation in progress.
@@ -206,6 +229,26 @@ func (h *NilHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (
 }
 
 func (h *NilHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

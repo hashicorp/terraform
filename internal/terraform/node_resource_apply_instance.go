@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -272,13 +274,14 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	if deferred != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Resource deferred during apply, but not during plan",
-			fmt.Sprintf(
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Resource deferred during apply, but not during plan",
+			Detail: fmt.Sprintf(
 				"Terraform has encountered a bug where a provider would mark the resource %q as deferred during apply, but not during plan. This is most likely a bug in the provider. Please file an issue with the provider.", n.Addr,
 			),
-		))
+			Subject: n.Config.DeclRange.Ptr(),
+		})
 		return diags
 	}
 

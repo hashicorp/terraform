@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -23,6 +24,12 @@ import (
 type ChangesSrc struct {
 	// Resources tracks planned changes to resource instance objects.
 	Resources []*ResourceInstanceChangeSrc
+
+	Queries []*QueryInstanceSrc
+
+	// ActionInvocations tracks planned action invocations, which may have
+	// embedded resource instance changes.
+	ActionInvocations []*ActionInvocationInstanceSrc
 
 	// Outputs tracks planned changes output values.
 	//
@@ -54,6 +61,11 @@ func (c *ChangesSrc) Empty() bool {
 		if out.Addr.Module.IsRoot() && out.Action != NoOp {
 			return false
 		}
+	}
+
+	if len(c.ActionInvocations) > 0 {
+		// action invocations can be applied
+		return false
 	}
 
 	return true
@@ -133,6 +145,43 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		changes.Resources = append(changes.Resources, rc)
 	}
 
+	for _, qis := range c.Queries {
+		p, ok := schemas.Providers[qis.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", qis.ProviderAddr, qis.Addr)
+		}
+		schema := p.ListResourceTypes[qis.Addr.Resource.Resource.Type]
+
+		if schema.Body == nil {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", qis.Addr)
+		}
+
+		query, err := qis.Decode(schema)
+		if err != nil {
+			return nil, err
+		}
+
+		changes.Queries = append(changes.Queries, query)
+	}
+
+	for _, ais := range c.ActionInvocations {
+		p, ok := schemas.Providers[ais.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", ais.ProviderAddr, ais.Addr)
+		}
+		schema, ok := p.Actions[ais.Addr.Action.Action.Type]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", ais.Addr.Action.Action.Type)
+		}
+
+		action, err := ais.Decode(&schema)
+		if err != nil {
+			return nil, err
+		}
+
+		changes.ActionInvocations = append(changes.ActionInvocations, action)
+	}
+
 	for _, ocs := range c.Outputs {
 		oc, err := ocs.Decode()
 		if err != nil {
@@ -152,6 +201,29 @@ func (c *ChangesSrc) AppendResourceInstanceChange(change *ResourceInstanceChange
 
 	s := change.DeepCopy()
 	c.Resources = append(c.Resources, s)
+}
+
+type QueryInstanceSrc struct {
+	Addr         addrs.AbsResourceInstance
+	ProviderAddr addrs.AbsProviderConfig
+	Results      DynamicValue
+	Generated    *genconfig.Resource
+}
+
+func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, error) {
+	query, err := qis.Results.Decode(schema.Body.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return &QueryInstance{
+		Addr: qis.Addr,
+		Results: QueryResults{
+			Value:     query,
+			Generated: qis.Generated,
+		},
+		ProviderAddr: qis.ProviderAddr,
+	}, nil
 }
 
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.
@@ -484,4 +556,77 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		Importing:       cs.Importing.Decode(identityType),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
+}
+
+// AppendResourceInstanceChange records the given resource instance change in
+// the set of planned resource changes.
+func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocationInstanceSrc) {
+	if c == nil {
+		panic("AppendResourceInstanceChange on nil ChangesSync")
+	}
+
+	a := action.DeepCopy()
+	c.ActionInvocations = append(c.ActionInvocations, a)
+}
+
+type ActionInvocationInstanceSrc struct {
+	Addr          addrs.AbsActionInstance
+	ActionTrigger ActionTrigger
+
+	ConfigValue          DynamicValue
+	SensitiveConfigPaths []cty.Path
+
+	ProviderAddr addrs.AbsProviderConfig
+}
+
+// Decode unmarshals the raw representation of any linked resources.
+func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (*ActionInvocationInstance, error) {
+	ty := cty.DynamicPseudoType
+	if schema != nil {
+		ty = schema.ConfigSchema.ImpliedType()
+	}
+
+	config, err := acs.ConfigValue.Decode(ty)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding 'config' value: %s", err)
+	}
+	markedConfigValue := marks.MarkPaths(config, marks.Sensitive, acs.SensitiveConfigPaths)
+
+	ai := &ActionInvocationInstance{
+		Addr:          acs.Addr,
+		ActionTrigger: acs.ActionTrigger,
+		ProviderAddr:  acs.ProviderAddr,
+		ConfigValue:   markedConfigValue,
+	}
+	return ai, nil
+}
+
+func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc {
+	if acs == nil {
+		return acs
+	}
+	ret := *acs
+	ret.ConfigValue = ret.ConfigValue.Copy()
+	return &ret
+}
+
+func (acs *ActionInvocationInstanceSrc) Less(other *ActionInvocationInstanceSrc) bool {
+	if acs.ActionTrigger.Equals(other.ActionTrigger) {
+		return acs.Addr.Less(other.Addr)
+	}
+	return acs.ActionTrigger.Less(other.ActionTrigger)
+}
+
+func (acs *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
+	needleLat := acs.ActionTrigger.(*LifecycleActionTrigger)
+
+	var laterInvocations []*ActionInvocationInstanceSrc
+	for _, invocation := range actionInvocations {
+		if lat, ok := invocation.ActionTrigger.(*LifecycleActionTrigger); ok {
+			if lat.TriggeringResourceAddr.Equal(needleLat.TriggeringResourceAddr) && (lat.ActionTriggerBlockIndex > needleLat.ActionTriggerBlockIndex || lat.ActionTriggerBlockIndex == needleLat.ActionTriggerBlockIndex && lat.ActionsListIndex > needleLat.ActionsListIndex) {
+				laterInvocations = append(laterInvocations, invocation)
+			}
+		}
+	}
+	return laterInvocations
 }

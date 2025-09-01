@@ -1,30 +1,31 @@
-## 1.13.0 (Unreleased)
-
-
-NEW FEATURES:
-
-* The new command `terraform stacks` exposes some stack operations through the cli. The available subcommands depend on the stacks plugin implementation. Use `terraform stacks -help` to see available commands. ([#36931](https://github.com/hashicorp/terraform/issues/36931))
-
-* Deferred actions: The `plan`, `apply`, and `refresh` commands now support the `-allow-deferral` flag. The flag enables Terraform and Terraform Providers to defer changes with unresolvable unknown values to future plans instead of failing the entire plan. ([#37067](https://github.com/hashicorp/terraform/issues/37067))
+## 1.14.0 (Unreleased)
 
 
 ENHANCEMENTS:
 
-* Filesystem functions are now checked for consistent results to catch invalid data during apply ([#37001](https://github.com/hashicorp/terraform/issues/37001))
+* terraform test: expected diagnostics will be included in test output when running in verbose mode" ([#37362](https://github.com/hashicorp/terraform/issues/37362))
 
-* Allow successful init when provider constraint matches at least one valid version ([#37137](https://github.com/hashicorp/terraform/issues/37137))
-
-
-NOTES:
-
-* The command `terraform rpcapi` is now generally available. It is not intended for public consumption, but exposes certain Terraform operations through an RPC interface compatible with [go-plugin](https://github.com/hashicorp/go-plugin). ([#37067](https://github.com/hashicorp/terraform/issues/37067))
+* terraform test: ignore prevent_destroy attribute during when cleaning up tests" ([#37364](https://github.com/hashicorp/terraform/issues/37364))
 
 
+UPGRADE NOTES:
+
+* The parallelism of Terraform operations within container runtimes may be reduced depending on the CPU bandwidth limit setting. ([#37436](https://github.com/hashicorp/terraform/issues/37436))
+
+* Building Terraform 1.14 requires macOS Monterey or later (due to being built on Go 1.25 which imposes these requirements) ([#37436](https://github.com/hashicorp/terraform/issues/37436))
+
+
+EXPERIMENTS:
+
+Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
+
+- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
 
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
 
+- [v1.13](https://github.com/hashicorp/terraform/blob/v1.13/CHANGELOG.md)
 - [v1.12](https://github.com/hashicorp/terraform/blob/v1.12/CHANGELOG.md)
 - [v1.11](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md)
 - [v1.10](https://github.com/hashicorp/terraform/blob/v1.10/CHANGELOG.md)

@@ -1,5 +1,8 @@
 variables {
   default = "double"
+
+  ref_one = var.default
+  ref_two = run.secondary.value
 }
 
 run "primary" {
@@ -22,6 +25,18 @@ run "secondary" {
 
   assert {
     condition = test_resource.resource.value == "double - ${var.global}"
+    error_message = "bad concatenation"
+  }
+}
+
+run "tertiary" {
+  variables {
+    input_one = var.ref_one
+    input_two = var.ref_two
+  }
+
+  assert {
+    condition = output.value == "double - double - ${var.global}"
     error_message = "bad concatenation"
   }
 }

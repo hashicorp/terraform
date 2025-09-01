@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -2705,7 +2706,7 @@ output "result" {
 		if !diags.HasErrors() {
 			t.Fatal("unexpected success")
 		}
-		if got, want := diags.Err().Error(), "Invalid function argument: Invalid value for \"string\" parameter: string required."; !strings.Contains(got, want) {
+		if got, want := diags.Err().Error(), "Invalid function argument: Invalid value for \"string\" parameter: string required, but have tuple."; !strings.Contains(got, want) {
 			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
 		}
 	})
@@ -3106,6 +3107,29 @@ func TestContext2Validate_queryList(t *testing.T) {
 		expectedErrMsg []string
 	}{
 		{
+			name: "valid simple block",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				variable "input" {
+					type = string
+					default = "foo"
+				}
+
+				list "test_resource" "test" {
+					provider = test
+				}
+				`,
+		},
+		{
 			name: "valid list reference",
 			mainConfig: `
 				terraform {	
@@ -3126,16 +3150,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = var.input
+					config {
+						filter = {
+							attr = var.input
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 					
-					filter = {
-						attr = list.test_resource.test.data[0].instance_type
+					config {
+						filter = {
+							attr = list.test_resource.test.data[0].state.instance_type
+						}
 					}
 				}
 				`,
@@ -3162,16 +3190,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				    count = 1
 					provider = test
 
-					filter = {
-						attr = var.input
+					config {
+						filter = {
+							attr = var.input
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 					
-					filter = {
-						attr = list.test_resource.test[0].data[0].instance_type
+					config {
+						filter = {
+							attr = list.test_resource.test[0].data[0].state.instance_type
+						}
 					}
 				}
 				`,
@@ -3197,16 +3229,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = var.input
+					config {
+						filter = {
+							attr = var.input
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 					
-					filter = {
-						attr = list.test_resource.test.instance_type
+					config {
+						filter = {
+							attr = list.test_resource.test.state.instance_type
+						}
 					}
 				}
 				`,
@@ -3248,8 +3284,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = var.input
+					config {
+						filter = {
+							attr = var.input
+						}
 					}
 				}
 				`,
@@ -3288,8 +3326,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = resource.list.test_resource.attr
+					config {
+						filter = {
+							attr = resource.list.test_resource.attr
+						}
 					}
 				}
 				`,
@@ -3311,8 +3351,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = list.non_existent.attr
+					config {
+						filter = {
+							attr = list.non_existent.attr
+						}
 					}
 				}
 				`,
@@ -3338,16 +3380,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test" {
 					provider = test
 
-					filter = {
-						attr = "valid"
+					config {
+						filter = {
+							attr = "valid"
+						}
 					}
 				}
 
 				list "test_resource" "another" {
 					provider = test
 
-					filter = {
-						attr = list.test_resource.test.data[0].invalid_attr
+					config {
+						filter = {
+							attr = list.test_resource.test.data[0].state.invalid_attr
+						}
 					}
 				}
 				`,
@@ -3372,16 +3418,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test1" {
 					provider = test
 
-					filter = {
-						attr = list.test_resource.test2.data[0].id
+					config {
+						filter = {
+							attr = list.test_resource.test2.data[0].state.id
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 
-					filter = {
-						attr = list.test_resource.test1.data[0].id
+					config {
+						filter = {
+							attr = list.test_resource.test1.data[0].state.id
+						}
 					}
 				}
 				`,
@@ -3412,16 +3462,20 @@ func TestContext2Validate_queryList(t *testing.T) {
 				list "test_resource" "test1" {
 					provider = test
 
-					filter = {
-						attr = var.test_var
+					config {
+						filter = {
+							attr = var.test_var
+						}
 					}
 				}
 
 				list "test_resource" "test2" {
 					provider = test
 
-					filter = {
-						attr = length(list.test_resource.test1.data) > 0 ? list.test_resource.test1.data[0].instance_type : var.test_var
+					config {
+						filter = {
+							attr = length(list.test_resource.test1.data) > 0 ? list.test_resource.test1.data[0].state.instance_type : var.test_var
+						}
 					}
 				}
 				`,
@@ -3444,8 +3498,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 					for_each = toset(["foo", "bar"])
 					provider = test
 
-					filter = {
-						attr = each.value
+					config {
+						filter = {
+							attr = each.value
+						}
 					}
 				}
 
@@ -3453,8 +3509,10 @@ func TestContext2Validate_queryList(t *testing.T) {
 					provider = test
 					for_each = list.test_resource.test1
 
-					filter = {
-						attr = each.value.data[0].instance_type
+					config {
+						filter = {
+							attr = each.value.data[0].instance_type
+						}
 					}
 				}
 				`,
@@ -3472,13 +3530,23 @@ func TestContext2Validate_queryList(t *testing.T) {
 			m := testModuleInline(t, configs)
 
 			providerAddr := addrs.NewDefaultProvider("test")
-			providerConfigAddr := addrs.RootProviderConfig{Provider: providerAddr}
+			provider := testProvider("test")
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+			var requestConfigs = make(map[string]cty.Value)
+			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+				requestConfigs[request.TypeName] = request.Config
 
-			provider := getTestProvider()
+				return providers.ListResourceResponse{
+					Result: cty.ObjectVal(map[string]cty.Value{
+						"data":   cty.TupleVal([]cty.Value{}),
+						"config": request.Config,
+					}),
+				}
+			}
 
 			ctx, diags := NewContext(&ContextOpts{
-				PreloadedProviderSchemas: map[addrs.Provider]providers.ProviderSchema{
-					providerAddr: *provider.GetProviderSchemaResponse,
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
 				},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
@@ -3487,11 +3555,7 @@ func TestContext2Validate_queryList(t *testing.T) {
 			// true externally.
 			provider.ConfigureProviderCalled = true
 
-			diags = ctx.Validate(m, &ValidateOpts{
-				ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
-					providerConfigAddr: provider,
-				},
-			})
+			diags = ctx.Validate(m, nil)
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
 			}
@@ -3508,52 +3572,144 @@ func TestContext2Validate_queryList(t *testing.T) {
 	}
 }
 
-func getTestProvider() *testing_provider.MockProvider {
-	p := simpleMockProvider()
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"instance_type": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-			"list": {
-				Attributes: map[string]*configschema.Attribute{
-					"attr": {
-						Type:     cty.String,
-						Computed: true,
-					},
-				},
-			},
-		},
-		ListResourceTypes: map[string]*configschema.Block{
-			"test_resource":       getQueryTestSchema(),
-			"test_child_resource": getQueryTestSchema(),
-		},
-	})
-
-	return p
+// Action Validation is largely exercised in context_plan_actions_test.go
+func TestContext2Validate_action(t *testing.T) {
+	tests := map[string]struct {
+		config  string
+		wantErr string
+	}{
+		"valid config": {
+			`
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
 }
+action "test_register" "foo" {
+  config {
+      host = "cmdb.snot"
+  }
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_register.foo]
+    }
+  }
+}
+`,
+			"",
+		},
+		"missing required config": {
+			`
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
+}
+action "test_register" "foo" {
+    config {}
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_register.foo]
+    }
+  }
+}
+`,
+			"host is null",
+		},
+		"invalid nil config config": {
+			`
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
+}
+action "test_register" "foo" {
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_register.foo]
+    }
+  }
+}
+`,
+			"config is null",
+		},
+	}
 
-// getQueryTestSchema returns a schema for query tests with a filter attribute
-func getQueryTestSchema() *configschema.Block {
-	return &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"filter": {
-				Required: true,
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingSingle,
-					Attributes: map[string]*configschema.Attribute{
-						"attr": {
-							Type:     cty.String,
-							Required: true,
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{"main.tf": test.config})
+
+			p := testProvider("test")
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"test_instance": {
+						Attributes: map[string]*configschema.Attribute{
+							"foo": {Type: cty.String, Optional: true},
+							"num": {Type: cty.String, Optional: true},
 						},
 					},
 				},
-			},
-		},
+				Actions: map[string]providers.ActionSchema{
+					"test_register": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"host": {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			})
+			p.ValidateActionConfigFn = func(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
+				if r.Config.IsNull() {
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("config is null"))
+					return
+				}
+				if r.Config.GetAttr("host").IsNull() {
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("host is null"))
+				}
+				return
+			}
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			diags := ctx.Validate(m, nil)
+			if !p.ValidateActionConfigCalled {
+				t.Fatal("ValidateAction RPC was not called")
+			}
+
+			if test.wantErr != "" {
+				if !diags.HasErrors() {
+					t.Errorf("unexpected success\nwant errors: %s", test.wantErr)
+				} else if got, want := diags.Err().Error(), test.wantErr; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+			} else {
+				if diags.HasErrors() {
+					t.Errorf("unexpected error\ngot: %s", diags.Err().Error())
+				}
+			}
+		})
 	}
 }

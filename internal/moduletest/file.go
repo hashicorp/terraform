@@ -43,3 +43,13 @@ func (f *File) GetStatus() Status {
 	defer f.Unlock()
 	return f.Status
 }
+
+func (f *File) AppendDiagnostics(diags tfdiags.Diagnostics) {
+	f.Lock()
+	defer f.Unlock()
+	f.Diagnostics = f.Diagnostics.Append(diags)
+
+	if diags.HasErrors() {
+		f.Status = f.Status.Merge(Error)
+	}
+}

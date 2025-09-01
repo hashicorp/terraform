@@ -115,7 +115,7 @@ func initCommands(
 
 	// The command list is included in the terraform -help
 	// output, which is in turn included in the docs at
-	// website/docs/cli/commands/index.html.markdown; if you
+	// .../docs/cli/commands/index.mdx (in web-unified-docs); if you
 	// add, remove or reclassify commands then consider updating
 	// that to match.
 
@@ -436,6 +436,12 @@ func initCommands(
 				},
 			}, nil
 		},
+
+		"stacks": func() (cli.Command, error) {
+			return &command.StacksCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 
 	if meta.AllowExperimentalFeatures {
@@ -445,8 +451,8 @@ func initCommands(
 			}, nil
 		}
 
-		Commands["stacks"] = func() (cli.Command, error) {
-			return &command.StacksCommand{
+		Commands["query"] = func() (cli.Command, error) {
+			return &command.QueryCommand{
 				Meta: meta,
 			}, nil
 		}

@@ -46,7 +46,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	// Load the backend
 	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
+		BackendConfig: backendConfig,
 	})
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
@@ -57,11 +57,12 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	// This command will not write state
 	c.ignoreRemoteVersionConflict(b)
 
-	states, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
 	env, isOverridden := c.WorkspaceOverridden()
 

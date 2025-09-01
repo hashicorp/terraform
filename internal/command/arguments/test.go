@@ -22,6 +22,10 @@ type Test struct {
 	// during the plan or apply command within a single test run.
 	OperationParallelism int
 
+	// RunParallelism is the limit Terraform places on parallel test runs. This
+	// is the number of test runs that can be executed in parallel within a file.
+	RunParallelism int
+
 	// TestDirectory allows the user to override the directory that the test
 	// command will use to discover test files, defaults to "tests". Regardless
 	// of the value here, test files within the configuration directory will
@@ -43,6 +47,10 @@ type Test struct {
 	// human-readable format or JSON for each run step depending on the
 	// ViewType.
 	Verbose bool
+
+	// DeferralAllowed enables deferrals during test operations. This matches
+	// the same-named flag in the Operation struct.
+	DeferralAllowed bool
 }
 
 func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
@@ -60,6 +68,8 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.StringVar(&test.JUnitXMLFile, "junit-xml", "", "junit-xml")
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
 	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
+	cmdFlags.IntVar(&test.RunParallelism, "run-parallelism", DefaultParallelism, "run-parallelism")
+	cmdFlags.BoolVar(&test.DeferralAllowed, "allow-deferral", false, "allow-deferral")
 
 	// TODO: Finalise the name of this flag.
 	cmdFlags.StringVar(&test.CloudRunSource, "cloud-run", "", "cloud-run")

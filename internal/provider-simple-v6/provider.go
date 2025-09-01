@@ -35,6 +35,15 @@ func Provider() providers.Interface {
 				},
 			},
 		},
+		Identity: &configschema.Object{
+			Attributes: map[string]*configschema.Attribute{
+				"id": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+			Nesting: configschema.NestingSingle,
+		},
 	}
 
 	return simple{
@@ -51,6 +60,19 @@ func Provider() providers.Interface {
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
+			ListResourceTypes: map[string]providers.Schema{
+				"simple_resource": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Optional: true,
+								Type:     cty.String,
+							},
+						},
+					},
+				},
+			},
+			Actions: map[string]providers.ActionSchema{},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy:               true,
 				GetProviderSchemaOptional: true,
@@ -249,6 +271,70 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 
 	resp.Result = req.Arguments[0]
 	return resp
+}
+
+func (s simple) ListResource(req providers.ListResourceRequest) (resp providers.ListResourceResponse) {
+	vals := make([]cty.Value, 0)
+
+	staticVal := cty.StringVal("static_value")
+	m := req.Config.AsValueMap()
+	if val, ok := m["value"]; ok && val != cty.NilVal {
+		staticVal = val
+	}
+
+	obj := map[string]cty.Value{
+		"display_name": cty.StringVal("static_display_name"),
+		"identity": cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("static_id"),
+		}),
+	}
+	if req.IncludeResourceObject {
+		obj["state"] = cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("static_id"),
+			"value": staticVal,
+		})
+	}
+	vals = append(vals, cty.ObjectVal(obj))
+
+	resp.Result = cty.ObjectVal(map[string]cty.Value{
+		"data":   cty.TupleVal(vals),
+		"config": req.Config,
+	})
+	return
+}
+
+func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented")
+}
+
+func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	panic("not implemented")
+}
+
+func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	panic("not implemented")
+}
+
+func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	panic("not implemented")
+}
+
+func (s simple) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("PlanAction on provider that didn't declare any actions")
+}
+
+func (s simple) InvokeAction(providers.InvokeActionRequest) providers.InvokeActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("InvokeAction on provider that didn't declare any actions")
+}
+
+func (s simple) ValidateActionConfig(providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("ValidateActionConfig on provider that didn't declare any actions")
 }
 
 func (s simple) Close() error {

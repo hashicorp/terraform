@@ -85,7 +85,7 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 		renderer.RenderHumanPlan(p, planJSON.Mode, planJSON.Qualities...)
 		v.view.streams.Print(v.view.colorize.Color("\n" + planJSON.RunFooter + "\n"))
 	} else if plan != nil {
-		outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)
+		outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(plan, schemas)
 		if err != nil {
 			v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
 			return 1
@@ -97,8 +97,9 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 			OutputChanges:         outputs,
 			ResourceChanges:       changed,
 			ResourceDrift:         drift,
-			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 			RelevantAttributes:    attrs,
+			ActionInvocations:     actions,
 		}
 
 		if v.redacted {
@@ -135,7 +136,7 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 			ProviderFormatVersion: jsonprovider.FormatVersion,
 			RootModule:            root,
 			RootModuleOutputs:     outputs,
-			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
 		}
 
 		renderer.RenderHumanState(jstate)

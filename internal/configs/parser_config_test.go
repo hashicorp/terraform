@@ -6,13 +6,12 @@ package configs
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -24,7 +23,7 @@ import (
 // file element contents. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigFileSuccess(t *testing.T) {
-	files, err := ioutil.ReadDir("testdata/valid-files")
+	files, err := os.ReadDir("testdata/valid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +31,7 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/valid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/valid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -60,7 +59,7 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 // assertions should be made on some subset of these configuration files in
 // other tests.
 func TestParserLoadConfigFileFailure(t *testing.T) {
-	files, err := ioutil.ReadDir("testdata/invalid-files")
+	files, err := os.ReadDir("testdata/invalid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +67,7 @@ func TestParserLoadConfigFileFailure(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/invalid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/invalid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -80,9 +79,6 @@ func TestParserLoadConfigFileFailure(t *testing.T) {
 			_, diags := parser.LoadConfigFile(name)
 			if !diags.HasErrors() {
 				t.Errorf("LoadConfigFile succeeded; want errors")
-			}
-			for _, diag := range diags {
-				t.Logf("- %s", diag)
 			}
 		})
 	}
@@ -136,7 +132,7 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Filename, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata", test.Filename))
+			src, err := os.ReadFile(filepath.Join("testdata", test.Filename))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -170,7 +166,7 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 // file element contents in spite of those warnings. More detailed assertions
 // may be made on some subset of these configuration files in other tests.
 func TestParserLoadConfigFileWarning(t *testing.T) {
-	files, err := ioutil.ReadDir("testdata/warning-files")
+	files, err := os.ReadDir("testdata/warning-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +174,7 @@ func TestParserLoadConfigFileWarning(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/warning-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/warning-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -244,7 +240,7 @@ func TestParserLoadConfigFileWarning(t *testing.T) {
 // file element contents in spite of those errors. More detailed assertions
 // may be made on some subset of these configuration files in other tests.
 func TestParserLoadConfigFileError(t *testing.T) {
-	files, err := ioutil.ReadDir("testdata/error-files")
+	files, err := os.ReadDir("testdata/error-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +248,7 @@ func TestParserLoadConfigFileError(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/error-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/error-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}

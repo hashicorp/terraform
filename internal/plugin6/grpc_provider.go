@@ -7,11 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
-	"github.com/zclconf/go-cty/cty"
-
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -102,6 +103,8 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp.DataSources = make(map[string]providers.Schema)
 	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
 	resp.ListResourceTypes = make(map[string]providers.Schema)
+	resp.StateStores = make(map[string]providers.Schema)
+	resp.Actions = make(map[string]providers.ActionSchema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -169,7 +172,28 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, list := range protoResp.ListResourceSchemas {
-		resp.ListResourceTypes[name] = convert.ProtoToProviderSchema(list, nil)
+		ret := convert.ProtoToProviderSchema(list, nil)
+		resp.ListResourceTypes[name] = providers.Schema{
+			Version: ret.Version,
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"data": {
+						Type:     cty.DynamicPseudoType,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"config": {
+						Block:   *ret.Body,
+						Nesting: configschema.NestingSingle,
+					},
+				},
+			},
+		}
+	}
+
+	for name, store := range protoResp.StateStoreSchemas {
+		resp.StateStores[name] = convert.ProtoToProviderSchema(store, nil)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -177,6 +201,10 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	} else {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
+	}
+
+	for name, action := range protoResp.ActionSchemas {
+		resp.Actions[name] = convert.ProtoToActionSchema(action)
 	}
 
 	if protoResp.ServerCapabilities != nil {
@@ -348,8 +376,12 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
-
-	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
+	configSchema := listResourceSchema.Body.BlockTypes["config"]
+	config := cty.NullVal(configSchema.ImpliedType())
+	if r.Config.Type().HasAttribute("config") {
+		config = r.Config.GetAttr("config")
+	}
+	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -1242,8 +1274,263 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	return resp
 }
 
-func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) error {
-	panic("not implemented")
+func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.ListResourceResponse {
+	logger.Trace("GRPCProvider.v6: ListResource")
+	var resp providers.ListResourceResponse
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	listResourceSchema, ok := schema.ListResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
+		return resp
+	}
+
+	resourceSchema, ok := schema.ResourceTypes[r.TypeName]
+	if !ok || resourceSchema.Identity == nil {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity schema not found for resource type %s", r.TypeName))
+		return resp
+	}
+
+	configSchema := listResourceSchema.Body.BlockTypes["config"]
+	config := cty.NullVal(configSchema.ImpliedType())
+	if r.Config.Type().HasAttribute("config") {
+		config = r.Config.GetAttr("config")
+	}
+	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.ListResource_Request{
+		TypeName:              r.TypeName,
+		Config:                &proto6.DynamicValue{Msgpack: mp},
+		IncludeResourceObject: r.IncludeResourceObject,
+		Limit:                 r.Limit,
+	}
+
+	// Start the streaming RPC with a context. The context will be cancelled
+	// when this function returns, which will stop the stream if it is still
+	// running.
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+	client, err := p.client.ListResource(ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	resp.Result = cty.DynamicVal
+	results := make([]cty.Value, 0)
+	// Process the stream
+	for {
+		if int64(len(results)) >= r.Limit {
+			// If we have reached the limit, we stop receiving events
+			break
+		}
+
+		event, err := client.Recv()
+		if err == io.EOF {
+			// End of stream, we're done
+			break
+		}
+
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			break
+		}
+
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
+		if resp.Diagnostics.HasErrors() {
+			// If we have errors, we stop processing and return early
+			break
+		}
+
+		if resp.Diagnostics.HasWarnings() &&
+			(event.Identity == nil || event.Identity.IdentityData == nil) {
+			// If we have warnings but no identity data, we continue with the next event
+			continue
+		}
+
+		obj := map[string]cty.Value{
+			"display_name": cty.StringVal(event.DisplayName),
+			"state":        cty.NullVal(resourceSchema.Body.ImpliedType()),
+			"identity":     cty.NullVal(resourceSchema.Identity.ImpliedType()),
+		}
+
+		// Handle identity data - it must be present
+		if event.Identity == nil || event.Identity.IdentityData == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing identity data in ListResource event for %s", r.TypeName))
+		} else {
+			identityVal, err := decodeDynamicValue(event.Identity.IdentityData, resourceSchema.Identity.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+			} else {
+				obj["identity"] = identityVal
+			}
+		}
+
+		// Handle resource object if present and requested
+		if event.ResourceObject != nil && r.IncludeResourceObject {
+			// Use the ResourceTypes schema for the resource object
+			resourceObj, err := decodeDynamicValue(event.ResourceObject, resourceSchema.Body.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+			} else {
+				obj["state"] = resourceObj
+			}
+		}
+
+		if resp.Diagnostics.HasErrors() {
+			// If validation errors occurred, we stop processing and return early
+			break
+		}
+
+		results = append(results, cty.ObjectVal(obj))
+	}
+
+	// The provider result of a list resource is always a list, but
+	// we will wrap that list in an object with a single attribute "data",
+	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
+	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
+	resp.Result = cty.ObjectVal(map[string]cty.Value{
+		"data":   cty.TupleVal(results),
+		"config": config,
+	})
+	return resp
+}
+
+func (p *GRPCProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreConfigRequest) (resp providers.ValidateStateStoreConfigResponse) {
+	logger.Trace("GRPCProvider.v6: ValidateStateStoreConfig")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	ssSchema, ok := schema.StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	mp, err := msgpack.Marshal(r.Config, ssSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.ValidateStateStore_Request{
+		TypeName: r.TypeName,
+		Config:   &proto6.DynamicValue{Msgpack: mp},
+	}
+
+	protoResp, err := p.client.ValidateStateStoreConfig(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
+}
+
+func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreRequest) (resp providers.ConfigureStateStoreResponse) {
+	logger.Trace("GRPCProvider.v6: ConfigureStateStore")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	ssSchema, ok := schema.StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	mp, err := msgpack.Marshal(r.Config, ssSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.ConfigureStateStore_Request{
+		TypeName: r.TypeName,
+		Config: &proto6.DynamicValue{
+			Msgpack: mp,
+		},
+	}
+
+	protoResp, err := p.client.ConfigureStateStore(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
+}
+
+func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) (resp providers.GetStatesResponse) {
+	logger.Trace("GRPCProvider.v6: GetStates")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto6.GetStates_Request{
+		TypeName: r.TypeName,
+	}
+
+	protoResp, err := p.client.GetStates(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.States = protoResp.StateId
+	return resp
+}
+
+func (p *GRPCProvider) DeleteState(r providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
+	logger.Trace("GRPCProvider.v6: DeleteState")
+
+	protoReq := &proto6.DeleteState_Request{
+		TypeName: r.TypeName,
+	}
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoResp, err := p.client.DeleteState(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
@@ -1266,6 +1553,207 @@ func (p *GRPCProvider) Close() error {
 
 	p.PluginClient.Kill()
 	return nil
+}
+
+func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers.PlanActionResponse) {
+	logger.Trace("GRPCProvider: PlanAction")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	actionSchema, ok := schema.Actions[r.ActionType]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown action %q", r.ActionType))
+		return resp
+	}
+
+	configMP, err := msgpack.Marshal(r.ProposedActionData, actionSchema.ConfigSchema.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	linkedResources, err := linkedResourcePlanDataToProto(schema, actionSchema.LinkedResources(), r.LinkedResources)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.PlanAction_Request{
+		ActionType:         r.ActionType,
+		Config:             &proto6.DynamicValue{Msgpack: configMP},
+		LinkedResources:    linkedResources,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
+	}
+
+	protoResp, err := p.client.PlanAction(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	resp.LinkedResources, err = protoToLinkedResourcePlans(schema, actionSchema.LinkedResources(), protoResp.LinkedResources)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	return resp
+}
+
+func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp providers.InvokeActionResponse) {
+	logger.Trace("GRPCProvider: InvokeAction")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	actionSchema, ok := schema.Actions[r.ActionType]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown action %q", r.ActionType))
+		return resp
+	}
+
+	linkedResources, err := linkedResourceInvokeDataToProto(schema, actionSchema.LinkedResources(), r.LinkedResources)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	configMP, err := msgpack.Marshal(r.PlannedActionData, actionSchema.ConfigSchema.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.InvokeAction_Request{
+		ActionType:         r.ActionType,
+		Config:             &proto6.DynamicValue{Msgpack: configMP},
+		LinkedResources:    linkedResources,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
+	}
+
+	protoClient, err := p.client.InvokeAction(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Events = func(yield func(providers.InvokeActionEvent) bool) {
+		logger.Trace("GRPCProvider: InvokeAction: streaming events")
+
+		for {
+			event, err := protoClient.Recv()
+			if err == io.EOF {
+				logger.Trace("GRPCProvider: InvokeAction: end of stream")
+				break
+			}
+			if err != nil {
+				// We handle this by returning a finished response with the error
+				// If the client errors we won't be receiving any more events.
+				yield(providers.InvokeActionEvent_Completed{
+					Diagnostics: grpcErr(err),
+				})
+				break
+			}
+
+			switch ev := event.Type.(type) {
+			case *proto6.InvokeAction_Event_Progress_:
+				yield(providers.InvokeActionEvent_Progress{
+					Message: ev.Progress.Message,
+				})
+
+			case *proto6.InvokeAction_Event_Completed_:
+				diags := convert.ProtoToDiagnostics(ev.Completed.Diagnostics)
+				linkedResources, err := protoToLinkedResourceResults(schema, actionSchema.LinkedResources(), ev.Completed.LinkedResources)
+				if err != nil {
+					diags = diags.Append(grpcErr(err))
+				}
+				yield(providers.InvokeActionEvent_Completed{
+					LinkedResources: linkedResources,
+					Diagnostics:     diags,
+				})
+
+			default:
+				panic(fmt.Sprintf("unexpected event type %T in InvokeAction response", event.Type))
+			}
+		}
+	}
+
+	return resp
+}
+
+func (p *GRPCProvider) ValidateActionConfig(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
+	logger.Trace("GRPCProvider.v6: ValidateActionConfig")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	action, ok := schema.Actions[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown data source %q", r.TypeName))
+		return resp
+	}
+
+	mp, err := msgpack.Marshal(r.Config, action.ConfigSchema.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.ValidateActionConfig_Request{
+		TypeName: r.TypeName,
+		Config:   &proto6.DynamicValue{Msgpack: mp},
+	}
+
+	lrs := make([]*proto6.LinkedResourceConfig, 0, len(r.LinkedResources))
+	for i, lr := range r.LinkedResources {
+		resourceSchema, ok := schema.ResourceTypes[lr.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
+		}
+
+		mp, err := msgpack.Marshal(r.Config, resourceSchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+
+		lrs[i] = &proto6.LinkedResourceConfig{
+			TypeName: r.TypeName,
+			Config:   &proto6.DynamicValue{Msgpack: mp},
+		}
+	}
+
+	if len(lrs) > 0 {
+		protoReq.LinkedResources = lrs
+	}
+
+	protoResp, err := p.client.ValidateActionConfig(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
 }
 
 // Decode a DynamicValue from either the JSON or MsgPack encoding.
@@ -1291,4 +1779,175 @@ func clientCapabilitiesToProto(c providers.ClientCapabilities) *proto6.ClientCap
 		DeferralAllowed:            c.DeferralAllowed,
 		WriteOnlyAttributesAllowed: c.WriteOnlyAttributesAllowed,
 	}
+}
+
+func linkedResourcePlanDataToProto(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []providers.LinkedResourcePlanData) ([]*proto6.PlanAction_Request_LinkedResource, error) {
+	protoLinkedResources := make([]*proto6.PlanAction_Request_LinkedResource, 0, len(lrs))
+
+	if len(lrs) != len(linkedResourceSchema) {
+		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
+	}
+
+	for i, lr := range lrs {
+		linkedResourceType := linkedResourceSchema[i].TypeName
+		// Currently we restrict linked resources to be within the same provider,
+		// therefore we can use the schema from the provider to encode and decode the values
+		resSchema, ok := schema.ResourceTypes[linkedResourceType]
+		if !ok {
+			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
+		}
+
+		priorStateMP, err := msgpack.Marshal(lr.PriorState, resSchema.Body.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal prior state for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		plannedStateMp, err := msgpack.Marshal(lr.PlannedState, resSchema.Body.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal planned state for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		configMp, err := msgpack.Marshal(lr.Config, resSchema.Body.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal config for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		priorIdentityMp, err := msgpack.Marshal(lr.PriorIdentity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal prior identity for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		protoLinkedResources = append(protoLinkedResources, &proto6.PlanAction_Request_LinkedResource{
+			PriorState:    &proto6.DynamicValue{Msgpack: priorStateMP},
+			PlannedState:  &proto6.DynamicValue{Msgpack: plannedStateMp},
+			Config:        &proto6.DynamicValue{Msgpack: configMp},
+			PriorIdentity: &proto6.ResourceIdentityData{IdentityData: &proto6.DynamicValue{Msgpack: priorIdentityMp}},
+		})
+	}
+	return protoLinkedResources, nil
+}
+
+func linkedResourceInvokeDataToProto(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []providers.LinkedResourceInvokeData) ([]*proto6.InvokeAction_Request_LinkedResource, error) {
+	protoLinkedResources := make([]*proto6.InvokeAction_Request_LinkedResource, 0, len(lrs))
+
+	if len(lrs) != len(linkedResourceSchema) {
+		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
+	}
+
+	for i, lr := range lrs {
+		linkedResourceType := linkedResourceSchema[i].TypeName
+		// Currently we restrict linked resources to be within the same provider,
+		// therefore we can use the schema from the provider to encode and decode the values
+		resSchema, ok := schema.ResourceTypes[linkedResourceType]
+		if !ok {
+			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
+		}
+
+		priorStateMP, err := msgpack.Marshal(lr.PriorState, resSchema.Body.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal prior state for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		plannedStateMp, err := msgpack.Marshal(lr.PlannedState, resSchema.Body.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal planned state for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		configMp, err := msgpack.Marshal(lr.Config, resSchema.Body.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal config for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		plannedIdentityMp, err := msgpack.Marshal(lr.PlannedIdentity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal planned identity for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		protoLinkedResources = append(protoLinkedResources, &proto6.InvokeAction_Request_LinkedResource{
+			PriorState:      &proto6.DynamicValue{Msgpack: priorStateMP},
+			PlannedState:    &proto6.DynamicValue{Msgpack: plannedStateMp},
+			Config:          &proto6.DynamicValue{Msgpack: configMp},
+			PlannedIdentity: &proto6.ResourceIdentityData{IdentityData: &proto6.DynamicValue{Msgpack: plannedIdentityMp}},
+		})
+	}
+	return protoLinkedResources, nil
+}
+
+func protoToLinkedResourcePlans(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []*proto6.PlanAction_Response_LinkedResource) ([]providers.LinkedResourcePlan, error) {
+
+	linkedResources := make([]providers.LinkedResourcePlan, 0, len(lrs))
+
+	if len(lrs) != len(linkedResourceSchema) {
+		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
+	}
+
+	for i, lr := range lrs {
+		linkedResourceType := linkedResourceSchema[i].TypeName
+		// Currently we restrict linked resources to be within the same provider,
+		// therefore we can use the schema from the provider to decode the values
+		resSchema, ok := schema.ResourceTypes[linkedResourceType]
+		if !ok {
+			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
+		}
+
+		plannedState, err := decodeDynamicValue(lr.PlannedState, resSchema.Body.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode planned state for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		plannedIdentity := cty.NullVal(resSchema.Identity.ImpliedType())
+		if lr.PlannedIdentity != nil && lr.PlannedIdentity.IdentityData != nil {
+			plannedIdentity, err = decodeDynamicValue(lr.PlannedIdentity.IdentityData, resSchema.Identity.ImpliedType())
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode prior identity for linked resource %q: %w", linkedResourceType, err)
+			}
+		}
+
+		linkedResources = append(linkedResources, providers.LinkedResourcePlan{
+			PlannedState:    plannedState,
+			PlannedIdentity: plannedIdentity,
+		})
+	}
+
+	return linkedResources, nil
+}
+
+func protoToLinkedResourceResults(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []*proto6.InvokeAction_Event_Completed_LinkedResource) ([]providers.LinkedResourceResult, error) {
+
+	linkedResources := make([]providers.LinkedResourceResult, 0, len(lrs))
+
+	if len(lrs) != len(linkedResourceSchema) {
+		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
+	}
+
+	for i, lr := range lrs {
+		linkedResourceType := linkedResourceSchema[i].TypeName
+		// Currently we restrict linked resources to be within the same provider,
+		// therefore we can use the schema from the provider to decode the values
+		resSchema, ok := schema.ResourceTypes[linkedResourceType]
+		if !ok {
+			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
+		}
+
+		newState, err := decodeDynamicValue(lr.NewState, resSchema.Body.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode planned state for linked resource %q: %w", linkedResourceType, err)
+		}
+
+		newIdentity := cty.NullVal(resSchema.Identity.ImpliedType())
+		if lr.NewIdentity != nil && lr.NewIdentity.IdentityData != nil {
+			newIdentity, err = decodeDynamicValue(lr.NewIdentity.IdentityData, resSchema.Identity.ImpliedType())
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode prior identity for linked resource %q: %w", linkedResourceType, err)
+			}
+		}
+
+		linkedResources = append(linkedResources, providers.LinkedResourceResult{
+			NewState:        newState,
+			NewIdentity:     newIdentity,
+			RequiresReplace: lr.RequiresReplace,
+		})
+	}
+
+	return linkedResources, nil
 }

@@ -9,18 +9,20 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, waiter *operationWaiter) {
+func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
-	key := n.run.GetStateKey()
+	key := n.run.Config.StateKey
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
@@ -31,7 +33,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
-	_, plan, planDiags := n.plan(ctx, tfCtx, setVariables, waiter)
+	_, plan, planDiags := n.plan(ctx, tfCtx, setVariables, providers, mocks, waiter)
 
 	// Any error during the planning prevents our apply from
 	// continuing which is an error.
@@ -57,11 +59,11 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	run.Diagnostics = filteredDiags
 
 	// execute the apply operation
-	applyScope, updated, applyDiags := n.apply(tfCtx, plan, moduletest.Running, variables, waiter)
+	applyScope, updated, applyDiags := n.apply(tfCtx, plan, moduletest.Running, variables, providers, waiter)
 
 	// Remove expected diagnostics, and add diagnostics in case anything that should have failed didn't.
 	// We'll also update the run status based on the presence of errors or missing expected failures.
-	failOrErr := n.checkForMissingExpectedFailures(run, applyDiags)
+	failOrErr := n.checkForMissingExpectedFailures(ctx, run, applyDiags)
 	if failOrErr {
 		// Even though the apply operation failed, the graph may have done
 		// partial updates and the returned state should reflect this.
@@ -71,8 +73,6 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 		})
 		return
 	}
-
-	n.AddVariablesToConfig(variables)
 
 	if ctx.Verbose() {
 		schemas, diags := tfCtx.Schemas(config, updated)
@@ -106,10 +106,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, applyScope, testOnlyVariables)
 	run.Status = newStatus
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
-
-	// Now we've successfully validated this run block, lets add it into
-	// our prior run outputs so future run blocks can access it.
-	ctx.SetOutput(run, outputVals)
+	run.Outputs = outputVals
 
 	// Only update the most recent run and state if the state was
 	// actually updated by this change. We want to use the run that
@@ -121,7 +118,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	})
 }
 
-func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
+func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
 	run := n.run
 	file := n.File()
 	log.Printf("[TRACE] TestFileRunner: called apply for %s/%s", file.Name, run.Name)
@@ -160,7 +157,8 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 	}
 
 	applyOpts := &terraform.ApplyOpts{
-		SetVariables: ephemeralVariables,
+		SetVariables:      ephemeralVariables,
+		ExternalProviders: providers,
 	}
 
 	waiter.update(tfCtx, progress, created)
@@ -174,11 +172,19 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 
 // checkForMissingExpectedFailures checks for missing expected failures in the diagnostics.
 // It updates the run status based on the presence of errors or missing expected failures.
-func (n *NodeTestRun) checkForMissingExpectedFailures(run *moduletest.Run, diags tfdiags.Diagnostics) (failOrErr bool) {
+func (n *NodeTestRun) checkForMissingExpectedFailures(ctx *EvalContext, run *moduletest.Run, diags tfdiags.Diagnostics) (failOrErr bool) {
 	// Retrieve and append diagnostics that are either unrelated to expected failures
 	// or report missing expected failures.
 	unexpectedDiags := run.ValidateExpectedFailures(diags)
-	run.Diagnostics = run.Diagnostics.Append(unexpectedDiags)
+
+	if ctx.Verbose() {
+		// in verbose mode, we still add all the original diagnostics for
+		// display even if they are expected.
+		run.Diagnostics = run.Diagnostics.Append(diags)
+	} else {
+		run.Diagnostics = run.Diagnostics.Append(unexpectedDiags)
+	}
+
 	for _, diag := range unexpectedDiags {
 		// // If any diagnostic indicates a missing expected failure, set the run status to fail.
 		if ok := moduletest.DiagnosticFromMissingExpectedFailure(diag); ok {

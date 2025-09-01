@@ -5,7 +5,7 @@ syntax = "proto3";
 package tfplan;
 
 // For Terraform's own parsing, the proto stub types go into an internal Go
-// package. The public API is in github.com/hashicorp/terraform/plans/planfile .
+// package. The public API is in github.com/hashicorp/terraform/internal/plans/planfile .
 option go_package = "github.com/hashicorp/terraform/internal/plans/planproto";
 
 // Plan is the root message type for the tfplan file
@@ -80,6 +80,12 @@ message Plan {
     // in this list.
     repeated DeferredResourceInstanceChange deferred_changes = 27;
 
+    // An unordered set of deferred action invocations. These are action invocations that will be
+    // applied in a subsequent plan, but were deferred in this plan for some
+    // reason. Generally, if complete is set to false there should be entries
+    // in this list.
+    repeated DeferredActionInvocation deferred_action_invocations = 31;
+    
     // An unordered set of proposed changes to outputs in the root module
     // of the configuration. This set also includes "no action" changes for
     // outputs that are not changing, as context for detecting inconsistencies
@@ -93,10 +99,19 @@ message Plan {
     // the checks were applied to nested within.
     repeated CheckResults check_results = 19;
 
+    // An unordered set of proposed action invocations. This includes any
+    // embedded ResourceInstanceActionChanges for LinkedResources
+    repeated ActionInvocationInstance action_invocations = 30;
+
     // An unordered set of target addresses to include when applying. If no
     // target addresses are present, the plan applies to the whole
     // configuration.
     repeated string target_addrs = 5;
+
+    // An unordered set of action addresses that must be invoked when applying.
+    // If no actions are specified then only lifecycle actions should be
+    // executed.
+    repeated string action_target_addrs = 32;
 
     // An unordered set of force-replace addresses to include when applying.
     // This must match the set of addresses that was used when creating the
@@ -110,6 +125,10 @@ message Plan {
     // Backend is a description of the backend configuration and other related
     // settings at the time the plan was created.
     Backend backend = 13;
+
+    // StateStore is a description of the state_store configuration and other related
+    // settings at the time the plan was created.
+    StateStore state_store = 29;
 
     message resource_attr {
        string resource = 1;
@@ -138,6 +157,19 @@ message Backend {
     string type = 1;
     DynamicValue config = 2;
     string workspace = 3;
+}
+
+// StateStore is a description of state_store configuration and other related settings.
+message StateStore {
+    string type = 1;
+    DynamicValue config = 2;
+    string workspace = 3;
+    Provider provider = 4;
+}
+
+message Provider {
+    string source = 1;
+    string version = 2;
 }
 
 // Action describes the type of action planned for an object.
@@ -232,7 +264,7 @@ message ResourceInstanceChange {
     string prev_run_addr = 14;
 
     // NOTE: Earlier versions of this format had fields 1 through 6 describing
-    // various indivdual parts of "addr". We're now using our standard compact
+    // various individual parts of "addr". We're now using our standard compact
     // string representation to capture the same information. We don't support
     // preserving plan files from one Terraform version to the next, so we
     // no longer declare nor accept those fields.
@@ -279,6 +311,18 @@ message DeferredResourceInstanceChange {
 
     // The original change that was deferred.
     ResourceInstanceChange change = 2;
+}
+
+// DeferredActionInvocation represents an action invocation that
+// was deferred for some reason.
+// It contains the original action invocation that was deferred, along with the reason
+// why it was deferred.
+message DeferredActionInvocation {
+    // The reason why the action invocation was deferred.
+    Deferred deferred = 1;
+
+    // The original action invocation that was deferred.
+    ActionInvocationInstance action_invocation = 2;
 }
 
 message OutputChange {
@@ -403,4 +447,67 @@ enum DeferredReason {
 // instance change.
 message Deferred {
     DeferredReason reason = 1;
+}
+
+// ActionInvocation describes the reason an action was triggered
+enum ActionTriggerEvent {
+    INVALID_EVENT = 0;
+    BEFORE_CERATE = 1;
+    AFTER_CREATE = 2;
+    BEFORE_UPDATE = 3;
+    AFTER_UPDATE = 4;
+    BEFORE_DESTROY = 5;
+    AFTER_DESTROY = 6;
+    INVOKE = 7;
+}
+
+// ActionInvocationInstance contains a planned action invocation and any embedded ResourceInstanceActionChanges
+message ActionInvocationInstance {
+    // addr is a string representation of the action invocation instance address of this change
+    string addr = 1;
+
+    // provider is the address of the provider configuration that this change
+    // was planned with, and thus the configuration that must be used to
+    // apply it.
+    string provider = 2;
+
+    repeated ResourceInstanceActionChange linked_resources = 3;
+    DynamicValue config_value = 4;
+    // An unordered set of paths into config_value which are marked as
+    // sensitive. Values at these paths should be obscured in human-readable
+    // output.
+    repeated Path sensitive_config_paths = 5;
+
+    oneof action_trigger {
+        LifecycleActionTrigger lifecycle_action_trigger = 6;
+        InvokeActionTrigger invoke_action_trigger = 7;
+    }
+}
+
+// LifecycleActionTrigger contains details on the conditions that led to the
+// triggering of an action.
+message LifecycleActionTrigger {
+  string triggering_resource_addr = 1;
+  ActionTriggerEvent trigger_event = 2;
+  int64 action_trigger_block_index = 3;
+  int64 actions_list_index = 4;
+}
+
+// InvokeActionTrigger indicates the action was triggered by the invoke command
+// on the CLI.
+message InvokeActionTrigger {}
+
+message ResourceInstanceActionChange {
+    // addr is a string representation of the resource instance address that
+    // this change will apply to.
+    string addr = 1;
+
+    // deposed_key, if set, indicates that this change applies to a deposed
+    // object for the indicated instance with the given deposed key. If not
+    // set, the change applies to the instance's current object.
+    string deposed_key = 2;
+
+    // Description of the proposed change. 
+    // May use "update", "replace", "delete" and "no-op" actions.
+    Change change = 3;
 }

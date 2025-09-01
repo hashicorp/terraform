@@ -12,7 +12,7 @@ import (
 
 func TestGet(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "get")
-	defer testChdir(t, wd.RootModuleDir())()
+	t.Chdir(wd.RootModuleDir())
 
 	ui := cli.NewMockUi()
 	c := &GetCommand{
@@ -36,7 +36,7 @@ func TestGet(t *testing.T) {
 
 func TestGet_multipleArgs(t *testing.T) {
 	wd := tempWorkingDir(t)
-	defer testChdir(t, wd.RootModuleDir())()
+	t.Chdir(wd.RootModuleDir())
 
 	ui := cli.NewMockUi()
 	c := &GetCommand{
@@ -58,7 +58,7 @@ func TestGet_multipleArgs(t *testing.T) {
 
 func TestGet_update(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "get")
-	defer testChdir(t, wd.RootModuleDir())()
+	t.Chdir(wd.RootModuleDir())
 
 	ui := cli.NewMockUi()
 	c := &GetCommand{
@@ -87,7 +87,7 @@ func TestGet_cancel(t *testing.T) {
 	// platforms) were sent to it, testing that it is interruptible.
 
 	wd := tempWorkingDirFixture(t, "init-registry-module")
-	defer testChdir(t, wd.RootModuleDir())()
+	t.Chdir(wd.RootModuleDir())
 
 	// Our shutdown channel is pre-closed so init will exit as soon as it
 	// starts a cancelable portion of the process.

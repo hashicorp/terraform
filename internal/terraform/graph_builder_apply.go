@@ -56,6 +56,10 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
+	// ActionTargets are actions to target. As with Targets we need to remove
+	// outputs, so when/if we remove Targets we can remove this as well.
+	ActionTargets []addrs.Targetable
+
 	// ForceReplace are the resource instance addresses that the user
 	// requested to force replacement for when creating the plan, if any.
 	// The apply step refers to these as part of verifying that the planned
@@ -118,6 +122,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ConfigTransformer{
 			Concrete: concreteResource,
 			Config:   b.Config,
+			resourceMatcher: func(mode addrs.ResourceMode) bool {
+				// list resources are not added to the graph during apply
+				return mode != addrs.ListResourceMode
+			},
 		},
 
 		// Add dynamic values
@@ -146,6 +154,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:    b.State,
 			Changes:  b.Changes,
 			Config:   b.Config,
+		},
+
+		&ActionDiffTransformer{
+			Changes: b.Changes,
+			Config:  b.Config,
 		},
 
 		// Creates nodes for all the deferred changes.
@@ -224,7 +237,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Target
-		&TargetsTransformer{Targets: b.Targets},
+		&TargetsTransformer{Targets: b.Targets, ActionTargets: b.ActionTargets},
 
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},
