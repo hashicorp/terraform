@@ -4195,7 +4195,7 @@ func TestContext2Plan_preconditionErrors(t *testing.T) {
 		{
 			"self.value",
 			`Invalid "self" reference`,
-			"only in resource provisioner, connection and postcondition blocks",
+			"only in resource provisioner, connection, and postcondition blocks",
 		},
 		{
 			"data.foo.bar",
