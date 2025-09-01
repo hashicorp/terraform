@@ -85,6 +85,7 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 				Config:           n.Config,
 				Schema:           n.Schema,
 				ResolvedProvider: n.ResolvedProvider,
+				Dependencies:     n.Dependencies,
 			}
 			g.Add(&node)
 		} else {
@@ -95,6 +96,7 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 					Config:           n.Config,
 					Schema:           n.Schema,
 					ResolvedProvider: n.ResolvedProvider,
+					Dependencies:     n.Dependencies,
 				}
 
 				g.Add(&node)
