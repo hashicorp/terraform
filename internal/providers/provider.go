@@ -903,34 +903,6 @@ type WriteStateBytesResponse struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-type ReadStateBytesRequest struct {
-	// TypeName is the name of the state store to read state from
-	TypeName string
-	// StateId is the ID of a state file to read
-	StateId string
-}
-
-type ReadStateBytesResponse struct {
-	// Bytes represents all received bytes of the given state file
-	Bytes []byte
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-}
-
-type WriteStateBytesRequest struct {
-	// TypeName is the name of the state store to write state to
-	TypeName string
-	// Bytes represents all bytes of the given state file to write
-	Bytes []byte
-	// StateId is the ID of a state file to write
-	StateId string
-}
-
-type WriteStateBytesResponse struct {
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-}
-
 type GetStatesRequest struct {
 	// TypeName is the name of the state store to request the list of states from
 	TypeName string
