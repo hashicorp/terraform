@@ -76,10 +76,21 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 
 		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
 	}
+	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
 
+	// If we should defer the action invocation, we need to report it and if the resource instance
+	// was not deferred (and therefore was planned) we need to retroactively remove the change
 	if deferrals.ShouldDeferActionInvocation(ai) {
 		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
+		if change != nil {
+			ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
+			deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
+		}
 		return nil
+	}
+
+	if change == nil {
+		panic("change cannot be nil")
 	}
 
 	if n.lifecycleActionTrigger == nil {
@@ -102,10 +113,6 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	// provider so we'll do that ourselves now.
 	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue)
 
-	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
-	if change == nil {
-		panic("change cannot be nil")
-	}
 	triggeringEvent, isTriggered := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
 	if !isTriggered {
 		return diags
@@ -180,11 +187,9 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		return diags
 	}
 
+	// If the action is deferred, we need to also defer the resource instance
 	if resp.Deferred != nil {
 		deferrals.ReportActionInvocationDeferred(ai, resp.Deferred.Reason)
-
-		// If we run as part of a before action we need to retrospectively defer the triggering resource
-		// For this we remove the change and report the deferral
 		ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
 		deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
 		return diags

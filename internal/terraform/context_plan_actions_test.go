@@ -2854,6 +2854,14 @@ resource "test_object" "a" {
 				if ai.Addr.String() != `action.test_unlinked.hello["a"]` {
 					t.Fatalf(`expected action invocation for action.test_unlinked.hello["a"], got %s`, ai.Addr.String())
 				}
+
+				if len(p.DeferredResources) != 1 {
+					t.Fatalf("expected 1 deferred resource, got %d", len(p.DeferredResources))
+				}
+
+				if p.DeferredResources[0].ChangeSrc.Addr.String() != "test_object.a" {
+					t.Fatalf("expected test_object.a, got %s", p.DeferredResources[0].ChangeSrc.Addr.String())
+				}
 			},
 		},
 		"action with unknown module expansion": {
@@ -3050,10 +3058,26 @@ resource "test_object" "a" {
 					t.Errorf("Expected 1 deferred action invocation, got %d", len(p.DeferredActionInvocations))
 				}
 				if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
-					t.Errorf("Expected action.test_unlinked.hello, got %s", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
+					t.Errorf("Expected action. test_unlinked.hello, got %s", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
 				}
 				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
 					t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredActionInvocations[0].DeferredReason)
+				}
+
+				if len(p.DeferredResources) != 2 {
+					t.Fatalf("Expected 2 deferred resources, got %d", len(p.DeferredResources))
+				}
+				if p.DeferredResources[0].ChangeSrc.Addr.String() != "test_object.origin" {
+					t.Errorf("Expected test_object.origin, got %s", p.DeferredResources[0].ChangeSrc.Addr.String())
+				}
+				if p.DeferredResources[0].DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Errorf("Expected DeferredReasonAbsentPrereq, got %s", p.DeferredResources[0].DeferredReason)
+				}
+				if p.DeferredResources[1].ChangeSrc.Addr.String() != "test_object.a" {
+					t.Errorf("Expected test_object.a, got %s", p.DeferredResources[1].ChangeSrc.Addr.String())
+				}
+				if p.DeferredResources[1].DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredResources[1].DeferredReason)
 				}
 			},
 		},
