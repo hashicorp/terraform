@@ -10,11 +10,14 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeActionTriggerPlanInstance struct {
@@ -26,12 +29,12 @@ type nodeActionTriggerPlanInstance struct {
 }
 
 type lifecycleActionTriggerInstance struct {
-	resourceAddress addrs.AbsResourceInstance
-	events          []configs.ActionTriggerEvent
-	//condition       hcl.Expression
+	resourceAddress         addrs.AbsResourceInstance
+	events                  []configs.ActionTriggerEvent
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
+	conditionExpr           hcl.Expression
 }
 
 func (at *lifecycleActionTriggerInstance) Name() string {
@@ -67,6 +70,29 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	var diags tfdiags.Diagnostics
 	deferrals := ctx.Deferrals()
 
+	// We need the action invocation early to check if we need to
+	ai := plans.ActionInvocationInstance{
+		Addr: n.actionAddress,
+
+		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
+	}
+	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
+
+	// If we should defer the action invocation, we need to report it and if the resource instance
+	// was not deferred (and therefore was planned) we need to retroactively remove the change
+	if deferrals.ShouldDeferActionInvocation(ai) {
+		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
+		if change != nil {
+			ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
+			deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
+		}
+		return nil
+	}
+
+	if change == nil {
+		panic("change cannot be nil")
+	}
+
 	if n.lifecycleActionTrigger == nil {
 		panic("Only actions triggered by plan and apply are supported")
 	}
@@ -81,29 +107,12 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		})
 		return diags
 	}
+	ai.ProviderAddr = actionInstance.ProviderAddr
+	// with resources, the provider would be expected to strip the ephemeral
+	// values out. with actions, we don't get the value back from the
+	// provider so we'll do that ourselves now.
+	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue)
 
-	// We need the action invocation early to check if we need to
-	ai := plans.ActionInvocationInstance{
-		Addr:          n.actionAddress,
-		ProviderAddr:  actionInstance.ProviderAddr,
-		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
-
-		// with resources, the provider would be expected to strip the ephemeral
-		// values out. with actions, we don't get the value back from the
-		// provider so we'll do that ourselves now.
-		ConfigValue: ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue),
-	}
-
-	// If we already deferred an action invocation on the same resource with an earlier trigger we can defer this one as well
-	if deferrals.DeferralAllowed() && deferrals.ShouldDeferActionInvocation(ai.ActionTrigger) {
-		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
-		return diags
-	}
-
-	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
-	if change == nil {
-		panic("change cannot be nil")
-	}
 	triggeringEvent, isTriggered := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
 	if !isTriggered {
 		return diags
@@ -111,6 +120,25 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	if triggeringEvent == nil {
 		panic("triggeringEvent cannot be nil")
 	}
+
+	// Evaluate the condition expression if it exists (otherwise it's true)
+	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
+		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
+			events:          n.lifecycleActionTrigger.events,
+			conditionExpr:   n.lifecycleActionTrigger.conditionExpr,
+			resourceAddress: n.lifecycleActionTrigger.resourceAddress,
+		})
+		diags = diags.Append(conditionDiags)
+		if conditionDiags.HasErrors() {
+			return conditionDiags
+		}
+
+		// The condition is false so we skip the action
+		if !condition {
+			return diags
+		}
+	}
+
 	// We need to set the triggering event on the action invocation
 	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent)
 
@@ -159,11 +187,9 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		return diags
 	}
 
+	// If the action is deferred, we need to also defer the resource instance
 	if resp.Deferred != nil {
 		deferrals.ReportActionInvocationDeferred(ai, resp.Deferred.Reason)
-
-		// If we run as part of a before action we need to retrospectively defer the triggering resource
-		// For this we remove the change and report the deferral
 		ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
 		deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
 		return diags
@@ -182,4 +208,98 @@ func (n *nodeActionTriggerPlanInstance) Path() addrs.ModuleInstance {
 	// or by resources during plan/apply in which case both the resource and action must belong
 	// to the same module. So we can simply return the module path of the action.
 	return n.actionAddress.Module
+}
+
+type actionConditionContext struct {
+	events          []configs.ActionTriggerEvent
+	conditionExpr   hcl.Expression
+	resourceAddress addrs.AbsResourceInstance
+}
+
+func evaluateActionCondition(ctx EvalContext, at actionConditionContext) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	rd := instances.RepetitionData{}
+	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, at.conditionExpr)
+	diags = diags.Append(refDiags)
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	for _, ref := range refs {
+		if ref.Subject == addrs.Self {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Self reference not allowed",
+				Detail:   `The condition expression cannot reference "self".`,
+				Subject:  at.conditionExpr.Range().Ptr(),
+			})
+		}
+	}
+
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	if containsBeforeEvent(at.events) {
+		// If events contains a before event we want to error if count or each is used
+		for _, ref := range refs {
+			if _, ok := ref.Subject.(addrs.CountAttr); ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject:  at.conditionExpr.Range().Ptr(),
+				})
+			}
+
+			if _, ok := ref.Subject.(addrs.ForEachAttr); ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject:  at.conditionExpr.Range().Ptr(),
+				})
+			}
+
+			if diags.HasErrors() {
+				return false, diags
+			}
+		}
+	} else {
+		// If there are only after events we allow self, count, and each
+		expander := ctx.InstanceExpander()
+		rd = expander.GetResourceInstanceRepetitionData(at.resourceAddress)
+	}
+
+	scope := ctx.EvaluationScope(nil, nil, rd)
+	val, conditionEvalDiags := scope.EvalExpr(at.conditionExpr, cty.Bool)
+	diags = diags.Append(conditionEvalDiags)
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	if !val.IsWhollyKnown() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Condition must be known",
+			Detail:   "The condition expression resulted in an unknown value, but it must be a known boolean value.",
+			Subject:  at.conditionExpr.Range().Ptr(),
+		})
+		return false, diags
+	}
+
+	return val.True(), nil
+}
+
+func containsBeforeEvent(events []configs.ActionTriggerEvent) bool {
+	for _, event := range events {
+		switch event {
+		case configs.BeforeCreate, configs.BeforeUpdate:
+			return true
+		default:
+			continue
+		}
+	}
+	return false
 }

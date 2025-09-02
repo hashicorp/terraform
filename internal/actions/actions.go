@@ -16,12 +16,14 @@ type Actions struct {
 	// Must hold this lock when accessing all fields after this one.
 	mu sync.Mutex
 
-	actionInstances addrs.Map[addrs.AbsActionInstance, ActionData]
+	actionInstances        addrs.Map[addrs.AbsActionInstance, ActionData]
+	partialExpandedActions addrs.Map[addrs.PartialExpandedAction, ActionData]
 }
 
 func NewActions() *Actions {
 	return &Actions{
-		actionInstances: addrs.MakeMap[addrs.AbsActionInstance, ActionData](),
+		actionInstances:        addrs.MakeMap[addrs.AbsActionInstance, ActionData](),
+		partialExpandedActions: addrs.MakeMap[addrs.PartialExpandedAction, ActionData](),
 	}
 }
 
@@ -69,4 +71,31 @@ func (a *Actions) GetActionInstanceKeys(addr addrs.AbsAction) []addrs.AbsActionI
 	}
 
 	return result
+}
+
+func (a *Actions) AddPartialExpandedAction(addr addrs.PartialExpandedAction, configValue cty.Value, providerAddr addrs.AbsProviderConfig) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.partialExpandedActions.Has(addr) {
+		panic("action instance already exists: " + addr.String())
+	}
+
+	a.partialExpandedActions.Put(addr, ActionData{
+		ConfigValue:  configValue,
+		ProviderAddr: providerAddr,
+	})
+}
+
+func (a *Actions) GetPartialExpandedAction(addr addrs.PartialExpandedAction) (*ActionData, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	data, ok := a.partialExpandedActions.GetOk(addr)
+
+	if !ok {
+		return nil, false
+	}
+
+	return &data, true
 }

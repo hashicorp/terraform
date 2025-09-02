@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -24,13 +25,13 @@ type nodeActionTriggerPlanExpand struct {
 }
 
 type lifecycleActionTrigger struct {
-	resourceAddress addrs.ConfigResource
-	events          []configs.ActionTriggerEvent
-	//condition       hcl.Expression
+	resourceAddress         addrs.ConfigResource
+	events                  []configs.ActionTriggerEvent
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
 	actionExpr              hcl.Expression
+	conditionExpr           hcl.Expression
 }
 
 func (at *lifecycleActionTrigger) Name() string {
@@ -62,6 +63,36 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 	}
 
 	expander := ctx.InstanceExpander()
+
+	// The possibility of partial-expanded modules and resources is guarded by a
+	// top-level option for the whole plan, so that we can preserve mainline
+	// behavior for the modules runtime. So, we currently branch off into an
+	// entirely-separate codepath in those situations, at the expense of
+	// duplicating some of the logic for behavior this method would normally
+	// handle.
+	if ctx.Deferrals().DeferralAllowed() {
+		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
+
+		for _, moduleAddr := range pem {
+			actionAddr := moduleAddr.Action(n.Addr.Action)
+			resourceAddr := moduleAddr.Resource(n.lifecycleActionTrigger.resourceAddress.Resource)
+
+			// And add a node to the graph for this action.
+			g.Add(&NodeActionTriggerPartialExpanded{
+				addr:             actionAddr,
+				config:           n.Config,
+				resolvedProvider: n.resolvedProvider,
+				lifecycleActionTrigger: &lifecycleActionTriggerPartialExpanded{
+					resourceAddress:         resourceAddr,
+					events:                  n.lifecycleActionTrigger.events,
+					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
+					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
+					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
+				},
+			})
+		}
+	}
+
 	// First we expand the module
 	moduleInstances := expander.ExpandModule(n.lifecycleActionTrigger.resourceAddress.Module, false)
 	for _, module := range moduleInstances {
@@ -83,6 +114,9 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 			ref, evalActionDiags := evaluateActionExpression(n.lifecycleActionTrigger.actionExpr, repData)
 			diags = append(diags, evalActionDiags...)
+			if diags.HasErrors() {
+				continue
+			}
 
 			// The reference is either an action or action instance
 			var actionAddr addrs.AbsActionInstance
@@ -103,6 +137,7 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
 					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
 					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
+					conditionExpr:           n.lifecycleActionTrigger.conditionExpr,
 				},
 			}
 
@@ -128,6 +163,9 @@ func (n *nodeActionTriggerPlanExpand) References() []*addrs.Reference {
 		refs = append(refs, &addrs.Reference{
 			Subject: n.lifecycleActionTrigger.resourceAddress.Resource,
 		})
+
+		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.lifecycleActionTrigger.conditionExpr)
+		refs = append(refs, conditionRefs...)
 	}
 
 	return refs

@@ -357,6 +357,14 @@ func (pem PartialExpandedModule) Resource(resource Resource) PartialExpandedReso
 	}
 }
 
+// Action returns the address of an action within the receiver.
+func (pem PartialExpandedModule) Action(action Action) PartialExpandedAction {
+	return PartialExpandedAction{
+		module: pem,
+		action: action,
+	}
+}
+
 // String returns a string representation of the pattern where the known
 // prefix uses the normal module instance address syntax and the unknown
 // suffix steps use a similar syntax but with "[*]" as a placeholder to
@@ -863,3 +871,107 @@ type inPartialExpandedModuleUniqueKey struct {
 }
 
 func (inPartialExpandedModuleUniqueKey) uniqueKeySigil() {}
+
+// PartialExpandedAction represents a partially-expanded action address.
+// See PartialExpandedResource for more information.
+type PartialExpandedAction struct {
+	module PartialExpandedModule
+	action Action
+}
+
+func (per PartialExpandedAction) AbsAction() (AbsAction, bool) {
+	if len(per.module.unexpandedSuffix) != 0 {
+		return AbsAction{}, false
+	}
+
+	return AbsAction{
+		Module: per.module.expandedPrefix,
+		Action: per.action,
+	}, true
+}
+
+// ConfigAction returns the unexpanded action address that this
+// partially-expanded action address originates from.
+func (per PartialExpandedAction) ConfigAction() ConfigAction {
+	return ConfigAction{
+		Module: per.module.Module(),
+		Action: per.action,
+	}
+}
+
+func (per PartialExpandedAction) ModuleInstance() (ModuleInstance, bool) {
+	if len(per.module.unexpandedSuffix) != 0 {
+		return nil, false
+	}
+	return per.module.expandedPrefix, true
+}
+
+func (m ModuleInstance) UnexpandedAction(action Action) PartialExpandedAction {
+	return PartialExpandedAction{
+		module: PartialExpandedModule{
+			expandedPrefix: m,
+		},
+		action: action,
+	}
+}
+
+func (a *AbsAction) UnexpandedAction(action Action) PartialExpandedAction {
+	return PartialExpandedAction{
+		module: PartialExpandedModule{
+			expandedPrefix: a.Module,
+		},
+		action: action,
+	}
+}
+
+// UnknownActionInstance returns an [AbsActionInstance] that represents the
+// same action as the receiver but with all instance keys replaced with a
+// wildcard value.
+func (per PartialExpandedAction) UnknownActionInstance() AbsActionInstance {
+	return AbsActionInstance{
+		Module: per.module.UnknownModuleInstance(),
+		Action: per.action.Instance(WildcardKey),
+	}
+}
+
+func (pea PartialExpandedAction) String() string {
+	moduleAddr := pea.module.String()
+	if len(moduleAddr) != 0 {
+		return moduleAddr + "." + pea.action.String() + "[*]"
+	}
+	return pea.action.String() + "[*]"
+}
+
+func (pea PartialExpandedAction) Equal(other PartialExpandedAction) bool {
+	return pea.module.MatchesPartial(other.module.expandedPrefix.PartialModule()) && pea.action.Equal(other.action)
+}
+
+func (pea PartialExpandedAction) UniqueKey() UniqueKey {
+	// If this address is equivalent to an AbsAction address then we'll
+	// return its instance key here so that function Equivalent will consider
+	// the two as equivalent.
+	if ar, ok := pea.AbsAction(); ok {
+		return ar.UniqueKey()
+	}
+	// For not-fully-expanded module paths we'll use a distinct address type
+	// since there is no other address type equivalent to those.
+	return partialExpandedActionKey(pea.String())
+}
+
+type partialExpandedActionKey string
+
+func (partialExpandedActionKey) uniqueKeySigil() {}
+
+// PartialExpandedModule returns a [PartialExpandedModule] address describing
+// the partially-unknown module instance address that the action belongs to,
+// but only if the module instance address is not fully known.
+//
+// The second return value is false if the module instance address is actually
+// fully expanded, in which case the first return value is invalid. Use
+// [PartialExpandedAction.ModuleInstance] instead in that case.
+func (per PartialExpandedAction) PartialExpandedModule() (PartialExpandedModule, bool) {
+	if len(per.module.unexpandedSuffix) == 0 {
+		return PartialExpandedModule{}, false
+	}
+	return per.module, true
+}
