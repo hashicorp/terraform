@@ -2781,6 +2781,37 @@ resource "test_object" "a" {
 				}
 			},
 		},
+
+		"splat is not supported": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  count = 42
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello[*]]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid action expression",
+					Detail:   "Unexpected expression found in action_triggers.actions.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 18, Byte: 161},
+						End:      hcl.Pos{Line: 9, Column: 47, Byte: 190},
+					},
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
