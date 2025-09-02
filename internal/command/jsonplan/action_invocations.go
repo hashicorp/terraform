@@ -238,11 +238,6 @@ func MarshalDeferredActionInvocations(dais []*plans.DeferredActionInvocationSrc,
 func MarshalDeferredPartialActionInvocations(dais []*plans.DeferredPartialExpandedActionInvocationSrc, schemas *terraform.Schemas) ([]DeferredActionInvocation, error) {
 	var deferredInvocations []DeferredActionInvocation
 
-	// sortedActions := append([]*plans.DeferredActionInvocationSrc{}, dais...)
-	// sort.Slice(sortedActions, func(i, j int) bool {
-	// 	return sortedActions[i].ActionInvocationInstanceSrc.Less(sortedActions[j].ActionInvocationInstanceSrc)
-	// })
-
 	for _, daiSrc := range dais {
 		ai, err := MarshalPartialActionInvocation(daiSrc.ActionInvocationInstanceSrc, schemas)
 		if err != nil {

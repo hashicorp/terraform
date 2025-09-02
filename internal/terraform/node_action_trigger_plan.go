@@ -91,7 +91,6 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 				},
 			})
 		}
-		addRootNodeToGraph(&g)
 	}
 
 	// First we expand the module

@@ -122,8 +122,31 @@ type Deferred struct {
 	// a deferred data source, then that resource should be deferred as well.
 	partialExpandedEphemeralResourceDeferred addrs.Map[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]]
 
-	partialExpandedActionsDeferred addrs.Map[addrs.ConfigAction, addrs.Map[addrs.PartialExpandedAction, *plans.DeferredResourceInstanceChange]]
+	// partialExpandedActionsDeferred tracks placeholders that cover an
+	// unbounded set of potential action instances in situations where we don't
+	// yet have enough information to predict which concrete action instances
+	// will exist (for example, because the action uses expressions that depend
+	// on values not known until a prior deferred change is applied).
+	//
+	// These are grouped by the static action configuration address because
+	// there can be several distinct partial-expansion situations for the same
+	// configuration block reached through different module instance prefixes
+	// or differing dynamic collection lengths. Some queries therefore must
+	// search across all of those to determine whether a particular action
+	// instance should be considered deferred.
+	partialExpandedActionsDeferred addrs.Map[addrs.ConfigAction, addrs.Map[addrs.PartialExpandedAction, providers.DeferredReason]]
 
+	// partialExpandedActionInvocationsDeferred tracks action invocation evaluations
+	// whose concrete action instance addresses could not yet be fully determined
+	// (for example because the action block contains for_each / count style
+	// expressions, or references values that depend on other deferred changes).
+	//
+	// Each element mirrors (in a more lightweight form) the information we
+	// retain for fully-expanded deferred action invocations, but is specific
+	// to the partially-expanded (wildcard / unknown) address space. Once the
+	// address space becomes concrete in a subsequent planning round the
+	// corresponding concrete action invocations will either be planned or
+	// recorded in actionInvocationDeferred instead.
 	partialExpandedActionInvocationsDeferred []*plans.DeferredPartialExpandedActionInvocation
 
 	// partialExpandedModulesDeferred tracks all of the partial-expanded module
@@ -156,7 +179,7 @@ func NewDeferred(enabled bool) *Deferred {
 		partialExpandedResourcesDeferred:         addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedDataSourcesDeferred:       addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedEphemeralResourceDeferred: addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
-		partialExpandedActionsDeferred:           addrs.MakeMap[addrs.ConfigAction, addrs.Map[addrs.PartialExpandedAction, *plans.DeferredResourceInstanceChange]](),
+		partialExpandedActionsDeferred:           addrs.MakeMap[addrs.ConfigAction, addrs.Map[addrs.PartialExpandedAction, providers.DeferredReason]](),
 		partialExpandedActionInvocationsDeferred: []*plans.DeferredPartialExpandedActionInvocation{},
 		partialExpandedModulesDeferred:           addrs.MakeSet[addrs.PartialExpandedModule](),
 	}
@@ -245,8 +268,8 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			d.partialExpandedDataSourcesDeferred.Len() != 0 ||
 			d.partialExpandedEphemeralResourceDeferred.Len() != 0 ||
 			d.partialExpandedActionsDeferred.Len() != 0 ||
-			len(d.partialExpandedModulesDeferred) != 0) ||
-		len(d.partialExpandedActionInvocationsDeferred) != 0
+			len(d.partialExpandedModulesDeferred) != 0 ||
+			len(d.partialExpandedActionInvocationsDeferred) != 0)
 }
 
 // GetDeferredResourceInstanceValue returns the deferred value for the given
@@ -578,7 +601,7 @@ func (d *Deferred) ReportActionExpansionDeferred(addr addrs.PartialExpandedActio
 
 	configAddr := addr.ConfigAction()
 	if !d.partialExpandedActionsDeferred.Has(configAddr) {
-		d.partialExpandedActionsDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedAction, *plans.DeferredResourceInstanceChange]())
+		d.partialExpandedActionsDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedAction, providers.DeferredReason]())
 	}
 
 	configMap := d.partialExpandedActionsDeferred.Get(configAddr)
@@ -588,10 +611,7 @@ func (d *Deferred) ReportActionExpansionDeferred(addr addrs.PartialExpandedActio
 		// prefix only once.
 		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
 	}
-	configMap.Put(addr, &plans.DeferredResourceInstanceChange{
-		DeferredReason: providers.DeferredReasonInstanceCountUnknown,
-		Change:         nil, // since we don't serialize this we can get away with no change, we store the addr, that should be enough
-	})
+	configMap.Put(addr, providers.DeferredReasonInstanceCountUnknown)
 }
 
 // ReportResourceInstanceDeferred records that a fully-expanded resource
