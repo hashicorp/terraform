@@ -320,14 +320,6 @@ func Marshal(
 		}
 	}
 
-	if p.DeferredPartialActionInvocations != nil {
-		deferredPartialActionInvocations, err := MarshalDeferredPartialActionInvocations(p.DeferredPartialActionInvocations, schemas)
-		if err != nil {
-			return nil, fmt.Errorf("error in marshaling deferred partial action invocations: %s", err)
-		}
-		output.DeferredActionInvocations = append(output.DeferredActionInvocations, deferredPartialActionInvocations...)
-	}
-
 	// output.OutputChanges
 	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)

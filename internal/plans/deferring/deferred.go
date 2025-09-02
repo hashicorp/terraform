@@ -136,19 +136,6 @@ type Deferred struct {
 	// instance should be considered deferred.
 	partialExpandedActionsDeferred addrs.Map[addrs.ConfigAction, addrs.Map[addrs.PartialExpandedAction, providers.DeferredReason]]
 
-	// partialExpandedActionInvocationsDeferred tracks action invocation evaluations
-	// whose concrete action instance addresses could not yet be fully determined
-	// (for example because the action block contains for_each / count style
-	// expressions, or references values that depend on other deferred changes).
-	//
-	// Each element mirrors (in a more lightweight form) the information we
-	// retain for fully-expanded deferred action invocations, but is specific
-	// to the partially-expanded (wildcard / unknown) address space. Once the
-	// address space becomes concrete in a subsequent planning round the
-	// corresponding concrete action invocations will either be planned or
-	// recorded in actionInvocationDeferred instead.
-	partialExpandedActionInvocationsDeferred []*plans.DeferredPartialExpandedActionInvocation
-
 	// partialExpandedModulesDeferred tracks all of the partial-expanded module
 	// prefixes we were notified about.
 	//
@@ -180,7 +167,6 @@ func NewDeferred(enabled bool) *Deferred {
 		partialExpandedDataSourcesDeferred:       addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedEphemeralResourceDeferred: addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedActionsDeferred:           addrs.MakeMap[addrs.ConfigAction, addrs.Map[addrs.PartialExpandedAction, providers.DeferredReason]](),
-		partialExpandedActionInvocationsDeferred: []*plans.DeferredPartialExpandedActionInvocation{},
 		partialExpandedModulesDeferred:           addrs.MakeSet[addrs.PartialExpandedModule](),
 	}
 }
@@ -220,11 +206,6 @@ func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange 
 // GetDeferredActionInvocations returns a list of all deferred action invocations.
 func (d *Deferred) GetDeferredActionInvocations() []*plans.DeferredActionInvocation {
 	return d.actionInvocationDeferred
-}
-
-// GetDeferredPartialActionInvocations returns a list of all deferred partial action invocations.
-func (d *Deferred) GetDeferredPartialActionInvocations() []*plans.DeferredPartialExpandedActionInvocation {
-	return d.partialExpandedActionInvocationsDeferred
 }
 
 // SetExternalDependencyDeferred modifies a freshly-constructed [Deferred]
@@ -268,8 +249,7 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			d.partialExpandedDataSourcesDeferred.Len() != 0 ||
 			d.partialExpandedEphemeralResourceDeferred.Len() != 0 ||
 			d.partialExpandedActionsDeferred.Len() != 0 ||
-			len(d.partialExpandedModulesDeferred) != 0 ||
-			len(d.partialExpandedActionInvocationsDeferred) != 0)
+			len(d.partialExpandedModulesDeferred) != 0)
 }
 
 // GetDeferredResourceInstanceValue returns the deferred value for the given
@@ -747,27 +727,6 @@ func (d *Deferred) ReportActionDeferred(addr addrs.AbsActionInstance, reason pro
 		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
 	}
 	configMap.Put(addr, reason)
-}
-
-func (d *Deferred) ReportPartialActionInvocationDeferred(ai plans.PartialExpandedActionInvocationInstance, reason providers.DeferredReason) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	// Check if the action invocation is already deferred
-	for _, deferred := range d.partialExpandedActionInvocationsDeferred {
-		if deferred.ActionInvocationInstance.Equals(&ai) {
-			// This indicates a bug in the caller, since our graph walk should
-			// ensure that we visit and evaluate each distinct action invocation
-			// only once.
-			panic(fmt.Sprintf("duplicate deferral report for action %s invoked by %s", ai.Addr.String(), ai.ActionTrigger.TriggerEvent().String()))
-		}
-	}
-
-	d.partialExpandedActionInvocationsDeferred = append(d.partialExpandedActionInvocationsDeferred, &plans.DeferredPartialExpandedActionInvocation{
-		ActionInvocationInstance: &ai,
-		DeferredReason:           reason,
-	})
-
 }
 
 // ShouldDeferActionInvocation returns true if there is a reason to defer the action invocation instance

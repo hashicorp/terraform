@@ -885,10 +885,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		deferredActionInvocations, deferredActionInvocationsDiags := c.deferredActionInvocations(schemas, walker.Deferrals.GetDeferredActionInvocations())
 		diags = diags.Append(deferredActionInvocationsDiags)
 		plan.DeferredActionInvocations = deferredActionInvocations
-
-		deferredPartialActionInvocations, deferredPartialActionInvocationsDiags := c.deferredPartialActionInvocations(schemas, walker.Deferrals.GetDeferredPartialActionInvocations())
-		diags = diags.Append(deferredPartialActionInvocationsDiags)
-		plan.DeferredPartialActionInvocations = deferredPartialActionInvocations
 	}
 
 	// Our final rulings on whether the plan is "complete" and "applyable".
@@ -975,26 +971,6 @@ func (c *Context) deferredActionInvocations(schemas *Schemas, deferrals []*plans
 		deferredActionInvocations = append(deferredActionInvocations, deferralSrc)
 	}
 	return deferredActionInvocations, diags
-}
-
-func (c *Context) deferredPartialActionInvocations(schemas *Schemas, deferrals []*plans.DeferredPartialExpandedActionInvocation) ([]*plans.DeferredPartialExpandedActionInvocationSrc, tfdiags.Diagnostics) {
-	var deferredPartialActionInvocations []*plans.DeferredPartialExpandedActionInvocationSrc
-	var diags tfdiags.Diagnostics
-	for _, deferral := range deferrals {
-		schema := schemas.ActionTypeConfig(deferral.ActionInvocationInstance.ProviderAddr.Provider, deferral.ActionInvocationInstance.Addr.ConfigAction().Action.Type)
-		deferralSrc, err := deferral.Encode(&schema)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to prepare deferred partial action invocation for plan",
-				fmt.Sprintf("The deferred partial action invocation %q could not be serialized to store in the plan: %s.", deferral.ActionInvocationInstance.Addr, err)))
-			continue
-		}
-
-		deferredPartialActionInvocations = append(deferredPartialActionInvocations, deferralSrc)
-	}
-
-	return deferredPartialActionInvocations, diags
 }
 
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {

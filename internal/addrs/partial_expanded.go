@@ -924,6 +924,16 @@ func (a *AbsAction) UnexpandedAction(action Action) PartialExpandedAction {
 	}
 }
 
+// UnknownActionInstance returns an [AbsActionInstance] that represents the
+// same action as the receiver but with all instance keys replaced with a
+// wildcard value.
+func (per PartialExpandedAction) UnknownActionInstance() AbsActionInstance {
+	return AbsActionInstance{
+		Module: per.module.UnknownModuleInstance(),
+		Action: per.action.Instance(WildcardKey),
+	}
+}
+
 func (pea PartialExpandedAction) String() string {
 	moduleAddr := pea.module.String()
 	if len(moduleAddr) != 0 {
