@@ -48,13 +48,13 @@ const (
 // the way we currently model working directory settings and config, so its
 // signature probably won't survive any non-trivial refactoring of how
 // the CLI layer thinks about backends/state storage.
-func DetectConfigChangeType(wdState *workdir.BackendConfigState, config *configs.Backend, haveLocalStates bool) ConfigChangeMode {
+func DetectConfigChangeType(wdState *workdir.BackendStateFile, config *configs.Backend, haveLocalStates bool) ConfigChangeMode {
 	// Although externally the cloud integration isn't really a "backend",
 	// internally we treat it a bit like one just to preserve all of our
 	// existing interfaces that assume backends. "cloud" is the placeholder
 	// name we use for it, even though that isn't a backend that's actually
 	// available for selection in the usual way.
-	wdIsCloud := wdState != nil && wdState.Type == "cloud"
+	wdIsCloud := wdState != nil && wdState.Backend != nil && wdState.Backend.Type == "cloud"
 	configIsCloud := config != nil && config.Type == "cloud"
 
 	// "uninit" here means that the working directory is totally uninitialized,
