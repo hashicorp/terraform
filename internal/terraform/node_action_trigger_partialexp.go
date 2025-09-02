@@ -114,11 +114,11 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 		return diags
 	}
 
-	ctx.Deferrals().ReportPartialActionInvocationDeferred(plans.PartialExpandedActionInvocationInstance{
-		Addr:         n.addr,
+	ctx.Deferrals().ReportActionInvocationDeferred(plans.ActionInvocationInstance{
+		Addr:         n.addr.UnknownActionInstance(),
 		ProviderAddr: n.resolvedProvider,
-		ActionTrigger: plans.PartialLifecycleActionTrigger{
-			TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress,
+		ActionTrigger: &plans.LifecycleActionTrigger{
+			TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress.UnknownResourceInstance(),
 			ActionTriggerEvent:      *triggeringEvent,
 			ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
 			ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,

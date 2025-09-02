@@ -2912,14 +2912,10 @@ resource "other_object" "a" {
 					t.Fatalf("expected 0 planned action invocations, got %d", got)
 				}
 
-				if got := len(p.DeferredActionInvocations); got != 0 {
-					t.Fatalf("expected 0 deferred action invocations, got %d", got)
-				}
-
-				if got := len(p.DeferredPartialActionInvocations); got != 1 {
+				if got := len(p.DeferredActionInvocations); got != 1 {
 					t.Fatalf("expected 1 deferred action invocations, got %d", got)
 				}
-				ac, err := p.DeferredPartialActionInvocations[0].Decode(&unlinkedActionSchema)
+				ac, err := p.DeferredActionInvocations[0].Decode(&unlinkedActionSchema)
 				if err != nil {
 					t.Fatalf("error decoding action invocation: %s", err)
 				}
@@ -2990,15 +2986,12 @@ resource "other_object" "a" {
 				if len(p.Changes.ActionInvocations) != 0 {
 					t.Fatalf("expected 0 planned action invocations, got %d", len(p.Changes.ActionInvocations))
 				}
-				if got := len(p.DeferredActionInvocations); got != 0 {
-					t.Fatalf("expected 0 deferred action invocations, got %d", got)
+
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected 1 deferred partial action invocations, got %d", len(p.DeferredActionInvocations))
 				}
 
-				if len(p.DeferredPartialActionInvocations) != 1 {
-					t.Fatalf("expected 1 deferred partial action invocations, got %d", len(p.DeferredPartialActionInvocations))
-				}
-
-				ac, err := p.DeferredPartialActionInvocations[0].Decode(&unlinkedActionSchema)
+				ac, err := p.DeferredActionInvocations[0].Decode(&unlinkedActionSchema)
 				if err != nil {
 					t.Fatalf("error decoding action invocation: %s", err)
 				}
