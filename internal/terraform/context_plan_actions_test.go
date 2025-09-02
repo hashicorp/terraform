@@ -1665,10 +1665,16 @@ resource "test_object" "a" {
 				if len(p.DeferredActionInvocations) != 2 {
 					t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
 				}
+
+				sort.Slice(p.DeferredActionInvocations, func(i, j int) bool {
+					return p.DeferredActionInvocations[i].ActionInvocationInstanceSrc.Addr.String() < p.DeferredActionInvocations[j].ActionInvocationInstanceSrc.Addr.String()
+				})
+
 				firstDeferredActionInvocation := p.DeferredActionInvocations[0]
 				if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
 					t.Fatalf("expected deferred action to be deferred due to deferred prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
 				}
+
 				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
 					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
 				}
