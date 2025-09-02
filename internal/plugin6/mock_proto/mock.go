@@ -464,10 +464,10 @@ func (mr *MockProviderClientMockRecorder) ReadResource(ctx, in any, opts ...any)
 }
 
 // ReadStateBytes mocks base method.
-func (m *MockProviderClient) ReadStateBytes(arg0 context.Context, arg1 *tfplugin6.ReadStateBytes_Request, arg2 ...grpc.CallOption) (tfplugin6.Provider_ReadStateBytesClient, error) {
+func (m *MockProviderClient) ReadStateBytes(ctx context.Context, in *tfplugin6.ReadStateBytes_Request, opts ...grpc.CallOption) (tfplugin6.Provider_ReadStateBytesClient, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []any{ctx, in}
+	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ReadStateBytes", varargs...)
@@ -477,9 +477,9 @@ func (m *MockProviderClient) ReadStateBytes(arg0 context.Context, arg1 *tfplugin
 }
 
 // ReadStateBytes indicates an expected call of ReadStateBytes.
-func (mr *MockProviderClientMockRecorder) ReadStateBytes(arg0, arg1 any, arg2 ...any) *gomock.Call {
+func (mr *MockProviderClientMockRecorder) ReadStateBytes(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
+	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadStateBytes", reflect.TypeOf((*MockProviderClient)(nil).ReadStateBytes), varargs...)
 }
 
@@ -704,10 +704,10 @@ func (mr *MockProviderClientMockRecorder) ValidateStateStoreConfig(ctx, in any, 
 }
 
 // WriteStateBytes mocks base method.
-func (m *MockProviderClient) WriteStateBytes(arg0 context.Context, arg1 ...grpc.CallOption) (tfplugin6.Provider_WriteStateBytesClient, error) {
+func (m *MockProviderClient) WriteStateBytes(ctx context.Context, opts ...grpc.CallOption) (tfplugin6.Provider_WriteStateBytesClient, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0}
-	for _, a := range arg1 {
+	varargs := []any{ctx}
+	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "WriteStateBytes", varargs...)
@@ -717,9 +717,9 @@ func (m *MockProviderClient) WriteStateBytes(arg0 context.Context, arg1 ...grpc.
 }
 
 // WriteStateBytes indicates an expected call of WriteStateBytes.
-func (mr *MockProviderClientMockRecorder) WriteStateBytes(arg0 any, arg1 ...any) *gomock.Call {
+func (mr *MockProviderClientMockRecorder) WriteStateBytes(ctx any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0}, arg1...)
+	varargs := append([]any{ctx}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteStateBytes", reflect.TypeOf((*MockProviderClient)(nil).WriteStateBytes), varargs...)
 }
 
@@ -851,6 +851,7 @@ func (mr *MockProvider_InvokeActionClientMockRecorder) Trailer() *gomock.Call {
 type MockProvider_ReadStateBytesClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockProvider_ReadStateBytesClientMockRecorder
+	isgomock struct{}
 }
 
 // MockProvider_ReadStateBytesClientMockRecorder is the mock recorder for MockProvider_ReadStateBytesClient.
@@ -914,10 +915,10 @@ func (mr *MockProvider_ReadStateBytesClientMockRecorder) Header() *gomock.Call {
 }
 
 // Recv mocks base method.
-func (m *MockProvider_ReadStateBytesClient) Recv() (*tfplugin6.ReadStateBytes_ResponseChunk, error) {
+func (m *MockProvider_ReadStateBytesClient) Recv() (*tfplugin6.ReadStateBytes_Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
-	ret0, _ := ret[0].(*tfplugin6.ReadStateBytes_ResponseChunk)
+	ret0, _ := ret[0].(*tfplugin6.ReadStateBytes_Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -929,31 +930,31 @@ func (mr *MockProvider_ReadStateBytesClientMockRecorder) Recv() *gomock.Call {
 }
 
 // RecvMsg mocks base method.
-func (m *MockProvider_ReadStateBytesClient) RecvMsg(arg0 any) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RecvMsg", arg0)
+func (m_2 *MockProvider_ReadStateBytesClient) RecvMsg(m any) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "RecvMsg", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RecvMsg indicates an expected call of RecvMsg.
-func (mr *MockProvider_ReadStateBytesClientMockRecorder) RecvMsg(arg0 any) *gomock.Call {
+func (mr *MockProvider_ReadStateBytesClientMockRecorder) RecvMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvider_ReadStateBytesClient)(nil).RecvMsg), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvider_ReadStateBytesClient)(nil).RecvMsg), m)
 }
 
 // SendMsg mocks base method.
-func (m *MockProvider_ReadStateBytesClient) SendMsg(arg0 any) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMsg", arg0)
+func (m_2 *MockProvider_ReadStateBytesClient) SendMsg(m any) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "SendMsg", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendMsg indicates an expected call of SendMsg.
-func (mr *MockProvider_ReadStateBytesClientMockRecorder) SendMsg(arg0 any) *gomock.Call {
+func (mr *MockProvider_ReadStateBytesClientMockRecorder) SendMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvider_ReadStateBytesClient)(nil).SendMsg), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvider_ReadStateBytesClient)(nil).SendMsg), m)
 }
 
 // Trailer mocks base method.
@@ -974,6 +975,7 @@ func (mr *MockProvider_ReadStateBytesClientMockRecorder) Trailer() *gomock.Call 
 type MockProvider_WriteStateBytesClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockProvider_WriteStateBytesClientMockRecorder
+	isgomock struct{}
 }
 
 // MockProvider_WriteStateBytesClientMockRecorder is the mock recorder for MockProvider_WriteStateBytesClient.
@@ -1052,17 +1054,17 @@ func (mr *MockProvider_WriteStateBytesClientMockRecorder) Header() *gomock.Call 
 }
 
 // RecvMsg mocks base method.
-func (m *MockProvider_WriteStateBytesClient) RecvMsg(arg0 any) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RecvMsg", arg0)
+func (m_2 *MockProvider_WriteStateBytesClient) RecvMsg(m any) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "RecvMsg", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RecvMsg indicates an expected call of RecvMsg.
-func (mr *MockProvider_WriteStateBytesClientMockRecorder) RecvMsg(arg0 any) *gomock.Call {
+func (mr *MockProvider_WriteStateBytesClientMockRecorder) RecvMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvider_WriteStateBytesClient)(nil).RecvMsg), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvider_WriteStateBytesClient)(nil).RecvMsg), m)
 }
 
 // Send mocks base method.
@@ -1080,17 +1082,17 @@ func (mr *MockProvider_WriteStateBytesClientMockRecorder) Send(arg0 any) *gomock
 }
 
 // SendMsg mocks base method.
-func (m *MockProvider_WriteStateBytesClient) SendMsg(arg0 any) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMsg", arg0)
+func (m_2 *MockProvider_WriteStateBytesClient) SendMsg(m any) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "SendMsg", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendMsg indicates an expected call of SendMsg.
-func (mr *MockProvider_WriteStateBytesClientMockRecorder) SendMsg(arg0 any) *gomock.Call {
+func (mr *MockProvider_WriteStateBytesClientMockRecorder) SendMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvider_WriteStateBytesClient)(nil).SendMsg), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvider_WriteStateBytesClient)(nil).SendMsg), m)
 }
 
 // Trailer mocks base method.
