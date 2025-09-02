@@ -84,6 +84,9 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 			ref, evalActionDiags := evaluateActionExpression(n.lifecycleActionTrigger.actionExpr, repData)
 			diags = append(diags, evalActionDiags...)
+			if diags.HasErrors() {
+				continue
+			}
 
 			// The reference is either an action or action instance
 			var actionAddr addrs.AbsActionInstance
