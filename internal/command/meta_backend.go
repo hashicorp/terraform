@@ -904,7 +904,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 		log.Printf("[TRACE] Meta.Backend: backend configuration has changed (from type %q to type %q)", s.Backend.Type, backendConfig.Type)
 
-		cloudMode := cloud.DetectConfigChangeType(s.Backend, backendConfig, false)
+		cloudMode := cloud.DetectConfigChangeType(s, backendConfig, false)
 
 		if !opts.Init {
 			//user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
@@ -1118,7 +1118,7 @@ func (m *Meta) backend_c_r_S(
 	// Get backend state file data
 	s := backendSMgr.State()
 
-	cloudMode := cloud.DetectConfigChangeType(s.Backend, c, false)
+	cloudMode := cloud.DetectConfigChangeType(s, c, false)
 	diags = diags.Append(m.assertSupportedCloudInitOptions(cloudMode))
 	if diags.HasErrors() {
 		return nil, diags
@@ -1364,7 +1364,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, backendSMgr 
 	// Get the old backend state file data
 	s := backendSMgr.State()
 
-	cloudMode := cloud.DetectConfigChangeType(s.Backend, c, false)
+	cloudMode := cloud.DetectConfigChangeType(s, c, false)
 	diags = diags.Append(m.assertSupportedCloudInitOptions(cloudMode))
 	if diags.HasErrors() {
 		return nil, diags
@@ -1515,11 +1515,12 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 		return nil, diags
 	}
 
-	workspaces, err := localB.Workspaces()
-	if err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+	workspaces, wDiags := localB.Workspaces()
+	if diags.HasErrors() {
+		diags = diags.Append(fmt.Errorf(errBackendLocalRead, wDiags.Err()))
 		return nil, diags
 	}
+	diags = diags.Append(wDiags) // Collect any warnings
 
 	var localStates []statemgr.Full
 	for _, workspace := range workspaces {
@@ -1551,7 +1552,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 
 	if len(localStates) > 0 {
 		// Migrate any local states into the new state store
-		err = m.backendMigrateState(&backendMigrateOpts{
+		err := m.backendMigrateState(&backendMigrateOpts{
 			SourceType:      "local",
 			DestinationType: c.Type,
 			Source:          localB,
@@ -1598,6 +1599,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 	}
 
 	var pVersion *version.Version
+	var err error
 	if c.ProviderAddr.Equals(addrs.NewBuiltInProvider("terraform")) {
 		// If we're handling the builtin "terraform" provider then there's no version information to store in the dependency lock file, so don't access it.
 		// We must record a value into the backend state file, and we cannot include a value that changes (e.g. the Terraform core binary version) as migration
