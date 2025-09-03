@@ -181,6 +181,21 @@ func (e *Expander) ExpandAbsModuleCall(addr addrs.AbsModuleCall) (keyType addrs.
 	return keyType, instKeys, true
 }
 
+// AbsModuleCallExpanded checks if the specified module call has been visited
+// and expanded previously.
+func (e *Expander) AbsModuleCallExpanded(addr addrs.AbsModuleCall) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	expParent, ok := e.findModule(addr.Module)
+	if !ok {
+		return false
+	}
+
+	_, ok = expParent.moduleCalls[addr.Call]
+	return ok
+}
+
 // expandModule allows skipping unexpanded module addresses by setting skipUnregistered to true.
 // This is used by instances.Set, which is only concerned with the expanded
 // instances, and should not panic when looking up unknown addresses.
@@ -448,6 +463,20 @@ func (e *Expander) ResourceInstanceKeys(addr addrs.AbsResource) (keyType addrs.I
 		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
 	}
 	return exp.instanceKeys()
+}
+
+// ResourceInstanceExpanded checks if the specified resource has been visited
+// and expanded previously.
+func (e *Expander) ResourceInstanceExpanded(addr addrs.AbsResource) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	parentMod, known := e.findModule(addr.Module)
+	if !known {
+		return false
+	}
+	_, ok := parentMod.resources[addr.Resource]
+	return ok
 }
 
 // AllInstances returns a set of all of the module and resource instances known
@@ -1031,4 +1060,32 @@ func (e *Expander) GetActionInstanceRepetitionData(addr addrs.AbsActionInstance)
 		panic(fmt.Sprintf("no expansion has been registered for %s", addr.ContainingAction()))
 	}
 	return exp.repetitionData(addr.Action.Key)
+}
+
+// ActionInstanceKeys determines the child instance keys for one specific
+// instance of an action.
+//
+// keyType describes the expected type of all keys in knownKeys, which typically
+// also implies what data type would be used to describe the full set of
+// instances: [addrs.IntKeyType] as a list or tuple, [addrs.StringKeyType] as
+// a map or object, and [addrs.NoKeyType] as just a single value.
+//
+// If unknownKeys is true then there might be additional keys that we can't know
+// yet because the call's expansion isn't known.
+func (e *Expander) ActionInstanceKeys(addr addrs.AbsAction) (keyType addrs.InstanceKeyType, knownKeys []addrs.InstanceKey, unknownKeys bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	parentMod, known := e.findModule(addr.Module)
+	if !known {
+		// If we're nested inside something unexpanded then we don't even
+		// know yet what kind of instance key to expect. (The caller might
+		// be able to infer this itself using configuration info, though.)
+		return addrs.UnknownKeyType, nil, true
+	}
+	exp, ok := parentMod.actions[addr.Action]
+	if !ok {
+		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
+	}
+	return exp.instanceKeys()
 }

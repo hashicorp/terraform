@@ -64,13 +64,16 @@ func NewPlannedActionInvocation(aiSrc *plans.ActionInvocationInstanceSrc) *Actio
 		Action: newActionAddr(aiSrc.Addr),
 	}
 
-	if at, ok := aiSrc.ActionTrigger.(plans.LifecycleActionTrigger); ok {
+	switch trigger := aiSrc.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
 		ai.LifecycleTrigger = &ActionInvocationLifecycleTrigger{
-			TriggeringResource:      newResourceAddr(at.TriggeringResourceAddr),
-			TriggeringEvent:         at.ActionTriggerEvent.String(),
-			ActionTriggerBlockIndex: at.ActionTriggerBlockIndex,
-			ActionsListIndex:        at.ActionsListIndex,
+			TriggeringResource:      newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggeringEvent:         trigger.ActionTriggerEvent.String(),
+			ActionTriggerBlockIndex: trigger.ActionTriggerBlockIndex,
+			ActionsListIndex:        trigger.ActionsListIndex,
 		}
+	case *plans.InvokeActionTrigger:
+		ai.InvokeTrigger = new(ActionInvocationInvokeTrigger)
 	}
 
 	return ai
@@ -79,6 +82,7 @@ func NewPlannedActionInvocation(aiSrc *plans.ActionInvocationInstanceSrc) *Actio
 type ActionInvocation struct {
 	Action           ActionAddr                        `json:"action_addr"`
 	LifecycleTrigger *ActionInvocationLifecycleTrigger `json:"lifecycle_trigger,omitempty"`
+	InvokeTrigger    *ActionInvocationInvokeTrigger    `json:"action_trigger,omitempty"`
 }
 
 func (c *ActionInvocation) String() string {
@@ -94,6 +98,8 @@ type ActionInvocationLifecycleTrigger struct {
 	ActionTriggerBlockIndex int          `json:"action_trigger_block_index"`
 	ActionsListIndex        int          `json:"actions_list_index"`
 }
+
+type ActionInvocationInvokeTrigger struct{}
 
 type ChangeAction string
 

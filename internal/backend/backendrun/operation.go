@@ -8,6 +8,7 @@ import (
 	"log"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -111,6 +112,7 @@ type Operation struct {
 	PlanMode             plans.Mode
 	AutoApprove          bool
 	Targets              []addrs.Targetable
+	ActionTargets        []addrs.Targetable
 	ForceReplace         []addrs.AbsResourceInstance
 	Variables            map[string]UnparsedVariableValue
 	StatePersistInterval int

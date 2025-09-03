@@ -99,6 +99,9 @@ func GetAttribute(d Diagnostic) cty.Path {
 	return nil
 }
 
+var _ Diagnostic = &attributeDiagnostic{}
+var _ ComparableDiagnostic = &attributeDiagnostic{}
+
 type attributeDiagnostic struct {
 	diagnosticBase
 	attrPath cty.Path
@@ -383,6 +386,9 @@ func WholeContainingBody(severity Severity, summary, detail string) Diagnostic {
 		},
 	}
 }
+
+var _ Diagnostic = &wholeBodyDiagnostic{}
+var _ ComparableDiagnostic = &wholeBodyDiagnostic{}
 
 type wholeBodyDiagnostic struct {
 	diagnosticBase

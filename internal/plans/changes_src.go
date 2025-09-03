@@ -63,6 +63,11 @@ func (c *ChangesSrc) Empty() bool {
 		}
 	}
 
+	if len(c.ActionInvocations) > 0 {
+		// action invocations can be applied
+		return false
+	}
+
 	return true
 }
 
@@ -568,7 +573,8 @@ type ActionInvocationInstanceSrc struct {
 	Addr          addrs.AbsActionInstance
 	ActionTrigger ActionTrigger
 
-	ConfigValue DynamicValue
+	ConfigValue          DynamicValue
+	SensitiveConfigPaths []cty.Path
 
 	ProviderAddr addrs.AbsProviderConfig
 }
@@ -584,12 +590,13 @@ func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (
 	if err != nil {
 		return nil, fmt.Errorf("error decoding 'config' value: %s", err)
 	}
+	markedConfigValue := marks.MarkPaths(config, marks.Sensitive, acs.SensitiveConfigPaths)
 
 	ai := &ActionInvocationInstance{
 		Addr:          acs.Addr,
 		ActionTrigger: acs.ActionTrigger,
 		ProviderAddr:  acs.ProviderAddr,
-		ConfigValue:   config,
+		ConfigValue:   markedConfigValue,
 	}
 	return ai, nil
 }
@@ -603,12 +610,19 @@ func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc 
 	return &ret
 }
 
-func (needle *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
-	needleLat := needle.ActionTrigger.(LifecycleActionTrigger)
+func (acs *ActionInvocationInstanceSrc) Less(other *ActionInvocationInstanceSrc) bool {
+	if acs.ActionTrigger.Equals(other.ActionTrigger) {
+		return acs.Addr.Less(other.Addr)
+	}
+	return acs.ActionTrigger.Less(other.ActionTrigger)
+}
+
+func (acs *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
+	needleLat := acs.ActionTrigger.(*LifecycleActionTrigger)
 
 	var laterInvocations []*ActionInvocationInstanceSrc
 	for _, invocation := range actionInvocations {
-		if lat, ok := invocation.ActionTrigger.(LifecycleActionTrigger); ok {
+		if lat, ok := invocation.ActionTrigger.(*LifecycleActionTrigger); ok {
 			if lat.TriggeringResourceAddr.Equal(needleLat.TriggeringResourceAddr) && (lat.ActionTriggerBlockIndex > needleLat.ActionTriggerBlockIndex || lat.ActionTriggerBlockIndex == needleLat.ActionTriggerBlockIndex && lat.ActionsListIndex > needleLat.ActionsListIndex) {
 				laterInvocations = append(laterInvocations, invocation)
 			}

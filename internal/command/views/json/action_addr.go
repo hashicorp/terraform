@@ -13,11 +13,11 @@ import (
 type ActionAddr struct {
 	Addr            string                  `json:"addr"`
 	Module          string                  `json:"module"`
-	Action          string                  `json:"resource"`
+	Action          string                  `json:"action"`
 	ImpliedProvider string                  `json:"implied_provider"`
-	ActionType      string                  `json:"resource_type"`
-	ActionName      string                  `json:"resource_name"`
-	ActionKey       ctyjson.SimpleJSONValue `json:"resource_key"`
+	ActionType      string                  `json:"action_type"`
+	ActionName      string                  `json:"action_name"`
+	ActionKey       ctyjson.SimpleJSONValue `json:"action_key"`
 }
 
 func newActionAddr(addr addrs.AbsActionInstance) ActionAddr {

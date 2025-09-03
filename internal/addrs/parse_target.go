@@ -562,6 +562,10 @@ func (t *Target) ModuleAddr() ModuleInstance {
 		return addr.Module
 	case AbsResource:
 		return addr.Module
+	case AbsAction:
+		return addr.Module
+	case AbsActionInstance:
+		return addr.Module
 	default:
 		// The above cases should be exhaustive for all
 		// implementations of Targetable.

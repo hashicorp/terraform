@@ -31,15 +31,22 @@ func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResour
 	}
 }
 
-func testJSONHookActionID(actionAddr addrs.AbsActionInstance, triggeringResourceAddr addrs.AbsResourceInstance, actionTriggerIndex int, actionsListIndex int) terraform.HookActionIdentity {
+func testJSONLifecycleHook(actionAddr addrs.AbsActionInstance, triggeringResourceAddr addrs.AbsResourceInstance, actionTriggerIndex int, actionsListIndex int) terraform.HookActionIdentity {
 	return terraform.HookActionIdentity{
 		Addr: actionAddr,
-		ActionTrigger: plans.LifecycleActionTrigger{
+		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  triggeringResourceAddr,
 			ActionTriggerBlockIndex: actionTriggerIndex,
 			ActionsListIndex:        actionsListIndex,
 			ActionTriggerEvent:      configs.AfterCreate,
 		},
+	}
+}
+
+func testJSONInvokeHook(actionAddr addrs.AbsActionInstance) terraform.HookActionIdentity {
+	return terraform.HookActionIdentity{
+		Addr:          actionAddr,
+		ActionTrigger: new(plans.InvokeActionTrigger),
 	}
 }
 
@@ -610,8 +617,17 @@ func TestJSONHook_actions(t *testing.T) {
 		Name: "boop",
 	}.Instance(addrs.NoKey).Absolute(subModule)
 
-	actionAHookId := testJSONHookActionID(actionA, resourceA, 0, 1)
-	actionBHookId := testJSONHookActionID(actionB, resourceB, 2, 3)
+	actionC := addrs.AbsActionInstance{
+		Module: addrs.RootModuleInstance,
+		Action: addrs.Action{
+			Type: "aws_lambda_invocation",
+			Name: "invoke_me",
+		}.Instance(addrs.IntKey(42)),
+	}
+
+	actionAHookId := testJSONLifecycleHook(actionA, resourceA, 0, 1)
+	actionBHookId := testJSONLifecycleHook(actionB, resourceB, 2, 3)
+	actionCHookId := testJSONInvokeHook(actionC)
 
 	action, err := hook.StartAction(actionAHookId)
 	testHookReturnValues(t, action, err)
@@ -631,10 +647,19 @@ func TestJSONHook_actions(t *testing.T) {
 	action, err = hook.CompleteAction(actionAHookId, errors.New("lambda terminated with exit code 1"))
 	testHookReturnValues(t, action, err)
 
+	action, err = hook.StartAction(actionCHookId)
+	testHookReturnValues(t, action, err)
+
+	action, err = hook.ProgressAction(actionCHookId, "Hello world from the invoked action")
+	testHookReturnValues(t, action, err)
+
+	action, err = hook.CompleteAction(actionCHookId, nil)
+	testHookReturnValues(t, action, err)
+
 	want := []map[string]interface{}{
 		{
 			"@level":   "info",
-			"@message": "test_instance.boop.trigger[0]: Action Started: action.aws_lambda_invocation.notify_slack[42]",
+			"@message": "test_instance.boop.trigger[0]: Action started: action.aws_lambda_invocation.notify_slack[42]",
 			"@module":  "terraform.ui",
 			"type":     "action_start",
 			"hook": map[string]interface{}{
@@ -642,22 +667,25 @@ func TestJSONHook_actions(t *testing.T) {
 					"addr":             "action.aws_lambda_invocation.notify_slack[42]",
 					"module":           "",
 					"implied_provider": "aws",
-					"resource":         "action.aws_lambda_invocation.notify_slack[42]",
-					"resource_key":     float64(42),
-					"resource_name":    "notify_slack",
-					"resource_type":    "aws_lambda_invocation",
+					"action":           "action.aws_lambda_invocation.notify_slack[42]",
+					"action_key":       float64(42),
+					"action_name":      "notify_slack",
+					"action_type":      "aws_lambda_invocation",
 				},
-				"actions_index": float64(1),
-				"resource": map[string]interface{}{
-					"addr":             "test_instance.boop",
-					"implied_provider": "test",
-					"module":           "",
-					"resource":         "test_instance.boop",
-					"resource_key":     nil,
-					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+				"lifecycle": map[string]interface{}{
+					"actions_index": float64(1),
+					"resource": map[string]interface{}{
+						"addr":             "test_instance.boop",
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         "test_instance.boop",
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_instance",
+					},
+					"trigger_event": "AfterCreate",
+					"trigger_index": float64(0),
 				},
-				"trigger_index": float64(0),
 			},
 		},
 		{
@@ -670,28 +698,31 @@ func TestJSONHook_actions(t *testing.T) {
 					"addr":             "action.aws_lambda_invocation.notify_slack[42]",
 					"module":           "",
 					"implied_provider": "aws",
-					"resource":         "action.aws_lambda_invocation.notify_slack[42]",
-					"resource_key":     float64(42),
-					"resource_name":    "notify_slack",
-					"resource_type":    "aws_lambda_invocation",
+					"action":           "action.aws_lambda_invocation.notify_slack[42]",
+					"action_key":       float64(42),
+					"action_name":      "notify_slack",
+					"action_type":      "aws_lambda_invocation",
 				},
-				"actions_index": float64(1),
-				"message":       "Hello world from the lambda function",
-				"resource": map[string]interface{}{
-					"addr":             "test_instance.boop",
-					"implied_provider": "test",
-					"module":           "",
-					"resource":         "test_instance.boop",
-					"resource_key":     nil,
-					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+				"message": "Hello world from the lambda function",
+				"lifecycle": map[string]interface{}{
+					"actions_index": float64(1),
+					"resource": map[string]interface{}{
+						"addr":             "test_instance.boop",
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         "test_instance.boop",
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_instance",
+					},
+					"trigger_event": "AfterCreate",
+					"trigger_index": float64(0),
 				},
-				"trigger_index": float64(0),
 			},
 		},
 		{
 			"@level":   "info",
-			"@message": "module.childMod[\"infra\"].test_instance.boop.trigger[2]: Action Started: module.childMod[\"infra\"].action.ansible_playbook.webserver",
+			"@message": "module.childMod[\"infra\"].test_instance.boop.trigger[2]: Action started: module.childMod[\"infra\"].action.ansible_playbook.webserver",
 			"@module":  "terraform.ui",
 			"type":     "action_start",
 			"hook": map[string]interface{}{
@@ -699,22 +730,25 @@ func TestJSONHook_actions(t *testing.T) {
 					"addr":             "module.childMod[\"infra\"].action.ansible_playbook.webserver",
 					"module":           "module.childMod[\"infra\"]",
 					"implied_provider": "ansible",
-					"resource":         "action.ansible_playbook.webserver",
-					"resource_key":     nil,
-					"resource_name":    "webserver",
-					"resource_type":    "ansible_playbook",
+					"action":           "action.ansible_playbook.webserver",
+					"action_key":       nil,
+					"action_name":      "webserver",
+					"action_type":      "ansible_playbook",
 				},
-				"actions_index": float64(3),
-				"resource": map[string]interface{}{
-					"addr":             "module.childMod[\"infra\"].test_instance.boop",
-					"implied_provider": "test",
-					"module":           "module.childMod[\"infra\"]",
-					"resource":         "test_instance.boop",
-					"resource_key":     nil,
-					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+				"lifecycle": map[string]interface{}{
+					"actions_index": float64(3),
+					"resource": map[string]interface{}{
+						"addr":             "module.childMod[\"infra\"].test_instance.boop",
+						"implied_provider": "test",
+						"module":           "module.childMod[\"infra\"]",
+						"resource":         "test_instance.boop",
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_instance",
+					},
+					"trigger_event": "AfterCreate",
+					"trigger_index": float64(2),
 				},
-				"trigger_index": float64(2),
 			},
 		},
 		{
@@ -727,28 +761,31 @@ func TestJSONHook_actions(t *testing.T) {
 					"addr":             "module.childMod[\"infra\"].action.ansible_playbook.webserver",
 					"module":           "module.childMod[\"infra\"]",
 					"implied_provider": "ansible",
-					"resource":         "action.ansible_playbook.webserver",
-					"resource_key":     nil,
-					"resource_name":    "webserver",
-					"resource_type":    "ansible_playbook",
+					"action":           "action.ansible_playbook.webserver",
+					"action_key":       nil,
+					"action_name":      "webserver",
+					"action_type":      "ansible_playbook",
 				},
-				"actions_index": float64(3),
-				"message":       "TASK: [hello]\n ok: [localhost] => (item=Hello world from the ansible playbook]",
-				"resource": map[string]interface{}{
-					"addr":             "module.childMod[\"infra\"].test_instance.boop",
-					"implied_provider": "test",
-					"module":           "module.childMod[\"infra\"]",
-					"resource":         "test_instance.boop",
-					"resource_key":     nil,
-					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+				"message": "TASK: [hello]\n ok: [localhost] => (item=Hello world from the ansible playbook]",
+				"lifecycle": map[string]interface{}{
+					"actions_index": float64(3),
+					"resource": map[string]interface{}{
+						"addr":             "module.childMod[\"infra\"].test_instance.boop",
+						"implied_provider": "test",
+						"module":           "module.childMod[\"infra\"]",
+						"resource":         "test_instance.boop",
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_instance",
+					},
+					"trigger_event": "AfterCreate",
+					"trigger_index": float64(2),
 				},
-				"trigger_index": float64(2),
 			},
 		},
 		{
 			"@level":   "info",
-			"@message": "module.childMod[\"infra\"].test_instance.boop (2): Action Complete: module.childMod[\"infra\"].action.ansible_playbook.webserver",
+			"@message": "module.childMod[\"infra\"].test_instance.boop (2): Action complete: module.childMod[\"infra\"].action.ansible_playbook.webserver",
 			"@module":  "terraform.ui",
 			"type":     "action_complete",
 			"hook": map[string]interface{}{
@@ -756,27 +793,30 @@ func TestJSONHook_actions(t *testing.T) {
 					"addr":             "module.childMod[\"infra\"].action.ansible_playbook.webserver",
 					"module":           "module.childMod[\"infra\"]",
 					"implied_provider": "ansible",
-					"resource":         "action.ansible_playbook.webserver",
-					"resource_key":     nil,
-					"resource_name":    "webserver",
-					"resource_type":    "ansible_playbook",
+					"action":           "action.ansible_playbook.webserver",
+					"action_key":       nil,
+					"action_name":      "webserver",
+					"action_type":      "ansible_playbook",
 				},
-				"actions_index": float64(3),
-				"resource": map[string]interface{}{
-					"addr":             "module.childMod[\"infra\"].test_instance.boop",
-					"implied_provider": "test",
-					"module":           "module.childMod[\"infra\"]",
-					"resource":         "test_instance.boop",
-					"resource_key":     nil,
-					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+				"lifecycle": map[string]interface{}{
+					"actions_index": float64(3),
+					"resource": map[string]interface{}{
+						"addr":             "module.childMod[\"infra\"].test_instance.boop",
+						"implied_provider": "test",
+						"module":           "module.childMod[\"infra\"]",
+						"resource":         "test_instance.boop",
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_instance",
+					},
+					"trigger_event": "AfterCreate",
+					"trigger_index": float64(2),
 				},
-				"trigger_index": float64(2),
 			},
 		},
 		{
 			"@level":   "info",
-			"@message": "test_instance.boop (0): Action Errored: action.aws_lambda_invocation.notify_slack[42] - lambda terminated with exit code 1",
+			"@message": "test_instance.boop (0): Action errored: action.aws_lambda_invocation.notify_slack[42] - lambda terminated with exit code 1",
 			"@module":  "terraform.ui",
 			"type":     "action_errored",
 			"hook": map[string]interface{}{
@@ -784,23 +824,81 @@ func TestJSONHook_actions(t *testing.T) {
 					"addr":             "action.aws_lambda_invocation.notify_slack[42]",
 					"module":           "",
 					"implied_provider": "aws",
-					"resource":         "action.aws_lambda_invocation.notify_slack[42]",
-					"resource_key":     float64(42),
-					"resource_name":    "notify_slack",
-					"resource_type":    "aws_lambda_invocation",
+					"action":           "action.aws_lambda_invocation.notify_slack[42]",
+					"action_key":       float64(42),
+					"action_name":      "notify_slack",
+					"action_type":      "aws_lambda_invocation",
 				},
-				"actions_index": float64(1),
-				"error":         "lambda terminated with exit code 1",
-				"resource": map[string]interface{}{
-					"addr":             "test_instance.boop",
-					"implied_provider": "test",
+				"error": "lambda terminated with exit code 1",
+				"lifecycle": map[string]interface{}{
+					"actions_index": float64(1),
+					"resource": map[string]interface{}{
+						"addr":             "test_instance.boop",
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         "test_instance.boop",
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_instance",
+					},
+					"trigger_event": "AfterCreate",
+					"trigger_index": float64(0),
+				},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "Action started: action.aws_lambda_invocation.invoke_me[42]",
+			"@module":  "terraform.ui",
+			"type":     "action_start",
+			"hook": map[string]interface{}{
+				"action": map[string]interface{}{
+					"addr":             "action.aws_lambda_invocation.invoke_me[42]",
 					"module":           "",
-					"resource":         "test_instance.boop",
-					"resource_key":     nil,
-					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+					"implied_provider": "aws",
+					"action":           "action.aws_lambda_invocation.invoke_me[42]",
+					"action_key":       float64(42),
+					"action_name":      "invoke_me",
+					"action_type":      "aws_lambda_invocation",
 				},
-				"trigger_index": float64(0),
+				"invoke": map[string]interface{}{},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "action.aws_lambda_invocation.invoke_me[42] - Hello world from the invoked action",
+			"@module":  "terraform.ui",
+			"type":     "action_progress",
+			"hook": map[string]interface{}{
+				"action": map[string]interface{}{
+					"addr":             "action.aws_lambda_invocation.invoke_me[42]",
+					"module":           "",
+					"implied_provider": "aws",
+					"action":           "action.aws_lambda_invocation.invoke_me[42]",
+					"action_key":       float64(42),
+					"action_name":      "invoke_me",
+					"action_type":      "aws_lambda_invocation",
+				},
+				"message": "Hello world from the invoked action",
+				"invoke":  map[string]interface{}{},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "Action complete: action.aws_lambda_invocation.invoke_me[42]",
+			"@module":  "terraform.ui",
+			"type":     "action_complete",
+			"hook": map[string]interface{}{
+				"action": map[string]interface{}{
+					"addr":             "action.aws_lambda_invocation.invoke_me[42]",
+					"module":           "",
+					"implied_provider": "aws",
+					"action":           "action.aws_lambda_invocation.invoke_me[42]",
+					"action_key":       float64(42),
+					"action_name":      "invoke_me",
+					"action_type":      "aws_lambda_invocation",
+				},
+				"invoke": map[string]interface{}{},
 			},
 		},
 	}

@@ -4,10 +4,15 @@
 package plans
 
 import (
+	"fmt"
+
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type ActionInvocationInstance struct {
@@ -23,6 +28,11 @@ type ActionInvocationInstance struct {
 	ConfigValue cty.Value
 }
 
+func (ai *ActionInvocationInstance) Equals(other *ActionInvocationInstance) bool {
+	// Since the trigger can be the same if it's a CLI invocation we also compare the action addr
+	return ai.Addr.Equal(other.Addr) && ai.ActionTrigger.Equals(other.ActionTrigger)
+}
+
 type ActionTrigger interface {
 	actionTriggerSigil()
 
@@ -31,7 +41,14 @@ type ActionTrigger interface {
 	String() string
 
 	Equals(to ActionTrigger) bool
+
+	Less(other ActionTrigger) bool
 }
+
+var (
+	_ ActionTrigger = (*LifecycleActionTrigger)(nil)
+	_ ActionTrigger = (*InvokeActionTrigger)(nil)
+)
 
 type LifecycleActionTrigger struct {
 	TriggeringResourceAddr addrs.AbsResourceInstance
@@ -44,18 +61,18 @@ type LifecycleActionTrigger struct {
 	ActionsListIndex int
 }
 
-func (t LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+func (t *LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 	return t.ActionTriggerEvent
 }
 
-func (t LifecycleActionTrigger) actionTriggerSigil() {}
+func (t *LifecycleActionTrigger) actionTriggerSigil() {}
 
-func (t LifecycleActionTrigger) String() string {
+func (t *LifecycleActionTrigger) String() string {
 	return t.TriggeringResourceAddr.String()
 }
 
-func (t LifecycleActionTrigger) Equals(other ActionTrigger) bool {
-	o, ok := other.(LifecycleActionTrigger)
+func (t *LifecycleActionTrigger) Equals(other ActionTrigger) bool {
+	o, ok := other.(*LifecycleActionTrigger)
 	if !ok {
 		return false
 	}
@@ -65,7 +82,46 @@ func (t LifecycleActionTrigger) Equals(other ActionTrigger) bool {
 		t.ActionsListIndex == o.ActionsListIndex
 }
 
-var _ ActionTrigger = (*LifecycleActionTrigger)(nil)
+func (t *LifecycleActionTrigger) Less(other ActionTrigger) bool {
+	o, ok := other.(*LifecycleActionTrigger)
+	if !ok {
+		return false // We always want to show non-lifecycle actions first
+	}
+
+	return t.TriggeringResourceAddr.Less(o.TriggeringResourceAddr) ||
+		(t.TriggeringResourceAddr.Equal(o.TriggeringResourceAddr) &&
+			t.ActionTriggerBlockIndex < o.ActionTriggerBlockIndex) ||
+		(t.TriggeringResourceAddr.Equal(o.TriggeringResourceAddr) &&
+			t.ActionTriggerBlockIndex == o.ActionTriggerBlockIndex &&
+			t.ActionsListIndex < o.ActionsListIndex)
+}
+
+type InvokeActionTrigger struct{}
+
+func (t *InvokeActionTrigger) actionTriggerSigil() {}
+
+func (t *InvokeActionTrigger) String() string {
+	return "CLI"
+}
+
+func (t *InvokeActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+	return configs.Invoke
+}
+
+func (t *InvokeActionTrigger) Equals(other ActionTrigger) bool {
+	_, ok := other.(*InvokeActionTrigger)
+	if !ok {
+		return false
+	}
+
+	return true // InvokeActionTriggers are always considered equal
+}
+
+func (t *InvokeActionTrigger) Less(other ActionTrigger) bool {
+	// always return true, actions that are equal are already ordered by
+	// address externally. these actions should go first anyway.
+	return true
+}
 
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
@@ -84,8 +140,15 @@ func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*Act
 			ty = schema.ConfigSchema.ImpliedType()
 		}
 
+		unmarkedConfigValue, pvms := ai.ConfigValue.UnmarkDeepWithPaths()
+		sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+		if len(otherMarks) > 0 {
+			return nil, fmt.Errorf("%s: error serializing action invocation with unexpected marks on config value: %#v. This is a bug in Terraform.", tfdiags.FormatCtyPath(otherMarks[0].Path), otherMarks[0].Marks)
+		}
+
 		var err error
-		ret.ConfigValue, err = NewDynamicValue(ai.ConfigValue, ty)
+		ret.ConfigValue, err = NewDynamicValue(unmarkedConfigValue, ty)
+		ret.SensitiveConfigPaths = sensitivePaths
 		if err != nil {
 			return nil, err
 		}

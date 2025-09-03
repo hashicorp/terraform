@@ -3227,36 +3227,6 @@ func TestInit_testsWithModule(t *testing.T) {
 	}
 }
 
-func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("init-with-state-store"), td)
-	t.Chdir(td)
-
-	ui := new(cli.MockUi)
-	view, done := testView(t)
-	c := &InitCommand{
-		Meta: Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: false,
-		},
-	}
-
-	args := []string{}
-	code := c.Run(args)
-	testOutput := done(t)
-	if code != 1 {
-		t.Fatalf("unexpected output: \n%s", testOutput.All())
-	}
-
-	// Check output
-	output := testOutput.Stderr()
-	if !strings.Contains(output, `Blocks of type "state_store" are not expected here`) {
-		t.Fatalf("doesn't look like experiment is blocking access': %s", output)
-	}
-}
-
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).

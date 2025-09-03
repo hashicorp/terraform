@@ -126,10 +126,10 @@ func (runner *TestSuiteRunner) Test(experimentsAllowed bool) (moduletest.Status,
 	// collisions, as the test directory variables should take precedence.
 	maps.Copy(testDirectoryGlobalVariables, runner.GlobalTestVariables)
 
-	suite.Status = moduletest.Pending
+	suite.Status = moduletest.Pass
 	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
 		if runner.Cancelled {
-			return suite.Status, diags
+			return moduletest.Error, diags
 		}
 		file := suite.Files[name]
 		fileRunner := &TestFileRunner{

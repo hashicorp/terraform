@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -17,34 +19,27 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
-func TestContext2Apply_actions(t *testing.T) {
+func TestContextApply_actions(t *testing.T) {
 	for name, tc := range map[string]struct {
 		toBeImplemented                 bool
 		module                          map[string]string
 		mode                            plans.Mode
 		prevRunState                    *states.State
 		events                          func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
+		readResourceFn                  func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
 		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
 
-		planOpts *PlanOpts
+		planOpts  *PlanOpts
+		applyOpts *ApplyOpts
 
-		expectInvokeActionCalled bool
-		expectInvokeActionCalls  []providers.InvokeActionRequest
+		expectInvokeActionCalled            bool
+		expectInvokeActionCalls             []providers.InvokeActionRequest
+		expectInvokeActionCallsAreUnordered bool
 
 		expectDiagnostics func(m *configs.Config) tfdiags.Diagnostics
 	}{
-		"unreferenced": {
-			module: map[string]string{
-				"main.tf": `
-action "act_unlinked" "hello" {}
-		`,
-			},
-			expectInvokeActionCalled: false,
-		},
-
 		"before_create triggered": {
 			module: map[string]string{
 				"main.tf": `
@@ -555,7 +550,6 @@ resource "test_object" "b" {
 		},
 
 		"action with secrets in configuration": {
-			toBeImplemented: true, // We currently don't suppport sensitive values in the plan
 			module: map[string]string{
 				"main.tf": `
 variable "secret_value" {
@@ -828,6 +822,1031 @@ resource "test_object" "a" {
 				}),
 			}},
 		},
+
+		"before_update triggered - on create": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+		},
+
+		"after_update triggered - on create": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_update]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+		},
+
+		"before_update triggered - on replace": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectTainted,
+						AttrsJSON: []byte(`{"name":"previous_run"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			expectInvokeActionCalled: false,
+		},
+
+		"after_update triggered - on replace": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_update]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectTainted,
+						AttrsJSON: []byte(`{"name":"previous_run"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			expectInvokeActionCalled: false,
+		},
+
+		"expanded resource - unexpanded action": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 2
+  name = "test-${count.index}"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"transitive dependencies": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "a"
+}
+action "act_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "b" {
+  name = "b"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("a"),
+				}),
+			}},
+		},
+
+		"expanded transitive dependencies": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "a"
+}
+resource "test_object" "b" {
+  name = "b"
+}
+action "act_unlinked" "hello_a" {
+  config {
+    attr = test_object.a.name
+  }
+}
+action "act_unlinked" "hello_b" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "c" {
+  name = "c"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello_a]
+    }
+  }
+}
+resource "test_object" "d" {
+  name = "d"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello_b]
+    }
+  }
+}
+resource "test_object" "e" {
+  name = "e"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello_a, action.act_unlinked.hello_b]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("a"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("a"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("a"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("a"),
+				}),
+			}},
+		},
+
+		"destroy run": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+			planOpts:                 SimplePlanOpts(plans.DestroyMode, InputValues{}),
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"name":"previous_run"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+		},
+
+		"destroying expanded node": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 2
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					}.Instance(addrs.IntKey(2)).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+		},
+
+		"action config with after_create dependency to triggering resource": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_name"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("test_name"),
+				}),
+			}},
+		},
+
+		"module action with different resource types": {
+			module: map[string]string{
+				"main.tf": `
+module "action_mod" {
+    source = "./action_mod"
+}
+`,
+				"action_mod/main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "trigger" {
+  name = "trigger_resource"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}},
+		},
+
+		"nested module actions": {
+			module: map[string]string{
+				"main.tf": `
+module "parent" {
+    source = "./parent"
+}
+`,
+				"parent/main.tf": `
+module "child" {
+    source = "./child"
+}
+`,
+				"parent/child/main.tf": `
+action "act_unlinked" "nested_action" {
+  config {
+    attr = "nested_value"
+  }
+}
+resource "test_object" "nested_resource" {
+  name = "nested"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.nested_action]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("nested_value"),
+				}),
+			}},
+		},
+
+		"module with for_each and actions": {
+			module: map[string]string{
+				"main.tf": `
+module "multi_mod" {
+    for_each = toset(["a", "b"])
+    source = "./multi_mod"
+    instance_name = each.key
+}
+`,
+				"multi_mod/main.tf": `
+variable "instance_name" {
+  type = string
+}
+
+action "act_unlinked" "hello" {
+  config {
+    attr = "instance-${var.instance_name}"
+  }
+}
+resource "test_object" "resource" {
+  name = "resource-${var.instance_name}"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled:            true,
+			expectInvokeActionCallsAreUnordered: true, // The order depends on the order of the modules
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("instance-a"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("instance-b"),
+				}),
+			}},
+		},
+
+		"write-only attributes": {
+			module: map[string]string{
+				"main.tf": `
+variable "attr" {
+  type = string
+  ephemeral = true
+}
+
+resource "test_object" "resource" {
+  name = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked_wo.hello]
+    }
+  }
+}
+
+action "act_unlinked_wo" "hello" {
+  config {
+    attr = var.attr
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked_wo",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("wo-apply"),
+					}),
+				},
+			},
+			planOpts: SimplePlanOpts(plans.NormalMode, InputValues{
+				"attr": {
+					Value: cty.StringVal("wo-plan"),
+				},
+			}),
+			applyOpts: &ApplyOpts{
+				SetVariables: InputValues{
+					"attr": {
+						Value: cty.StringVal("wo-apply"),
+					},
+				},
+			},
+		},
+		"simple action invoke": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "act_unlinked" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "act_unlinked",
+								Name: "one",
+							},
+							Key: addrs.NoKey,
+						},
+					},
+				},
+			},
+		},
+
+		"action invoke with count (all)": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+action "act_unlinked" "two" {
+  count = 2
+
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "act_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("0"),
+					}),
+				},
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("1"),
+					}),
+				},
+			},
+			expectInvokeActionCallsAreUnordered: true,
+		},
+
+		"action invoke with count (instance)": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+action "act_unlinked" "two" {
+  count = 2
+
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "act_unlinked",
+								Name: "one",
+							},
+							Key: addrs.IntKey(0),
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("0"),
+					}),
+				},
+			},
+		},
+
+		"invoke action with reference": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "act_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "act_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+
+		"invoke action with reference (drift)": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "act_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "act_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("drifted value"),
+					}),
+				},
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+
+		"invoke action with reference (drift, skip refresh)": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "act_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode:        plans.RefreshOnlyMode,
+				SkipRefresh: true,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "act_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+
+		"nested action config single + list blocks applies": {
+			module: map[string]string{
+				"main.tf": `
+action "act_nested" "with_blocks" {
+  config {
+    top_attr = "top"
+    settings {
+      name = "primary"
+      rule { value = "r1" }
+      rule { value = "r2" }
+    }
+  }
+}
+resource "test_object" "a" {
+  name = "object"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.act_nested.with_blocks]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_nested",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"top_attr": cty.StringVal("top"),
+						"settings": cty.ObjectVal(map[string]cty.Value{
+							"name": cty.StringVal("primary"),
+							"rule": cty.ListVal([]cty.Value{
+								cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("r1")}),
+								cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("r2")}),
+							}),
+						}),
+						"settings_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+							"id": cty.String,
+						})),
+					}),
+				},
+			},
+		},
+		"nested action config top-level list blocks applies": {
+			module: map[string]string{
+				"main.tf": `
+action "act_nested" "with_list" {
+  config {
+    settings_list { id = "one" }
+    settings_list { id = "two" }
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.act_nested.with_list]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_nested",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"top_attr": cty.NullVal(cty.String),
+						"settings": cty.NullVal(cty.Object(map[string]cty.Type{
+							"name": cty.String,
+							"rule": cty.List(cty.Object(map[string]cty.Type{
+								"value": cty.String,
+							})),
+						})),
+						"settings_list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("one")}),
+							cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("two")}),
+						}),
+					}),
+				},
+			},
+		},
+		"conditions": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+count = 3
+config {
+  attr = "value-${count.index}"
+}
+}
+resource "test_object" "foo" {
+name = "foo"
+}
+resource "test_object" "resource" {
+name = "resource"
+lifecycle {
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "bar"
+    actions = [action.act_unlinked.hello[0]]
+  }
+  
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "foo"
+    actions = [action.act_unlinked.hello[1], action.act_unlinked.hello[2]]
+  }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-1"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-2"),
+				}),
+			}},
+		},
+
+		"simple condition evaluation - true": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = "foo" == "foo"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"simple condition evaluation - false": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = "foo" == "bar"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+		},
+
+		"using count.index in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 3
+  name = "item-${count.index}"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = count.index == 1
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"using each.key in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar"])
+  name = each.key
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = each.key == "foo"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"using each.value in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = {"foo" = "value1", "bar" = "value2"}
+  name = each.value
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = each.value == "value1"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -853,6 +1872,12 @@ resource "test_object" "a" {
 						},
 					},
 				},
+			}
+
+			if tc.readResourceFn != nil {
+				testProvider.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+					return tc.readResourceFn(t, r)
+				}
 			}
 
 			invokeActionFn := func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
@@ -897,6 +1922,56 @@ resource "test_object" "a" {
 								},
 							},
 
+							Unlinked: &providers.UnlinkedAction{},
+						},
+						"act_unlinked_wo": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"attr": {
+										Type:      cty.String,
+										Optional:  true,
+										WriteOnly: true,
+									},
+								},
+							},
+
+							Unlinked: &providers.UnlinkedAction{},
+						},
+						// Added nested action schema with nested blocks
+						"act_nested": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"top_attr": {Type: cty.String, Optional: true},
+								},
+								BlockTypes: map[string]*configschema.NestedBlock{
+									"settings": {
+										Nesting: configschema.NestingSingle,
+										Block: configschema.Block{
+											Attributes: map[string]*configschema.Attribute{
+												"name": {Type: cty.String, Required: true},
+											},
+											BlockTypes: map[string]*configschema.NestedBlock{
+												"rule": {
+													Nesting: configschema.NestingList,
+													Block: configschema.Block{
+														Attributes: map[string]*configschema.Attribute{
+															"value": {Type: cty.String, Required: true},
+														},
+													},
+												},
+											},
+										},
+									},
+									"settings_list": {
+										Nesting: configschema.NestingList,
+										Block: configschema.Block{
+											Attributes: map[string]*configschema.Attribute{
+												"id": {Type: cty.String, Required: true},
+											},
+										},
+									},
+								},
+							},
 							Unlinked: &providers.UnlinkedAction{},
 						},
 					},
@@ -949,7 +2024,11 @@ resource "test_object" "a" {
 			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			_, diags = ctx.Apply(plan, m, nil)
+			if !plan.Applyable {
+				t.Fatalf("plan is not applyable but should be")
+			}
+
+			_, diags = ctx.Apply(plan, m, tc.applyOpts)
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
 			} else {
@@ -963,14 +2042,30 @@ resource "test_object" "a" {
 			if len(tc.expectInvokeActionCalls) > 0 && len(invokeActionCalls) != len(tc.expectInvokeActionCalls) {
 				t.Fatalf("expected %d invoke action calls, got %d", len(tc.expectInvokeActionCalls), len(invokeActionCalls))
 			}
-			for i, expectedCall := range tc.expectInvokeActionCalls {
-				actualCall := invokeActionCalls[i]
 
-				if actualCall.ActionType != expectedCall.ActionType {
-					t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
-				}
-				if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
-					t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
+			for i, expectedCall := range tc.expectInvokeActionCalls {
+				if tc.expectInvokeActionCallsAreUnordered {
+					// We established the length is correct, so we just need to find one call that matches for each
+					found := false
+					for _, actualCall := range invokeActionCalls {
+						if actualCall.ActionType == expectedCall.ActionType && actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Fatalf("expected invoke action call with ActionType %s and PlannedActionData %s was not found in actual calls", expectedCall.ActionType, expectedCall.PlannedActionData.GoString())
+					}
+				} else {
+					// Expect correct order
+					actualCall := invokeActionCalls[i]
+
+					if actualCall.ActionType != expectedCall.ActionType {
+						t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
+					}
+					if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
+						t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
+					}
 				}
 			}
 		})
