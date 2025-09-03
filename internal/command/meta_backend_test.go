@@ -2448,7 +2448,7 @@ func testMetaBackend(t *testing.T, args []string) *Meta {
 
 // testStateStoreMock returns a mock provider that has a state store implementation
 // The provider uses the name "test" and the store inside is "test_store".
-func testStateStoreMock(t *testing.T) providers.Interface {
+func testStateStoreMock(t *testing.T) *testing_provider.MockProvider {
 	t.Helper()
 	return &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
