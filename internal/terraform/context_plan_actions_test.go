@@ -3066,17 +3066,28 @@ resource "test_object" "a" {
 				if len(p.DeferredResources) != 2 {
 					t.Fatalf("Expected 2 deferred resources, got %d", len(p.DeferredResources))
 				}
-				if p.DeferredResources[0].ChangeSrc.Addr.String() != "test_object.origin" {
-					t.Errorf("Expected test_object.origin, got %s", p.DeferredResources[0].ChangeSrc.Addr.String())
+
+				slices.SortFunc(p.DeferredResources, func(a, b *plans.DeferredResourceInstanceChangeSrc) int {
+					if a.ChangeSrc.Addr.Less(b.ChangeSrc.Addr) {
+						return -1
+					}
+					if b.ChangeSrc.Addr.Less(a.ChangeSrc.Addr) {
+						return 1
+					}
+					return 0
+				})
+
+				if p.DeferredResources[0].ChangeSrc.Addr.String() != "test_object.a" {
+					t.Errorf("Expected test_object.a to be first, got %s", p.DeferredResources[0].ChangeSrc.Addr.String())
 				}
-				if p.DeferredResources[0].DeferredReason != providers.DeferredReasonAbsentPrereq {
-					t.Errorf("Expected DeferredReasonAbsentPrereq, got %s", p.DeferredResources[0].DeferredReason)
+				if p.DeferredResources[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredResources[0].DeferredReason)
 				}
-				if p.DeferredResources[1].ChangeSrc.Addr.String() != "test_object.a" {
-					t.Errorf("Expected test_object.a, got %s", p.DeferredResources[1].ChangeSrc.Addr.String())
+				if p.DeferredResources[1].ChangeSrc.Addr.String() != "test_object.origin" {
+					t.Errorf("Expected test_object.origin to be second, got %s", p.DeferredResources[1].ChangeSrc.Addr.String())
 				}
-				if p.DeferredResources[1].DeferredReason != providers.DeferredReasonDeferredPrereq {
-					t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredResources[1].DeferredReason)
+				if p.DeferredResources[1].DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Errorf("Expected DeferredReasonAbsentPrereq, got %s", p.DeferredResources[1].DeferredReason)
 				}
 			},
 		},

@@ -67,6 +67,10 @@ func TestRenderHuman_InvokeActionPlan(t *testing.T) {
 	plan.renderHuman(renderer, plans.RefreshOnlyMode)
 
 	want := `
+Terraform will perform the following actions:
+
+Plan: 0 to add, 0 to change, 0 to destroy. Actions: 1 to invoke.
+
 Terraform will invoke the following action(s):
 
   # action.test_action.action will be invoked
@@ -178,6 +182,10 @@ record the updated values in the Terraform state without changing any remote
 objects.
 
 ─────────────────────────────────────────────────────────────────────────────
+
+Terraform will perform the following actions:
+
+Plan: 0 to add, 0 to change, 0 to destroy. Actions: 1 to invoke.
 
 Terraform will invoke the following action(s):
 
