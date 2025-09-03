@@ -2538,3 +2538,35 @@ func testMetaBackend(t *testing.T, args []string) *Meta {
 
 	return &m
 }
+
+// testStateStoreMock returns a mock provider that has a state store implementation
+// The provider uses the name "test" and the store inside is "test_store".
+func testStateStoreMock(t *testing.T) providers.Interface {
+	t.Helper()
+	return &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				"test_store": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
