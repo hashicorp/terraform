@@ -2397,6 +2397,38 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	}
 }
 
+func TestSavedBackend(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("backend-unset"), td) // Backend state file describes local backend, config lacks backend config
+	t.Chdir(td)
+
+	// Make a state manager for the backend state file,
+	// read state from file
+	m := testMetaBackend(t, nil)
+	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	err := sMgr.RefreshState()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// Code under test
+	b, diags := m.savedBackend(sMgr)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	// The test fixtures backend state file describes a local backend with a non-default path value
+	localB, ok := b.(*local.Local)
+	if !ok {
+		t.Fatalf("expected the returned backend to be a local backend, matching the test fixtures.")
+	}
+	if localB.StatePath != "local-state.tfstate" {
+		t.Fatalf("expected the local backend to be configured using the backend state file, but got unexpected configuration values.")
+	}
+}
+
 func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
 	m.Ui = new(cli.MockUi)
