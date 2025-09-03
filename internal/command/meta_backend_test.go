@@ -2099,32 +2099,7 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
@@ -2214,32 +2189,7 @@ func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
@@ -2285,32 +2235,7 @@ func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
@@ -2353,32 +2278,7 @@ func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
@@ -2475,32 +2375,7 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 			//
 			// This imagines a provider called foo that contains
 			// a pluggable state store implementation called bar.
-			mock := &testing_provider.MockProvider{
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					Provider: providers.Schema{
-						Body: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"region": {Type: cty.String, Optional: true},
-							},
-						},
-					},
-					DataSources:       map[string]providers.Schema{},
-					ResourceTypes:     map[string]providers.Schema{},
-					ListResourceTypes: map[string]providers.Schema{},
-					StateStores: map[string]providers.Schema{
-						"foo_bar": {
-							Body: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"bar": {
-										Type:     cty.String,
-										Required: true,
-									},
-								},
-							},
-						},
-					},
-				},
-			}
+			mock := testStateStoreMock(t)
 			factory := func() (providers.Interface, error) {
 				return mock, nil
 			}
