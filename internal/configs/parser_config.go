@@ -258,12 +258,10 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			}
 
 		case "action":
-			if allowExperiments {
-				cfg, cfgDiags := decodeActionBlock(block)
-				diags = append(diags, cfgDiags...)
-				if cfg != nil {
-					file.Actions = append(file.Actions, cfg)
-				}
+			cfg, cfgDiags := decodeActionBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Actions = append(file.Actions, cfg)
 			}
 
 		default:
