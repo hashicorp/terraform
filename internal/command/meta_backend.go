@@ -2342,15 +2342,16 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 	return diags
 }
 
-func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (providers.Factory, tfdiags.Diagnostics) {
+func (m *Meta) getStateStoreProviderFactory(store stateStore.StateStoreDescriber) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if config.ProviderAddr.IsZero() {
+	storeProvider := store.ProviderDetails()
+	if storeProvider.Addr().IsZero() {
 		// This should not happen; this data is populated when parsing config,
 		// even for builtin providers
 		panic(fmt.Sprintf("unknown provider while beginning to initialize state store %q from provider %q",
-			config.Type,
-			config.Provider.Name))
+			store.StoreType(),
+			storeProvider.Name()))
 	}
 
 	ctxOpts, err := m.contextOpts()
@@ -2359,17 +2360,17 @@ func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (provide
 		return nil, diags
 	}
 
-	factory, exists := ctxOpts.Providers[config.ProviderAddr]
+	factory, exists := ctxOpts.Providers[storeProvider.Addr()]
 	if !exists {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Provider unavailable",
 			Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
-				config.Provider.Name,
-				config.ProviderAddr,
-				config.Type,
+				storeProvider.Name(),
+				storeProvider.Addr(),
+				store.StoreType(),
 			),
-			Subject: &config.TypeRange,
+			Subject: store.TypeHclRange(),
 		})
 		return nil, diags
 	}

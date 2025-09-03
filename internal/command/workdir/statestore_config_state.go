@@ -9,9 +9,11 @@ import (
 	"fmt"
 
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	stateStore "github.com/hashicorp/terraform/internal/state-store"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -19,6 +21,7 @@ import (
 var _ ConfigState = &StateStoreConfigState{}
 var _ DeepCopier[StateStoreConfigState] = &StateStoreConfigState{}
 var _ PlanDataProvider[plans.StateStore] = &StateStoreConfigState{}
+var _ stateStore.StateStoreDescriber = &StateStoreConfigState{}
 
 // StateStoreConfigState describes the physical storage format for the state store
 type StateStoreConfigState struct {
@@ -145,7 +148,28 @@ func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
 	return ret
 }
 
+func (s *StateStoreConfigState) StoreType() string {
+	return s.Type
+}
+
+func (s *StateStoreConfigState) TypeHclRange() *hcl.Range {
+	return nil // Backend state data isn't configuration
+}
+
+func (s *StateStoreConfigState) DeclHclRange() *hcl.Range {
+	return nil // Backend state data isn't configuration
+}
+
+func (s *StateStoreConfigState) IsConfig() bool {
+	return false // Backend state data isn't configuration
+}
+
+func (s *StateStoreConfigState) ProviderDetails() stateStore.StateStoreProviderDescriber {
+	return s.Provider
+}
+
 var _ ConfigState = &ProviderConfigState{}
+var _ stateStore.StateStoreProviderDescriber = &ProviderConfigState{}
 
 // ProviderConfigState is used in the StateStoreConfigState struct to describe the provider that's used for pluggable
 // state storage. The version and source data inside should mirror an entry in the dependency lock file.
@@ -191,4 +215,18 @@ func (s *ProviderConfigState) SetConfig(val cty.Value, schema *configschema.Bloc
 	}
 	s.ConfigRaw = buf
 	return nil
+}
+
+// Name returns the Type of the provider used for pluggable state storage, as
+// the backend state file doesn't contain the name of the provider set via configuration
+func (s *ProviderConfigState) Name() string {
+	return s.Source.Type
+}
+
+func (s *ProviderConfigState) Addr() tfaddr.Provider {
+	return *s.Source
+}
+
+func (s *ProviderConfigState) DeclHclRange() *hcl.Range {
+	return nil // Backend state data isn't configuration
 }

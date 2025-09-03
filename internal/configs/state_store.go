@@ -11,6 +11,7 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	stateStore "github.com/hashicorp/terraform/internal/state-store"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -206,4 +207,48 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 	})
 
 	return ssToHash.Hash(), pToHash.Hash(), diags
+}
+
+var _ stateStore.StateStoreDescriber = &StateStore{}
+
+func (b *StateStore) StoreType() string {
+	return b.Type
+}
+
+func (b *StateStore) TypeHclRange() *hcl.Range {
+	return &b.TypeRange
+}
+
+func (b *StateStore) DeclHclRange() *hcl.Range {
+	return &b.DeclRange
+}
+
+func (b *StateStore) IsConfig() bool {
+	return true // Receiver is a representation of parsed configuration.
+}
+
+func (b *StateStore) ProviderDetails() stateStore.StateStoreProviderDescriber {
+	return stateStoreProvider{
+		provider:     b.Provider,
+		providerAddr: b.ProviderAddr,
+	}
+}
+
+var _ stateStore.StateStoreProviderDescriber = &stateStoreProvider{}
+
+type stateStoreProvider struct {
+	provider     *Provider
+	providerAddr tfaddr.Provider
+}
+
+func (p stateStoreProvider) Name() string {
+	return p.provider.Name
+}
+
+func (p stateStoreProvider) Addr() tfaddr.Provider {
+	return p.providerAddr
+}
+
+func (p stateStoreProvider) DeclHclRange() *hcl.Range {
+	return &p.provider.DeclRange
 }
