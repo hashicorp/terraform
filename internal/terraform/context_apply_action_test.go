@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestContext2Apply_actions(t *testing.T) {
+func TestContextApply_actions(t *testing.T) {
 	for name, tc := range map[string]struct {
 		toBeImplemented                 bool
 		module                          map[string]string
@@ -1622,6 +1622,231 @@ action "act_unlinked" "one" {
 				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 			}),
 		},
+
+		"nested action config single + list blocks applies": {
+			module: map[string]string{
+				"main.tf": `
+action "act_nested" "with_blocks" {
+  config {
+    top_attr = "top"
+    settings {
+      name = "primary"
+      rule { value = "r1" }
+      rule { value = "r2" }
+    }
+  }
+}
+resource "test_object" "a" {
+  name = "object"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.act_nested.with_blocks]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_nested",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"top_attr": cty.StringVal("top"),
+						"settings": cty.ObjectVal(map[string]cty.Value{
+							"name": cty.StringVal("primary"),
+							"rule": cty.ListVal([]cty.Value{
+								cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("r1")}),
+								cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("r2")}),
+							}),
+						}),
+						"settings_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+							"id": cty.String,
+						})),
+					}),
+				},
+			},
+		},
+		"nested action config top-level list blocks applies": {
+			module: map[string]string{
+				"main.tf": `
+action "act_nested" "with_list" {
+  config {
+    settings_list { id = "one" }
+    settings_list { id = "two" }
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.act_nested.with_list]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_nested",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"top_attr": cty.NullVal(cty.String),
+						"settings": cty.NullVal(cty.Object(map[string]cty.Type{
+							"name": cty.String,
+							"rule": cty.List(cty.Object(map[string]cty.Type{
+								"value": cty.String,
+							})),
+						})),
+						"settings_list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("one")}),
+							cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("two")}),
+						}),
+					}),
+				},
+			},
+		},
+		"conditions": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {
+count = 3
+config {
+  attr = "value-${count.index}"
+}
+}
+resource "test_object" "foo" {
+name = "foo"
+}
+resource "test_object" "resource" {
+name = "resource"
+lifecycle {
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "bar"
+    actions = [action.act_unlinked.hello[0]]
+  }
+  
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "foo"
+    actions = [action.act_unlinked.hello[1], action.act_unlinked.hello[2]]
+  }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-1"),
+				}),
+			}, {
+				ActionType: "act_unlinked",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("value-2"),
+				}),
+			}},
+		},
+
+		"simple condition evaluation - true": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = "foo" == "foo"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"simple condition evaluation - false": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = "foo" == "bar"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+		},
+
+		"using count.index in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  count = 3
+  name = "item-${count.index}"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = count.index == 1
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"using each.key in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar"])
+  name = each.key
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = each.key == "foo"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
+
+		"using each.value in after_create condition": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  for_each = {"foo" = "value1", "bar" = "value2"}
+  name = each.value
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = each.value == "value1"
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -1710,6 +1935,43 @@ action "act_unlinked" "one" {
 								},
 							},
 
+							Unlinked: &providers.UnlinkedAction{},
+						},
+						// Added nested action schema with nested blocks
+						"act_nested": {
+							ConfigSchema: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"top_attr": {Type: cty.String, Optional: true},
+								},
+								BlockTypes: map[string]*configschema.NestedBlock{
+									"settings": {
+										Nesting: configschema.NestingSingle,
+										Block: configschema.Block{
+											Attributes: map[string]*configschema.Attribute{
+												"name": {Type: cty.String, Required: true},
+											},
+											BlockTypes: map[string]*configschema.NestedBlock{
+												"rule": {
+													Nesting: configschema.NestingList,
+													Block: configschema.Block{
+														Attributes: map[string]*configschema.Attribute{
+															"value": {Type: cty.String, Required: true},
+														},
+													},
+												},
+											},
+										},
+									},
+									"settings_list": {
+										Nesting: configschema.NestingList,
+										Block: configschema.Block{
+											Attributes: map[string]*configschema.Attribute{
+												"id": {Type: cty.String, Required: true},
+											},
+										},
+									},
+								},
+							},
 							Unlinked: &providers.UnlinkedAction{},
 						},
 					},

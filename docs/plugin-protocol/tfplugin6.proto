@@ -146,46 +146,14 @@ message ResourceIdentityData {
 
 // ActionSchema defines the schema for an action that can be invoked by Terraform.
 message ActionSchema {
-    message LinkedResource {
-        string type_name = 1;
-        // description is a human-readable description of the role of the linked resource.
-        // For lifecycle actions this is most likely just the resource being acted upon.
-        // For linked actions where multiple resources are linked, this description should
-        // help the user understand what the resource is used for.
-        string description = 2;
-    }
-
     // An Unlinked action is an action that is not linked to any resources. It may contain
     // references to resources but it can not change the resource state of any resource.
     message Unlinked {}
-    
-    // A Lifecycle action is an action that is linked to a resources lifecycle. It runs as part of 
-    // the lifecycle and may change the resource state of the resource it is linked to to a degree. 
-    // It can only affect computed attributes of the resource it is linked to.
-    message Lifecycle {
-        // ExecutionOrder defines if the action should be executed before or after the resource,
-        // in whose lifecycle the action runs, applies
-        enum ExecutionOrder {
-            INVALID = 0;
-            BEFORE = 1;
-            AFTER = 2;
-        }
-
-        ExecutionOrder executes = 1; 
-        LinkedResource linked_resource = 2;
-    }
-    
-    // A linked action can be linked to multiple resources and can change the resource state of those resources. It can not be run as part of plan and apply.
-    message Linked {
-        repeated LinkedResource linked_resources = 1;
-    }
 
     Schema schema = 1; // of the action itself
 
     oneof type {
         Unlinked unlinked = 2;
-        Lifecycle lifecycle = 3;
-        Linked linked = 4;
     }
 }
 

@@ -9,7 +9,9 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -20,6 +22,7 @@ type nodeActionTriggerApply struct {
 	ActionInvocation   *plans.ActionInvocationInstanceSrc
 	resolvedProvider   addrs.AbsProviderConfig
 	ActionTriggerRange *hcl.Range
+	ConditionExpr      hcl.Expression
 }
 
 var (
@@ -28,14 +31,38 @@ var (
 )
 
 func (n *nodeActionTriggerApply) Name() string {
-	return "action_apply_" + n.ActionInvocation.Addr.String()
+	return n.ActionInvocation.Addr.String() + " (instance)"
 }
 
 func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	actionInvocation := n.ActionInvocation
 
-	// TODO: Handle verifying the condition here, if we have any.
+	if n.ConditionExpr != nil {
+		// We know this must be a lifecycle action, otherwise we would have no condition
+		at := actionInvocation.ActionTrigger.(*plans.LifecycleActionTrigger)
+		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
+			// For applying the triggering event is sufficient, if the condition could not have
+			// been evaluated due to in invalid mix of events we would have caught it durin planning.
+			events:          []configs.ActionTriggerEvent{at.ActionTriggerEvent},
+			conditionExpr:   n.ConditionExpr,
+			resourceAddress: at.TriggeringResourceAddr,
+		})
+		diags = diags.Append(conditionDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		if !condition {
+			return diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Condition changed evaluation during apply",
+				Detail:   "The condition evaluated to false during apply, but was true during planning. This may lead to unexpected behavior.",
+				Subject:  n.ConditionExpr.Range().Ptr(),
+			})
+		}
+	}
+
 	ai := ctx.Changes().GetActionInvocation(actionInvocation.Addr, actionInvocation.ActionTrigger)
 	if ai == nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -164,12 +191,25 @@ func (n *nodeActionTriggerApply) References() []*addrs.Reference {
 		Subject: n.ActionInvocation.Addr.Action,
 	})
 
+	conditionRefs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, n.ConditionExpr)
+	if refDiags.HasErrors() {
+		panic(fmt.Sprintf("error parsing references in expression: %v", refDiags))
+	}
+	if conditionRefs != nil {
+		refs = append(refs, conditionRefs...)
+	}
+
 	return refs
 }
 
 // GraphNodeModulePath
 func (n *nodeActionTriggerApply) ModulePath() addrs.Module {
 	return n.ActionInvocation.Addr.Module.Module()
+}
+
+// GraphNodeModuleInstance
+func (n *nodeActionTriggerApply) Path() addrs.ModuleInstance {
+	return n.ActionInvocation.Addr.Module
 }
 
 func (n *nodeActionTriggerApply) AddSubjectToDiagnostics(input tfdiags.Diagnostics) tfdiags.Diagnostics {
