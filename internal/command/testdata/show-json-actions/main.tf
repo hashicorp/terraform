@@ -19,7 +19,7 @@ resource "test_instance" "test" {
   lifecycle {
     action_trigger {
       events  = [before_create]
-      actions = [action.test_action.hello]
+      actions = [action.test_action.hello[0]]
     }
   }
 }
