@@ -541,6 +541,45 @@ func TestCloud_planWithRefreshOnly(t *testing.T) {
 	}
 }
 
+func TestCloud_planWithInvoke(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/action")
+	defer configCleanup()
+	defer done(t)
+
+	addr, _ := addrs.ParseAbsActionInstanceStr("action.test_action.test")
+
+	op.ActionTargets = append(op.ActionTargets, addr)
+	op.Workspace = testBackendSingleWorkspaceName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backendrun.OperationSuccess {
+		t.Fatal("expected plan operation to succeed")
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to be non-empty")
+	}
+
+	// We should find a run inside the mock client that has the same
+	// target address we requested above.
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
+		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
+	}
+	for _, run := range runsAPI.Runs {
+		if diff := cmp.Diff("action.test_action.test", run.InvokeActionAddr); diff != "" {
+			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
+		}
+	}
+}
+
 func TestCloud_planWithTarget(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()

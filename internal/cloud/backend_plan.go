@@ -273,6 +273,23 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 	}
 
+	if len(op.ActionTargets) != 0 {
+		if len(op.ActionTargets) > 1 {
+			// For now, we only support a single action from the command line.
+			// We've future proofed the API and inputs so we can send multiple
+			// but versions of Terraform will enforce this both here, and
+			// on the other side.
+			//
+			// It shouldn't actually be possible to reach here anyway - we're
+			// validating at the point the flag is read that it only has a
+			// single entry. But, we'll check again to be safe.
+			return nil, errors.New("unsupported arguments, at most 1 action can be invoked per operation")
+		}
+
+		// TODO: Switch this over to a slice once go-tfe is updated.
+		runOptions.InvokeActionAddr = tfe.String(op.ActionTargets[0].String())
+	}
+
 	if len(op.ForceReplace) != 0 {
 		runOptions.ReplaceAddrs = make([]string, 0, len(op.ForceReplace))
 		for _, addr := range op.ForceReplace {

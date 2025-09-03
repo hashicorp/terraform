@@ -1214,6 +1214,13 @@ func (m *MockRegistryModules) ReadVersion(ctx context.Context, moduleID tfe.Regi
 	panic("implement me")
 }
 
+func (m *MockRegistryModules) ReadTerraformRegistryModule(ctx context.Context, moduleID tfe.RegistryModuleID, version string) (*tfe.TerraformRegistryModule, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+var _ tfe.Runs = (*MockRuns)(nil)
+
 type MockRuns struct {
 	sync.Mutex
 
@@ -1259,6 +1266,11 @@ func (m *MockRuns) List(ctx context.Context, workspaceID string, options *tfe.Ru
 	}
 
 	return rl, nil
+}
+
+func (m *MockRuns) ListForOrganization(ctx context.Context, organization string, options *tfe.RunListForOrganizationOptions) (*tfe.OrganizationRunList, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*tfe.Run, error) {
@@ -1321,6 +1333,10 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 
 	if options.AllowConfigGeneration != nil && *options.AllowConfigGeneration {
 		r.Plan.GeneratedConfiguration = true
+	}
+
+	if options.InvokeActionAddr != nil {
+		r.InvokeActionAddr = *options.InvokeActionAddr
 	}
 
 	w, ok := m.client.Workspaces.workspaceIDs[options.Workspace.ID]
@@ -1388,7 +1404,8 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, options *t
 		hasChanges := r.IsDestroy ||
 			bytes.Contains(logs, []byte("1 to add")) ||
 			bytes.Contains(logs, []byte("1 to change")) ||
-			bytes.Contains(logs, []byte("1 to import"))
+			bytes.Contains(logs, []byte("1 to import")) ||
+			bytes.Contains(logs, []byte("Terraform will invoke the following action(s)"))
 		if hasChanges {
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
@@ -1885,6 +1902,11 @@ func newMockVariables(client *MockClient) *MockVariables {
 func (m *MockVariables) List(ctx context.Context, workspaceID string, options *tfe.VariableListOptions) (*tfe.VariableList, error) {
 	vl := m.workspaces[workspaceID]
 	return vl, nil
+}
+
+func (m *MockVariables) ListAll(ctx context.Context, workspaceID string, options *tfe.VariableListOptions) (*tfe.VariableList, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (m *MockVariables) Create(ctx context.Context, workspaceID string, options tfe.VariableCreateOptions) (*tfe.Variable, error) {
