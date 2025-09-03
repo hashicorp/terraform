@@ -94,9 +94,10 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 	// Precompute the outputs and actions early, so we can make a decision about whether we
 	// display the "there are no changes messages".
 	outputs := renderHumanDiffOutputs(renderer, diffs.outputs)
-	actions := renderHumanActionInvocations(renderer, plan.ActionInvocations)
+	actions := renderHumanActionInvocations(renderer, diffs.actions)
+	actionCount := len(plan.ActionInvocations) // diffs.actions is just the CLI-invoked actions
 
-	if len(changes) == 0 && len(outputs) == 0 && len(actions) == 0 {
+	if len(changes) == 0 && len(outputs) == 0 && actionCount == 0 {
 		// If we didn't find any changes to report at all then this is a
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
@@ -224,7 +225,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 		}
 	}
 
-	if len(changes) > 0 {
+	if len(changes) > 0 || actionCount > 0 {
 		if checkOpts(plans.Errored) {
 			renderer.Streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n")
 		} else {
@@ -239,24 +240,27 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 			}
 		}
 
+		var buf strings.Builder
+		buf.WriteString(renderer.Colorize.Color("\n[bold]Plan:[reset] "))
 		if importingCount > 0 {
-			renderer.Streams.Printf(
-				renderer.Colorize.Color("\n[bold]Plan:[reset] %d to import, %d to add, %d to change, %d to destroy.\n"),
-				importingCount,
-				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
-				counts[plans.Update],
-				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
-		} else {
-			renderer.Streams.Printf(
-				renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
-				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
-				counts[plans.Update],
-				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+			buf.WriteString(fmt.Sprintf("%d to import, ", importingCount))
 		}
+		buf.WriteString(fmt.Sprintf("%d to add, %d to change, %d to destroy.",
+			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+			counts[plans.Update],
+			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]),
+		)
+
+		if actionCount > 0 {
+			buf.WriteString(fmt.Sprintf(" Actions: %d to invoke.", actionCount))
+		}
+		buf.WriteString("\n")
+
+		renderer.Streams.Print(buf.String())
 	}
 
 	if len(actions) > 0 {
-		renderer.Streams.Print("\nActions to be invoked:\n")
+		renderer.Streams.Print(renderer.Colorize.Color("\nTerraform will invoke the following action(s):\n\n"))
 		renderer.Streams.Printf("%s\n", actions)
 	}
 
@@ -502,8 +506,13 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 
 // All actions that run based on the resource lifecycle should be rendered as part of the resource
 // changes, therefore this function only renders actions that are invoked by the CLI
-func renderHumanActionInvocations(renderer Renderer, actionInvocations []jsonplan.ActionInvocation) string {
-	return "" // TODO: We will use this function once we support CLI invoked actions.
+func renderHumanActionInvocations(renderer Renderer, actionInvocations []actionInvocation) string {
+	var invocations []string
+	for _, invocation := range actionInvocations {
+		header := fmt.Sprintf(renderer.Colorize.Color("  [bold]# %s[reset] will be invoked"), invocation.invocation.Address)
+		invocations = append(invocations, fmt.Sprintf("%s\n%s", header, renderActionInvocation(renderer, invocation)))
+	}
+	return strings.Join(invocations, "\n")
 }
 
 func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action, changeCause string) string {

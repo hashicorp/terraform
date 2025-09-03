@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -62,6 +61,11 @@ func (c *ChangesSrc) Empty() bool {
 		if out.Addr.Module.IsRoot() && out.Action != NoOp {
 			return false
 		}
+	}
+
+	if len(c.ActionInvocations) > 0 {
+		// action invocations can be applied
+		return false
 	}
 
 	return true
@@ -566,13 +570,11 @@ func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocati
 }
 
 type ActionInvocationInstanceSrc struct {
-	Addr                    addrs.AbsActionInstance
-	TriggeringResourceAddr  addrs.AbsResourceInstance
-	TriggerEvent            configs.ActionTriggerEvent
-	ActionTriggerBlockIndex int
-	ActionsListIndex        int
+	Addr          addrs.AbsActionInstance
+	ActionTrigger ActionTrigger
 
-	ConfigValue DynamicValue
+	ConfigValue          DynamicValue
+	SensitiveConfigPaths []cty.Path
 
 	ProviderAddr addrs.AbsProviderConfig
 }
@@ -588,15 +590,13 @@ func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (
 	if err != nil {
 		return nil, fmt.Errorf("error decoding 'config' value: %s", err)
 	}
+	markedConfigValue := marks.MarkPaths(config, marks.Sensitive, acs.SensitiveConfigPaths)
 
 	ai := &ActionInvocationInstance{
-		Addr:                    acs.Addr,
-		TriggeringResourceAddr:  acs.TriggeringResourceAddr,
-		TriggerEvent:            acs.TriggerEvent,
-		ActionTriggerBlockIndex: acs.ActionTriggerBlockIndex,
-		ActionsListIndex:        acs.ActionsListIndex,
-		ProviderAddr:            acs.ProviderAddr,
-		ConfigValue:             config,
+		Addr:          acs.Addr,
+		ActionTrigger: acs.ActionTrigger,
+		ProviderAddr:  acs.ProviderAddr,
+		ConfigValue:   markedConfigValue,
 	}
 	return ai, nil
 }
@@ -608,4 +608,25 @@ func (acs *ActionInvocationInstanceSrc) DeepCopy() *ActionInvocationInstanceSrc 
 	ret := *acs
 	ret.ConfigValue = ret.ConfigValue.Copy()
 	return &ret
+}
+
+func (acs *ActionInvocationInstanceSrc) Less(other *ActionInvocationInstanceSrc) bool {
+	if acs.ActionTrigger.Equals(other.ActionTrigger) {
+		return acs.Addr.Less(other.Addr)
+	}
+	return acs.ActionTrigger.Less(other.ActionTrigger)
+}
+
+func (acs *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
+	needleLat := acs.ActionTrigger.(*LifecycleActionTrigger)
+
+	var laterInvocations []*ActionInvocationInstanceSrc
+	for _, invocation := range actionInvocations {
+		if lat, ok := invocation.ActionTrigger.(*LifecycleActionTrigger); ok {
+			if lat.TriggeringResourceAddr.Equal(needleLat.TriggeringResourceAddr) && (lat.ActionTriggerBlockIndex > needleLat.ActionTriggerBlockIndex || lat.ActionTriggerBlockIndex == needleLat.ActionTriggerBlockIndex && lat.ActionsListIndex > needleLat.ActionsListIndex) {
+				laterInvocations = append(laterInvocations, invocation)
+			}
+		}
+	}
+	return laterInvocations
 }

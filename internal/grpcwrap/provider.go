@@ -103,20 +103,8 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 
 		if act.Unlinked != nil {
 			newAct.Type = &tfplugin5.ActionSchema_Unlinked_{}
-		} else if act.Lifecycle != nil {
-			newAct.Type = &tfplugin5.ActionSchema_Lifecycle_{
-				Lifecycle: &tfplugin5.ActionSchema_Lifecycle{
-					Executes:       convert.ExecutionOrderToProto(act.Lifecycle.Executes),
-					LinkedResource: convert.LinkedResourceToProto(act.Lifecycle.LinkedResource),
-				},
-			}
-		} else if act.Linked != nil {
-			newAct.Type = &tfplugin5.ActionSchema_Linked_{
-				Linked: &tfplugin5.ActionSchema_Linked{
-					LinkedResources: convert.LinkedResourcesToProto(act.Linked.LinkedResources),
-				},
-			}
 		}
+
 		resp.ActionSchemas[typ] = &newAct
 	}
 

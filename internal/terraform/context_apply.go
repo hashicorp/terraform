@@ -366,6 +366,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		ExternalProviderConfigs: externalProviderConfigs,
 		Plugins:                 c.plugins,
 		Targets:                 plan.TargetAddrs,
+		ActionTargets:           plan.ActionTargetAddrs,
 		ForceReplace:            plan.ForceReplaceAddrs,
 		Operation:               operation,
 		ExternalReferences:      plan.ExternalReferences,

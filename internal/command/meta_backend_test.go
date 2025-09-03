@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -34,7 +35,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/backend/local"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/backend/pluggable"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 )
 
@@ -1206,9 +1209,12 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 	}
 
 	// Check resulting states
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
 	}
 
 	sort.Strings(workspaces)
@@ -1304,9 +1310,12 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *
 	}
 
 	// Check resulting states
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
 	}
 
 	sort.Strings(workspaces)
@@ -1378,9 +1387,12 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(
 	}
 
 	// Check resulting states
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
 	}
 
 	sort.Strings(workspaces)
@@ -2094,59 +2106,7 @@ func TestMetaBackend_nonInitCommandInterrupted_uninitializedStateStore(t *testin
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
-	pssName := "foo_bar"
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				pssName: {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-		// Workspaces exist once the artefact representing it is written
-		if _, exist := mock.MockStates[req.StateId]; !exist {
-			// Ensure non-nil map
-			if mock.MockStates == nil {
-				mock.MockStates = make(map[string]interface{})
-			}
-
-			mock.MockStates[req.StateId] = req.Bytes
-		}
-		return providers.WriteStateBytesResponse{
-			Diagnostics: nil, // success
-		}
-	}
-	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-		state := []byte{}
-		if v, exist := mock.MockStates[req.StateId]; exist {
-			if s, ok := v.([]byte); ok {
-				state = s
-			}
-		}
-		return providers.ReadStateBytesResponse{
-			Bytes:       state,
-			Diagnostics: nil, // success
-		}
-	}
+	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
@@ -2251,32 +2211,7 @@ func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
@@ -2338,32 +2273,7 @@ func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
@@ -2406,32 +2316,7 @@ func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 	//
 	// This imagines a provider called foo that contains
 	// a pluggable state store implementation called bar.
-	mock := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"region": {Type: cty.String, Optional: true},
-					},
-				},
-			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
-			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				"foo_bar": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"bar": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	mock := testStateStoreMock(t)
 	factory := func() (providers.Interface, error) {
 		return mock, nil
 	}
@@ -2528,32 +2413,7 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 			//
 			// This imagines a provider called foo that contains
 			// a pluggable state store implementation called bar.
-			mock := &testing_provider.MockProvider{
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					Provider: providers.Schema{
-						Body: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"region": {Type: cty.String, Optional: true},
-							},
-						},
-					},
-					DataSources:       map[string]providers.Schema{},
-					ResourceTypes:     map[string]providers.Schema{},
-					ListResourceTypes: map[string]providers.Schema{},
-					StateStores: map[string]providers.Schema{
-						"foo_bar": {
-							Body: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"bar": {
-										Type:     cty.String,
-										Required: true,
-									},
-								},
-							},
-						},
-					},
-				},
-			}
+			mock := testStateStoreMock(t)
 			factory := func() (providers.Interface, error) {
 				return mock, nil
 			}
@@ -2575,6 +2435,104 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	}
 }
 
+func TestSavedBackend(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("backend-unset"), td) // Backend state file describes local backend, config lacks backend config
+	t.Chdir(td)
+
+	// Make a state manager for the backend state file,
+	// read state from file
+	m := testMetaBackend(t, nil)
+	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	err := sMgr.RefreshState()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// Code under test
+	b, diags := m.savedBackend(sMgr)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	// The test fixtures backend state file describes a local backend with a non-default path value
+	localB, ok := b.(*local.Local)
+	if !ok {
+		t.Fatalf("expected the returned backend to be a local backend, matching the test fixtures.")
+	}
+	if localB.StatePath != "local-state.tfstate" {
+		t.Fatalf("expected the local backend to be configured using the backend state file, but got unexpected configuration values.")
+	}
+}
+
+func TestSavedStateStore(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+	t.Chdir(td)
+
+	// Make a state manager for the backend state file,
+	// read state from file
+	m := testMetaBackend(t, nil)
+	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	err := sMgr.RefreshState()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// Prepare provider factories for use
+	mock := testStateStoreMock(t)
+	factory := func() (providers.Interface, error) {
+		return mock, nil
+	}
+	mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+		// Assert that the state store is configured using backend state file values from the fixtures
+		config := req.Config.AsValueMap()
+		if config["region"].AsString() != "old-value" {
+			t.Fatalf("expected the provider to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+		}
+		return providers.ConfigureProviderResponse{}
+	}
+	mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+		// Assert that the state store is configured using backend state file values from the fixtures
+		config := req.Config.AsValueMap()
+		if config["value"].AsString() != "old-value" {
+			t.Fatalf("expected the state store to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+		}
+		return providers.ConfigureStateStoreResponse{}
+	}
+
+	// Code under test
+	b, diags := m.savedStateStore(sMgr, factory)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	if _, ok := b.(*pluggable.Pluggable); !ok {
+		t.Fatalf(
+			"expected savedStateStore to return a backend.Backend interface with concrete type %s, but got something else: %#v",
+			"*pluggable.Pluggable",
+			b,
+		)
+	}
+
+	expectedCalls := map[string]bool{
+		"GetProviderSchema":        mock.GetProviderSchemaCalled,
+		"ValidateProviderConfig":   mock.ValidateProviderConfigCalled,
+		"ConfigureProvider":        mock.ConfigureProviderCalled,
+		"ValidateStateStoreConfig": mock.ValidateStateStoreConfigCalled,
+		"ConfigureStateStore":      mock.ConfigureStateStoreCalled,
+	}
+	for method, call := range expectedCalls {
+		if call == false {
+			t.Fatalf("expected %s on the mock provider to be called, but it was not", method)
+		}
+	}
+}
+
 func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
 	m.Ui = new(cli.MockUi)
@@ -2590,4 +2548,36 @@ func testMetaBackend(t *testing.T, args []string) *Meta {
 	m.migrateState = true
 
 	return &m
+}
+
+// testStateStoreMock returns a mock provider that has a state store implementation
+// The provider uses the name "test" and the store inside is "test_store".
+func testStateStoreMock(t *testing.T) *testing_provider.MockProvider {
+	t.Helper()
+	return &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				"test_store": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }

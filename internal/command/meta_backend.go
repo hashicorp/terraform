@@ -247,12 +247,15 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 // if the currently selected workspace is valid. If not, it will ask
 // the user to select a workspace from the list.
 func (m *Meta) selectWorkspace(b backend.Backend) error {
-	workspaces, err := b.Workspaces()
-	if err == backend.ErrWorkspacesNotSupported {
+	workspaces, diags := b.Workspaces()
+	if diags.HasErrors() && diags.Err().Error() == backend.ErrWorkspacesNotSupported.Error() {
 		return nil
 	}
-	if err != nil {
-		return fmt.Errorf("Failed to get existing workspaces: %s", err)
+	if diags.HasErrors() {
+		return fmt.Errorf("Failed to get existing workspaces: %s", diags.Err())
+	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] selectWorkspace: warning(s) returned when getting workspaces: %s", diags.ErrWithWarnings())
 	}
 	if len(workspaces) == 0 {
 		if c, ok := b.(*cloud.Cloud); ok && m.input {
@@ -1191,14 +1194,15 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, backendSMgr *clistat
 
 	// Grab a purely local backend to get the local state if it exists
 	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+	diags = diags.Append(localBDiags)
 	if localBDiags.HasErrors() {
-		diags = diags.Append(localBDiags)
 		return nil, diags
 	}
 
-	workspaces, err := localB.Workspaces()
-	if err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+	workspaces, wDiags := localB.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf(errBackendLocalRead, wDiags.Err()))
 		return nil, diags
 	}
 
@@ -1238,7 +1242,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, backendSMgr *clistat
 
 	if len(localStates) > 0 {
 		// Perform the migration
-		err = m.backendMigrateState(&backendMigrateOpts{
+		err := m.backendMigrateState(&backendMigrateOpts{
 			SourceType:      "local",
 			DestinationType: c.Type,
 			Source:          localB,
@@ -1299,7 +1303,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, backendSMgr *clistat
 		Type: c.Type,
 		Hash: uint64(cHash),
 	}
-	err = s.Backend.SetConfig(configVal, b.ConfigSchema())
+	err := s.Backend.SetConfig(configVal, b.ConfigSchema())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
 		return nil, diags
@@ -1804,6 +1808,140 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 	}
 
 	return diags
+}
+
+// Initializing a saved state store from the backend state file (aka 'cache file', aka 'legacy state file')
+func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory providers.Factory) (backend.Backend, tfdiags.Diagnostics) {
+	// We're preparing a state_store version of backend.Backend.
+	//
+	// The provider and state store will be configured using the backend state file.
+
+	var diags tfdiags.Diagnostics
+	var b backend.Backend
+
+	s := sMgr.State()
+
+	provider, err := providerFactory()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
+		return nil, diags
+	}
+	// We purposefully don't have a deferred call to the provider's Close method here because the calling code needs a
+	// running provider instance inside the returned backend.Backend instance.
+	// Stopping the provider process is the responsibility of the calling code.
+
+	resp := provider.GetProviderSchema()
+
+	if len(resp.StateStores) == 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider does not support pluggable state storage",
+			Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+				s.StateStore.Provider.Source.Type,
+				s.StateStore.Provider.Source),
+		})
+		return nil, diags
+	}
+
+	stateStoreSchema, exists := resp.StateStores[s.StateStore.Type]
+	if !exists {
+		suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+		suggestion := didyoumean.NameSuggestion(s.StateStore.Type, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "State store not implemented by the provider",
+			Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+				s.StateStore.Type,
+				s.StateStore.Provider.Source.Type,
+				s.StateStore.Provider.Source,
+				suggestion),
+		})
+		return nil, diags
+	}
+
+	// Get the provider config from the backend state file.
+	providerConfigVal, err := s.StateStore.Provider.Config(resp.Provider.Body)
+	if err != nil {
+		diags = diags.Append(
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Error reading provider configuration state",
+				Detail: fmt.Sprintf("Terraform experienced an error reading provider configuration for provider %s (%q) while configuring state store %s",
+					s.StateStore.Provider.Source.Type,
+					s.StateStore.Provider.Source,
+					s.StateStore.Type,
+				),
+			},
+		)
+		return nil, diags
+	}
+
+	// Get the state store config from the backend state file.
+	stateStoreConfigVal, err := s.StateStore.Config(stateStoreSchema.Body)
+	if err != nil {
+		diags = diags.Append(
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Error reading state store configuration state",
+				Detail: fmt.Sprintf("Terraform experienced an error reading state store configuration for state store %s in provider %s (%q)",
+					s.StateStore.Type,
+					s.StateStore.Provider.Source.Type,
+					s.StateStore.Provider.Source,
+				),
+			},
+		)
+		return nil, diags
+	}
+
+	// Validate and configure the provider
+	validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+		Config: providerConfigVal,
+	})
+	diags = diags.Append(validateResp.Diagnostics)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
+		TerraformVersion: tfversion.SemVer.String(),
+		Config:           validateResp.PreparedConfig,
+	})
+	diags = diags.Append(configureResp.Diagnostics)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Validate store config
+	validateStoreResp := provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
+		TypeName: s.StateStore.Type,
+		Config:   stateStoreConfigVal,
+	})
+	diags = diags.Append(validateStoreResp.Diagnostics)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Configure state store
+	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
+		TypeName: s.StateStore.Type,
+		Config:   stateStoreConfigVal,
+	})
+	diags = diags.Append(cfgStoreResp.Diagnostics)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Now we have a fully configured state store, ready to be used.
+	// To make it usable we need to return it in a backend.Backend interface.
+	b, err = backendPluggable.NewPluggable(provider, s.StateStore.Type)
+	if err != nil {
+		diags = diags.Append(err)
+	}
+
+	return b, diags
 }
 
 //-------------------------------------------------------------------

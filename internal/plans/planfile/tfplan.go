@@ -132,6 +132,15 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.DeferredResources = append(plan.DeferredResources, change)
 	}
 
+	for _, rawDAI := range rawPlan.DeferredActionInvocations {
+		change, err := deferredActionInvocationFromTfplan(rawDAI)
+		if err != nil {
+			return nil, err
+		}
+
+		plan.DeferredActionInvocations = append(plan.DeferredActionInvocations, change)
+	}
+
 	for _, rawRA := range rawPlan.RelevantAttributes {
 		ra, err := resourceAttrFromTfplan(rawRA)
 		if err != nil {
@@ -146,6 +155,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("plan contains invalid target address %q: %s", target, diags.Err())
 		}
 		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+	}
+
+	for _, rawActionAddr := range rawPlan.ActionTargetAddrs {
+		target, diags := addrs.ParseTargetActionStr(rawActionAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("plan contains invalid action target address %q: %s", target, diags.Err())
+		}
+		plan.ActionTargetAddrs = append(plan.ActionTargetAddrs, target.Subject)
 	}
 
 	for _, rawReplaceAddr := range rawPlan.ForceReplaceAddrs {
@@ -541,6 +558,27 @@ func deferredChangeFromTfplan(dc *planproto.DeferredResourceInstanceChange) (*pl
 	}, nil
 }
 
+func deferredActionInvocationFromTfplan(dai *planproto.DeferredActionInvocation) (*plans.DeferredActionInvocationSrc, error) {
+	if dai == nil {
+		return nil, fmt.Errorf("deferred action invocation object is absent")
+	}
+
+	actionInvocation, err := actionInvocationFromTfplan(dai.ActionInvocation)
+	if err != nil {
+		return nil, err
+	}
+
+	reason, err := DeferredReasonFromProto(dai.Deferred.Reason)
+	if err != nil {
+		return nil, err
+	}
+
+	return &plans.DeferredActionInvocationSrc{
+		DeferredReason:              reason,
+		ActionInvocationInstanceSrc: actionInvocation,
+	}, nil
+}
+
 func DeferredReasonFromProto(reason planproto.DeferredReason) (providers.DeferredReason, error) {
 	switch reason {
 	case planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN:
@@ -646,6 +684,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.DeferredChanges = append(rawPlan.DeferredChanges, rawDC)
 	}
 
+	for _, dai := range plan.DeferredActionInvocations {
+		rawDAI, err := deferredActionInvocationToTfplan(dai)
+		if err != nil {
+			return err
+		}
+		rawPlan.DeferredActionInvocations = append(rawPlan.DeferredActionInvocations, rawDAI)
+	}
+
 	for _, ra := range plan.RelevantAttributes {
 		rawRA, err := resourceAttrToTfplan(ra)
 		if err != nil {
@@ -656,6 +702,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for _, targetAddr := range plan.TargetAddrs {
 		rawPlan.TargetAddrs = append(rawPlan.TargetAddrs, targetAddr.String())
+	}
+
+	for _, actionAddr := range plan.ActionTargetAddrs {
+		rawPlan.ActionTargetAddrs = append(rawPlan.ActionTargetAddrs, actionAddr.String())
 	}
 
 	for _, replaceAddr := range plan.ForceReplaceAddrs {
@@ -1049,6 +1099,25 @@ func deferredChangeToTfplan(dc *plans.DeferredResourceInstanceChangeSrc) (*planp
 	}, nil
 }
 
+func deferredActionInvocationToTfplan(dai *plans.DeferredActionInvocationSrc) (*planproto.DeferredActionInvocation, error) {
+	actionInvocation, err := actionInvocationToTfPlan(dai.ActionInvocationInstanceSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	reason, err := DeferredReasonToProto(dai.DeferredReason)
+	if err != nil {
+		return nil, err
+	}
+
+	return &planproto.DeferredActionInvocation{
+		Deferred: &planproto.Deferred{
+			Reason: reason,
+		},
+		ActionInvocation: actionInvocation,
+	}, nil
+}
+
 func DeferredReasonToProto(reason providers.DeferredReason) (planproto.DeferredReason, error) {
 	switch reason {
 	case providers.DeferredReasonInstanceCountUnknown:
@@ -1259,30 +1328,43 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 	}
 	ret.Addr = actionAddr
 
-	ret.TriggeringResourceAddr, diags = addrs.ParseAbsResourceInstanceStr(rawAction.TriggeringResourceAddr)
-	if diags.HasErrors() {
-		return nil, fmt.Errorf("invalid resource instance address %q: %w", rawAction.TriggeringResourceAddr, diags.Err())
-	}
+	switch at := rawAction.ActionTrigger.(type) {
+	case *planproto.ActionInvocationInstance_LifecycleActionTrigger:
+		triggeringResourceAddrs, diags := addrs.ParseAbsResourceInstanceStr(at.LifecycleActionTrigger.TriggeringResourceAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("invalid resource instance address %q: %w",
+				at.LifecycleActionTrigger.TriggeringResourceAddr, diags.Err())
+		}
 
-	ret.ActionsListIndex = int(rawAction.ActionsListIndex)
-	ret.ActionTriggerBlockIndex = int(rawAction.ActionTriggerBlockIndex)
+		var ate configs.ActionTriggerEvent
+		switch at.LifecycleActionTrigger.TriggerEvent {
+		case planproto.ActionTriggerEvent_BEFORE_CERATE:
+			ate = configs.BeforeCreate
+		case planproto.ActionTriggerEvent_AFTER_CREATE:
+			ate = configs.AfterCreate
+		case planproto.ActionTriggerEvent_BEFORE_UPDATE:
+			ate = configs.BeforeUpdate
+		case planproto.ActionTriggerEvent_AFTER_UPDATE:
+			ate = configs.AfterUpdate
+		case planproto.ActionTriggerEvent_BEFORE_DESTROY:
+			ate = configs.BeforeDestroy
+		case planproto.ActionTriggerEvent_AFTER_DESTROY:
+			ate = configs.AfterDestroy
 
-	switch rawAction.TriggerEvent {
-	case planproto.ActionTriggerEvent_BEFORE_CERATE:
-		ret.TriggerEvent = configs.BeforeCreate
-	case planproto.ActionTriggerEvent_AFTER_CREATE:
-		ret.TriggerEvent = configs.AfterCreate
-	case planproto.ActionTriggerEvent_BEFORE_UPDATE:
-		ret.TriggerEvent = configs.BeforeUpdate
-	case planproto.ActionTriggerEvent_AFTER_UPDATE:
-		ret.TriggerEvent = configs.AfterUpdate
-	case planproto.ActionTriggerEvent_BEFORE_DESTROY:
-		ret.TriggerEvent = configs.BeforeDestroy
-	case planproto.ActionTriggerEvent_AFTER_DESTROY:
-		ret.TriggerEvent = configs.AfterDestroy
-
+		default:
+			return nil, fmt.Errorf("invalid action trigger event %s", at.LifecycleActionTrigger.TriggerEvent)
+		}
+		ret.ActionTrigger = &plans.LifecycleActionTrigger{
+			TriggeringResourceAddr:  triggeringResourceAddrs,
+			ActionTriggerBlockIndex: int(at.LifecycleActionTrigger.ActionTriggerBlockIndex),
+			ActionsListIndex:        int(at.LifecycleActionTrigger.ActionsListIndex),
+			ActionTriggerEvent:      ate,
+		}
+	case *planproto.ActionInvocationInstance_InvokeActionTrigger:
+		ret.ActionTrigger = new(plans.InvokeActionTrigger)
 	default:
-		return nil, fmt.Errorf("invalid action trigger event %s", rawAction.TriggerEvent)
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type %t", rawAction.ActionTrigger)
 	}
 
 	providerAddr, diags := addrs.ParseAbsProviderConfigStr(rawAction.Provider)
@@ -1297,6 +1379,11 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 			return nil, fmt.Errorf("invalid config value: %s", err)
 		}
 		ret.ConfigValue = configVal
+		sensitiveConfigPaths, err := pathsFromTfplan(rawAction.SensitiveConfigPaths)
+		if err != nil {
+			return nil, err
+		}
+		ret.SensitiveConfigPaths = sensitiveConfigPaths
 	}
 
 	return ret, nil
@@ -1307,33 +1394,50 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		return nil, nil
 	}
 
-	triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
-	switch action.TriggerEvent {
-	case configs.BeforeCreate:
-		triggerEvent = planproto.ActionTriggerEvent_BEFORE_CERATE
-	case configs.AfterCreate:
-		triggerEvent = planproto.ActionTriggerEvent_AFTER_CREATE
-	case configs.BeforeUpdate:
-		triggerEvent = planproto.ActionTriggerEvent_BEFORE_UPDATE
-	case configs.AfterUpdate:
-		triggerEvent = planproto.ActionTriggerEvent_AFTER_UPDATE
-	case configs.BeforeDestroy:
-		triggerEvent = planproto.ActionTriggerEvent_BEFORE_DESTROY
-	case configs.AfterDestroy:
-		triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
+	ret := &planproto.ActionInvocationInstance{
+		Addr:     action.Addr.String(),
+		Provider: action.ProviderAddr.String(),
 	}
 
-	ret := &planproto.ActionInvocationInstance{
-		Addr:                    action.Addr.String(),
-		Provider:                action.ProviderAddr.String(),
-		TriggeringResourceAddr:  action.TriggeringResourceAddr.String(),
-		ActionsListIndex:        int64(action.ActionsListIndex),
-		ActionTriggerBlockIndex: int64(action.ActionTriggerBlockIndex),
-		TriggerEvent:            triggerEvent,
+	switch at := action.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
+		switch at.ActionTriggerEvent {
+		case configs.BeforeCreate:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_CERATE
+		case configs.AfterCreate:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_CREATE
+		case configs.BeforeUpdate:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_UPDATE
+		case configs.AfterUpdate:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_UPDATE
+		case configs.BeforeDestroy:
+			triggerEvent = planproto.ActionTriggerEvent_BEFORE_DESTROY
+		case configs.AfterDestroy:
+			triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
+		}
+		ret.ActionTrigger = &planproto.ActionInvocationInstance_LifecycleActionTrigger{
+			LifecycleActionTrigger: &planproto.LifecycleActionTrigger{
+				TriggerEvent:            triggerEvent,
+				TriggeringResourceAddr:  at.TriggeringResourceAddr.String(),
+				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(at.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		ret.ActionTrigger = new(planproto.ActionInvocationInstance_InvokeActionTrigger)
+	default:
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
 	}
 
 	if action.ConfigValue != nil {
 		ret.ConfigValue = valueToTfplan(action.ConfigValue)
+		sensitiveConfigPaths, err := pathsToTfplan(action.SensitiveConfigPaths)
+		if err != nil {
+			return nil, err
+		}
+		ret.SensitiveConfigPaths = sensitiveConfigPaths
 	}
 
 	return ret, nil

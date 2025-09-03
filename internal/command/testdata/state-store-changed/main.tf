@@ -1,12 +1,14 @@
 terraform {
   required_providers {
-    foo = {
-      source = "my-org/foo"
+    test = {
+      source = "hashicorp/test"
     }
   }
-  state_store "foo_bar" {
-    provider "foo" {}
+  state_store "test_store" {
+    provider "test" {
+      region = "changed-value" # changed versus backend state file
+    }
 
-    bar = "changed-value" # changed versus backend state file
+    value = "changed-value" # changed versus backend state file
   }
 }

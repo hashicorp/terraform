@@ -86,8 +86,8 @@ func TestBackendConfigWorkSpace(t *testing.T) {
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 	createOSSBucket(t, b.ossClient, bucketName)
 	defer deleteOSSBucket(t, b.ossClient, bucketName)
-	if _, err := b.Workspaces(); err != nil {
-		t.Fatal(err.Error())
+	if _, diags := b.Workspaces(); diags.HasErrors() {
+		t.Fatal(diags.Err().Error())
 	}
 	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "https://oss-cn-beijing") {
 		t.Fatalf("Incorrect region was provided")
@@ -249,5 +249,105 @@ func deleteTablestoreTable(t *testing.T, otsClient *tablestore.TableStoreClient,
 	_, err := otsClient.DeleteTable(params)
 	if err != nil {
 		t.Logf("WARNING: Failed to delete the test TableStore table %q. It has been left in your Alibaba Cloud account and may incur charges. (error was %s)", tableName, err)
+	}
+}
+
+func TestGetHttpProxyUrl(t *testing.T) {
+	tests := []struct {
+		name             string
+		rawUrl           string
+		httpProxy        string
+		httpsProxy       string
+		noProxy          string
+		expectedProxyURL string
+	}{
+		{
+			name:             "should set proxy using http_proxy environment variable",
+			rawUrl:           "http://example.com",
+			httpProxy:        "http://foo.bar:3128",
+			httpsProxy:       "https://secure.example.com",
+			noProxy:          "",
+			expectedProxyURL: "http://foo.bar:3128",
+		},
+		{
+			name:             "should set proxy using http_proxy environment variable",
+			rawUrl:           "http://example.com",
+			httpProxy:        "http://foo.barr",
+			httpsProxy:       "https://secure.example.com",
+			noProxy:          "",
+			expectedProxyURL: "http://foo.barr",
+		},
+		{
+			name:             "should set proxy using https_proxy environment variable",
+			rawUrl:           "https://secure.example.com",
+			httpProxy:        "http://foo.bar",
+			httpsProxy:       "https://foo.bar.com:3128",
+			noProxy:          "",
+			expectedProxyURL: "https://foo.bar.com:3128",
+		},
+		{
+			name:             "should set proxy using https_proxy environment variable",
+			rawUrl:           "https://secure.example.com",
+			httpProxy:        "",
+			httpsProxy:       "http://foo.baz",
+			noProxy:          "",
+			expectedProxyURL: "http://foo.baz",
+		},
+		{
+			name:             "should not set http proxy if NO_PROXY contains the host",
+			rawUrl:           "http://example.internal",
+			httpProxy:        "http://foo.bar:3128",
+			httpsProxy:       "",
+			noProxy:          "example.internal",
+			expectedProxyURL: "",
+		},
+		{
+			name:             "should not set HTTP proxy when NO_PROXY matches the domain with suffix",
+			rawUrl:           "http://qqu.example.internal",
+			httpProxy:        "http://foo.bar:3128",
+			httpsProxy:       "",
+			noProxy:          ".example.internal",
+			expectedProxyURL: "",
+		},
+		{
+			name:             "should not set https proxy if NO_PROXY contains the host",
+			rawUrl:           "https://secure.internal",
+			httpProxy:        "",
+			httpsProxy:       "https://foo.baz:3128",
+			noProxy:          "secure.internal",
+			expectedProxyURL: "",
+		},
+		{
+			name:             "should not set https proxy if NO_PROXY matches the domain with suffix",
+			rawUrl:           "https://ss.qcsc.secure.internal",
+			httpProxy:        "",
+			httpsProxy:       "https://foo.baz:3128",
+			noProxy:          ".secure.internal",
+			expectedProxyURL: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set environment variables
+			t.Setenv("HTTP_PROXY", tt.httpProxy)
+			t.Setenv("HTTPS_PROXY", tt.httpsProxy)
+			t.Setenv("NO_PROXY", tt.noProxy)
+
+			proxyUrl, err := getHttpProxyUrl(tt.rawUrl)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if tt.expectedProxyURL == "" {
+				if proxyUrl != nil {
+					t.Fatalf("unexpected proxy  URL, want nil, got: %s", proxyUrl)
+				}
+			} else {
+				if tt.expectedProxyURL != proxyUrl.String() {
+					t.Fatalf("unexpected proxy URL, want: %s, got: %s", tt.expectedProxyURL, proxyUrl.String())
+				}
+			}
+		})
 	}
 }

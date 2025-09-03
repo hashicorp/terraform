@@ -81,11 +81,12 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	states, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
 	if name == current {
 		// already using this workspace

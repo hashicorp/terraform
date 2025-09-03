@@ -9,15 +9,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOperation_stopping(t *testing.T) {
@@ -551,6 +553,225 @@ func TestOperationJSON_emergencyDumpState(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "log",
 			"state":    stateJSON,
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_plan_with_actions(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+	vpc, diags := addrs.ParseModuleInstanceStr("module.vpc")
+	if len(diags) > 0 {
+		t.Fatal(diags.Err())
+	}
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}.Instance(addrs.NoKey).Absolute(root)
+	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}.Instance(addrs.IntKey(0)).Absolute(vpc)
+
+	act1 := &plans.ActionInvocationInstanceSrc{
+		Addr: addrs.Action{Type: "test_unlinked_action", Name: "hello"}.Instance(addrs.NoKey).Absolute(root),
+		ActionTrigger: &plans.LifecycleActionTrigger{
+			TriggeringResourceAddr:  boop,
+			ActionTriggerEvent:      configs.AfterCreate,
+			ActionTriggerBlockIndex: 0,
+			ActionsListIndex:        0,
+		},
+	}
+	act2 := &plans.ActionInvocationInstanceSrc{
+		Addr: addrs.Action{Type: "test_unlinked_other_action", Name: "world"}.Instance(addrs.NoKey).Absolute(root),
+		ActionTrigger: &plans.LifecycleActionTrigger{
+			TriggeringResourceAddr:  boop,
+			ActionTriggerEvent:      configs.AfterCreate,
+			ActionTriggerBlockIndex: 0,
+			ActionsListIndex:        1,
+		},
+	}
+	act3 := &plans.ActionInvocationInstanceSrc{
+		Addr: addrs.Action{Type: "test_unlinked_action", Name: "goodbye"}.Instance(addrs.IntKey(0)).Absolute(vpc),
+		ActionTrigger: &plans.LifecycleActionTrigger{
+			TriggeringResourceAddr:  beep,
+			ActionTriggerEvent:      configs.BeforeUpdate,
+			ActionTriggerBlockIndex: 1,
+			ActionsListIndex:        0,
+		},
+	}
+
+	plan := &plans.Plan{
+		Changes: &plans.ChangesSrc{
+			Resources: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr:        boop,
+					PrevRunAddr: boop,
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Create},
+				},
+				{
+					Addr:        beep,
+					PrevRunAddr: beep,
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Update},
+				},
+			},
+
+			ActionInvocations: []*plans.ActionInvocationInstanceSrc{
+				act1,
+				act2,
+				act3,
+			},
+		},
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		// Simple create
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop: Plan to create",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "create",
+				"resource": map[string]interface{}{
+					"addr":             `test_resource.boop`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_resource.boop`,
+					"resource_key":     nil,
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Simple update
+		{
+			"@level":   "info",
+			"@message": "module.vpc.test_resource.beep[0]: Plan to update",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             `module.vpc.test_resource.beep[0]`,
+					"implied_provider": "test",
+					"module":           "module.vpc",
+					"resource":         `test_resource.beep[0]`,
+					"resource_key":     float64(0),
+					"resource_name":    "beep",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Action invocation 1
+		{
+			"@level":   "info",
+			"@message": "planned action invocation: action.test_unlinked_action.hello",
+			"@module":  "terraform.ui",
+			"type":     "planned_action_invocation",
+			"invocation": map[string]interface{}{
+				"action_addr": map[string]interface{}{
+					"addr":             `action.test_unlinked_action.hello`,
+					"implied_provider": "test",
+					"module":           "",
+					"action":           `action.test_unlinked_action.hello`,
+					"action_key":       nil,
+					"action_name":      "hello",
+					"action_type":      "test_unlinked_action",
+				},
+				"lifecycle_trigger": map[string]interface{}{
+					"action_trigger_block_index": float64(0),
+					"actions_list_index":         float64(0),
+					"triggering_event":           "AfterCreate",
+					"triggering_resource": map[string]interface{}{
+						"addr":             `test_resource.boop`,
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         `test_resource.boop`,
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_resource",
+					},
+				},
+			},
+		},
+		// Action invocation 2
+		{
+			"@level":   "info",
+			"@message": "planned action invocation: action.test_unlinked_other_action.world",
+			"@module":  "terraform.ui",
+			"type":     "planned_action_invocation",
+			"invocation": map[string]interface{}{
+				"action_addr": map[string]interface{}{
+					"addr":             `action.test_unlinked_other_action.world`,
+					"implied_provider": "test",
+					"module":           "",
+					"action":           `action.test_unlinked_other_action.world`,
+					"action_key":       nil,
+					"action_name":      "world",
+					"action_type":      "test_unlinked_other_action",
+				},
+				"lifecycle_trigger": map[string]interface{}{
+					"action_trigger_block_index": float64(0),
+					"actions_list_index":         float64(1),
+					"triggering_event":           "AfterCreate",
+					"triggering_resource": map[string]interface{}{
+						"addr":             `test_resource.boop`,
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         `test_resource.boop`,
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_resource",
+					},
+				},
+			},
+		},
+		// Action invocation 3
+		{
+			"@level":   "info",
+			"@message": "planned action invocation: action.test_unlinked_action.goodbye[0]",
+			"@module":  "terraform.ui",
+			"type":     "planned_action_invocation",
+			"invocation": map[string]interface{}{
+				"action_addr": map[string]interface{}{
+					"addr":             `module.vpc.action.test_unlinked_action.goodbye[0]`,
+					"implied_provider": "test",
+					"module":           "module.vpc",
+					"action":           `action.test_unlinked_action.goodbye[0]`,
+					"action_key":       float64(0),
+					"action_name":      "goodbye",
+					"action_type":      "test_unlinked_action",
+				},
+				"lifecycle_trigger": map[string]interface{}{
+					"action_trigger_block_index": float64(1),
+					"actions_list_index":         float64(0),
+					"triggering_event":           "BeforeUpdate",
+					"triggering_resource": map[string]interface{}{
+						"addr":             `module.vpc.test_resource.beep[0]`,
+						"implied_provider": "test",
+						"module":           "module.vpc",
+						"resource":         `test_resource.beep[0]`,
+						"resource_key":     float64(0),
+						"resource_name":    "beep",
+						"resource_type":    "test_resource",
+					},
+				},
+			},
+		},
+		// Change summary with action invocations
+		{
+			"@level":   "info",
+			"@message": "Plan: 1 to add, 1 to change, 0 to destroy. Actions: 3 to invoke.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation":         "plan",
+				"action_invocation": float64(3),
+				"add":               float64(1),
+				"import":            float64(0),
+				"change":            float64(1),
+				"remove":            float64(0),
+			},
 		},
 	}
 

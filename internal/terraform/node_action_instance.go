@@ -4,14 +4,14 @@
 package terraform
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeActionDeclarationInstance represents an action in a particular module.
@@ -21,9 +21,10 @@ import (
 // when they are referenced we can get the configuration for the action directly.
 type NodeActionDeclarationInstance struct {
 	Addr             addrs.AbsActionInstance
-	Config           configs.Action
+	Config           *configs.Action
 	Schema           *providers.ActionSchema
 	ResolvedProvider addrs.AbsProviderConfig
+	Dependencies     []addrs.ConfigResource
 }
 
 var (
@@ -31,17 +32,10 @@ var (
 	_ GraphNodeExecutable     = (*NodeActionDeclarationInstance)(nil)
 	_ GraphNodeReferencer     = (*NodeActionDeclarationInstance)(nil)
 	_ GraphNodeReferenceable  = (*NodeActionDeclarationInstance)(nil)
-	_ dag.GraphNodeDotter     = (*NodeActionDeclarationInstance)(nil)
 )
 
 func (n *NodeActionDeclarationInstance) Name() string {
 	return n.Addr.String()
-}
-
-func (n *NodeActionDeclarationInstance) DotNode(string, *dag.DotOpts) *dag.DotNode {
-	return &dag.DotNode{
-		Name: n.Name(),
-	}
 }
 
 func (n *NodeActionDeclarationInstance) Path() addrs.ModuleInstance {
@@ -50,31 +44,30 @@ func (n *NodeActionDeclarationInstance) Path() addrs.ModuleInstance {
 
 func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	deferrals := ctx.Deferrals()
+
+	if n.Addr.Action.Key == addrs.WildcardKey {
+		if deferrals.DeferralAllowed() {
+			deferrals.ReportActionDeferred(n.Addr, providers.DeferredReasonInstanceCountUnknown)
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Action expansion was deferred",
+				Detail:   "Deferral is not allowed in this context",
+				Subject:  n.Config.DeclRange.Ptr(),
+			})
+		}
+		return diags
+	}
+
+	if deferrals.DeferralAllowed() && deferrals.ShouldDeferAction(n.Dependencies) {
+		deferrals.ReportActionDeferred(n.Addr, providers.DeferredReasonDeferredPrereq)
+		return diags
+	}
 
 	// This should have been caught already
 	if n.Schema == nil {
 		panic("NodeActionDeclarationInstance.Execute called without a schema")
-	}
-
-	// We currently only support unlinked actions, so we send a diagnostic for other types
-	if n.Schema.Lifecycle != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Lifecycle actions are not supported",
-			Detail:   "This version of Terraform does not support lifecycle actions",
-			Subject:  n.Config.DeclRange.Ptr(),
-		})
-		return diags
-	}
-
-	if n.Schema.Linked != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Linked actions are not supported",
-			Detail:   "This version of Terraform does not support linked actions",
-			Subject:  n.Config.DeclRange.Ptr(),
-		})
-		return diags
 	}
 
 	allInsts := ctx.InstanceExpander()

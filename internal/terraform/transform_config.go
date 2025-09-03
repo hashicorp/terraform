@@ -8,25 +8,27 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// ConfigTransformer is a GraphTransformer that adds all the resources
-// from the configuration to the graph.
+// ConfigTransformer is a GraphTransformer that adds all the resources and
+// action declarations from the configuration to the graph.
 //
 // The module used to configure this transformer must be the root module.
 //
-// Only resources are added to the graph. Variables, outputs, and
-// providers must be added via other transforms.
+// Only resources and action declarations are added to the graph. Variables,
+// outputs, and providers must be added via other transforms.
 //
-// Unlike ConfigTransformerOld, this transformer creates a graph with
-// all resources including module resources, rather than creating module
-// nodes that are then "flattened".
+// Unlike ConfigTransformerOld, this transformer creates a graph with all
+// resources including module resources, rather than creating module nodes that
+// are then "flattened".
 type ConfigTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete       ConcreteResourceNodeFunc
+	ConcreteAction ConcreteActionNodeFunc
 
 	// Module is the module to add resources from.
 	Config *configs.Config
@@ -133,9 +135,15 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		if a != nil {
 			addr := a.Addr().InModule(path)
 			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
-			node := &nodeExpandActionDeclaration{
+			abstract := &NodeAbstractAction{
 				Addr:   addr,
 				Config: *a,
+			}
+			var node dag.Vertex
+			if f := t.ConcreteAction; f != nil {
+				node = f(abstract)
+			} else {
+				node = DefaultConcreteActionNodeFunc(abstract)
 			}
 			g.Add(node)
 		}

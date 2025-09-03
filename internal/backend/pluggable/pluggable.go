@@ -115,13 +115,13 @@ func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
 // -named files in a blob storage service.
 //
 // Workspace implements backend.Backend
-func (p *Pluggable) Workspaces() ([]string, error) {
+func (p *Pluggable) Workspaces() ([]string, tfdiags.Diagnostics) {
 	req := providers.GetStatesRequest{
 		TypeName: p.typeName,
 	}
 	resp := p.provider.GetStates(req)
 
-	return resp.States, resp.Diagnostics.Err()
+	return resp.States, resp.Diagnostics
 }
 
 // DeleteWorkspace deletes the state file for the named workspace.
@@ -129,13 +129,13 @@ func (p *Pluggable) Workspaces() ([]string, error) {
 // if the workspace doesn't exist or it is unable to be deleted.
 //
 // DeleteWorkspace implements backend.Backend
-func (p *Pluggable) DeleteWorkspace(workspace string, force bool) error {
+func (p *Pluggable) DeleteWorkspace(workspace string, force bool) tfdiags.Diagnostics {
 	req := providers.DeleteStateRequest{
 		TypeName: p.typeName,
 		StateId:  workspace,
 	}
 	resp := p.provider.DeleteState(req)
-	return resp.Diagnostics.Err()
+	return resp.Diagnostics
 }
 
 // StateMgr returns a state manager that uses gRPC to communicate with the

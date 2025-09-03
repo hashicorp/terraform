@@ -229,28 +229,17 @@ type LinkedAction struct {
 type ActionSchema struct {
 	ConfigSchema *configschema.Block
 
-	// One of the following fields must be set, indicating the type of action.
-	Unlinked  *UnlinkedAction
-	Lifecycle *LifecycleAction
-	Linked    *LinkedAction
+	// The only supported action type is currently unlinked.
+	Unlinked *UnlinkedAction
 }
 
 func (a ActionSchema) LinkedResources() []LinkedResourceSchema {
-	if a.Unlinked != nil {
-		return []LinkedResourceSchema{}
-	}
-	if a.Lifecycle != nil {
-		return []LinkedResourceSchema{a.Lifecycle.LinkedResource}
-	}
-	if a.Linked != nil {
-		return a.Linked.LinkedResources
-	}
-	panic("ActionSchema must have one of Unlinked, Lifecycle, or Linked set")
+	return []LinkedResourceSchema{}
 }
 
-// IsNil() returns true is there is no action schema at all.
+// IsNil() returns true if there is no action schema at all.
 func (a ActionSchema) IsNil() bool {
-	return a.ConfigSchema == nil && a.Unlinked == nil && a.Lifecycle == nil && a.Linked == nil
+	return a.ConfigSchema == nil && a.Unlinked == nil
 }
 
 // Schema pairs a provider or resource schema with that schema's version.

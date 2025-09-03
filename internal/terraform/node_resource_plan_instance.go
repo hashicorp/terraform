@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
@@ -399,7 +398,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			}
 		}
 
-		// FIXME: here we udpate the change to reflect the reason for
+		// FIXME: here we update the change to reflect the reason for
 		// replacement, but we still overload forceReplace to get the correct
 		// change planned.
 		if len(n.replaceTriggeredBy) > 0 {
@@ -486,13 +485,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// instead of using the plan.
 			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
-
-		// TODO: Verify no non-error branches are skipped here
-		planActionDiags := n.planActionTriggers(ctx, change)
-		diags = diags.Append(planActionDiags)
-		if diags.HasErrors() {
-			return diags
-		}
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
@@ -514,7 +506,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		// Even if we don't plan changes, we do still need to at least update
 		// the working state to reflect the refresh result. If not, then e.g.
-		// any output values refering to this will not react to the drift.
+		// any output values referring to this will not react to the drift.
 		// (Even if we didn't actually refresh above, this will still save
 		// the result of any schema upgrading we did in readResourceInstanceState.)
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, workingState))
@@ -548,114 +540,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					After:  instanceRefreshState.Value,
 				},
 			})
-		}
-	}
-
-	return diags
-}
-
-// planActionTriggers plans all actions (potentially) triggered by this
-// resource instance change sequentially, and returns any diagnostics
-func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.ActionTriggers == nil {
-		return diags
-	}
-
-	for i, at := range n.Config.Managed.ActionTriggers {
-		triggeringEvent, isTriggered := actionIsTriggeredByEvent(at.Events, change.Action)
-		if !isTriggered {
-			continue
-		}
-
-		// TODO: Deal with conditions
-		for j, actionRef := range at.Actions {
-			absActionInstAddrs := []addrs.AbsActionInstance{}
-
-			ref, parseRefDiags := addrs.ParseRef(actionRef.Traversal)
-			diags = diags.Append(parseRefDiags)
-			if parseRefDiags.HasErrors() {
-				return diags
-			}
-
-			// We don't support accessing actions within modules right now, therefore we can just make the action absolute based on the current module path.
-			if a, ok := ref.Subject.(addrs.ActionInstance); ok {
-				absActionInstAddrs = append(absActionInstAddrs, a.Absolute(n.Path()))
-			} else if a, ok := ref.Subject.(addrs.Action); ok {
-				// If the reference action is expanded we get a single action address,
-				// otherwise all expanded action addresses. This auto-expansion feature is syntactic
-				// sugar for the user so that they can refer to all of an expanded action's
-				// instances
-				absActionInstAddrs = ctx.Actions().GetActionInstanceKeys(a.Absolute(n.Path()))
-			} else {
-				diags = diags.Append(
-					hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid address",
-						Detail:   "Expected a reference to an action or an action instance",
-						Subject:  actionRef.Traversal.SourceRange().Ptr(),
-					})
-				continue
-			}
-
-			if len(absActionInstAddrs) == 0 {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "No action reference found",
-					Detail:   "Expected a reference to an action or an action instance, but none was found",
-					Subject:  actionRef.Traversal.SourceRange().Ptr(),
-				})
-				return diags
-			}
-
-			for _, absActionAddr := range absActionInstAddrs {
-				actionInstance, ok := ctx.Actions().GetActionInstance(absActionAddr)
-
-				if !ok {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Reference to non-existant action instance",
-						Detail:   "Action instance was not found in the current context.",
-						Subject:  actionRef.Traversal.SourceRange().Ptr(),
-					})
-					return diags
-				}
-
-				provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
-				if err != nil {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Failed to get provider",
-						Detail:   fmt.Sprintf("Failed to get provider: %s", err),
-						Subject:  actionRef.Traversal.SourceRange().Ptr(),
-					})
-
-					return diags
-				}
-
-				resp := provider.PlanAction(providers.PlanActionRequest{
-					ActionType:         absActionAddr.Action.Action.Type,
-					ProposedActionData: actionInstance.ConfigValue,
-					ClientCapabilities: ctx.ClientCapabilities(),
-				})
-
-				// TODO: Deal with deferred responses
-				diags = diags.Append(resp.Diagnostics)
-				if diags.HasErrors() {
-					return diags
-				}
-
-				ctx.Changes().AppendActionInvocation(&plans.ActionInvocationInstance{
-					Addr:                    absActionAddr,
-					ProviderAddr:            actionInstance.ProviderAddr,
-					TriggeringResourceAddr:  n.Addr,
-					TriggerEvent:            *triggeringEvent,
-					ActionTriggerBlockIndex: i,
-					ActionsListIndex:        j,
-					ConfigValue:             actionInstance.ConfigValue,
-				})
-			}
 		}
 	}
 
@@ -1001,26 +885,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 // instance, including the surrounding block. This is used to generate the
 // configuration for the resource instance when importing or generating
 func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (*genconfig.Resource, tfdiags.Diagnostics) {
-	filteredSchema := schema.Body.Filter(
-		configschema.FilterOr(
-			configschema.FilterReadOnlyAttribute,
-			configschema.FilterDeprecatedAttribute,
-
-			// The legacy SDK adds an Optional+Computed "id" attribute to the
-			// resource schema even if not defined in provider code.
-			// During validation, however, the presence of an extraneous "id"
-			// attribute in config will cause an error.
-			// Remove this attribute so we do not generate an "id" attribute
-			// where there is a risk that it is not in the real resource schema.
-			//
-			// TRADEOFF: Resources in which there actually is an
-			// Optional+Computed "id" attribute in the schema will have that
-			// attribute missing from generated config.
-			configschema.FilterHelperSchemaIdAttribute,
-		),
-		configschema.FilterDeprecatedBlock,
-	)
-
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
@@ -1028,10 +892,10 @@ func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsRes
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state, false)
+		return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, state, false)
 	case addrs.ListResourceMode:
 		identitySchema := schema.Identity
-		return genconfig.GenerateListResourceContents(addr, filteredSchema, identitySchema, providerAddr, state)
+		return genconfig.GenerateListResourceContents(addr, schema.Body, identitySchema, providerAddr, state)
 	default:
 		panic(fmt.Sprintf("unexpected resource mode %s for resource %s", addr.Resource.Resource.Mode, addr))
 	}

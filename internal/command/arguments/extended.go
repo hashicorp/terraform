@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -66,6 +67,11 @@ type Operation struct {
 	// their dependencies.
 	Targets []addrs.Targetable
 
+	// ActionTargets means we should just invoke the actions specified here, and
+	// not run a complete plan. Targets and ActionTargets are mutually exclusive
+	// and this should only be set for plan and apply operations.
+	ActionTargets []addrs.Targetable
+
 	// ForceReplace addresses cause Terraform to force a particular set of
 	// resource instances to generate "replace" actions in any plan where they
 	// would normally have generated "no-op" or "update" actions.
@@ -93,10 +99,11 @@ type Operation struct {
 	// These private fields are used only temporarily during decoding. Use
 	// method Parse to populate the exported fields from these, validating
 	// the raw values in the process.
-	targetsRaw      []string
-	forceReplaceRaw []string
-	destroyRaw      bool
-	refreshOnlyRaw  bool
+	targetsRaw       []string
+	actionTargetsRaw []string
+	forceReplaceRaw  []string
+	destroyRaw       bool
+	refreshOnlyRaw   bool
 }
 
 // Parse must be called on Operation after initial flag parse. This processes
@@ -129,6 +136,45 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 
 		o.Targets = append(o.Targets, target.Subject)
+	}
+
+	for _, tr := range o.actionTargetsRaw {
+		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
+		if syntaxDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid target %q", tr),
+				syntaxDiags[0].Detail,
+			))
+			continue
+		}
+
+		target, targetDiags := addrs.ParseTargetAction(traversal)
+		if targetDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid target %q", tr),
+				targetDiags[0].Description().Detail,
+			))
+			continue
+		}
+
+		o.ActionTargets = append(o.ActionTargets, target.Subject)
+	}
+
+	if len(o.ActionTargets) > 0 && len(o.Targets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid arguments",
+			"The -invoke and -target arguments must not both be specified."))
+	}
+
+	if len(o.ActionTargets) > 1 {
+		// TEMP: Disallow targeting multiple actions for now.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid arguments",
+			"Only one action can be invoked at a time."))
 	}
 
 	for _, raw := range o.forceReplaceRaw {
@@ -185,7 +231,11 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			))
 		}
 	default:
-		o.PlanMode = plans.NormalMode
+		if len(o.ActionTargets) > 0 {
+			o.PlanMode = plans.RefreshOnlyMode
+		} else {
+			o.PlanMode = plans.NormalMode
+		}
 	}
 
 	return diags
@@ -240,6 +290,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
+		f.Var((*FlagStringSlice)(&operation.actionTargetsRaw), "invoke", "invoke")
 		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
 	}
 
