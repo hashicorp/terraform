@@ -7,10 +7,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"maps"
 	"os"
 	"reflect"
-	"slices"
 	"sort"
 	"strings"
 
@@ -29,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -208,35 +205,9 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 				return nil, true, diags
 			}
 
-			resp := provider.GetProviderSchema()
-
-			if len(resp.StateStores) == 0 {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Provider does not support pluggable state storage",
-					Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
-						root.StateStore.Provider.Name,
-						root.StateStore.ProviderAddr),
-					Subject: &root.StateStore.DeclRange,
-				})
-				return nil, true, diags
-			}
-
-			stateStoreSchema, exists := resp.StateStores[root.StateStore.Type]
-			if !exists {
-				suggestions := slices.Sorted(maps.Keys(resp.StateStores))
-				suggestion := didyoumean.NameSuggestion(root.StateStore.Type, suggestions)
-				if suggestion != "" {
-					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-				}
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "State store not implemented by the provider",
-					Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
-						root.StateStore.Type, root.StateStore.Provider.Name,
-						root.StateStore.ProviderAddr, suggestion),
-					Subject: &root.StateStore.DeclRange,
-				})
+			stateStoreSchema, schemaDiags := c.Meta.getStateStoreSchema(provider, root.StateStore)
+			diags = diags.Append(schemaDiags)
+			if schemaDiags.HasErrors() {
 				return nil, true, diags
 			}
 

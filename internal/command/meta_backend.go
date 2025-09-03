@@ -41,6 +41,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	stateStore "github.com/hashicorp/terraform/internal/state-store"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -575,44 +576,19 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 	}
 	defer provider.Close() // Stop the child process once we're done with it here.
 
-	resp := provider.GetProviderSchema()
-
-	if len(resp.StateStores) == 0 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Provider does not support pluggable state storage",
-			Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
-				c.Provider.Name,
-				c.ProviderAddr),
-			Subject: &c.DeclRange,
-		})
+	stateStoreSchema, schemaDiags := m.getStateStoreSchema(provider, c)
+	diags = diags.Append(schemaDiags)
+	if schemaDiags.HasErrors() {
 		return nil, 0, 0, diags
 	}
 
-	stateStoreSchema, exists := resp.StateStores[c.Type]
-	if !exists {
-		suggestions := slices.Sorted(maps.Keys(resp.StateStores))
-		suggestion := didyoumean.NameSuggestion(c.Type, suggestions)
-		if suggestion != "" {
-			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-		}
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "State store not implemented by the provider",
-			Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
-				c.Type, c.Provider.Name,
-				c.ProviderAddr, suggestion),
-			Subject: &c.DeclRange,
-		})
-		return nil, 0, 0, diags
-	}
-
-	// We know that the provider contains a state store with the correct type name.
+	// At this point we know that the provider contains a state store with the correct type name.
 	// Validation of the config against the schema happens later.
 	// For now, we:
 	// > Get a hash of the present config
 	// > Apply any overrides
 
+	resp := provider.GetProviderSchema()
 	configBody := c.Config
 	stateStoreHash, providerHash, diags := c.Hash(stateStoreSchema.Body, resp.Provider.Body)
 
@@ -1832,39 +1808,14 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	// running provider instance inside the returned backend.Backend instance.
 	// Stopping the provider process is the responsibility of the calling code.
 
-	resp := provider.GetProviderSchema()
-
-	if len(resp.StateStores) == 0 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Provider does not support pluggable state storage",
-			Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
-				s.StateStore.Provider.Source.Type,
-				s.StateStore.Provider.Source),
-		})
-		return nil, diags
-	}
-
-	stateStoreSchema, exists := resp.StateStores[s.StateStore.Type]
-	if !exists {
-		suggestions := slices.Sorted(maps.Keys(resp.StateStores))
-		suggestion := didyoumean.NameSuggestion(s.StateStore.Type, suggestions)
-		if suggestion != "" {
-			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-		}
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "State store not implemented by the provider",
-			Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
-				s.StateStore.Type,
-				s.StateStore.Provider.Source.Type,
-				s.StateStore.Provider.Source,
-				suggestion),
-		})
+	stateStoreSchema, schemaDiags := m.getStateStoreSchema(provider, s.StateStore)
+	diags = diags.Append(schemaDiags)
+	if schemaDiags.HasErrors() {
 		return nil, diags
 	}
 
 	// Get the provider config from the backend state file.
+	resp := provider.GetProviderSchema()
 	providerConfigVal, err := s.StateStore.Provider.Config(resp.Provider.Body)
 	if err != nil {
 		diags = diags.Append(
@@ -2086,39 +2037,14 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	// running provider instance inside the returned backend.Backend instance.
 	// Stopping the provider process is the responsibility of the calling code.
 
-	resp := provider.GetProviderSchema()
-
-	if len(resp.StateStores) == 0 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Provider does not support pluggable state storage",
-			Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
-				c.Provider.Name,
-				c.ProviderAddr),
-			Subject: &c.DeclRange,
-		})
-		return nil, cty.NilVal, cty.NilVal, diags
-	}
-
-	schema, exists := resp.StateStores[c.Type]
-	if !exists {
-		suggestions := slices.Sorted(maps.Keys(resp.StateStores))
-		suggestion := didyoumean.NameSuggestion(c.Type, suggestions)
-		if suggestion != "" {
-			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-		}
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "State store not implemented by the provider",
-			Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
-				c.Type, c.Provider.Name,
-				c.ProviderAddr, suggestion),
-			Subject: &c.DeclRange,
-		})
+	stateStoreSchema, schemaDiags := m.getStateStoreSchema(provider, c)
+	diags = diags.Append(schemaDiags)
+	if schemaDiags.HasErrors() {
 		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
 	// Handle the nested provider block.
+	resp := provider.GetProviderSchema()
 	pDecSpec := resp.Provider.Body.NoneRequired().DecoderSpec()
 	pConfig := c.Provider.Config
 	providerConfigVal, pDecDiags := hcldec.Decode(pConfig, pDecSpec, nil)
@@ -2157,7 +2083,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	}
 
 	// Handle the schema for the state store itself, excluding the provider block.
-	ssdecSpec := schema.Body.NoneRequired().DecoderSpec()
+	ssdecSpec := stateStoreSchema.Body.NoneRequired().DecoderSpec()
 	stateStoreConfigVal, ssDecDiags := hcldec.Decode(c.Config, ssdecSpec, nil)
 	diags = diags.Append(ssDecDiags)
 	if ssDecDiags.HasErrors() {
@@ -2376,6 +2302,48 @@ func (m *Meta) getStateStoreProviderFactory(store stateStore.StateStoreDescriber
 	}
 
 	return factory, diags
+}
+
+// getStateStoreSchema retrieves the schema for a given state store implementation in the supplied provider.
+// Diagnostics are returned if the provider doesn't implement stores or if there is no store type matching the provided type name.
+// The type of diagnostics returned differ depending on whether the information
+func (m *Meta) getStateStoreSchema(provider providers.Interface, store stateStore.StateStoreDescriber) (*providers.Schema, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	resp := provider.GetProviderSchema()
+
+	if len(resp.StateStores) == 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider does not support pluggable state storage",
+			Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+				store.ProviderDetails().Name(),
+				store.ProviderDetails().Addr()),
+			Subject: store.ProviderDetails().DeclHclRange(), // This value can be nil
+		})
+		return nil, diags
+	}
+
+	stateStoreSchema, exists := resp.StateStores[store.StoreType()]
+	if !exists {
+		suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+		suggestion := didyoumean.NameSuggestion(store.StoreType(), suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "State store not implemented by the provider",
+			Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+				store.StoreType(), store.ProviderDetails().Addr().Type,
+				store.ProviderDetails().Addr(), suggestion),
+			Subject: store.ProviderDetails().DeclHclRange(), // This value can be nil
+		})
+		return nil, diags
+	}
+
+	return &stateStoreSchema, diags
 }
 
 //-------------------------------------------------------------------
