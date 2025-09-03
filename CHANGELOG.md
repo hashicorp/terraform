@@ -1,4 +1,4 @@
-## 1.14.0 (Unreleased)
+## 1.14.0-alpha20250903 (September 03, 2025)
 
 
 ENHANCEMENTS:
@@ -6,6 +6,11 @@ ENHANCEMENTS:
 * terraform test: expected diagnostics will be included in test output when running in verbose mode" ([#37362](https://github.com/hashicorp/terraform/issues/37362))
 
 * terraform test: ignore prevent_destroy attribute during when cleaning up tests" ([#37364](https://github.com/hashicorp/terraform/issues/37364))
+
+
+BUG FIXES:
+
+* Fix OSS backend proxy support by adding a proxy layer for OSS backend operations. Resolves hashicorp/terraform#36897. ([#36897](https://github.com/hashicorp/terraform/issues/36897))
 
 
 UPGRADE NOTES:
