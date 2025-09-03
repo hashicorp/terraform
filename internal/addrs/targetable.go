@@ -42,4 +42,6 @@ const (
 	AbsResourceAddrType
 	ModuleAddrType
 	ModuleInstanceAddrType
+	ActionAddrType
+	ActionInstanceAddrType
 )

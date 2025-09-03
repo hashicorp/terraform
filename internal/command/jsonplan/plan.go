@@ -64,19 +64,20 @@ type plan struct {
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
 	// that is undefined at this time, but consistent.
-	ResourceDrift      []ResourceChange         `json:"resource_drift,omitempty"`
-	ResourceChanges    []ResourceChange         `json:"resource_changes,omitempty"`
-	DeferredChanges    []DeferredResourceChange `json:"deferred_changes,omitempty"`
-	OutputChanges      map[string]Change        `json:"output_changes,omitempty"`
-	ActionInvocations  []ActionInvocation       `json:"action_invocations,omitempty"`
-	PriorState         json.RawMessage          `json:"prior_state,omitempty"`
-	Config             json.RawMessage          `json:"configuration,omitempty"`
-	RelevantAttributes []ResourceAttr           `json:"relevant_attributes,omitempty"`
-	Checks             json.RawMessage          `json:"checks,omitempty"`
-	Timestamp          string                   `json:"timestamp,omitempty"`
-	Applyable          bool                     `json:"applyable"`
-	Complete           bool                     `json:"complete"`
-	Errored            bool                     `json:"errored"`
+	ResourceDrift             []ResourceChange           `json:"resource_drift,omitempty"`
+	ResourceChanges           []ResourceChange           `json:"resource_changes,omitempty"`
+	DeferredChanges           []DeferredResourceChange   `json:"deferred_changes,omitempty"`
+	DeferredActionInvocations []DeferredActionInvocation `json:"deferred_action_invocations,omitempty"`
+	OutputChanges             map[string]Change          `json:"output_changes,omitempty"`
+	ActionInvocations         []ActionInvocation         `json:"action_invocations,omitempty"`
+	PriorState                json.RawMessage            `json:"prior_state,omitempty"`
+	Config                    json.RawMessage            `json:"configuration,omitempty"`
+	RelevantAttributes        []ResourceAttr             `json:"relevant_attributes,omitempty"`
+	Checks                    json.RawMessage            `json:"checks,omitempty"`
+	Timestamp                 string                     `json:"timestamp,omitempty"`
+	Applyable                 bool                       `json:"applyable"`
+	Complete                  bool                       `json:"complete"`
+	Errored                   bool                       `json:"errored"`
 }
 
 func newPlan() *plan {
@@ -309,6 +310,13 @@ func Marshal(
 		output.DeferredChanges, err = MarshalDeferredResourceChanges(p.DeferredResources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling deferred resource changes: %s", err)
+		}
+	}
+
+	if p.DeferredActionInvocations != nil {
+		output.DeferredActionInvocations, err = MarshalDeferredActionInvocations(p.DeferredActionInvocations, schemas)
+		if err != nil {
+			return nil, fmt.Errorf("error in marshaling deferred action invocations: %s", err)
 		}
 	}
 

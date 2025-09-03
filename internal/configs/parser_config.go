@@ -104,14 +104,6 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 		switch block.Type {
 
 		case "terraform":
-			// TODO: Update once pluggable state store is out of experimental phase
-			if allowExperiments {
-				terraformBlockSchema.Blocks = append(terraformBlockSchema.Blocks,
-					hcl.BlockHeaderSchema{
-						Type:       "state_store",
-						LabelNames: []string{"type"},
-					})
-			}
 			content, contentDiags := block.Body.Content(terraformBlockSchema)
 			diags = append(diags, contentDiags...)
 
@@ -130,10 +122,20 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 					}
 
 				case "state_store":
-					stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
-					diags = append(diags, cfgDiags...)
-					if stateStoreCfg != nil {
-						file.StateStores = append(file.StateStores, stateStoreCfg)
+					if allowExperiments {
+						stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
+						diags = append(diags, cfgDiags...)
+						if stateStoreCfg != nil {
+							file.StateStores = append(file.StateStores, stateStoreCfg)
+						}
+					} else {
+						// Prevent parsing of state_store blocks in all commands unless experiments enabled.
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unsupported block type",
+							Detail:   "Blocks of type \"state_store\" are not expected here.",
+							Subject:  &innerBlock.TypeRange,
+						})
 					}
 				case "cloud":
 					cloudCfg, cfgDiags := decodeCloudBlock(innerBlock)
@@ -394,9 +396,10 @@ var terraformBlockSchema = &hcl.BodySchema{
 		{
 			Type: "required_providers",
 		},
-		// NOTE: An entry for state_store is not present here
-		// because we conditionally add it in the calling code
-		// depending on whether experiments are enabled or not.
+		{
+			Type:       "state_store",
+			LabelNames: []string{"type"},
+		},
 		{
 			Type:       "provider_meta",
 			LabelNames: []string{"provider"},

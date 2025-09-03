@@ -37,3 +37,13 @@ func (ss ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema Sche
 }
 
 type ResourceIdentitySchemas = GetResourceIdentitySchemasResponse
+
+// SchemaForActionType attempts to find a schema for the given type. Returns an
+// empty schema if none is available.
+func (ss ProviderSchema) SchemaForActionType(typeName string) (schema ActionSchema) {
+	schema, ok := ss.Actions[typeName]
+	if ok {
+		return schema
+	}
+	return ActionSchema{}
+}

@@ -3571,3 +3571,145 @@ func TestContext2Validate_queryList(t *testing.T) {
 		})
 	}
 }
+
+// Action Validation is largely exercised in context_plan_actions_test.go
+func TestContext2Validate_action(t *testing.T) {
+	tests := map[string]struct {
+		config  string
+		wantErr string
+	}{
+		"valid config": {
+			`
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
+}
+action "test_register" "foo" {
+  config {
+      host = "cmdb.snot"
+  }
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_register.foo]
+    }
+  }
+}
+`,
+			"",
+		},
+		"missing required config": {
+			`
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
+}
+action "test_register" "foo" {
+    config {}
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_register.foo]
+    }
+  }
+}
+`,
+			"host is null",
+		},
+		"invalid nil config config": {
+			`
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+			version = "1.0.0"
+		}
+	}
+}
+action "test_register" "foo" {
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_register.foo]
+    }
+  }
+}
+`,
+			"config is null",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{"main.tf": test.config})
+
+			p := testProvider("test")
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"test_instance": {
+						Attributes: map[string]*configschema.Attribute{
+							"foo": {Type: cty.String, Optional: true},
+							"num": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+				Actions: map[string]providers.ActionSchema{
+					"test_register": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"host": {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			})
+			p.ValidateActionConfigFn = func(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
+				if r.Config.IsNull() {
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("config is null"))
+					return
+				}
+				if r.Config.GetAttr("host").IsNull() {
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("host is null"))
+				}
+				return
+			}
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			diags := ctx.Validate(m, nil)
+			if !p.ValidateActionConfigCalled {
+				t.Fatal("ValidateAction RPC was not called")
+			}
+
+			if test.wantErr != "" {
+				if !diags.HasErrors() {
+					t.Errorf("unexpected success\nwant errors: %s", test.wantErr)
+				} else if got, want := diags.Err().Error(), test.wantErr; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+			} else {
+				if diags.HasErrors() {
+					t.Errorf("unexpected error\ngot: %s", diags.Err().Error())
+				}
+			}
+		})
+	}
+}

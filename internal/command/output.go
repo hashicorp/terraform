@@ -109,8 +109,10 @@ Usage: terraform [global options] output [options] [NAME]
 Options:
 
   -state=path      Path to the state file to read. Defaults to
-                   "terraform.tfstate". Ignored when remote 
-                   state is used.
+                   "terraform.tfstate".
+                   Legacy option for the local backend only. See
+                   the local backend's documentation for more
+                   information.
 
   -no-color        If specified, output won't contain any color.
 

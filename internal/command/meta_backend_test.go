@@ -1203,9 +1203,12 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 	}
 
 	// Check resulting states
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
 	}
 
 	sort.Strings(workspaces)
@@ -1301,9 +1304,12 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *
 	}
 
 	// Check resulting states
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
 	}
 
 	sort.Strings(workspaces)
@@ -1375,9 +1381,12 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(
 	}
 
 	// Check resulting states
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		t.Logf("warning returned : %s", wDiags.ErrWithWarnings())
 	}
 
 	sort.Strings(workspaces)

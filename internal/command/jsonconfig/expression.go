@@ -53,8 +53,8 @@ func marshalExpression(ex hcl.Expression) expression {
 		var varString []string
 		for _, ref := range refs {
 			// We work backwards here, starting with the full reference +
-			// reamining traversal, and then unwrapping the remaining traversals
-			// into parts until we end up at the smallest referencable address.
+			// remaining traversal, and then unwrapping the remaining traversals
+			// into parts until we end up at the smallest referenceable address.
 			remains := ref.Remaining
 			for len(remains) > 0 {
 				varString = append(varString, fmt.Sprintf("%s%s", ref.Subject, traversalStr(remains)))
@@ -76,6 +76,11 @@ func marshalExpression(ex hcl.Expression) expression {
 			case addrs.ModuleCallInstanceOutput:
 				// Include the module name, without the output name
 				varString = append(varString, ref.Subject.(addrs.ModuleCallInstanceOutput).Call.String())
+			case addrs.ActionInstance:
+				if ref.Subject.(addrs.ActionInstance).Key != addrs.NoKey {
+					// Include the action, without the key
+					varString = append(varString, ref.Subject.(addrs.ActionInstance).Action.String())
+				}
 			}
 		}
 		ret.References = varString

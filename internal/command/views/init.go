@@ -186,6 +186,14 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
 	},
+	"initializing_provider_plugin_from_config_message": {
+		HumanValue: "\n[reset][bold]Initializing provider plugins found in the configuration...",
+		JSONValue:  "Initializing provider plugins found in the configuration...",
+	},
+	"initializing_provider_plugin_from_state_message": {
+		HumanValue: "\n[reset][bold]Initializing provider plugins found in the state...",
+		JSONValue:  "Initializing provider plugins found in the state...",
+	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store...",
 		JSONValue:  "Initializing the state store...",
@@ -209,6 +217,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	"reusing_previous_version_info": {
 		HumanValue: "- Reusing previous version of %s from the dependency lock file",
 		JSONValue:  "%s: Reusing previous version from the dependency lock file",
+	},
+	"reusing_version_during_state_provider_init": {
+		HumanValue: "- Reusing previous version of %s",
+		JSONValue:  "%s: Reusing previous version of %s",
 	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
@@ -271,6 +283,14 @@ const (
 	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
+
+	// InitializingProviderPluginFromConfigMessage indicates the beginning of installing of providers described in configuration
+	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
+	// InitializingProviderPluginFromStateMessage indicates the beginning of installing of providers described in state
+	InitializingProviderPluginFromStateMessage InitMessageCode = "initializing_provider_plugin_from_state_message"
+	// DependenciesLockPendingChangesInfo indicates when a provider installation step will reuse a provider from a previous installation step in the current operation
+	ReusingVersionIdentifiedFromConfig InitMessageCode = "reusing_version_during_state_provider_init"
+
 	// InitConfigError indicates problems encountered during initialisation
 	InitConfigError InitMessageCode = "init_config_error"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation

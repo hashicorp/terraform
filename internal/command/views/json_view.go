@@ -95,6 +95,14 @@ func (v *JSONView) PlannedChange(c *json.ResourceInstanceChange) {
 	)
 }
 
+func (v *JSONView) PlannedActionInvocation(action *json.ActionInvocation) {
+	v.log.Info(
+		fmt.Sprintf("planned action invocation: %s", action.Action.Action),
+		"type", json.MessagePlannedActionInvocation,
+		"invocation", action,
+	)
+}
+
 func (v *JSONView) ResourceDrift(c *json.ResourceInstanceChange) {
 	v.log.Info(
 		fmt.Sprintf("%s: Drift detected (%s)", c.Resource.Addr, c.Action),

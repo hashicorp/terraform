@@ -4,6 +4,7 @@
 package configschema
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
@@ -256,5 +257,88 @@ func TestObject_AttributeByPath(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestBlockByPath(t *testing.T) {
+	schema := &Block{
+		BlockTypes: map[string]*NestedBlock{
+			"b1": {
+				Nesting: NestingList,
+				Block: Block{
+					Attributes: map[string]*Attribute{
+						"a3": {Description: "a3"},
+						"a4": {Description: "a4"},
+					},
+					BlockTypes: map[string]*NestedBlock{
+						"b2": {
+							Nesting: NestingMap,
+							Block: Block{
+								Attributes: map[string]*Attribute{
+									"a5": {Description: "a5"},
+									"a6": {Description: "a6"},
+								},
+							},
+						},
+					},
+				},
+			},
+			"b3": {
+				Nesting: NestingMap,
+				Block: Block{
+					Attributes: map[string]*Attribute{
+						"a7": {Description: "a7"},
+						"a8": {Description: "a8"},
+					},
+					BlockTypes: map[string]*NestedBlock{
+						"b4": {
+							Nesting: NestingSet,
+							Block: Block{
+								Attributes: map[string]*Attribute{
+									"a9":  {Description: "a9"},
+									"a10": {Description: "a10"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, tc := range []struct {
+		path   cty.Path
+		exists bool
+	}{
+		{
+			cty.GetAttrPath("b1").IndexInt(1).GetAttr("b2"),
+			true,
+		},
+		{
+			cty.GetAttrPath("b1"),
+			true,
+		},
+		{
+			cty.GetAttrPath("b2"),
+			false,
+		},
+		{
+			cty.GetAttrPath("b3").IndexString("foo").GetAttr("b2"),
+			false,
+		},
+		{
+			cty.GetAttrPath("b3").IndexString("foo").GetAttr("b4"),
+			true,
+		},
+	} {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			block := schema.BlockByPath(tc.path)
+			if !tc.exists && block == nil {
+				return
+			}
+
+			if block == nil {
+				t.Fatalf("missing block from path %#v\n", tc.path)
+			}
+		})
+	}
 }

@@ -66,26 +66,26 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 		after := []jsonplan.ActionInvocation{}
 
 		for _, action := range plan.ActionInvocations {
-			if action.TriggeringResourceAddress != change.Address {
+			if action.LifecycleActionTrigger == nil || action.LifecycleActionTrigger.TriggeringResourceAddress != change.Address {
 				continue
 			}
 
-			switch action.TriggerEvent {
+			switch action.LifecycleActionTrigger.ActionTriggerEvent {
 			case configs.BeforeCreate.String(), configs.BeforeUpdate.String(), configs.BeforeDestroy.String():
 				before = append(before, action)
 			case configs.AfterCreate.String(), configs.AfterUpdate.String(), configs.AfterDestroy.String():
 				after = append(after, action)
 			default:
 				// The switch should be exhaustive.
-				panic(fmt.Sprintf("Unexpected triggering event when rendering action %s", action.TriggerEvent))
+				panic(fmt.Sprintf("Unexpected triggering event when rendering action %s", action.LifecycleActionTrigger.ActionTriggerEvent))
 			}
 		}
 
 		slices.SortFunc(before, jsonplan.ActionInvocationCompare)
 		slices.SortFunc(after, jsonplan.ActionInvocationCompare)
 
-		beforeActionsTriggered := []actionInvocation{}
-		afterActionsTriggered := []actionInvocation{}
+		var beforeActionsTriggered []actionInvocation
+		var afterActionsTriggered []actionInvocation
 		for _, action := range before {
 			schema := plan.getActionSchema(action)
 			beforeActionsTriggered = append(beforeActionsTriggered, actionInvocation{
@@ -106,6 +106,17 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			diff:                   differ.ComputeDiffForBlock(structuredChange, schema.Block),
 			beforeActionsTriggered: beforeActionsTriggered,
 			afterActionsTriggered:  afterActionsTriggered,
+		})
+	}
+
+	for _, action := range plan.ActionInvocations {
+		if action.InvokeActionTrigger == nil {
+			// lifecycle actions are handled within the resource
+			continue
+		}
+		diffs.actions = append(diffs.actions, actionInvocation{
+			invocation: action,
+			schema:     plan.getActionSchema(action),
 		})
 	}
 
@@ -133,6 +144,7 @@ type diffs struct {
 	drift    []diff
 	changes  []diff
 	deferred []deferredDiff
+	actions  []actionInvocation
 	outputs  map[string]computed.Diff
 }
 

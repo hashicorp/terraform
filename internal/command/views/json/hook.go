@@ -356,11 +356,19 @@ func NewRefreshComplete(addr addrs.AbsResourceInstance, idKey, idValue string) H
 
 // ActionStart: triggered by StartAction hook
 type actionStart struct {
+	Action           ActionAddr              `json:"action"`
+	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
+	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
+}
+
+type lifecycleActionTrigger struct {
 	TriggeringResource ResourceAddr `json:"resource"`
 	TriggerIndex       int          `json:"trigger_index"`
 	ActionsIndex       int          `json:"actions_index"`
-	Action             ActionAddr   `json:"action"`
+	TriggerEvent       string       `json:"trigger_event"`
 }
+
+type invokeActionTrigger struct{}
 
 var _ Hook = (*actionStart)(nil)
 
@@ -369,24 +377,39 @@ func (h *actionStart) HookType() MessageType {
 }
 
 func (h *actionStart) String() string {
-	return fmt.Sprintf("%s.trigger[%d]: Action Started: %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr)
-}
-
-func NewActionStart(id terraform.HookActionIdentity) Hook {
-	return &actionStart{
-		TriggeringResource: newResourceAddr(id.TriggeringResourceAddr),
-		TriggerIndex:       id.ActionTriggerBlockIndex,
-		ActionsIndex:       id.ActionsListIndex,
-		Action:             newActionAddr(id.Addr),
+	switch {
+	case h.LifecycleTrigger != nil:
+		return fmt.Sprintf("%s.trigger[%d]: Action started: %s", h.LifecycleTrigger.TriggeringResource.Addr, h.LifecycleTrigger.TriggerIndex, h.Action.Addr)
+	default:
+		return fmt.Sprintf("Action started: %s", h.Action.Addr)
 	}
 }
 
+func NewActionStart(id terraform.HookActionIdentity) Hook {
+	action := &actionStart{
+		Action: newActionAddr(id.Addr),
+	}
+
+	switch trigger := id.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		action.LifecycleTrigger = &lifecycleActionTrigger{
+			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggerIndex:       trigger.ActionTriggerBlockIndex,
+			ActionsIndex:       trigger.ActionsListIndex,
+			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+		}
+	case *plans.InvokeActionTrigger:
+		action.InvokeTrigger = new(invokeActionTrigger)
+	}
+
+	return action
+}
+
 type actionProgress struct {
-	TriggeringResource ResourceAddr `json:"resource"`
-	TriggerIndex       int          `json:"trigger_index"`
-	ActionsIndex       int          `json:"actions_index"`
-	Action             ActionAddr   `json:"action"`
-	Message            string       `json:"message"`
+	Action           ActionAddr              `json:"action"`
+	Message          string                  `json:"message"`
+	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
+	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
 }
 
 var _ Hook = (*actionProgress)(nil)
@@ -396,24 +419,39 @@ func (h *actionProgress) HookType() MessageType {
 }
 
 func (h *actionProgress) String() string {
-	return fmt.Sprintf("%s (%d): %s - %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr, h.Message)
-}
-
-func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
-	return &actionProgress{
-		TriggeringResource: newResourceAddr(id.TriggeringResourceAddr),
-		TriggerIndex:       id.ActionTriggerBlockIndex,
-		ActionsIndex:       id.ActionsListIndex,
-		Action:             newActionAddr(id.Addr),
-		Message:            message,
+	switch {
+	case h.LifecycleTrigger != nil:
+		return fmt.Sprintf("%s (%d): %s - %s", h.LifecycleTrigger.TriggeringResource.Addr, h.LifecycleTrigger.TriggerIndex, h.Action.Addr, h.Message)
+	default:
+		return fmt.Sprintf("%s - %s", h.Action.Addr, h.Message)
 	}
 }
 
+func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
+	action := &actionProgress{
+		Action:  newActionAddr(id.Addr),
+		Message: message,
+	}
+
+	switch trigger := id.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		action.LifecycleTrigger = &lifecycleActionTrigger{
+			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggerIndex:       trigger.ActionTriggerBlockIndex,
+			ActionsIndex:       trigger.ActionsListIndex,
+			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+		}
+	case *plans.InvokeActionTrigger:
+		action.InvokeTrigger = new(invokeActionTrigger)
+	}
+
+	return action
+}
+
 type actionComplete struct {
-	TriggeringResource ResourceAddr `json:"resource"`
-	TriggerIndex       int          `json:"trigger_index"`
-	ActionsIndex       int          `json:"actions_index"`
-	Action             ActionAddr   `json:"action"`
+	Action           ActionAddr              `json:"action"`
+	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
+	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
 }
 
 var _ Hook = (*actionComplete)(nil)
@@ -423,24 +461,39 @@ func (h *actionComplete) HookType() MessageType {
 }
 
 func (h *actionComplete) String() string {
-	return fmt.Sprintf("%s (%d): Action Complete: %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr)
-}
-
-func NewActionComplete(id terraform.HookActionIdentity) Hook {
-	return &actionComplete{
-		TriggeringResource: newResourceAddr(id.TriggeringResourceAddr),
-		TriggerIndex:       id.ActionTriggerBlockIndex,
-		ActionsIndex:       id.ActionsListIndex,
-		Action:             newActionAddr(id.Addr),
+	switch {
+	case h.LifecycleTrigger != nil:
+		return fmt.Sprintf("%s (%d): Action complete: %s", h.LifecycleTrigger.TriggeringResource.Addr, h.LifecycleTrigger.TriggerIndex, h.Action.Addr)
+	default:
+		return fmt.Sprintf("Action complete: %s", h.Action.Addr)
 	}
 }
 
+func NewActionComplete(id terraform.HookActionIdentity) Hook {
+	action := &actionComplete{
+		Action: newActionAddr(id.Addr),
+	}
+
+	switch trigger := id.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		action.LifecycleTrigger = &lifecycleActionTrigger{
+			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggerIndex:       trigger.ActionTriggerBlockIndex,
+			ActionsIndex:       trigger.ActionsListIndex,
+			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+		}
+	case *plans.InvokeActionTrigger:
+		action.InvokeTrigger = new(invokeActionTrigger)
+	}
+
+	return action
+}
+
 type actionErrored struct {
-	TriggeringResource ResourceAddr `json:"resource"`
-	TriggerIndex       int          `json:"trigger_index"`
-	ActionsIndex       int          `json:"actions_index"`
-	Action             ActionAddr   `json:"action"`
-	Error              string       `json:"error"`
+	Action           ActionAddr              `json:"action"`
+	Error            string                  `json:"error"`
+	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
+	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
 }
 
 var _ Hook = (*actionErrored)(nil)
@@ -450,17 +503,33 @@ func (h *actionErrored) HookType() MessageType {
 }
 
 func (h *actionErrored) String() string {
-	return fmt.Sprintf("%s (%d): Action Errored: %s - %s", h.TriggeringResource.Addr, h.TriggerIndex, h.Action.Addr, h.Error)
+	switch {
+	case h.LifecycleTrigger != nil:
+		return fmt.Sprintf("%s (%d): Action errored: %s - %s", h.LifecycleTrigger.TriggeringResource.Addr, h.LifecycleTrigger.TriggerIndex, h.Action.Addr, h.Error)
+	default:
+		return fmt.Sprintf("Action errored: %s - %s", h.Action.Addr, h.Error)
+	}
 }
 
 func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
-	return &actionErrored{
-		TriggeringResource: newResourceAddr(id.TriggeringResourceAddr),
-		TriggerIndex:       id.ActionTriggerBlockIndex,
-		ActionsIndex:       id.ActionsListIndex,
-		Action:             newActionAddr(id.Addr),
-		Error:              err.Error(),
+	action := &actionErrored{
+		Action: newActionAddr(id.Addr),
+		Error:  err.Error(),
 	}
+
+	switch trigger := id.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		action.LifecycleTrigger = &lifecycleActionTrigger{
+			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
+			TriggerIndex:       trigger.ActionTriggerBlockIndex,
+			ActionsIndex:       trigger.ActionsListIndex,
+			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+		}
+	case *plans.InvokeActionTrigger:
+		action.InvokeTrigger = new(invokeActionTrigger)
+	}
+
+	return action
 }
 
 // Convert the subset of plans.Action values we expect to receive into a

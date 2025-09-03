@@ -6,28 +6,111 @@ package terraform
 import (
 	"path/filepath"
 	"slices"
+	"sort"
+	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContextPlan_actions(t *testing.T) {
+	unlinkedActionSchema := providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"attr": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
+
+		Unlinked: &providers.UnlinkedAction{},
+	}
+	writeOnlyUnlinkedActionSchema := providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"attr": {
+					Type:      cty.String,
+					Optional:  true,
+					WriteOnly: true,
+				},
+			},
+		},
+
+		Unlinked: &providers.UnlinkedAction{},
+	}
+
+	// Action schema with nested blocks used for tests exercising block handling.
+	nestedActionSchema := providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"top_attr": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+			BlockTypes: map[string]*configschema.NestedBlock{
+				"settings": {
+					Nesting: configschema.NestingSingle,
+					Block: configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"rule": {
+								Nesting: configschema.NestingList,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"value": {
+											Type:     cty.String,
+											Required: true,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				"settings_list": {
+					Nesting: configschema.NestingList,
+					Block: configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		Unlinked: &providers.UnlinkedAction{},
+	}
 
 	for name, tc := range map[string]struct {
-		toBeImplemented    bool
-		module             map[string]string
-		buildState         func(*states.SyncState)
-		planActionResponse *providers.PlanActionResponse
-		planOpts           *PlanOpts
+		toBeImplemented bool
+		module          map[string]string
+		buildState      func(*states.SyncState)
+		planActionFn    func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse
+		planResourceFn  func(*testing.T, providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
+		readResourceFn  func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
+		planOpts        *PlanOpts
 
 		expectPlanActionCalled bool
 
@@ -39,7 +122,9 @@ func TestContextPlan_actions(t *testing.T) {
 		assertValidateDiagnostics func(*testing.T, tfdiags.Diagnostics)
 
 		expectPlanDiagnostics func(m *configs.Config) tfdiags.Diagnostics
-		assertPlan            func(*testing.T, *plans.Plan)
+		assertPlanDiagnostics func(*testing.T, tfdiags.Diagnostics)
+
+		assertPlan func(*testing.T, *plans.Plan)
 	}{
 		"unreferenced": {
 			module: map[string]string{
@@ -52,6 +137,9 @@ action "test_unlinked" "hello" {}
 			assertPlan: func(t *testing.T, p *plans.Plan) {
 				if len(p.Changes.ActionInvocations) != 0 {
 					t.Fatalf("expected no actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Applyable {
+					t.Fatalf("should not be able to apply this plan")
 				}
 			},
 		},
@@ -107,18 +195,23 @@ resource "test_object" "a" {
 					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
-					t.Fatalf("expected action to have a triggering resource address 'test_object.a', got '%s'", action.TriggeringResourceAddr)
+				at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 				}
 
-				if action.ActionTriggerBlockIndex != 0 {
-					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+					t.Fatalf("expected action to have a triggering resource address 'test_object.a', got '%s'", at.TriggeringResourceAddr)
 				}
-				if action.TriggerEvent != configs.BeforeCreate {
-					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+
+				if at.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 				}
-				if action.ActionsListIndex != 0 {
-					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				if at.TriggerEvent() != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
+				}
+				if at.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", at.ActionsListIndex)
 				}
 
 				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
@@ -333,29 +426,6 @@ resource "test_object" "a" {
 			},
 		},
 
-		"action for_each with auto-expansion": {
-			module: map[string]string{
-				"main.tf": `
-action "test_unlinked" "hello" {
-  for_each = toset(["a", "b"])
-  
-  config {
-    attr = "value-${each.key}"
-  }
-}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_unlinked.hello] # This will auto-expand to action.test_unlinked.hello["a"] and action.test_unlinked.hello["b"]
-    }
-  }
-}
-`,
-			},
-			expectPlanActionCalled: true,
-		},
-
 		"action count": {
 			module: map[string]string{
 				"main.tf": `
@@ -401,30 +471,6 @@ resource "test_object" "a" {
 			},
 		},
 
-		"action count with auto-expansion": {
-			module: map[string]string{
-				"main.tf": `
-action "test_unlinked" "hello" {
-  count = 2
-
-  config {
-    attr = "value-${count.index}"
-  }
-}
-
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_unlinked.hello] # This will auto-expand to action.test_unlinked.hello[0] and action.test_unlinked.hello[1]
-    }
-  }
-}
-`,
-			},
-			expectPlanActionCalled: true,
-		},
-
 		"action for_each invalid access": {
 			module: map[string]string{
 				"main.tf": `
@@ -449,7 +495,7 @@ resource "test_object" "a" {
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Reference to non-existant action instance",
+					Summary:  "Reference to non-existent action instance",
 					Detail:   "Action instance was not found in the current context.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -484,7 +530,7 @@ resource "test_object" "a" {
 			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Reference to non-existant action instance",
+					Summary:  "Reference to non-existent action instance",
 					Detail:   "Action instance was not found in the current context.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -535,7 +581,6 @@ resource "test_object" "a" {
 			},
 		},
 		"expanded resource - expanded action": {
-			toBeImplemented: true, // TODO: Not sure why this panics
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {
@@ -676,18 +721,95 @@ resource "test_object" "a" {
 `,
 			},
 
-			planActionResponse: &providers.PlanActionResponse{
-				Diagnostics: tfdiags.Diagnostics{
-					tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
-				},
+			planActionFn: func(_ *testing.T, _ providers.PlanActionRequest) providers.PlanActionResponse {
+				t.Helper()
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
+					},
+				}
 			},
 
 			expectPlanActionCalled: true,
 			// We only expect a single diagnostic here, the other should not have been called because the first one failed.
 			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{
-					tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Failed to plan action",
+						Detail:   "Planning failed: Test case simulates an error while planning",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 8, Byte: 149},
+							End:      hcl.Pos{Line: 7, Column: 46, Byte: 177},
+						},
+					},
+				)
+			},
+		},
+
+		"actions with warnings don't cancel": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "failure" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.failure, action.test_unlinked.failure]
+    }
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.failure]
+    }
+  }
+}
+`,
+			},
+
+			planActionFn: func(t *testing.T, par providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Warning, "Warning during planning", "Test case simulates a warning while planning"),
+					},
 				}
+			},
+
+			expectPlanActionCalled: true,
+			// We only expect a single diagnostic here, the other should not have been called because the first one failed.
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Warnings when planning action",
+						Detail:   "Warning during planning: Test case simulates a warning while planning",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 8, Byte: 149},
+							End:      hcl.Pos{Line: 7, Column: 46, Byte: 177},
+						},
+					},
+					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Warnings when planning action",
+						Detail:   "Warning during planning: Test case simulates a warning while planning",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 48, Byte: 179},
+							End:      hcl.Pos{Line: 7, Column: 76, Byte: 207},
+						},
+					},
+					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Warnings when planning action",
+						Detail:   "Warning during planning: Test case simulates a warning while planning",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 11, Column: 8, Byte: 284},
+							End:      hcl.Pos{Line: 11, Column: 46, Byte: 312},
+						},
+					},
+				)
 			},
 		},
 
@@ -831,45 +953,6 @@ resource "test_object" "a" {
 				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 			},
 		},
-		// We don't yet support these action types yet
-		"fails with lifecycle actions": {
-			module: map[string]string{
-				"main.tf": `
-action "test_lifecycle" "hello" {}
-`,
-			},
-			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Lifecycle actions are not supported",
-					Detail:   "This version of Terraform does not support lifecycle actions",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
-						End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
-					},
-				})
-			},
-		},
-		"fails with linked actions": {
-			module: map[string]string{
-				"main.tf": `
-action "test_linked" "hello" {}
-`,
-			},
-			expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Linked actions are not supported",
-					Detail:   "This version of Terraform does not support linked actions",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
-						End:      hcl.Pos{Line: 2, Column: 29, Byte: 29},
-					},
-				})
-			},
-		},
 
 		"triggered within module": {
 			module: map[string]string{
@@ -902,18 +985,23 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", action.TriggeringResourceAddr)
+				at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 				}
 
-				if action.ActionTriggerBlockIndex != 0 {
-					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
-				if action.TriggerEvent != configs.BeforeCreate {
-					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+
+				if at.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 				}
-				if action.ActionsListIndex != 0 {
-					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				if at.TriggerEvent() != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
+				}
+				if at.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", at.ActionsListIndex)
 				}
 
 				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
@@ -951,7 +1039,15 @@ resource "other_object" "a" {
 
 				// We know we are run within two child modules, so we can just sort by the triggering resource address
 				slices.SortFunc(p.Changes.ActionInvocations, func(a, b *plans.ActionInvocationInstanceSrc) int {
-					if a.TriggeringResourceAddr.String() < b.TriggeringResourceAddr.String() {
+					at, ok := a.ActionTrigger.(*plans.LifecycleActionTrigger)
+					if !ok {
+						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", a.ActionTrigger)
+					}
+					bt, ok := b.ActionTrigger.(*plans.LifecycleActionTrigger)
+					if !ok {
+						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", b.ActionTrigger)
+					}
+					if at.TriggeringResourceAddr.String() < bt.TriggeringResourceAddr.String() {
 						return -1
 					} else {
 						return 1
@@ -963,18 +1059,20 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'module.mod[0].action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[0].other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'module.mod[0].other_object.a', but it is %s", action.TriggeringResourceAddr)
+				at := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[0].other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod[0].other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
 
-				if action.ActionTriggerBlockIndex != 0 {
-					t.Fatalf("expected action to have a triggering block index of 0, got %d", action.ActionTriggerBlockIndex)
+				if at.ActionTriggerBlockIndex != 0 {
+					t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 				}
-				if action.TriggerEvent != configs.BeforeCreate {
-					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", action.TriggerEvent)
+				if at.TriggerEvent() != configs.BeforeCreate {
+					t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
 				}
-				if action.ActionsListIndex != 0 {
-					t.Fatalf("expected action to have a actions list index of 0, got %d", action.ActionsListIndex)
+				if at.ActionsListIndex != 0 {
+					t.Fatalf("expected action to have a actions list index of 0, got %d", at.ActionsListIndex)
 				}
 
 				if action.ProviderAddr.Provider != addrs.NewDefaultProvider("test") {
@@ -986,8 +1084,10 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'module.mod[1].action.test_unlinked.hello', got '%s'", action2.Addr)
 				}
 
-				if !action2.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[1].other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'module.mod[1].other_object.a', but it is %s", action2.TriggeringResourceAddr)
+				a2t := action2.ActionTrigger.(*plans.LifecycleActionTrigger)
+
+				if !a2t.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[1].other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod[1].other_object.a', but it is %s", a2t.TriggeringResourceAddr)
 				}
 			},
 		},
@@ -1028,8 +1128,13 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", action.TriggeringResourceAddr)
+				at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a lifecycle action trigger, got %T", action.ActionTrigger)
+				}
+
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod.other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'module.mod.other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
 
 				if action.ProviderAddr.Module.String() != "module.mod" {
@@ -1072,9 +1177,13 @@ resource "other_object" "a" {
 				if action.Addr.String() != "action.ecosystem_unlinked.hello" {
 					t.Fatalf("expected action address to be 'action.ecosystem_unlinked.hello', got '%s'", action.Addr)
 				}
+				at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
+				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", action.TriggeringResourceAddr)
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
 
 				if action.ProviderAddr.Provider.Namespace != "danielmschmidt" {
@@ -1114,8 +1223,13 @@ resource "other_object" "a" {
 					t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
 				}
 
-				if !action.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
-					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", action.TriggeringResourceAddr)
+				at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+				if !ok {
+					t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
+				}
+
+				if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("other_object.a")) {
+					t.Fatalf("expected action to have triggering resource address 'other_object.a', but it is %s", at.TriggeringResourceAddr)
 				}
 
 				if action.ProviderAddr.Alias != "aliased" {
@@ -1124,12 +1238,102 @@ resource "other_object" "a" {
 			},
 		},
 
-		"action config refers to before triggering resource leads to circular dependency": {
+		"action config with after_create dependency to triggering resource": {
 			module: map[string]string{
 				"main.tf": `
 action "test_unlinked" "hello" {
   config {
     attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_name"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected one action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if p.Changes.ActionInvocations[0].ActionTrigger.TriggerEvent() != configs.AfterCreate {
+					t.Fatalf("expected trigger event to be of type AfterCreate, got: %v", p.Changes.ActionInvocations[0].ActionTrigger)
+				}
+
+				if p.Changes.ActionInvocations[0].Addr.Action.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected action to equal 'action.test_unlinked.hello', got '%s'", p.Changes.ActionInvocations[0].Addr)
+				}
+
+				decode, err := p.Changes.ActionInvocations[0].ConfigValue.Decode(cty.Object(map[string]cty.Type{"attr": cty.String}))
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if decode.GetAttr("attr").AsString() != "test_name" {
+					t.Fatalf("expected action config field 'attr' to have value 'test_name', got '%s'", decode.GetAttr("attr").AsString())
+				}
+			},
+		},
+
+		"action config refers to before triggering resource leads to validation error": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_name"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true, // The cycle only appears in the apply graph
+			assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+				if !diags.HasErrors() {
+					t.Fatalf("expected diagnostics to have errors, but it does not")
+				}
+				if len(diags) != 1 {
+					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+				}
+				// We expect the diagnostic to be about a cycle
+				if !strings.Contains(diags[0].Description().Summary, "Cycle") {
+					t.Fatalf("expected diagnostic summary to contain 'Cycle', got '%s'", diags[0].Description().Summary)
+				}
+				// We expect the action node to be part of the cycle
+				if !strings.Contains(diags[0].Description().Summary, "action.test_unlinked.hello") {
+					t.Fatalf("expected diagnostic summary to contain 'action.test_unlinked.hello', got '%s'", diags[0].Description().Summary)
+				}
+				// We expect the resource node to be part of the cycle
+				if !strings.Contains(diags[0].Description().Summary, "test_object.a") {
+					t.Fatalf("expected diagnostic summary to contain 'test_object.a', got '%s'", diags[0].Description().Summary)
+				}
+			},
+		},
+
+		"secret values": {
+			module: map[string]string{
+				"main.tf": `
+variable "secret" {
+  type           = string
+  sensitive      = true
+}
+action "test_unlinked" "hello" {
+  config {
+    attr = var.secret
   }
 }
 resource "test_object" "a" {
@@ -1142,29 +1346,1683 @@ resource "test_object" "a" {
 }
 `,
 			},
-			expectPlanActionCalled: false,
-			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
-				if !diags.HasErrors() {
-					t.Fatalf("expected diagnostics to have errors, but it does not")
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"secret": &InputValue{
+						Value:      cty.StringVal("secret"),
+						SourceType: ValueFromCLIArg,
+					}},
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
 				}
-				if len(diags) != 1 {
-					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+
+				action := p.Changes.ActionInvocations[0]
+				ac, err := action.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("expected action to decode successfully, but got error: %v", err)
 				}
-				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
-					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+
+				if !marks.Has(ac.ConfigValue.GetAttr("attr"), marks.Sensitive) {
+					t.Fatalf("expected attribute 'attr' to be marked as sensitive")
 				}
 			},
 		},
 
-		"action config refers to after triggering resource leads to circular dependency": {
+		"provider deferring action while not allowed": {
 			module: map[string]string{
 				"main.tf": `
-action "test_unlinked" "hello" {
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: false,
+			},
+			planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Provider deferred changes when Terraform did not allow deferrals",
+						`The provider signaled a deferred action for "action.test_unlinked.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
+					),
+				}
+			},
+		},
+
+		"provider deferring action": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected 1 deferred action in plan, got %d", len(p.DeferredActionInvocations))
+				}
+				deferredActionInvocation := p.DeferredActionInvocations[0]
+				if deferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", deferredActionInvocation.DeferredReason)
+				}
+				if deferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+			},
+		},
+
+		"deferred after actions defer following actions": {
+			module: map[string]string{
+				"main.tf": `
+// Using this provider to have another provider type for an easier assertion
+terraform {
+  required_providers {
+    ecosystem = {
+      source = "danielmschmidt/ecosystem"
+    }
+  }
+}
+action "test_unlinked" "hello" {}
+action "ecosystem_unlinked" "world" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello, action.ecosystem_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			planActionFn: func(t *testing.T, r providers.PlanActionRequest) providers.PlanActionResponse {
+				if r.ActionType == "ecosystem_unlinked" {
+					t.Fatalf("expected second action to not be planned, but it was planned")
+				}
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 2 {
+					t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
+				}
+				firstDeferredActionInvocation := p.DeferredActionInvocations[0]
+				if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
+				}
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				secondDeferredActionInvocation := p.DeferredActionInvocations[1]
+				if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
+				}
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem_unlinked.world" {
+					t.Fatalf("expected second deferred action to be triggered by action.ecosystem_unlinked.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+			},
+		},
+
+		"deferred before actions defer following actions and resource": {
+			module: map[string]string{
+				"main.tf": `
+// Using this provider to have another provider type for an easier assertion
+terraform {
+  required_providers {
+    ecosystem = {
+      source = "danielmschmidt/ecosystem"
+    }
+  }
+}
+action "test_unlinked" "hello" {}
+action "ecosystem_unlinked" "world" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_create]
+      actions = [action.ecosystem_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			planActionFn: func(t *testing.T, r providers.PlanActionRequest) providers.PlanActionResponse {
+				if r.ActionType == "ecosystem_unlinked" {
+					t.Fatalf("expected second action to not be planned, but it was planned")
+				}
+				return providers.PlanActionResponse{
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 2 {
+					t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
+				}
+				firstDeferredActionInvocation := p.DeferredActionInvocations[0]
+				if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
+				}
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				secondDeferredActionInvocation := p.DeferredActionInvocations[1]
+				if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
+				}
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem_unlinked.world" {
+					t.Fatalf("expected second deferred action to be triggered by action.ecosystem_unlinked.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				if len(p.DeferredResources) != 1 {
+					t.Fatalf("expected 1 resource to be deferred, got %d", len(p.DeferredResources))
+				}
+				deferredResource := p.DeferredResources[0]
+
+				if deferredResource.ChangeSrc.Addr.String() != "test_object.a" {
+					t.Fatalf("Expected resource %s to be deferred, but it was not", deferredResource.ChangeSrc.Addr)
+				}
+
+				if deferredResource.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("Expected deferred reason to be deferred prereq, got %s", deferredResource.DeferredReason)
+				}
+			},
+		},
+
+		"deferred resources also defer the actions they trigger": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+
+			planResourceFn: func(_ *testing.T, req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				return providers.PlanResourceChangeResponse{
+					PlannedState:   req.ProposedNewState,
+					PlannedPrivate: req.PriorPrivate,
+					Diagnostics:    nil,
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 2 {
+					t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
+				}
+
+				sort.Slice(p.DeferredActionInvocations, func(i, j int) bool {
+					return p.DeferredActionInvocations[i].ActionInvocationInstanceSrc.Addr.String() < p.DeferredActionInvocations[j].ActionInvocationInstanceSrc.Addr.String()
+				})
+
+				firstDeferredActionInvocation := p.DeferredActionInvocations[0]
+				if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected deferred action to be deferred due to deferred prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
+				}
+
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				secondDeferredActionInvocation := p.DeferredActionInvocations[1]
+				if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
+				}
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+					t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+				}
+
+				if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Fatalf("expected second deferred action to be triggered by action.test_unlinked.hello, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				}
+
+				if len(p.DeferredResources) != 1 {
+					t.Fatalf("expected 1 resource to be deferred, got %d", len(p.DeferredResources))
+				}
+				deferredResource := p.DeferredResources[0]
+
+				if deferredResource.ChangeSrc.Addr.String() != "test_object.a" {
+					t.Fatalf("Expected resource %s to be deferred, but it was not", deferredResource.ChangeSrc.Addr)
+				}
+
+				if deferredResource.DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Fatalf("Expected deferred reason to be absent prereq, got %s", deferredResource.DeferredReason)
+				}
+			},
+		},
+
+		"write-only attributes": {
+			module: map[string]string{
+				"main.tf": `
+variable "attr" {
+  type = string
+  ephemeral = true
+}
+
+resource "test_object" "resource" {
+  name = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked_wo.hello]
+    }
+  }
+}
+
+action "test_unlinked_wo" "hello" {
+  config {
+    attr = var.attr
+  }
+}
+`,
+			},
+			planOpts: SimplePlanOpts(plans.NormalMode, InputValues{
+				"attr": {
+					Value: cty.StringVal("wo-plan"),
+				},
+			}),
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&writeOnlyUnlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if !ai.ConfigValue.GetAttr("attr").IsNull() {
+					t.Fatal("should have converted ephemeral value to null in the plan")
+				}
+			},
+		},
+
+		"simple action invoke": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "test_unlinked" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "test_unlinked",
+								Name: "one",
+							},
+							Key: addrs.NoKey,
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("one"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+		},
+
+		"action invoke with count (all)": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+action "test_unlinked" "two" {
+  count = 2
+
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected exactly two invocations, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				sort.Slice(plan.Changes.ActionInvocations, func(i, j int) bool {
+					return plan.Changes.ActionInvocations[i].Addr.Less(plan.Changes.ActionInvocations[j].Addr)
+				})
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("0"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[0]")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+
+				ais = plan.Changes.ActionInvocations[1]
+				ai, err = ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected = cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("1"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[1]")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+		},
+
+		"action invoke with count (instance)": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+action "test_unlinked" "two" {
+  count = 2
+
+  config {
+    attr = "two"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "test_unlinked",
+								Name: "one",
+							},
+							Key: addrs.IntKey(0),
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("0"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[0]")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+		},
+
+		"invoke action with reference": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "test_unlinked" "one" {
   config {
     attr = test_object.a.name
   }
 }
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			buildState: func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("hello"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+		},
+
+		"invoke action with reference (drift)": {
+			module: map[string]string{
+				"main.tf": `
 resource "test_object" "a" {
+  name = "hello"
+}
+
+action "test_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			buildState: func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("drifted value"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+		},
+
+		"invoke action with reference (drift, no refresh)": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "test_unlinked" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode:        plans.RefreshOnlyMode,
+				SkipRefresh: true,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			buildState: func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("hello"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+		},
+
+		"non-referenced resource isn't refreshed during invoke": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "test_unlinked" "one" {
+  config {
+    attr = "world"
+  }
+}
+`,
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsAction{
+						Action: addrs.Action{
+							Type: "test_unlinked",
+							Name: "one",
+						},
+					},
+				},
+			},
+			expectPlanActionCalled: true,
+			buildState: func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				if len(plan.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+				}
+
+				ais := plan.Changes.ActionInvocations[0]
+				ai, err := ais.Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+					t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+				}
+
+				expected := cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("world"),
+				})
+				if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+					t.Fatalf("wrong value in plan: %s", diff)
+				}
+
+				if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					t.Fatalf("wrong address in plan: %s", ai.Addr)
+				}
+
+				if len(plan.DriftedResources) > 0 {
+					t.Fatalf("shouldn't have refreshed any resources")
+				}
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+				t.Fatalf("should not have tried to refresh any resources")
+				return
+			},
+		},
+
+		"action config nested single + list blocks": {
+			module: map[string]string{
+				"main.tf": `
+action "test_nested" "with_blocks" {
+  config {
+    top_attr = "top"
+    settings {
+      name = "primary"
+      rule {
+        value = "r1"
+      }
+      rule {
+        value = "r2"
+      }
+    }
+  }
+}
+resource "test_object" "a" {
+  name = "object"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.test_nested.with_blocks]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+				}
+				ais := p.Changes.ActionInvocations[0]
+				decoded, err := ais.Decode(&nestedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding nested action: %s", err)
+				}
+				cv := decoded.ConfigValue
+				if cv.GetAttr("top_attr").AsString() != "top" {
+					t.Fatalf("expected top_attr = top, got %s", cv.GetAttr("top_attr").GoString())
+				}
+				settings := cv.GetAttr("settings")
+				if !settings.Type().IsObjectType() {
+					t.Fatalf("expected settings object, got %s", settings.Type().FriendlyName())
+				}
+				if settings.GetAttr("name").AsString() != "primary" {
+					t.Fatalf("expected settings.name = primary, got %s", settings.GetAttr("name").GoString())
+				}
+				rules := settings.GetAttr("rule")
+				if !rules.Type().IsListType() || rules.LengthInt() != 2 {
+					t.Fatalf("expected 2 rule blocks, got type %s length %d", rules.Type().FriendlyName(), rules.LengthInt())
+				}
+				first := rules.Index(cty.NumberIntVal(0)).GetAttr("value").AsString()
+				second := rules.Index(cty.NumberIntVal(1)).GetAttr("value").AsString()
+				if first != "r1" || second != "r2" {
+					t.Fatalf("expected rule values r1,r2 got %s,%s", first, second)
+				}
+			},
+		},
+
+		"action config top-level list block": {
+			module: map[string]string{
+				"main.tf": `
+action "test_nested" "with_list" {
+  config {
+    settings_list {
+      id = "one"
+    }
+    settings_list {
+      id = "two"
+    }
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.test_nested.with_list]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Fatalf("expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+				}
+				ais := p.Changes.ActionInvocations[0]
+				decoded, err := ais.Decode(&nestedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding nested action: %s", err)
+				}
+				cv := decoded.ConfigValue
+				if !cv.GetAttr("top_attr").IsNull() {
+					t.Fatalf("expected top_attr to be null, got %s", cv.GetAttr("top_attr").GoString())
+				}
+				sl := cv.GetAttr("settings_list")
+				if !sl.Type().IsListType() || sl.LengthInt() != 2 {
+					t.Fatalf("expected 2 settings_list blocks, got type %s length %d", sl.Type().FriendlyName(), sl.LengthInt())
+				}
+				first := sl.Index(cty.NumberIntVal(0)).GetAttr("id").AsString()
+				second := sl.Index(cty.NumberIntVal(1)).GetAttr("id").AsString()
+				if first != "one" || second != "two" {
+					t.Fatalf("expected ids one,two got %s,%s", first, second)
+				}
+			},
+		},
+
+		"boolean condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+action "test_unlinked" "bye" {}
+resource "test_object" "foo" {
+name = "foo"
+}
+resource "test_object" "a" {
+lifecycle {
+  action_trigger {
+    events = [before_create]
+    condition = test_object.foo.name == "foo"
+    actions = [action.test_unlinked.hello, action.test_unlinked.world]
+  }
+  action_trigger {
+    events = [after_create]
+    condition = test_object.foo.name == "bye"
+    actions = [action.test_unlinked.bye]
+  }
+}
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 actions in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				invokedActionAddrs := []string{}
+				for _, action := range p.Changes.ActionInvocations {
+					invokedActionAddrs = append(invokedActionAddrs, action.Addr.String())
+				}
+				slices.Sort(invokedActionAddrs)
+				expectedActions := []string{
+					"action.test_unlinked.hello",
+					"action.test_unlinked.world",
+				}
+				if !cmp.Equal(expectedActions, invokedActionAddrs) {
+					t.Fatalf("expected actions: %v, got %v", expectedActions, invokedActionAddrs)
+				}
+			},
+		},
+
+		"unknown condition": {
+			module: map[string]string{
+				"main.tf": `
+variable "cond" {
+    type = string
+}
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = var.cond == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"cond": &InputValue{
+						Value:      cty.UnknownVal(cty.String),
+						SourceType: ValueFromCaller,
+					},
+				},
+			},
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Condition must be known",
+					Detail:   "The condition expression resulted in an unknown value, but it must be a known boolean value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 186},
+						End:      hcl.Pos{Line: 10, Column: 36, Byte: 203},
+					},
+				})
+			},
+		},
+
+		"non-boolean condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "foo" {
+  name = "foo"
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = test_object.foo.name
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Incorrect value type",
+					Detail:   "Invalid expression value: a bool is required.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 196},
+						End:      hcl.Pos{Line: 10, Column: 39, Byte: 216},
+					},
+				})
+			},
+		},
+
+		"using self in before_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = self.name == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_update]
+      condition = self.name == "bar"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Self reference not allowed",
+					Detail:   `The condition expression cannot reference "self".`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 19, Byte: 197},
+						End:      hcl.Pos{Line: 9, Column: 37, Byte: 215},
+					},
+				})
+			},
+		},
+
+		"using self in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = self.name == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_update]
+      condition = self.name == "bar"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				// We only expect one diagnostic, as the other condition is valid
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Self reference not allowed",
+					Detail:   `The condition expression cannot reference "self".`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 19, Byte: 196},
+						End:      hcl.Pos{Line: 9, Column: 37, Byte: 214},
+					},
+				})
+			},
+		},
+
+		"using each in before_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar"])
+  name = each.key
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = each.key == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 235},
+						End:      hcl.Pos{Line: 10, Column: 36, Byte: 252},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 19, Byte: 235},
+						End:      hcl.Pos{Line: 10, Column: 36, Byte: 252},
+					},
+				})
+			},
+		},
+
+		"using each in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+  for_each = toset(["foo", "bar"])
+  name = each.key
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = each.key == "foo"
+      actions = [action.test_unlinked.hello]
+    }
+    action_trigger {
+      events = [after_update]
+      condition = each.key == "bar"
+      actions = [action.test_unlinked.world]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Errorf("Expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Errorf("Expected action 'action.test_unlinked.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+				}
+			},
+		},
+
+		"using count.index in before_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+				count = 3
+				name = "item-${count.index}"
+				lifecycle {
+						action_trigger {
+								events = [before_create]
+								condition = count.index == 1
+								actions = [action.test_unlinked.hello]
+						}
+						action_trigger {
+								events = [before_update]
+								condition = count.index == 2
+								actions = [action.test_unlinked.world]
+						}
+				}
+}
+				`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
+						End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
+						End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Count reference not allowed",
+					Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
+						End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
+					},
+				})
+			},
+		},
+
+		"using count.index in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+				count = 3
+				name = "item-${count.index}"
+				lifecycle {
+						action_trigger {
+								events = [after_create]
+								condition = count.index == 1
+								actions = [action.test_unlinked.hello]
+						}
+						action_trigger {
+								events = [after_update]
+								condition = count.index == 2
+								actions = [action.test_unlinked.world]
+						}
+				}
+}
+				`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Errorf("Expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Errorf("Expected action invocation %q, got %q", "action.test_unlinked.hello", p.Changes.ActionInvocations[0].Addr.String())
+				}
+			},
+		},
+
+		"using each.value in before_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+				for_each = {"foo" = "value1", "bar" = "value2"}
+				name = each.value
+				lifecycle {
+						action_trigger {
+								events = [before_create]
+								condition = each.value == "value1"
+								actions = [action.test_unlinked.hello]
+						}
+						action_trigger {
+								events = [before_update]
+								condition = each.value == "value2"
+								actions = [action.test_unlinked.world]
+						}
+				}
+}
+				`,
+			},
+			expectPlanActionCalled: false,
+
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 264},
+						End:      hcl.Pos{Line: 10, Column: 43, Byte: 286},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Each reference not allowed",
+					Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 21, Byte: 264},
+						End:      hcl.Pos{Line: 10, Column: 43, Byte: 286},
+					},
+				})
+			},
+		},
+
+		"using each.value in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+action "test_unlinked" "world" {}
+resource "test_object" "a" {
+				for_each = {"foo" = "value1", "bar" = "value2"}
+				name = each.value
+				lifecycle {
+						action_trigger {
+								events = [after_create]
+								condition = each.value == "value1"
+								actions = [action.test_unlinked.hello]
+						}
+						action_trigger {
+								events = [after_update]
+								condition = each.value == "value2"
+								actions = [action.test_unlinked.world]
+						}
+				}
+}
+				`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 1 {
+					t.Errorf("Expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+				}
+				if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
+					t.Errorf("Expected action 'action.test_unlinked.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+				}
+			},
+		},
+		"splat is not supported": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {
+  count = 42
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello[*]]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid action expression",
+					Detail:   "Unexpected expression found in action_triggers.actions.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 18, Byte: 161},
+						End:      hcl.Pos{Line: 9, Column: 47, Byte: 190},
+					},
+				})
+			},
+		},
+		"action expansion with unknown instances": {
+			module: map[string]string{
+				"main.tf": `
+variable "each" {
+  type = set(string)
+}
+action "test_unlinked" "hello" {
+  for_each = var.each
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello["a"]]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				SetVariables: InputValues{
+					"each": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected exactly one invocation, and found %d", len(p.DeferredActionInvocations))
+				}
+
+				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Fatalf("expected.DeferredReasonDeferredPrereq, got %s", p.DeferredActionInvocations[0].DeferredReason)
+				}
+
+				ai := p.DeferredActionInvocations[0].ActionInvocationInstanceSrc
+				if ai.Addr.String() != `action.test_unlinked.hello["a"]` {
+					t.Fatalf(`expected action invocation for action.test_unlinked.hello["a"], got %s`, ai.Addr.String())
+				}
+
+				if len(p.DeferredResources) != 1 {
+					t.Fatalf("expected 1 deferred resource, got %d", len(p.DeferredResources))
+				}
+
+				if p.DeferredResources[0].ChangeSrc.Addr.String() != "test_object.a" {
+					t.Fatalf("expected test_object.a, got %s", p.DeferredResources[0].ChangeSrc.Addr.String())
+				}
+			},
+		},
+		"action with unknown module expansion": {
+			// We have an unknown module expansion (for_each over an unknown value). The
+			// action and its triggering resource both live inside the (currently
+			// un-expanded) module instances. Since we cannot expand the module yet, the
+			// action invocation must be deferred.
+			module: map[string]string{
+				"main.tf": `
+variable "mods" {
+  type = set(string)
+}
+module "mod" {
+  source   = "./mod"
+  for_each = var.mods
+}
+`,
+				"mod/mod.tf": `
+action "test_unlinked" "hello" {
+  config {
+    attr = "static"
+  }
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				SetVariables: InputValues{
+					"mods": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				// No concrete action invocations can be produced yet.
+				if got := len(p.Changes.ActionInvocations); got != 0 {
+					t.Fatalf("expected 0 planned action invocations, got %d", got)
+				}
+
+				if got := len(p.DeferredActionInvocations); got != 1 {
+					t.Fatalf("expected 1 deferred action invocations, got %d", got)
+				}
+				ac, err := p.DeferredActionInvocations[0].Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding action invocation: %s", err)
+				}
+				if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
+					t.Fatalf("expected DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
+				}
+				if ac.ActionInvocationInstance.ConfigValue.GetAttr("attr").AsString() != "static" {
+					t.Fatalf("expected attr to be static, got %s", ac.ActionInvocationInstance.ConfigValue.GetAttr("attr").AsString())
+				}
+
+			},
+		},
+		"action with unknown module expansion and unknown instances": {
+			// Here both the module expansion and the action for_each expansion are unknown.
+			// The action is referenced (with a specific key) inside the module so we should
+			// get a single deferred action invocation for that specific (yet still
+			// unresolved) instance address.
+			module: map[string]string{
+				"main.tf": `
+variable "mods" {
+  type = set(string)
+}
+variable "actions" {
+  type = set(string)
+}
+module "mod" {
+  source   = "./mod"
+  for_each = var.mods
+  
+  actions = var.actions
+}
+`,
+				"mod/mod.tf": `
+variable "actions" {
+  type = set(string)
+}
+action "test_unlinked" "hello" {
+  // Unknown for_each inside the module instance.
+  for_each = var.actions
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      // We reference a specific (yet unknown) action instance key.
+      actions = [action.test_unlinked.hello["a"]]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				SetVariables: InputValues{
+					"mods": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+					"actions": &InputValue{
+						Value:      cty.UnknownVal(cty.Set(cty.String)),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			},
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 0 {
+					t.Fatalf("expected 0 planned action invocations, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Fatalf("expected 1 deferred partial action invocations, got %d", len(p.DeferredActionInvocations))
+				}
+
+				ac, err := p.DeferredActionInvocations[0].Decode(&unlinkedActionSchema)
+				if err != nil {
+					t.Fatalf("error decoding action invocation: %s", err)
+				}
+				if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
+					t.Fatalf("expected deferred reason to be DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
+				}
+				if !ac.ActionInvocationInstance.ConfigValue.IsNull() {
+					t.Fatalf("expected config value to be null")
+				}
+			},
+		},
+
+		"deferring resource dependencies should defer action": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "origin" {
+  name = "origin"
+}
+action "test_unlinked" "hello" {
+  config {
+    attr = test_object.origin.name
+  }
+}
+resource "test_object" "a" {
+  name = "a"
   lifecycle {
     action_trigger {
       events = [after_create]
@@ -1175,15 +3033,61 @@ resource "test_object" "a" {
 `,
 			},
 			expectPlanActionCalled: false,
-			assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
-				if !diags.HasErrors() {
-					t.Fatalf("expected diagnostics to have errors, but it does not")
+			planOpts: &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+			},
+			planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				if req.Config.GetAttr("name").AsString() == "origin" {
+					return providers.PlanResourceChangeResponse{
+						Deferred: &providers.Deferred{
+							Reason: providers.DeferredReasonAbsentPrereq,
+						},
+					}
 				}
-				if len(diags) != 1 {
-					t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+				return providers.PlanResourceChangeResponse{
+					PlannedState:    req.ProposedNewState,
+					PlannedPrivate:  req.PriorPrivate,
+					PlannedIdentity: req.PriorIdentity,
 				}
-				if diags[0].Description().Summary != "Cycle: test_object.a, action.test_unlinked.hello (expand)" && diags[0].Description().Summary != "Cycle: action.test_unlinked.hello (expand), test_object.a" {
-					t.Fatalf("expected diagnostic to have summary 'Cycle: test_object.a, action.test_unlinked.hello (expand)' or 'Cycle: action.test_unlinked.hello (expand), test_object.a', but got '%s'", diags[0].Description().Summary)
+			},
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.DeferredActionInvocations) != 1 {
+					t.Errorf("Expected 1 deferred action invocation, got %d", len(p.DeferredActionInvocations))
+				}
+				if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
+					t.Errorf("Expected action. test_unlinked.hello, got %s", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
+				}
+				if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredActionInvocations[0].DeferredReason)
+				}
+
+				if len(p.DeferredResources) != 2 {
+					t.Fatalf("Expected 2 deferred resources, got %d", len(p.DeferredResources))
+				}
+
+				slices.SortFunc(p.DeferredResources, func(a, b *plans.DeferredResourceInstanceChangeSrc) int {
+					if a.ChangeSrc.Addr.Less(b.ChangeSrc.Addr) {
+						return -1
+					}
+					if b.ChangeSrc.Addr.Less(a.ChangeSrc.Addr) {
+						return 1
+					}
+					return 0
+				})
+
+				if p.DeferredResources[0].ChangeSrc.Addr.String() != "test_object.a" {
+					t.Errorf("Expected test_object.a to be first, got %s", p.DeferredResources[0].ChangeSrc.Addr.String())
+				}
+				if p.DeferredResources[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
+					t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredResources[0].DeferredReason)
+				}
+				if p.DeferredResources[1].ChangeSrc.Addr.String() != "test_object.origin" {
+					t.Errorf("Expected test_object.origin to be second, got %s", p.DeferredResources[1].ChangeSrc.Addr.String())
+				}
+				if p.DeferredResources[1].DeferredReason != providers.DeferredReasonAbsentPrereq {
+					t.Errorf("Expected DeferredReasonAbsentPrereq, got %s", p.DeferredResources[1].DeferredReason)
 				}
 			},
 		},
@@ -1198,18 +3102,9 @@ resource "test_object" "a" {
 			p := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
-						"test_unlinked": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
-							},
-
-							Unlinked: &providers.UnlinkedAction{},
-						},
+						"test_unlinked":    unlinkedActionSchema,
+						"test_unlinked_wo": writeOnlyUnlinkedActionSchema,
+						"test_nested":      nestedActionSchema,
 
 						"test_lifecycle": {
 							ConfigSchema: &configschema.Block{
@@ -1220,12 +3115,6 @@ resource "test_object" "a" {
 									},
 								},
 							},
-
-							Lifecycle: &providers.LifecycleAction{
-								LinkedResource: providers.LinkedResourceSchema{
-									TypeName: "test_object",
-								},
-							},
 						},
 
 						"test_linked": {
@@ -1234,14 +3123,6 @@ resource "test_object" "a" {
 									"attr": {
 										Type:     cty.String,
 										Optional: true,
-									},
-								},
-							},
-
-							Linked: &providers.LinkedAction{
-								LinkedResources: []providers.LinkedResourceSchema{
-									{
-										TypeName: "test_object",
 									},
 								},
 							},
@@ -1298,8 +3179,22 @@ resource "test_object" "a" {
 				},
 			}
 
-			if tc.planActionResponse != nil {
-				p.PlanActionResponse = *tc.planActionResponse
+			if tc.planActionFn != nil {
+				p.PlanActionFn = func(r providers.PlanActionRequest) providers.PlanActionResponse {
+					return tc.planActionFn(t, r)
+				}
+			}
+
+			if tc.planResourceFn != nil {
+				p.PlanResourceChangeFn = func(r providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+					return tc.planResourceFn(t, r)
+				}
+			}
+
+			if tc.readResourceFn != nil {
+				p.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+					return tc.readResourceFn(t, r)
+				}
 			}
 
 			ctx := testContext2(t, &ContextOpts{
@@ -1343,6 +3238,8 @@ resource "test_object" "a" {
 
 			if tc.expectPlanDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
+			} else if tc.assertPlanDiagnostics != nil {
+				tc.assertPlanDiagnostics(t, diags)
 			} else {
 				tfdiags.AssertNoDiagnostics(t, diags)
 			}
@@ -1358,4 +3255,12 @@ resource "test_object" "a" {
 			}
 		})
 	}
+}
+
+func mustActionInstanceAddr(t *testing.T, address string) addrs.AbsActionInstance {
+	action, diags := addrs.ParseAbsActionInstanceStr(address)
+	if len(diags) > 0 {
+		t.Fatalf("invalid action %s", diags.Err())
+	}
+	return action
 }

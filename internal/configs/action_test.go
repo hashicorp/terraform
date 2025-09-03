@@ -41,7 +41,7 @@ func TestDecodeActionBlock(t *testing.T) {
 			&Action{
 				Type:            "an_action",
 				Name:            "foo",
-				LinkedResources: []hcl.Traversal{mustAbsTraversalForExpr(fooResourceExpr)},
+				LinkedResources: []hcl.Expression{fooResourceExpr},
 				DeclRange:       blockRange,
 			},
 			nil,
@@ -64,7 +64,7 @@ func TestDecodeActionBlock(t *testing.T) {
 			&Action{
 				Type:            "an_action",
 				Name:            "foo",
-				LinkedResources: []hcl.Traversal{mustAbsTraversalForExpr(fooResourceExpr), mustAbsTraversalForExpr(barResourceExpr)},
+				LinkedResources: []hcl.Expression{fooResourceExpr, barResourceExpr},
 				DeclRange:       blockRange,
 			},
 			nil,
@@ -87,10 +87,13 @@ func TestDecodeActionBlock(t *testing.T) {
 			&Action{
 				Type:            "an_action",
 				Name:            "foo",
-				LinkedResources: []hcl.Traversal{},
+				LinkedResources: []hcl.Expression{moduleResourceExpr},
 				DeclRange:       blockRange,
 			},
-			[]string{`:0,0-0: Invalid "linked_resources"; "linked_resources" must only refer to managed resources in the current module.`},
+			[]string{
+				`MockExprTraversal:0,0-28: Invalid linked_resources; linked_resources must only refer to managed resources in the current module.`,
+				`MockExprTraversal:0,0-28: Invalid linked_resource expression; Missing resource reference in linked_resource expression.`,
+			},
 		},
 		"invalid linked resource (datasource ref)": {
 			&hcl.Block{
@@ -110,10 +113,13 @@ func TestDecodeActionBlock(t *testing.T) {
 			&Action{
 				Type:            "an_action",
 				Name:            "foo",
-				LinkedResources: nil,
+				LinkedResources: []hcl.Expression{fooDataSourceExpr},
 				DeclRange:       blockRange,
 			},
-			[]string{`:0,0-0: Invalid "linked_resource"; "linked_resource" must only refer to a managed resource in the current module.`},
+			[]string{
+				`MockExprTraversal:0,0-16: Invalid linked_resource; linked_resource must only refer to a managed resource in the current module.`,
+				`MockExprTraversal:0,0-16: Invalid linked_resource expression; Missing resource reference in linked_resource expression.`,
+			},
 		},
 	}
 
@@ -159,11 +165,11 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
 				Actions: []ActionRef{
 					{
-						mustAbsTraversalForExpr(fooActionExpr),
+						fooActionExpr,
 						fooActionExpr.Range(),
 					},
 					{
-						mustAbsTraversalForExpr(barActionExpr),
+						barActionExpr,
 						barActionExpr.Range(),
 					},
 				},
@@ -184,11 +190,16 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 			&ActionTrigger{
 				Condition: conditionExpr,
 				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
-				Actions:   []ActionRef{},
+				Actions: []ActionRef{
+					{
+						Expr:  moduleActionExpr,
+						Range: moduleActionExpr.Range(),
+					},
+				},
 			},
 			[]string{
-				"MockExprTraversal:0,0-33: Invalid actions argument inside action_triggers; action_triggers.actions accepts a list of one or more actions, which must be in the current module.",
-				":0,0-0: No actions specified; At least one action must be specified for an action_trigger.",
+				"MockExprTraversal:0,0-33: No actions specified; At least one action must be specified for an action_trigger.",
+				"MockExprTraversal:0,0-33: Invalid reference to action outside this module; Actions can only be referenced in the module they are declared in.",
 			},
 		},
 		"error - action is not an action": {
@@ -205,11 +216,16 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 			&ActionTrigger{
 				Condition: conditionExpr,
 				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
-				Actions:   []ActionRef{},
+				Actions: []ActionRef{
+					{
+						Expr:  fooDataSourceExpr,
+						Range: fooDataSourceExpr.Range(),
+					},
+				},
 			},
 			[]string{
-				"MockExprTraversal:0,0-16: Invalid actions argument inside action_triggers; action_triggers.actions accepts a list of one or more actions, which must be in the current module.",
-				":0,0-0: No actions specified; At least one action must be specified for an action_trigger.",
+				"MockExprTraversal:0,0-16: No actions specified; At least one action must be specified for an action_trigger.",
+				"MockExprTraversal:0,0-16: Invalid action argument inside action_triggers; action_triggers.actions must only refer to actions in the current module.",
 			},
 		},
 		"error - invalid event": {
@@ -228,7 +244,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				Events:    []ActionTriggerEvent{},
 				Actions: []ActionRef{
 					{
-						mustAbsTraversalForExpr(fooActionExpr),
+						fooActionExpr,
 						fooActionExpr.Range(),
 					},
 				},
@@ -247,12 +263,4 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 			assertResultDeepEqual(t, got, test.want)
 		})
 	}
-}
-
-func mustAbsTraversalForExpr(expr hcl.Expression) hcl.Traversal {
-	trav, diags := hcl.AbsTraversalForExpr(expr)
-	if diags.HasErrors() {
-		panic(diags.Errs())
-	}
-	return trav
 }
