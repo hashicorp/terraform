@@ -2749,9 +2749,9 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// fetch that state again, which should produce a new lineage
-	s2Mgr, err := b.StateMgr("s2")
-	if err != nil {
-		t.Fatal(err)
+	s2Mgr, sDiags := b.StateMgr("s2")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := s2Mgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2773,9 +2773,9 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// make sure s2 is OK
-	s2Mgr, err = b.StateMgr("s2")
-	if err != nil {
-		t.Fatal(err)
+	s2Mgr, sDiags = b.StateMgr("s2")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := s2Mgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2809,9 +2809,9 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	// get a state that contains the prefix as a substring
-	sMgr, err := b.StateMgr("env-1")
-	if err != nil {
-		t.Fatal(err)
+	sMgr, sDiags := b.StateMgr("env-1")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := sMgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2845,9 +2845,9 @@ func TestBackendLockFileWithPrefix(t *testing.T) {
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	// get a state that contains the prefix as a substring
-	sMgr, err := b.StateMgr("env-1")
-	if err != nil {
-		t.Fatal(err)
+	sMgr, sDiags := b.StateMgr("env-1")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := sMgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2865,6 +2865,9 @@ func TestBackendLockFileWithPrefix(t *testing.T) {
 	out, err := b.s3Client.ListObjectVersions(ctx, &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucketName),
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	found := false
 	for _, item := range out.DeleteMarkers {
@@ -2909,9 +2912,9 @@ func TestBackendRestrictedRoot_Default(t *testing.T) {
 }`, bucketName, workspacePrefix)))
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	sMgr, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	sMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := sMgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2955,11 +2958,11 @@ func TestBackendRestrictedRoot_NamedPrefix(t *testing.T) {
 }`, bucketName, workspacePrefix)))
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	_, err := b.StateMgr(backend.DefaultStateName)
-	if err == nil {
+	_, sDiags := b.StateMgr(backend.DefaultStateName)
+	if !sDiags.HasErrors() {
 		t.Fatal("expected AccessDenied error, got none")
 	}
-	if s := err.Error(); !strings.Contains(s, fmt.Sprintf("Unable to list objects in S3 bucket %q with prefix %q:", bucketName, workspacePrefix+"/")) {
+	if s := sDiags.Err().Error(); !strings.Contains(s, fmt.Sprintf("Unable to list objects in S3 bucket %q with prefix %q:", bucketName, workspacePrefix+"/")) {
 		t.Fatalf("expected AccessDenied error, got: %s", s)
 	}
 }
@@ -2988,11 +2991,11 @@ func TestBackendWrongRegion(t *testing.T) {
 	createS3Bucket(ctx, t, b.s3Client, bucketName, bucketRegion)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, bucketRegion)
 
-	if _, err := b.StateMgr(backend.DefaultStateName); err == nil {
+	if _, sDiags := b.StateMgr(backend.DefaultStateName); !sDiags.HasErrors() {
 		t.Fatal("expected error, got none")
 	} else {
 		var comparableErr error
-		if errValue, isDiag := err.(tfdiags.DiagnosticsAsError); isDiag {
+		if errValue, isDiag := sDiags.Err().(tfdiags.DiagnosticsAsError); isDiag {
 			// To use `As` below we need to extract the error that's wrapped
 			// in a diagnostic.
 			comparableErr = errValue.WrappedErrors()[0]
@@ -3005,7 +3008,7 @@ func TestBackendWrongRegion(t *testing.T) {
 				t.Errorf("expected request region %q, got %q", e, a)
 			}
 		} else {
-			t.Fatalf("expected bucket region error, got: %v", err)
+			t.Fatalf("expected bucket region error, got: %v", sDiags.Err())
 		}
 	}
 }
@@ -3394,9 +3397,9 @@ func testBackendStateLockDeletedOutOfBand(ctx context.Context, t *testing.T, b1 
 	ddbLockID := fmt.Sprintf("%s/%s", bucketName, s3StateKey)
 
 	// Get the default state
-	b1StateMgr, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("error: %s", err)
+	b1StateMgr, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("error: %s", sDiags.Err())
 	}
 	if err := b1StateMgr.RefreshState(); err != nil {
 		t.Fatalf("bad: %s", err)

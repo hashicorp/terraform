@@ -57,7 +57,9 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 	return diags
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	// Build the state client
 	var stateMgr statemgr.Full = &remote.State{
 		Client: &RemoteClient{
@@ -70,9 +72,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// Check to see if this state already exists.
 	// If the state doesn't exist, we have to assume this
 	// is a normal create operation, and take the lock at that point.
-	existing, diags := b.Workspaces()
-	if diags.HasErrors() {
-		return nil, diags.Err()
+	existing, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		return nil, diags
 	}
 
 	exists := false
@@ -91,7 +94,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockId, err := stateMgr.Lock(lockInfo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to lock state in Postgres: %s", err)
+			return nil, diags.Append(fmt.Errorf("failed to lock state in Postgres: %s", err))
 		}
 
 		// Local helper function so we can call it multiple places
@@ -105,19 +108,19 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		if v := stateMgr.State(); v == nil {
 			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 		}
 
 		// Unlock, the state should now be initialized
 		if err := lockUnlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }

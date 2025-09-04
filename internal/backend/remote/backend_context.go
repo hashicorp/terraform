@@ -39,9 +39,9 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 
 	// Get the latest state.
 	log.Printf("[TRACE] backend/remote: requesting state manager for workspace %q", remoteWorkspaceName)
-	stateMgr, err := b.StateMgr(op.Workspace)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("error loading state: %w", err))
+	stateMgr, sDiags := b.StateMgr(op.Workspace)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("error loading state: %w", sDiags.Err()))
 		return nil, nil, diags
 	}
 

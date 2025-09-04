@@ -25,7 +25,9 @@ Error: %s
 You may have to force-unlock this state in order to use it again.
 `
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	b.client.path = b.path(name)
 	b.client.lockFilePath = b.getLockFilePath(name)
 	stateMgr := &remote.State{Client: &RemoteClient{
@@ -48,9 +50,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// If we need to force-unlock, but for some reason the state no longer
 	// exists, the user will have to use aws tools to manually fix the
 	// situation.
-	existing, diags := b.Workspaces()
-	if diags.HasErrors() {
-		return nil, diags.Err()
+	existing, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		return nil, diags
 	}
 
 	exists := false
@@ -68,7 +71,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockId, err := b.client.Lock(lockInfo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to lock oci state: %s", err)
+			return nil, diags.Append(fmt.Errorf("failed to lock oci state: %s", err))
 		}
 
 		// Local helper function so we can call it multiple places
@@ -84,29 +87,29 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		// the `exists` check and taking the lock.
 		if err := stateMgr.RefreshState(); err != nil {
 			err = lockUnlock(err)
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
 			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 		}
 
 		// Unlock, the state should now be initialized
 		if err := lockUnlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }
 
 func (b *Backend) configureRemoteClient() error {

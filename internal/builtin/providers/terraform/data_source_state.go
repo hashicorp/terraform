@@ -129,12 +129,12 @@ func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		workspaceName = workspaceVal.AsString()
 	}
 
-	state, err := b.StateMgr(workspaceName)
-	if err != nil {
+	state, sDiags := b.StateMgr(workspaceName)
+	if sDiags.HasErrors() {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Error loading state error",
-			fmt.Sprintf("error loading the remote state: %s", err),
+			fmt.Sprintf("error loading the remote state: %s", sDiags.Err()),
 			cty.Path(nil).GetAttr("backend"),
 		))
 		return cty.NilVal, diags
