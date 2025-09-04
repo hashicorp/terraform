@@ -109,9 +109,9 @@ func (c *StateShowCommand) Run(args []string) int {
 		c.Streams.Eprintf("Error selecting workspace: %s\n", err)
 		return 1
 	}
-	stateMgr, err := b.StateMgr(env)
-	if err != nil {
-		c.Streams.Eprintln(fmt.Sprintf(errStateLoadingState, err))
+	stateMgr, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		c.Streams.Eprintln(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {

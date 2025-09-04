@@ -48,9 +48,9 @@ func TestRemoteClientBasic(t *testing.T) {
 	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	state, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	state, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	remote.TestClient(t, state.(*remote.State).Client)
@@ -125,9 +125,9 @@ func TestForceUnlock(t *testing.T) {
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
 	// first test with default
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	info := statemgr.NewLockInfo()
@@ -140,9 +140,9 @@ func TestForceUnlock(t *testing.T) {
 	}
 
 	// s1 is now locked, get the same state through s2 and unlock it
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal("failed to get default state to force unlock:", err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal("failed to get default state to force unlock:", sDiags)
 	}
 
 	if err := s2.Unlock(lockID); err != nil {
@@ -151,9 +151,9 @@ func TestForceUnlock(t *testing.T) {
 
 	// now try the same thing with a named state
 	// first test with default
-	s1, err = b1.StateMgr("test")
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags = b1.StateMgr("test")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	info = statemgr.NewLockInfo()
@@ -166,9 +166,9 @@ func TestForceUnlock(t *testing.T) {
 	}
 
 	// s1 is now locked, get the same state through s2 and unlock it
-	s2, err = b2.StateMgr("test")
-	if err != nil {
-		t.Fatal("failed to get named state to force unlock:", err)
+	s2, sDiags = b2.StateMgr("test")
+	if sDiags.HasErrors() {
+		t.Fatal("failed to get named state to force unlock:", sDiags)
 	}
 
 	if err = s2.Unlock(lockID); err != nil {
@@ -202,9 +202,9 @@ func TestForceUnlock_withLockfile(t *testing.T) {
 	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 
 	// first test with default
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	info := statemgr.NewLockInfo()
@@ -217,9 +217,9 @@ func TestForceUnlock_withLockfile(t *testing.T) {
 	}
 
 	// s1 is now locked, get the same state through s2 and unlock it
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal("failed to get default state to force unlock:", err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal("failed to get default state to force unlock:", sDiags)
 	}
 
 	if err := s2.Unlock(lockID); err != nil {
@@ -228,9 +228,9 @@ func TestForceUnlock_withLockfile(t *testing.T) {
 
 	// now try the same thing with a named state
 	// first test with default
-	s1, err = b1.StateMgr("test")
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags = b1.StateMgr("test")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	info = statemgr.NewLockInfo()
@@ -243,9 +243,9 @@ func TestForceUnlock_withLockfile(t *testing.T) {
 	}
 
 	// s1 is now locked, get the same state through s2 and unlock it
-	s2, err = b2.StateMgr("test")
-	if err != nil {
-		t.Fatal("failed to get named state to force unlock:", err)
+	s2, sDiags = b2.StateMgr("test")
+	if sDiags.HasErrors() {
+		t.Fatal("failed to get named state to force unlock:", sDiags)
 	}
 
 	if err = s2.Unlock(lockID); err != nil {
@@ -272,9 +272,9 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	createDynamoDBTable(ctx, t, b.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b.dynClient, bucketName)
 
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	client := s.(*remote.State).Client.(*RemoteClient)
 
@@ -322,9 +322,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	client1 := s1.(*remote.State).Client
 
@@ -347,9 +347,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		"bucket": bucketName,
 		"key":    keyName,
 	})).(*Backend)
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	client2 := s2.(*remote.State).Client
 
@@ -440,15 +440,15 @@ func TestRemoteClientPutLargeUploadWithObjectLock_Compliance(t *testing.T) {
 	)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	s1, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	client := s1.(*remote.State).Client
 
 	var state bytes.Buffer
 	dataW := io.LimitReader(neverEnding('x'), manager.DefaultUploadPartSize*2)
-	_, err = state.ReadFrom(dataW)
+	_, err := state.ReadFrom(dataW)
 	if err != nil {
 		t.Fatalf("writing dummy data: %s", err)
 	}
@@ -480,15 +480,15 @@ func TestRemoteClientLockFileWithObjectLock_Compliance(t *testing.T) {
 	)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	s1, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	client := s1.(*remote.State).Client
 
 	var state bytes.Buffer
 	dataW := io.LimitReader(neverEnding('x'), manager.DefaultUploadPartSize)
-	_, err = state.ReadFrom(dataW)
+	_, err := state.ReadFrom(dataW)
 	if err != nil {
 		t.Fatalf("writing dummy data: %s", err)
 	}
@@ -520,15 +520,15 @@ func TestRemoteClientLockFileWithObjectLock_Governance(t *testing.T) {
 	)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	s1, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	client := s1.(*remote.State).Client
 
 	var state bytes.Buffer
 	dataW := io.LimitReader(neverEnding('x'), manager.DefaultUploadPartSize)
-	_, err = state.ReadFrom(dataW)
+	_, err := state.ReadFrom(dataW)
 	if err != nil {
 		t.Fatalf("writing dummy data: %s", err)
 	}
@@ -590,9 +590,9 @@ func TestRemoteClientSkipS3Checksum(t *testing.T) {
 			createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 			defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-			state, err := b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				t.Fatal(err)
+			state, sDiags := b.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
+				t.Fatal(sDiags)
 			}
 
 			c := state.(*remote.State).Client
@@ -606,7 +606,7 @@ func TestRemoteClientSkipS3Checksum(t *testing.T) {
 			}
 
 			var checksum string
-			err = client.put(stateBuf.Bytes(), func(opts *s3.Options) {
+			err := client.put(stateBuf.Bytes(), func(opts *s3.Options) {
 				opts.APIOptions = append(opts.APIOptions,
 					addRetrieveChecksumHeaderMiddleware(t, &checksum),
 					addCancelRequestMiddleware(),

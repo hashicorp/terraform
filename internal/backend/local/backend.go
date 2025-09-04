@@ -257,18 +257,20 @@ func (b *Local) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
 	return diags
 }
 
-func (b *Local) StateMgr(name string) (statemgr.Full, error) {
+func (b *Local) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
 		return b.Backend.StateMgr(name)
 	}
 
 	if s, ok := b.states[name]; ok {
-		return s, nil
+		return s, diags
 	}
 
 	if err := b.createState(name); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	statePath, stateOutPath, backupPath := b.StatePaths(name)
@@ -283,7 +285,7 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 		b.states = map[string]statemgr.Full{}
 	}
 	b.states[name] = s
-	return s, nil
+	return s, diags
 }
 
 // Operation implements backendrun.OperationsBackend

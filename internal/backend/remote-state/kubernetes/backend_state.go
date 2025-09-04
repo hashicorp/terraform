@@ -81,17 +81,19 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 	return diags.Append(client.Delete())
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	c, err := b.remoteClient(name)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	stateMgr := &remote.State{Client: c}
 
 	// Grab the value
 	if err := stateMgr.RefreshState(); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// If we have no state, we have to create an empty state
@@ -101,13 +103,13 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockID, err := stateMgr.Lock(lockInfo)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// get base secret name
 		secretName, err := c.createSecretName(0)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// Local helper function so we can call it multiple places
@@ -130,20 +132,22 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		if err := stateMgr.WriteState(states.NewState()); err != nil {
-			return nil, unlock(err)
+			unlockErr := unlock(err)
+			return nil, diags.Append(unlockErr)
 		}
 		if err := stateMgr.PersistState(nil); err != nil {
-			return nil, unlock(err)
+			unlockErr := unlock(err)
+			return nil, diags.Append(unlockErr)
 		}
 
 		// Unlock, the state should now be initialized
 		if err := unlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }
 
 // get a remote client configured for this state

@@ -369,8 +369,8 @@ func (b backendFailsConfigure) Configure(config cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
-func (b backendFailsConfigure) StateMgr(workspace string) (statemgr.Full, error) {
-	return nil, fmt.Errorf("StateMgr not implemented")
+func (b backendFailsConfigure) StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnostics) {
+	return nil, tfdiags.Diagnostics{}.Append(fmt.Errorf("StateMgr not implemented"))
 }
 
 func (b backendFailsConfigure) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {

@@ -172,9 +172,9 @@ func testCloudState(t *testing.T) *State {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
-	raw, err := b.StateMgr(testBackendSingleWorkspaceName)
-	if err != nil {
-		t.Fatalf("error: %v", err)
+	raw, sDiags := b.StateMgr(testBackendSingleWorkspaceName)
+	if sDiags.HasErrors() {
+		t.Fatalf("error: %v", sDiags.Err())
 	}
 
 	return raw.(*State)

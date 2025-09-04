@@ -192,9 +192,9 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 			view.Diagnostics(diags)
 			return 1
 		}
-		sMgr, err := back.StateMgr(workspace)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Error loading state: %s", err))
+		sMgr, sDiags := back.StateMgr(workspace)
+		if sDiags.HasErrors() {
+			diags = diags.Append(fmt.Errorf("Error loading state: %s", sDiags.Err()))
 			view.Diagnostics(diags)
 			return 1
 		}
