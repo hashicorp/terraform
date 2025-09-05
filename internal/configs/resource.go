@@ -300,12 +300,10 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 
 				// decoded, but not yet used!
 				case "action_trigger":
-					if allowExperiments {
-						at, atDiags := decodeActionTriggerBlock(block)
-						diags = append(diags, atDiags...)
-						if at != nil {
-							r.Managed.ActionTriggers = append(r.Managed.ActionTriggers, at)
-						}
+					at, atDiags := decodeActionTriggerBlock(block)
+					diags = append(diags, atDiags...)
+					if at != nil {
+						r.Managed.ActionTriggers = append(r.Managed.ActionTriggers, at)
 					}
 
 				default:
