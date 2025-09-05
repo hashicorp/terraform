@@ -33,18 +33,19 @@ type RemoteClient struct {
 	SSECustomerAlgorithm string
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	logger := logWithOperation("download-state-file").Named(c.path)
 	logger.Info("Downloading remote state")
 	ctx := context.WithValue(context.Background(), "logger", logger)
 	payload, err := c.getObject(ctx)
 	if err != nil || len(payload.Data) == 0 {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 	// md5 hash of whole state
 	sum := md5.Sum(payload.Data)
 	payload.MD5 = sum[:]
-	return payload, nil
+	return payload, diags
 }
 
 func (c *RemoteClient) getObject(ctx context.Context) (*remote.Payload, error) {
@@ -125,7 +126,9 @@ func (c *RemoteClient) getObject(ctx context.Context) (*remote.Payload, error) {
 	return payload, nil
 }
 
-func (c *RemoteClient) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	logger := logWithOperation("upload-state-file").Named(c.path)
 	ctx := context.WithValue(context.Background(), "logger", logger)
 	dataSize := int64(len(data))
@@ -149,10 +152,10 @@ func (c *RemoteClient) Put(data []byte) error {
 		err = c.uploadSinglePartObject(ctx, data, sum[:])
 	}
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
-	return nil
+	return diags
 }
 
 func (c *RemoteClient) uploadSinglePartObject(ctx context.Context, data, sum []byte) error {
@@ -196,9 +199,10 @@ func (c *RemoteClient) uploadSinglePartObject(ctx context.Context, data, sum []b
 	return nil
 }
 
-func (c *RemoteClient) Delete() error {
+func (c *RemoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 
-	return c.DeleteAllObjectVersions()
+	return diags.Append(c.DeleteAllObjectVersions())
 }
 func (c *RemoteClient) DeleteAllObjectVersions() error {
 	request := objectstorage.ListObjectVersionsRequest{

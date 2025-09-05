@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // RemoteClient is a remote client that stores data in memory for testing.
@@ -17,7 +18,9 @@ type RemoteClient struct {
 	Name string
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	if c.Data == nil {
 		return nil, nil
 	}
@@ -25,21 +28,23 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	return &remote.Payload{
 		Data: c.Data,
 		MD5:  c.MD5,
-	}, nil
+	}, diags
 }
 
-func (c *RemoteClient) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	md5 := md5.Sum(data)
 
 	c.Data = data
 	c.MD5 = md5[:]
-	return nil
+	return diags
 }
 
-func (c *RemoteClient) Delete() error {
+func (c *RemoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	c.Data = nil
 	c.MD5 = nil
-	return nil
+	return diags
 }
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {

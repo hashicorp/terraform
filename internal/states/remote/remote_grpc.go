@@ -6,6 +6,7 @@ package remote
 import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // NewRemoteGRPC returns a remote state manager (remote.State) containing
@@ -52,7 +53,7 @@ type grpcClient struct {
 // and returns a copy of the downloaded state data.
 //
 // Implementation of remote.Client
-func (g *grpcClient) Get() (*Payload, error) {
+func (g *grpcClient) Get() (*Payload, tfdiags.Diagnostics) {
 	panic("not implemented yet")
 }
 
@@ -60,7 +61,7 @@ func (g *grpcClient) Get() (*Payload, error) {
 // and to transfer state data to the remote location.
 //
 // Implementation of remote.Client
-func (g *grpcClient) Put(state []byte) error {
+func (g *grpcClient) Put(state []byte) tfdiags.Diagnostics {
 	panic("not implemented yet")
 }
 
@@ -72,13 +73,13 @@ func (g *grpcClient) Put(state []byte) error {
 // interface's DeleteWorkspace method.
 //
 // Implementation of remote.Client
-func (g *grpcClient) Delete() error {
+func (g *grpcClient) Delete() tfdiags.Diagnostics {
 	req := providers.DeleteStateRequest{
 		TypeName: g.typeName,
 		StateId:  g.stateId,
 	}
 	resp := g.provider.DeleteState(req)
-	return resp.Diagnostics.Err()
+	return resp.Diagnostics
 }
 
 // Lock invokes the LockState gRPC method in the plugin protocol
