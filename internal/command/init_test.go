@@ -17,12 +17,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -3260,7 +3263,7 @@ func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
 
 // Testing init's behaviors when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("an init command creates the default workspace by default", func(t *testing.T) {
+	t.Run("the init command creates a backend state file, and creates the default workspace by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3275,18 +3278,19 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
-		c := &InitCommand{
-			Meta: Meta{
-				Ui:                        ui,
-				View:                      view,
-				AllowExperimentalFeatures: true,
-				testingOverrides: &testingOverrides{
-					Providers: map[addrs.Provider]providers.Factory{
-						mockProviderAddress: providers.FactoryFixed(mockProvider),
-					},
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
-				ProviderSource: providerSource,
 			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
 		}
 
 		args := []string{"-enable-pluggable-state-storage-experiment=true"}
@@ -3306,6 +3310,36 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		// Assert the default workspace was created
 		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
 			t.Fatal("expected the default workspace to be created during init, but it is missing")
+		}
+
+		// Assert contents of the backend state file
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be created, but there isn't one")
+		}
+		v1_0_0, _ := version.NewVersion("1.0.0")
+		expectedState := &workdir.StateStoreConfigState{
+			Type:      "test_store",
+			ConfigRaw: []byte("{\n      \"bar\": null\n    }"),
+			Hash:      uint64(3976463117), // Hash of empty config
+			Provider: &workdir.ProviderConfigState{
+				Version: v1_0_0,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
+				Hash:      uint64(3976463117), // Hash of empty config
+			},
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
 		}
 	})
 
