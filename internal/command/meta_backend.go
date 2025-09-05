@@ -2118,7 +2118,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 		// TODO (SarahFrench/radeksimko)
 		// > Should we do this?
 		// > Could this accidentally prompt users to supply values in the nested provider block?
-		stateStoreConfigVal, err = m.inputForSchema(stateStoreConfigVal, schema.Body)
+		stateStoreConfigVal, err = m.inputForSchema(stateStoreConfigVal, stateStoreSchema.Body)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Error asking for input to configure state store %q: %s", c.Type, err))
 			return nil, cty.NilVal, cty.NilVal, diags
