@@ -649,11 +649,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Get the local 'backend' or 'state_store' configuration.
 	var backendConfig *configs.Backend
 	var stateStoreConfig *configs.StateStore
-	var cHash int
+	var cHash int // backend hash
+	var stateStoreHash int
+	var stateStoreProviderHash int
 	if opts.StateStoreConfig != nil {
 		// state store has been parsed from config and is included in opts
 		var ssDiags tfdiags.Diagnostics
-		stateStoreConfig, cHash, _, ssDiags = m.stateStoreConfig(opts)
+		stateStoreConfig, stateStoreHash, stateStoreProviderHash, ssDiags = m.stateStoreConfig(opts)
 		diags = diags.Append(ssDiags)
 		if ssDiags.HasErrors() {
 			return nil, diags
@@ -820,7 +822,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		return m.stateStore_C_s(stateStoreConfig, cHash, sMgr, opts)
+		return m.stateStore_C_s(stateStoreConfig, stateStoreHash, stateStoreProviderHash, sMgr, opts)
 
 	// Migration from state store to backend
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -1498,7 +1500,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, backendSMgr 
 //-------------------------------------------------------------------
 
 // Configuring a state_store for the first time.
-func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, providerHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
@@ -1584,7 +1586,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 	if m.stateLock {
 		view := views.NewStateLocker(vt, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
-		if err := stateLocker.Lock(backendSMgr, "state_store from plan"); err != nil {
+		if err := stateLocker.Lock(backendSMgr, "init is initializing state_store first time"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
 			return nil, diags
 		}
@@ -1632,10 +1634,11 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, cHash int, backendSMgr *cli
 	}
 	s.StateStore = &workdir.StateStoreConfigState{
 		Type: c.Type,
-		Hash: uint64(cHash),
+		Hash: uint64(stateStoreHash),
 		Provider: &workdir.ProviderConfigState{
 			Source:  &c.ProviderAddr,
 			Version: pVersion,
+			Hash:    uint64(providerHash),
 		},
 	}
 	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
