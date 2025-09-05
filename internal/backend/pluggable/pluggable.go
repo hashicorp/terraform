@@ -147,3 +147,8 @@ func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, error) {
 	// to be passed to the calling code that expects a statemgr.Full
 	return remote.NewRemoteGRPC(p.provider, p.typeName, workspace), nil
 }
+
+// Close shuts down the plugin process if applicable
+func (p *Pluggable) Close() error {
+	return p.provider.Close()
+}
