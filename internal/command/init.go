@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -313,6 +315,35 @@ the backend configuration is present and valid.
 		}
 	}
 
+	// If the backend state file indicates that a state store was used previously we need to
+	// identify which provider is required and make it available to downstream logic
+	// that handles state migrations.
+	statePath := filepath.Join(c.Meta.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		return nil, true, diags
+	}
+	s := sMgr.State()
+	if s != nil && s.StateStore != nil {
+		log.Printf("[TRACE] init: backend state file indicates state store %q was previously used from provider %s (%v), version %s",
+			s.StateStore.Type,
+			s.StateStore.Provider.Source.Type,
+			s.StateStore.Provider.Source,
+			s.StateStore.Provider.Version,
+		)
+
+		factory, fDiags := c.Meta.getStateStoreProviderFactory(s.StateStore)
+		diags = diags.Append(fDiags)
+		if fDiags.HasErrors() {
+			return nil, true, diags
+		}
+
+		// Update the opts to include a 'from' provider factory to be used in migrations
+		opts.ProviderFactoryFrom = factory
+	}
+
+	// Initialize an operations backend with a backend or state store using the options assembled above.
 	back, backDiags := c.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags

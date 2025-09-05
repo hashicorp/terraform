@@ -66,6 +66,15 @@ type BackendOpts struct {
 	// This will only be set if the configuration contains a state_store block.
 	ProviderFactory providers.Factory
 
+	// ProviderFactoryFrom is used in state migration scenarios where the state is being migrated
+	// away from a state store implementation. The value could match ProviderFactory if the migration
+	// scenario like changes in the state_store config. The value will be different in
+	// other scenarios, such as migrating from a state store to a backend, or to a store implemented
+	// in a different provider.
+	//
+	// This will only be set if the backend state file describes a state_store block.
+	ProviderFactoryFrom providers.Factory
+
 	// Locks allows state-migration logic to detect when the provider used for pluggable state storage
 	// during the last init (i.e. what's in the backend state file) is mismatched with the provider
 	// version in use currently.
