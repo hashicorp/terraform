@@ -3302,9 +3302,14 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		// Check output
 		output := testOutput.All()
-		expectedOutput := `Initializing the state store...`
-		if !strings.Contains(output, expectedOutput) {
-			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
 		}
 
 		// Assert the default workspace was created
@@ -3325,7 +3330,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		v1_0_0, _ := version.NewVersion("1.0.0")
 		expectedState := &workdir.StateStoreConfigState{
 			Type:      "test_store",
-			ConfigRaw: []byte("{\n      \"bar\": null\n    }"),
+			ConfigRaw: []byte("{\n      \"value\": null\n    }"),
 			Hash:      uint64(3976463117), // Hash of empty config
 			Provider: &workdir.ProviderConfigState{
 				Version: v1_0_0,
