@@ -3333,6 +3333,114 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	// > "during a non-init command, the command ends in with an error telling the user to run an init command"
 }
 
+// Testing init's behaviors when run in a working directory
+// previously initialized with a backend,
+// but now contains configuration for a state_store
+func TestInit_migration_backend_to_stateStore(t *testing.T) {
+	t.Run("init prompts users to choose between -migrate-state or -reconfigure flags to proceed with migration", func(t *testing.T) {
+		// Create a temporary directory containing state store configuration
+		// and backend state that describes a backend
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("backend-to-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		if !strings.Contains(output, migrateOrReconfigDiag.Description().Summary) { // "Backend configuration changed"
+			t.Fatalf("expected output to include %q, but got':\n %s", migrateOrReconfigDiag.Description().Summary, output)
+		}
+		if !strings.Contains(cleanString(output), cleanString(migrateOrReconfigDiag.Description().Detail)) {
+			t.Fatalf("expected output to include %q, but got':\n %s",
+				cleanString(migrateOrReconfigDiag.Description().Detail),
+				cleanString(output))
+		}
+	})
+
+	t.Run("migration using the -migrate-state results in successful migration", func(t *testing.T) {
+		// Create a temporary directory containing state store configuration
+		// and backend state that describes a backend
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("backend-to-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-migrate-state",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		if !strings.Contains(output, migrateOrReconfigDiag.Description().Summary) { // "Backend configuration changed"
+			t.Fatalf("expected output to include %q, but got':\n %s", migrateOrReconfigDiag.Description().Summary, output)
+		}
+		if !strings.Contains(cleanString(output), cleanString(migrateOrReconfigDiag.Description().Detail)) {
+			t.Fatalf("expected output to include %q, but got':\n %s",
+				cleanString(migrateOrReconfigDiag.Description().Detail),
+				cleanString(output))
+		}
+	})
+
+	// TODO - add more test cases for unhappy path.
+}
+
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).
