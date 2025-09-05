@@ -53,7 +53,23 @@ type grpcClient struct {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Get() (*Payload, error) {
-	panic("not implemented yet")
+	// TODO - replace with method implementation added to main branch
+	req := providers.ReadStateBytesRequest{
+		TypeName: g.typeName,
+		StateId:  g.stateId,
+	}
+	resp := g.provider.ReadStateBytes(req)
+
+	if len(resp.Bytes) == 0 {
+		// No state to return
+		return nil, resp.Diagnostics.Err()
+	}
+
+	payload := &Payload{
+		Data: resp.Bytes,
+		MD5:  []byte("foobar"),
+	}
+	return payload, resp.Diagnostics.Err()
 }
 
 // Put invokes the WriteStateBytes gRPC method in the plugin protocol
@@ -61,7 +77,14 @@ func (g *grpcClient) Get() (*Payload, error) {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Put(state []byte) error {
-	panic("not implemented yet")
+	// TODO - replace with method implementation added to main branch
+	req := providers.WriteStateBytesRequest{
+		TypeName: g.typeName,
+		StateId:  g.stateId,
+	}
+	resp := g.provider.WriteStateBytes(req)
+
+	return resp.Diagnostics.Err()
 }
 
 // Delete invokes the DeleteState gRPC method in the plugin protocol
