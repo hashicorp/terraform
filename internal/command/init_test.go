@@ -3497,7 +3497,7 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 				pssName: {
 					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
-							"bar": {
+							"value": {
 								Type:     cty.String,
 								Required: true,
 							},
