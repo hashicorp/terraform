@@ -1582,45 +1582,12 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 		defer stateLocker.Unlock()
 	}
 
-	// Store the state_store metadata in our saved state location
-	s := backendSMgr.State()
-	if s == nil {
-		s = workdir.NewBackendStateFile()
-	}
-
-	var pVersion *version.Version
-	var err error
-	if c.ProviderAddr.Equals(addrs.NewBuiltInProvider("terraform")) {
-		// If we're handling the builtin "terraform" provider then there's no version information to store in the dependency lock file, so don't access it.
-		// We must record a value into the backend state file, and we cannot include a value that changes (e.g. the Terraform core binary version) as migration
-		// is impossible with builtin providers.
-		// So, we use a hardcoded version number of 42.
-		pVersion, err = version.NewVersion("0.42.0")
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Error when creating a backend state file containing a builtin provider. This is a bug in Terraform and should be reported: %w",
-				err))
-			return nil, diags
-		}
-	} else {
-		pLock := opts.Locks.Provider(c.ProviderAddr)
-		if pLock == nil {
-			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported: %w",
-				c.Provider.Name,
-				c.ProviderAddr,
-				c.Type,
-				err))
-			return nil, diags
-		}
-		var err error
-		pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
-				c.Provider.Name,
-				c.ProviderAddr,
-				c.Type,
-				err))
-			return nil, diags
-		}
+	// Prepare new backend state
+	s := workdir.NewBackendStateFile()
+	pVersion, pvDiags := m.getStateStoreProviderVersion(c, opts.Locks)
+	diags = diags.Append(pvDiags)
+	if diags.HasErrors() {
+		return nil, diags
 	}
 	s.StateStore = &workdir.StateStoreConfigState{
 		Type: c.Type,
@@ -1699,6 +1666,44 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 
 	return b, diags
 }
+
+func (m *Meta) getStateStoreProviderVersion(c *configs.StateStore, locks *depsfile.Locks) (*version.Version, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if c.ProviderAddr.Equals(addrs.NewBuiltInProvider("terraform")) {
+		// If we're handling the builtin "terraform" provider then there's no version information to store in the dependency lock file, so don't access it.
+		// We must record a value into the backend state file, and we cannot include a value that changes (e.g. the Terraform core binary version) as migration
+		// is impossible with builtin providers.
+		// So, we use a hardcoded version number of 42.
+		pVersion, err := version.NewVersion("0.42.0")
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Error when creating a backend state file containing a builtin provider. This is a bug in Terraform and should be reported: %w",
+				err))
+			return nil, diags
+		}
+		return pVersion, diags
+	} else {
+		pLock := locks.Provider(c.ProviderAddr)
+		if pLock == nil {
+			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
+				c.Provider.Name,
+				c.ProviderAddr,
+				c.Type,
+			))
+			return nil, diags
+		}
+		pVersion, err := providerreqs.GoVersionFromVersion(pLock.Version())
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
+				c.Provider.Name,
+				c.ProviderAddr,
+				c.Type,
+				err))
+			return nil, diags
+		}
+		return pVersion, diags
+	}
+}
+
 
 // createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,
 // and persists an empty state file in the default workspace. By creating this artifact we ensure that the default
