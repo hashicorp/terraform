@@ -818,11 +818,39 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			s.StateStore.Provider.Source,
 			backendConfig.Type,
 		)
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Not implemented yet",
-			Detail:   "Migration from state store to backend is not implemented yet",
-		})
+
+		cloudMode := cloud.DetectConfigChangeType(s, backendConfig, false)
+
+		if !opts.Init {
+			var initReason string
+			if cloudMode.InvolvesCloud() {
+				initReason = fmt.Sprintf("Changed from state store %q in provider %s (%q) to HCP Terraform",
+					stateStoreConfig.Type,
+					stateStoreConfig.Provider.Name,
+					stateStoreConfig.ProviderAddr,
+				)
+			} else {
+				initReason = fmt.Sprintf("Changed from state store %q in provider %s (%q) to backend %q",
+					stateStoreConfig.Type,
+					stateStoreConfig.Provider.Name,
+					stateStoreConfig.ProviderAddr,
+					s.Backend.Type,
+				)
+			}
+			diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Backend initialization required: please run \"terraform init\"",
+				fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
+			))
+			return nil, diags
+		}
+
+		if !cloudMode.InvolvesCloud() && !m.migrateState {
+			diags = diags.Append(migrateOrReconfigDiag)
+			return nil, diags
+		}
+
+		return m.stateStore_to_backend(backendConfig, cHash, sMgr, true, opts)
 
 	// Migration from backend to state store
 	case backendConfig == nil && !s.Backend.Empty() &&
@@ -1730,6 +1758,128 @@ func (m *Meta) getStateStoreProviderVersion(c *configs.StateStore, locks *depsfi
 		}
 		return pVersion, diags
 	}
+}
+
+// Migrating from a state_store configuration to a backend configuration
+//
+// State is migrated between the old location (state_store) and the new location (backend)
+// A plugin child process is managed here to interact with the old state location, and the child process
+// is closed before returning the initialized backend.Backend made from the current backend config
+func (m *Meta) stateStore_to_backend(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
+
+	// Get the old state
+	s := sMgr.State()
+
+	cloudMode := cloud.DetectConfigChangeType(s, c, false)
+	diags = diags.Append(m.assertSupportedCloudInitOptions(cloudMode))
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	if output {
+		// Notify the user
+		switch cloudMode {
+		case cloud.ConfigMigrationIn:
+			m.Ui.Output(fmt.Sprintf("Migrating from state store %q to HCP Terraform.", s.StateStore.Type))
+		case cloud.ConfigChangeIrrelevant:
+			m.Ui.Output(fmt.Sprintf("Migrating from state store %q to backend %q.", s.StateStore.Type, c.Type))
+		default:
+			// Given this method is migration from state_store to backend, this should not be reachable.
+			m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+				"[reset]%s\n",
+				strings.TrimSpace(outputBackendReconfigure))))
+		}
+	}
+
+	// Get the (new) backend to be migrated to
+	b, configVal, bDiags := m.backendInitFromConfig(c)
+	diags = diags.Append(bDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Grab the prior state store
+	oldB, oldBDiags := m.savedStateStore(sMgr, opts.ProviderFactoryFrom)
+	if p, ok := b.(*backendPluggable.Pluggable); ok {
+		// Stop the child process once migration is complete
+		defer p.Close()
+	}
+	diags = diags.Append(oldBDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Perform the migration
+	err := m.backendMigrateState(&backendMigrateOpts{
+		SourceType:      s.StateStore.Type,
+		DestinationType: c.Type,
+		Source:          oldB,
+		Destination:     b,
+		ViewType:        vt,
+	})
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	if m.stateLock {
+		view := views.NewStateLocker(vt, m.View)
+		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
+		if err := stateLocker.Lock(sMgr, "init is migrating state from a state store to a backend"); err != nil {
+			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
+			return nil, diags
+		}
+		defer stateLocker.Unlock()
+	}
+
+	// Prepare new backend state
+	s = workdir.NewBackendStateFile()
+	s.Backend = &workdir.BackendConfigState{
+		Type: c.Type,
+		Hash: uint64(cHash),
+	}
+	err = s.Backend.SetConfig(configVal, b.ConfigSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
+		return nil, diags
+	}
+
+	// Verify that selected workspace exist. Otherwise prompt user to create one
+	if opts.Init && b != nil {
+		if err := m.selectWorkspace(b); err != nil {
+			diags = diags.Append(err)
+			return b, diags
+		}
+	}
+
+	// Update backend state file
+	if err := sMgr.WriteState(s); err != nil {
+		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		return nil, diags
+	}
+	if err := sMgr.PersistState(); err != nil {
+		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		return nil, diags
+	}
+
+	if output {
+		// By now the backend is successfully configured.  If using HCP Terraform, the success
+		// message is handled as part of the final init message
+		if _, ok := b.(*cloud.Cloud); !ok {
+			m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+				"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		}
+	}
+
+	return b, diags
 }
 
 // Migrating from a backend configuration to a state_store configuration
