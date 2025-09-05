@@ -132,6 +132,11 @@ func (p *erroredProvider) ReadResource(req providers.ReadResourceRequest) provid
 	}
 }
 
+// GenerateResourceConfig implements providers.Interface
+func (p *erroredProvider) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+	panic("not implemented")
+}
+
 // OpenEphemeralResource implements providers.Interface.
 func (p *erroredProvider) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
 	var diags tfdiags.Diagnostics

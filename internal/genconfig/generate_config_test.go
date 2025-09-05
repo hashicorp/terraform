@@ -829,7 +829,11 @@ resource "tfcoremock_sensitive_values" "values" {
 			if err != nil {
 				t.Fatalf("schema failed InternalValidate: %s", err)
 			}
-			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value, false)
+
+			val, _ := tc.value.UnmarkDeep()
+			config := ExtractLegacyConfigFromState(tc.schema, val)
+
+			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, config, false)
 			if len(diags) > 0 {
 				t.Errorf("expected no diagnostics but found %s", diags)
 			}
@@ -957,8 +961,29 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
 		LocalName: "aws",
 	}
 
+	// the handling of the list value was moved to the caller, so break it back down in the same way here
+	var listElements []ResourceListElement
+
+	iter := value.ElementIterator()
+	for iter.Next() {
+		_, val := iter.Element()
+		// we still need to generate the resource block even if the state is not given,
+		// so that the import block can reference it.
+		stateVal := cty.NilVal
+		if val.Type().HasAttribute("state") {
+			stateVal = val.GetAttr("state")
+		}
+
+		stateVal, _ = stateVal.UnmarkDeep()
+		config := ExtractLegacyConfigFromState(schema, stateVal)
+
+		idVal := val.GetAttr("identity")
+
+		listElements = append(listElements, ResourceListElement{Config: config, Identity: idVal})
+	}
+
 	// Generate content
-	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, value)
+	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, listElements)
 	// Check for diagnostics
 	if diags.HasErrors() {
 		t.Fatalf("unexpected diagnostics: %s", diags.Err())
@@ -977,6 +1002,7 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
     subnet_id  = "subnet-123"
   }
 }
+
 import {
   to       = aws_instance.example_0
   provider = aws
@@ -997,6 +1023,7 @@ resource "aws_instance" "example_1" {
     subnet_id  = "subnet-456"
   }
 }
+
 import {
   to       = aws_instance.example_1
   provider = aws
@@ -1004,6 +1031,7 @@ import {
     id = "i-123456"
   }
 }
+
 `
 	// Normalize both strings by removing extra whitespace for comparison
 	normalizeString := func(s string) string {
@@ -1018,9 +1046,9 @@ import {
 	normalizedExpected := normalizeString(expectedContent)
 
 	var merged string
-	res := content.Results
-	for _, addr := range res {
-		merged += addr.String()
+
+	for _, imp := range content.Imports {
+		merged += imp.Resource.String()
 	}
 	normalizedActual := normalizeString(content.String())
 

@@ -967,6 +967,7 @@ var (
   provider      = test
   instance_type = "ami-123456"
 }
+
 import {
   to       = test_resource.test_0
   provider = test
@@ -979,6 +980,7 @@ resource "test_resource" "test_1" {
   provider      = test
   instance_type = "ami-654321"
 }
+
 import {
   to       = test_resource.test_1
   provider = test
@@ -991,6 +993,7 @@ resource "test_resource" "test_2" {
   provider      = test
   instance_type = "ami-789012"
 }
+
 import {
   to       = test_resource.test_2
   provider = test
@@ -998,12 +1001,14 @@ import {
     id = "i-v3"
   }
 }
+
 `
 
 	testResourceCfg2 = `resource "test_resource" "test2_0" {
   provider      = test
   instance_type = "ami-123456"
 }
+
 import {
   to       = test_resource.test2_0
   provider = test
@@ -1016,6 +1021,7 @@ resource "test_resource" "test2_1" {
   provider      = test
   instance_type = "ami-654321"
 }
+
 import {
   to       = test_resource.test2_1
   provider = test
@@ -1028,6 +1034,7 @@ resource "test_resource" "test2_2" {
   provider      = test
   instance_type = "ami-789012"
 }
+
 import {
   to       = test_resource.test2_2
   provider = test
@@ -1035,5 +1042,6 @@ import {
     id = "i-v3"
   }
 }
+
 `
 )

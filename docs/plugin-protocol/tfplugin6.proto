@@ -300,6 +300,10 @@ message ServerCapabilities {
     // The move_resource_state capability signals that a provider supports the
     // MoveResourceState RPC.
     bool move_resource_state = 3;
+
+    // The generate_resource_config capability signals that a provider supports
+    // GenerateResourceConfig.
+    bool generate_resource_config = 4;
 }
 
 // ClientCapabilities allows Terraform to publish information regarding
@@ -371,6 +375,7 @@ service Provider {
     rpc ImportResourceState(ImportResourceState.Request) returns (ImportResourceState.Response);
     rpc MoveResourceState(MoveResourceState.Request) returns (MoveResourceState.Response);
     rpc ReadDataSource(ReadDataSource.Request) returns (ReadDataSource.Response);
+    rpc GenerateResourceConfig(GenerateResourceConfig.Request) returns (GenerateResourceConfig.Response);
 
     //////// Ephemeral Resource Lifecycle
     rpc ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfig.Request) returns (ValidateEphemeralResourceConfig.Response);
@@ -716,6 +721,19 @@ message ImportResourceState {
         // deferred is set if the provider is deferring the change. If set the caller
         // needs to handle the deferral.
         Deferred deferred = 3;
+    }
+}
+
+message GenerateResourceConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue state = 2;
+    }
+
+    message Response {
+        // config is the provided state modified such that it represents a valid resource configuration value.
+        DynamicValue config = 1;
+        repeated Diagnostic diagnostics = 2;
     }
 }
 
