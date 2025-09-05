@@ -1983,7 +1983,7 @@ func TestBackendFromState(t *testing.T) {
 	}
 }
 
-func Test_determineInitReason(t *testing.T) {
+func Test_determineBackendInitReason(t *testing.T) {
 
 	cases := map[string]struct {
 		cloudMode     cloud.ConfigChangeMode
@@ -2055,7 +2055,7 @@ func Test_determineInitReason(t *testing.T) {
 			// Note that we don't need to include differing config to trigger this
 			// scenario, as we're hitting the default case. If the types match, then
 			// only the config is left to differ.
-			// See the comment above determineInitReason for more info.
+			// See the comment above determineBackendInitReason for more info.
 			cloudMode: cloud.ConfigChangeIrrelevant,
 			backendState: workdir.BackendStateFile{
 				Backend: &workdir.BackendConfigState{
@@ -2074,7 +2074,7 @@ func Test_determineInitReason(t *testing.T) {
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
 			m := Meta{}
-			diags := m.determineInitReason(tc.backendState.Backend.Type, tc.backendConfig.Type, tc.cloudMode)
+			diags := m.determineBackendInitReason(tc.backendState.Backend.Type, tc.backendConfig.Type, tc.cloudMode)
 			if !strings.Contains(diags.Err().Error(), tc.wantErr) {
 				t.Fatalf("expected error diagnostic detail to include \"%s\" but it's missing: %s", tc.wantErr, diags.Err())
 			}

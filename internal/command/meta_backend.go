@@ -893,7 +893,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		if !opts.Init {
 			//user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
-			initDiag := m.determineInitReason(s.Backend.Type, backendConfig.Type, cloudMode)
+			initDiag := m.determineBackendInitReason(s.Backend.Type, backendConfig.Type, cloudMode)
 			diags = diags.Append(initDiag)
 			return nil, diags
 		}
@@ -942,12 +942,15 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	}
 }
 
-// determineInitReason is used in non-Init commands to interrupt the command early and prompt users to instead run an init command.
+// determineBackendInitReason is used in non-Init commands to interrupt the command early and prompt users to instead run an init command.
 // That prompt needs to include the reason why init needs to be run, and it is determined here.
+//
+// This method is only used when inspecting changes within a backend block; it is only usable when the backend state and config both
+// describe backend blocks.
 //
 // Note: the calling code is responsible for determining that a change has occurred before invoking this
 // method. This makes the default cases (config has changed) valid.
-func (m *Meta) determineInitReason(previousBackendType string, currentBackendType string, cloudMode cloud.ConfigChangeMode) tfdiags.Diagnostics {
+func (m *Meta) determineBackendInitReason(previousBackendType string, currentBackendType string, cloudMode cloud.ConfigChangeMode) tfdiags.Diagnostics {
 	initReason := ""
 	switch cloudMode {
 	case cloud.ConfigMigrationIn:
