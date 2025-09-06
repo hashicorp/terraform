@@ -3257,6 +3257,35 @@ resource "test_object" "a" {
 	}
 }
 
+func TestContextPlan_validateActionInTriggerExists(t *testing.T) {
+	// this validation occurs during TransformConfig
+	module := `
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`
+	m := testModuleInline(t, map[string]string{"main.tf": module})
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected errors, got success!")
+	}
+	if diags.Err().Error() != "Configuration for triggered action does not exist: The configuration for the given action action.act_unlinked.hello does not exist. All triggered actions must have an associated configuration." {
+		t.Fatal("wrong error!")
+	}
+}
+
 func mustActionInstanceAddr(t *testing.T, address string) addrs.AbsActionInstance {
 	action, diags := addrs.ParseAbsActionInstanceStr(address)
 	if len(diags) > 0 {
