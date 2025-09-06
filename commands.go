@@ -456,6 +456,12 @@ func initCommands(
 				Meta: meta,
 			}, nil
 		}
+
+		Commands["test cleanup"] = func() (cli.Command, error) {
+			return &command.TestCleanupCommand{
+				Meta: meta,
+			}, nil
+		}
 	}
 
 	PrimaryCommands = []string{

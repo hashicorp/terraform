@@ -766,7 +766,7 @@ func TestRun_ValidateExpectedFailures(t *testing.T) {
 				},
 			}
 
-			out := run.ValidateExpectedFailures(tc.Input)
+			out := ValidateExpectedFailures(run.Config, tc.Input)
 			ix := 0
 			for ; ix < len(tc.Output); ix++ {
 				expected := tc.Output[ix]
