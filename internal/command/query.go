@@ -154,16 +154,17 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 }
 
 func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
-	backendConfig, diags := c.loadBackendConfig(".")
+	mod, diags := c.Meta.loadSingleModule(".")
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
 	// Load the backend
-	be, beDiags := c.Backend(&BackendOpts{
-		BackendConfig: backendConfig,
-		ViewType:      viewType,
-	})
+	be, beDiags := c.Meta.prepareBackend(mod)
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		return nil, diags
+	}
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
 		return nil, diags
