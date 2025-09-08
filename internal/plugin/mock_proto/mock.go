@@ -124,10 +124,10 @@ func (mr *MockProviderClientMockRecorder) Configure(ctx, in any, opts ...any) *g
 }
 
 // GenerateResourceConfig mocks base method.
-func (m *MockProviderClient) GenerateResourceConfig(arg0 context.Context, arg1 *tfplugin5.GenerateResourceConfig_Request, arg2 ...grpc.CallOption) (*tfplugin5.GenerateResourceConfig_Response, error) {
+func (m *MockProviderClient) GenerateResourceConfig(ctx context.Context, in *tfplugin5.GenerateResourceConfig_Request, opts ...grpc.CallOption) (*tfplugin5.GenerateResourceConfig_Response, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []any{ctx, in}
+	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GenerateResourceConfig", varargs...)
@@ -137,9 +137,9 @@ func (m *MockProviderClient) GenerateResourceConfig(arg0 context.Context, arg1 *
 }
 
 // GenerateResourceConfig indicates an expected call of GenerateResourceConfig.
-func (mr *MockProviderClientMockRecorder) GenerateResourceConfig(arg0, arg1 any, arg2 ...any) *gomock.Call {
+func (mr *MockProviderClientMockRecorder) GenerateResourceConfig(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
+	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateResourceConfig", reflect.TypeOf((*MockProviderClient)(nil).GenerateResourceConfig), varargs...)
 }
 
