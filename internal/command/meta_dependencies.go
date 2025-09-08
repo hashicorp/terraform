@@ -66,6 +66,43 @@ func (m *Meta) replaceLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostic
 	return depsfile.SaveLocksToFile(new, dependencyLockFilename)
 }
 
+// mergeLockedDependencies combines two sets of locks. The 'base' locks are copied, and any providers
+// present in the additional locks that aren't present in the base are added to that copy. The merged
+// combination is returned.
+//
+// If you're combining locks derived from config with other locks (from state or deps locks file), then
+// the config locks need to be the first argument to ensure that the merged locks contain any
+// version constraints. Version constraint data is only present in configuration.
+// This allows code in the init command to download providers in separate phases and
+// keep the lock file updated accurately after each phase.
+//
+// This method supports downloading providers in 2 steps, and is used during the second download step and
+// while updating the dependency lock file.
+func (m *Meta) mergeLockedDependencies(baseLocks, additionalLocks *depsfile.Locks) *depsfile.Locks {
+
+	mergedLocks := baseLocks.DeepCopy()
+
+	// Append locks derived from the state to locks derived from config.
+	for _, lock := range additionalLocks.AllProviders() {
+		match := mergedLocks.Provider(lock.Provider())
+		if match != nil {
+			log.Printf("[TRACE] Ignoring provider %s version %s in appendLockedDependencies; lock file contains %s version %s already",
+				lock.Provider(),
+				lock.Version(),
+				match.Provider(),
+				match.Version(),
+			)
+		} else {
+			// This is a new provider now present in the lockfile yet
+			log.Printf("[DEBUG] Appending provider %s to the lock file", lock.Provider())
+			mergedLocks.SetProvider(lock.Provider(), lock.Version(), lock.VersionConstraints(), lock.AllHashes())
+		}
+	}
+
+	// Override the locks file with the new combination of locks
+	return mergedLocks
+}
+
 // annotateDependencyLocksWithOverrides modifies the given Locks object in-place
 // to track as overridden any provider address that's subject to testing
 // overrides, development overrides, or "unmanaged provider" status.

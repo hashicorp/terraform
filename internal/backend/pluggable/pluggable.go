@@ -68,6 +68,15 @@ func (p *Pluggable) ConfigSchema() *configschema.Block {
 	return val.Body
 }
 
+// ProviderSchema returns the schema for the provider implementing the state store.
+//
+// This isn't part of the backend.Backend interface but is needed in calling code.
+// When it's used the backend.Backend will need to be cast to a Pluggable.
+func (p *Pluggable) ProviderSchema() *configschema.Block {
+	schemaResp := p.provider.GetProviderSchema()
+	return schemaResp.Provider.Body
+}
+
 // PrepareConfig validates configuration for the state store in
 // the state storage provider. The configuration sent from Terraform core
 // will not include any values from environment variables; it is the
