@@ -51,21 +51,21 @@ func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block)
 	}
 }
 
-// simpleMockProvider returns a MockProvider that is pre-configured
-// with schema for its own config, for a resource type called "test_object" and
-// for a data source also called "test_object".
+// simpleMockProvider returns a MockProvider that is pre-configured with schema
+// for its own config, a resource type called "test_object", a data source also
+// called "test_object", and an unlinked (generic) action called "test_action".
 //
-// All three schemas have the same content as returned by function
+// All four schemas have the same content as returned by function
 // simpleTestSchema.
 //
 // For most reasonable uses the returned provider must be registered in a
-// componentFactory under the name "test". Use simpleMockComponentFactory
-// to obtain a pre-configured componentFactory containing the result of
-// this function along with simpleMockProvisioner, both registered as "test".
+// componentFactory under the name "test". Use simpleMockComponentFactory to
+// obtain a pre-configured componentFactory containing the result of this
+// function along with simpleMockProvisioner, both registered as "test".
 //
 // The returned provider has no other behaviors by default, but the caller may
-// modify it in order to stub any other required functionality, or modify
-// the default schema stored in the field GetSchemaReturn. Each new call to
+// modify it in order to stub any other required functionality, or modify the
+// default schema stored in the field GetSchemaReturn. Each new call to
 // simpleTestProvider produces entirely new instances of all of the nested
 // objects so that callers can mutate without affecting mock objects.
 func simpleMockProvider() *testing_provider.MockProvider {
@@ -73,10 +73,13 @@ func simpleMockProvider() *testing_provider.MockProvider {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Body: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{
-				"test_object": providers.Schema{Body: simpleTestSchema()},
+				"test_object": {Body: simpleTestSchema()},
 			},
 			DataSources: map[string]providers.Schema{
-				"test_object": providers.Schema{Body: simpleTestSchema()},
+				"test_object": {Body: simpleTestSchema()},
+			},
+			Actions: map[string]providers.ActionSchema{
+				"test_action": {ConfigSchema: simpleTestSchema(), Unlinked: &providers.UnlinkedAction{}},
 			},
 		},
 	}
@@ -91,6 +94,7 @@ func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
 			ResourceTypes:              make(map[string]*configschema.Block),
 			ResourceTypeSchemaVersions: make(map[string]uint64),
 			DataSources:                make(map[string]*configschema.Block),
+			Actions:                    make(map[string]*providers.ActionSchema),
 		}
 	}
 
@@ -102,6 +106,7 @@ func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
 		ResourceTypes:              map[string]*configschema.Block{},
 		DataSources:                map[string]*configschema.Block{},
 		ResourceTypeSchemaVersions: map[string]uint64{},
+		Actions:                    map[string]*providers.ActionSchema{},
 	}
 
 	for resType, s := range resp.ResourceTypes {
@@ -111,6 +116,10 @@ func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
 
 	for dataSource, s := range resp.DataSources {
 		schema.DataSources[dataSource] = s.Body
+	}
+
+	for action, s := range resp.Actions {
+		schema.Actions[action] = &s
 	}
 
 	return schema
@@ -128,7 +137,7 @@ type providerSchema struct {
 	IdentityTypeSchemaVersions     map[string]uint64
 	ListResourceTypes              map[string]*configschema.Block
 	ListResourceTypeSchemaVersions map[string]uint64
-	Actions                        map[string]providers.ActionSchema
+	Actions                        map[string]*providers.ActionSchema
 }
 
 // getProviderSchemaResponseFromProviderSchema is a test helper to convert a
@@ -171,7 +180,7 @@ func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema)
 	}
 
 	for name, schema := range providerSchema.Actions {
-		resp.Actions[name] = schema
+		resp.Actions[name] = *schema
 	}
 
 	return resp

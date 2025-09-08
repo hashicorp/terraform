@@ -94,6 +94,11 @@ type MockProvider struct {
 	ImportResourceStateRequest  providers.ImportResourceStateRequest
 	ImportResourceStateFn       func(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse
 
+	GenerateResourceConfigCalled   bool
+	GenerateResourceConfigResponse *providers.GenerateResourceConfigResponse
+	GenerateResourceConfigRequest  providers.GenerateResourceConfigRequest
+	GenerateResourceConfigFn       func(providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse
+
 	MoveResourceStateCalled   bool
 	MoveResourceStateResponse *providers.MoveResourceStateResponse
 	MoveResourceStateRequest  providers.MoveResourceStateRequest
@@ -152,12 +157,12 @@ type MockProvider struct {
 	DeleteStateFn       func(providers.DeleteStateRequest) providers.DeleteStateResponse
 
 	PlanActionCalled   bool
-	PlanActionResponse providers.PlanActionResponse
+	PlanActionResponse *providers.PlanActionResponse
 	PlanActionRequest  providers.PlanActionRequest
 	PlanActionFn       func(providers.PlanActionRequest) providers.PlanActionResponse
 
 	InvokeActionCalled   bool
-	InvokeActionResponse providers.InvokeActionResponse
+	InvokeActionResponse *providers.InvokeActionResponse
 	InvokeActionRequest  providers.InvokeActionRequest
 	InvokeActionFn       func(providers.InvokeActionRequest) providers.InvokeActionResponse
 
@@ -744,6 +749,20 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 	return resp
 }
 
+func (p *MockProvider) GenerateResourceConfig(r providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
+	defer p.beginWrite()()
+
+	if p.GenerateResourceConfigResponse != nil {
+		return *p.GenerateResourceConfigResponse
+	}
+
+	if p.GenerateResourceConfigFn != nil {
+		return p.GenerateResourceConfigFn(r)
+	}
+
+	panic("GenerateResourceConfigFn or GenerateResourceConfigResponse required")
+}
+
 func (p *MockProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
 	defer p.beginWrite()()
 
@@ -1025,7 +1044,11 @@ func (p *MockProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		return p.PlanActionFn(r)
 	}
 
-	return p.PlanActionResponse
+	if p.PlanActionResponse != nil {
+		return *p.PlanActionResponse
+	}
+
+	return resp
 }
 
 func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) (resp providers.InvokeActionResponse) {
@@ -1039,7 +1062,11 @@ func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 		return p.InvokeActionFn(r)
 	}
 
-	return p.InvokeActionResponse
+	if p.InvokeActionResponse != nil {
+		return *p.InvokeActionResponse
+	}
+
+	return resp
 }
 
 func (p *MockProvider) Close() error {

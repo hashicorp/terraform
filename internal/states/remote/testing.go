@@ -26,9 +26,9 @@ func TestClient(t *testing.T, c Client) {
 		t.Fatalf("put: %s", err)
 	}
 
-	p, err := c.Get()
-	if err != nil {
-		t.Fatalf("get: %s", err)
+	p, diags := c.Get()
+	if diags.HasErrors() {
+		t.Fatalf("get: %s", diags.Err())
 	}
 	if !bytes.Equal(p.Data, data) {
 		t.Fatalf("expected full state %q\n\ngot: %q", string(p.Data), string(data))
@@ -38,9 +38,9 @@ func TestClient(t *testing.T, c Client) {
 		t.Fatalf("delete: %s", err)
 	}
 
-	p, err = c.Get()
-	if err != nil {
-		t.Fatalf("get: %s", err)
+	p, diags = c.Get()
+	if diags.HasErrors() {
+		t.Fatalf("get: %s", diags.Err())
 	}
 	if p != nil {
 		t.Fatalf("expected empty state, got: %q", string(p.Data))

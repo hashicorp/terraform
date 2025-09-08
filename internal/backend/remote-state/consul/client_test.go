@@ -135,14 +135,14 @@ func TestConsul_largeState(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = c.Put(payload)
-		if err != nil {
-			t.Fatal("could not put payload", err)
+		diags := c.Put(payload)
+		if diags.HasErrors() {
+			t.Fatal("could not put payload", diags.Err())
 		}
 
-		remote, err := c.Get()
-		if err != nil {
-			t.Fatal(err)
+		remote, diags := c.Get()
+		if diags.HasErrors() {
+			t.Fatal(diags.Err())
 		}
 
 		if !bytes.Equal(payload, remote.Data) {
@@ -229,9 +229,9 @@ func TestConsul_largeState(t *testing.T) {
 	)
 
 	// Deleting the state should remove all chunks
-	err := c.Delete()
-	if err != nil {
-		t.Fatal(err)
+	dDiags := c.Delete()
+	if dDiags.HasErrors() {
+		t.Fatal(dDiags.Err())
 	}
 	testPaths(t, []string{})
 }

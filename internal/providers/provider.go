@@ -87,6 +87,11 @@ type Interface interface {
 	// ImportResourceState requests that the given resource be imported.
 	ImportResourceState(ImportResourceStateRequest) ImportResourceStateResponse
 
+	// GenerateResourceConfig sends a resource state to the provider, and
+	// expects the provider to return an object which represents a valid
+	// configuration.
+	GenerateResourceConfig(GenerateResourceConfigRequest) GenerateResourceConfigResponse
+
 	// MoveResourceState retrieves the updated value for a resource after it
 	// has moved resource types.
 	MoveResourceState(MoveResourceStateRequest) MoveResourceStateResponse
@@ -269,6 +274,11 @@ type ServerCapabilities struct {
 	// The MoveResourceState capability indicates that this provider supports
 	// the MoveResourceState RPC.
 	MoveResourceState bool
+
+	// GenerateResourceConfig indicates that the provider can take an existing
+	// state for a resource instance, and return the subset of the state which
+	// can be used as configuration.
+	GenerateResourceConfig bool
 }
 
 // ClientCapabilities allows Terraform to publish information regarding
@@ -659,6 +669,20 @@ type ImportResourceStateResponse struct {
 	// Deferred if present signals that the provider was not able to fully
 	// complete this operation and a subsequent run is required.
 	Deferred *Deferred
+}
+
+// GenerateResourceConfigRequest contains the most recent state of a resource
+// instance which the provider can use to generate a valid configuration object.
+type GenerateResourceConfigRequest struct {
+	TypeName string
+	State    cty.Value
+}
+
+type GenerateResourceConfigResponse struct {
+	// Config is the subset of the resource state which represents a valid
+	// configuration object for the instance.
+	Config      cty.Value
+	Diagnostics tfdiags.Diagnostics
 }
 
 // ImportedResource represents an object being imported into Terraform with the

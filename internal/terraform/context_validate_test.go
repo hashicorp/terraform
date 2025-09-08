@@ -3667,7 +3667,7 @@ resource "test_instance" "foo" {
 						},
 					},
 				},
-				Actions: map[string]providers.ActionSchema{
+				Actions: map[string]*providers.ActionSchema{
 					"test_register": {
 						ConfigSchema: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{

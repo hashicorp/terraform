@@ -5,15 +5,16 @@ package remote
 
 import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Client is the interface that must be implemented for a remote state
 // driver. It supports dumb put/get/delete, and the higher level structs
 // handle persisting the state properly here.
 type Client interface {
-	Get() (*Payload, error)
-	Put([]byte) error
-	Delete() error
+	Get() (*Payload, tfdiags.Diagnostics)
+	Put([]byte) tfdiags.Diagnostics
+	Delete() tfdiags.Diagnostics
 }
 
 // ClientForcePusher is an optional interface that allows a remote
