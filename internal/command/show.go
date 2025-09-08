@@ -282,10 +282,15 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Remo
 }
 
 func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, redacted bool) (*cloudplan.RemotePlanJSON, error) {
+	mod, diags := c.Meta.loadSingleModule(".")
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
 	// Set up the backend
-	b, backendDiags := c.Backend(nil)
-	if backendDiags.HasErrors() {
-		return nil, errUnusable(backendDiags.Err(), "cloud plan")
+	b, diags := c.Meta.prepareBackend(mod)
+	if diags.HasErrors() {
+		return nil, errUnusable(diags.Err(), "cloud plan")
 	}
 	// Cloud plans only work if we're cloud.
 	cl, ok := b.(*cloud.Cloud)
