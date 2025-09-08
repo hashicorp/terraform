@@ -437,6 +437,6 @@ func emptyConfigFileForTests(t testing.TB, path string) string {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	defer configFile.Close()
+	configFile.Close()
 	return configFile.Name()
 }
