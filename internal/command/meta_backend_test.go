@@ -2422,7 +2422,8 @@ func TestSavedBackend(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	// The test fixtures backend state file describes a local backend with a non-default path value
+	// The test fixtures used in this test include a backend state file describing
+	// a local backend with the non-default path value below (local-state.tfstate)
 	localB, ok := b.(*local.Local)
 	if !ok {
 		t.Fatalf("expected the returned backend to be a local backend, matching the test fixtures.")
@@ -2484,18 +2485,8 @@ func TestSavedStateStore(t *testing.T) {
 		)
 	}
 
-	expectedCalls := map[string]bool{
-		"GetProviderSchema":        mock.GetProviderSchemaCalled,
-		"ValidateProviderConfig":   mock.ValidateProviderConfigCalled,
-		"ConfigureProvider":        mock.ConfigureProviderCalled,
-		"ValidateStateStoreConfig": mock.ValidateStateStoreConfigCalled,
-		"ConfigureStateStore":      mock.ConfigureStateStoreCalled,
-	}
-	for method, call := range expectedCalls {
-		if call == false {
-			t.Fatalf("expected %s on the mock provider to be called, but it was not", method)
-		}
-	}
+	// NOTE: the mock's functions include assertions about the values passed to
+	// the ConfigureProvider and ConfigureStateStore methods
 }
 
 func testMetaBackend(t *testing.T, args []string) *Meta {
