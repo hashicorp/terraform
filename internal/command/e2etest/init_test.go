@@ -31,7 +31,7 @@ func TestInitProviders(t *testing.T) {
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	// zero out any existing cli config file by passing in an empty file.
-	configFile := emptyConfigFileForTests(t, tf.Path(""))
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
 	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
@@ -68,7 +68,7 @@ func TestInitProvidersInternal(t *testing.T) {
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	// zero out any existing cli config file by passing in an empty file.
-	configFile := emptyConfigFileForTests(t, tf.Path(""))
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
 	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
@@ -121,7 +121,7 @@ func TestInitProvidersVendored(t *testing.T) {
 	}
 
 	// zero out any existing cli config file by passing in an empty file.
-	configFile := emptyConfigFileForTests(t, wantMachineDir)
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
 	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
@@ -266,7 +266,7 @@ func TestInitProviders_pluginCache(t *testing.T) {
 	}
 
 	// zero out any existing cli config file by passing in an empty file.
-	configFile := emptyConfigFileForTests(t, wantMachineDir)
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
 	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	cmd := tf.Cmd("init")
