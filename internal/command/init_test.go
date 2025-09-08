@@ -3372,6 +3372,8 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	// > "during a non-init command, the command ends in with an error telling the user to run an init command"
 }
 
+// Testing init's behaviors when run in a working directory where the configuration
+// doesn't match the backend state file.
 func TestInit_stateStore_configChanges(t *testing.T) {
 	t.Run("the -reconfigure flag makes Terraform ignore the backend state file during initialization", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
