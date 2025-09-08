@@ -112,6 +112,12 @@ func TestInitProvidersVendored(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
+	// "zero out" any existing cli config file by passing in an empty override
+	// file.
+	configFile := emptyConfigFileForTests(t, wantMachineDir)
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
+	defer os.Remove(configFile)
+
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -127,7 +133,6 @@ func TestInitProvidersVendored(t *testing.T) {
 
 	if !strings.Contains(stdout, "- Installing hashicorp/null v1.0.0+local") {
 		t.Errorf("provider download message is missing from output:\n%s", stdout)
-		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
 
 }
@@ -144,12 +149,6 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "local-only-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
-	// If you run this test on a workstation with a plugin-cache directory
-	// configured, it will leave a bad directory behind and terraform init will
-	// not work until you remove it.
-	//
-	// To avoid this, we will  "zero out" any existing cli config file.
-	tf.AddEnv("TF_CLI_CONFIG_FILE=")
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
@@ -160,6 +159,16 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
+
+	// If you run this test on a workstation with a plugin-cache directory
+	// configured, it will leave a bad directory behind and terraform init will
+	// not work until you remove it.
+	//
+	// To avoid this, we will  "zero out" any existing cli config file by
+	// passing in an empty override file.
+	configFile := emptyConfigFileForTests(t, wantMachineDir)
+	defer os.Remove(configFile)
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -408,4 +417,17 @@ func TestInitProviderWarnings(t *testing.T) {
 		t.Errorf("expected warning message is missing from output:\n%s", stdout)
 	}
 
+}
+
+// emptyConfigFileForTests creates a blank .terraformrc file in the requested
+// path and returns the path to the new file. It is the caller's responsibility
+// to cleanup the file after use.
+func emptyConfigFileForTests(t testing.TB, path string) string {
+	// "zero out" any existing cli config file by passing in an empty override
+	// file
+	configFile, err := os.Create(filepath.Join(path, ".terraformrc"))
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	return configFile.Name()
 }
