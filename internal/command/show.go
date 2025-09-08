@@ -149,8 +149,13 @@ func (c *ShowCommand) show(path string) (*plans.Plan, *cloudplan.RemotePlanJSON,
 func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	mod, diags := c.Meta.loadSingleModule(".")
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
+	b, backendDiags := c.Meta.prepareBackend(mod)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		return nil, diags
