@@ -30,6 +30,10 @@ func TestInitProviders(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "template-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
+	// zero out any existing cli config file by passing in an empty file.
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
+
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -62,6 +66,10 @@ func TestInitProvidersInternal(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "terraform-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	// zero out any existing cli config file by passing in an empty file.
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -112,11 +120,9 @@ func TestInitProvidersVendored(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	// "zero out" any existing cli config file by passing in an empty override
-	// file.
-	configFile := emptyConfigFileForTests(t, wantMachineDir)
+	// zero out any existing cli config file by passing in an empty file.
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
 	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
-	defer os.Remove(configFile)
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -167,7 +173,6 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 	// To avoid this, we will  "zero out" any existing cli config file by
 	// passing in an empty override file.
 	configFile := emptyConfigFileForTests(t, wantMachineDir)
-	defer os.Remove(configFile)
 	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
@@ -259,6 +264,10 @@ func TestInitProviders_pluginCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
+
+	// zero out any existing cli config file by passing in an empty file.
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	cmd := tf.Cmd("init")
 
@@ -423,11 +432,11 @@ func TestInitProviderWarnings(t *testing.T) {
 // path and returns the path to the new file. It is the caller's responsibility
 // to cleanup the file after use.
 func emptyConfigFileForTests(t testing.TB, path string) string {
-	// "zero out" any existing cli config file by passing in an empty override
-	// file
+	// zero out any existing cli config file by passing in an empty file.
 	configFile, err := os.Create(filepath.Join(path, ".terraformrc"))
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
+	configFile.Close()
 	return configFile.Name()
 }
