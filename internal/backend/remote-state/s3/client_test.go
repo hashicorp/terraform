@@ -398,42 +398,42 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		} else if bse, ok := As[badChecksumError](comparableErr); ok && len(bse.digest) != 0 {
 			t.Fatalf("expected empty checksum, got %x", bse.digest)
 		}
+	}
 
-		// put the old state in place of the new, without updating the checksum
-		if diags := client2.Put(oldState.Bytes()); diags.HasErrors() {
+	// put the old state in place of the new, without updating the checksum
+	if diags := client2.Put(oldState.Bytes()); diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	// fetching the wrong state through client1 should now error out due to a
+	// mismatched checksum.
+	if _, diags := client1.Get(); diags.HasErrors() {
+		var comparableErr error
+		if errValue, isDiag := diags.Err().(tfdiags.DiagnosticsAsError); isDiag {
+			// To use `As` below we need to extract the error that's wrapped
+			// in a diagnostic.
+			comparableErr = errValue.WrappedErrors()[0]
+		}
+		if !IsA[badChecksumError](comparableErr) {
+			t.Fatalf("expected state checksum error: got %s", diags.Err())
+		}
+	}
+
+	// update the state with the correct one after we Get again
+	testChecksumHook = func() {
+		if diags := client2.Put(newState.Bytes()); diags.HasErrors() {
 			t.Fatal(diags.Err())
 		}
+		testChecksumHook = nil
+	}
 
-		// fetching the wrong state through client1 should now error out due to a
-		// mismatched checksum.
-		if _, diags := client1.Get(); diags.HasErrors() {
-			var comparableErr error
-			if errValue, isDiag := diags.Err().(tfdiags.DiagnosticsAsError); isDiag {
-				// To use `As` below we need to extract the error that's wrapped
-				// in a diagnostic.
-				comparableErr = errValue.WrappedErrors()[0]
-			}
-			if !IsA[badChecksumError](comparableErr) {
-				t.Fatalf("expected state checksum error: got %s", diags.Err())
-			}
-		}
+	consistencyRetryTimeout = origTimeout
 
-		// update the state with the correct one after we Get again
-		testChecksumHook = func() {
-			if diags := client2.Put(newState.Bytes()); diags.HasErrors() {
-				t.Fatal(diags.Err())
-			}
-			testChecksumHook = nil
-		}
-
-		consistencyRetryTimeout = origTimeout
-
-		// this final Get will fail to fail the checksum verification, the above
-		// callback will update the state with the correct version, and Get should
-		// retry automatically.
-		if _, diags := client1.Get(); diags.HasErrors() {
-			t.Fatal(diags.Err())
-		}
+	// this final Get will fail to fail the checksum verification, the above
+	// callback will update the state with the correct version, and Get should
+	// retry automatically.
+	if _, diags := client1.Get(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }
 
