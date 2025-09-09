@@ -298,7 +298,6 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 						r.Postconditions = append(r.Postconditions, cr)
 					}
 
-				// decoded, but not yet used!
 				case "action_trigger":
 					at, atDiags := decodeActionTriggerBlock(block)
 					diags = append(diags, atDiags...)
