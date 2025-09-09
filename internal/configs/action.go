@@ -5,6 +5,7 @@ package configs
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -151,8 +152,21 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 				})
 				continue
 			}
+
+			// Check for duplicate events
+			if slices.Contains(events, event) {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Duplicate %q event", hcl.ExprAsKeyword(expr)),
+					Detail:   "The event is already defined in this action_trigger block.",
+					Subject:  expr.Range().Ptr(),
+				})
+				continue
+			}
+
 			events = append(events, event)
 		}
+
 		a.Events = events
 	}
 
