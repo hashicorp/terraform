@@ -1847,6 +1847,82 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 		},
+		"multiple events triggering in same action trigger": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [
+        before_create, // should trigger
+        after_create, // should trigger
+        before_update // should be ignored
+      ]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+			},
+		},
+
+		"multiple events triggering in multiple action trigger": {
+			module: map[string]string{
+				"main.tf": `
+action "act_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    // should trigger
+    action_trigger {
+      events = [before_create]
+      actions = [action.act_unlinked.hello]
+    }
+    // should trigger
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello]
+    }
+    // should be ignored
+    action_trigger {
+      events = [before_update]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+				{
+					ActionType: "act_unlinked",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {

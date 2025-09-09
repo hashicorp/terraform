@@ -1058,24 +1058,25 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	return true
 }
 
-func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) (*configs.ActionTriggerEvent, bool) {
+func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
+	triggeredEvents := []configs.ActionTriggerEvent{}
 	for _, event := range events {
 		switch event {
 		case configs.BeforeCreate, configs.AfterCreate:
 			if action.IsReplace() || action == plans.Create {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
 		case configs.BeforeUpdate, configs.AfterUpdate:
 			if action == plans.Update {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
 		case configs.BeforeDestroy, configs.AfterDestroy:
 			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
@@ -1083,5 +1084,5 @@ func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.
 			panic(fmt.Sprintf("unknown action trigger event %s", event))
 		}
 	}
-	return nil, false
+	return triggeredEvents
 }

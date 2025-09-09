@@ -72,8 +72,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 
 	// We need the action invocation early to check if we need to
 	ai := plans.ActionInvocationInstance{
-		Addr: n.actionAddress,
-
+		Addr:          n.actionAddress,
 		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
 	}
 	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
@@ -113,16 +112,13 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	// provider so we'll do that ourselves now.
 	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue)
 
-	triggeringEvent, isTriggered := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
-	if !isTriggered {
+	triggeredEvents := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
+	if len(triggeredEvents) == 0 {
 		return diags
-	}
-	if triggeringEvent == nil {
-		panic("triggeringEvent cannot be nil")
 	}
 
 	// Evaluate the condition expression if it exists (otherwise it's true)
-	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
+	if n.lifecycleActionTrigger.conditionExpr != nil {
 		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
 			events:          n.lifecycleActionTrigger.events,
 			conditionExpr:   n.lifecycleActionTrigger.conditionExpr,
@@ -138,9 +134,6 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 			return diags
 		}
 	}
-
-	// We need to set the triggering event on the action invocation
-	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent)
 
 	provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
 	if err != nil {
@@ -187,15 +180,23 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		return diags
 	}
 
-	// If the action is deferred, we need to also defer the resource instance
-	if resp.Deferred != nil {
-		deferrals.ReportActionInvocationDeferred(ai, resp.Deferred.Reason)
-		ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
-		deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
-		return diags
-	}
+	// We are planning to run this action multiple times so
+	for _, triggeredEvent := range triggeredEvents {
+		eventSpecificAi := ai.DeepCopy()
+		// We need to set the triggering event on the action invocation
+		eventSpecificAi.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(triggeredEvent)
 
-	ctx.Changes().AppendActionInvocation(&ai)
+		// If the action is deferred, we need to also defer the resource instance
+		if resp.Deferred != nil {
+			deferrals.ReportActionInvocationDeferred(*eventSpecificAi, resp.Deferred.Reason)
+			ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
+			deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
+
+			return diags
+		}
+
+		ctx.Changes().AppendActionInvocation(eventSpecificAi)
+	}
 	return diags
 }
 
