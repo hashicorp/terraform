@@ -3919,6 +3919,90 @@ func TestTest_JUnitOutput(t *testing.T) {
 	}
 }
 
+// https://github.com/hashicorp/terraform/issues/37546
+func TestTest_TeardownOrder(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "rds_shared_subnet")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color", "-json"})
+	if code != 0 {
+		t.Errorf("expected status code %d but got %d", 0, code)
+	}
+	output := done(t).All()
+
+	// Parse the JSON output to check teardown order
+	var setupTeardownStart time.Time
+	var lastRunTeardownStart time.Time
+
+	for line := range strings.SplitSeq(output, "\n") {
+		if strings.Contains(line, `"progress":"teardown"`) {
+			var obj map[string]any
+			if err := json.Unmarshal([]byte(line), &obj); err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(line, `"setup_tests"`) {
+				if ts, ok := obj["@timestamp"].(string); ok {
+					// record the first time that the setup teardown appears in the output
+					if setupTeardownStart.IsZero() {
+						parsedTime, _ := time.Parse(time.RFC3339, ts)
+						setupTeardownStart = parsedTime
+					}
+				}
+
+			} else {
+				if ts, ok := obj["@timestamp"].(string); ok {
+					parsedTime, _ := time.Parse(time.RFC3339, ts)
+					// record the last time that a run's teardown appears in the output
+					if parsedTime.After(lastRunTeardownStart) {
+						lastRunTeardownStart = parsedTime
+					}
+				}
+			}
+		}
+	}
+
+	// all runs should have been down with teardown before the setup starts
+	if lastRunTeardownStart.After(setupTeardownStart) {
+		t.Fatalf("setup is tearing down before dependants are done: \n %s", output)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Logf("Resources remaining after test completion (this might indicate the teardown issue): %v", provider.ResourceString())
+	}
+}
+
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
 func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config, string, func()) {
