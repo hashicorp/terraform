@@ -521,6 +521,24 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				}
 				tf.Overrides.Put(subject, override)
 			}
+
+		case "override_provisioner":
+			override, overrideDiags := decodeOverrideProvisionerBlock(block, false, TestFileOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_provisioner block",
+						Detail:   fmt.Sprintf("An override_provisioner block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
+			}
 		}
 	}
 
@@ -674,6 +692,23 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 						Severity: hcl.DiagError,
 						Summary:  "Duplicate override_data block",
 						Detail:   fmt.Sprintf("An override_data block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
+			}
+		case "override_provisioner":
+			override, overrideDiags := decodeOverrideProvisionerBlock(block, false, RunBlockOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_provisioner block",
+						Detail:   fmt.Sprintf("An override_provisioner block targeting %s has already been defined at %s.", subject, previous.Range),
 						Subject:  override.Range.Ptr(),
 					})
 					continue
@@ -957,6 +992,9 @@ var testFileSchema = &hcl.BodySchema{
 		{
 			Type: "override_module",
 		},
+		{
+			Type: "override_provisioner",
+		},
 	},
 }
 
@@ -995,6 +1033,9 @@ var testRunBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "override_module",
+		},
+		{
+			Type: "override_provisioner",
 		},
 	},
 }
