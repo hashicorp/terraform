@@ -78,8 +78,8 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 		panic("partialResource is nil")
 	}
 
-	triggeringEvent, isTriggered := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, partialResourceChange.Change.Action)
-	if !isTriggered {
+	triggeringEvents := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, partialResourceChange.Change.Action)
+	if len(triggeringEvents) == 0 {
 		return nil
 	}
 
@@ -114,16 +114,18 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 		return diags
 	}
 
-	ctx.Deferrals().ReportActionInvocationDeferred(plans.ActionInvocationInstance{
-		Addr:         n.addr.UnknownActionInstance(),
-		ProviderAddr: n.resolvedProvider,
-		ActionTrigger: &plans.LifecycleActionTrigger{
-			TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress.UnknownResourceInstance(),
-			ActionTriggerEvent:      *triggeringEvent,
-			ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
-			ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
-		},
-		ConfigValue: actionInstance.ConfigValue,
-	}, providers.DeferredReasonInstanceCountUnknown)
+	for _, triggeringEvent := range triggeringEvents {
+		ctx.Deferrals().ReportActionInvocationDeferred(plans.ActionInvocationInstance{
+			Addr:         n.addr.UnknownActionInstance(),
+			ProviderAddr: n.resolvedProvider,
+			ActionTrigger: &plans.LifecycleActionTrigger{
+				TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress.UnknownResourceInstance(),
+				ActionTriggerEvent:      triggeringEvent,
+				ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
+				ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
+			},
+			ConfigValue: actionInstance.ConfigValue,
+		}, providers.DeferredReasonInstanceCountUnknown)
+	}
 	return nil
 }
