@@ -108,8 +108,11 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 }
 
 func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
-	// return if node is leaf or has already been visited
-	if visited[node.stateKey] || len(depStateKeys[node.stateKey]) == 0 {
+	if visited[node.stateKey] {
+		return
+	}
+	// don't mark the node as visited if it's a leaf node, this ensures that other dependencies are still added to it
+	if len(depStateKeys[node.stateKey]) == 0 {
 		return
 	}
 	visited[node.stateKey] = true
