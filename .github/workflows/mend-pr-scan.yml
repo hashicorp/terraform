@@ -1,0 +1,37 @@
+name: Mend PR Security Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  mend-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
+        
+      - name: Run Mend Security Scan
+        uses: hashicorp/oss-core-library-dashboard-metrics/mend-security/actions/mend-pr-scan@d4cb2af90f0710c561c72304e6f243cdbaa38e89  # main
+        with:
+          mend-wss-url: ${{ secrets.MEND_WSS_URL }}
+          mend-api-key: ${{ secrets.MEND_PSIRT_PSIRT_PRD0014263_API_KEY }}
+          mend-user-key: ${{ secrets.MEND_PSIRT_PSIRT_PRD0014263_USER_KEY }}
+          mend-product-token: ${{ secrets.MEND_PSIRT_PSIRT_PRD0014263_PRODUCT_TOKEN }}
+          mend-psirt-id: "PSIRT_PRD0014263"
+          generate-scan-report: "true"
+          npm-include-dev-dependencies: "true"
+          docker-scan-images: "true"
+          scan-timeout-minutes: "30"
+      
+      - name: Upload Scan Artifacts
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874  # v4.4.0
+        if: always()
+        with:
+          name: mend-scan-results-pr-${{ github.event.number }}
+          path: whitesource/**
+          retention-days: 90
