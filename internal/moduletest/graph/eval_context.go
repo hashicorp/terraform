@@ -633,7 +633,7 @@ func (ec *EvalContext) LoadState(run *configs.TestRun) (*states.State, error) {
 
 		stmgr, err := current.Backend.StateMgr(backend.DefaultStateName)
 		if err != nil {
-			return nil, err
+			return nil, err.Err()
 		}
 
 		if err := stmgr.RefreshState(); err != nil {
