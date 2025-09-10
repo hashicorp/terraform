@@ -254,6 +254,32 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				":0,0-0: No events specified; At least one event must be specified for an action_trigger.",
 			},
 		},
+
+		"error - duplicate event": {
+			&hcl.Block{
+				Type: "action_trigger",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"condition": conditionExpr,
+						"events":    hcltest.MockExprList([]hcl.Expression{hcltest.MockExprTraversalSrc("before_create"), hcltest.MockExprTraversalSrc("before_create")}),
+						"actions":   hcltest.MockExprList([]hcl.Expression{fooActionExpr}),
+					}),
+				}),
+			},
+			&ActionTrigger{
+				Condition: conditionExpr,
+				Events:    []ActionTriggerEvent{BeforeCreate},
+				Actions: []ActionRef{
+					{
+						fooActionExpr,
+						fooActionExpr.Range(),
+					},
+				},
+			},
+			[]string{
+				`MockExprTraversal:0,0-13: Duplicate "before_create" event; The event is already defined in this action_trigger block.`,
+			},
+		},
 	}
 
 	for name, test := range tests {

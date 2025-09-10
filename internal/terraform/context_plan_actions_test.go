@@ -3091,6 +3091,93 @@ resource "test_object" "a" {
 				}
 			},
 		},
+
+		"multiple events triggering in same action trigger": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [
+        before_create, // should trigger
+        after_create, // should trigger
+        before_update // should be ignored
+      ]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				triggeredEvents := []configs.ActionTriggerEvent{}
+				for _, action := range p.Changes.ActionInvocations {
+					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+					if !ok {
+						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
+					}
+					triggeredEvents = append(triggeredEvents, at.ActionTriggerEvent)
+				}
+				slices.Sort(triggeredEvents)
+				if diff := cmp.Diff([]configs.ActionTriggerEvent{configs.BeforeCreate, configs.AfterCreate}, triggeredEvents); diff != "" {
+					t.Errorf("wrong result\n%s", diff)
+				}
+			},
+		},
+
+		"multiple events triggering in multiple action trigger": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    // should trigger
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_unlinked.hello]
+    }
+    // should trigger
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_unlinked.hello]
+    }
+    // should be ignored
+    action_trigger {
+      events = [before_update]
+      actions = [action.test_unlinked.hello]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				if len(p.Changes.ActionInvocations) != 2 {
+					t.Fatalf("expected 2 action in plan, got %d", len(p.Changes.ActionInvocations))
+				}
+
+				triggeredEvents := []configs.ActionTriggerEvent{}
+				for _, action := range p.Changes.ActionInvocations {
+					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+					if !ok {
+						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
+					}
+					triggeredEvents = append(triggeredEvents, at.ActionTriggerEvent)
+				}
+				slices.Sort(triggeredEvents)
+				if diff := cmp.Diff([]configs.ActionTriggerEvent{configs.BeforeCreate, configs.AfterCreate}, triggeredEvents); diff != "" {
+					t.Errorf("wrong result\n%s", diff)
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -3254,6 +3341,35 @@ resource "test_object" "a" {
 				tc.assertPlan(t, plan)
 			}
 		})
+	}
+}
+
+func TestContextPlan_validateActionInTriggerExists(t *testing.T) {
+	// this validation occurs during TransformConfig
+	module := `
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.act_unlinked.hello]
+    }
+  }
+}
+`
+	m := testModuleInline(t, map[string]string{"main.tf": module})
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected errors, got success!")
+	}
+	if diags.Err().Error() != "Configuration for triggered action does not exist: The configuration for the given action action.act_unlinked.hello does not exist. All triggered actions must have an associated configuration." {
+		t.Fatal("wrong error!")
 	}
 }
 

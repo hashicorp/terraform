@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -385,10 +386,18 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 
 	// fetching an empty state through client1 should now error out due to a
 	// mismatched checksum.
-	if _, diags := client1.Get(); !IsA[badChecksumError](diags.Err()) {
-		t.Fatalf("expected state checksum error: got %s", diags.Err())
-	} else if bse, ok := As[badChecksumError](diags.Err()); ok && len(bse.digest) != 0 {
-		t.Fatalf("expected empty checksum, got %x", bse.digest)
+	if _, diags := client1.Get(); diags.HasErrors() {
+		var comparableErr error
+		if errValue, isDiag := diags.Err().(tfdiags.DiagnosticsAsError); isDiag {
+			// To use `As` below we need to extract the error that's wrapped
+			// in a diagnostic.
+			comparableErr = errValue.WrappedErrors()[0]
+		}
+		if !IsA[badChecksumError](comparableErr) {
+			t.Fatalf("expected state checksum error: got %s", diags.Err())
+		} else if bse, ok := As[badChecksumError](comparableErr); ok && len(bse.digest) != 0 {
+			t.Fatalf("expected empty checksum, got %x", bse.digest)
+		}
 	}
 
 	// put the old state in place of the new, without updating the checksum
@@ -398,8 +407,16 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 
 	// fetching the wrong state through client1 should now error out due to a
 	// mismatched checksum.
-	if _, diags := client1.Get(); !IsA[badChecksumError](diags.Err()) {
-		t.Fatalf("expected state checksum error: got %s", diags.Err())
+	if _, diags := client1.Get(); diags.HasErrors() {
+		var comparableErr error
+		if errValue, isDiag := diags.Err().(tfdiags.DiagnosticsAsError); isDiag {
+			// To use `As` below we need to extract the error that's wrapped
+			// in a diagnostic.
+			comparableErr = errValue.WrappedErrors()[0]
+		}
+		if !IsA[badChecksumError](comparableErr) {
+			t.Fatalf("expected state checksum error: got %s", diags.Err())
+		}
 	}
 
 	// update the state with the correct one after we Get again
