@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -94,106 +93,6 @@ func (run *Run) Addr() addrs.Run {
 	return addrs.Run{Name: run.Name}
 }
 
-func (run *Run) GetTargets() ([]addrs.Targetable, tfdiags.Diagnostics) {
-	var diagnostics tfdiags.Diagnostics
-	var targets []addrs.Targetable
-
-	for _, target := range run.Config.Options.Target {
-		addr, diags := addrs.ParseTarget(target)
-		diagnostics = diagnostics.Append(diags)
-		if addr != nil {
-			targets = append(targets, addr.Subject)
-		}
-	}
-
-	return targets, diagnostics
-}
-
-func (run *Run) GetReplaces() ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
-	var diagnostics tfdiags.Diagnostics
-	var replaces []addrs.AbsResourceInstance
-
-	for _, replace := range run.Config.Options.Replace {
-		addr, diags := addrs.ParseAbsResourceInstance(replace)
-		diagnostics = diagnostics.Append(diags)
-		if diags.HasErrors() {
-			continue
-		}
-
-		if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
-			diagnostics = diagnostics.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Can only target managed resources for forced replacements.",
-				Detail:   addr.String(),
-				Subject:  replace.SourceRange().Ptr(),
-			})
-			continue
-		}
-
-		replaces = append(replaces, addr)
-	}
-
-	return replaces, diagnostics
-}
-
-func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
-	var diagnostics tfdiags.Diagnostics
-	var references []*addrs.Reference
-
-	for _, rule := range run.Config.CheckRules {
-		for _, variable := range rule.Condition.Variables() {
-			reference, diags := addrs.ParseRefFromTestingScope(variable)
-			diagnostics = diagnostics.Append(diags)
-			if reference != nil {
-				references = append(references, reference)
-			}
-		}
-		for _, variable := range rule.ErrorMessage.Variables() {
-			reference, diags := addrs.ParseRefFromTestingScope(variable)
-			diagnostics = diagnostics.Append(diags)
-			if reference != nil {
-				references = append(references, reference)
-			}
-		}
-	}
-
-	for _, expr := range run.Config.Variables {
-		moreRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
-		diagnostics = diagnostics.Append(moreDiags)
-		references = append(references, moreRefs...)
-	}
-
-	for name, variable := range run.ModuleConfig.Module.Variables {
-
-		// because we also draw implicit references back to any variables
-		// defined in the test file with the same name as actual variables, then
-		// we'll count these as references as well.
-
-		if _, ok := run.Config.Variables[name]; ok {
-
-			// BUT, if the variable is defined within the list of variables
-			// within the run block then we don't want to draw an implicit
-			// reference as the data comes from that expression.
-
-			continue
-		}
-
-		references = append(references, &addrs.Reference{
-			Subject:     addrs.InputVariable{Name: name},
-			SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
-		})
-	}
-
-	return references, diagnostics
-}
-
-// GetModuleConfigID returns the identifier for the module configuration that
-// this run is testing. This is used to uniquely identify the module
-// configuration in the test state.
-func (run *Run) GetModuleConfigID() string {
-	return run.ModuleConfig.Module.SourceDir
-}
-
 // ExplainExpectedFailures is similar to ValidateExpectedFailures except it
 // looks for any diagnostics produced by custom conditions and are included in
 // the expected failures and adds an additional explanation that clarifies the
@@ -203,14 +102,14 @@ func (run *Run) GetModuleConfigID() string {
 // an expected failure during the planning stage will still result in the
 // overall test failing as the plan failed and we couldn't even execute the
 // apply stage.
-func (run *Run) ExplainExpectedFailures(originals tfdiags.Diagnostics) tfdiags.Diagnostics {
+func ExplainExpectedFailures(config *configs.TestRun, originals tfdiags.Diagnostics) tfdiags.Diagnostics {
 
 	// We're going to capture all the checkable objects that are referenced
 	// from the expected failures.
 	expectedFailures := addrs.MakeMap[addrs.Referenceable, bool]()
 	sourceRanges := addrs.MakeMap[addrs.Referenceable, tfdiags.SourceRange]()
 
-	for _, traversal := range run.Config.ExpectFailures {
+	for _, traversal := range config.ExpectFailures {
 		// Ignore the diagnostics returned from the reference parsing, these
 		// references will have been checked earlier in the process by the
 		// validate stage so we don't need to do that again here.
@@ -330,14 +229,14 @@ func (run *Run) ExplainExpectedFailures(originals tfdiags.Diagnostics) tfdiags.D
 // diagnostics were generated by custom conditions. Terraform adds the
 // addrs.CheckRule that generated each diagnostic to the diagnostic itself so we
 // can tell which diagnostics can be expected.
-func (run *Run) ValidateExpectedFailures(originals tfdiags.Diagnostics) tfdiags.Diagnostics {
+func ValidateExpectedFailures(config *configs.TestRun, originals tfdiags.Diagnostics) tfdiags.Diagnostics {
 
 	// We're going to capture all the checkable objects that are referenced
 	// from the expected failures.
 	expectedFailures := addrs.MakeMap[addrs.Referenceable, bool]()
 	sourceRanges := addrs.MakeMap[addrs.Referenceable, tfdiags.SourceRange]()
 
-	for _, traversal := range run.Config.ExpectFailures {
+	for _, traversal := range config.ExpectFailures {
 		// Ignore the diagnostics returned from the reference parsing, these
 		// references will have been checked earlier in the process by the
 		// validate stage so we don't need to do that again here.

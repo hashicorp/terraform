@@ -480,7 +480,7 @@ func TestTestHuman_Run(t *testing.T) {
 		StdErr   string
 	}{
 		"pass": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... pass\n",
 		},
@@ -502,19 +502,19 @@ some warning happened during this test
 		},
 
 		"pending": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pending},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pending},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... pending\n",
 		},
 
 		"skip": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Skip},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Skip},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... skip\n",
 		},
 
 		"fail": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Fail},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Fail},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... fail\n",
 		},
@@ -542,7 +542,7 @@ other details
 		},
 
 		"error": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Error},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Error},
 			Progress: moduletest.Complete,
 			StdOut:   "  run \"run_block\"... fail\n",
 		},
@@ -725,15 +725,15 @@ resource "test_resource" "creating" {
 		// These next three tests should print nothing, as we only report on
 		// progress complete.
 		"progress_starting": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			Progress: moduletest.Starting,
 		},
 		"progress_running": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			Progress: moduletest.Running,
 		},
 		"progress_teardown": {
-			Run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			Run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			Progress: moduletest.TearDown,
 		},
 	}
@@ -822,7 +822,7 @@ this time it is very bad
 			diags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(tfdiags.Error, "first error", "this time it is very bad"),
 			},
-			run:   &moduletest.Run{Name: "run_block"},
+			run:   &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}},
 			file:  &moduletest.File{Name: "main.tftest.hcl"},
 			state: states.NewState(),
 			stderr: `Terraform encountered an error destroying resources created while executing
@@ -994,13 +994,13 @@ main.tftest.hcl, and they need to be cleaned up manually:
 
 func TestTestHuman_FatalInterruptSummary(t *testing.T) {
 	tcs := map[string]struct {
-		states  map[*moduletest.Run]*states.State
+		states  map[string]*states.State
 		run     *moduletest.Run
 		created []*plans.ResourceInstanceChangeSrc
 		want    string
 	}{
 		"no_state_only_plan": {
-			states: make(map[*moduletest.Run]*states.State),
+			states: make(map[string]*states.State),
 			run: &moduletest.Run{
 				Config: &configs.TestRun{},
 				Name:   "run_block",
@@ -1048,8 +1048,8 @@ Terraform was in the process of creating the following resources for
 `,
 		},
 		"file_state_no_plan": {
-			states: map[*moduletest.Run]*states.State{
-				nil: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				configs.TestMainStateIdentifier: states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -1091,15 +1091,8 @@ test:
 `,
 		},
 		"run_states_no_plan": {
-			states: map[*moduletest.Run]*states.State{
-				&moduletest.Run{
-					Name: "setup_block",
-					Config: &configs.TestRun{
-						Module: &configs.TestRunModuleCall{
-							Source: addrs.ModuleSourceLocal("../setup"),
-						},
-					},
-				}: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				"../setup": states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -1134,22 +1127,14 @@ test:
 Terraform was interrupted while executing main.tftest.hcl, and may not have
 performed the expected cleanup operations.
 
-Terraform has already created the following resources for "setup_block" from
-"../setup":
+Terraform has already created the following resources for "../setup":
   - test_instance.one
   - test_instance.two
 `,
 		},
 		"all_states_with_plan": {
-			states: map[*moduletest.Run]*states.State{
-				&moduletest.Run{
-					Name: "setup_block",
-					Config: &configs.TestRun{
-						Module: &configs.TestRunModuleCall{
-							Source: addrs.ModuleSourceLocal("../setup"),
-						},
-					},
-				}: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				"../setup": states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -1178,7 +1163,7 @@ Terraform has already created the following resources for "setup_block" from
 						&states.ResourceInstanceObjectSrc{},
 						addrs.AbsProviderConfig{})
 				}),
-				nil: states.BuildState(func(state *states.SyncState) {
+				configs.TestMainStateIdentifier: states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -1253,8 +1238,7 @@ test:
   - test_instance.one
   - test_instance.two
 
-Terraform has already created the following resources for "setup_block" from
-"../setup":
+Terraform has already created the following resources for "../setup":
   - test_instance.setup_one
   - test_instance.setup_two
 
@@ -1272,15 +1256,6 @@ Terraform was in the process of creating the following resources for
 
 			file := &moduletest.File{
 				Name: "main.tftest.hcl",
-				Runs: func() []*moduletest.Run {
-					var runs []*moduletest.Run
-					for run := range tc.states {
-						if run != nil {
-							runs = append(runs, run)
-						}
-					}
-					return runs
-				}(),
 			}
 
 			view.FatalInterruptSummary(tc.run, file, tc.states, tc.created)
@@ -1973,7 +1948,7 @@ func TestTestJSON_DestroySummary(t *testing.T) {
 		},
 		"state_from_run": {
 			file: &moduletest.File{Name: "main.tftest.hcl"},
-			run:  &moduletest.Run{Name: "run_block"},
+			run:  &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
 					addrs.Resource{
@@ -2380,7 +2355,7 @@ func TestTestJSON_Run(t *testing.T) {
 		want     []map[string]interface{}
 	}{
 		"starting": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			progress: moduletest.Starting,
 			want: []map[string]interface{}{
 				{
@@ -2401,7 +2376,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"running": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			progress: moduletest.Running,
 			elapsed:  2024,
 			want: []map[string]interface{}{
@@ -2423,7 +2398,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"teardown": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			progress: moduletest.TearDown,
 			want: []map[string]interface{}{
 				{
@@ -2444,7 +2419,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"pass": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pass},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2503,7 +2478,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"pending": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Pending},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Pending},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2524,7 +2499,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"skip": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Skip},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Skip},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2545,7 +2520,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"fail": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Fail},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Fail},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2620,7 +2595,7 @@ func TestTestJSON_Run(t *testing.T) {
 		},
 
 		"error": {
-			run:      &moduletest.Run{Name: "run_block", Status: moduletest.Error},
+			run:      &moduletest.Run{Name: "run_block", Config: &configs.TestRun{}, Status: moduletest.Error},
 			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
@@ -2973,12 +2948,12 @@ func TestTestJSON_Run(t *testing.T) {
 
 func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 	tcs := map[string]struct {
-		states  map[*moduletest.Run]*states.State
+		states  map[string]*states.State
 		changes []*plans.ResourceInstanceChangeSrc
 		want    []map[string]interface{}
 	}{
 		"no_state_only_plan": {
-			states: make(map[*moduletest.Run]*states.State),
+			states: make(map[string]*states.State),
 			changes: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.AbsResourceInstance{
@@ -3029,8 +3004,8 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 			},
 		},
 		"file_state_no_plan": {
-			states: map[*moduletest.Run]*states.State{
-				nil: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				configs.TestMainStateIdentifier: states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -3083,8 +3058,8 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 			},
 		},
 		"run_states_no_plan": {
-			states: map[*moduletest.Run]*states.State{
-				&moduletest.Run{Name: "setup_block"}: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				"../setup": states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -3124,7 +3099,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 					"@testrun":  "run_block",
 					"test_interrupt": map[string]interface{}{
 						"states": map[string]interface{}{
-							"setup_block": []interface{}{
+							"../setup": []interface{}{
 								map[string]interface{}{
 									"instance": "test_instance.one",
 								},
@@ -3139,8 +3114,8 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 			},
 		},
 		"all_states_with_plan": {
-			states: map[*moduletest.Run]*states.State{
-				&moduletest.Run{Name: "setup_block"}: states.BuildState(func(state *states.SyncState) {
+			states: map[string]*states.State{
+				"../setup": states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -3169,7 +3144,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 						&states.ResourceInstanceObjectSrc{},
 						addrs.AbsProviderConfig{})
 				}),
-				nil: states.BuildState(func(state *states.SyncState) {
+				configs.TestMainStateIdentifier: states.BuildState(func(state *states.SyncState) {
 					state.SetResourceInstanceCurrent(
 						addrs.AbsResourceInstance{
 							Module: addrs.RootModuleInstance,
@@ -3248,7 +3223,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 							},
 						},
 						"states": map[string]interface{}{
-							"setup_block": []interface{}{
+							"../setup": []interface{}{
 								map[string]interface{}{
 									"instance": "test_instance.setup_one",
 								},
