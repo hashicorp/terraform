@@ -175,7 +175,7 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 		{
 			name:             "mixed",
 			directory:        "testdata/query-files/valid/mixed",
-			listResources:    2,
+			listResources:    3,
 			managedResources: 1,
 			allowExperiments: true,
 		},
