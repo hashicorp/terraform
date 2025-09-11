@@ -11,5 +11,7 @@ list "test_instance" "example2" {
 
   config {
     ami = "ami-nonexistent"
+    // to force deterministic ordering in the result
+    foo = list.test_instance.example.data[0].state.id
   }
 }

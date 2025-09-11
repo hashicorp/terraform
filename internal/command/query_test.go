@@ -173,6 +173,10 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 							Type:     cty.String,
 							Required: true,
 						},
+						"foo": {
+							Type:     cty.String,
+							Optional: true,
+						},
 					},
 				},
 				Nesting: configschema.NestingSingle,
@@ -336,11 +340,12 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 func TestQuery_JSON(t *testing.T) {
 	tmp := t.TempDir()
 	tests := []struct {
-		name        string
-		directory   string
-		expectedRes []map[string]any
-		initCode    int
-		opts        []string
+		name           string
+		directory      string
+		expectedRes    []map[string]any
+		initCode       int
+		opts           []string
+		selectResource []string // only these resources will be selected in the result if given
 	}{
 		{
 			name:      "basic query",
@@ -352,7 +357,7 @@ func TestQuery_JSON(t *testing.T) {
 					"list_start": map[string]any{
 						"address":       "list.test_instance.example",
 						"resource_type": "test_instance",
-						"input_config":  map[string]any{"ami": "ami-12345"},
+						"input_config":  map[string]any{"ami": "ami-12345", "foo": nil},
 					},
 					"type": "list_start",
 				},
@@ -405,7 +410,7 @@ func TestQuery_JSON(t *testing.T) {
 		{
 			name:      "basic query - generate config",
 			directory: "basic",
-			opts:      []string{fmt.Sprintf("-generate-config-out=%s/new", tmp)},
+			opts:      []string{fmt.Sprintf("-generate-config-out=%s/new.tf", tmp)},
 			expectedRes: []map[string]any{
 				{
 					"@level":   "info",
@@ -413,7 +418,7 @@ func TestQuery_JSON(t *testing.T) {
 					"list_start": map[string]any{
 						"address":       "list.test_instance.example",
 						"resource_type": "test_instance",
-						"input_config":  map[string]any{"ami": "ami-12345"},
+						"input_config":  map[string]any{"ami": "ami-12345", "foo": nil},
 					},
 					"type": "list_start",
 				},
@@ -466,6 +471,24 @@ func TestQuery_JSON(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:      "list resource with an empty result",
+			directory: "empty-result",
+			expectedRes: []map[string]any{
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example2: List complete",
+					"list_complete": map[string]any{
+						"address":       "list.test_instance.example2",
+						"resource_type": "test_instance",
+						"total":         float64(0),
+					},
+					"type": "list_complete",
+				},
+			},
+			selectResource: []string{"list.test_instance.example2"},
+			initCode:       0,
+		},
 	}
 
 	for _, ts := range tests {
@@ -504,25 +527,40 @@ func TestQuery_JSON(t *testing.T) {
 			if code != 0 {
 				t.Fatalf("bad: %d\n\n%s", code, output.All())
 			}
+
 			// convert output to JSON array
 			actual := strings.TrimSpace(output.Stdout())
 			conc := fmt.Sprintf("[%s]", strings.Join(strings.Split(actual, "\n"), ","))
-			actualRes := make([]map[string]any, 0)
-			err := json.NewDecoder(strings.NewReader(conc)).Decode(&actualRes)
+			rawRes := make([]map[string]any, 0)
+			err := json.NewDecoder(strings.NewReader(conc)).Decode(&rawRes)
 			if err != nil {
 				t.Fatalf("failed to unmarshal: %s", err)
 			}
 
-			// remove unnecessary fields
-			for _, item := range actualRes {
+			// remove unnecessary fields before comparison
+			actualRes := make([]map[string]any, 0, len(rawRes))
+			for _, item := range rawRes {
 				delete(item, "@module")
 				delete(item, "@timestamp")
 				delete(item, "ui")
+
+				// if we have a select list of resource addresses, we only check those addresses
+				if len(ts.selectResource) > 0 {
+					for _, addr := range ts.selectResource {
+						if strings.Contains(item["@message"].(string), addr) {
+							actualRes = append(actualRes, item)
+						}
+					}
+				} else {
+					actualRes = append(actualRes, item)
+				}
 			}
 
-			// Check that the output matches the expected results
+			// remove the version entry. Not relevant for testing
 			actualRes = slices.Delete(actualRes, 0, 1)
+
 			if diff := cmp.Diff(ts.expectedRes, actualRes); diff != "" {
+				// Check that the output matches the expected results
 				t.Errorf("expected query output to contain \n%q, \ngot: \n%q, \ndiff: %s", ts.expectedRes, actualRes, diff)
 			}
 		})
