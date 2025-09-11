@@ -3132,6 +3132,24 @@ resource "test_object" "a" {
 			},
 		},
 
+		"multiple events triggered together": {
+			module: map[string]string{
+				"main.tf": `
+action "test_unlinked" "one" {}
+action "test_unlinked" "two" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_create, before_update, after_update]
+      actions = [action.test_unlinked.one, action.test_unlinked.two]
+    }
+  }
+}
+`,
+			},
+			expectPlanActionCalled: true,
+		},
+
 		"multiple events triggering in multiple action trigger": {
 			module: map[string]string{
 				"main.tf": `

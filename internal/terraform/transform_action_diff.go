@@ -31,6 +31,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 	}
 
 	invocationMap := map[*plans.ActionInvocationInstanceSrc]*nodeActionTriggerApply{}
+	triggerMap := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
 	for _, action := range t.Changes.ActionInvocations {
 		// Add nodes for each action invocation
 		node := &nodeActionTriggerApply{
@@ -54,6 +55,8 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 			if triggerBlock == nil {
 				panic(fmt.Sprintf("Could not find action trigger block %d for resource %s in config", at.ActionTriggerBlockIndex, at.TriggeringResourceAddr.String()))
 			}
+
+			triggerMap.Put(at.TriggeringResourceAddr, append(triggerMap.Get(at.TriggeringResourceAddr), action))
 
 			act := triggerBlock.Actions[at.ActionsListIndex]
 			node.ActionTriggerRange = &act.Range
@@ -84,14 +87,15 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 
 	// Find all dependencies between action invocations
 	for _, action := range t.Changes.ActionInvocations {
-		if _, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger); !ok {
+		at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+		if !ok {
 			// only add dependencies between lifecycle actions. invoke actions
 			// all act independently.
 			continue
 		}
 
 		node := invocationMap[action]
-		others := action.FilterLaterActionInvocations(t.Changes.ActionInvocations)
+		others := action.FilterLaterActionInvocations(triggerMap.Get(at.TriggeringResourceAddr))
 		for _, other := range others {
 			otherNode := invocationMap[other]
 			g.Connect(dag.BasicEdge(otherNode, node))
