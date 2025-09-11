@@ -488,10 +488,9 @@ func TestQuery_JSON(t *testing.T) {
 				},
 			},
 			selectResource: []string{"list.test_instance.example2"},
-			initCode:       0,
 		},
 		{
-			name:      "list resource with an unknown config",
+			name:      "error - list resource with an unknown config",
 			directory: "unknown-config",
 			expectedRes: []map[string]any{
 				{
@@ -505,7 +504,23 @@ func TestQuery_JSON(t *testing.T) {
 					"type": "diagnostic",
 				},
 			},
-			initCode: 0,
+		},
+		{
+			name:      "error - generate-config-path already exists",
+			directory: "basic",
+			opts:      []string{fmt.Sprintf("-generate-config-out=%s", t.TempDir())},
+			expectedRes: []map[string]any{
+				{
+					"@level":   "error",
+					"@message": "Error: Target generated file already exists",
+					"diagnostic": map[string]any{
+						"detail":   "Terraform can only write generated config into a new file. Either choose a different target location or move all existing configuration out of the target file, delete it and try again.",
+						"severity": "error",
+						"summary":  "Target generated file already exists",
+					},
+					"type": "diagnostic",
+				},
+			},
 		},
 	}
 
