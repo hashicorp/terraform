@@ -25,6 +25,7 @@ func TestQuery(t *testing.T) {
 		expectedOut string
 		expectedErr []string
 		initCode    int
+		args        []string
 	}{
 		{
 			name:      "basic query",
@@ -94,7 +95,96 @@ Blocks of type "resource" are not expected here.
 list.test_instance.example   id=test-instance-2   Test Instance 2
 
 Warning: list block(s) [list.test_instance.example2] returned 0 results.`,
-			initCode: 0,
+		},
+		{
+			name:      "error - extra variables",
+			directory: "basic",
+			args:      []string{"-var", "instance_name=test-instance"},
+			expectedErr: []string{`
+Error: Value for undeclared variable
+
+A variable named "instance_name" was assigned on the command line, but the
+root module does not declare a variable of that name. To use this value, add
+a "variable" block to the configuration.
+				`},
+		},
+		{
+			name:      "query with variables",
+			directory: "with-variables",
+			args:      []string{"-var", "instance_name=test-instance"},
+			expectedOut: `list.test_instance.example   id=test-instance-1   Test Instance 1
+list.test_instance.example   id=test-instance-2   Test Instance 2
+
+`,
+		},
+		{
+			name:      "query with variables defined in tf file",
+			directory: "with-variables-in-tf",
+			args:      []string{"-var", "instance_name=test-instance"},
+			expectedOut: `list.test_instance.example   id=test-instance-1   Test Instance 1
+list.test_instance.example   id=test-instance-2   Test Instance 2
+
+`,
+		},
+		{
+			name:      "query with variable files",
+			directory: "with-variables-file",
+			args:      []string{"-var-file=custom.tfvars"},
+			expectedOut: `list.test_instance.example   id=test-instance-1   Test Instance 1
+list.test_instance.example   id=test-instance-2   Test Instance 2
+
+`,
+		},
+		{
+			name:        "error - query with invalid variable value",
+			directory:   "with-invalid-variables",
+			args:        []string{"-var", "target_ami=ami-123"},
+			expectedErr: []string{`AMI ID must be longer than 10 characters.`},
+		},
+		{
+			name:        "error - query with missing required variable",
+			directory:   "with-variables",
+			expectedOut: "",
+			expectedErr: []string{`
+Error: No value for required variable
+
+  on query.tfquery.hcl line 7:
+   7: variable "instance_name" {
+
+The root module input variable "instance_name" is not set, and has no default
+value. Use a -var or -var-file command line argument to provide a value for
+this variable.
+`},
+		},
+		{
+			name:        "error - query with missing required variable in tf file",
+			directory:   "with-variables-in-tf",
+			expectedOut: "",
+			expectedErr: []string{`
+Error: No value for required variable
+
+  on main.tf line 15:
+  15: variable "instance_name" {
+
+The root module input variable "instance_name" is not set, and has no default
+value. Use a -var or -var-file command line argument to provide a value for
+this variable.
+`},
+		},
+		{
+			name:        "error - duplicate variable across .tf and .tfquery files",
+			directory:   "duplicate-variables",
+			expectedOut: "",
+			expectedErr: []string{`
+Error: Duplicate variable declaration
+
+  on query.tfquery.hcl line 2:
+   2: variable "instance_name" {
+
+A variable named "instance_name" was already declared at main.tf:15,1-25.
+Variable names must be unique within a module.
+`},
+			initCode: 1,
 		},
 	}
 
@@ -117,6 +207,18 @@ Warning: list block(s) [list.test_instance.example2] returned 0 results.`,
 				ProviderSource:            providerSource,
 			}
 
+			// helper for asserting against the expected error(s)
+			assertErr := func(actual string) (errored bool) {
+				for _, expected := range ts.expectedErr {
+					expected := strings.TrimSpace(expected)
+					if !strings.Contains(actual, expected) {
+						errored = true
+						t.Errorf("expected error message to contain '%s', \ngot: %s: diff: %s", expected, actual, cmp.Diff(expected, actual))
+					}
+				}
+				return
+			}
+
 			init := &InitCommand{Meta: meta}
 			code := init.Run(nil)
 			output := done(t)
@@ -124,12 +226,20 @@ Warning: list block(s) [list.test_instance.example2] returned 0 results.`,
 				t.Fatalf("expected status code %d but got %d: %s", ts.initCode, code, output.All())
 			}
 
+			// If we expect an init error, perhaps we want to assert the error message
+			if ts.initCode != 0 {
+				actual := output.All()
+				if errored := assertErr(actual); errored {
+					t.FailNow()
+					return
+				}
+			}
+
 			view, done = testView(t)
 			meta.View = view
 
 			c := &QueryCommand{Meta: meta}
-			args := []string{"-no-color"}
-			code = c.Run(args)
+			code = c.Run(append([]string{"-no-color"}, ts.args...))
 			output = done(t)
 			if len(ts.expectedErr) == 0 {
 				if code != 0 {
@@ -145,12 +255,7 @@ Warning: list block(s) [list.test_instance.example2] returned 0 results.`,
 
 			} else {
 				actual := strings.TrimSpace(output.Stderr())
-				for _, expected := range ts.expectedErr {
-					expected := strings.TrimSpace(expected)
-					if diff := cmp.Diff(expected, actual); diff != "" {
-						t.Errorf("expected error message to contain '%s', \ngot: %s, \ndiff: %s", expected, actual, diff)
-					}
-				}
+				assertErr(actual)
 			}
 		})
 	}
@@ -522,6 +627,67 @@ func TestQuery_JSON(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:      "success with variables",
+			directory: "with-variables",
+			opts:      []string{"-var", "instance_name=test-instance"},
+			expectedRes: []map[string]any{
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example: Starting query...",
+					"list_start": map[string]any{
+						"address":       "list.test_instance.example",
+						"resource_type": "test_instance",
+						"input_config":  map[string]any{"ami": "ami-12345", "foo": "test-instance"},
+					},
+					"type": "list_start",
+				},
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example: Result found",
+					"list_resource_found": map[string]any{
+						"address":      "list.test_instance.example",
+						"display_name": "Test Instance 1",
+						"identity": map[string]any{
+							"id": "test-instance-1",
+						},
+						"resource_type": "test_instance",
+						"resource_object": map[string]any{
+							"ami": "ami-12345",
+							"id":  "test-instance-1",
+						},
+					},
+					"type": "list_resource_found",
+				},
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example: Result found",
+					"list_resource_found": map[string]any{
+						"address":      "list.test_instance.example",
+						"display_name": "Test Instance 2",
+						"identity": map[string]any{
+							"id": "test-instance-2",
+						},
+						"resource_type": "test_instance",
+						"resource_object": map[string]any{
+							"ami": "ami-67890",
+							"id":  "test-instance-2",
+						},
+					},
+					"type": "list_resource_found",
+				},
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example: List complete",
+					"list_complete": map[string]any{
+						"address":       "list.test_instance.example",
+						"resource_type": "test_instance",
+						"total":         float64(2),
+					},
+					"type": "list_complete",
+				},
+			},
+		},
 	}
 
 	for _, ts := range tests {
@@ -576,6 +742,12 @@ func TestQuery_JSON(t *testing.T) {
 				delete(item, "@module")
 				delete(item, "@timestamp")
 				delete(item, "ui")
+
+				// Clean up diagnostic fields that we don't want to compare
+				if diagnostic, ok := item["diagnostic"].(map[string]any); ok {
+					delete(diagnostic, "range")
+					delete(diagnostic, "snippet")
+				}
 
 				// if we have a select list of resource addresses, we only check those addresses
 				if len(ts.selectResource) > 0 {
