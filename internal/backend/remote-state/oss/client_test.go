@@ -75,14 +75,14 @@ func TestRemoteClientLocks(t *testing.T) {
 	createTablestoreTable(t, b1.otsClient, tableName)
 	defer deleteTablestoreTable(t, b1.otsClient, tableName)
 
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
@@ -116,18 +116,18 @@ func TestRemoteClientLocks_multipleStates(t *testing.T) {
 	createTablestoreTable(t, b1.otsClient, tableName)
 	defer deleteTablestoreTable(t, b1.otsClient, tableName)
 
-	s1, err := b1.StateMgr("s1")
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr("s1")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if _, err := s1.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatal("failed to get lock for s1:", err)
 	}
 
 	// s1 is now locked, s2 should not be locked as it's a different state file
-	s2, err := b2.StateMgr("s2")
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr("s2")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if _, err := s2.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatal("failed to get lock for s2:", err)
@@ -283,9 +283,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	createTablestoreTable(t, b1.otsClient, tableName)
 	defer deleteTablestoreTable(t, b1.otsClient, tableName)
 
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 	client1 := s1.(*remote.State).Client
 
@@ -308,9 +308,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		"bucket": bucketName,
 		"prefix": path,
 	})).(*Backend)
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 	client2 := s2.(*remote.State).Client
 
