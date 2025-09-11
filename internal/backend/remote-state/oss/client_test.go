@@ -347,7 +347,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	// fetching an empty state through client1 should now error out due to a
 	// mismatched checksum.
 	if _, diags := client1.Get(); !strings.HasPrefix(diags.Err().Error(), errBadChecksumFmt[:80]) {
-		t.Fatalf("expected state checksum error: got %s", err)
+		t.Fatalf("expected state checksum error: got %s", diags.Err())
 	}
 
 	// put the old state in place of the new, without updating the checksum
@@ -358,7 +358,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	// fetching the wrong state through client1 should now error out due to a
 	// mismatched checksum.
 	if _, diags := client1.Get(); !strings.HasPrefix(diags.Err().Error(), errBadChecksumFmt[:80]) {
-		t.Fatalf("expected state checksum error: got %s", err)
+		t.Fatalf("expected state checksum error: got %s", diags.Err())
 	}
 
 	// update the state with the correct one after we Get again
