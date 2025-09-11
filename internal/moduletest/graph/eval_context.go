@@ -631,9 +631,9 @@ func (ec *EvalContext) LoadState(run *configs.TestRun) (*states.State, error) {
 		// Then we'll load the state from the backend instead of just using
 		// whatever was in the state.
 
-		stmgr, err := current.Backend.StateMgr(backend.DefaultStateName)
-		if err != nil {
-			return nil, err.Err()
+		stmgr, diags := current.Backend.StateMgr(backend.DefaultStateName)
+		if diags.HasErrors() {
+			return nil, diags.Err()
 		}
 
 		if err := stmgr.RefreshState(); err != nil {
