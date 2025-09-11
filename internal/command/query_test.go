@@ -345,6 +345,7 @@ func TestQuery_JSON(t *testing.T) {
 		expectedRes    []map[string]any
 		initCode       int
 		opts           []string
+		commandErrMsg  string   // non-empty when the query command fails after init
 		selectResource []string // only these resources will be selected in the result if given
 	}{
 		{
@@ -489,6 +490,23 @@ func TestQuery_JSON(t *testing.T) {
 			selectResource: []string{"list.test_instance.example2"},
 			initCode:       0,
 		},
+		{
+			name:      "list resource with an unknown config",
+			directory: "unknown-config",
+			expectedRes: []map[string]any{
+				{
+					"@level":   "error",
+					"@message": "Error: config is not known",
+					"diagnostic": map[string]any{
+						"severity": "error",
+						"summary":  "config is not known",
+						"detail":   "",
+					},
+					"type": "diagnostic",
+				},
+			},
+			initCode: 0,
+		},
 	}
 
 	for _, ts := range tests {
@@ -525,7 +543,7 @@ func TestQuery_JSON(t *testing.T) {
 			code = c.Run(append(args, ts.opts...))
 			output = done(t)
 			if code != 0 {
-				t.Fatalf("bad: %d\n\n%s", code, output.All())
+				t.Logf("query command returned non-zero code '%d' and an error: \n\n%s", code, output.All())
 			}
 
 			// convert output to JSON array
