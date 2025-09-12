@@ -1616,16 +1616,9 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		return resp
 	}
 
-	linkedResources, err := linkedResourcePlanDataToProto(schema, actionSchema.LinkedResources(), r.LinkedResources)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
-	}
-
 	protoReq := &proto6.PlanAction_Request{
 		ActionType:         r.ActionType,
 		Config:             &proto6.DynamicValue{Msgpack: configMP},
-		LinkedResources:    linkedResources,
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
@@ -1641,12 +1634,6 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		return resp
 	}
 	if resp.Diagnostics.HasErrors() {
-		return resp
-	}
-
-	resp.LinkedResources, err = protoToLinkedResourcePlans(schema, actionSchema.LinkedResources(), protoResp.LinkedResources)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
 
@@ -1668,12 +1655,6 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 		return resp
 	}
 
-	linkedResources, err := linkedResourceInvokeDataToProto(schema, actionSchema.LinkedResources(), r.LinkedResources)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
-	}
-
 	configMP, err := msgpack.Marshal(r.PlannedActionData, actionSchema.ConfigSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -1683,7 +1664,6 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 	protoReq := &proto6.InvokeAction_Request{
 		ActionType:         r.ActionType,
 		Config:             &proto6.DynamicValue{Msgpack: configMP},
-		LinkedResources:    linkedResources,
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
@@ -1719,13 +1699,8 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 
 			case *proto6.InvokeAction_Event_Completed_:
 				diags := convert.ProtoToDiagnostics(ev.Completed.Diagnostics)
-				linkedResources, err := protoToLinkedResourceResults(schema, actionSchema.LinkedResources(), ev.Completed.LinkedResources)
-				if err != nil {
-					diags = diags.Append(grpcErr(err))
-				}
 				yield(providers.InvokeActionEvent_Completed{
-					LinkedResources: linkedResources,
-					Diagnostics:     diags,
+					Diagnostics: diags,
 				})
 
 			default:
@@ -1763,30 +1738,6 @@ func (p *GRPCProvider) ValidateActionConfig(r providers.ValidateActionConfigRequ
 		Config:   &proto6.DynamicValue{Msgpack: mp},
 	}
 
-	lrs := make([]*proto6.LinkedResourceConfig, 0, len(r.LinkedResources))
-	for i, lr := range r.LinkedResources {
-		resourceSchema, ok := schema.ResourceTypes[lr.TypeName]
-		if !ok {
-			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
-			return resp
-		}
-
-		mp, err := msgpack.Marshal(r.Config, resourceSchema.Body.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
-
-		lrs[i] = &proto6.LinkedResourceConfig{
-			TypeName: r.TypeName,
-			Config:   &proto6.DynamicValue{Msgpack: mp},
-		}
-	}
-
-	if len(lrs) > 0 {
-		protoReq.LinkedResources = lrs
-	}
-
 	protoResp, err := p.client.ValidateActionConfig(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
@@ -1819,175 +1770,4 @@ func clientCapabilitiesToProto(c providers.ClientCapabilities) *proto6.ClientCap
 		DeferralAllowed:            c.DeferralAllowed,
 		WriteOnlyAttributesAllowed: c.WriteOnlyAttributesAllowed,
 	}
-}
-
-func linkedResourcePlanDataToProto(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []providers.LinkedResourcePlanData) ([]*proto6.PlanAction_Request_LinkedResource, error) {
-	protoLinkedResources := make([]*proto6.PlanAction_Request_LinkedResource, 0, len(lrs))
-
-	if len(lrs) != len(linkedResourceSchema) {
-		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
-	}
-
-	for i, lr := range lrs {
-		linkedResourceType := linkedResourceSchema[i].TypeName
-		// Currently we restrict linked resources to be within the same provider,
-		// therefore we can use the schema from the provider to encode and decode the values
-		resSchema, ok := schema.ResourceTypes[linkedResourceType]
-		if !ok {
-			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
-		}
-
-		priorStateMP, err := msgpack.Marshal(lr.PriorState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal prior state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		plannedStateMp, err := msgpack.Marshal(lr.PlannedState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal planned state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		configMp, err := msgpack.Marshal(lr.Config, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal config for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		priorIdentityMp, err := msgpack.Marshal(lr.PriorIdentity, resSchema.Identity.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal prior identity for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		protoLinkedResources = append(protoLinkedResources, &proto6.PlanAction_Request_LinkedResource{
-			PriorState:    &proto6.DynamicValue{Msgpack: priorStateMP},
-			PlannedState:  &proto6.DynamicValue{Msgpack: plannedStateMp},
-			Config:        &proto6.DynamicValue{Msgpack: configMp},
-			PriorIdentity: &proto6.ResourceIdentityData{IdentityData: &proto6.DynamicValue{Msgpack: priorIdentityMp}},
-		})
-	}
-	return protoLinkedResources, nil
-}
-
-func linkedResourceInvokeDataToProto(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []providers.LinkedResourceInvokeData) ([]*proto6.InvokeAction_Request_LinkedResource, error) {
-	protoLinkedResources := make([]*proto6.InvokeAction_Request_LinkedResource, 0, len(lrs))
-
-	if len(lrs) != len(linkedResourceSchema) {
-		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
-	}
-
-	for i, lr := range lrs {
-		linkedResourceType := linkedResourceSchema[i].TypeName
-		// Currently we restrict linked resources to be within the same provider,
-		// therefore we can use the schema from the provider to encode and decode the values
-		resSchema, ok := schema.ResourceTypes[linkedResourceType]
-		if !ok {
-			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
-		}
-
-		priorStateMP, err := msgpack.Marshal(lr.PriorState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal prior state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		plannedStateMp, err := msgpack.Marshal(lr.PlannedState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal planned state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		configMp, err := msgpack.Marshal(lr.Config, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal config for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		plannedIdentityMp, err := msgpack.Marshal(lr.PlannedIdentity, resSchema.Identity.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal planned identity for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		protoLinkedResources = append(protoLinkedResources, &proto6.InvokeAction_Request_LinkedResource{
-			PriorState:      &proto6.DynamicValue{Msgpack: priorStateMP},
-			PlannedState:    &proto6.DynamicValue{Msgpack: plannedStateMp},
-			Config:          &proto6.DynamicValue{Msgpack: configMp},
-			PlannedIdentity: &proto6.ResourceIdentityData{IdentityData: &proto6.DynamicValue{Msgpack: plannedIdentityMp}},
-		})
-	}
-	return protoLinkedResources, nil
-}
-
-func protoToLinkedResourcePlans(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []*proto6.PlanAction_Response_LinkedResource) ([]providers.LinkedResourcePlan, error) {
-
-	linkedResources := make([]providers.LinkedResourcePlan, 0, len(lrs))
-
-	if len(lrs) != len(linkedResourceSchema) {
-		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
-	}
-
-	for i, lr := range lrs {
-		linkedResourceType := linkedResourceSchema[i].TypeName
-		// Currently we restrict linked resources to be within the same provider,
-		// therefore we can use the schema from the provider to decode the values
-		resSchema, ok := schema.ResourceTypes[linkedResourceType]
-		if !ok {
-			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
-		}
-
-		plannedState, err := decodeDynamicValue(lr.PlannedState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode planned state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		plannedIdentity := cty.NullVal(resSchema.Identity.ImpliedType())
-		if lr.PlannedIdentity != nil && lr.PlannedIdentity.IdentityData != nil {
-			plannedIdentity, err = decodeDynamicValue(lr.PlannedIdentity.IdentityData, resSchema.Identity.ImpliedType())
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode prior identity for linked resource %q: %w", linkedResourceType, err)
-			}
-		}
-
-		linkedResources = append(linkedResources, providers.LinkedResourcePlan{
-			PlannedState:    plannedState,
-			PlannedIdentity: plannedIdentity,
-		})
-	}
-
-	return linkedResources, nil
-}
-
-func protoToLinkedResourceResults(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []*proto6.InvokeAction_Event_Completed_LinkedResource) ([]providers.LinkedResourceResult, error) {
-
-	linkedResources := make([]providers.LinkedResourceResult, 0, len(lrs))
-
-	if len(lrs) != len(linkedResourceSchema) {
-		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
-	}
-
-	for i, lr := range lrs {
-		linkedResourceType := linkedResourceSchema[i].TypeName
-		// Currently we restrict linked resources to be within the same provider,
-		// therefore we can use the schema from the provider to decode the values
-		resSchema, ok := schema.ResourceTypes[linkedResourceType]
-		if !ok {
-			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
-		}
-
-		newState, err := decodeDynamicValue(lr.NewState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode planned state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		newIdentity := cty.NullVal(resSchema.Identity.ImpliedType())
-		if lr.NewIdentity != nil && lr.NewIdentity.IdentityData != nil {
-			newIdentity, err = decodeDynamicValue(lr.NewIdentity.IdentityData, resSchema.Identity.ImpliedType())
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode prior identity for linked resource %q: %w", linkedResourceType, err)
-			}
-		}
-
-		linkedResources = append(linkedResources, providers.LinkedResourceResult{
-			NewState:        newState,
-			NewIdentity:     newIdentity,
-			RequiresReplace: lr.RequiresReplace,
-		})
-	}
-
-	return linkedResources, nil
 }

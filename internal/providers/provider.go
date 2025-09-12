@@ -211,35 +211,13 @@ const (
 	ExecutionOrderAfter   ExecutionOrder = "after"
 )
 
-type LinkedResourceSchema struct {
-	TypeName string
-}
-
-type UnlinkedAction struct{}
-
-type LifecycleAction struct {
-	Executes       ExecutionOrder
-	LinkedResource LinkedResourceSchema
-}
-
-type LinkedAction struct {
-	LinkedResources []LinkedResourceSchema
-}
-
 type ActionSchema struct {
 	ConfigSchema *configschema.Block
-
-	// The only supported action type is currently unlinked.
-	Unlinked *UnlinkedAction
-}
-
-func (a ActionSchema) LinkedResources() []LinkedResourceSchema {
-	return []LinkedResourceSchema{}
 }
 
 // IsNil() returns true if there is no action schema at all.
 func (a ActionSchema) IsNil() bool {
-	return a.ConfigSchema == nil && a.Unlinked == nil
+	return a.ConfigSchema == nil
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
@@ -890,46 +868,20 @@ type DeleteStateResponse struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-type LinkedResourcePlanData struct {
-	PriorState    cty.Value
-	PlannedState  cty.Value
-	Config        cty.Value
-	PriorIdentity cty.Value
-}
-type LinkedResourcePlan struct {
-	PlannedState    cty.Value
-	PlannedIdentity cty.Value
-}
-
-type LinkedResourceInvokeData struct {
-	PriorState      cty.Value
-	PlannedState    cty.Value
-	Config          cty.Value
-	PlannedIdentity cty.Value
-}
-type LinkedResourceResult struct {
-	NewState        cty.Value
-	NewIdentity     cty.Value
-	RequiresReplace bool
-}
-
 type PlanActionRequest struct {
 	ActionType         string
 	ProposedActionData cty.Value
 
-	LinkedResources    []LinkedResourcePlanData
 	ClientCapabilities ClientCapabilities
 }
 
 type PlanActionResponse struct {
-	LinkedResources []LinkedResourcePlan
-	Deferred        *Deferred
-	Diagnostics     tfdiags.Diagnostics
+	Deferred    *Deferred
+	Diagnostics tfdiags.Diagnostics
 }
 
 type InvokeActionRequest struct {
 	ActionType         string
-	LinkedResources    []LinkedResourceInvokeData
 	PlannedActionData  cty.Value
 	ClientCapabilities ClientCapabilities
 }
@@ -947,8 +899,7 @@ type InvokeActionEvent interface {
 var _ InvokeActionEvent = &InvokeActionEvent_Completed{}
 
 type InvokeActionEvent_Completed struct {
-	LinkedResources []LinkedResourceResult
-	Diagnostics     tfdiags.Diagnostics
+	Diagnostics tfdiags.Diagnostics
 }
 
 func (e InvokeActionEvent_Completed) isInvokeActionEvent() {}
@@ -964,18 +915,6 @@ func (e InvokeActionEvent_Progress) isInvokeActionEvent() {}
 
 type ValidateActionConfigRequest struct {
 	// TypeName is the name of the action type to validate.
-	TypeName string
-
-	// Config is the configuration value to validate, which may contain unknown
-	// values.
-	Config cty.Value
-
-	// LinkedResources contains the configuration of any LinkedResources associated with the action.
-	LinkedResources []LinkedResourceConfig
-}
-
-type LinkedResourceConfig struct {
-	// TypeName is the name of the resource type to validate.
 	TypeName string
 
 	// Config is the configuration value to validate, which may contain unknown

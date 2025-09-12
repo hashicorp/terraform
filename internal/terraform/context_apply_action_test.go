@@ -1997,8 +1997,6 @@ resource "test_object" "a" {
 									},
 								},
 							},
-
-							Unlinked: &providers.UnlinkedAction{},
 						},
 						"act_unlinked_wo": {
 							ConfigSchema: &configschema.Block{
@@ -2010,8 +2008,6 @@ resource "test_object" "a" {
 									},
 								},
 							},
-
-							Unlinked: &providers.UnlinkedAction{},
 						},
 						// Added nested action schema with nested blocks
 						"act_nested": {
@@ -2048,7 +2044,6 @@ resource "test_object" "a" {
 									},
 								},
 							},
-							Unlinked: &providers.UnlinkedAction{},
 						},
 					},
 					ResourceTypes: map[string]providers.Schema{},
@@ -2068,7 +2063,6 @@ resource "test_object" "a" {
 									},
 								},
 							},
-							Unlinked: &providers.UnlinkedAction{},
 						},
 					},
 					ResourceTypes: map[string]providers.Schema{},
