@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: "New top-level Actions block: Actions are provider defined and meant to codify use cases outside the normal CRUD model in your Terraform configuration. Providers can define Actions like `aws_lambda_invoke` or `aws_cloudfront_create_invalidation` that do something imparative outside of Terraforms normal CRUD model. You can configure such a side-effect with an action block and have actions triggered through the lifecycle of a resource or through passing the `-invoke` CLI flag."
+time: 2025-09-03T13:19:21.097051+02:00
+custom:
+    Issue: "37553"
