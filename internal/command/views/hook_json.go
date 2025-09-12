@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -251,7 +252,10 @@ func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plan
 	for idx := 0; iter.Next(); idx++ {
 		_, value := iter.Element()
 
-		generated := results.Generated.Imports[idx]
+		var generated *genconfig.ResourceImport
+		if len(results.Generated.Imports) > 0 {
+			generated = &results.Generated.Imports[idx]
+		}
 
 		result := json.NewQueryResult(addr, value, generated)
 
