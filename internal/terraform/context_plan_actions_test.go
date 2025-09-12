@@ -36,8 +36,6 @@ func TestContextPlan_actions(t *testing.T) {
 				},
 			},
 		},
-
-		Unlinked: &providers.UnlinkedAction{},
 	}
 	writeOnlyUnlinkedActionSchema := providers.ActionSchema{
 		ConfigSchema: &configschema.Block{
@@ -49,8 +47,6 @@ func TestContextPlan_actions(t *testing.T) {
 				},
 			},
 		},
-
-		Unlinked: &providers.UnlinkedAction{},
 	}
 
 	// Action schema with nested blocks used for tests exercising block handling.
@@ -100,7 +96,6 @@ func TestContextPlan_actions(t *testing.T) {
 				},
 			},
 		},
-		Unlinked: &providers.UnlinkedAction{},
 	}
 
 	for topic, tcs := range map[string]map[string]struct {
@@ -3331,8 +3326,6 @@ resource "test_object" "a" {
 											},
 										},
 									},
-
-									Unlinked: &providers.UnlinkedAction{},
 								},
 							},
 						},

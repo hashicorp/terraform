@@ -71,12 +71,7 @@ func marshalIdentitySchemas(schemas map[string]providers.Schema) map[string]*Ide
 
 type ActionSchema struct {
 	ConfigSchema *Block `json:"block,omitempty"`
-
-	// Only unlinked actions are supported.
-	Unlinked *UnlinkedAction `json:"unlinked,omitempty"`
 }
-
-type UnlinkedAction struct{}
 
 func marshalActionSchemas(schemas map[string]providers.ActionSchema) map[string]*ActionSchema {
 	ret := make(map[string]*ActionSchema, len(schemas))
@@ -87,13 +82,8 @@ func marshalActionSchemas(schemas map[string]providers.ActionSchema) map[string]
 }
 
 func marshalActionSchema(schema providers.ActionSchema) *ActionSchema {
-	ret := &ActionSchema{
+	return &ActionSchema{
 		ConfigSchema: marshalBlock(schema.ConfigSchema),
 	}
 
-	if schema.Unlinked != nil {
-		ret.Unlinked = &UnlinkedAction{}
-	}
-
-	return ret
 }

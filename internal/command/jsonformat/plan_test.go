@@ -54,7 +54,6 @@ func TestRenderHuman_InvokeActionPlan(t *testing.T) {
 								},
 							},
 						},
-						Unlinked: new(jsonprovider.UnlinkedAction),
 					},
 				},
 			},
@@ -134,7 +133,6 @@ func TestRenderHuman_InvokeActionPlanWithRefresh(t *testing.T) {
 								},
 							},
 						},
-						Unlinked: new(jsonprovider.UnlinkedAction),
 					},
 				},
 			},
@@ -8711,7 +8709,6 @@ func TestResourceChange_actions(t *testing.T) {
 						Actions: map[string]providers.ActionSchema{
 							"test_unlinked": {
 								ConfigSchema: blockSchema,
-								Unlinked:     &providers.UnlinkedAction{},
 							},
 						},
 					},

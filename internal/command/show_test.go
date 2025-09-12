@@ -1134,7 +1134,6 @@ func showFixtureSchema() *providers.GetProviderSchemaResponse {
 						"attr": {Type: cty.String, Optional: true},
 					},
 				},
-				Unlinked: &providers.UnlinkedAction{},
 			},
 		},
 	}
