@@ -1,0 +1,3 @@
+kind: NEW FEATURES
+body: "A new Terraform command `terraform query`: Executes list operations against existing infrastructure and displays the results. The command can optionally generate configuration for importing results into Terraform."
+time: 2025-08-29T18:42:06.659172+02:00
