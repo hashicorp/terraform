@@ -696,10 +696,10 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 		if sourceWorkspaces[i] == backend.DefaultStateName {
 			// For the default workspace we want to look to see if there is any state
 			// before we ask for a workspace name to migrate the default workspace into.
-			sourceState, err := opts.Source.StateMgr(backend.DefaultStateName)
-			if err != nil {
+			sourceState, sDiags := opts.Source.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
 				return fmt.Errorf(strings.TrimSpace(
-					errMigrateSingleLoadDefault), opts.SourceType, err)
+					errMigrateSingleLoadDefault), opts.SourceType, sDiags.Err())
 			}
 			// RefreshState is what actually pulls the state to be evaluated.
 			if err := sourceState.RefreshState(); err != nil {

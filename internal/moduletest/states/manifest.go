@@ -291,12 +291,12 @@ func (manifest *TestManifest) SaveStates(file *moduletest.File, states map[strin
 					// If we have a backend, regardless of the reason, then
 					// we'll save the state to the backend.
 
-					stmgr, err := state.Backend.StateMgr(backend.DefaultStateName)
-					if err != nil {
+					stmgr, sDiags := state.Backend.StateMgr(backend.DefaultStateName)
+					if sDiags.HasErrors() {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Failed to write state",
-							Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+							Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, sDiags.Err()),
 						})
 						continue
 					}
@@ -365,12 +365,12 @@ func (manifest *TestManifest) SaveStates(file *moduletest.File, states map[strin
 
 			if state.Backend != nil {
 
-				stmgr, err := state.Backend.StateMgr(backend.DefaultStateName)
-				if err != nil {
+				stmgr, sDiags := state.Backend.StateMgr(backend.DefaultStateName)
+				if sDiags.HasErrors() {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Failed to write state",
-						Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+						Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, sDiags.Err()),
 					})
 					continue
 				}
@@ -415,12 +415,12 @@ func (manifest *TestManifest) SaveStates(file *moduletest.File, states map[strin
 		for key, state := range states {
 			if state.Backend != nil {
 
-				stmgr, err := state.Backend.StateMgr(backend.DefaultStateName)
-				if err != nil {
+				stmgr, sDiags := state.Backend.StateMgr(backend.DefaultStateName)
+				if sDiags.HasErrors() {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Failed to write state",
-						Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, err),
+						Detail:   fmt.Sprintf("Failed to write state file for key %s: %s.", key, sDiags.Err()),
 					})
 					continue
 				}

@@ -459,8 +459,8 @@ func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 // in the same files as the "new" state snapshots.
 func (b *Local) PathsConflictWith(other *Local) bool {
 	otherPaths := map[string]struct{}{}
-	otherWorkspaces, err := other.Workspaces()
-	if err != nil {
+	otherWorkspaces, diags := other.Workspaces()
+	if diags.HasErrors() {
 		// If we can't enumerate the workspaces then we'll conservatively
 		// assume that paths _do_ overlap, since we can't be certain.
 		return true
@@ -470,8 +470,8 @@ func (b *Local) PathsConflictWith(other *Local) bool {
 		otherPaths[p] = struct{}{}
 	}
 
-	ourWorkspaces, err := other.Workspaces()
-	if err != nil {
+	ourWorkspaces, diags := other.Workspaces()
+	if diags.HasErrors() {
 		// If we can't enumerate the workspaces then we'll conservatively
 		// assume that paths _do_ overlap, since we can't be certain.
 		return true
