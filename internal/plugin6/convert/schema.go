@@ -113,17 +113,9 @@ func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) pr
 }
 
 func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
-	schema := providers.ActionSchema{
+	return providers.ActionSchema{
 		ConfigSchema: ProtoToConfigSchema(s.Schema.Block),
 	}
-
-	switch s.Type.(type) {
-	case *proto.ActionSchema_Unlinked_:
-		schema.Unlinked = &providers.UnlinkedAction{}
-	default:
-		panic("Unknown Action Type, expected unlinked action")
-	}
-	return schema
 }
 
 func ProtoToIdentitySchema(attributes []*proto.ResourceIdentitySchema_IdentityAttribute) *configschema.Object {

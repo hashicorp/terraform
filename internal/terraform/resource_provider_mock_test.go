@@ -79,7 +79,7 @@ func simpleMockProvider() *testing_provider.MockProvider {
 				"test_object": {Body: simpleTestSchema()},
 			},
 			Actions: map[string]providers.ActionSchema{
-				"test_action": {ConfigSchema: simpleTestSchema(), Unlinked: &providers.UnlinkedAction{}},
+				"test_action": {ConfigSchema: simpleTestSchema()},
 			},
 		},
 	}

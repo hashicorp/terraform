@@ -14,7 +14,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/msgpack"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -170,7 +169,6 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 						},
 					},
 				},
-				Type: &proto.ActionSchema_Unlinked_{},
 			},
 		},
 		StateStoreSchemas: map[string]*proto.Schema{
@@ -2052,62 +2050,6 @@ func TestGRPCProvider_planAction_unlinked_invalid_config(t *testing.T) {
 		ActionType: "unlinked",
 		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
 			"not_the_right_attr": cty.StringVal("foo"),
-		}),
-	})
-
-	checkDiagsHasError(t, resp.Diagnostics)
-}
-
-func TestGRPCProvider_planAction_unlinked_extra_linked_resources(t *testing.T) {
-	client := mockProviderClient(t)
-	p := &GRPCProvider{
-		client: client,
-	}
-
-	resp := p.PlanAction(providers.PlanActionRequest{
-		ActionType: "unlinked",
-		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
-			"attr": cty.StringVal("foo"),
-		}),
-		LinkedResources: []providers.LinkedResourcePlanData{{
-			PriorState:    cty.NullVal(cty.DynamicPseudoType),
-			PlannedState:  cty.NullVal(cty.DynamicPseudoType),
-			Config:        cty.NullVal(cty.DynamicPseudoType),
-			PriorIdentity: cty.NullVal(cty.DynamicPseudoType),
-		}},
-	})
-
-	checkDiagsHasError(t, resp.Diagnostics)
-}
-
-func TestGRPCProvider_planAction_unlinked_invalid_extra_returned_linked_resources(t *testing.T) {
-	client := mockProviderClient(t)
-	p := &GRPCProvider{
-		client: client,
-	}
-
-	plannedState := cty.ObjectVal(map[string]cty.Value{
-		"foo": cty.StringVal("bar"),
-	})
-	plannedStateMp, _ := msgpack.Marshal(plannedState, plannedState.Type())
-
-	client.EXPECT().PlanAction(
-		gomock.Any(),
-		gomock.Any(),
-	).Return(&proto.PlanAction_Response{
-		LinkedResources: []*proto.PlanAction_Response_LinkedResource{
-			{
-				PlannedState: &proto.DynamicValue{
-					Msgpack: plannedStateMp,
-				},
-			},
-		},
-	}, nil)
-
-	resp := p.PlanAction(providers.PlanActionRequest{
-		ActionType: "unlinked",
-		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
-			"attr": cty.StringVal("foo"),
 		}),
 	})
 
