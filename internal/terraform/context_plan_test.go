@@ -6974,7 +6974,7 @@ func TestContext2Plan_variableCustomValidationsCrossRef(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_variableCustomValidationsSensitive(t *testing.T) {
+func TestContext2Plan_variableCustomValidationsChildSensitive(t *testing.T) {
 	m := testModule(t, "validate-variable-custom-validations-child-sensitive")
 
 	p := testProvider("test")
@@ -6990,6 +6990,39 @@ func TestContext2Plan_variableCustomValidationsSensitive(t *testing.T) {
 	}
 	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Plan_variableCustomValidationsSensitive(t *testing.T) {
+	m := testModule(t, "validate-variable-custom-validations-sensitive")
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, InputValues{
+		"input": {
+			Value: cty.StringVal("short"),
+		},
+	}))
+	if len(diags) != 1 {
+		t.Fatal("wanted exactly one error")
+	}
+	if diff := cmp.Diff(diags[0].Description(), tfdiags.Description{
+		Summary: "Invalid value for variable",
+		Detail:  "too short\n\nThis was checked by the validation rule at testdata/validate-variable-custom-validations-sensitive/validate-variable-custom-validations-sensitive.tf:4,3-13.",
+	}); len(diff) > 0 {
+		t.Error(diff)
+	}
+
+	vars := diags[0].FromExpr().EvalContext.Variables["var"].AsValueMap()
+
+	_, ms := vars["input"].Unmark()
+	if _, ok := ms[marks.Sensitive]; !ok {
+		t.Error("should have been marked as sensitive")
 	}
 }
 
