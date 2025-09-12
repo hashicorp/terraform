@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (OperationResult, error) {
 	log.Printf("[INFO] cloud: starting Apply operation")
 
 	var diags tfdiags.Diagnostics
@@ -34,7 +34,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 			"The provided credentials have insufficient rights to apply changes. In order "+
 				"to apply changes at least write permissions on the workspace are required.",
 		))
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	if w.VCSRepo != nil {
@@ -44,7 +44,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 			"A workspace that is connected to a VCS requires the VCS-driven workflow "+
 				"to ensure that the VCS remains the single source of truth.",
 		))
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	if b.ContextOpts != nil && b.ContextOpts.Parallelism != defaultParallelism {
@@ -78,7 +78,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 
 	// Return if there are any errors.
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return &RunResult{}, diags.Err()
 	}
 
 	var r *tfe.Run
@@ -93,7 +93,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 				"Saved plan is for a different hostname",
 				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured %s instance is %s.", cp.Hostname, b.appName, b.Hostname),
 			))
-			return r, diags.Err()
+			return &RunResult{run: r, backend: b}, diags.Err()
 		}
 		// Fetch the run referenced in the saved plan bookmark.
 		r, err = b.client.Runs.ReadWithOptions(stopCtx, cp.RunID, &tfe.RunReadOptions{
@@ -101,7 +101,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		})
 
 		if err != nil {
-			return r, err
+			return &RunResult{run: r, backend: b}, err
 		}
 
 		if r.Workspace.ID != w.ID {
@@ -110,12 +110,12 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 				"Saved plan is for a different workspace",
 				fmt.Sprintf("The given saved plan does not refer to a run in the current workspace (%s/%s), so it cannot currently be applied. For more details, view this run in a browser at:\n%s", w.Organization.Name, w.Name, runURL(b.Hostname, r.Workspace.Organization.Name, r.Workspace.Name, r.ID)),
 			))
-			return r, diags.Err()
+			return &RunResult{run: r, backend: b}, diags.Err()
 		}
 
 		if !r.Actions.IsConfirmable {
 			url := runURL(b.Hostname, b.Organization, op.Workspace, r.ID)
-			return r, unusableSavedPlanError(r.Status, url, b.appName)
+			return &RunResult{run: r, backend: b}, unusableSavedPlanError(r.Status, url, b.appName)
 		}
 
 		// Since we're not calling plan(), we need to print a run header ourselves:
@@ -130,25 +130,25 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		r, err = b.plan(stopCtx, cancelCtx, op, w)
 
 		if err != nil {
-			return r, err
+			return &RunResult{run: r, backend: b}, err
 		}
 
 		// This check is also performed in the plan method to determine if
 		// the policies should be checked, but we need to check the values
 		// here again to determine if we are done and should return.
 		if !r.HasChanges || r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
-			return r, nil
+			return &RunResult{run: r, backend: b}, nil
 		}
 
 		// Retrieve the run to get its current status.
 		r, err = b.client.Runs.Read(stopCtx, r.ID)
 		if err != nil {
-			return r, b.generalError("Failed to retrieve run", err)
+			return &RunResult{run: r, backend: b}, b.generalError("Failed to retrieve run", err)
 		}
 
 		// Return if the run cannot be confirmed.
 		if !op.AutoApprove && !r.Actions.IsConfirmable {
-			return r, nil
+			return &RunResult{run: r, backend: b}, nil
 		}
 
 		mustConfirm := (op.UIIn != nil && op.UIOut != nil) && !op.AutoApprove
@@ -168,10 +168,10 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 
 			err = b.confirm(stopCtx, op, opts, r, "yes")
 			if err != nil && err != errRunApproved {
-				return r, err
+				return &RunResult{run: r, backend: b}, err
 			}
 		} else if mustConfirm && !b.input {
-			return r, errApplyNeedsUIConfirmation
+			return &RunResult{run: r, backend: b}, errApplyNeedsUIConfirmation
 		} else {
 			// If we don't need to ask for confirmation, insert a blank
 			// line to separate the ouputs.
@@ -186,7 +186,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 	// regardless of the value of AutoApprove.
 	if (!op.AutoApprove || hasSavedPlanFile) && err != errRunApproved {
 		if err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{}); err != nil {
-			return r, b.generalError("Failed to approve the apply command", err)
+			return &RunResult{run: r, backend: b}, b.generalError("Failed to approve the apply command", err)
 		}
 	}
 
@@ -194,26 +194,26 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 	// Task Stages are calculated upfront so we only need to call this once for the run.
 	taskStages, err := b.runTaskStages(stopCtx, b.client, r.ID)
 	if err != nil {
-		return r, err
+		return &RunResult{run: r, backend: b}, err
 	}
 
 	if stage, ok := taskStages[tfe.PreApply]; ok {
 		if err := b.waitTaskStage(stopCtx, cancelCtx, op, r, stage.ID, "Pre-apply Tasks"); err != nil {
-			return r, err
+			return &RunResult{run: r, backend: b}, err
 		}
 	}
 
 	r, err = b.waitForRun(stopCtx, cancelCtx, op, "apply", r, w)
 	if err != nil {
-		return r, err
+		return &RunResult{run: r, backend: b}, err
 	}
 
 	err = b.renderApplyLogs(stopCtx, r)
 	if err != nil {
-		return r, err
+		return &RunResult{run: r, backend: b}, err
 	}
 
-	return r, nil
+	return &RunResult{run: r, backend: b}, nil
 }
 
 func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {

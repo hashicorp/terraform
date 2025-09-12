@@ -24,9 +24,9 @@ on:
       - synchronize
   push:
     branches:
-      - '*'
+      - "*"
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+*'
+      - "v[0-9]+.[0-9]+.[0-9]+*"
 
 # This workflow runs for not-yet-reviewed external contributions and so it
 # intentionally has no write access and only limited read access to the
@@ -152,8 +152,10 @@ jobs:
       - name: "Code consistency checks"
         run: |
           make fmtcheck importscheck vetcheck copyright generate staticcheck exhaustive protobuf
-          if [[ -n "$(git status --porcelain)" ]]; then
+          CHANGED="$(git status --porcelain)"
+          if [[ -n "$CHANGED" ]]; then
+            git diff
             echo >&2 "ERROR: Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
-            git >&2 status --porcelain
+            echo >&2 $'Affected files:\n'"$CHANGED"
             exit 1
           fi

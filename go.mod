@@ -27,9 +27,9 @@ require (
 	github.com/hashicorp/go-getter v1.8.0
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.7.0
-	github.com/hashicorp/go-retryablehttp v0.7.7
-	github.com/hashicorp/go-slug v0.16.4
-	github.com/hashicorp/go-tfe v1.83.0
+	github.com/hashicorp/go-retryablehttp v0.7.8
+	github.com/hashicorp/go-slug v0.16.7
+	github.com/hashicorp/go-tfe v1.91.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/hcl v1.0.0
@@ -71,15 +71,15 @@ require (
 	go.opentelemetry.io/otel v1.36.0
 	go.opentelemetry.io/otel/sdk v1.31.0
 	go.opentelemetry.io/otel/trace v1.36.0
-	go.uber.org/mock v0.4.0
-	golang.org/x/crypto v0.39.0
-	golang.org/x/mod v0.25.0
-	golang.org/x/net v0.41.0
+	go.uber.org/mock v0.6.0
+	golang.org/x/crypto v0.41.0
+	golang.org/x/mod v0.27.0
+	golang.org/x/net v0.43.0
 	golang.org/x/oauth2 v0.27.0
-	golang.org/x/sys v0.33.0
-	golang.org/x/term v0.32.0
-	golang.org/x/text v0.26.0
-	golang.org/x/tools v0.33.0
+	golang.org/x/sys v0.35.0
+	golang.org/x/term v0.34.0
+	golang.org/x/text v0.28.0
+	golang.org/x/tools v0.36.0
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
 	google.golang.org/grpc v1.69.4
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0
@@ -253,8 +253,9 @@ require (
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
-	golang.org/x/sync v0.15.0 // indirect
-	golang.org/x/time v0.10.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
+	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.155.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
