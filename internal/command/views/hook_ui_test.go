@@ -736,6 +736,11 @@ ephemeral.test_instance.foo: Closing complete after 0s
 }
 
 func TestUiHookEphemeralOp_progress(t *testing.T) {
+
+	// Skipped due to flakiness
+	// See: https://github.com/hashicorp/terraform/issues/37609
+	t.Skip()
+
 	syncTest, streams, done := streamableSyncTest(t)
 	syncTest(t, func(t *testing.T) {
 		view := NewView(streams)
