@@ -187,9 +187,9 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 
 func FromJsonActionInvocation(actionInvocation jsonplan.ActionInvocation) Change {
 	return Change{
-		Before:          unwrapAttributeValues(actionInvocation.ConfigValues),
-		After:           unwrapAttributeValues(actionInvocation.ConfigValues),
-		Unknown:         false,
+		Before:          unmarshalGeneric(actionInvocation.ConfigValues),
+		After:           unmarshalGeneric(actionInvocation.ConfigValues),
+		Unknown:         unmarshalGeneric(actionInvocation.ConfigUnknown),
 		BeforeSensitive: unmarshalGeneric(actionInvocation.ConfigSensitive),
 		AfterSensitive:  unmarshalGeneric(actionInvocation.ConfigSensitive),
 

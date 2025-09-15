@@ -34,12 +34,10 @@ func TestRenderHuman_InvokeActionPlan(t *testing.T) {
 	plan := Plan{
 		ActionInvocations: []jsonplan.ActionInvocation{
 			{
-				Address: "action.test_action.action",
-				Type:    "test_action",
-				Name:    "action",
-				ConfigValues: map[string]json.RawMessage{
-					"attr": []byte("\"one\""),
-				},
+				Address:             "action.test_action.action",
+				Type:                "test_action",
+				Name:                "action",
+				ConfigValues:        json.RawMessage("{\"attr\":\"one\"}"),
 				ConfigSensitive:     nil,
 				ProviderName:        "test",
 				InvokeActionTrigger: new(jsonplan.InvokeActionTrigger),
@@ -95,12 +93,10 @@ func TestRenderHuman_InvokeActionPlanWithRefresh(t *testing.T) {
 	plan := Plan{
 		ActionInvocations: []jsonplan.ActionInvocation{
 			{
-				Address: "action.test_action.action",
-				Type:    "test_action",
-				Name:    "action",
-				ConfigValues: map[string]json.RawMessage{
-					"attr": []byte("\"one\""),
-				},
+				Address:             "action.test_action.action",
+				Type:                "test_action",
+				Name:                "action",
+				ConfigValues:        json.RawMessage("{\"attr\":\"one\"}"),
 				ConfigSensitive:     nil,
 				ProviderName:        "test",
 				InvokeActionTrigger: new(jsonplan.InvokeActionTrigger),
@@ -8483,7 +8479,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "BeforeCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"),
 						"disk": cty.ObjectVal(map[string]cty.Value{
 							"size": cty.StringVal("100"),
@@ -8527,7 +8523,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "AfterCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"),
 						"disk": cty.ObjectVal(map[string]cty.Value{
 							"size": cty.StringVal("100"),
@@ -8571,7 +8567,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "BeforeCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("first-block-and-action"),
 					})),
 				},
@@ -8586,7 +8582,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "BeforeCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("first-block-second-action"),
 					})),
 				},
@@ -8601,7 +8597,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "AfterCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("second-block-first-action"),
 					})),
 				},
@@ -8616,7 +8612,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "AfterCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("third-block-first-action"),
 					})),
 				},
@@ -8631,7 +8627,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "BeforeCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("fourth-block-first-action"),
 					})),
 				},
@@ -8738,23 +8734,6 @@ func TestResourceChange_actions(t *testing.T) {
 			}
 		})
 	}
-}
-func marshalConfigValues(value cty.Value) map[string]json.RawMessage {
-	// unmark our value to show all values
-	v, _ := value.UnmarkDeep()
-
-	if v == cty.NilVal || v.IsNull() {
-		return nil
-	}
-
-	ret := make(map[string]json.RawMessage)
-	it := value.ElementIterator()
-	for it.Next() {
-		k, v := it.Element()
-		vJSON, _ := ctyjson.Marshal(v, v.Type())
-		ret[k.AsString()] = json.RawMessage(vJSON)
-	}
-	return ret
 }
 
 func outputChange(name string, before, after cty.Value, sensitive bool) *plans.OutputChangeSrc {
@@ -8926,6 +8905,14 @@ func testSchemaPlus(nesting configschema.NestingMode) *configschema.Block {
 
 func marshalJson(t *testing.T, data interface{}) json.RawMessage {
 	result, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("failed to marshal json: %v", err)
+	}
+	return result
+}
+
+func marshalCtyJson(t *testing.T, data cty.Value) json.RawMessage {
+	result, err := ctyjson.Marshal(data, data.Type())
 	if err != nil {
 		t.Fatalf("failed to marshal json: %v", err)
 	}
