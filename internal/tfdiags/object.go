@@ -39,39 +39,49 @@ func ObjectToString(obj cty.Value) string {
 				continue
 			}
 
-			switch val.Type() {
-			case cty.Bool:
-				result += fmt.Sprintf("%s=%t", keyStr, val.True())
-			case cty.Number:
-				result += fmt.Sprintf("%s=%s", keyStr, val.AsBigFloat().String())
-			case cty.String:
-				result += fmt.Sprintf("%s=%s", keyStr, val.AsString())
-			case cty.List(cty.Bool):
-				elements := val.AsValueSlice()
-				parts := make([]string, len(elements))
-				for i, element := range elements {
-					parts[i] = fmt.Sprintf("%t", element.True())
-				}
-				result += fmt.Sprintf("%s=[%s]", keyStr, strings.Join(parts, ","))
-			case cty.List(cty.Number):
-				elements := val.AsValueSlice()
-				parts := make([]string, len(elements))
-				for i, element := range elements {
-					parts[i] = element.AsBigFloat().String()
-				}
-				result += fmt.Sprintf("%s=[%s]", keyStr, strings.Join(parts, ","))
-			case cty.List(cty.String):
-				elements := val.AsValueSlice()
-				parts := make([]string, len(elements))
-				for i, element := range elements {
-					parts[i] = element.AsString()
-				}
-				result += fmt.Sprintf("%s=[%s]", keyStr, strings.Join(parts, ","))
-			}
+			result += fmt.Sprintf("%s=%s", keyStr, ValueToString(val))
 		}
 
 		return result
 	}
 
 	panic("not an object")
+}
+
+func ValueToString(val cty.Value) string {
+	if val.IsNull() {
+		return "<null>"
+	}
+
+	switch val.Type() {
+	case cty.Bool:
+		return fmt.Sprintf("%t", val.True())
+	case cty.Number:
+		return val.AsBigFloat().String()
+	case cty.String:
+		return val.AsString()
+	case cty.List(cty.Bool):
+		elements := val.AsValueSlice()
+		parts := make([]string, len(elements))
+		for i, element := range elements {
+			parts[i] = fmt.Sprintf("%t", element.True())
+		}
+		return fmt.Sprintf("[%s]", strings.Join(parts, ","))
+	case cty.List(cty.Number):
+		elements := val.AsValueSlice()
+		parts := make([]string, len(elements))
+		for i, element := range elements {
+			parts[i] = element.AsBigFloat().String()
+		}
+		return fmt.Sprintf("[%s]", strings.Join(parts, ","))
+	case cty.List(cty.String):
+		elements := val.AsValueSlice()
+		parts := make([]string, len(elements))
+		for i, element := range elements {
+			parts[i] = element.AsString()
+		}
+		return fmt.Sprintf("[%s]", strings.Join(parts, ","))
+	}
+
+	return "<unknown type>"
 }
