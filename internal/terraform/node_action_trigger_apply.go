@@ -120,6 +120,15 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 		})
 	}
 
+	if !configValue.IsWhollyKnown() {
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action configuration unknown during apply",
+			Detail:   fmt.Sprintf("The action %s was not fully known during apply.\n\nThis is a bug in Terraform, please report it.", ai.Addr.Action.String()),
+			Subject:  n.ActionTriggerRange,
+		})
+	}
+
 	hookIdentity := HookActionIdentity{
 		Addr:          ai.Addr,
 		ActionTrigger: ai.ActionTrigger,

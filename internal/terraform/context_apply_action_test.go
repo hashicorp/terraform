@@ -540,13 +540,19 @@ resource "test_object" "b" {
 				},
 			}),
 
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
-				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-					"attr": cty.UnknownVal(cty.String),
-				}),
-			}},
+			expectInvokeActionCalled: false,
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Action configuration unknown during apply",
+					Detail:   "The action action.act_unlinked.hello was not fully known during apply.\n\nThis is a bug in Terraform, please report it.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 14, Column: 18, Byte: 236},
+						End:      hcl.Pos{Line: 14, Column: 43, Byte: 261},
+					},
+				})
+			},
 		},
 
 		"action with secrets in configuration": {
