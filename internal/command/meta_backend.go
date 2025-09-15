@@ -1651,45 +1651,50 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 	// Verify that selected workspace exists in the state store.
 	if opts.Init && b != nil {
 		err := m.selectWorkspace(b)
-		if strings.Contains(err.Error(), "No existing workspaces") {
-			// If there are no workspaces, Terraform either needs to create the default workspace here,
-			// or instruct the user to run a `terraform workspace new` command.
-			ws, err := m.Workspace()
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
-				return nil, diags
-			}
-
-			switch {
-			case ws != backend.DefaultStateName:
-				// User needs to run a `terraform workspace new` command.
-				diags = append(diags, tfdiags.Sourceless(
-					tfdiags.Error,
-					fmt.Sprintf("Workspace %q has not been created yet", ws),
-					fmt.Sprintf("State store %q in provider %s (%q) reports that no workspaces currently exist. To create the custom workspace %q use the command `terraform workspace new %s`.",
-						c.Type,
-						c.Provider.Name,
-						c.ProviderAddr,
-						ws,
-						ws,
-					),
-				))
-				return nil, diags
-
-			case ws == backend.DefaultStateName:
-				// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
-				if opts.CreateDefaultWorkspace {
-					diags = diags.Append(m.createDefaultWorkspace(c, b))
-				} else {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagWarning,
-						Summary:  "The default workspace does not exist",
-						Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. To create it, either run an 'init' command without `-create-default-workspace=true`, or create it using a 'workspace new' command",
-					})
+		if err != nil {
+			if strings.Contains(err.Error(), "No existing workspaces") {
+				// If there are no workspaces, Terraform either needs to create the default workspace here,
+				// or instruct the user to run a `terraform workspace new` command.
+				ws, err := m.Workspace()
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
+					return nil, diags
 				}
-			default:
-				diags = diags.Append(err)
-				return nil, diags
+
+				switch {
+				case ws != backend.DefaultStateName:
+					// User needs to run a `terraform workspace new` command.
+					diags = append(diags, tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("Workspace %q has not been created yet", ws),
+						fmt.Sprintf("State store %q in provider %s (%q) reports that no workspaces currently exist. To create the custom workspace %q use the command `terraform workspace new %s`.",
+							c.Type,
+							c.Provider.Name,
+							c.ProviderAddr,
+							ws,
+							ws,
+						),
+					))
+					return nil, diags
+
+				case ws == backend.DefaultStateName:
+					// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
+					if opts.CreateDefaultWorkspace {
+						diags = diags.Append(m.createDefaultWorkspace(c, b))
+					} else {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "The default workspace does not exist",
+							Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. To create it, either run an 'init' command without `-create-default-workspace=true`, or create it using a 'workspace new' command",
+						})
+					}
+				default:
+					diags = diags.Append(err)
+					return nil, diags
+				}
+			} else {
+				// For all other errors, report via diagnostics
+				diags = diags.Append(fmt.Errorf("Failed to select a workspace: %w", err))
 			}
 		}
 	}
