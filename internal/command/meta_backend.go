@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -1604,32 +1605,57 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 		// If we're handling the builtin "terraform" provider then there's no version information to store in the dependency lock file, so don't access it.
 		// We must record a value into the backend state file, and we cannot include a value that changes (e.g. the Terraform core binary version) as migration
 		// is impossible with builtin providers.
-		// So, we use a hardcoded version number of 42.
-		var err error
-		pVersion, err = version.NewVersion("0.42.0")
+		// So, we use an arbitrary stand-in version.
+		standInVersion, err := version.NewVersion("0.0.1")
 		if err != nil {
-			diags = diags.Append(fmt.Errorf("Error when creating a backend state file containing a builtin provider. This is a bug in Terraform and should be reported: %w",
+			diags = diags.Append(fmt.Errorf("Error when creating a backend state file. This is a bug in Terraform and should be reported: %w",
 				err))
 			return nil, diags
 		}
+		pVersion = standInVersion
 	} else {
-		pLock := opts.Locks.Provider(c.ProviderAddr)
-		if pLock == nil {
-			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
-				c.Provider.Name,
-				c.ProviderAddr,
-				c.Type))
-			return nil, diags
-		}
-		var err error
-		pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
+		isReattached, err := isProviderReattached(c.ProviderAddr)
 		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
-				c.Provider.Name,
-				c.ProviderAddr,
-				c.Type,
+			diags = diags.Append(fmt.Errorf("Error determining if the state storage provider is reattached or not. This is a bug in Terraform and should be reported: %w",
 				err))
 			return nil, diags
+		}
+		if isReattached {
+			// If the provider is unmanaged then it won't be in the locks.
+			// If there are no locks then there's no version information to for us to access and use when creating the backend state file.
+			// So, we use an arbitrary stand-in version.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "State storage provider is not managed by Terraform",
+				Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. This will affect Terraform's ability to detect when state migrations are required.",
+			})
+			standInVersion, err := version.NewVersion("0.0.1")
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Error when creating a backend state file. This is a bug in Terraform and should be reported: %w",
+					err))
+				return nil, diags
+			}
+			pVersion = standInVersion
+		} else {
+			// The provider is not built in and is being managed by Terraform
+			// This is the most common scenario, by far.
+			pLock := opts.Locks.Provider(c.ProviderAddr)
+			if pLock == nil {
+				diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
+					c.Provider.Name,
+					c.ProviderAddr,
+					c.Type))
+				return nil, diags
+			}
+			pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
+					c.Provider.Name,
+					c.ProviderAddr,
+					c.Type,
+					err))
+				return nil, diags
+			}
 		}
 	}
 	s.StateStore = &workdir.StateStoreConfigState{
@@ -1713,6 +1739,29 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 	}
 
 	return b, diags
+}
+
+// isProviderReattached determines if a given provider is being supplied to Terraform via the TF_REATTACH_PROVIDERS
+// environment variable.
+func isProviderReattached(provider addrs.Provider) (bool, error) {
+	in := os.Getenv("TF_REATTACH_PROVIDERS")
+	if in != "" {
+		var m map[string]any
+		err := json.Unmarshal([]byte(in), &m)
+		if err != nil {
+			return false, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
+		}
+		for p, _ := range m {
+			a, diags := addrs.ParseProviderSourceString(p)
+			if diags.HasErrors() {
+				return false, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
+			}
+			if a.Equals(provider) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,
