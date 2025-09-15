@@ -102,7 +102,7 @@ func (h *stopHook) PreListQuery(id HookResourceIdentity, input_config cty.Value)
 	return h.hook()
 }
 
-func (h *stopHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+func (h *stopHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
 	return h.hook()
 }
 

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -333,6 +334,7 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 					},
 					Nesting: configschema.NestingSingle,
 				},
+				IdentityVersion: 1,
 			},
 			"test_database": {
 				Body: &configschema.Block{
@@ -476,7 +478,8 @@ func TestQuery_JSON(t *testing.T) {
 						"identity": map[string]any{
 							"id": "test-instance-1",
 						},
-						"resource_type": "test_instance",
+						"identity_version": float64(1),
+						"resource_type":    "test_instance",
 						"resource_object": map[string]any{
 							"ami": "ami-12345",
 							"id":  "test-instance-1",
@@ -493,7 +496,8 @@ func TestQuery_JSON(t *testing.T) {
 						"identity": map[string]any{
 							"id": "test-instance-2",
 						},
-						"resource_type": "test_instance",
+						"identity_version": float64(1),
+						"resource_type":    "test_instance",
 						"resource_object": map[string]any{
 							"ami": "ami-67890",
 							"id":  "test-instance-2",
@@ -536,7 +540,8 @@ func TestQuery_JSON(t *testing.T) {
 						"identity": map[string]any{
 							"id": "test-instance-1",
 						},
-						"resource_type": "test_instance",
+						"identity_version": float64(1),
+						"resource_type":    "test_instance",
 						"resource_object": map[string]any{
 							"ami": "ami-12345",
 							"id":  "test-instance-1",
@@ -555,7 +560,8 @@ func TestQuery_JSON(t *testing.T) {
 						"identity": map[string]any{
 							"id": "test-instance-2",
 						},
-						"resource_type": "test_instance",
+						"identity_version": float64(1),
+						"resource_type":    "test_instance",
 						"resource_object": map[string]any{
 							"ami": "ami-67890",
 							"id":  "test-instance-2",
@@ -651,7 +657,8 @@ func TestQuery_JSON(t *testing.T) {
 						"identity": map[string]any{
 							"id": "test-instance-1",
 						},
-						"resource_type": "test_instance",
+						"identity_version": float64(1),
+						"resource_type":    "test_instance",
 						"resource_object": map[string]any{
 							"ami": "ami-12345",
 							"id":  "test-instance-1",
@@ -668,7 +675,8 @@ func TestQuery_JSON(t *testing.T) {
 						"identity": map[string]any{
 							"id": "test-instance-2",
 						},
-						"resource_type": "test_instance",
+						"identity_version": float64(1),
+						"resource_type":    "test_instance",
 						"resource_object": map[string]any{
 							"ami": "ami-67890",
 							"id":  "test-instance-2",
@@ -767,6 +775,97 @@ func TestQuery_JSON(t *testing.T) {
 			if diff := cmp.Diff(ts.expectedRes, actualRes); diff != "" {
 				// Check that the output matches the expected results
 				t.Errorf("expected query output to contain \n%q, \ngot: \n%q, \ndiff: %s", ts.expectedRes, actualRes, diff)
+			}
+		})
+	}
+}
+
+func TestQuery_JSON_Raw(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		directory   string
+		expectedOut string
+		expectedErr []string
+		initCode    int
+		args        []string
+	}{
+		{
+			name:      "basic query",
+			directory: "basic",
+			expectedOut: `{"@level":"info","@message":"Terraform 1.14.0-dev","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.596469+02:00","terraform":"1.14.0-dev","type":"version","ui":"1.2"}
+{"@level":"info","@message":"list.test_instance.example: Starting query...","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600609+02:00","list_start":{"address":"list.test_instance.example","resource_type":"test_instance","input_config":{"ami":"ami-12345","foo":null}},"type":"list_start"}
+{"@level":"info","@message":"list.test_instance.example: Result found","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600729+02:00","list_resource_found":{"address":"list.test_instance.example","display_name":"Test Instance 1","identity":{"id":"test-instance-1"},"identity_version":1,"resource_type":"test_instance","resource_object":{"ami":"ami-12345","id":"test-instance-1"}},"type":"list_resource_found"}
+{"@level":"info","@message":"list.test_instance.example: Result found","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600759+02:00","list_resource_found":{"address":"list.test_instance.example","display_name":"Test Instance 2","identity":{"id":"test-instance-2"},"identity_version":1,"resource_type":"test_instance","resource_object":{"ami":"ami-67890","id":"test-instance-2"}},"type":"list_resource_found"}
+{"@level":"info","@message":"list.test_instance.example: List complete","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600770+02:00","list_complete":{"address":"list.test_instance.example","resource_type":"test_instance","total":2},"type":"list_complete"}
+`,
+		},
+		{
+			name:      "empty result",
+			directory: "empty-result",
+			expectedOut: `{"@level":"info","@message":"Terraform 1.14.0-dev","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.596469+02:00","terraform":"1.14.0-dev","type":"version","ui":"1.2"}
+{"@level":"info","@message":"list.test_instance.example: Starting query...","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600609+02:00","list_start":{"address":"list.test_instance.example","resource_type":"test_instance","input_config":{"ami":"ami-12345","foo":null}},"type":"list_start"}
+{"@level":"info","@message":"list.test_instance.example: Result found","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600729+02:00","list_resource_found":{"address":"list.test_instance.example","display_name":"Test Instance 1","identity":{"id":"test-instance-1"},"identity_version":1,"resource_type":"test_instance","resource_object":{"ami":"ami-12345","id":"test-instance-1"}},"type":"list_resource_found"}
+{"@level":"info","@message":"list.test_instance.example: Result found","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600759+02:00","list_resource_found":{"address":"list.test_instance.example","display_name":"Test Instance 2","identity":{"id":"test-instance-2"},"identity_version":1,"resource_type":"test_instance","resource_object":{"ami":"ami-67890","id":"test-instance-2"}},"type":"list_resource_found"}
+{"@level":"info","@message":"list.test_instance.example: List complete","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600770+02:00","list_complete":{"address":"list.test_instance.example","resource_type":"test_instance","total":2},"type":"list_complete"}
+{"@level":"info","@message":"list.test_instance.example2: Starting query...","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600609+02:00","list_start":{"address":"list.test_instance.example2","resource_type":"test_instance","input_config":{"ami":"ami-nonexistent","foo":"test-instance-1"}},"type":"list_start"}
+{"@level":"info","@message":"list.test_instance.example2: List complete","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600770+02:00","list_complete":{"address":"list.test_instance.example2","resource_type":"test_instance","total":0},"type":"list_complete"}
+`,
+		},
+	}
+
+	for _, ts := range tests {
+		t.Run(ts.name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("query", ts.directory)), td)
+			t.Chdir(td)
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+			defer close()
+
+			p := queryFixtureProvider()
+			view, done := testView(t)
+			meta := Meta{
+				testingOverrides:          metaOverridesForProvider(p),
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				ProviderSource:            providerSource,
+			}
+
+			init := &InitCommand{Meta: meta}
+			code := init.Run(nil)
+			output := done(t)
+			if code != 0 {
+				t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+			}
+
+			view, done = testView(t)
+			meta.View = view
+
+			c := &QueryCommand{Meta: meta}
+			args := []string{"-no-color", "-json"}
+			code = c.Run(args)
+			output = done(t)
+			if code != 0 {
+				t.Logf("query command returned non-zero code '%d' and an error: \n\n%s", code, output.All())
+			}
+
+			// Use regex to normalize timestamps and version numbers for comparison
+			timestampRegex := regexp.MustCompile(`"@timestamp":"[^"]*"`)
+			versionRegex := regexp.MustCompile(`"terraform":"[^"]*"`)
+
+			actualOutput := output.Stdout()
+			expectedOutput := ts.expectedOut
+
+			// Replace timestamps and version numbers with placeholders
+			actualNormalized := timestampRegex.ReplaceAllString(actualOutput, `"@timestamp":"TIMESTAMP"`)
+			actualNormalized = versionRegex.ReplaceAllString(actualNormalized, `"terraform":"VERSION"`)
+
+			expectedNormalized := timestampRegex.ReplaceAllString(expectedOutput, `"@timestamp":"TIMESTAMP"`)
+			expectedNormalized = versionRegex.ReplaceAllString(expectedNormalized, `"terraform":"VERSION"`)
+			if diff := cmp.Diff(expectedNormalized, actualNormalized); diff != "" {
+				t.Errorf("expected query output to match, diff: %s", diff)
 			}
 		})
 	}
