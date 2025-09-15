@@ -443,7 +443,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			return nil, diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid reference",
-				Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+				Detail:   "Actions can not be referenced in this context. They can only be referenced from within a resource's lifecycle actions list.",
 				Subject:  rng.ToHCL().Ptr(),
 			})
 

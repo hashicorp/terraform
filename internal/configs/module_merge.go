@@ -304,10 +304,6 @@ func (a *Action) merge(oa *Action, rps map[string]*RequiredProvider) hcl.Diagnos
 		}
 	}
 
-	if oa.LinkedResources != nil {
-		a.LinkedResources = oa.LinkedResources
-	}
-
 	a.Config = MergeBodies(a.Config, oa.Config)
 
 	/* depends_on: not yet supported in Actions

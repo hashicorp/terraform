@@ -243,7 +243,7 @@ func TestMarshalProvider(t *testing.T) {
 					},
 				},
 				Actions: map[string]providers.ActionSchema{
-					"test_unlinked_action": {
+					"test_action": {
 						ConfigSchema: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"opt_attr": {Type: cty.String, Optional: true},
@@ -281,7 +281,7 @@ func TestMarshalProvider(t *testing.T) {
 				},
 				ResourceIdentitySchemas: map[string]*IdentitySchema{},
 				ActionSchemas: map[string]*ActionSchema{
-					"test_unlinked_action": {
+					"test_action": {
 						ConfigSchema: &Block{
 							Attributes: map[string]*Attribute{
 								"opt_attr": {

@@ -12,114 +12,47 @@ import (
 )
 
 func TestDecodeActionBlock(t *testing.T) {
-	fooResourceExpr := hcltest.MockExprTraversalSrc("resource_type.foo")
-	barResourceExpr := hcltest.MockExprTraversalSrc("resource_type.bar")
-	fooAndBarExpr := hcltest.MockExprList([]hcl.Expression{fooResourceExpr, barResourceExpr})
-	moduleResourceExpr := hcltest.MockExprTraversalSrc("module.foo.resource_type.bar")
-	fooDataSourceExpr := hcltest.MockExprTraversalSrc("data.example.foo")
-
 	tests := map[string]struct {
 		input       *hcl.Block
 		want        *Action
 		expectDiags []string
 	}{
-		"one linked resource": {
+		"valid": {
 			&hcl.Block{
-				Type:   "action",
-				Labels: []string{"an_action", "foo"},
-				Body: hcltest.MockBody(&hcl.BodyContent{
-					Attributes: hcl.Attributes{
-						"linked_resource": {
-							Name: "linked_resource",
-							Expr: fooResourceExpr,
-						},
-					},
-				}),
+				Type:        "action",
+				Labels:      []string{"an_action", "foo"},
+				Body:        hcl.EmptyBody(),
 				DefRange:    blockRange,
 				LabelRanges: []hcl.Range{{}},
 			},
 			&Action{
-				Type:            "an_action",
-				Name:            "foo",
-				LinkedResources: []hcl.Expression{fooResourceExpr},
-				DeclRange:       blockRange,
+				Type:      "an_action",
+				Name:      "foo",
+				DeclRange: blockRange,
 			},
 			nil,
 		},
-		"multiple linked resources": {
+		"count and for_each conflict": {
 			&hcl.Block{
 				Type:   "action",
 				Labels: []string{"an_action", "foo"},
 				Body: hcltest.MockBody(&hcl.BodyContent{
-					Attributes: hcl.Attributes{
-						"linked_resources": {
-							Name: "linked_resources",
-							Expr: fooAndBarExpr,
-						},
-					},
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"count":    hcltest.MockExprLiteral(cty.NumberIntVal(2)),
+						"for_each": hcltest.MockExprLiteral(cty.StringVal("something")),
+					}),
 				}),
 				DefRange:    blockRange,
 				LabelRanges: []hcl.Range{{}},
 			},
 			&Action{
-				Type:            "an_action",
-				Name:            "foo",
-				LinkedResources: []hcl.Expression{fooResourceExpr, barResourceExpr},
-				DeclRange:       blockRange,
+				Type:      "an_action",
+				Name:      "foo",
+				DeclRange: blockRange,
+				Count:     hcltest.MockExprLiteral(cty.NumberIntVal(2)),
+				ForEach:   hcltest.MockExprLiteral(cty.StringVal("something")),
 			},
-			nil,
-		},
-		"invalid linked resources (module ref)": { // for now! This test will change when we support cross-module actions
-			&hcl.Block{
-				Type:   "action",
-				Labels: []string{"an_action", "foo"},
-				Body: hcltest.MockBody(&hcl.BodyContent{
-					Attributes: hcl.Attributes{
-						"linked_resources": {
-							Name: "linked_resources",
-							Expr: hcltest.MockExprList([]hcl.Expression{moduleResourceExpr}),
-						},
-					},
-				}),
-				DefRange:    blockRange,
-				LabelRanges: []hcl.Range{{}},
-			},
-			&Action{
-				Type:            "an_action",
-				Name:            "foo",
-				LinkedResources: []hcl.Expression{moduleResourceExpr},
-				DeclRange:       blockRange,
-			},
-			[]string{
-				`MockExprTraversal:0,0-28: Invalid linked_resources; linked_resources must only refer to managed resources in the current module.`,
-				`MockExprTraversal:0,0-28: Invalid linked_resource expression; Missing resource reference in linked_resource expression.`,
-			},
-		},
-		"invalid linked resource (datasource ref)": {
-			&hcl.Block{
-				Type:   "action",
-				Labels: []string{"an_action", "foo"},
-				Body: hcltest.MockBody(&hcl.BodyContent{
-					Attributes: hcl.Attributes{
-						"linked_resource": {
-							Name: "linked_resource",
-							Expr: fooDataSourceExpr,
-						},
-					},
-				}),
-				DefRange:    blockRange,
-				LabelRanges: []hcl.Range{{}},
-			},
-			&Action{
-				Type:            "an_action",
-				Name:            "foo",
-				LinkedResources: []hcl.Expression{fooDataSourceExpr},
-				DeclRange:       blockRange,
-			},
-			[]string{
-				`MockExprTraversal:0,0-16: Invalid linked_resource; linked_resource must only refer to a managed resource in the current module.`,
-				`MockExprTraversal:0,0-16: Invalid linked_resource expression; Missing resource reference in linked_resource expression.`,
-			},
+			[]string{"MockAttrs:0,0-0: Invalid combination of \"count\" and \"for_each\"; The \"count\" and \"for_each\" meta-arguments are mutually-exclusive, only one should be used."},
 		},
 	}
 

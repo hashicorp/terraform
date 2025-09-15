@@ -157,7 +157,7 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 			},
 		},
 		ActionSchemas: map[string]*proto.ActionSchema{
-			"unlinked": {
+			"action": {
 				Schema: &proto.Schema{
 					Block: &proto.Schema_Block{
 						Version: 1,
@@ -1989,7 +1989,7 @@ func TestGRPCProvider_ListResource_Limit(t *testing.T) {
 	}
 }
 
-func TestGRPCProvider_planAction_unlinked_valid(t *testing.T) {
+func TestGRPCProvider_planAction_valid(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
@@ -2002,7 +2002,7 @@ func TestGRPCProvider_planAction_unlinked_valid(t *testing.T) {
 	).Return(&proto.PlanAction_Response{}, nil)
 
 	resp := p.PlanAction(providers.PlanActionRequest{
-		ActionType: "unlinked",
+		ActionType: "action",
 		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
 			"attr": cty.StringVal("foo"),
 		}),
@@ -2011,7 +2011,7 @@ func TestGRPCProvider_planAction_unlinked_valid(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_planAction_unlinked_valid_but_fails(t *testing.T) {
+func TestGRPCProvider_planAction_valid_but_fails(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
@@ -2031,7 +2031,7 @@ func TestGRPCProvider_planAction_unlinked_valid_but_fails(t *testing.T) {
 	}, nil)
 
 	resp := p.PlanAction(providers.PlanActionRequest{
-		ActionType: "unlinked",
+		ActionType: "action",
 		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
 			"attr": cty.StringVal("foo"),
 		}),
@@ -2040,14 +2040,14 @@ func TestGRPCProvider_planAction_unlinked_valid_but_fails(t *testing.T) {
 	checkDiagsHasError(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_planAction_unlinked_invalid_config(t *testing.T) {
+func TestGRPCProvider_planAction_invalid_config(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
 	resp := p.PlanAction(providers.PlanActionRequest{
-		ActionType: "unlinked",
+		ActionType: "action",
 		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
 			"not_the_right_attr": cty.StringVal("foo"),
 		}),
@@ -2056,7 +2056,7 @@ func TestGRPCProvider_planAction_unlinked_invalid_config(t *testing.T) {
 	checkDiagsHasError(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_invokeAction_unlinked_valid(t *testing.T) {
+func TestGRPCProvider_invokeAction_valid(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
@@ -2084,7 +2084,7 @@ func TestGRPCProvider_invokeAction_unlinked_valid(t *testing.T) {
 	).Return(mockInvokeClient, nil)
 
 	resp := p.InvokeAction(providers.InvokeActionRequest{
-		ActionType: "unlinked",
+		ActionType: "action",
 		PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 			"attr": cty.StringVal("foo"),
 		}),
@@ -2102,14 +2102,14 @@ func TestGRPCProvider_invokeAction_unlinked_valid(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_invokeAction_unlinked_invalid(t *testing.T) {
+func TestGRPCProvider_invokeAction_invalid(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
 	resp := p.InvokeAction(providers.InvokeActionRequest{
-		ActionType: "unlinked",
+		ActionType: "action",
 		PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 			"not-defined": cty.StringVal("foo"),
 		}),
@@ -2117,8 +2117,6 @@ func TestGRPCProvider_invokeAction_unlinked_invalid(t *testing.T) {
 
 	checkDiagsHasError(t, resp.Diagnostics)
 }
-
-// Lifecycle and linked action invoke tests removed after deprecation.
 
 func TestGRPCProvider_ValidateStateStoreConfig_returns_validation_errors(t *testing.T) {
 	storeName := "mock_store" // mockProviderClient returns a mock that has this state store in its schemas
