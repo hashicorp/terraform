@@ -151,9 +151,10 @@ func TestNewLocalNoDefault() backend.Backend {
 
 func (b *TestLocalNoDefaultState) Workspaces() ([]string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	workspaces, err := b.Local.Workspaces()
-	if err != nil {
-		return nil, diags.Append(err)
+	workspaces, wDiags := b.Local.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		return nil, diags
 	}
 
 	filtered := workspaces[:0]

@@ -1178,9 +1178,9 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 
 	var localStates []statemgr.Full
 	for _, workspace := range workspaces {
-		localState, err := localB.StateMgr(workspace)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+		localState, sDiags := localB.StateMgr(workspace)
+		if sDiags.HasErrors() {
+			diags = diags.Append(fmt.Errorf(errBackendLocalRead, sDiags.Err()))
 			return nil, diags
 		}
 		if err := localState.RefreshState(); err != nil {
