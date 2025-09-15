@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -113,8 +114,10 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		}
 	}
 
+	identityVersion := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, addr.Resource.Resource.Type).IdentityVersion
+
 	ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostListQuery(rId, results)
+		return h.PostListQuery(rId, results, identityVersion)
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
