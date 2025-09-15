@@ -558,11 +558,11 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 	}, nil
 }
 
-// AppendResourceInstanceChange records the given resource instance change in
+// AppendActionInvocationInstanceChange records the given resource instance change in
 // the set of planned resource changes.
 func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocationInstanceSrc) {
 	if c == nil {
-		panic("AppendResourceInstanceChange on nil ChangesSync")
+		panic("AppendActionInvocationInstanceChange on nil ChangesSync")
 	}
 
 	a := action.DeepCopy()
@@ -579,7 +579,7 @@ type ActionInvocationInstanceSrc struct {
 	ProviderAddr addrs.AbsProviderConfig
 }
 
-// Decode unmarshals the raw representation of any linked resources.
+// Decode unmarshals the raw representation of actions.
 func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (*ActionInvocationInstance, error) {
 	ty := cty.DynamicPseudoType
 	if schema != nil {
