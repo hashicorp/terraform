@@ -5,11 +5,16 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/go-plugin"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
@@ -327,5 +332,139 @@ func TestWarnOutput(t *testing.T) {
 
 	if stdout != "WARNING\n" {
 		t.Fatalf("unexpected stdout: %q\n", stdout)
+	}
+}
+
+func Test_parseReattachProviders(t *testing.T) {
+	cases := map[string]struct {
+		reattachProviders string
+		expectedOutput    map[addrs.Provider]*plugin.ReattachConfig
+	}{
+		"simple parse - 1 provider": {
+			reattachProviders: `{
+				"test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`,
+			expectedOutput: map[addrs.Provider]*plugin.ReattachConfig{
+				tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "test"): func() *plugin.ReattachConfig {
+					addr, err := net.ResolveUnixAddr("unix", "/var/folders/xx/abcde12345/T/plugin12345")
+					if err != nil {
+						t.Fatal(err)
+					}
+					return &plugin.ReattachConfig{
+						Protocol:        plugin.Protocol("grpc"),
+						ProtocolVersion: 6,
+						Pid:             12345,
+						Test:            true,
+						Addr:            addr,
+					}
+				}(),
+			},
+		},
+		"complex parse - 2 providers via different protocols etc": {
+			reattachProviders: `{
+				"test-grpc": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String": "/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				},
+				"test-netrpc": {
+					"Protocol": "netrpc",
+					"ProtocolVersion": 5,
+					"Pid": 6789,
+					"Test": false,
+					"Addr": {
+						"Network": "tcp",
+						"String":"127.0.0.1:1337"
+					}
+				}
+			}`,
+			expectedOutput: map[addrs.Provider]*plugin.ReattachConfig{
+				//test-grpc
+				tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "test-grpc"): func() *plugin.ReattachConfig {
+					addr, err := net.ResolveUnixAddr("unix", "/var/folders/xx/abcde12345/T/plugin12345")
+					if err != nil {
+						t.Fatal(err)
+					}
+					return &plugin.ReattachConfig{
+						Protocol:        plugin.Protocol("grpc"),
+						ProtocolVersion: 6,
+						Pid:             12345,
+						Test:            true,
+						Addr:            addr,
+					}
+				}(),
+				//test-netrpc
+				tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "test-netrpc"): func() *plugin.ReattachConfig {
+					addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:1337")
+					if err != nil {
+						t.Fatal(err)
+					}
+					return &plugin.ReattachConfig{
+						Protocol:        plugin.Protocol("netrpc"),
+						ProtocolVersion: 5,
+						Pid:             6789,
+						Test:            false,
+						Addr:            addr,
+					}
+				}(),
+			},
+		},
+		"can specify the providers host and namespace": {
+			// The key here has host and namespace data, vs. just "test"
+			reattachProviders: `{
+				"example.com/my-org/test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`,
+			expectedOutput: map[addrs.Provider]*plugin.ReattachConfig{
+				tfaddr.NewProvider("example.com", "my-org", "test"): func() *plugin.ReattachConfig {
+					addr, err := net.ResolveUnixAddr("unix", "/var/folders/xx/abcde12345/T/plugin12345")
+					if err != nil {
+						t.Fatal(err)
+					}
+					return &plugin.ReattachConfig{
+						Protocol:        plugin.Protocol("grpc"),
+						ProtocolVersion: 6,
+						Pid:             12345,
+						Test:            true,
+						Addr:            addr,
+					}
+				}(),
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+
+			output, err := parseReattachProviders(tc.reattachProviders)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(output, tc.expectedOutput); diff != "" {
+				t.Fatalf("expected diff:\n%s", diff)
+			}
+		})
 	}
 }
