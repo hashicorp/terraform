@@ -1610,11 +1610,10 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 	} else {
 		pLock := opts.Locks.Provider(c.ProviderAddr)
 		if pLock == nil {
-			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported: %w",
+			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
 				c.Provider.Name,
 				c.ProviderAddr,
-				c.Type,
-				err))
+				c.Type))
 			return nil, diags
 		}
 		var err error
