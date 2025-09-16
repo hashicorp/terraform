@@ -20,25 +20,23 @@ var cmpOpts = cmpopts.IgnoreUnexported(Provider{})
 
 func TestMarshalProvider(t *testing.T) {
 	tests := []struct {
-		Input               providers.ProviderSchema
-		IncludeExperimental bool
-		Want                *Provider
+		Input providers.ProviderSchema
+		Want  *Provider
 	}{
 		{
 			providers.ProviderSchema{},
-			false,
 			&Provider{
 				Provider:                 &Schema{},
 				ResourceSchemas:          map[string]*Schema{},
 				DataSourceSchemas:        map[string]*Schema{},
 				EphemeralResourceSchemas: map[string]*Schema{},
 				ResourceIdentitySchemas:  map[string]*IdentitySchema{},
+				ListResourceSchemas:      map[string]*Schema{},
 				ActionSchemas:            map[string]*ActionSchema{},
 			},
 		},
 		{
 			testProvider(),
-			false,
 			&Provider{
 				Provider: &Schema{
 					Block: &Block{
@@ -212,53 +210,6 @@ func TestMarshalProvider(t *testing.T) {
 						},
 					},
 				},
-				ResourceIdentitySchemas: map[string]*IdentitySchema{},
-				ActionSchemas:           map[string]*ActionSchema{},
-			},
-		},
-		{
-			providers.ProviderSchema{
-				ListResourceTypes: map[string]providers.Schema{
-					"test_list_resource": {
-						Version: 1,
-						Body: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"data": {
-									Type:     cty.DynamicPseudoType,
-									Computed: true,
-								},
-							},
-							BlockTypes: map[string]*configschema.NestedBlock{
-								"config": {
-									Block: configschema.Block{
-										Attributes: map[string]*configschema.Attribute{
-											"filter": {Type: cty.String, Optional: true},
-											"items":  {Type: cty.List(cty.String), Required: true},
-										},
-									},
-									Nesting: configschema.NestingSingle,
-								},
-							},
-						},
-					},
-				},
-				Actions: map[string]providers.ActionSchema{
-					"test_action": {
-						ConfigSchema: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"opt_attr": {Type: cty.String, Optional: true},
-								"req_attr": {Type: cty.List(cty.String), Required: true},
-							},
-						},
-					},
-				},
-			},
-			true,
-			&Provider{
-				Provider:                 &Schema{},
-				ResourceSchemas:          map[string]*Schema{},
-				DataSourceSchemas:        map[string]*Schema{},
-				EphemeralResourceSchemas: map[string]*Schema{},
 				ListResourceSchemas: map[string]*Schema{
 					"test_list_resource": {
 						Version: 1,
@@ -305,7 +256,7 @@ func TestMarshalProvider(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			got := marshalProvider(test.Input, test.IncludeExperimental)
+			got := marshalProvider(test.Input)
 			if diff := cmp.Diff(test.Want, got, cmpOpts); diff != "" {
 				t.Fatalf("wrong result:\n %s\n", diff)
 			}
@@ -427,6 +378,16 @@ func testProvider() providers.ProviderSchema {
 							},
 							Nesting: configschema.NestingSingle,
 						},
+					},
+				},
+			},
+		},
+		Actions: map[string]providers.ActionSchema{
+			"test_action": {
+				ConfigSchema: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"opt_attr": {Type: cty.String, Optional: true},
+						"req_attr": {Type: cty.List(cty.String), Required: true},
 					},
 				},
 			},
