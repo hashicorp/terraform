@@ -82,6 +82,7 @@ func (g *grpcClient) Put(state []byte) tfdiags.Diagnostics {
 	req := providers.WriteStateBytesRequest{
 		TypeName: g.typeName,
 		StateId:  g.stateId,
+		Bytes:    state,
 	}
 	resp := g.provider.WriteStateBytes(req)
 
