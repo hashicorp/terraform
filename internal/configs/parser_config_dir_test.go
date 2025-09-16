@@ -197,6 +197,15 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 			},
 			allowExperiments: true,
 		},
+		{
+			name:      "with-depends-on",
+			directory: "testdata/query-files/invalid/with-depends-on",
+			diagnostics: []string{
+				"testdata/query-files/invalid/with-depends-on/main.tfquery.hcl:23,3-13: Unsupported argument; An argument named \"depends_on\" is not expected here.",
+			},
+			listResources:    2,
+			allowExperiments: true,
+		},
 	}
 
 	for _, test := range tests {

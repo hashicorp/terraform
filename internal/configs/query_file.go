@@ -5,6 +5,7 @@ package configs
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -193,8 +194,8 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 
 // QueryListResourceBlockSchema is the schema for a list resource type within
 // a terraform query file.
-var QueryListResourceBlockSchema = &hcl.BodySchema{
-	Attributes: append(
+var QueryListResourceBlockSchema = func() *hcl.BodySchema {
+	attrs := append(
 		commonResourceAttributes,
 		hcl.AttributeSchema{
 			Name: "include_resource",
@@ -202,8 +203,12 @@ var QueryListResourceBlockSchema = &hcl.BodySchema{
 		hcl.AttributeSchema{
 			Name: "limit",
 		},
-	),
-}
+	)
+	attrs = slices.DeleteFunc(attrs, func(e hcl.AttributeSchema) bool {
+		return e.Name == "depends_on"
+	})
+	return &hcl.BodySchema{Attributes: attrs}
+}()
 
 // queryFileSchema is the schema for a terraform query file. It defines the
 // expected structure of the file, including the types of supported blocks and their
