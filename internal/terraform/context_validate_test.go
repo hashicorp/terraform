@@ -3575,60 +3575,114 @@ func TestContext2Validate_queryList(t *testing.T) {
 // Action Validation is largely exercised in context_plan_actions_test.go
 func TestContext2Validate_action(t *testing.T) {
 	tests := map[string]struct {
-		config  string
-		wantErr string
+		config               string
+		wantErr              string
+		expectValidateCalled bool
 	}{
 		"valid config": {
 			`
-terraform {
-	required_providers {
-		test = {
-			source = "hashicorp/test"
-			version = "1.0.0"
-		}
-	}
-}
-action "test_register" "foo" {
-  config {
-      host = "cmdb.snot"
-  }
-}
-resource "test_instance" "foo" {
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.test_register.foo]
-    }
-  }
-}
-`,
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				action "test_register" "foo" {
+				  config {
+				      host = "cmdb.snot"
+				  }
+				}
+				resource "test_instance" "foo" {
+				  lifecycle {
+				    action_trigger {
+				      events = [after_create]
+				      actions = [action.test_register.foo]
+				    }
+				  }
+				}
+				`,
 			"",
+			true,
+		},
+		"validly null config": { // this doesn't seem likely, but let's make sure nothing panics.
+			`
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+		action "test_other" "foo" {
+		}
+		resource "test_instance" "foo" {
+		  lifecycle {
+		    action_trigger {
+		      events = [after_create]
+		      actions = [action.test_other.foo]
+		    }
+		  }
+		}
+		`,
+			"",
+			true,
 		},
 		"missing required config": {
 			`
-terraform {
-	required_providers {
-		test = {
-			source = "hashicorp/test"
-			version = "1.0.0"
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
 		}
-	}
-}
-action "test_register" "foo" {
-    config {}
-}
-resource "test_instance" "foo" {
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.test_register.foo]
-    }
-  }
-}
-`,
-			"host is null",
+		action "test_register" "foo" {
+			config {}
+		}
+		resource "test_instance" "foo" {
+			lifecycle {
+			action_trigger {
+				events = [after_create]
+				actions = [action.test_register.foo]
+			}
+			}
+		}
+				`,
+			"Missing required argument: The argument \"host\" is required, but no definition was found.",
+			false,
 		},
-		"invalid nil config config": {
+		"invalid required config (provider validation)": {
+			`
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+		action "test_register" "foo" {
+		    config {
+				host = "invalid"
+			}
+		}
+		resource "test_instance" "foo" {
+		  lifecycle {
+		    action_trigger {
+		      events = [after_create]
+		      actions = [action.test_register.foo]
+		    }
+		  }
+		}
+		`,
+			"Invalid value for required argument \"host\" because I said so",
+			true,
+		},
+		"invalid nil config": {
 			`
 terraform {
 	required_providers {
@@ -3649,7 +3703,8 @@ resource "test_instance" "foo" {
   }
 }
 `,
-			"config is null",
+			"Missing required argument: The argument \"host\" is required, but was not set.",
+			false,
 		},
 	}
 
@@ -3671,6 +3726,14 @@ resource "test_instance" "foo" {
 					"test_register": {
 						ConfigSchema: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
+								"host":   {Type: cty.String, Required: true},
+								"output": {Type: cty.String, Computed: true, Optional: true},
+							},
+						},
+					},
+					"test_other": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
 								"host": {Type: cty.String, Optional: true},
 							},
 						},
@@ -3678,12 +3741,8 @@ resource "test_instance" "foo" {
 				},
 			})
 			p.ValidateActionConfigFn = func(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
-				if r.Config.IsNull() {
-					resp.Diagnostics = resp.Diagnostics.Append(errors.New("config is null"))
-					return
-				}
-				if r.Config.GetAttr("host").IsNull() {
-					resp.Diagnostics = resp.Diagnostics.Append(errors.New("host is null"))
+				if r.Config.GetAttr("host") == cty.StringVal("invalid") {
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("Invalid value for required argument \"host\" because I said so"))
 				}
 				return
 			}
@@ -3695,10 +3754,6 @@ resource "test_instance" "foo" {
 			})
 
 			diags := ctx.Validate(m, nil)
-			if !p.ValidateActionConfigCalled {
-				t.Fatal("ValidateAction RPC was not called")
-			}
-
 			if test.wantErr != "" {
 				if !diags.HasErrors() {
 					t.Errorf("unexpected success\nwant errors: %s", test.wantErr)
@@ -3708,6 +3763,13 @@ resource "test_instance" "foo" {
 			} else {
 				if diags.HasErrors() {
 					t.Errorf("unexpected error\ngot: %s", diags.Err().Error())
+				}
+			}
+			if p.ValidateActionConfigCalled != test.expectValidateCalled {
+				if test.expectValidateCalled {
+					t.Fatal("provider Validate RPC was expected, but not called")
+				} else {
+					t.Fatal("unexpected Validate RCP call")
 				}
 			}
 		})
