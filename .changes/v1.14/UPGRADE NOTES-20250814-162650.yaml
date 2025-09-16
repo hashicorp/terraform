@@ -1,5 +1,0 @@
-kind: UPGRADE NOTES
-body: 'The parallelism of Terraform operations within container runtimes may be reduced depending on the CPU bandwidth limit setting.'
-time: 2025-08-14T16:26:50.569878+02:00
-custom:
-    Issue: "37436"
