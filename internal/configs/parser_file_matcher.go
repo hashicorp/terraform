@@ -59,13 +59,10 @@ func (p *Parser) dirFileSet(dir string, opts ...Option) (ConfigFileSet, hcl.Diag
 
 	// Set up the parser configuration
 	cfg := &parserConfig{
-		// We always match .tf files
-		matchers:      []FileMatcher{&moduleFiles{}},
+		// We always match .tf files and .tfquery.hcl files
+		matchers:      []FileMatcher{&moduleFiles{}, &queryFiles{}},
 		testDirectory: DefaultTestDirectory,
 		fs:            p.fs,
-	}
-	if p.AllowsLanguageExperiments() {
-		cfg.matchers = append(cfg.matchers, &queryFiles{})
 	}
 	for _, opt := range opts {
 		opt(cfg)
