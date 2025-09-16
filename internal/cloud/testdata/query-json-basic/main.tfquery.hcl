@@ -1,3 +1,1 @@
-list "concept_pet" "pets" {
-  provider = concept
-}
+list "concept_pet" "pets" {}

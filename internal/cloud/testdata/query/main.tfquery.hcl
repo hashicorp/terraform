@@ -1,3 +1,1 @@
-list "null_resource" "foo" {
-  provider = null
-}
+list "null_resource" "foo" {}
