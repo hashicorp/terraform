@@ -194,15 +194,23 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 // QueryListResourceBlockSchema is the schema for a list resource type within
 // a terraform query file.
 var QueryListResourceBlockSchema = &hcl.BodySchema{
-	Attributes: append(
-		commonResourceAttributes,
-		hcl.AttributeSchema{
+	Attributes: []hcl.AttributeSchema{
+		{
+			Name: "count",
+		},
+		{
+			Name: "for_each",
+		},
+		{
+			Name: "provider",
+		},
+		{
 			Name: "include_resource",
 		},
-		hcl.AttributeSchema{
+		{
 			Name: "limit",
 		},
-	),
+	},
 }
 
 // queryFileSchema is the schema for a terraform query file. It defines the
