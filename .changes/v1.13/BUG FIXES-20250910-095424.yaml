@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'apply: hide sensitive inputs when values have changed between plan and apply'
-time: 2025-09-10T09:54:24.889605+02:00
-custom:
-    Issue: "37582"
