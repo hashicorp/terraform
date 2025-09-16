@@ -262,6 +262,102 @@ func TestContext2Plan_queryList(t *testing.T) {
 			},
 		},
 		{
+			name: "valid list with empty config",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				variable "input" {
+					type = string
+					default = "foo"
+				}
+
+				list "test_resource" "test" {
+					provider = test
+				}
+				`,
+			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+				madeUp := []cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
+					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
+				}
+				ids := []cty.Value{}
+				for i := range madeUp {
+					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+					}))
+				}
+
+				resp := []cty.Value{}
+				for i, v := range madeUp {
+					resp = append(resp, cty.ObjectVal(map[string]cty.Value{
+						"state":        v,
+						"identity":     ids[i],
+						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
+					}))
+				}
+
+				ret := map[string]cty.Value{
+					"data": cty.TupleVal(resp),
+				}
+				for k, v := range request.Config.AsValueMap() {
+					if k != "data" {
+						ret[k] = v
+					}
+				}
+
+				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+			},
+			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
+				expectedResources := []string{"list.test_resource.test"}
+				actualResources := make([]string, 0)
+				for _, change := range changes.Queries {
+					actualResources = append(actualResources, change.Addr.String())
+					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					cs, err := change.Decode(schema)
+					if err != nil {
+						t.Fatalf("failed to decode change: %s", err)
+					}
+
+					// Verify instance types
+					expectedTypes := []string{"ami-123456", "ami-654321"}
+					actualTypes := make([]string, 0)
+					obj := cs.Results.Value.GetAttr("data")
+					if obj.IsNull() {
+						t.Fatalf("Expected 'data' attribute to be present, but it is null")
+					}
+					obj.ForEachElement(func(key cty.Value, val cty.Value) bool {
+						val = val.GetAttr("state")
+						if val.IsNull() {
+							t.Fatalf("Expected 'state' attribute to be present, but it is null")
+						}
+						if val.GetAttr("instance_type").IsNull() {
+							t.Fatalf("Expected 'instance_type' attribute to be present, but it is missing")
+						}
+						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+						return false
+					})
+					sort.Strings(actualTypes)
+					sort.Strings(expectedTypes)
+					if diff := cmp.Diff(expectedTypes, actualTypes); diff != "" {
+						t.Fatalf("Expected instance types to match, but they differ: %s", diff)
+					}
+				}
+				sort.Strings(actualResources)
+				sort.Strings(expectedResources)
+				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
+				}
+			},
+		},
+		{
 			name: "invalid list result's attribute reference",
 			mainConfig: `
 				terraform {
@@ -690,6 +786,9 @@ func TestContext2Plan_queryList(t *testing.T) {
 			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
 			var requestConfigs = make(map[string]cty.Value)
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+				if request.Config.IsNull() || request.Config.GetAttr("config").IsNull() {
+					t.Fatalf("config should never be null, got null for %s", request.TypeName)
+				}
 				requestConfigs[request.TypeName] = request.Config
 				fn := tc.listResourceFn
 				if fn == nil {
@@ -837,6 +936,9 @@ func TestContext2Plan_queryListArgs(t *testing.T) {
 			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
 			var recordedRequest providers.ListResourceRequest
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+				if request.Config.IsNull() || request.Config.GetAttr("config").IsNull() {
+					t.Fatalf("config should never be null, got null for %s", request.TypeName)
+				}
 				recordedRequest = request
 				return provider.ListResourceResponse
 			}
