@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Enables to set provider-specific log level
+time: 2025-09-16T17:20:37.746953+09:00
+custom:
+    Issue: "37497"
