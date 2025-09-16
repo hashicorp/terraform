@@ -155,34 +155,28 @@ func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfd
 	return ret, diags
 }
 
-// ParseFileSource parses the given source code as the content of a Stacks
-// component file and then delegates the result to [DecodeFileBody] for
-// analysis, returning that final result.
-//
-// For now, we support both the .tfstack. and .tfcomponent. file suffixes while
-// the former is still in the process of being deprecated. It is not valid for
-// a single stack to mix and match the two options. We are, therefore, accepting
-// a "prior suffix" argument which lets us know which suffix was used by other
-// files in this stack.
+// ParseFileSource parses the given source code as the content of either a
+// .tfcomponent.hcl or .tfcomponent.json file, and then delegates the result to
+// [DecodeFileBody] for analysis, returning that final result.
 //
 // ParseFileSource chooses between native vs. JSON syntax based on the suffix
 // of the filename in the given source address, which must be either
-// ".[tfstack|tfcomponent].hcl" or ".[tfstack|tfcomponent].json".
-func ParseFileSource(src []byte, suffix string, fileAddr sourceaddrs.FinalSource) (*File, tfdiags.Diagnostics) {
+// ".tfcomponent.hcl" or ".tfcomponent.json".
+func ParseFileSource(src []byte, fileAddr sourceaddrs.FinalSource) (*File, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	filename := sourceaddrs.FinalSourceFilename(fileAddr)
 
 	var body hcl.Body
-	switch {
-	case strings.HasSuffix(filename, fmt.Sprintf(".%s.hcl", suffix)):
+	switch validFilenameSuffix(filename) {
+	case ".tfcomponent.hcl":
 		hclFile, hclDiags := hclsyntax.ParseConfig(src, fileAddr.String(), hcl.InitialPos)
 		diags = diags.Append(hclDiags)
 		if diags.HasErrors() {
 			return nil, diags
 		}
 		body = hclFile.Body
-	case strings.HasSuffix(filename, fmt.Sprintf(".%s.json", suffix)):
+	case ".tfcomponent.json":
 		hclFile, hclDiags := hcljson.Parse(src, fileAddr.String())
 		diags = diags.Append(hclDiags)
 		if diags.HasErrors() {
@@ -194,8 +188,8 @@ func ParseFileSource(src []byte, suffix string, fileAddr sourceaddrs.FinalSource
 			tfdiags.Error,
 			"Unsupported file type",
 			fmt.Sprintf(
-				"Cannot load %s as a stack configuration file: filename must have either a .%s.hcl or .%s.json suffix.",
-				fileAddr, suffix, suffix,
+				"Cannot load %s as a stack configuration file: filename must have either a .tfcomponent.hcl or .tfcomponent.json suffix.",
+				fileAddr,
 			),
 		))
 		return nil, diags
@@ -214,18 +208,12 @@ func ParseFileSource(src []byte, suffix string, fileAddr sourceaddrs.FinalSource
 func validFilenameSuffix(filename string) string {
 	const nativeSuffix = ".tfcomponent.hcl"
 	const jsonSuffix = ".tfcomponent.json"
-	const deprecatedNativeSuffix = ".tfstack.hcl"
-	const deprecatedJsonSuffix = ".tfstack.json"
 
 	switch {
-	case strings.HasSuffix(filename, deprecatedNativeSuffix):
-		return "tfstack"
-	case strings.HasSuffix(filename, deprecatedJsonSuffix):
-		return "tfstack"
 	case strings.HasSuffix(filename, nativeSuffix):
-		return "tfcomponent"
+		return nativeSuffix
 	case strings.HasSuffix(filename, jsonSuffix):
-		return "tfcomponent"
+		return jsonSuffix
 	default:
 		return ""
 	}
