@@ -12,21 +12,21 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/schemarepo"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plugin/convert"
 	mockproto "github.com/hashicorp/terraform/internal/plugin/mock_proto"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/schemarepo"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
@@ -150,7 +150,7 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 			},
 		},
 		ActionSchemas: map[string]*proto.ActionSchema{
-			"unlinked": {
+			"action": {
 				Schema: &proto.Schema{
 					Block: &proto.Schema_Block{
 						Version: 1,
@@ -1525,7 +1525,7 @@ func TestGRPCProvider_Encode(t *testing.T) {
 	}
 }
 
-func TestGRPCProvider_planAction_unlinked_valid(t *testing.T) {
+func TestGRPCProvider_planAction_valid(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
@@ -1537,7 +1537,7 @@ func TestGRPCProvider_planAction_unlinked_valid(t *testing.T) {
 	).Return(&proto.PlanAction_Response{}, nil)
 
 	resp := p.PlanAction(providers.PlanActionRequest{
-		ActionType: "unlinked",
+		ActionType: "action",
 		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
 			"attr": cty.StringVal("foo"),
 		}),
@@ -1546,7 +1546,7 @@ func TestGRPCProvider_planAction_unlinked_valid(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_planAction_unlinked_valid_but_fails(t *testing.T) {
+func TestGRPCProvider_planAction_valid_but_fails(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
@@ -1566,7 +1566,7 @@ func TestGRPCProvider_planAction_unlinked_valid_but_fails(t *testing.T) {
 	}, nil)
 
 	resp := p.PlanAction(providers.PlanActionRequest{
-		ActionType: "unlinked",
+		ActionType: "action",
 		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
 			"attr": cty.StringVal("foo"),
 		}),
@@ -1575,14 +1575,14 @@ func TestGRPCProvider_planAction_unlinked_valid_but_fails(t *testing.T) {
 	checkDiagsHasError(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_planAction_unlinked_invalid_config(t *testing.T) {
+func TestGRPCProvider_planAction_invalid_config(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
 	resp := p.PlanAction(providers.PlanActionRequest{
-		ActionType: "unlinked",
+		ActionType: "action",
 		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
 			"not_the_right_attr": cty.StringVal("foo"),
 		}),

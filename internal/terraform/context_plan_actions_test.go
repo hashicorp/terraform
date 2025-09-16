@@ -27,7 +27,7 @@ import (
 )
 
 func TestContextPlan_actions(t *testing.T) {
-	unlinkedActionSchema := providers.ActionSchema{
+	testActionSchema := providers.ActionSchema{
 		ConfigSchema: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"attr": {
@@ -37,7 +37,7 @@ func TestContextPlan_actions(t *testing.T) {
 			},
 		},
 	}
-	writeOnlyUnlinkedActionSchema := providers.ActionSchema{
+	writeOnlyActionSchema := providers.ActionSchema{
 		ConfigSchema: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"attr": {
@@ -130,8 +130,8 @@ func TestContextPlan_actions(t *testing.T) {
 			"unreferenced": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-			`,
+action "test_action" "hello" {}
+`,
 				},
 				expectPlanActionCalled: false,
 
@@ -148,12 +148,11 @@ action "test_unlinked" "hello" {}
 			"invalid config": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   config {
     unknown_attr = "value"
   }
-}
-		`,
+}`,
 				},
 				expectPlanActionCalled: false,
 				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
@@ -163,27 +162,27 @@ action "test_unlinked" "hello" {
 						Detail:   `An argument named "unknown_attr" is not expected here.`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 4, Column: 5, Byte: 49},
-							End:      hcl.Pos{Line: 4, Column: 17, Byte: 61},
+							Start:    hcl.Pos{Line: 4, Column: 5, Byte: 47},
+							End:      hcl.Pos{Line: 4, Column: 17, Byte: 59},
 						},
 					})
 				},
 			},
 
-			"actions cant be accessed in resources": {
+			"actions can't be accessed in resources": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "my_action" {
+action "test_action" "my_action" {
   config {
     attr = "value"
   }
 }
 resource "test_object" "a" {
-  name = action.test_unlinked.my_action.attr
+  name = action.test_action.my_action.attr
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.my_action]
+      actions = [action.test_action.my_action]
     }
   }
 }
@@ -194,20 +193,20 @@ resource "test_object" "a" {
 						&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Invalid reference",
-							Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+							Detail:   "Actions can not be referenced in this context. They can only be referenced from within a resource's lifecycle actions list.",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 8, Column: 10, Byte: 112},
-								End:      hcl.Pos{Line: 8, Column: 40, Byte: 142},
+								Start:    hcl.Pos{Line: 8, Column: 10, Byte: 110},
+								End:      hcl.Pos{Line: 8, Column: 40, Byte: 138},
 							},
 						})
 				},
 			},
 
-			"actions cant be accessed in outputs": {
+			"actions can't be accessed in outputs": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "my_action" {
+action "test_action" "my_action" {
   config {
     attr = "value"
   }
@@ -216,17 +215,17 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.my_action]
+      actions = [action.test_action.my_action]
     }
   }
 }
 
 output "my_output" {
-    value = action.test_unlinked.my_action.attr
+  value = action.test_action.my_action.attr
 }
 
 output "my_output2" {
-    value = action.test_unlinked.my_action
+  value = action.test_action.my_action
 }
 `,
 				},
@@ -235,21 +234,21 @@ output "my_output2" {
 						&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Invalid reference",
-							Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+							Detail:   "Actions can not be referenced in this context. They can only be referenced from within a resource's lifecycle actions list.",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 21, Column: 13, Byte: 337},
-								End:      hcl.Pos{Line: 21, Column: 43, Byte: 367},
+								Start:    hcl.Pos{Line: 21, Column: 13, Byte: 327},
+								End:      hcl.Pos{Line: 21, Column: 43, Byte: 355},
 							},
 						}).Append(
 						&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Invalid reference",
-							Detail:   "Actions can't be referenced in this context, they can only be referenced from within a resources lifecycle events list.",
+							Detail:   "Actions can not be referenced in this context. They can only be referenced from within a resource's lifecycle actions list.",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 17, Column: 13, Byte: 264},
-								End:      hcl.Pos{Line: 17, Column: 43, Byte: 294},
+								Start:    hcl.Pos{Line: 17, Column: 13, Byte: 258},
+								End:      hcl.Pos{Line: 17, Column: 43, Byte: 286},
 							},
 						},
 					)
@@ -258,13 +257,13 @@ output "my_output2" {
 
 			"destroy run": {
 				module: map[string]string{
-					"main.tf": `
-action "test_unlinked" "hello" {}
+					"main.tf": ` 
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create, after_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -284,12 +283,12 @@ terraform {
     }
   }
 }
-action "ecosystem_unlinked" "hello" {}
+action "ecosystem" "hello" {}
 resource "other_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.ecosystem_unlinked.hello]
+      actions = [action.ecosystem.hello]
     }
   }
 }
@@ -302,8 +301,8 @@ resource "other_object" "a" {
 					}
 
 					action := p.Changes.ActionInvocations[0]
-					if action.Addr.String() != "action.ecosystem_unlinked.hello" {
-						t.Fatalf("expected action address to be 'action.ecosystem_unlinked.hello', got '%s'", action.Addr)
+					if action.Addr.String() != "action.ecosystem.hello" {
+						t.Fatalf("expected action address to be 'action.ecosystem.hello', got '%s'", action.Addr)
 					}
 					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
 					if !ok {
@@ -329,12 +328,12 @@ resource "other_object" "a" {
 			"before_create triggered": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -348,8 +347,8 @@ resource "test_object" "a" {
 					}
 
 					action := p.Changes.ActionInvocations[0]
-					if action.Addr.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
+					if action.Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action address to be 'action.test_action.hello', got '%s'", action.Addr)
 					}
 
 					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
@@ -380,12 +379,12 @@ resource "test_object" "a" {
 			"after_create triggered": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -399,8 +398,8 @@ resource "test_object" "a" {
 					}
 
 					action := p.Changes.ActionInvocations[0]
-					if action.Addr.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
+					if action.Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action address to be 'action.test_action.hello', got '%s'", action.Addr)
 					}
 
 					// TODO: Test that action the triggering resource address is set correctly
@@ -410,12 +409,12 @@ resource "test_object" "a" {
 			"before_update triggered - on create": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -427,12 +426,12 @@ resource "test_object" "a" {
 			"after_update triggered - on create": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -444,12 +443,12 @@ resource "test_object" "a" {
 			"before_update triggered - on update": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -468,12 +467,12 @@ resource "test_object" "a" {
 			"after_update triggered - on update": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -492,12 +491,12 @@ resource "test_object" "a" {
 			"before_update triggered - on replace": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -517,12 +516,12 @@ resource "test_object" "a" {
 			"after_update triggered - on replace": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -542,16 +541,16 @@ resource "test_object" "a" {
 			"failing actions cancel next ones": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "failure" {}
+action "test_action" "failure" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.failure, action.test_unlinked.failure]
+      actions = [action.test_action.failure, action.test_action.failure]
     }
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.failure]
+      actions = [action.test_action.failure]
     }
   }
 }
@@ -577,8 +576,8 @@ resource "test_object" "a" {
 							Detail:   "Planning failed: Test case simulates an error while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 8, Byte: 149},
-								End:      hcl.Pos{Line: 7, Column: 46, Byte: 177},
+								Start:    hcl.Pos{Line: 7, Column: 8, Byte: 147},
+								End:      hcl.Pos{Line: 7, Column: 46, Byte: 173},
 							},
 						},
 					)
@@ -588,16 +587,16 @@ resource "test_object" "a" {
 			"actions with warnings don't cancel": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "failure" {}
+action "test_action" "failure" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.failure, action.test_unlinked.failure]
+      actions = [action.test_action.failure, action.test_action.failure]
     }
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.failure]
+      actions = [action.test_action.failure]
     }
   }
 }
@@ -622,8 +621,8 @@ resource "test_object" "a" {
 							Detail:   "Warning during planning: Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 8, Byte: 149},
-								End:      hcl.Pos{Line: 7, Column: 46, Byte: 177},
+								Start:    hcl.Pos{Line: 7, Column: 8, Byte: 147},
+								End:      hcl.Pos{Line: 7, Column: 46, Byte: 173},
 							},
 						},
 						&hcl.Diagnostic{
@@ -632,8 +631,8 @@ resource "test_object" "a" {
 							Detail:   "Warning during planning: Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 48, Byte: 179},
-								End:      hcl.Pos{Line: 7, Column: 76, Byte: 207},
+								Start:    hcl.Pos{Line: 7, Column: 48, Byte: 175},
+								End:      hcl.Pos{Line: 7, Column: 76, Byte: 201},
 							},
 						},
 						&hcl.Diagnostic{
@@ -642,8 +641,8 @@ resource "test_object" "a" {
 							Detail:   "Warning during planning: Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 11, Column: 8, Byte: 284},
-								End:      hcl.Pos{Line: 11, Column: 46, Byte: 312},
+								Start:    hcl.Pos{Line: 11, Column: 8, Byte: 278},
+								End:      hcl.Pos{Line: 11, Column: 46, Byte: 304},
 							},
 						},
 					)
@@ -652,14 +651,14 @@ resource "test_object" "a" {
 			"splat is not supported": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   count = 42
 }
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello[*]]
+      actions = [action.test_action.hello[*]]
     }
   }
 }
@@ -673,8 +672,8 @@ resource "test_object" "a" {
 						Detail:   "Unexpected expression found in action_triggers.actions.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 9, Column: 18, Byte: 161},
-							End:      hcl.Pos{Line: 9, Column: 47, Byte: 190},
+							Start:    hcl.Pos{Line: 9, Column: 18, Byte: 159},
+							End:      hcl.Pos{Line: 9, Column: 47, Byte: 186},
 						},
 					})
 				},
@@ -682,7 +681,7 @@ resource "test_object" "a" {
 			"multiple events triggering in same action trigger": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
@@ -691,7 +690,7 @@ resource "test_object" "a" {
         after_create, // should trigger
         before_update // should be ignored
       ]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -722,13 +721,13 @@ resource "test_object" "a" {
 			"multiple events triggered together": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "one" {}
-action "test_unlinked" "two" {}
+action "test_action" "one" {}
+action "test_action" "two" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events  = [before_create, after_create, before_update, after_update]
-      actions = [action.test_unlinked.one, action.test_unlinked.two]
+      actions = [action.test_action.one, action.test_action.two]
     }
   }
 }
@@ -740,23 +739,23 @@ resource "test_object" "a" {
 			"multiple events triggering in multiple action trigger": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     // should trigger
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
     // should trigger
     action_trigger {
       events = [after_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
     // should be ignored
     action_trigger {
       events = [before_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -793,7 +792,7 @@ resource "test_object" "a" {
 			"action for_each": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   for_each = toset(["a", "b"])
   
   config {
@@ -804,7 +803,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello["a"], action.test_unlinked.hello["b"]]
+      actions = [action.test_action.hello["a"], action.test_action.hello["b"]]
     }
   }
 }
@@ -824,10 +823,10 @@ resource "test_object" "a" {
 					slices.Sort(actionAddrs)
 
 					if !slices.Equal(actionAddrs, []string{
-						"action.test_unlinked.hello[\"a\"]",
-						"action.test_unlinked.hello[\"b\"]",
+						"action.test_action.hello[\"a\"]",
+						"action.test_action.hello[\"b\"]",
 					}) {
-						t.Fatalf("expected action addresses to be 'action.test_unlinked.hello[\"a\"]' and 'action.test_unlinked.hello[\"b\"]', got %v", actionAddrs)
+						t.Fatalf("expected action addresses to be 'action.test_action.hello[\"a\"]' and 'action.test_action.hello[\"b\"]', got %v", actionAddrs)
 					}
 
 					// TODO: Test that action the triggering resource address is set correctly
@@ -837,7 +836,7 @@ resource "test_object" "a" {
 			"action count": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   count = 2
 
   config {
@@ -849,7 +848,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello[0], action.test_unlinked.hello[1]]
+      actions = [action.test_action.hello[0], action.test_action.hello[1]]
     }
   }
 }
@@ -869,10 +868,10 @@ resource "test_object" "a" {
 					slices.Sort(actionAddrs)
 
 					if !slices.Equal(actionAddrs, []string{
-						"action.test_unlinked.hello[0]",
-						"action.test_unlinked.hello[1]",
+						"action.test_action.hello[0]",
+						"action.test_action.hello[1]",
 					}) {
-						t.Fatalf("expected action addresses to be 'action.test_unlinked.hello[0]' and 'action.test_unlinked.hello[1]', got %v", actionAddrs)
+						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
 					// TODO: Test that action the triggering resource address is set correctly
@@ -882,7 +881,7 @@ resource "test_object" "a" {
 			"action for_each invalid access": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   for_each = toset(["a", "b"])
 
   config {
@@ -893,7 +892,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello["c"]]
+      actions = [action.test_action.hello["c"]]
     }
   }
 }
@@ -907,8 +906,8 @@ resource "test_object" "a" {
 						Detail:   "Action instance was not found in the current context.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 226},
-							End:      hcl.Pos{Line: 13, Column: 49, Byte: 257},
+							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 224},
+							End:      hcl.Pos{Line: 13, Column: 49, Byte: 253},
 						},
 					})
 				},
@@ -917,7 +916,7 @@ resource "test_object" "a" {
 			"action count invalid access": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   count = 2
 
   config {
@@ -928,7 +927,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello[2]]
+      actions = [action.test_action.hello[2]]
     }
   }
 }
@@ -942,8 +941,8 @@ resource "test_object" "a" {
 						Detail:   "Action instance was not found in the current context.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 210},
-							End:      hcl.Pos{Line: 13, Column: 47, Byte: 239},
+							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
+							End:      hcl.Pos{Line: 13, Column: 47, Byte: 235},
 						},
 					})
 				},
@@ -952,14 +951,14 @@ resource "test_object" "a" {
 			"expanded resource - unexpanded action": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   count = 2
   name = "test-${count.index}"
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -979,10 +978,10 @@ resource "test_object" "a" {
 					slices.Sort(actionAddrs)
 
 					if !slices.Equal(actionAddrs, []string{
-						"action.test_unlinked.hello",
-						"action.test_unlinked.hello",
+						"action.test_action.hello",
+						"action.test_action.hello",
 					}) {
-						t.Fatalf("expected action addresses to be 'action.test_unlinked.hello' and 'action.test_unlinked.hello', got %v", actionAddrs)
+						t.Fatalf("expected action addresses to be 'action.test_action.hello' and 'action.test_action.hello', got %v", actionAddrs)
 					}
 
 					// TODO: Test that action the triggering resource address is set correctly
@@ -991,7 +990,7 @@ resource "test_object" "a" {
 			"expanded resource - expanded action": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   count = 2
 
   config {
@@ -1004,7 +1003,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello[count.index]]
+      actions = [action.test_action.hello[count.index]]
     }
   }
 }
@@ -1024,10 +1023,10 @@ resource "test_object" "a" {
 					slices.Sort(actionAddrs)
 
 					if !slices.Equal(actionAddrs, []string{
-						"action.test_unlinked.hello[0]",
-						"action.test_unlinked.hello[1]",
+						"action.test_action.hello[0]",
+						"action.test_action.hello[1]",
 					}) {
-						t.Fatalf("expected action addresses to be 'action.test_unlinked.hello[0]' and 'action.test_unlinked.hello[1]', got %v", actionAddrs)
+						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
 					// TODO: Test that action the triggering resource address is set correctly
@@ -1039,13 +1038,13 @@ resource "test_object" "a" {
 			"destroying expanded node": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   count = 2
   lifecycle {
     action_trigger {
       events = [before_create, after_update]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1083,7 +1082,7 @@ resource "test_object" "a" {
 resource "test_object" "a" {
   name = "a"
 }
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   config {
     attr = test_object.a.name
   }
@@ -1093,7 +1092,7 @@ resource "test_object" "b" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1111,12 +1110,12 @@ resource "test_object" "a" {
 resource "test_object" "b" {
   name = "b"
 }
-action "test_unlinked" "hello_a" {
+action "test_action" "hello_a" {
   config {
     attr = test_object.a.name
   }
 }
-action "test_unlinked" "hello_b" {
+action "test_action" "hello_b" {
   config {
     attr = test_object.a.name
   }
@@ -1126,7 +1125,7 @@ resource "test_object" "c" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello_a]
+      actions = [action.test_action.hello_a]
     }
   }
 }
@@ -1135,7 +1134,7 @@ resource "test_object" "d" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello_b]
+      actions = [action.test_action.hello_b]
     }
   }
 }
@@ -1144,7 +1143,7 @@ resource "test_object" "e" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello_a, action.test_unlinked.hello_b]
+      actions = [action.test_action.hello_a, action.test_action.hello_b]
     }
   }
 }
@@ -1156,7 +1155,7 @@ resource "test_object" "e" {
 			"action config with after_create dependency to triggering resource": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   config {
     attr = test_object.a.name
   }
@@ -1166,7 +1165,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1182,8 +1181,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected trigger event to be of type AfterCreate, got: %v", p.Changes.ActionInvocations[0].ActionTrigger)
 					}
 
-					if p.Changes.ActionInvocations[0].Addr.Action.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected action to equal 'action.test_unlinked.hello', got '%s'", p.Changes.ActionInvocations[0].Addr)
+					if p.Changes.ActionInvocations[0].Addr.Action.String() != "action.test_action.hello" {
+						t.Fatalf("expected action to equal 'action.test_action.hello', got '%s'", p.Changes.ActionInvocations[0].Addr)
 					}
 
 					decode, err := p.Changes.ActionInvocations[0].ConfigValue.Decode(cty.Object(map[string]cty.Type{"attr": cty.String}))
@@ -1200,7 +1199,7 @@ resource "test_object" "a" {
 			"action config refers to before triggering resource leads to validation error": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   config {
     attr = test_object.a.name
   }
@@ -1210,7 +1209,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1229,8 +1228,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected diagnostic summary to contain 'Cycle', got '%s'", diags[0].Description().Summary)
 					}
 					// We expect the action node to be part of the cycle
-					if !strings.Contains(diags[0].Description().Summary, "action.test_unlinked.hello") {
-						t.Fatalf("expected diagnostic summary to contain 'action.test_unlinked.hello', got '%s'", diags[0].Description().Summary)
+					if !strings.Contains(diags[0].Description().Summary, "action.test_action.hello") {
+						t.Fatalf("expected diagnostic summary to contain 'action.test_action.hello', got '%s'", diags[0].Description().Summary)
 					}
 					// We expect the resource node to be part of the cycle
 					if !strings.Contains(diags[0].Description().Summary, "test_object.a") {
@@ -1246,7 +1245,7 @@ variable "secret" {
   type           = string
   sensitive      = true
 }
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   config {
     attr = var.secret
   }
@@ -1255,7 +1254,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1277,7 +1276,7 @@ resource "test_object" "a" {
 					}
 
 					action := p.Changes.ActionInvocations[0]
-					ac, err := action.Decode(&unlinkedActionSchema)
+					ac, err := action.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatalf("expected action to decode successfully, but got error: %v", err)
 					}
@@ -1301,12 +1300,12 @@ resource "test_object" "resource" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked_wo.hello]
+      actions = [action.test_action_wo.hello]
     }
   }
 }
 
-action "test_unlinked_wo" "hello" {
+action "test_action_wo" "hello" {
   config {
     attr = var.attr
   }
@@ -1325,7 +1324,7 @@ action "test_unlinked_wo" "hello" {
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
-					ai, err := ais.Decode(&writeOnlyUnlinkedActionSchema)
+					ai, err := ais.Decode(&writeOnlyActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -1460,12 +1459,12 @@ module "mod" {
 }
 `,
 					"mod/mod.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "other_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1479,8 +1478,8 @@ resource "other_object" "a" {
 					}
 
 					action := p.Changes.ActionInvocations[0]
-					if action.Addr.String() != "module.mod.action.test_unlinked.hello" {
-						t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
+					if action.Addr.String() != "module.mod.action.test_action.hello" {
+						t.Fatalf("expected action address to be 'module.mod.action.test_action.hello', got '%s'", action.Addr)
 					}
 
 					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
@@ -1517,12 +1516,12 @@ module "mod" {
 }
 `,
 					"mod/mod.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "other_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1553,8 +1552,8 @@ resource "other_object" "a" {
 					})
 
 					action := p.Changes.ActionInvocations[0]
-					if action.Addr.String() != "module.mod[0].action.test_unlinked.hello" {
-						t.Fatalf("expected action address to be 'module.mod[0].action.test_unlinked.hello', got '%s'", action.Addr)
+					if action.Addr.String() != "module.mod[0].action.test_action.hello" {
+						t.Fatalf("expected action address to be 'module.mod[0].action.test_action.hello', got '%s'", action.Addr)
 					}
 
 					at := action.ActionTrigger.(*plans.LifecycleActionTrigger)
@@ -1578,8 +1577,8 @@ resource "other_object" "a" {
 					}
 
 					action2 := p.Changes.ActionInvocations[1]
-					if action2.Addr.String() != "module.mod[1].action.test_unlinked.hello" {
-						t.Fatalf("expected action address to be 'module.mod[1].action.test_unlinked.hello', got '%s'", action2.Addr)
+					if action2.Addr.String() != "module.mod[1].action.test_action.hello" {
+						t.Fatalf("expected action address to be 'module.mod[1].action.test_action.hello', got '%s'", action2.Addr)
 					}
 
 					a2t := action2.ActionTrigger.(*plans.LifecycleActionTrigger)
@@ -1601,14 +1600,14 @@ module "mod" {
 provider "test" {
     alias = "inthemodule"
 }
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   provider = test.inthemodule
 }
 resource "other_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1622,8 +1621,8 @@ resource "other_object" "a" {
 					}
 
 					action := p.Changes.ActionInvocations[0]
-					if action.Addr.String() != "module.mod.action.test_unlinked.hello" {
-						t.Fatalf("expected action address to be 'module.mod.action.test_unlinked.hello', got '%s'", action.Addr)
+					if action.Addr.String() != "module.mod.action.test_action.hello" {
+						t.Fatalf("expected action address to be 'module.mod.action.test_action.hello', got '%s'", action.Addr)
 					}
 
 					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
@@ -1656,14 +1655,14 @@ resource "other_object" "a" {
 provider "test" {
   alias = "aliased"
 }
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   provider = test.aliased
 }
 resource "other_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1677,8 +1676,8 @@ resource "other_object" "a" {
 					}
 
 					action := p.Changes.ActionInvocations[0]
-					if action.Addr.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected action address to be 'action.test_unlinked.hello', got '%s'", action.Addr)
+					if action.Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action address to be 'action.test_action.hello', got '%s'", action.Addr)
 					}
 
 					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
@@ -1704,12 +1703,12 @@ resource "other_object" "a" {
 			"provider deferring action while not allowed": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1732,7 +1731,7 @@ resource "test_object" "a" {
 						tfdiags.Sourceless(
 							tfdiags.Error,
 							"Provider deferred changes when Terraform did not allow deferrals",
-							`The provider signaled a deferred action for "action.test_unlinked.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
+							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
 						),
 					}
 				},
@@ -1741,12 +1740,12 @@ resource "test_object" "a" {
 			"provider deferring action": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -1781,8 +1780,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
 					}
 
-					if deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+					if deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected deferred action to be triggered by action.test_action.hello, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
 					}
 				},
 			},
@@ -1798,13 +1797,13 @@ terraform {
     }
   }
 }
-action "test_unlinked" "hello" {}
-action "ecosystem_unlinked" "world" {}
+action "test_action" "hello" {}
+action "ecosystem" "world" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.test_unlinked.hello, action.ecosystem_unlinked.world]
+      actions = [action.test_action.hello, action.ecosystem.world]
     }
   }
 }
@@ -1816,7 +1815,7 @@ resource "test_object" "a" {
 					DeferralAllowed: true,
 				},
 				planActionFn: func(t *testing.T, r providers.PlanActionRequest) providers.PlanActionResponse {
-					if r.ActionType == "ecosystem_unlinked" {
+					if r.ActionType == "ecosystem" {
 						t.Fatalf("expected second action to not be planned, but it was planned")
 					}
 					return providers.PlanActionResponse{
@@ -1842,8 +1841,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
 					}
 
-					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected deferred action to be triggered by action.test_action.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
 					}
 
 					secondDeferredActionInvocation := p.DeferredActionInvocations[1]
@@ -1854,8 +1853,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
 					}
 
-					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem_unlinked.world" {
-						t.Fatalf("expected second deferred action to be triggered by action.ecosystem_unlinked.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem.world" {
+						t.Fatalf("expected second deferred action to be triggered by action.ecosystem.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
 					}
 				},
 			},
@@ -1871,17 +1870,17 @@ terraform {
     }
   }
 }
-action "test_unlinked" "hello" {}
-action "ecosystem_unlinked" "world" {}
+action "test_action" "hello" {}
+action "ecosystem" "world" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
     action_trigger {
       events = [after_create]
-      actions = [action.ecosystem_unlinked.world]
+      actions = [action.ecosystem.world]
     }
   }
 }
@@ -1893,7 +1892,7 @@ resource "test_object" "a" {
 					DeferralAllowed: true,
 				},
 				planActionFn: func(t *testing.T, r providers.PlanActionRequest) providers.PlanActionResponse {
-					if r.ActionType == "ecosystem_unlinked" {
+					if r.ActionType == "ecosystem" {
 						t.Fatalf("expected second action to not be planned, but it was planned")
 					}
 					return providers.PlanActionResponse{
@@ -1919,8 +1918,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
 					}
 
-					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected deferred action to be triggered by action.test_action.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
 					}
 
 					secondDeferredActionInvocation := p.DeferredActionInvocations[1]
@@ -1931,8 +1930,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
 					}
 
-					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem_unlinked.world" {
-						t.Fatalf("expected second deferred action to be triggered by action.ecosystem_unlinked.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem.world" {
+						t.Fatalf("expected second deferred action to be triggered by action.ecosystem.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
 					}
 
 					if len(p.DeferredResources) != 1 {
@@ -1953,16 +1952,16 @@ resource "test_object" "a" {
 			"deferred resources also defer the actions they trigger": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
     action_trigger {
       events = [after_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -2007,8 +2006,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
 					}
 
-					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected deferred action to be triggered by action.test_unlinked.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected deferred action to be triggered by action.test_action.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
 					}
 
 					secondDeferredActionInvocation := p.DeferredActionInvocations[1]
@@ -2019,8 +2018,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
 					}
 
-					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
-						t.Fatalf("expected second deferred action to be triggered by action.test_unlinked.hello, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected second deferred action to be triggered by action.test_action.hello, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
 					}
 
 					if len(p.DeferredResources) != 1 {
@@ -2043,14 +2042,14 @@ resource "test_object" "a" {
 variable "each" {
   type = set(string)
 }
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   for_each = var.each
 }
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_unlinked.hello["a"]]
+      actions = [action.test_action.hello["a"]]
     }
   }
 }
@@ -2077,8 +2076,8 @@ resource "test_object" "a" {
 					}
 
 					ai := p.DeferredActionInvocations[0].ActionInvocationInstanceSrc
-					if ai.Addr.String() != `action.test_unlinked.hello["a"]` {
-						t.Fatalf(`expected action invocation for action.test_unlinked.hello["a"], got %s`, ai.Addr.String())
+					if ai.Addr.String() != `action.test_action.hello["a"]` {
+						t.Fatalf(`expected action invocation for action.test_action.hello["a"], got %s`, ai.Addr.String())
 					}
 
 					if len(p.DeferredResources) != 1 {
@@ -2106,7 +2105,7 @@ module "mod" {
 }
 `,
 					"mod/mod.tf": `
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   config {
     attr = "static"
   }
@@ -2115,7 +2114,7 @@ resource "other_object" "a" {
   lifecycle {
     action_trigger {
       events  = [before_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -2141,7 +2140,7 @@ resource "other_object" "a" {
 					if got := len(p.DeferredActionInvocations); got != 1 {
 						t.Fatalf("expected 1 deferred action invocations, got %d", got)
 					}
-					ac, err := p.DeferredActionInvocations[0].Decode(&unlinkedActionSchema)
+					ac, err := p.DeferredActionInvocations[0].Decode(&testActionSchema)
 					if err != nil {
 						t.Fatalf("error decoding action invocation: %s", err)
 					}
@@ -2178,7 +2177,7 @@ module "mod" {
 variable "actions" {
   type = set(string)
 }
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   // Unknown for_each inside the module instance.
   for_each = var.actions
 }
@@ -2187,7 +2186,7 @@ resource "other_object" "a" {
     action_trigger {
       events  = [before_create]
       // We reference a specific (yet unknown) action instance key.
-      actions = [action.test_unlinked.hello["a"]]
+      actions = [action.test_action.hello["a"]]
     }
   }
 }
@@ -2217,7 +2216,7 @@ resource "other_object" "a" {
 						t.Fatalf("expected 1 deferred partial action invocations, got %d", len(p.DeferredActionInvocations))
 					}
 
-					ac, err := p.DeferredActionInvocations[0].Decode(&unlinkedActionSchema)
+					ac, err := p.DeferredActionInvocations[0].Decode(&testActionSchema)
 					if err != nil {
 						t.Fatalf("error decoding action invocation: %s", err)
 					}
@@ -2236,7 +2235,7 @@ resource "other_object" "a" {
 resource "test_object" "origin" {
   name = "origin"
 }
-action "test_unlinked" "hello" {
+action "test_action" "hello" {
   config {
     attr = test_object.origin.name
   }
@@ -2246,7 +2245,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -2276,8 +2275,8 @@ resource "test_object" "a" {
 					if len(p.DeferredActionInvocations) != 1 {
 						t.Errorf("Expected 1 deferred action invocation, got %d", len(p.DeferredActionInvocations))
 					}
-					if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_unlinked.hello" {
-						t.Errorf("Expected action. test_unlinked.hello, got %s", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
+					if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
+						t.Errorf("Expected action. test_action.hello, got %s", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
 					}
 					if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
 						t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredActionInvocations[0].DeferredReason)
@@ -2320,12 +2319,12 @@ resource "test_object" "a" {
 			"simple action invoke": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "one" {
+action "test_action" "one" {
   config {
     attr = "one"
   }
 }
-action "test_unlinked" "two" {
+action "test_action" "two" {
   config {
     attr = "two"
   }
@@ -2338,7 +2337,7 @@ action "test_unlinked" "two" {
 						addrs.AbsActionInstance{
 							Action: addrs.ActionInstance{
 								Action: addrs.Action{
-									Type: "test_unlinked",
+									Type: "test_action",
 									Name: "one",
 								},
 								Key: addrs.NoKey,
@@ -2353,7 +2352,7 @@ action "test_unlinked" "two" {
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
-					ai, err := ais.Decode(&unlinkedActionSchema)
+					ai, err := ais.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2369,7 +2368,7 @@ action "test_unlinked" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2378,14 +2377,14 @@ action "test_unlinked" "two" {
 			"action invoke with count (all)": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "one" {
+action "test_action" "one" {
   count = 2
 
   config {
     attr = "${count.index}"
   }
 }
-action "test_unlinked" "two" {
+action "test_action" "two" {
   count = 2
 
   config {
@@ -2399,7 +2398,7 @@ action "test_unlinked" "two" {
 					ActionTargets: []addrs.Targetable{
 						addrs.AbsAction{
 							Action: addrs.Action{
-								Type: "test_unlinked",
+								Type: "test_action",
 								Name: "one",
 							},
 						},
@@ -2416,7 +2415,7 @@ action "test_unlinked" "two" {
 					})
 
 					ais := plan.Changes.ActionInvocations[0]
-					ai, err := ais.Decode(&unlinkedActionSchema)
+					ai, err := ais.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2432,12 +2431,12 @@ action "test_unlinked" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[0]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[0]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 
 					ais = plan.Changes.ActionInvocations[1]
-					ai, err = ais.Decode(&unlinkedActionSchema)
+					ai, err = ais.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2453,7 +2452,7 @@ action "test_unlinked" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[1]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[1]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2462,14 +2461,14 @@ action "test_unlinked" "two" {
 			"action invoke with count (instance)": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "one" {
+action "test_action" "one" {
   count = 2
 
   config {
     attr = "${count.index}"
   }
 }
-action "test_unlinked" "two" {
+action "test_action" "two" {
   count = 2
 
   config {
@@ -2484,7 +2483,7 @@ action "test_unlinked" "two" {
 						addrs.AbsActionInstance{
 							Action: addrs.ActionInstance{
 								Action: addrs.Action{
-									Type: "test_unlinked",
+									Type: "test_action",
 									Name: "one",
 								},
 								Key: addrs.IntKey(0),
@@ -2499,7 +2498,7 @@ action "test_unlinked" "two" {
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
-					ai, err := ais.Decode(&unlinkedActionSchema)
+					ai, err := ais.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2515,7 +2514,7 @@ action "test_unlinked" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one[0]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[0]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2528,7 +2527,7 @@ resource "test_object" "a" {
   name = "hello"
 }
 
-action "test_unlinked" "one" {
+action "test_action" "one" {
   config {
     attr = test_object.a.name
   }
@@ -2540,7 +2539,7 @@ action "test_unlinked" "one" {
 					ActionTargets: []addrs.Targetable{
 						addrs.AbsAction{
 							Action: addrs.Action{
-								Type: "test_unlinked",
+								Type: "test_action",
 								Name: "one",
 							},
 						},
@@ -2559,7 +2558,7 @@ action "test_unlinked" "one" {
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
-					ai, err := ais.Decode(&unlinkedActionSchema)
+					ai, err := ais.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2575,7 +2574,7 @@ action "test_unlinked" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2588,7 +2587,7 @@ resource "test_object" "a" {
   name = "hello"
 }
 
-action "test_unlinked" "one" {
+action "test_action" "one" {
   config {
     attr = test_object.a.name
   }
@@ -2600,7 +2599,7 @@ action "test_unlinked" "one" {
 					ActionTargets: []addrs.Targetable{
 						addrs.AbsAction{
 							Action: addrs.Action{
-								Type: "test_unlinked",
+								Type: "test_action",
 								Name: "one",
 							},
 						},
@@ -2619,7 +2618,7 @@ action "test_unlinked" "one" {
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
-					ai, err := ais.Decode(&unlinkedActionSchema)
+					ai, err := ais.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2635,7 +2634,7 @@ action "test_unlinked" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2655,7 +2654,7 @@ resource "test_object" "a" {
   name = "hello"
 }
 
-action "test_unlinked" "one" {
+action "test_action" "one" {
   config {
     attr = test_object.a.name
   }
@@ -2668,7 +2667,7 @@ action "test_unlinked" "one" {
 					ActionTargets: []addrs.Targetable{
 						addrs.AbsAction{
 							Action: addrs.Action{
-								Type: "test_unlinked",
+								Type: "test_action",
 								Name: "one",
 							},
 						},
@@ -2687,7 +2686,7 @@ action "test_unlinked" "one" {
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
-					ai, err := ais.Decode(&unlinkedActionSchema)
+					ai, err := ais.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2703,7 +2702,7 @@ action "test_unlinked" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2723,7 +2722,7 @@ resource "test_object" "a" {
   name = "hello"
 }
 
-action "test_unlinked" "one" {
+action "test_action" "one" {
   config {
     attr = "world"
   }
@@ -2735,7 +2734,7 @@ action "test_unlinked" "one" {
 					ActionTargets: []addrs.Targetable{
 						addrs.AbsAction{
 							Action: addrs.Action{
-								Type: "test_unlinked",
+								Type: "test_action",
 								Name: "one",
 							},
 						},
@@ -2754,7 +2753,7 @@ action "test_unlinked" "one" {
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
-					ai, err := ais.Decode(&unlinkedActionSchema)
+					ai, err := ais.Decode(&testActionSchema)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2770,7 +2769,7 @@ action "test_unlinked" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_unlinked.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 
@@ -2793,9 +2792,9 @@ action "test_unlinked" "one" {
 			"boolean condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
-action "test_unlinked" "bye" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
+action "test_action" "bye" {}
 resource "test_object" "foo" {
 name = "foo"
 }
@@ -2804,12 +2803,12 @@ lifecycle {
   action_trigger {
     events = [before_create]
     condition = test_object.foo.name == "foo"
-    actions = [action.test_unlinked.hello, action.test_unlinked.world]
+    actions = [action.test_action.hello, action.test_action.world]
   }
   action_trigger {
     events = [after_create]
     condition = test_object.foo.name == "bye"
-    actions = [action.test_unlinked.bye]
+    actions = [action.test_action.bye]
   }
 }
 }
@@ -2828,8 +2827,8 @@ lifecycle {
 					}
 					slices.Sort(invokedActionAddrs)
 					expectedActions := []string{
-						"action.test_unlinked.hello",
-						"action.test_unlinked.world",
+						"action.test_action.hello",
+						"action.test_action.world",
 					}
 					if !cmp.Equal(expectedActions, invokedActionAddrs) {
 						t.Fatalf("expected actions: %v, got %v", expectedActions, invokedActionAddrs)
@@ -2843,13 +2842,13 @@ lifecycle {
 variable "cond" {
     type = string
 }
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
       condition = var.cond == "foo"
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -2872,8 +2871,8 @@ resource "test_object" "a" {
 						Detail:   "The condition expression resulted in an unknown value, but it must be a known boolean value.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 186},
-							End:      hcl.Pos{Line: 10, Column: 36, Byte: 203},
+							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 184},
+							End:      hcl.Pos{Line: 10, Column: 36, Byte: 201},
 						},
 					})
 				},
@@ -2882,7 +2881,7 @@ resource "test_object" "a" {
 			"non-boolean condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
+action "test_action" "hello" {}
 resource "test_object" "foo" {
   name = "foo"
 }
@@ -2891,7 +2890,7 @@ resource "test_object" "a" {
     action_trigger {
       events = [before_create]
       condition = test_object.foo.name
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -2906,8 +2905,8 @@ resource "test_object" "a" {
 						Detail:   "Invalid expression value: a bool is required.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 196},
-							End:      hcl.Pos{Line: 10, Column: 39, Byte: 216},
+							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 194},
+							End:      hcl.Pos{Line: 10, Column: 39, Byte: 214},
 						},
 					})
 				},
@@ -2916,20 +2915,20 @@ resource "test_object" "a" {
 			"using self in before_* condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
 resource "test_object" "a" {
   name = "foo"
   lifecycle {
     action_trigger {
       events = [before_create]
       condition = self.name == "foo"
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
     action_trigger {
       events = [after_update]
       condition = self.name == "bar"
-      actions = [action.test_unlinked.world]
+      actions = [action.test_action.world]
     }
   }
 }
@@ -2944,8 +2943,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "self".`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 9, Column: 19, Byte: 197},
-							End:      hcl.Pos{Line: 9, Column: 37, Byte: 215},
+							Start:    hcl.Pos{Line: 9, Column: 19, Byte: 193},
+							End:      hcl.Pos{Line: 9, Column: 37, Byte: 211},
 						},
 					})
 				},
@@ -2954,20 +2953,20 @@ resource "test_object" "a" {
 			"using self in after_* condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
 resource "test_object" "a" {
   name = "foo"
   lifecycle {
     action_trigger {
       events = [after_create]
       condition = self.name == "foo"
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
     action_trigger {
       events = [after_update]
       condition = self.name == "bar"
-      actions = [action.test_unlinked.world]
+      actions = [action.test_action.world]
     }
   }
 }
@@ -2983,8 +2982,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "self".`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 9, Column: 19, Byte: 196},
-							End:      hcl.Pos{Line: 9, Column: 37, Byte: 214},
+							Start:    hcl.Pos{Line: 9, Column: 19, Byte: 192},
+							End:      hcl.Pos{Line: 9, Column: 37, Byte: 210},
 						},
 					})
 				},
@@ -2993,8 +2992,8 @@ resource "test_object" "a" {
 			"using each in before_* condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
 resource "test_object" "a" {
   for_each = toset(["foo", "bar"])
   name = each.key
@@ -3002,7 +3001,7 @@ resource "test_object" "a" {
     action_trigger {
       events = [before_create]
       condition = each.key == "foo"
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -3017,8 +3016,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 235},
-							End:      hcl.Pos{Line: 10, Column: 36, Byte: 252},
+							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 231},
+							End:      hcl.Pos{Line: 10, Column: 36, Byte: 248},
 						},
 					}).Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -3026,8 +3025,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 235},
-							End:      hcl.Pos{Line: 10, Column: 36, Byte: 252},
+							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 231},
+							End:      hcl.Pos{Line: 10, Column: 36, Byte: 248},
 						},
 					})
 				},
@@ -3036,8 +3035,8 @@ resource "test_object" "a" {
 			"using each in after_* condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
 resource "test_object" "a" {
   for_each = toset(["foo", "bar"])
   name = each.key
@@ -3045,16 +3044,15 @@ resource "test_object" "a" {
     action_trigger {
       events = [after_create]
       condition = each.key == "foo"
-      actions = [action.test_unlinked.hello]
+      actions = [action.test_action.hello]
     }
     action_trigger {
       events = [after_update]
       condition = each.key == "bar"
-      actions = [action.test_unlinked.world]
+      actions = [action.test_action.world]
     }
   }
-}
-`,
+}`,
 				},
 				expectPlanActionCalled: true,
 
@@ -3062,8 +3060,8 @@ resource "test_object" "a" {
 					if len(p.Changes.ActionInvocations) != 1 {
 						t.Errorf("Expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
 					}
-					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
-						t.Errorf("Expected action 'action.test_unlinked.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Errorf("Expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
 					}
 				},
 			},
@@ -3071,25 +3069,24 @@ resource "test_object" "a" {
 			"using count.index in before_* condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
 resource "test_object" "a" {
-				count = 3
-				name = "item-${count.index}"
-				lifecycle {
-						action_trigger {
-								events = [before_create]
-								condition = count.index == 1
-								actions = [action.test_unlinked.hello]
-						}
-						action_trigger {
-								events = [before_update]
-								condition = count.index == 2
-								actions = [action.test_unlinked.world]
-						}
-				}
-}
-				`,
+	count = 3
+	name = "item-${count.index}"
+	lifecycle {
+		action_trigger {
+			events = [before_create]
+			condition = count.index == 1
+			actions = [action.test_action.hello]
+		}
+		action_trigger {
+			events = [before_update]
+			condition = count.index == 2
+			actions = [action.test_action.world]
+		}
+	}
+}`,
 				},
 				expectPlanActionCalled: false,
 
@@ -3100,8 +3097,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
-							End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
+							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 210},
+							End:      hcl.Pos{Line: 10, Column: 37, Byte: 226},
 						},
 					}).Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -3109,8 +3106,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
-							End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
+							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 210},
+							End:      hcl.Pos{Line: 10, Column: 37, Byte: 226},
 						},
 					}).Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -3118,8 +3115,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 237},
-							End:      hcl.Pos{Line: 10, Column: 37, Byte: 253},
+							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 210},
+							End:      hcl.Pos{Line: 10, Column: 37, Byte: 226},
 						},
 					})
 				},
@@ -3128,23 +3125,23 @@ resource "test_object" "a" {
 			"using count.index in after_* condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
 resource "test_object" "a" {
-				count = 3
-				name = "item-${count.index}"
-				lifecycle {
-						action_trigger {
-								events = [after_create]
-								condition = count.index == 1
-								actions = [action.test_unlinked.hello]
-						}
-						action_trigger {
-								events = [after_update]
-								condition = count.index == 2
-								actions = [action.test_unlinked.world]
-						}
-				}
+	count = 3
+	name = "item-${count.index}"
+	lifecycle {
+		action_trigger {
+			events = [after_create]
+			condition = count.index == 1
+			actions = [action.test_action.hello]
+		}
+		action_trigger {
+			events = [after_update]
+			condition = count.index == 2
+			actions = [action.test_action.world]
+		}
+	}
 }
 				`,
 				},
@@ -3154,8 +3151,8 @@ resource "test_object" "a" {
 					if len(p.Changes.ActionInvocations) != 1 {
 						t.Errorf("Expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
 					}
-					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
-						t.Errorf("Expected action invocation %q, got %q", "action.test_unlinked.hello", p.Changes.ActionInvocations[0].Addr.String())
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Errorf("Expected action invocation %q, got %q", "action.test_action.hello", p.Changes.ActionInvocations[0].Addr.String())
 					}
 				},
 			},
@@ -3163,8 +3160,8 @@ resource "test_object" "a" {
 			"using each.value in before_* condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
 resource "test_object" "a" {
 				for_each = {"foo" = "value1", "bar" = "value2"}
 				name = each.value
@@ -3172,12 +3169,12 @@ resource "test_object" "a" {
 						action_trigger {
 								events = [before_create]
 								condition = each.value == "value1"
-								actions = [action.test_unlinked.hello]
+								actions = [action.test_action.hello]
 						}
 						action_trigger {
 								events = [before_update]
 								condition = each.value == "value2"
-								actions = [action.test_unlinked.world]
+								actions = [action.test_action.world]
 						}
 				}
 }
@@ -3192,8 +3189,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 264},
-							End:      hcl.Pos{Line: 10, Column: 43, Byte: 286},
+							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 260},
+							End:      hcl.Pos{Line: 10, Column: 43, Byte: 282},
 						},
 					}).Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -3201,8 +3198,8 @@ resource "test_object" "a" {
 						Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 264},
-							End:      hcl.Pos{Line: 10, Column: 43, Byte: 286},
+							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 260},
+							End:      hcl.Pos{Line: 10, Column: 43, Byte: 282},
 						},
 					})
 				},
@@ -3211,8 +3208,8 @@ resource "test_object" "a" {
 			"using each.value in after_* condition": {
 				module: map[string]string{
 					"main.tf": `
-action "test_unlinked" "hello" {}
-action "test_unlinked" "world" {}
+action "test_action" "hello" {}
+action "test_action" "world" {}
 resource "test_object" "a" {
 				for_each = {"foo" = "value1", "bar" = "value2"}
 				name = each.value
@@ -3220,12 +3217,12 @@ resource "test_object" "a" {
 						action_trigger {
 								events = [after_create]
 								condition = each.value == "value1"
-								actions = [action.test_unlinked.hello]
+								actions = [action.test_action.hello]
 						}
 						action_trigger {
 								events = [after_update]
 								condition = each.value == "value2"
-								actions = [action.test_unlinked.world]
+								actions = [action.test_action.world]
 						}
 				}
 }
@@ -3237,8 +3234,8 @@ resource "test_object" "a" {
 					if len(p.Changes.ActionInvocations) != 1 {
 						t.Errorf("Expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
 					}
-					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_unlinked.hello" {
-						t.Errorf("Expected action 'action.test_unlinked.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Errorf("Expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
 					}
 				},
 			},
@@ -3256,31 +3253,9 @@ resource "test_object" "a" {
 					p := &testing_provider.MockProvider{
 						GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 							Actions: map[string]providers.ActionSchema{
-								"test_unlinked":    unlinkedActionSchema,
-								"test_unlinked_wo": writeOnlyUnlinkedActionSchema,
-								"test_nested":      nestedActionSchema,
-
-								"test_lifecycle": {
-									ConfigSchema: &configschema.Block{
-										Attributes: map[string]*configschema.Attribute{
-											"attr": {
-												Type:     cty.String,
-												Optional: true,
-											},
-										},
-									},
-								},
-
-								"test_linked": {
-									ConfigSchema: &configschema.Block{
-										Attributes: map[string]*configschema.Attribute{
-											"attr": {
-												Type:     cty.String,
-												Optional: true,
-											},
-										},
-									},
-								},
+								"test_action":    testActionSchema,
+								"test_action_wo": writeOnlyActionSchema,
+								"test_nested":    nestedActionSchema,
 							},
 							ResourceTypes: map[string]providers.Schema{
 								"test_object": {
@@ -3317,7 +3292,7 @@ resource "test_object" "a" {
 					ecosystem := &testing_provider.MockProvider{
 						GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 							Actions: map[string]providers.ActionSchema{
-								"ecosystem_unlinked": {
+								"ecosystem": {
 									ConfigSchema: &configschema.Block{
 										Attributes: map[string]*configschema.Attribute{
 											"attr": {
@@ -3418,7 +3393,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -3435,7 +3410,7 @@ resource "test_object" "a" {
 	if !diags.HasErrors() {
 		t.Fatal("expected errors, got success!")
 	}
-	if diags.Err().Error() != "Configuration for triggered action does not exist: The configuration for the given action action.act_unlinked.hello does not exist. All triggered actions must have an associated configuration." {
+	if diags.Err().Error() != "Configuration for triggered action does not exist: The configuration for the given action action.test_action.hello does not exist. All triggered actions must have an associated configuration." {
 		t.Fatal("wrong error!")
 	}
 }

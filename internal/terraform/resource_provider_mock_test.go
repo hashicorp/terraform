@@ -53,7 +53,7 @@ func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block)
 
 // simpleMockProvider returns a MockProvider that is pre-configured with schema
 // for its own config, a resource type called "test_object", a data source also
-// called "test_object", and an unlinked (generic) action called "test_action".
+// called "test_object", and an action called "test_action".
 //
 // All four schemas have the same content as returned by function
 // simpleTestSchema.

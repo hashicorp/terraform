@@ -8467,8 +8467,8 @@ func TestResourceChange_actions(t *testing.T) {
 		"before actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8494,7 +8494,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             disk = {
                 size = "100"
@@ -8511,8 +8511,8 @@ func TestResourceChange_actions(t *testing.T) {
 		"after actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8538,7 +8538,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked after this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             disk = {
                 size = "100"
@@ -8555,8 +8555,8 @@ func TestResourceChange_actions(t *testing.T) {
 		"before and after actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8570,8 +8570,8 @@ func TestResourceChange_actions(t *testing.T) {
 					})),
 				},
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8585,8 +8585,8 @@ func TestResourceChange_actions(t *testing.T) {
 					})),
 				},
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8600,8 +8600,8 @@ func TestResourceChange_actions(t *testing.T) {
 					})),
 				},
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8615,8 +8615,8 @@ func TestResourceChange_actions(t *testing.T) {
 					})),
 				},
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8636,17 +8636,17 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "first-block-and-action"
         }
     }
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "first-block-second-action"
         }
     }
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "fourth-block-first-action"
         }
@@ -8654,12 +8654,12 @@ func TestResourceChange_actions(t *testing.T) {
 
 
     # Actions to be invoked after this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "second-block-first-action"
         }
     }
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "third-block-first-action"
         }
@@ -8669,8 +8669,8 @@ func TestResourceChange_actions(t *testing.T) {
 		"no config value": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8687,7 +8687,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
     }
 `,
 		},
@@ -8707,7 +8707,7 @@ func TestResourceChange_actions(t *testing.T) {
 							},
 						},
 						Actions: map[string]providers.ActionSchema{
-							"test_unlinked": {
+							"test_action": {
 								ConfigSchema: blockSchema,
 							},
 						},

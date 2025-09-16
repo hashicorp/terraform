@@ -572,7 +572,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}.Instance(addrs.IntKey(0)).Absolute(vpc)
 
 	act1 := &plans.ActionInvocationInstanceSrc{
-		Addr: addrs.Action{Type: "test_unlinked_action", Name: "hello"}.Instance(addrs.NoKey).Absolute(root),
+		Addr: addrs.Action{Type: "test_action", Name: "hello"}.Instance(addrs.NoKey).Absolute(root),
 		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  boop,
 			ActionTriggerEvent:      configs.AfterCreate,
@@ -581,7 +581,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 		},
 	}
 	act2 := &plans.ActionInvocationInstanceSrc{
-		Addr: addrs.Action{Type: "test_unlinked_other_action", Name: "world"}.Instance(addrs.NoKey).Absolute(root),
+		Addr: addrs.Action{Type: "test_other_action", Name: "world"}.Instance(addrs.NoKey).Absolute(root),
 		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  boop,
 			ActionTriggerEvent:      configs.AfterCreate,
@@ -590,7 +590,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 		},
 	}
 	act3 := &plans.ActionInvocationInstanceSrc{
-		Addr: addrs.Action{Type: "test_unlinked_action", Name: "goodbye"}.Instance(addrs.IntKey(0)).Absolute(vpc),
+		Addr: addrs.Action{Type: "test_action", Name: "goodbye"}.Instance(addrs.IntKey(0)).Absolute(vpc),
 		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  beep,
 			ActionTriggerEvent:      configs.BeforeUpdate,
@@ -665,18 +665,18 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 		// Action invocation 1
 		{
 			"@level":   "info",
-			"@message": "planned action invocation: action.test_unlinked_action.hello",
+			"@message": "planned action invocation: action.test_action.hello",
 			"@module":  "terraform.ui",
 			"type":     "planned_action_invocation",
 			"invocation": map[string]interface{}{
 				"action_addr": map[string]interface{}{
-					"addr":             `action.test_unlinked_action.hello`,
+					"addr":             `action.test_action.hello`,
 					"implied_provider": "test",
 					"module":           "",
-					"action":           `action.test_unlinked_action.hello`,
+					"action":           `action.test_action.hello`,
 					"action_key":       nil,
 					"action_name":      "hello",
-					"action_type":      "test_unlinked_action",
+					"action_type":      "test_action",
 				},
 				"lifecycle_trigger": map[string]interface{}{
 					"action_trigger_block_index": float64(0),
@@ -697,18 +697,18 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 		// Action invocation 2
 		{
 			"@level":   "info",
-			"@message": "planned action invocation: action.test_unlinked_other_action.world",
+			"@message": "planned action invocation: action.test_other_action.world",
 			"@module":  "terraform.ui",
 			"type":     "planned_action_invocation",
 			"invocation": map[string]interface{}{
 				"action_addr": map[string]interface{}{
-					"addr":             `action.test_unlinked_other_action.world`,
+					"addr":             `action.test_other_action.world`,
 					"implied_provider": "test",
 					"module":           "",
-					"action":           `action.test_unlinked_other_action.world`,
+					"action":           `action.test_other_action.world`,
 					"action_key":       nil,
 					"action_name":      "world",
-					"action_type":      "test_unlinked_other_action",
+					"action_type":      "test_other_action",
 				},
 				"lifecycle_trigger": map[string]interface{}{
 					"action_trigger_block_index": float64(0),
@@ -729,18 +729,18 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 		// Action invocation 3
 		{
 			"@level":   "info",
-			"@message": "planned action invocation: action.test_unlinked_action.goodbye[0]",
+			"@message": "planned action invocation: action.test_action.goodbye[0]",
 			"@module":  "terraform.ui",
 			"type":     "planned_action_invocation",
 			"invocation": map[string]interface{}{
 				"action_addr": map[string]interface{}{
-					"addr":             `module.vpc.action.test_unlinked_action.goodbye[0]`,
+					"addr":             `module.vpc.action.test_action.goodbye[0]`,
 					"implied_provider": "test",
 					"module":           "module.vpc",
-					"action":           `action.test_unlinked_action.goodbye[0]`,
+					"action":           `action.test_action.goodbye[0]`,
 					"action_key":       float64(0),
 					"action_name":      "goodbye",
-					"action_type":      "test_unlinked_action",
+					"action_type":      "test_action",
 				},
 				"lifecycle_trigger": map[string]interface{}{
 					"action_trigger_block_index": float64(1),
