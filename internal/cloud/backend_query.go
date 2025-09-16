@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
@@ -276,7 +277,7 @@ func (b *Cloud) cancelQueryRun(cancelCtx context.Context, op *backendrun.Operati
 // formatIdentity formats the identity map into a string representation.
 // It flattens the map into a string of key=value pairs, separated by commas.
 func formatIdentity(identity map[string]json.RawMessage) string {
-	parts := make([]string, 0, len(identity))
+	ctyObj := make(map[string]cty.Value, len(identity))
 	for key, value := range identity {
 		ty, err := ctyjson.ImpliedType(value)
 		if err != nil {
@@ -286,9 +287,9 @@ func formatIdentity(identity map[string]json.RawMessage) string {
 		if err != nil {
 			continue
 		}
-		parts = append(parts, fmt.Sprintf("%s=%s", key, tfdiags.ValueToString(v)))
+		ctyObj[key] = v
 	}
-	return strings.Join(parts, ",")
+	return tfdiags.ObjectToString(cty.ObjectVal(ctyObj))
 }
 
 const queryDefaultHeader = `
