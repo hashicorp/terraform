@@ -79,6 +79,14 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 
 	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
+	configSchema := n.Schema.Body.BlockTypes["config"]
+	// if the config value is null, we still want to send a full object with all attributes being null
+	if !unmarkedBlockVal.IsNull() && unmarkedBlockVal.GetAttr("config").IsNull() {
+		mp := unmarkedBlockVal.AsValueMap()
+		mp["config"] = configSchema.Block.EmptyValue()
+		unmarkedBlockVal = cty.ObjectVal(mp)
+	}
+
 	validateResp := provider.ValidateListResourceConfig(
 		providers.ValidateListResourceConfigRequest{
 			TypeName:              n.Config.Type,

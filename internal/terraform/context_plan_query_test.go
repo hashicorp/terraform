@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -24,15 +25,16 @@ import (
 
 func TestContext2Plan_queryList(t *testing.T) {
 	cases := []struct {
-		name           string
-		mainConfig     string
-		queryConfig    string
-		generatedPath  string
-		diagCount      int
-		expectedErrMsg []string
-		assertState    func(*states.State)
-		assertChanges  func(providers.ProviderSchema, *plans.ChangesSrc)
-		listResourceFn func(request providers.ListResourceRequest) providers.ListResourceResponse
+		name                string
+		mainConfig          string
+		queryConfig         string
+		generatedPath       string
+		expectedErrMsg      []string
+		transformSchema     func(*providers.GetProviderSchemaResponse)
+		assertState         func(*states.State)
+		assertValidateDiags func(t *testing.T, diags tfdiags.Diagnostics)
+		assertChanges       func(providers.ProviderSchema, *plans.ChangesSrc)
+		listResourceFn      func(request providers.ListResourceRequest) providers.ListResourceResponse
 	}{
 		{
 			name: "valid list reference - generates config",
@@ -262,7 +264,8 @@ func TestContext2Plan_queryList(t *testing.T) {
 			},
 		},
 		{
-			name: "valid list with empty config",
+			// want this to fail
+			name: "with empty config when it is required",
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -283,6 +286,90 @@ func TestContext2Plan_queryList(t *testing.T) {
 					provider = test
 				}
 				`,
+
+			transformSchema: func(schema *providers.GetProviderSchemaResponse) {
+				schema.ListResourceTypes["test_resource"].Body.BlockTypes = map[string]*configschema.NestedBlock{
+					"config": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"filter": {
+									Required: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"attr": {
+												Type:     cty.String,
+												Optional: true,
+											},
+										},
+									},
+								},
+							},
+						},
+						Nesting:  configschema.NestingSingle,
+						MinItems: 1,
+						MaxItems: 1,
+					},
+				}
+
+			},
+			assertValidateDiags: func(t *testing.T, diags tfdiags.Diagnostics) {
+				tfdiags.AssertDiagnosticCount(t, diags, 1)
+				var exp tfdiags.Diagnostics
+				exp = exp.Append(&hcl.Diagnostic{
+					Summary: "Missing config block",
+					Detail:  "A block of type \"config\" is required here.",
+					Subject: diags[0].Source().Subject.ToHCL().Ptr(),
+				})
+				tfdiags.AssertDiagnosticsMatch(t, diags, exp)
+			},
+		},
+		{
+			name: "with empty optional config",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				variable "input" {
+					type = string
+					default = "foo"
+				}
+
+				list "test_resource" "test" {
+					provider = test
+				}
+				`,
+			transformSchema: func(schema *providers.GetProviderSchemaResponse) {
+				schema.ListResourceTypes["test_resource"].Body.BlockTypes = map[string]*configschema.NestedBlock{
+					"config": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"filter": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"attr": {
+												Type:     cty.String,
+												Optional: true,
+											},
+										},
+									},
+								},
+							},
+						},
+						Nesting: configschema.NestingSingle,
+					},
+				}
+
+			},
 			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				madeUp := []cty.Value{
 					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
@@ -397,10 +484,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			diagCount: 1,
-			expectedErrMsg: []string{
-				"Invalid list resource traversal",
-				"The first step in the traversal for a list resource must be an attribute \"data\"",
+			assertValidateDiags: func(t *testing.T, diags tfdiags.Diagnostics) {
+				tfdiags.AssertDiagnosticCount(t, diags, 1)
+				var exp tfdiags.Diagnostics
+				exp = exp.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid list resource traversal",
+					Detail:   "The first step in the traversal for a list resource must be an attribute \"data\".",
+					Subject:  diags[0].Source().Subject.ToHCL().Ptr(),
+				})
+
+				tfdiags.AssertDiagnosticsMatch(t, diags, exp)
 			},
 		},
 		{
@@ -428,9 +522,18 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			diagCount: 1,
-			expectedErrMsg: []string{
-				"A list resource \"non_existent\" \"attr\" has not been declared in the root module.",
+			assertValidateDiags: func(t *testing.T, diags tfdiags.Diagnostics) {
+				tfdiags.AssertDiagnosticCount(t, diags, 1)
+				var exp tfdiags.Diagnostics
+
+				exp = exp.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to undeclared resource",
+					Detail:   "A list resource \"non_existent\" \"attr\" has not been declared in the root module.",
+					Subject:  diags[0].Source().Subject.ToHCL().Ptr(),
+				})
+
+				tfdiags.AssertDiagnosticsMatch(t, diags, exp)
 			},
 		},
 		{
@@ -469,9 +572,18 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			diagCount: 1,
-			expectedErrMsg: []string{
-				"Unsupported attribute: This object has no argument, nested block, or exported attribute named \"invalid_attr\".",
+			assertValidateDiags: func(t *testing.T, diags tfdiags.Diagnostics) {
+				tfdiags.AssertDiagnosticCount(t, diags, 1)
+				var exp tfdiags.Diagnostics
+
+				exp = exp.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported attribute",
+					Detail:   "This object has no argument, nested block, or exported attribute named \"invalid_attr\".",
+					Subject:  diags[0].Source().Subject.ToHCL().Ptr(),
+				})
+
+				tfdiags.AssertDiagnosticsMatch(t, diags, exp)
 			},
 			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				madeUp := []cty.Value{
@@ -540,9 +652,14 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			diagCount: 1,
-			expectedErrMsg: []string{
-				"Cycle: list.test_resource",
+			assertValidateDiags: func(t *testing.T, diags tfdiags.Diagnostics) {
+				tfdiags.AssertDiagnosticCount(t, diags, 1)
+				if !strings.Contains(diags[0].Description().Summary, "Cycle: list.test_resource") {
+					t.Errorf("Expected error message to contain 'Cycle: list.test_resource', got %q", diags[0].Description().Summary)
+				}
+				if diags[0].Severity() != tfdiags.Error {
+					t.Errorf("Expected error severity to be Error, got %s", diags[0].Severity())
+				}
 			},
 		},
 		{
@@ -661,7 +778,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 		},
 		{
 			// Test list reference with index but without data field
-			name: "list reference with index but without data field",
+			name: "list reference as for_each",
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -784,6 +901,9 @@ func TestContext2Plan_queryList(t *testing.T) {
 			provider := testProvider("test")
 			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
 			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+			if tc.transformSchema != nil {
+				tc.transformSchema(provider.GetProviderSchemaResponse)
+			}
 			var requestConfigs = make(map[string]cty.Value)
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				if request.Config.IsNull() || request.Config.GetAttr("config").IsNull() {
@@ -804,15 +924,20 @@ func TestContext2Plan_queryList(t *testing.T) {
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
+			diags = ctx.Validate(mod, &ValidateOpts{})
+			if tc.assertValidateDiags != nil {
+				tc.assertValidateDiags(t, diags)
+				return
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
+
 			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
 				Mode:               plans.NormalMode,
 				SetVariables:       testInputValuesUnset(mod.Module.Variables),
 				Query:              true,
 				GenerateConfigPath: tc.generatedPath,
 			})
-			if len(diags) != tc.diagCount {
-				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
-			}
 
 			if tc.assertChanges != nil {
 				sch, err := ctx.Schemas(mod, states.NewState())
@@ -821,15 +946,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 				}
 				tc.assertChanges(sch.Providers[providerAddr], plan.Changes)
 			}
-
-			if tc.diagCount > 0 {
-				for _, err := range tc.expectedErrMsg {
-					if !strings.Contains(diags.Err().Error(), err) {
-						t.Fatalf("expected error message %q, but got %q", err, diags.Err().Error())
-					}
-				}
-			}
-
 		})
 	}
 }

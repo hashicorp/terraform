@@ -20,7 +20,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -172,24 +171,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, list := range protoResp.ListResourceSchemas {
-		ret := convert.ProtoToProviderSchema(list, nil)
-		resp.ListResourceTypes[name] = providers.Schema{
-			Version: ret.Version,
-			Body: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"data": {
-						Type:     cty.DynamicPseudoType,
-						Computed: true,
-					},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"config": {
-						Block:   *ret.Body,
-						Nesting: configschema.NestingSingle,
-					},
-				},
-			},
-		}
+		resp.ListResourceTypes[name] = convert.ProtoToListSchema(list)
 	}
 
 	for name, store := range protoResp.StateStoreSchemas {

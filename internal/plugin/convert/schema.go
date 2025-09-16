@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ConfigSchemaToProto takes a *configschema.Block and converts it to a
@@ -108,6 +109,39 @@ func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) pr
 func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
 	return providers.ActionSchema{
 		ConfigSchema: ProtoToConfigSchema(s.Schema.Block),
+	}
+}
+
+func ProtoToListSchema(s *proto.Schema) providers.Schema {
+	listSchema := ProtoToProviderSchema(s, nil)
+	itemCount := 0
+	// check if the provider has set some attributes as required.
+	// When yes, then we set minItem = 1, which
+	// validates that the configuration contains a "config" block.
+	for _, attrS := range listSchema.Body.Attributes {
+		if attrS.Required {
+			itemCount = 1
+			break
+		}
+	}
+	return providers.Schema{
+		Version: listSchema.Version,
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"data": {
+					Type:     cty.DynamicPseudoType,
+					Computed: true,
+				},
+			},
+			BlockTypes: map[string]*configschema.NestedBlock{
+				"config": {
+					Block:    *listSchema.Body,
+					Nesting:  configschema.NestingSingle,
+					MinItems: itemCount,
+					MaxItems: itemCount,
+				},
+			},
+		},
 	}
 }
 
