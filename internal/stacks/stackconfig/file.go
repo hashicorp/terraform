@@ -203,8 +203,6 @@ func ParseFileSource(src []byte, fileAddr sourceaddrs.FinalSource) (*File, tfdia
 // validFilenameSuffix returns ".tfcomponent.hcl" or ".tfcomponent.json" if the
 // given filename ends with that suffix, and otherwise returns an empty
 // string to indicate that the suffix was invalid.
-//
-// We still support the deprecated .tfstack suffix for the time being.
 func validFilenameSuffix(filename string) string {
 	const nativeSuffix = ".tfcomponent.hcl"
 	const jsonSuffix = ".tfcomponent.json"
