@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -2393,6 +2394,65 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 				t.Fatalf("error should include %q, got: %s", tc.wantErr, err.Err())
 			}
 
+		})
+	}
+}
+
+func Test_isProviderReattached(t *testing.T) {
+	cases := map[string]struct {
+		provider          addrs.Provider
+		reattachProviders string
+		expectedOutput    bool
+	}{
+		"identifies when a matching provider is present in TF_REATTACH_PROVIDERS": {
+			// Note that the source in the TF_REATTACH_PROVIDERS value is just the provider name.
+			// It'll be assumed to be under the default registry host and in the 'hashicorp' namespace.
+			reattachProviders: `{
+				"test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`,
+			provider:       tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "test"),
+			expectedOutput: true,
+		},
+		"identifies when a provider doesn't have a match in TF_REATTACH_PROVIDERS": {
+			// Note the mismatch on namespace
+			reattachProviders: `{
+				"hashicorp/test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`,
+			provider:       tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "dadgarcorp", "test"),
+			expectedOutput: false,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+
+			t.Setenv("TF_REATTACH_PROVIDERS", tc.reattachProviders)
+
+			output, err := isProviderReattached(tc.provider)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if output != tc.expectedOutput {
+				t.Fatalf("expected returned value to be %v, got %v", tc.expectedOutput, output)
+			}
 		})
 	}
 }

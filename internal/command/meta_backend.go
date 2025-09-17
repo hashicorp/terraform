@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -1449,6 +1451,29 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	return b, diags
+}
+
+// isProviderReattached determines if a given provider is being supplied to Terraform via the TF_REATTACH_PROVIDERS
+// environment variable.
+func isProviderReattached(provider addrs.Provider) (bool, error) {
+	in := os.Getenv("TF_REATTACH_PROVIDERS")
+	if in != "" {
+		var m map[string]any // We are only going to use the unmarshalled provider names
+		err := json.Unmarshal([]byte(in), &m)
+		if err != nil {
+			return false, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
+		}
+		for p := range m {
+			a, diags := addrs.ParseProviderSourceString(p)
+			if diags.HasErrors() {
+				return false, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
+			}
+			if a.Equals(provider) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // Initializing a saved backend from the cache file (legacy state file)
