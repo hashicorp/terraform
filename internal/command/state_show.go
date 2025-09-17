@@ -155,7 +155,7 @@ func (c *StateShowCommand) Run(args []string) int {
 		ProviderFormatVersion: jsonprovider.FormatVersion,
 		RootModule:            root,
 		RootModuleOutputs:     outputs,
-		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
+		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 	}
 
 	renderer := jsonformat.Renderer{

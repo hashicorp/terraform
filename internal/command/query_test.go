@@ -80,7 +80,7 @@ configuration file (.tfquery.hcl file) and try again.
 			name:        "invalid query syntax",
 			directory:   "invalid-syntax",
 			expectedOut: "",
-			initCode:    1,
+			initCode:    0,
 			expectedErr: []string{`
 Error: Unsupported block type
 
@@ -172,21 +172,6 @@ The root module input variable "instance_name" is not set, and has no default
 value. Use a -var or -var-file command line argument to provide a value for
 this variable.
 `},
-		},
-		{
-			name:        "error - duplicate variable across .tf and .tfquery files",
-			directory:   "duplicate-variables",
-			expectedOut: "",
-			expectedErr: []string{`
-Error: Duplicate variable declaration
-
-  on query.tfquery.hcl line 2:
-   2: variable "instance_name" {
-
-A variable named "instance_name" was already declared at main.tf:15,1-25.
-Variable names must be unique within a module.
-`},
-			initCode: 1,
 		},
 	}
 

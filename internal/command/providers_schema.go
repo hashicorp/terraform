@@ -107,7 +107,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		return 1
 	}
 
-	jsonSchemas, err := jsonprovider.Marshal(schemas, c.AllowExperimentalFeatures)
+	jsonSchemas, err := jsonprovider.Marshal(schemas)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to marshal provider schemas to json: %s", err))
 		return 1

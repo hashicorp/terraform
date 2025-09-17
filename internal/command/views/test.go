@@ -203,7 +203,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 					ProviderFormatVersion: jsonprovider.FormatVersion,
 					RootModule:            root,
 					RootModuleOutputs:     outputs,
-					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 				}
 
 				t.view.streams.Println() // Separate the state from any previous statements.
@@ -225,7 +225,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 					OutputChanges:         outputs,
 					ResourceChanges:       changed,
 					ResourceDrift:         drift,
-					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 					RelevantAttributes:    attrs,
 					ActionInvocations:     actions,
 				}
@@ -568,7 +568,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					ProviderFormatVersion: jsonprovider.FormatVersion,
 					RootModule:            root,
 					RootModuleOutputs:     outputs,
-					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 				}
 
 				t.view.log.Info(
@@ -592,7 +592,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					OutputChanges:         outputs,
 					ResourceChanges:       changed,
 					ResourceDrift:         drift,
-					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas, false),
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 					RelevantAttributes:    attrs,
 					ActionInvocations:     actions,
 				}
