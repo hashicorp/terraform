@@ -938,6 +938,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 				Query:              true,
 				GenerateConfigPath: tc.generatedPath,
 			})
+			tfdiags.AssertNoDiagnostics(t, diags)
 
 			if tc.assertChanges != nil {
 				sch, err := ctx.Schemas(mod, states.NewState())
