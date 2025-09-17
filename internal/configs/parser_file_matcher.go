@@ -59,8 +59,8 @@ func (p *Parser) dirFileSet(dir string, opts ...Option) (ConfigFileSet, hcl.Diag
 
 	// Set up the parser configuration
 	cfg := &parserConfig{
-		// We always match .tf files and .tfquery.hcl files
-		matchers:      []FileMatcher{&moduleFiles{}, &queryFiles{}},
+		// We always match .tf files
+		matchers:      []FileMatcher{&moduleFiles{}},
 		testDirectory: DefaultTestDirectory,
 		fs:            p.fs,
 	}
@@ -136,6 +136,13 @@ func MatchTestFiles(dir string) Option {
 	return func(o *parserConfig) {
 		o.testDirectory = dir
 		o.matchers = append(o.matchers, &testFiles{})
+	}
+}
+
+// MatchQueryFiles adds a matcher for Terraform query files (.tfquery.hcl and .tfquery.json)
+func MatchQueryFiles() Option {
+	return func(o *parserConfig) {
+		o.matchers = append(o.matchers, &queryFiles{})
 	}
 }
 

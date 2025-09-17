@@ -4,9 +4,10 @@
 package configload
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/terraform/internal/configs"
 )
 
 // NewLoaderForTests is a variant of NewLoader that is intended to be more
@@ -20,10 +21,10 @@ import (
 // In the case of any errors, t.Fatal (or similar) will be called to halt
 // execution of the test, so the calling test does not need to handle errors
 // itself.
-func NewLoaderForTests(t testing.TB) (*Loader, func()) {
+func NewLoaderForTests(t testing.TB, parserOpts ...configs.Option) (*Loader, func()) {
 	t.Helper()
 
-	modulesDir, err := ioutil.TempDir("", "tf-configs")
+	modulesDir, err := os.MkdirTemp("", "tf-configs")
 	if err != nil {
 		t.Fatalf("failed to create temporary modules dir: %s", err)
 		return nil, func() {}
@@ -36,6 +37,7 @@ func NewLoaderForTests(t testing.TB) (*Loader, func()) {
 	loader, err := NewLoader(&Config{
 		ModulesDir: modulesDir,
 	})
+	loader.parserOpts = append(loader.parserOpts, parserOpts...)
 	if err != nil {
 		cleanup()
 		t.Fatalf("failed to create config loader: %s", err)

@@ -97,6 +97,8 @@ func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 		t.Fatal(err)
 	}
 
+	var queryOpt configs.Option
+
 	for path, configStr := range sources {
 		dir := filepath.Dir(path)
 		if dir != "." {
@@ -116,9 +118,18 @@ func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 		if err != nil {
 			t.Fatalf("Error creating temporary file for config: %s", err)
 		}
+
+		if strings.HasSuffix(path, "tfquery.hcl") || strings.HasSuffix(path, "tfquery.json") {
+			queryOpt = configs.MatchQueryFiles()
+		}
 	}
 
-	loader, cleanup := configload.NewLoaderForTests(t)
+	var parserOpts []configs.Option
+	if queryOpt != nil {
+		parserOpts = append(parserOpts, queryOpt)
+	}
+
+	loader, cleanup := configload.NewLoaderForTests(t, parserOpts...)
 	defer cleanup()
 
 	// We need to be able to exercise experimental features in our integration tests.
@@ -139,7 +150,7 @@ func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadConfig(cfgPath, configs.MatchTestFiles("tests"))
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
