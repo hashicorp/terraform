@@ -4,6 +4,7 @@ package tfdiags
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
@@ -23,29 +24,39 @@ func ObjectToString(obj cty.Value) string {
 		return "<empty>"
 	}
 
-	if obj.Type().IsObjectType() {
-		result := ""
-		it := obj.ElementIterator()
-		for it.Next() {
-			key, val := it.Element()
-			keyStr := key.AsString()
-
-			if result != "" {
-				result += ","
-			}
-
-			if val.IsNull() {
-				result += fmt.Sprintf("%s=<null>", keyStr)
-				continue
-			}
-
-			result += fmt.Sprintf("%s=%s", keyStr, ValueToString(val))
-		}
-
-		return result
+	if !obj.Type().IsObjectType() {
+		panic("not an object")
 	}
 
-	panic("not an object")
+	it := obj.ElementIterator()
+	keys := make([]string, 0, obj.LengthInt())
+	objMap := make(map[string]cty.Value)
+	result := ""
+	// store the keys for the object, and sort them
+	// before appending to the result so that the final value is deterministic.
+	for it.Next() {
+		key, val := it.Element()
+		keyStr := key.AsString()
+		keys = append(keys, keyStr)
+		objMap[keyStr] = val
+	}
+
+	slices.Sort(keys)
+	for _, key := range keys {
+		val := objMap[key]
+		if result != "" {
+			result += ","
+		}
+
+		if val.IsNull() {
+			result += fmt.Sprintf("%s=<null>", key)
+			continue
+		}
+
+		result += fmt.Sprintf("%s=%s", key, ValueToString(val))
+	}
+
+	return result
 }
 
 func ValueToString(val cty.Value) string {

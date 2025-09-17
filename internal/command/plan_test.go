@@ -1588,6 +1588,56 @@ func TestPlan_jsonGoldenReference(t *testing.T) {
 	checkGoldenReference(t, output, "plan")
 }
 
+// Tests related to how plan command behaves when there are query files in the configuration path
+func TestPlan_QueryFiles(t *testing.T) {
+	// a plan succeeds regardless of valid or invalid
+	// tfquery files in the configuration path
+	t.Run("with invalid query files in the config path", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("query/invalid-syntax"), td)
+		t.Chdir(td)
+
+		p := planFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+	})
+
+	// the duplicate in the query should not matter because query files are not processed
+	t.Run("with duplicate variables across query and plan file", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("query/duplicate-variables"), td)
+		t.Chdir(td)
+
+		p := planFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{"-var", "instance_name=foo"}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+	})
+}
+
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -121,8 +122,15 @@ func TestCloud_queryJSONBasic(t *testing.T) {
 	outp := close(t)
 	gotOut := outp.Stdout()
 
-	if !strings.Contains(gotOut, "list.concept_pet.pets   id=complete-gannet,legs=6   This is a complete-gannet") {
-		t.Fatalf("expected query results in output: %s", gotOut)
+	expectedOut := `list.concept_pet.pets   id=large-roughy,legs=2      This is a large-roughy
+list.concept_pet.pets   id=able-werewolf,legs=5     This is a able-werewolf
+list.concept_pet.pets   id=complete-gannet,legs=6   This is a complete-gannet
+list.concept_pet.pets   id=charming-beagle,legs=3   This is a charming-beagle
+list.concept_pet.pets   id=legal-lamprey,legs=2     This is a legal-lamprey
+
+`
+	if diff := cmp.Diff(expectedOut, gotOut); diff != "" {
+		t.Fatalf("expected query results output to be %s, got %s: diff: %s", expectedOut, gotOut, diff)
 	}
 
 	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
