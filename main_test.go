@@ -339,6 +339,7 @@ func Test_parseReattachProviders(t *testing.T) {
 	cases := map[string]struct {
 		reattachProviders string
 		expectedOutput    map[addrs.Provider]*plugin.ReattachConfig
+		expectErr         bool
 	}{
 		"simple parse - 1 provider": {
 			reattachProviders: `{
@@ -453,6 +454,67 @@ func Test_parseReattachProviders(t *testing.T) {
 				}(),
 			},
 		},
+		"error - bad provider address": {
+			reattachProviders: `{
+				"bad provider addr": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`,
+			expectErr: true,
+		},
+		"error - unrecognised protocol": {
+			reattachProviders: `{
+				"test": {
+					"Protocol": "carrier-pigeon",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "pigeon",
+						"String":"fly home little pigeon"
+					}
+				}
+			}`,
+			expectErr: true,
+		},
+		"error - unrecognised network": {
+			reattachProviders: `{
+				"test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "linkedin",
+						"String":"http://www.linkedin.com/"
+					}
+				}
+			}`,
+			expectErr: true,
+		},
+		"error - bad tcp address": {
+			// Addr.String has no port at the end
+			reattachProviders: `{
+				"test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "tcp",
+						"String":"127.0.0.1"
+					}
+				}
+			}`,
+			expectErr: true,
+		},
 	}
 
 	for tn, tc := range cases {
@@ -460,7 +522,14 @@ func Test_parseReattachProviders(t *testing.T) {
 
 			output, err := parseReattachProviders(tc.reattachProviders)
 			if err != nil {
-				t.Fatal(err)
+				if !tc.expectErr {
+					t.Fatal(err)
+				}
+				// an expected error occurred
+				return
+			}
+			if err == nil && tc.expectErr {
+				t.Fatal("expected error but there was none")
 			}
 			if diff := cmp.Diff(output, tc.expectedOutput); diff != "" {
 				t.Fatalf("expected diff:\n%s", diff)
