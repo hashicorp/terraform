@@ -38,7 +38,7 @@ func (m *Meta) normalizePath(path string) string {
 // loadConfig reads a configuration from the given directory, which should
 // contain a root module and have already have any required descendant modules
 // installed.
-func (m *Meta) loadConfig(rootDir string, parserOpts ...configs.Option) (*configs.Config, tfdiags.Diagnostics) {
+func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	rootDir = m.normalizePath(rootDir)
 
@@ -48,7 +48,7 @@ func (m *Meta) loadConfig(rootDir string, parserOpts ...configs.Option) (*config
 		return nil, diags
 	}
 
-	config, hclDiags := loader.LoadConfig(rootDir, parserOpts...)
+	config, hclDiags := loader.LoadConfig(rootDir)
 	diags = diags.Append(hclDiags)
 	return config, diags
 }
@@ -353,8 +353,9 @@ func (m *Meta) registerSynthConfigSource(filename string, src []byte) {
 func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 	if m.configLoader == nil {
 		loader, err := configload.NewLoader(&configload.Config{
-			ModulesDir: m.modulesDir(),
-			Services:   m.Services,
+			ModulesDir:   m.modulesDir(),
+			Services:     m.Services,
+			IncludeQuery: m.includeQueryFiles,
 		})
 		if err != nil {
 			return nil, err

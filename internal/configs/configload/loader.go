@@ -27,6 +27,8 @@ type Loader struct {
 	// modules is used to install and locate descendant modules that are
 	// referenced (directly or indirectly) from the root module.
 	modules moduleMgr
+
+	parserOpts []configs.Option
 }
 
 // Config is used with NewLoader to specify configuration arguments for the
@@ -43,6 +45,8 @@ type Config struct {
 	// not supported, which should be true only in specialized circumstances
 	// such as in tests.
 	Services *disco.Disco
+
+	IncludeQuery bool
 }
 
 // NewLoader creates and returns a loader that reads configuration from the
@@ -65,11 +69,16 @@ func NewLoader(config *Config) (*Loader, error) {
 			Services:   config.Services,
 			Registry:   reg,
 		},
+		parserOpts: make([]configs.Option, 0),
 	}
 
 	err := ret.modules.readModuleManifestSnapshot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read module manifest: %s", err)
+	}
+
+	if config.IncludeQuery {
+		ret.parserOpts = append(ret.parserOpts, configs.MatchQueryFiles())
 	}
 
 	return ret, nil
@@ -122,7 +131,7 @@ func (l *Loader) Sources() map[string][]byte {
 // least one Terraform configuration file. This is a wrapper around calling
 // the same method name on the loader's parser.
 func (l *Loader) IsConfigDir(path string) bool {
-	return l.parser.IsConfigDir(path)
+	return l.parser.IsConfigDir(path, l.parserOpts...)
 }
 
 // ImportSources writes into the receiver's source code map the given source

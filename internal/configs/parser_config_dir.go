@@ -153,8 +153,8 @@ func (p Parser) ConfigDirFiles(dir string, opts ...Option) (primary, override []
 // exists and contains at least one Terraform config file (with a .tf or
 // .tf.json extension.). Note, we explicitely exclude checking for tests here
 // as tests must live alongside actual .tf config files. Same goes for query files.
-func (p *Parser) IsConfigDir(path string) bool {
-	pathSet, _ := p.dirFileSet(path)
+func (p *Parser) IsConfigDir(path string, opts ...Option) bool {
+	pathSet, _ := p.dirFileSet(path, opts...)
 	return (len(pathSet.Primary) + len(pathSet.Override)) > 0
 }
 
