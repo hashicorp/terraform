@@ -46,7 +46,9 @@ type Config struct {
 	// such as in tests.
 	Services *disco.Disco
 
-	IncludeQuery bool
+	// IncludeQueryFiles is set to true if query files should be parsed
+	// when running query commands.
+	IncludeQueryFiles bool
 }
 
 // NewLoader creates and returns a loader that reads configuration from the
@@ -77,7 +79,7 @@ func NewLoader(config *Config) (*Loader, error) {
 		return nil, fmt.Errorf("failed to read module manifest: %s", err)
 	}
 
-	if config.IncludeQuery {
+	if config.IncludeQueryFiles {
 		ret.parserOpts = append(ret.parserOpts, configs.MatchQueryFiles())
 	}
 

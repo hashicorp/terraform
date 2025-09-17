@@ -273,7 +273,7 @@ type Meta struct {
 	// state even if the remote and local Terraform versions don't match.
 	ignoreRemoteVersion bool
 
-	// set when running query commands
+	// set to true if query files should be parsed
 	includeQueryFiles bool
 }
 
