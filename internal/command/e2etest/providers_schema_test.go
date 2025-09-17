@@ -134,6 +134,21 @@ func TestProvidersSchema(t *testing.T) {
                     }
                 }
             },
+            "list_resource_schemas": {
+                "simple_resource": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "value": {
+                                "type": "string",
+                                "description_kind": "plain",
+                                "optional": true
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            },
             "resource_identity_schemas": {
                 "simple_resource": {
                     "version": 0,
@@ -203,6 +218,21 @@ func TestProvidersSchema(t *testing.T) {
                                 "description_kind": "plain",
                                 "computed": true
                             },
+                            "value": {
+                                "type": "string",
+                                "description_kind": "plain",
+                                "optional": true
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            },
+            "list_resource_schemas": {
+                "simple_resource": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
                             "value": {
                                 "type": "string",
                                 "description_kind": "plain",
