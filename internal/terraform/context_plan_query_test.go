@@ -264,7 +264,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 			},
 		},
 		{
-			// want this to fail
 			name: "with empty config when it is required",
 			mainConfig: `
 				terraform {
@@ -777,7 +776,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 			},
 		},
 		{
-			// Test list reference with index but without data field
 			name: "list reference as for_each",
 			mainConfig: `
 				terraform {

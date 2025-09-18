@@ -146,6 +146,23 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 							Required: true,
 						},
 					},
+					BlockTypes: []*proto.Schema_NestedBlock{
+						{
+							TypeName: "nested_filter",
+							Nesting:  proto.Schema_NestedBlock_SINGLE,
+							Block: &proto.Schema_Block{
+								Attributes: []*proto.Schema_Attribute{
+									{
+										Name:     "nested_attr",
+										Type:     []byte(`"string"`),
+										Required: false,
+									},
+								},
+							},
+							MinItems: 1,
+							MaxItems: 1,
+						},
+					},
 				},
 			},
 		},
@@ -1436,6 +1453,21 @@ func TestGRPCProvider_GetSchema_ListResourceTypes(t *testing.T) {
 								"filter_attr": {
 									Type:     cty.String,
 									Required: true,
+								},
+							},
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"nested_filter": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"nested_attr": {
+												Type:     cty.String,
+												Required: false,
+											},
+										},
+									},
+									Nesting:  configschema.NestingSingle,
+									MinItems: 1,
+									MaxItems: 1,
 								},
 							},
 						},
