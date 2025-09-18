@@ -1519,6 +1519,9 @@ func TestGRPCProvider_Encode(t *testing.T) {
 			Before: cty.NullVal(cty.Object(map[string]cty.Type{
 				"config": cty.Object(map[string]cty.Type{
 					"filter_attr": cty.String,
+					"nested_filter": cty.Object(map[string]cty.Type{
+						"nested_attr": cty.String,
+					}),
 				}),
 				"data": cty.List(cty.Object(map[string]cty.Type{
 					"state": cty.Object(map[string]cty.Type{
@@ -1532,6 +1535,9 @@ func TestGRPCProvider_Encode(t *testing.T) {
 			After: cty.ObjectVal(map[string]cty.Value{
 				"config": cty.ObjectVal(map[string]cty.Value{
 					"filter_attr": cty.StringVal("value"),
+					"nested_filter": cty.ObjectVal(map[string]cty.Value{
+						"nested_attr": cty.StringVal("value"),
+					}),
 				}),
 				"data": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -1765,6 +1771,9 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
+			"nested_filter": cty.ObjectVal(map[string]cty.Value{
+				"nested_attr": cty.StringVal("value"),
+			}),
 		}),
 	})
 	request := providers.ListResourceRequest{
@@ -1780,6 +1789,9 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
+			"nested_filter": cty.ObjectVal(map[string]cty.Value{
+				"nested_attr": cty.StringVal("value"),
+			}),
 		}),
 	})
 	request := providers.ListResourceRequest{
