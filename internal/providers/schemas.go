@@ -52,13 +52,15 @@ func (ss ProviderSchema) SchemaForActionType(typeName string) (schema ActionSche
 // empty schema if none is available.
 func (ss ProviderSchema) SchemaForListResourceType(typeName string) ListResourceSchema {
 	schema, ok := ss.ListResourceTypes[typeName]
+	ret := ListResourceSchema{FullSchema: schema.Body}
 	if !ok || schema.Body == nil {
-		return ListResourceSchema{}
+		return ret
 	}
 	// The configuration for the list block is nested within a "config" block.
 	configSchema, ok := schema.Body.BlockTypes["config"]
 	if !ok {
-		return ListResourceSchema{}
+		return ret
 	}
-	return ListResourceSchema{ConfigSchema: &configSchema.Block, FullSchema: schema.Body}
+	ret.ConfigSchema = &configSchema.Block
+	return ret
 }
