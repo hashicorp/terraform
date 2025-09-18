@@ -363,11 +363,12 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 	}
 
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	config := cty.NullVal(configSchema.ImpliedType())
+	ty := configSchema.ImpliedType()
+	config := cty.NullVal(ty)
 	if r.Config.Type().HasAttribute("config") {
 		config = r.Config.GetAttr("config")
 	}
-	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
+	mp, err := msgpack.Marshal(config, ty)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp

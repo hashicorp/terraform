@@ -483,7 +483,7 @@ func TestGRPCProvider_ValidateListResourceConfig(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"config": map[string]interface{}{"filter_attr": "value"}})
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"config": map[string]interface{}{"filter_attr": "value", "nested_filter": map[string]interface{}{"nested_attr": "value"}}})
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
 		Config:   cfg,
@@ -495,8 +495,12 @@ func TestGRPCProvider_ValidateListResourceConfig_OptionalCfg(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mockproto.NewMockProviderClient(ctrl)
 	sch := providerProtoSchema()
+
+	// mock the schema in a way that makes the config attributes optional
 	sch.ListResourceSchemas["list"].Block.Attributes[0].Optional = true
 	sch.ListResourceSchemas["list"].Block.Attributes[0].Required = false
+	sch.ListResourceSchemas["list"].Block.BlockTypes[0].MinItems = 0
+	sch.ListResourceSchemas["list"].Block.BlockTypes[0].MaxItems = 0
 	// we always need a GetSchema method
 	client.EXPECT().GetSchema(
 		gomock.Any(),
@@ -1689,6 +1693,9 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
+			"nested_filter": cty.ObjectVal(map[string]cty.Value{
+				"nested_attr": cty.StringVal("value"),
+			}),
 		}),
 	})
 	request := providers.ListResourceRequest{
@@ -2055,6 +2062,9 @@ func TestGRPCProvider_ListResource_Limit(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
+			"nested_filter": cty.ObjectVal(map[string]cty.Value{
+				"nested_attr": cty.StringVal("value"),
+			}),
 		}),
 	})
 	request := providers.ListResourceRequest{
