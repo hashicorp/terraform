@@ -167,11 +167,10 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	})
 	diags = append(diags, contentDiags...)
 
-	var configBlock hcl.Body
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "config":
-			if configBlock != nil {
+			if r.List.Config != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Duplicate config block",
@@ -180,7 +179,7 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				})
 				continue
 			}
-			configBlock = block.Body
+			r.List.Config = block.Body
 		default:
 			// Should not get here because the above should cover all
 			// block types declared in the schema.

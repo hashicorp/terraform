@@ -66,7 +66,7 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 	for _, query := range plan.Changes.Queries {
 		pSchema := schemas.ProviderSchema(query.ProviderAddr.Provider)
 		addr := query.Addr
-		schema := pSchema.ListResourceTypes[addr.Resource.Resource.Type]
+		schema := pSchema.SchemaForListResourceType(addr.Resource.Resource.Type)
 
 		results, err := query.Decode(schema)
 		if err != nil {

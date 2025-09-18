@@ -340,12 +340,12 @@ func (p *MockProvider) ValidateListResourceConfig(r providers.ValidateListResour
 	p.ValidateListResourceConfigRequest = r
 
 	// Marshall the value to replicate behavior by the GRPC protocol
-	listSchema, ok := p.getProviderSchema().ListResourceTypes[r.TypeName]
-	if !ok {
+	listSchema := p.getProviderSchema().SchemaForListResourceType(r.TypeName)
+	if listSchema.IsNil() {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
 		return resp
 	}
-	_, err := msgpack.Marshal(r.Config, listSchema.Body.ImpliedType())
+	_, err := msgpack.Marshal(r.Config, listSchema.ConfigSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp

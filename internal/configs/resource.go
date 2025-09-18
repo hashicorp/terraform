@@ -70,6 +70,9 @@ type ManagedResource struct {
 }
 
 type ListResource struct {
+	// Config is the "config" block from the list resource configuration.
+	Config hcl.Body
+
 	// By default, the results of a list resource only include the identities of
 	// the discovered resources. If the user specifies "include_resources = true",
 	// then the provider should include the resource data in the result.

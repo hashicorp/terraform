@@ -354,20 +354,13 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		return resp
 	}
 
-	listResourceSchema, ok := schema.ListResourceTypes[r.TypeName]
-	if !ok {
+	listResourceSchema := schema.SchemaForListResourceType(r.TypeName)
+	if listResourceSchema.IsNil() {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	if !r.Config.Type().HasAttribute("config") {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing required attribute \"config\"; this is a bug in Terraform - please report it"))
-		return resp
-	}
-
-	config := r.Config.GetAttr("config")
-	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, listResourceSchema.ConfigSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -1309,26 +1302,19 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 		return resp
 	}
 
-	listResourceSchema, ok := schema.ListResourceTypes[r.TypeName]
-	if !ok {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
-		return resp
-	}
-
 	resourceSchema, ok := schema.ResourceTypes[r.TypeName]
 	if !ok || resourceSchema.Identity == nil {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity schema not found for resource type %s", r.TypeName))
 		return resp
 	}
 
-	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	if !r.Config.Type().HasAttribute("config") {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing required attribute \"config\"; this is a bug in Terraform - please report it"))
+	listResourceSchema := schema.SchemaForListResourceType(r.TypeName)
+	if listResourceSchema.IsNil() {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
 
-	config := r.Config.GetAttr("config")
-	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, listResourceSchema.ConfigSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -1427,7 +1413,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
 	resp.Result = cty.ObjectVal(map[string]cty.Value{
 		"data":   cty.TupleVal(results),
-		"config": config,
+		"config": r.Config,
 	})
 	return resp
 }

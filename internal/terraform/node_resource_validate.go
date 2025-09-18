@@ -503,15 +503,16 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		// Use unmarked value for validate request
 		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
 
-		// if the config value is null, we still want to send a full object with all attributes being null
-		if !unmarkedBlockVal.IsNull() && unmarkedBlockVal.GetAttr("config").IsNull() {
-			mp := unmarkedBlockVal.AsValueMap()
-			mp["config"] = schema.ConfigSchema.EmptyValue()
-			unmarkedBlockVal = cty.ObjectVal(mp)
+		// extract the config value from the unmarked block value
+		// if the config value is null, we still want to send a full object which has all its attributes as empty values.
+		configVal := unmarkedBlockVal.GetAttr("config")
+		if configVal.IsNull() {
+			configVal = schema.ConfigSchema.EmptyValue()
 		}
+
 		req := providers.ValidateListResourceConfigRequest{
 			TypeName:              n.Config.Type,
-			Config:                unmarkedBlockVal,
+			Config:                configVal,
 			IncludeResourceObject: includeResource,
 			Limit:                 limit,
 		}

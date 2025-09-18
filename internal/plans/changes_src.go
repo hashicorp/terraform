@@ -150,9 +150,9 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		if !ok {
 			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", qis.ProviderAddr, qis.Addr)
 		}
-		schema := p.ListResourceTypes[qis.Addr.Resource.Resource.Type]
+		schema := p.SchemaForListResourceType(qis.Addr.Resource.Resource.Type)
 
-		if schema.Body == nil {
+		if schema.IsNil() {
 			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", qis.Addr)
 		}
 
@@ -210,8 +210,8 @@ type QueryInstanceSrc struct {
 	Generated    genconfig.ImportGroup
 }
 
-func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, error) {
-	query, err := qis.Results.Decode(schema.Body.ImpliedType())
+func (qis *QueryInstanceSrc) Decode(schema providers.ListResourceSchema) (*QueryInstance, error) {
+	query, err := qis.Results.Decode(schema.FullSchema.ImpliedType())
 	if err != nil {
 		return nil, err
 	}

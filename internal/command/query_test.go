@@ -375,15 +375,13 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 		// Check the config to determine what kind of response to return
 		wholeConfigMap := request.Config.AsValueMap()
 
-		configMap := wholeConfigMap["config"]
-
 		// For empty results test case
-		ami, ok := configMap.AsValueMap()["ami"]
+		ami, ok := wholeConfigMap["ami"]
 		if ok && ami.AsString() == "ami-nonexistent" {
 			return providers.ListResourceResponse{
 				Result: cty.ObjectVal(map[string]cty.Value{
 					"data":   cty.ListValEmpty(cty.DynamicPseudoType),
-					"config": configMap,
+					"config": request.Config,
 				}),
 			}
 		}
@@ -414,7 +412,7 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 							"display_name": cty.StringVal("Test Instance 2"),
 						}),
 					}),
-					"config": configMap,
+					"config": request.Config,
 				}),
 			}
 		case "test_database":
@@ -432,14 +430,14 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 							"display_name": cty.StringVal("Test Database 1"),
 						}),
 					}),
-					"config": configMap,
+					"config": request.Config,
 				}),
 			}
 		default:
 			return providers.ListResourceResponse{
 				Result: cty.ObjectVal(map[string]cty.Value{
 					"data":   cty.ListVal([]cty.Value{}),
-					"config": configMap,
+					"config": request.Config,
 				}),
 			}
 		}

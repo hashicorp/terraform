@@ -86,8 +86,8 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 			return changesSrc, fmt.Errorf("Changes.Encode: missing provider %s for %s", qi.ProviderAddr, qi.Addr)
 		}
 
-		schema := p.ListResourceTypes[qi.Addr.Resource.Resource.Type]
-		if schema.Body == nil {
+		schema := p.SchemaForListResourceType(qi.Addr.Resource.Resource.Type)
+		if schema.IsNil() {
 			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", qi.Addr)
 		}
 		rcs, err := qi.Encode(schema)
@@ -308,8 +308,8 @@ func (qi *QueryInstance) DeepCopy() *QueryInstance {
 	return &ret
 }
 
-func (rc *QueryInstance) Encode(schema providers.Schema) (*QueryInstanceSrc, error) {
-	results, err := NewDynamicValue(rc.Results.Value, schema.Body.ImpliedType())
+func (rc *QueryInstance) Encode(schema providers.ListResourceSchema) (*QueryInstanceSrc, error) {
+	results, err := NewDynamicValue(rc.Results.Value, schema.FullSchema.ImpliedType())
 	if err != nil {
 		return nil, err
 	}
