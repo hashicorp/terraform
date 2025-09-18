@@ -82,18 +82,24 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		return diags
 	}
 
-	// If the action has no "config" attribute at all, we'll send the provider
-	// an empty body - config = {} and omitted config entirely are the same, internally.
-	var config hcl.Body
+	config := n.Config.Config
 	if n.Config.Config == nil {
 		config = hcl.EmptyBody()
-	} else {
-		config = n.Config.Config
 	}
+
 	configVal, _, valDiags := ctx.EvaluateBlock(config, schema.ConfigSchema, nil, keyData)
-	diags = diags.Append(valDiags)
 	if valDiags.HasErrors() {
-		return diags
+		// If there was no config block at all, we'll add a Context range to the returned diagnostic
+		if n.Config.Config == nil {
+			for _, diag := range valDiags.ToHCL() {
+				diag.Context = &n.Config.DeclRange
+				diags = diags.Append(diag)
+			}
+			return diags
+		} else {
+			diags = diags.Append(valDiags)
+			return diags
+		}
 	}
 
 	// Use unmarked value for validate request
