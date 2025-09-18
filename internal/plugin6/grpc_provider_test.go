@@ -522,10 +522,15 @@ func TestGRPCProvider_ValidateListResourceConfig_OptionalCfg(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
+	converted := convert.ProtoToListSchema(sch.ListResourceSchemas["list"])
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{})
+	coercedCfg, err := converted.Body.CoerceValue(cfg)
+	if err != nil {
+		t.Fatalf("failed to coerce config: %v", err)
+	}
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
-		Config:   cfg,
+		Config:   coercedCfg,
 	})
 	checkDiags(t, resp.Diagnostics)
 }

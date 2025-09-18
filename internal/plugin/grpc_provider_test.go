@@ -497,10 +497,16 @@ func TestGRPCProvider_ValidateListResourceConfig_OptionalCfg(t *testing.T) {
 	sch := providerProtoSchema()
 
 	// mock the schema in a way that makes the config attributes optional
-	sch.ListResourceSchemas["list"].Block.Attributes[0].Optional = true
-	sch.ListResourceSchemas["list"].Block.Attributes[0].Required = false
-	sch.ListResourceSchemas["list"].Block.BlockTypes[0].MinItems = 0
-	sch.ListResourceSchemas["list"].Block.BlockTypes[0].MaxItems = 0
+	listSchema := sch.ListResourceSchemas["list"].Block
+	// filter_attr is optional
+	listSchema.Attributes[0].Optional = true
+	listSchema.Attributes[0].Required = false
+
+	// nested_filter is optional
+	listSchema.BlockTypes[0].MinItems = 0
+	listSchema.BlockTypes[0].MaxItems = 0
+
+	sch.ListResourceSchemas["list"].Block = listSchema
 	// we always need a GetSchema method
 	client.EXPECT().GetSchema(
 		gomock.Any(),
@@ -523,10 +529,15 @@ func TestGRPCProvider_ValidateListResourceConfig_OptionalCfg(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{})
+	converted := convert.ProtoToListSchema(sch.ListResourceSchemas["list"])
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]any{})
+	coercedCfg, err := converted.Body.CoerceValue(cfg)
+	if err != nil {
+		t.Fatalf("failed to coerce config: %v", err)
+	}
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
-		Config:   cfg,
+		Config:   coercedCfg,
 	})
 	checkDiags(t, resp.Diagnostics)
 }

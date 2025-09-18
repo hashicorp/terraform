@@ -359,11 +359,14 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
+
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	config := cty.NullVal(configSchema.ImpliedType())
-	if r.Config.Type().HasAttribute("config") {
-		config = r.Config.GetAttr("config")
+	if !r.Config.Type().HasAttribute("config") {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing required attribute \"config\"; this is a bug in Terraform - please report it"))
+		return resp
 	}
+
+	config := r.Config.GetAttr("config")
 	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -1319,10 +1322,12 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	}
 
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	config := cty.NullVal(configSchema.ImpliedType())
-	if r.Config.Type().HasAttribute("config") {
-		config = r.Config.GetAttr("config")
+	if !r.Config.Type().HasAttribute("config") {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing required attribute \"config\"; this is a bug in Terraform - please report it"))
+		return resp
 	}
+
+	config := r.Config.GetAttr("config")
 	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
