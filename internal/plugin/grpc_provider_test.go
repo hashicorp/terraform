@@ -483,7 +483,7 @@ func TestGRPCProvider_ValidateListResourceConfig(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"config": map[string]interface{}{"filter_attr": "value", "nested_filter": map[string]interface{}{"nested_attr": "value"}}})
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]any{"filter_attr": "value", "nested_filter": map[string]any{"nested_attr": "value"}})
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
 		Config:   cfg,
@@ -530,14 +530,10 @@ func TestGRPCProvider_ValidateListResourceConfig_OptionalCfg(t *testing.T) {
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
 	converted := convert.ProtoToListSchema(sch.ListResourceSchemas["list"])
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]any{})
-	coercedCfg, err := converted.Body.CoerceValue(cfg)
-	if err != nil {
-		t.Fatalf("failed to coerce config: %v", err)
-	}
+	cfg := converted.Body.BlockTypes["config"].Block.EmptyValue()
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
-		Config:   coercedCfg,
+		Config:   cfg,
 	})
 	checkDiags(t, resp.Diagnostics)
 }
@@ -1702,11 +1698,9 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 
 	// Create the request
 	configVal := cty.ObjectVal(map[string]cty.Value{
-		"config": cty.ObjectVal(map[string]cty.Value{
-			"filter_attr": cty.StringVal("filter-value"),
-			"nested_filter": cty.ObjectVal(map[string]cty.Value{
-				"nested_attr": cty.StringVal("value"),
-			}),
+		"filter_attr": cty.StringVal("filter-value"),
+		"nested_filter": cty.ObjectVal(map[string]cty.Value{
+			"nested_attr": cty.StringVal("value"),
 		}),
 	})
 	request := providers.ListResourceRequest{
@@ -1787,11 +1781,9 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 	).Return(nil, fmt.Errorf("provider error"))
 
 	configVal := cty.ObjectVal(map[string]cty.Value{
-		"config": cty.ObjectVal(map[string]cty.Value{
-			"filter_attr": cty.StringVal("filter-value"),
-			"nested_filter": cty.ObjectVal(map[string]cty.Value{
-				"nested_attr": cty.StringVal("value"),
-			}),
+		"filter_attr": cty.StringVal("filter-value"),
+		"nested_filter": cty.ObjectVal(map[string]cty.Value{
+			"nested_attr": cty.StringVal("value"),
 		}),
 	})
 	request := providers.ListResourceRequest{
@@ -1805,11 +1797,9 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 
 func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
-		"config": cty.ObjectVal(map[string]cty.Value{
-			"filter_attr": cty.StringVal("filter-value"),
-			"nested_filter": cty.ObjectVal(map[string]cty.Value{
-				"nested_attr": cty.StringVal("value"),
-			}),
+		"filter_attr": cty.StringVal("filter-value"),
+		"nested_filter": cty.ObjectVal(map[string]cty.Value{
+			"nested_attr": cty.StringVal("value"),
 		}),
 	})
 	request := providers.ListResourceRequest{
@@ -2071,11 +2061,9 @@ func TestGRPCProvider_ListResource_Limit(t *testing.T) {
 
 	// Create the request
 	configVal := cty.ObjectVal(map[string]cty.Value{
-		"config": cty.ObjectVal(map[string]cty.Value{
-			"filter_attr": cty.StringVal("filter-value"),
-			"nested_filter": cty.ObjectVal(map[string]cty.Value{
-				"nested_attr": cty.StringVal("value"),
-			}),
+		"filter_attr": cty.StringVal("filter-value"),
+		"nested_filter": cty.ObjectVal(map[string]cty.Value{
+			"nested_attr": cty.StringVal("value"),
 		}),
 	})
 	request := providers.ListResourceRequest{

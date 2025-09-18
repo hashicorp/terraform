@@ -42,7 +42,8 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	// evaluate the list config block
+	// evaluate the entire list block.
+	// We don't single out the config block here so that we can get diagnostics with source information if the config block is invalid.
 	var configDiags tfdiags.Diagnostics
 	blockVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema.FullSchema, nil, keyData)
 	diags = diags.Append(configDiags)
@@ -70,12 +71,19 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	// extract the config value from the unmarked block value
+	// if the config value is null, we still want to send a full object which has all its attributes as empty values.
+	configVal := unmarkedBlockVal.GetAttr("config")
+	if configVal.IsNull() {
+		configVal = schema.ConfigSchema.EmptyValue()
+	}
+
 	rId := HookResourceIdentity{
 		Addr:         addr,
 		ProviderAddr: n.ResolvedProvider.Provider,
 	}
 	ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
+		return h.PreListQuery(rId, configVal)
 	})
 
 	// if we are generating config, we implicitly set include_resource to true
@@ -85,17 +93,11 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 
 	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
-	// if the config value is null, we still want to send a full object with all attributes being null
-	if !unmarkedBlockVal.IsNull() && unmarkedBlockVal.GetAttr("config").IsNull() {
-		mp := unmarkedBlockVal.AsValueMap()
-		mp["config"] = schema.ConfigSchema.EmptyValue()
-		unmarkedBlockVal = cty.ObjectVal(mp)
-	}
 
 	validateResp := provider.ValidateListResourceConfig(
 		providers.ValidateListResourceConfigRequest{
 			TypeName:              n.Config.Type,
-			Config:                unmarkedBlockVal,
+			Config:                configVal,
 			IncludeResourceObject: includeRscCty,
 			Limit:                 limitCty,
 		},
@@ -109,7 +111,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	// to actually call the provider to list the data.
 	resp := provider.ListResource(providers.ListResourceRequest{
 		TypeName:              n.Config.Type,
-		Config:                unmarkedBlockVal,
+		Config:                configVal,
 		Limit:                 limit,
 		IncludeResourceObject: includeRsc,
 	})

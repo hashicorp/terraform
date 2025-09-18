@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"fmt"
-	"maps"
 	"sort"
 	"strings"
 	"testing"
@@ -101,12 +100,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 					resp = append(resp, cty.ObjectVal(mp))
 				}
 
-				ret := request.Config.AsValueMap()
-				maps.Copy(ret, map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				})
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+				return providers.ListResourceResponse{Result: cty.ObjectVal(map[string]cty.Value{
+					"data":   cty.TupleVal(resp),
+					"config": request.Config,
+				})}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test", "list.test_resource.test2"}
@@ -114,7 +111,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 				generatedCfgs := make([]string, 0)
 				for _, change := range changes.Queries {
 					actualResources = append(actualResources, change.Addr.String())
-					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					schema := sch.SchemaForListResourceType(change.Addr.Resource.Resource.Type)
 					cs, err := change.Decode(schema)
 					if err != nil {
 						t.Fatalf("failed to decode change: %s", err)
@@ -210,23 +207,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}))
 				}
 
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+				return providers.ListResourceResponse{Result: cty.ObjectVal(map[string]cty.Value{
+					"data":   cty.TupleVal(resp),
+					"config": request.Config,
+				})}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test[0]", "list.test_resource.test2"}
 				actualResources := make([]string, 0)
 				for _, change := range changes.Queries {
 					actualResources = append(actualResources, change.Addr.String())
-					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					schema := sch.SchemaForListResourceType(change.Addr.Resource.Resource.Type)
 					cs, err := change.Decode(schema)
 					if err != nil {
 						t.Fatalf("failed to decode change: %s", err)
@@ -390,23 +381,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}))
 				}
 
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+				return providers.ListResourceResponse{Result: cty.ObjectVal(map[string]cty.Value{
+					"data":   cty.TupleVal(resp),
+					"config": request.Config,
+				})}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test"}
 				actualResources := make([]string, 0)
 				for _, change := range changes.Queries {
 					actualResources = append(actualResources, change.Addr.String())
-					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					schema := sch.SchemaForListResourceType(change.Addr.Resource.Resource.Type)
 					cs, err := change.Decode(schema)
 					if err != nil {
 						t.Fatalf("failed to decode change: %s", err)
@@ -604,16 +589,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}))
 				}
 
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+				return providers.ListResourceResponse{Result: cty.ObjectVal(map[string]cty.Value{
+					"data":   cty.TupleVal(resp),
+					"config": request.Config,
+				})}
 			},
 		},
 		{
@@ -722,23 +701,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}))
 				}
 
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+				return providers.ListResourceResponse{Result: cty.ObjectVal(map[string]cty.Value{
+					"data":   cty.TupleVal(resp),
+					"config": request.Config,
+				})}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1", "list.test_resource.test2"}
 				actualResources := make([]string, 0)
 				for _, change := range changes.Queries {
 					actualResources = append(actualResources, change.Addr.String())
-					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					schema := sch.SchemaForListResourceType(change.Addr.Resource.Resource.Type)
 					cs, err := change.Decode(schema)
 					if err != nil {
 						t.Fatalf("failed to decode change: %s", err)
@@ -832,23 +805,17 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}))
 				}
 
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+				return providers.ListResourceResponse{Result: cty.ObjectVal(map[string]cty.Value{
+					"data":   cty.TupleVal(resp),
+					"config": request.Config,
+				})}
 			},
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1[\"foo\"]", "list.test_resource.test1[\"bar\"]", "list.test_resource.test2[\"foo\"]", "list.test_resource.test2[\"bar\"]"}
 				actualResources := make([]string, 0)
 				for _, change := range changes.Queries {
 					actualResources = append(actualResources, change.Addr.String())
-					schema := sch.ListResourceTypes[change.Addr.Resource.Resource.Type]
+					schema := sch.SchemaForListResourceType(change.Addr.Resource.Resource.Type)
 					cs, err := change.Decode(schema)
 					if err != nil {
 						t.Fatalf("failed to decode change: %s", err)
@@ -904,7 +871,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			}
 			var requestConfigs = make(map[string]cty.Value)
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				if request.Config.IsNull() || request.Config.GetAttr("config").IsNull() {
+				if request.Config.IsNull() {
 					t.Fatalf("config should never be null, got null for %s", request.TypeName)
 				}
 				requestConfigs[request.TypeName] = request.Config
@@ -1051,7 +1018,7 @@ func TestContext2Plan_queryListArgs(t *testing.T) {
 			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
 			var recordedRequest providers.ListResourceRequest
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				if request.Config.IsNull() || request.Config.GetAttr("config").IsNull() {
+				if request.Config.IsNull() {
 					t.Fatalf("config should never be null, got null for %s", request.TypeName)
 				}
 				recordedRequest = request
