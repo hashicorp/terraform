@@ -695,7 +695,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
 	sMgr := &clistate.LocalState{Path: statePath}
 	if err := sMgr.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		diags = diags.Append(fmt.Errorf("Failed to load the backend state file: %s", err))
 		return nil, diags
 	}
 
