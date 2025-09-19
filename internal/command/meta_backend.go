@@ -2264,7 +2264,7 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 	return diags
 }
 
-func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (providers.Factory, tfdiags.Diagnostics) {
+func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore, configLocks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if config.ProviderAddr.IsZero() {
@@ -2275,13 +2275,12 @@ func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (provide
 			config.Provider.Name))
 	}
 
-	ctxOpts, err := m.contextOpts()
+	factories, err := m.providerFactories(configLocks)
 	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
+		return nil, diags.Append(fmt.Errorf("error when retrieving provider factories: %w", err))
 	}
 
-	factory, exists := ctxOpts.Providers[config.ProviderAddr]
+	factory, exists := factories[config.ProviderAddr]
 	if !exists {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

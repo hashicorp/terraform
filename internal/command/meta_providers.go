@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/internal/plugin"
@@ -257,10 +258,14 @@ func (m *Meta) providerDevOverrideRuntimeWarningsRemoteExecution() tfdiags.Diagn
 // package have been modified outside of the installer. If it returns an error,
 // the returned map may be incomplete or invalid, but will be as complete
 // as possible given the cause of the error.
-func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error) {
-	locks, diags := m.lockedDependencies()
-	if diags.HasErrors() {
-		return nil, fmt.Errorf("failed to read dependency lock file: %s", diags.Err())
+func (m *Meta) providerFactories(locks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
+	if locks == nil {
+		// TODO - remove this and discuss better solution
+		var diags tfdiags.Diagnostics
+		locks, diags = m.lockedDependencies()
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("failed to read dependency lock file: %s", diags.Err())
+		}
 	}
 
 	// We'll always run through all of our providers, even if one of them

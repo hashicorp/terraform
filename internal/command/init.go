@@ -191,7 +191,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		return nil, true, diags
 	case root.StateStore != nil:
 		// state_store config present
-		factory, fDiags := c.Meta.getStateStoreProviderFactory(root.StateStore)
+		factory, fDiags := c.Meta.getStateStoreProviderFactory(root.StateStore, locks)
 		diags = diags.Append(fDiags)
 		if fDiags.HasErrors() {
 			return nil, true, diags
