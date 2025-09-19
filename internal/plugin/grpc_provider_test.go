@@ -146,6 +146,23 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 							Required: true,
 						},
 					},
+					BlockTypes: []*proto.Schema_NestedBlock{
+						{
+							TypeName: "nested_filter",
+							Nesting:  proto.Schema_NestedBlock_SINGLE,
+							Block: &proto.Schema_Block{
+								Attributes: []*proto.Schema_Attribute{
+									{
+										Name:     "nested_attr",
+										Type:     []byte(`"string"`),
+										Required: false,
+									},
+								},
+							},
+							MinItems: 1,
+							MaxItems: 1,
+						},
+					},
 				},
 			},
 		},
@@ -466,7 +483,7 @@ func TestGRPCProvider_ValidateListResourceConfig(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"config": map[string]interface{}{"filter_attr": "value"}})
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"config": map[string]interface{}{"filter_attr": "value", "nested_filter": map[string]interface{}{"nested_attr": "value"}}})
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
 		Config:   cfg,
@@ -478,8 +495,18 @@ func TestGRPCProvider_ValidateListResourceConfig_OptionalCfg(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mockproto.NewMockProviderClient(ctrl)
 	sch := providerProtoSchema()
-	sch.ListResourceSchemas["list"].Block.Attributes[0].Optional = true
-	sch.ListResourceSchemas["list"].Block.Attributes[0].Required = false
+
+	// mock the schema in a way that makes the config attributes optional
+	listSchema := sch.ListResourceSchemas["list"].Block
+	// filter_attr is optional
+	listSchema.Attributes[0].Optional = true
+	listSchema.Attributes[0].Required = false
+
+	// nested_filter is optional
+	listSchema.BlockTypes[0].MinItems = 0
+	listSchema.BlockTypes[0].MaxItems = 0
+
+	sch.ListResourceSchemas["list"].Block = listSchema
 	// we always need a GetSchema method
 	client.EXPECT().GetSchema(
 		gomock.Any(),
@@ -502,10 +529,15 @@ func TestGRPCProvider_ValidateListResourceConfig_OptionalCfg(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
 
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{})
+	converted := convert.ProtoToListSchema(sch.ListResourceSchemas["list"])
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]any{})
+	coercedCfg, err := converted.Body.CoerceValue(cfg)
+	if err != nil {
+		t.Fatalf("failed to coerce config: %v", err)
+	}
 	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: "list",
-		Config:   cfg,
+		Config:   coercedCfg,
 	})
 	checkDiags(t, resp.Diagnostics)
 }
@@ -1438,8 +1470,25 @@ func TestGRPCProvider_GetSchema_ListResourceTypes(t *testing.T) {
 									Required: true,
 								},
 							},
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"nested_filter": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"nested_attr": {
+												Type:     cty.String,
+												Required: false,
+											},
+										},
+									},
+									Nesting:  configschema.NestingSingle,
+									MinItems: 1,
+									MaxItems: 1,
+								},
+							},
 						},
-						Nesting: configschema.NestingSingle,
+						Nesting:  configschema.NestingSingle,
+						MinItems: 1,
+						MaxItems: 1,
 					},
 				},
 			},
@@ -1485,6 +1534,9 @@ func TestGRPCProvider_Encode(t *testing.T) {
 			Before: cty.NullVal(cty.Object(map[string]cty.Type{
 				"config": cty.Object(map[string]cty.Type{
 					"filter_attr": cty.String,
+					"nested_filter": cty.Object(map[string]cty.Type{
+						"nested_attr": cty.String,
+					}),
 				}),
 				"data": cty.List(cty.Object(map[string]cty.Type{
 					"state": cty.Object(map[string]cty.Type{
@@ -1498,6 +1550,9 @@ func TestGRPCProvider_Encode(t *testing.T) {
 			After: cty.ObjectVal(map[string]cty.Value{
 				"config": cty.ObjectVal(map[string]cty.Value{
 					"filter_attr": cty.StringVal("value"),
+					"nested_filter": cty.ObjectVal(map[string]cty.Value{
+						"nested_attr": cty.StringVal("value"),
+					}),
 				}),
 				"data": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -1649,6 +1704,9 @@ func TestGRPCProvider_ListResource(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
+			"nested_filter": cty.ObjectVal(map[string]cty.Value{
+				"nested_attr": cty.StringVal("value"),
+			}),
 		}),
 	})
 	request := providers.ListResourceRequest{
@@ -1731,6 +1789,9 @@ func TestGRPCProvider_ListResource_Error(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
+			"nested_filter": cty.ObjectVal(map[string]cty.Value{
+				"nested_attr": cty.StringVal("value"),
+			}),
 		}),
 	})
 	request := providers.ListResourceRequest{
@@ -1746,6 +1807,9 @@ func TestGRPCProvider_ListResource_Diagnostics(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
+			"nested_filter": cty.ObjectVal(map[string]cty.Value{
+				"nested_attr": cty.StringVal("value"),
+			}),
 		}),
 	})
 	request := providers.ListResourceRequest{
@@ -2009,6 +2073,9 @@ func TestGRPCProvider_ListResource_Limit(t *testing.T) {
 	configVal := cty.ObjectVal(map[string]cty.Value{
 		"config": cty.ObjectVal(map[string]cty.Value{
 			"filter_attr": cty.StringVal("filter-value"),
+			"nested_filter": cty.ObjectVal(map[string]cty.Value{
+				"nested_attr": cty.StringVal("value"),
+			}),
 		}),
 	})
 	request := providers.ListResourceRequest{

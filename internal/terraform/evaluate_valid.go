@@ -303,7 +303,7 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid list resource traversal`,
-					Detail:   fmt.Sprintf(`The first step in the traversal for a %s resource must be an attribute "data", but got %q instead.`, modeAdjective, remain[0]),
+					Detail:   fmt.Sprintf(`The first step in the traversal for a %s resource must be an attribute "data".`, modeAdjective),
 					Subject:  rng.ToHCL().Ptr(),
 				})
 				return diags
@@ -315,7 +315,7 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid list resource traversal`,
-					Detail:   fmt.Sprintf(`The second step in the traversal for a %s resource must be an index, but got %q instead.`, modeAdjective, remain[0]),
+					Detail:   fmt.Sprintf(`The second step in the traversal for a %s resource must be an index.`, modeAdjective),
 					Subject:  rng.ToHCL().Ptr(),
 				})
 				return diags
@@ -331,7 +331,7 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid list resource traversal`,
-					Detail:   fmt.Sprintf(`The third step in the traversal for a %s resource must be an attribute "state" or "identity", but got %q instead.`, modeAdjective, remain[0]),
+					Detail:   fmt.Sprintf(`The third step in the traversal for a %s resource must be an attribute "state" or "identity".`, modeAdjective),
 					Subject:  rng.ToHCL().Ptr(),
 				})
 				return diags
@@ -340,7 +340,7 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid list resource traversal`,
-					Detail:   fmt.Sprintf(`The third step in the traversal for a %s resource must be an attribute "state" or "identity", but got %q instead.`, modeAdjective, stateOrIdent.Name),
+					Detail:   fmt.Sprintf(`The third step in the traversal for a %s resource must be an attribute "state" or "identity".`, modeAdjective),
 					Subject:  rng.ToHCL().Ptr(),
 				})
 				return diags
