@@ -194,8 +194,9 @@ func Test_parseReattachProviders(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
+			t.Setenv("TF_REATTACH_PROVIDERS", tc.reattachProviders)
 
-			output, err := ParseReattachProviders(tc.reattachProviders)
+			output, err := ParseReattachProviders()
 			if err != nil {
 				if !tc.expectErr {
 					t.Fatal(err)

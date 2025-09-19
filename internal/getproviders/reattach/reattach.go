@@ -14,8 +14,8 @@ const TF_REATTACH_PROVIDERS = "TF_REATTACH_PROVIDERS"
 
 // ParseReattachProviders parses information used for reattaching to unmanaged providers out of a
 // JSON-encoded environment variable (TF_REATTACH_PROVIDERS).
-func ParseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfig, error) {
-	os.Getenv(TF_REATTACH_PROVIDERS)
+func ParseReattachProviders() (map[addrs.Provider]*plugin.ReattachConfig, error) {
+	in := os.Getenv(TF_REATTACH_PROVIDERS)
 	unmanagedProviders := map[addrs.Provider]*plugin.ReattachConfig{}
 	if in != "" {
 		type reattachConfig struct {
