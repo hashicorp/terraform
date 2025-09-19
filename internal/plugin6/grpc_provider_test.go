@@ -3707,7 +3707,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		// Define what will be returned by each call to Recv
 		mockReadBytesClient.EXPECT().Recv().Return(&proto.ReadStateBytes_Response{
 			Diagnostics: []*proto.Diagnostic{
-				&proto.Diagnostic{
+				{
 					Severity: proto.Diagnostic_ERROR,
 					Summary:  "Error from test",
 					Detail:   "This error is forced by the test case",

@@ -1548,6 +1548,8 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 	}
 
 	if buf.Len() != expectedTotalLength {
+		logger.Trace("GRPCProvider.v6: ReadStateBytes: received %d bytes but expected the total bytes to be %d.", buf.Len(), expectedTotalLength)
+
 		err = fmt.Errorf("expected state file of total %d bytes, received %d bytes",
 			expectedTotalLength, buf.Len())
 		resp.Diagnostics = resp.Diagnostics.Append(err)
