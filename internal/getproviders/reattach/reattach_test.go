@@ -129,6 +129,22 @@ func Test_parseReattachProviders(t *testing.T) {
 				}(),
 			},
 		},
+		"error - bad JSON": {
+			// Missing closing brace
+			reattachProviders: `{
+				"test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			`,
+			expectErr: true,
+		},
 		"error - bad provider address": {
 			reattachProviders: `{
 				"bad provider addr": {
@@ -144,7 +160,7 @@ func Test_parseReattachProviders(t *testing.T) {
 			}`,
 			expectErr: true,
 		},
-		"error - unrecognised protocol": {
+		"error - unrecognized protocol": {
 			reattachProviders: `{
 				"test": {
 					"Protocol": "carrier-pigeon",
@@ -159,7 +175,7 @@ func Test_parseReattachProviders(t *testing.T) {
 			}`,
 			expectErr: true,
 		},
-		"error - unrecognised network": {
+		"error - unrecognized network": {
 			reattachProviders: `{
 				"test": {
 					"Protocol": "grpc",
