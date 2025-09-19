@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"os"
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -17,8 +16,9 @@ const TF_REATTACH_PROVIDERS = "TF_REATTACH_PROVIDERS"
 
 // ParseReattachProviders parses information used for reattaching to unmanaged providers out of a
 // JSON-encoded environment variable (TF_REATTACH_PROVIDERS).
-func ParseReattachProviders() (map[addrs.Provider]*plugin.ReattachConfig, error) {
-	in := os.Getenv(TF_REATTACH_PROVIDERS)
+//
+// Calling code is expected to pass in the value of os.Getenv("TF_REATTACH_PROVIDERS")
+func ParseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfig, error) {
 	unmanagedProviders := map[addrs.Provider]*plugin.ReattachConfig{}
 	if in != "" {
 		type reattachConfig struct {
@@ -70,8 +70,10 @@ func ParseReattachProviders() (map[addrs.Provider]*plugin.ReattachConfig, error)
 
 // IsProviderReattached determines if a given provider is being supplied to Terraform via the TF_REATTACH_PROVIDERS
 // environment variable.
-func IsProviderReattached(provider addrs.Provider) (bool, error) {
-	providers, err := ParseReattachProviders()
+//
+// Calling code is expected to pass in a provider address and the value of os.Getenv("TF_REATTACH_PROVIDERS")
+func IsProviderReattached(provider addrs.Provider, in string) (bool, error) {
+	providers, err := ParseReattachProviders(in)
 	if err != nil {
 		return false, err
 	}

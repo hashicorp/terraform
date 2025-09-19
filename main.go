@@ -202,7 +202,7 @@ func realMain() int {
 	// The user can declare that certain providers are being managed on
 	// Terraform's behalf using this environment variable. This is used
 	// primarily by the SDK's acceptance testing framework.
-	unmanagedProviders, err := reattach.ParseReattachProviders()
+	unmanagedProviders, err := reattach.ParseReattachProviders(os.Getenv(reattach.TF_REATTACH_PROVIDERS))
 	if err != nil {
 		Ui.Error(err.Error())
 		return 1

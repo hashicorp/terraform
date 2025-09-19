@@ -213,9 +213,7 @@ func Test_parseReattachProviders(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-			t.Setenv("TF_REATTACH_PROVIDERS", tc.reattachProviders)
-
-			output, err := ParseReattachProviders()
+			output, err := ParseReattachProviders(tc.reattachProviders)
 			if err != nil {
 				if !tc.expectErr {
 					t.Fatal(err)
@@ -278,10 +276,7 @@ func Test_isProviderReattached(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-
-			t.Setenv("TF_REATTACH_PROVIDERS", tc.reattachProviders)
-
-			output, err := IsProviderReattached(tc.provider)
+			output, err := IsProviderReattached(tc.provider, tc.reattachProviders)
 			if err != nil {
 				t.Fatal(err)
 			}
