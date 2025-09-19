@@ -1553,6 +1553,16 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+
+	// We're done, so close the stream
+	logger.Trace("GRPCProvider.v6: ReadStateBytes: received all chunks, total bytes: ", buf.Len())
+	err = client.CloseSend()
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	// Add the state data in the response once we know there are no errors
 	resp.Bytes = buf.Bytes()
 
 	return resp

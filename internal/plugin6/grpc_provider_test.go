@@ -3556,6 +3556,9 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			return ret.resp, ret.err
 		}).Times(3)
 
+		// There will be a call to CloseSend to close the stream
+		mockReadBytesClient.EXPECT().CloseSend().Return(nil).Times(1)
+
 		// Act
 		request := providers.ReadStateBytesRequest{
 			TypeName: expectedReq.TypeName,
@@ -3802,6 +3805,51 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 
 		mockError := errors.New("grpc error forced in test")
 		mockClient.EXPECT().Recv().Return(&proto.ReadStateBytes_Response{}, mockError)
+
+		// Act
+		request := providers.ReadStateBytesRequest{
+			TypeName: expectedReq.TypeName,
+			StateId:  expectedReq.StateId,
+		}
+		resp := p.ReadStateBytes(request)
+
+		// Assert returned values
+		checkDiagsHasError(t, resp.Diagnostics)
+		wantErr := fmt.Sprintf("Plugin error: The plugin returned an unexpected error from plugin6.(*GRPCProvider).ReadStateBytes: %s", mockError)
+		if resp.Diagnostics.Err().Error() != wantErr {
+			t.Fatalf("expected error diagnostic %q, but got: %q", wantErr, resp.Diagnostics.Err())
+		}
+		if len(resp.Bytes) != 0 {
+			t.Fatalf("expected data to be omitted in error condition, but got: %q", string(resp.Bytes))
+		}
+	})
+
+	t.Run("when closing the stream, grpc errors are surfaced via diagnostics", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+
+		// Call to ReadStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
+		mockClient := mockReadStateBytesClient(t)
+		expectedReq := &proto.ReadStateBytes_Request{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Eq(expectedReq),
+		).Return(mockClient, nil)
+
+		// Sufficient mocking of Recv to get to the call to CloseSend
+		mockClient.EXPECT().Recv().Return(&proto.ReadStateBytes_Response{}, io.EOF)
+
+		// Force a gRPC error from CloseSend
+		mockError := errors.New("grpc error forced in test")
+		mockClient.EXPECT().CloseSend().Return(mockError).Times(1)
 
 		// Act
 		request := providers.ReadStateBytesRequest{
