@@ -1515,11 +1515,8 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 	for {
 		chunk, err := client.Recv()
 		if err == io.EOF {
-			// End of stream, we're done
-			if chunk != nil {
-				// TODO: The EOF error could be just returned alongside the last chunk?
-				resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(chunk.Diagnostics))
-			}
+			// No chunk is returned alongside an EOF.
+			// And as EOF is a sentinel error it isn't wrapped as a diagnostic.
 			break
 		}
 		if err != nil {
