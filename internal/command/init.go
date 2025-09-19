@@ -51,7 +51,7 @@ func (c *InitCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	initArgs, initDiags := arguments.ParseInit(args)
 
-	view := views.NewInit(viewType, c.View)
+	view := views.NewInit(initArgs.ViewType, c.View)
 
 	if initDiags.HasErrors() {
 		diags = diags.Append(initDiags)
