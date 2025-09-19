@@ -27,7 +27,6 @@ import (
 		"String":"/var/folders/xx/abcde12345/T/plugin12345"
 	}
 }
-}
 */
 const TF_REATTACH_PROVIDERS = "TF_REATTACH_PROVIDERS"
 
