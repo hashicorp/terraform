@@ -53,7 +53,7 @@ type grpcClient struct {
 // and returns a copy of the downloaded state data.
 //
 // Implementation of remote.Client
-func (g *grpcClient) Get() (*Payload, error) {
+func (g *grpcClient) Get() (*Payload, tfdiags.Diagnostics) {
 	// TODO - replace with method implementation added to main branch
 	req := providers.ReadStateBytesRequest{
 		TypeName: g.typeName,
@@ -63,21 +63,21 @@ func (g *grpcClient) Get() (*Payload, error) {
 
 	if len(resp.Bytes) == 0 {
 		// No state to return
-		return nil, resp.Diagnostics.Err()
+		return nil, resp.Diagnostics
 	}
 
 	payload := &Payload{
 		Data: resp.Bytes,
 		MD5:  []byte("foobar"),
 	}
-	return payload, resp.Diagnostics.Err()
+	return payload, resp.Diagnostics
 }
 
 // Put invokes the WriteStateBytes gRPC method in the plugin protocol
 // and to transfer state data to the remote location.
 //
 // Implementation of remote.Client
-func (g *grpcClient) Put(state []byte) error {
+func (g *grpcClient) Put(state []byte) tfdiags.Diagnostics {
 	// TODO - replace with method implementation added to main branch
 	req := providers.WriteStateBytesRequest{
 		TypeName: g.typeName,
@@ -85,7 +85,7 @@ func (g *grpcClient) Put(state []byte) error {
 	}
 	resp := g.provider.WriteStateBytes(req)
 
-	return resp.Diagnostics.Err()
+	return resp.Diagnostics
 }
 
 // Delete invokes the DeleteState gRPC method in the plugin protocol
