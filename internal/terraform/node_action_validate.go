@@ -82,16 +82,24 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		return diags
 	}
 
-	var configVal cty.Value
-	var valDiags tfdiags.Diagnostics
-	if n.Config.Config != nil {
-		configVal, _, valDiags = ctx.EvaluateBlock(n.Config.Config, schema.ConfigSchema, nil, keyData)
-		diags = diags.Append(valDiags)
-		if valDiags.HasErrors() {
+	config := n.Config.Config
+	if n.Config.Config == nil {
+		config = hcl.EmptyBody()
+	}
+
+	configVal, _, valDiags := ctx.EvaluateBlock(config, schema.ConfigSchema, nil, keyData)
+	if valDiags.HasErrors() {
+		// If there was no config block at all, we'll add a Context range to the returned diagnostic
+		if n.Config.Config == nil {
+			for _, diag := range valDiags.ToHCL() {
+				diag.Context = &n.Config.DeclRange
+				diags = diags.Append(diag)
+			}
+			return diags
+		} else {
+			diags = diags.Append(valDiags)
 			return diags
 		}
-	} else {
-		configVal = cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
 	}
 
 	// Use unmarked value for validate request
