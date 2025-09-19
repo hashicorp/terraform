@@ -12,6 +12,23 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
+// TF_REATTACH_PROVIDERS is JSON string, containing a map of provider source to reattachment config.
+//
+// E.g this corresponds to a provider with source 'registry.terraform.io/hashicorp/foobar':
+/*
+{
+"foobar": {
+	"Protocol": "grpc",
+	"ProtocolVersion": 6,
+	"Pid": 12345,
+	"Test": true,
+	"Addr": {
+		"Network": "unix",
+		"String":"/var/folders/xx/abcde12345/T/plugin12345"
+	}
+}
+}
+*/
 const TF_REATTACH_PROVIDERS = "TF_REATTACH_PROVIDERS"
 
 // ParseReattachProviders parses information used for reattaching to unmanaged providers out of a
