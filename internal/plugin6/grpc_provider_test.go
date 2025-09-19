@@ -3755,15 +3755,44 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		).Return(mockReadBytesClient, nil)
 
 		// Define what will be returned by each call to Recv
-		mockReadBytesClient.EXPECT().Recv().Return(&proto.ReadStateBytes_Response{
-			Diagnostics: []*proto.Diagnostic{
-				&proto.Diagnostic{
-					Severity: proto.Diagnostic_WARNING,
-					Summary:  "Warning from test",
-					Detail:   "This warning is forced by the test case",
+		chunk := "hello world"
+		totalLength := len(chunk)
+		mockResp := map[int]struct {
+			resp *proto.ReadStateBytes_Response
+			err  error
+		}{
+			0: {
+				resp: &proto.ReadStateBytes_Response{
+					Bytes:       []byte(chunk),
+					TotalLength: int64(totalLength),
+					Range: &proto.StateRange{
+						Start: 0,
+						End:   int64(len(chunk)),
+					},
+					Diagnostics: []*proto.Diagnostic{
+						{
+							Severity: proto.Diagnostic_WARNING,
+							Summary:  "Warning from test",
+							Detail:   "This warning is forced by the test case",
+						},
+					},
 				},
+				err: nil,
 			},
-		}, io.EOF)
+			1: {
+				resp: &proto.ReadStateBytes_Response{},
+				err:  io.EOF,
+			},
+		}
+		var count int
+		mockReadBytesClient.EXPECT().Recv().DoAndReturn(func() (*proto.ReadStateBytes_Response, error) {
+			ret := mockResp[count]
+			count++
+			return ret.resp, ret.err
+		}).Times(2)
+
+		// There will be a call to CloseSend to close the stream
+		mockReadBytesClient.EXPECT().CloseSend().Return(nil).Times(1)
 
 		// Act
 		request := providers.ReadStateBytesRequest{
@@ -3778,8 +3807,8 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		if resp.Diagnostics.ErrWithWarnings().Error() != expectedWarn {
 			t.Fatalf("expected warning diagnostic %q, but got: %q", expectedWarn, resp.Diagnostics.ErrWithWarnings().Error())
 		}
-		if len(resp.Bytes) != 0 {
-			t.Fatalf("expected data to be omitted in error condition, but got: %q", string(resp.Bytes))
+		if len(resp.Bytes) == 0 {
+			t.Fatal("expected data to included despite warnings, but got no bytes")
 		}
 	})
 
