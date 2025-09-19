@@ -68,22 +68,11 @@ func ParseReattachProviders() (map[addrs.Provider]*plugin.ReattachConfig, error)
 // IsProviderReattached determines if a given provider is being supplied to Terraform via the TF_REATTACH_PROVIDERS
 // environment variable.
 func IsProviderReattached(provider addrs.Provider) (bool, error) {
-	in := os.Getenv(TF_REATTACH_PROVIDERS)
-	if in != "" {
-		var m map[string]any // We are only going to use the unmarshaled provider names
-		err := json.Unmarshal([]byte(in), &m)
-		if err != nil {
-			return false, fmt.Errorf("Invalid format for %s: %w", TF_REATTACH_PROVIDERS, err)
-		}
-		for p := range m {
-			a, diags := addrs.ParseProviderSourceString(p)
-			if diags.HasErrors() {
-				return false, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
-			}
-			if a.Equals(provider) {
-				return true, nil
-			}
-		}
+	providers, err := ParseReattachProviders()
+	if err != nil {
+		return false, err
 	}
-	return false, nil
+
+	_, ok := providers[provider]
+	return ok, nil
 }
