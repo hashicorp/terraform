@@ -8,6 +8,26 @@ import (
 )
 
 func TestResourceInstanceDeposeCurrentObject(t *testing.T) {
+	t.Run("nil receiver HasCurrent", func(t *testing.T) {
+		// small helper to catch panics
+		callHasCurrent := func(ri *ResourceInstance) (ret bool, panicked bool) {
+			defer func() {
+				if r := recover(); r != nil {
+					panicked = true
+				}
+			}()
+			return ri.HasCurrent(), false
+		}
+
+		var nilRI *ResourceInstance
+		got, panicked := callHasCurrent(nilRI)
+		if panicked {
+			t.Fatalf("HasCurrent(nil) panicked; want no panic and false")
+		}
+		if got {
+			t.Fatalf("HasCurrent(nil) = true; want false")
+		}
+	})
 	obj := &ResourceInstanceObjectSrc{
 		// Empty for the sake of this test, because we're just going to
 		// compare by pointer below anyway.
