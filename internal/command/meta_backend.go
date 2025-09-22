@@ -2275,7 +2275,7 @@ func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore, configLo
 			config.Provider.Name))
 	}
 
-	factories, err := m.providerFactories(configLocks)
+	factories, err := m.providerFactoriesDuringInit(configLocks)
 	if err != nil {
 		return nil, diags.Append(fmt.Errorf("error when retrieving provider factories: %w", err))
 	}
