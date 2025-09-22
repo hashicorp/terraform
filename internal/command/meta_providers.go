@@ -268,8 +268,9 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 }
 
 func (m *Meta) providerFactoriesDuringInit(configLocks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
-	// Ensure overrides and unmanaged providers are reflected in the returned list of factories.
-	locks := m.annotateDependencyLocksWithOverrides(configLocks)
+	// Ensure overrides and unmanaged providers are reflected in the returned list of factories,
+	// while avoiding mutating the in-memory locks.
+	locks := m.annotateDependencyLocksWithOverrides(configLocks.DeepCopy())
 
 	return m.providerFactoriesFromLocks(locks)
 }
