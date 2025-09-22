@@ -1750,25 +1750,34 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	if config == nil || locks == nil {
+		panic(fmt.Sprintf("nil config or nil locks passed to getStateStoreProviderFactory: config %#v, locks %#v", config, locks))
+	}
+
 	if config.ProviderAddr.IsZero() {
 		// This should not happen; this data is populated when parsing config,
 		// even for builtin providers
-		panic(fmt.Sprintf("unknown provider while beginning to initialize state store %q from provider %q",
-			config.Type,
-			config.Provider.Name))
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown provider used for state storage",
+			Detail:   "Terraform could not find the provider used with the state_store. This is a bug in Terraform and should be reported.",
+			Subject:  &config.TypeRange,
+		})
 	}
 
 	factories, err := m.ProviderFactoriesFromLocks(locks)
 	if err != nil {
+		// This may happen if the provider isn't present in the provider cache.
+		// This should be caught earlier by logic that diffs the config against the backend state file.
 		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Unable to obtain provider factories",
-			Detail: fmt.Sprintf("Terraform was unable to access any provider factories while trying to launch provider %s (%q) to initialize the %q state store. This is a bug in Terraform and should be reported.",
+			Summary:  "Provider unavailable",
+			Detail: fmt.Sprintf("Terraform experienced an error when trying to use provider %s (%q) to initialize the %q state store: %s",
 				config.Provider.Name,
 				config.ProviderAddr,
 				config.Type,
-			),
-			// No subject as this isn't a problem specific to the provider/state_store in use
+				err),
+			Subject: &config.TypeRange,
 		})
 	}
 
