@@ -86,6 +86,8 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 			// TODO: Remove this when TFC supports remote operation of action
 			//       invoke plans.
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid argument", "The -invoke argument can currently only be used when Terraform is executing locally."))
+			view.Diagnostics(diags)
+			return 1
 		}
 	}
 
