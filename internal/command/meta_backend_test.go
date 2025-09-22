@@ -5,6 +5,7 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -23,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -2413,6 +2416,55 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 
 		})
 	}
+}
+
+func TestMetaBackend_getStateStoreProviderFactory(t *testing.T) {
+	// Reused in tests
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+
+	t.Run("gets factories from locks", func(t *testing.T) {
+		// Set up locks
+		locks := depsfile.NewLocks()
+		providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/simple")
+		locks.SetProvider(
+			providerAddr,
+			versions.MustParseVersion("9.9.9"),
+			constraint,
+			[]providerreqs.Hash{"h1:foo"},
+		)
+
+		// Set up a local provider cache for the test to use
+		// 1. Build a binary for the current platform
+		simple6Provider := filepath.Join(".", "terraform-provider-simple6")
+		simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+		// 2. Create a working directory with .terraform/providers directory
+		td := t.TempDir()
+		t.Chdir(td)
+		providerPath := fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/simple/9.9.9/%s", getproviders.CurrentPlatform.String())
+		err := os.MkdirAll(providerPath, os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// 3. Move the binary into the cache folder created above.
+		os.Rename(simple6ProviderExe, fmt.Sprintf("%s/%s/terraform-provider-simple", td, providerPath))
+
+		// Setup the meta and test providerFactoriesDuringInit
+		m := testMetaBackend(t, nil)
+		factories, err := m.providerFactoriesDuringInit(locks)
+		if err != nil {
+			t.Fatalf("unexpected error : %s", err)
+		}
+
+		if len(factories) != 1 {
+			t.Fatalf("expected 1 factory but got %d: %#v", len(factories), factories)
+		}
+		if _, ok := factories[providerAddr]; !ok {
+			t.Fatalf("expected to find factory for %s but its missing", providerAddr)
+		}
+	})
 }
 
 func testMetaBackend(t *testing.T, args []string) *Meta {
