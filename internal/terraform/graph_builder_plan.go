@@ -174,9 +174,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		&ActionPlanTransformer{
-			Config:    b.Config,
-			Operation: b.Operation,
-			Targets:   b.ActionTargets,
+			Config:        b.Config,
+			Operation:     b.Operation,
+			Targets:       b.ActionTargets,
+			queryPlanMode: b.queryPlan,
 		},
 
 		// Add dynamic values
