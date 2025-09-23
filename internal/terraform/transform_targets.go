@@ -4,9 +4,11 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
@@ -28,11 +30,40 @@ type TargetsTransformer struct {
 
 	// List of targeted actions specified by the user.
 	ActionTargets []addrs.Targetable
+
+	// Config is the root configuration for the graph.
+	Config *configs.Config
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
 	if len(t.Targets) == 0 && len(t.ActionTargets) == 0 {
 		return nil
+	}
+
+	// Add targetable nodes for Action Targets
+	for _, target := range t.ActionTargets {
+		var config *configs.Action
+		switch target := target.(type) {
+		case addrs.AbsAction:
+			module := t.Config.DescendantForInstance(target.Module)
+			if module != nil {
+				config = module.Module.Actions[target.Action.String()]
+			}
+		case addrs.AbsActionInstance:
+			module := t.Config.DescendantForInstance(target.Module)
+			if module != nil {
+				config = module.Module.Actions[target.Action.Action.String()]
+			}
+		}
+
+		if config == nil {
+			return fmt.Errorf("action %s does not exist in the configuration", target.String())
+		}
+
+		g.Add(&nodeActionInvokeExpand{
+			Target: target,
+			Config: config,
+		})
 	}
 
 	// in practice, these are mutually exclusive so only one of these function

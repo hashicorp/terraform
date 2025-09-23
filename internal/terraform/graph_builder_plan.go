@@ -167,16 +167,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 				return b.queryPlan == (mode == addrs.ListResourceMode)
 			},
+			skipActions: b.queryPlan,
 
 			importTargets: b.ImportTargets,
 
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
-		},
-
-		&ActionPlanTransformer{
-			Config:    b.Config,
-			Operation: b.Operation,
-			Targets:   b.ActionTargets,
 		},
 
 		// Add dynamic values

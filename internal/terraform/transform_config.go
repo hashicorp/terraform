@@ -55,6 +55,9 @@ type ConfigTransformer struct {
 	generateConfigPathForImportTargets string
 
 	resourceMatcher func(addrs.ResourceMode) bool
+	// skipActions skips adding action config nodes to the graph. This is useful if the graph
+	// is partial and in an environment where actions are not supported.
+	skipActions bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -136,22 +139,24 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// we can validate that actions referenced in a resource's ActionTriggers
 	// exist in this module.
 	allConfigActions := make(map[string]*configs.Action)
-	for _, a := range module.Actions {
-		if a != nil {
-			addr := a.Addr().InModule(path)
-			allConfigActions[addr.String()] = a
-			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
-			abstract := &NodeAbstractAction{
-				Addr:   addr,
-				Config: *a,
+	if !t.skipActions {
+		for _, a := range module.Actions {
+			if a != nil {
+				addr := a.Addr().InModule(path)
+				allConfigActions[addr.String()] = a
+				log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
+				abstract := &NodeAbstractAction{
+					Addr:   addr,
+					Config: *a,
+				}
+				var node dag.Vertex
+				if f := t.ConcreteAction; f != nil {
+					node = f(abstract)
+				} else {
+					node = DefaultConcreteActionNodeFunc(abstract)
+				}
+				g.Add(node)
 			}
-			var node dag.Vertex
-			if f := t.ConcreteAction; f != nil {
-				node = f(abstract)
-			} else {
-				node = DefaultConcreteActionNodeFunc(abstract)
-			}
-			g.Add(node)
 		}
 	}
 
@@ -257,6 +262,80 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 
 		g.Add(node)
+
+		// Add nodes for each action potentially triggered by this resource
+		// We do this within the config transformer to ensure the resourceMatcher affects the
+		// action trigger nodes being added as well.
+
+		// We only want to add nodes for GraphNodeConfigResources
+		_, ok := node.(GraphNodeConfigResource)
+		if !ok {
+			continue
+		}
+		// We ignore any instances that _also_ implement
+		// GraphNodeResourceInstance, since in the unlikely event that they
+		// do exist we'd probably end up creating cycles by connecting them.
+		if _, ok := node.(GraphNodeResourceInstance); ok {
+			continue
+		}
+		priorNodes := []*nodeActionTriggerPlanExpand{}
+		for i, at := range r.Managed.ActionTriggers {
+			for j, action := range at.Actions {
+				refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+				if parseRefDiags != nil {
+					return parseRefDiags.Err()
+				}
+
+				var configAction addrs.ConfigAction
+
+				for _, ref := range refs {
+					switch a := ref.Subject.(type) {
+					case addrs.Action:
+						configAction = a.InModule(config.Path)
+					case addrs.ActionInstance:
+						configAction = a.Action.InModule(config.Path)
+					case addrs.CountAttr, addrs.ForEachAttr:
+						// nothing to do, these will get evaluated later
+					default:
+						// This should have been caught during validation
+						panic(fmt.Sprintf("unexpected action address %T", a))
+					}
+				}
+
+				actionConfig, ok := allConfigActions[configAction.String()]
+				if !ok {
+					// This should have been caught during validation
+					panic(fmt.Sprintf("action config not found for %s", configAction))
+				}
+
+				resourceAddr := r.Addr().InModule(config.Path)
+
+				nat := &nodeActionTriggerPlanExpand{
+					Addr:   configAction,
+					Config: actionConfig,
+					lifecycleActionTrigger: &lifecycleActionTrigger{
+						events:                  at.Events,
+						resourceAddress:         resourceAddr,
+						actionExpr:              action.Expr,
+						actionTriggerBlockIndex: i,
+						actionListIndex:         j,
+						invokingSubject:         action.Expr.Range().Ptr(),
+						conditionExpr:           at.Condition,
+					},
+				}
+
+				g.Add(nat)
+
+				// We always want to plan after the resource is done planning
+				g.Connect(dag.BasicEdge(nat, node))
+
+				// We want to plan after all prior nodes
+				for _, priorNode := range priorNodes {
+					g.Connect(dag.BasicEdge(nat, priorNode))
+				}
+				priorNodes = append(priorNodes, nat)
+			}
+		}
 	}
 
 	// If any import targets were not claimed by resources we may be
