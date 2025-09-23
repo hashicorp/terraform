@@ -47,6 +47,11 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 	return nil
 }
 
+// grpcMaxMessageSize is the maximum gRPC send and receive message sizes
+// This matches the maximum set by a server implemented via terraform-plugin-go.
+// See https://github.com/hashicorp/terraform-plugin-go/blob/a361c9bf/tfprotov6/tf6server/server.go#L88
+const grpcMaxMessageSize = 256 << 20
+
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
 // terraform providers types and the grpc proto types, directly converting
@@ -74,8 +79,12 @@ type GRPCProvider struct {
 
 	// schema stores the schema for this provider. This is used to properly
 	// serialize the requests for schemas.
-	mu     sync.Mutex
 	schema providers.GetProviderSchemaResponse
+	// stateChunkSize stores the negotiated chunk size for any implemented
+	// state store (keyed by type name) that have gone through successful configuration.
+	stateChunkSize map[string]int
+
+	mu sync.Mutex
 }
 
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
@@ -1490,11 +1499,15 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 		return resp
 	}
 
+	clientCapabilities := stateStoreClientCapabilitiesToProto(r.Capabilities)
+	logger.Trace("GRPCProvider.v6: ConfigureStateStore: proposing client capabilities", clientCapabilities)
+
 	protoReq := &proto6.ConfigureStateStore_Request{
 		TypeName: r.TypeName,
 		Config: &proto6.DynamicValue{
 			Msgpack: mp,
 		},
+		Capabilities: clientCapabilities,
 	}
 
 	protoResp, err := p.client.ConfigureStateStore(p.ctx, protoReq)
@@ -1502,12 +1515,21 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
+	resp.Capabilities = stateStoreServerCapabilitiesFromProto(protoResp.Capabilities)
+	logger.Trace("GRPCProvider.v6: ConfigureStateStore: received server capabilities", resp.Capabilities)
+
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
 func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
 	logger.Trace("GRPCProvider.v6: ReadStateBytes")
+
+	// ReadStateBytes can be more sensitive to message sizes
+	// so we ensure it aligns with (the lower) terraform-plugin-go.
+	opts := grpc.MaxRecvMsgSizeCallOption{
+		MaxRecvMsgSize: grpcMaxMessageSize,
+	}
 
 	schema := p.GetProviderSchema()
 	if schema.Diagnostics.HasErrors() {
@@ -1531,7 +1553,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 	ctx, cancel := context.WithCancel(p.ctx)
 	defer cancel()
 
-	client, err := p.client.ReadStateBytes(ctx, protoReq)
+	client, err := p.client.ReadStateBytes(ctx, protoReq, opts)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
@@ -1539,6 +1561,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 
 	buf := &bytes.Buffer{}
 	var expectedTotalLength int
+	// TODO: Send warning if client misbehaves and uses (lower) chunk size that we didn't agree on
 	for {
 		chunk, err := client.Recv()
 		if err == io.EOF {
@@ -1600,6 +1623,18 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
 	logger.Trace("GRPCProvider.v6: WriteStateBytes")
 
+	// WriteStateBytes can be more sensitive to message sizes
+	// so we ensure it aligns with (the lower) terraform-plugin-go.
+	opts := grpc.MaxSendMsgSizeCallOption{
+		MaxSendMsgSize: grpcMaxMessageSize,
+	}
+
+	chunkSize, ok := p.stateChunkSize[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Unable to determine chunk size for provider %s; this is a bug in Terraform - please report it", r.TypeName))
+		return resp
+	}
+
 	schema := p.GetProviderSchema()
 	if schema.Diagnostics.HasErrors() {
 		resp.Diagnostics = schema.Diagnostics
@@ -1617,10 +1652,7 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 	ctx, cancel := context.WithCancel(p.ctx)
 	defer cancel()
 
-	// TODO: Configurable chunk size
-	chunkSize := 4 * 1_000_000 // 4MB
-
-	client, err := p.client.WriteStateBytes(ctx)
+	client, err := p.client.WriteStateBytes(ctx, opts)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
@@ -1668,6 +1700,15 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 	}
 
 	return resp
+}
+
+func (p *GRPCProvider) SetStateStoreChunkSize(typeName string, size int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.stateChunkSize == nil {
+		p.stateChunkSize = make(map[string]int, 1)
+	}
+	p.stateChunkSize[typeName] = size
 }
 
 func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) (resp providers.GetStatesResponse) {
@@ -1921,5 +1962,17 @@ func clientCapabilitiesToProto(c providers.ClientCapabilities) *proto6.ClientCap
 	return &proto6.ClientCapabilities{
 		DeferralAllowed:            c.DeferralAllowed,
 		WriteOnlyAttributesAllowed: c.WriteOnlyAttributesAllowed,
+	}
+}
+
+func stateStoreClientCapabilitiesToProto(c providers.StateStoreClientCapabilities) *proto6.StateStoreClientCapabilities {
+	return &proto6.StateStoreClientCapabilities{
+		ChunkSize: c.ChunkSize,
+	}
+}
+
+func stateStoreServerCapabilitiesFromProto(c *proto6.StateStoreServerCapabilities) providers.StateStoreServerCapabilities {
+	return providers.StateStoreServerCapabilities{
+		ChunkSize: c.ChunkSize,
 	}
 }

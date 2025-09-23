@@ -2289,6 +2289,7 @@ func TestGRPCProvider_ValidateStateStoreConfig_schema_errors(t *testing.T) {
 
 func TestGRPCProvider_ConfigureStateStore_returns_validation_errors(t *testing.T) {
 	storeName := "mock_store" // mockProviderClient returns a mock that has this state store in its schemas
+	chunkSize := 4 << 20      // 4MB
 
 	t.Run("no validation error raised", func(t *testing.T) {
 		typeName := storeName
@@ -2304,6 +2305,9 @@ func TestGRPCProvider_ConfigureStateStore_returns_validation_errors(t *testing.T
 			gomock.Any(),
 			gomock.Any(),
 		).Return(&proto.ConfigureStateStore_Response{
+			Capabilities: &proto.StateStoreServerCapabilities{
+				ChunkSize: int64(chunkSize),
+			},
 			Diagnostics: diagnostic,
 		}, nil)
 
@@ -2312,6 +2316,9 @@ func TestGRPCProvider_ConfigureStateStore_returns_validation_errors(t *testing.T
 			Config: cty.ObjectVal(map[string]cty.Value{
 				"region": cty.StringVal("neptune"),
 			}),
+			Capabilities: providers.StateStoreClientCapabilities{
+				ChunkSize: int64(chunkSize),
+			},
 		}
 
 		// Act
@@ -2342,6 +2349,9 @@ func TestGRPCProvider_ConfigureStateStore_returns_validation_errors(t *testing.T
 			gomock.Any(),
 			gomock.Any(),
 		).Return(&proto.ConfigureStateStore_Response{
+			Capabilities: &proto.StateStoreServerCapabilities{
+				ChunkSize: int64(chunkSize),
+			},
 			Diagnostics: diagnostic,
 		}, nil)
 
@@ -2350,6 +2360,9 @@ func TestGRPCProvider_ConfigureStateStore_returns_validation_errors(t *testing.T
 			Config: cty.ObjectVal(map[string]cty.Value{
 				"region": cty.StringVal("neptune"),
 			}),
+			Capabilities: providers.StateStoreClientCapabilities{
+				ChunkSize: int64(chunkSize),
+			},
 		}
 
 		// Act
@@ -2570,12 +2583,15 @@ func TestGRPCProvider_DeleteState(t *testing.T) {
 }
 
 func TestGRPCProvider_ReadStateBytes(t *testing.T) {
+	chunkSize := 4 << 20 // 4MB
+
 	t.Run("can process multiple chunks", func(t *testing.T) {
 		client := mockProviderClient(t)
 		p := &GRPCProvider{
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", 5)
 
 		// Call to ReadStateBytes
 		// > Assert the arguments received
@@ -2588,6 +2604,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
 			gomock.Eq(expectedReq),
+			gomock.Any(),
 		).Return(mockReadBytesClient, nil)
 
 		// Define what will be returned by each call to Recv
@@ -2654,6 +2671,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", 5)
 
 		// Call to ReadStateBytes
 		// > Assert the arguments received
@@ -2666,6 +2684,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
 			gomock.Eq(expectedReq),
+			gomock.Any(),
 		).Return(mockReadBytesClient, nil)
 
 		// Define what will be returned by each call to Recv
@@ -2734,6 +2753,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// In this scenario the method returns before the call to the
 		// ReadStateBytes RPC, so no mocking needed
@@ -2764,6 +2784,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Call to ReadStateBytes
 		// > Assert the arguments received
@@ -2777,6 +2798,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
 			gomock.Eq(expectedReq),
+			gomock.Any(),
 		).Return(mockReadBytesClient, nil)
 
 		// Define what will be returned by each call to Recv
@@ -2814,6 +2836,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Call to ReadStateBytes
 		// > Assert the arguments received
@@ -2827,6 +2850,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
 			gomock.Eq(expectedReq),
+			gomock.Any(),
 		).Return(mockReadBytesClient, nil)
 
 		// Define what will be returned by each call to Recv
@@ -2893,6 +2917,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Call to ReadStateBytes
 		// > Assert the arguments received
@@ -2905,6 +2930,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
 			gomock.Eq(expectedReq),
+			gomock.Any(),
 		).Return(mockClient, nil)
 
 		mockError := errors.New("grpc error forced in test")
@@ -2934,6 +2960,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Call to ReadStateBytes
 		// > Assert the arguments received
@@ -2946,6 +2973,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		client.EXPECT().ReadStateBytes(
 			gomock.Any(),
 			gomock.Eq(expectedReq),
+			gomock.Any(),
 		).Return(mockClient, nil)
 
 		// Sufficient mocking of Recv to get to the call to CloseSend
@@ -2975,6 +3003,8 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 }
 
 func TestGRPCProvider_WriteStateBytes(t *testing.T) {
+	chunkSize := 4 << 20 // 4MB
+
 	t.Run("data smaller than the chunk size is sent in one write action", func(t *testing.T) {
 		// Less than 4MB
 		data := []byte("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod" +
@@ -2988,6 +3018,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Assert there will be a call to WriteStateBytes
 		// & make it return the mock client
@@ -3002,8 +3033,10 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 		// We expect 1 call to Send as the total data
 		// is less than the chunk size
 		expectedReq := &proto.WriteStateBytes_RequestChunk{
-			TypeName:    "mock_store",
-			StateId:     backend.DefaultStateName,
+			Meta: &proto.RequestChunkMeta{
+				TypeName: "mock_store",
+				StateId:  backend.DefaultStateName,
+			},
 			Bytes:       data,
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
@@ -3044,6 +3077,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Assert there will be a call to WriteStateBytes
 		// & make it return the mock client
@@ -3059,8 +3093,10 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 		// We expect 2 calls to Send as the total data
 		// is 10 bytes larger than the chunk size
 		req1 := &proto.WriteStateBytes_RequestChunk{
-			TypeName:    "mock_store",
-			StateId:     backend.DefaultStateName,
+			Meta: &proto.RequestChunkMeta{
+				TypeName: "mock_store",
+				StateId:  backend.DefaultStateName,
+			},
 			Bytes:       dataFirstChunk,
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
@@ -3069,8 +3105,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			},
 		}
 		req2 := &proto.WriteStateBytes_RequestChunk{
-			TypeName:    "mock_store",
-			StateId:     backend.DefaultStateName,
+			Meta:        nil,
 			Bytes:       dataSecondChunk,
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
@@ -3099,6 +3134,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Assert there will be a call to WriteStateBytes
 		// & make it return the mock client
@@ -3133,6 +3169,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Assert there will be a call to WriteStateBytes
 		// & make it return the mock client
@@ -3144,8 +3181,10 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 
 		data := []byte("helloworld")
 		mockReq := &proto.WriteStateBytes_RequestChunk{
-			TypeName:    "mock_store",
-			StateId:     backend.DefaultStateName,
+			Meta: &proto.RequestChunkMeta{
+				TypeName: "mock_store",
+				StateId:  backend.DefaultStateName,
+			},
 			Bytes:       data,
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
@@ -3186,6 +3225,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			client: client,
 			ctx:    context.Background(),
 		}
+		p.SetStateStoreChunkSize("mock_store", chunkSize)
 
 		// Assert there will be a call to WriteStateBytes
 		// & make it return the mock client
@@ -3197,8 +3237,10 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 
 		data := []byte("helloworld")
 		mockReq := &proto.WriteStateBytes_RequestChunk{
-			TypeName:    "mock_store",
-			StateId:     backend.DefaultStateName,
+			Meta: &proto.RequestChunkMeta{
+				TypeName: "mock_store",
+				StateId:  backend.DefaultStateName,
+			},
 			Bytes:       data,
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{

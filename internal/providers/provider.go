@@ -146,6 +146,10 @@ type Interface interface {
 	Close() error
 }
 
+type StateStoreChunkSizeSetter interface {
+	SetStateStoreChunkSize(typeName string, size int)
+}
+
 // GetProviderSchemaResponse is the return type for GetProviderSchema, and
 // should only be used when handling a value for that method. The handling of
 // of schemas in any other context should always use ProviderSchema, so that
@@ -852,11 +856,23 @@ type ConfigureStateStoreRequest struct {
 
 	// Config is the configuration value to configure the store with.
 	Config cty.Value
+
+	Capabilities StateStoreClientCapabilities
+}
+
+type StateStoreClientCapabilities struct {
+	ChunkSize int64
 }
 
 type ConfigureStateStoreResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	Capabilities StateStoreServerCapabilities
+}
+
+type StateStoreServerCapabilities struct {
+	ChunkSize int64
 }
 
 type ReadStateBytesRequest struct {
