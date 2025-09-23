@@ -915,10 +915,20 @@ message ConfigureStateStore {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
+        StateStoreClientCapabilities capabilities = 3;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
+        StateStoreServerCapabilities capabilities = 2;
     }
+}
+
+message StateStoreClientCapabilities {
+    int64 chunk_size = 1; // suggested chunk size by Core
+}
+
+message StateStoreServerCapabilities {
+    int64 chunk_size = 1; // chosen chunk size by plugin
 }
 
 message ReadStateBytes {
