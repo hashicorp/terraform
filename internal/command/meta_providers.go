@@ -247,18 +247,18 @@ func (m *Meta) providerDevOverrideRuntimeWarningsRemoteExecution() tfdiags.Diagn
 	}
 }
 
-// providerFactories uses the selections made previously by an installer in
+// ProviderFactories uses the selections made previously by an installer in
 // the local cache directory (m.providerLocalCacheDir) to produce a map
-// from provider addresses to factory functions to create instances of
+// of provider addresses to factory functions to create instances of
 // those providers.
 //
-// providerFactories will return an error if the installer's selections cannot
+// ProviderFactories will return an error if the installer's selections cannot
 // be honored with what is currently in the cache, such as if a selected
 // package has been removed from the cache or if the contents of a selected
 // package have been modified outside of the installer. If it returns an error,
 // the returned map may be incomplete or invalid, but will be as complete
 // as possible given the cause of the error.
-func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error) {
+func (m *Meta) ProviderFactories() (map[addrs.Provider]providers.Factory, error) {
 	locks, diags := m.lockedDependencies()
 	if diags.HasErrors() {
 		return nil, fmt.Errorf("failed to read dependency lock file: %s", diags.Err())
@@ -267,9 +267,16 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 	return m.providerFactoriesFromLocks(locks)
 }
 
-func (m *Meta) providerFactoriesDuringInit(configLocks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
+// ProviderFactoriesFromLocks receives in memory locks and uses them to produce a map
+// of provider addresses to factory functions to create instances of
+// those providers.
+//
+// ProviderFactoriesFromLocks should only be used if the calling code relies on locks
+// that have not yet been persisted to a dependency lock file on disk. Realistically, this
+// means only code in the init command should use this method.
+func (m *Meta) ProviderFactoriesFromLocks(configLocks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
 	// Ensure overrides and unmanaged providers are reflected in the returned list of factories,
-	// while avoiding mutating the in-memory locks.
+	// while avoiding mutating the in-memory
 	locks := m.annotateDependencyLocksWithOverrides(configLocks.DeepCopy())
 
 	return m.providerFactoriesFromLocks(locks)
@@ -279,8 +286,8 @@ func (m *Meta) providerFactoriesDuringInit(configLocks *depsfile.Locks) (map[add
 //
 // In most cases, calling code should not use this method directly.
 // Instead, use:
-// * `providerFactoriesDuringInit` - for use when locks aren't yet persisted to a dependency lock file.
-// * `providerFactories` - for use when Terraform is guaranteed to read all necessary locks from a dependency lock file.
+// * `ProviderFactoriesFromLocks` - for use when locks aren't yet persisted to a dependency lock file.
+// * `ProviderFactories` - for use when Terraform is guaranteed to read all necessary locks from a dependency lock file.
 func (m *Meta) providerFactoriesFromLocks(locks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
 	// We'll always run through all of our providers, even if one of them
 	// encounters an error, so that we can potentially report multiple errors

@@ -2453,7 +2453,7 @@ func TestMetaBackend_getStateStoreProviderFactory(t *testing.T) {
 
 		// Setup the meta and test providerFactoriesDuringInit
 		m := testMetaBackend(t, nil)
-		factories, err := m.providerFactoriesDuringInit(locks)
+		factories, err := m.ProviderFactoriesFromLocks(locks)
 		if err != nil {
 			t.Fatalf("unexpected error : %s", err)
 		}
