@@ -16,10 +16,12 @@ type ActionPlanTransformer struct {
 	Config    *configs.Config
 	Targets   []addrs.Targetable
 	Operation walkOperation
+
+	queryPlanMode bool
 }
 
 func (t *ActionPlanTransformer) Transform(g *Graph) error {
-	if t.Operation != walkPlan {
+	if t.Operation != walkPlan || t.queryPlanMode {
 		return nil
 	}
 
