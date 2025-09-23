@@ -49,6 +49,20 @@ import (
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
+const (
+	// defaultStateStoreChunkSize is the default chunk size proposed
+	// to the provider.
+	// This can be tweaked but should provide reasonable performance
+	// trade-offs for average network conditions and state file sizes.
+	defaultStateStoreChunkSize int64 = 8 << 20 // 8 MB
+
+	// maxStateStoreChunkSize is the highest chunk size provider may choose
+	// which we still consider reasonable/safe.
+	// This reflects terraform-plugin-go's max. RPC message size of 256MB
+	// and leaves plenty of space for other variable data like diagnostics.
+	maxStateStoreChunkSize int64 = 128 << 20 // 128 MB
+)
+
 // BackendOpts are the options used to initialize a backendrun.OperationsBackend.
 type BackendOpts struct {
 	// BackendConfig is a representation of the backend configuration block given in
@@ -2268,7 +2282,6 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
 		TerraformVersion: tfversion.String(),
 		Config:           providerConfigVal,
-		// TODO ClientCapabilities?
 	})
 	diags = diags.Append(configureResp.Diagnostics)
 	if configureResp.Diagnostics.HasErrors() {
@@ -2290,11 +2303,31 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, opts *BackendOpts
 	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
 		TypeName: c.Type,
 		Config:   stateStoreConfigVal,
+		Capabilities: providers.StateStoreClientCapabilities{
+			ChunkSize: defaultStateStoreChunkSize,
+		},
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
 	if cfgStoreResp.Diagnostics.HasErrors() {
 		return nil, cty.NilVal, cty.NilVal, diags
 	}
+
+	chunkSize := cfgStoreResp.Capabilities.ChunkSize
+	if chunkSize > maxStateStoreChunkSize {
+		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
+			"Expected size <= %d bytes, provider wants %d bytes",
+			maxStateStoreChunkSize, chunkSize,
+		))
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	p, ok := provider.(providers.StateStoreChunkSizeSetter)
+	if !ok {
+		msg := fmt.Sprintf("Unable to set chunk size for provider %s; this is a bug in Terraform - please report it", c.Type)
+		panic(msg)
+	}
+	// casting to int here is okay because the number should never exceed int32
+	p.SetStateStoreChunkSize(c.Type, int(chunkSize))
 
 	// Now we have a fully configured state store, ready to be used.
 	// To make it usable we need to return it in a backend.Backend interface.
