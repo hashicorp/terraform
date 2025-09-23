@@ -155,10 +155,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete:       b.ConcreteResource,
-			ConcreteAction: b.ConcreteAction,
-			Config:         b.Config,
-			destroy:        b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			Concrete: b.ConcreteResource,
+
+			Config:  b.Config,
+			destroy: b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
 			resourceMatcher: func(mode addrs.ResourceMode) bool {
 				// all resources are included during validation.
 				if b.Operation == walkValidate {
@@ -174,9 +174,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		&ActionPlanTransformer{
-			Config:    b.Config,
-			Operation: b.Operation,
-			Targets:   b.ActionTargets,
+			Skip:           b.queryPlan,
+			Config:         b.Config,
+			ConcreteAction: b.ConcreteAction,
+			Operation:      b.Operation,
+			Targets:        b.ActionTargets,
 		},
 
 		// Add dynamic values

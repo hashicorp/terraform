@@ -5,22 +5,37 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type ActionPlanTransformer struct {
-	Config    *configs.Config
-	Targets   []addrs.Targetable
-	Operation walkOperation
+	Skip           bool
+	Config         *configs.Config
+	Targets        []addrs.Targetable
+	Operation      walkOperation
+	ConcreteAction ConcreteActionNodeFunc
 }
 
 func (t *ActionPlanTransformer) Transform(g *Graph) error {
+	if t.Skip {
+		return nil
+	}
+
 	if t.Operation != walkPlan {
 		return nil
+	}
+
+	// First add all action config nodes
+	err := t.transformActionConfig(g, t.Config)
+	if err != nil {
+		return err
 	}
 
 	if len(t.Targets) > 0 {
@@ -57,18 +72,18 @@ func (t *ActionPlanTransformer) Transform(g *Graph) error {
 
 	// otherwise, add all the action triggers from the config.
 
-	return t.transform(g, t.Config)
+	return t.transformActionTrigger(g, t.Config)
 }
 
-func (t *ActionPlanTransformer) transform(g *Graph, config *configs.Config) error {
-	// Add our resources
-	if err := t.transformSingle(g, config); err != nil {
+func (t *ActionPlanTransformer) transformActionConfig(g *Graph, config *configs.Config) error {
+	// Add our actions
+	if err := t.transformActionConfigSingle(g, config); err != nil {
 		return err
 	}
 
 	// Transform all the children.
 	for _, c := range config.Children {
-		if err := t.transform(g, c); err != nil {
+		if err := t.transformActionConfig(g, c); err != nil {
 			return err
 		}
 	}
@@ -76,7 +91,95 @@ func (t *ActionPlanTransformer) transform(g *Graph, config *configs.Config) erro
 	return nil
 }
 
-func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config) error {
+func (t *ActionPlanTransformer) transformActionConfigSingle(g *Graph, config *configs.Config) error {
+	// collect all the Action Declarations (configs.Actions) in this module so
+	// we can validate that actions referenced in a resource's ActionTriggers
+	// exist in this module.
+	allConfigActions := make(map[string]*configs.Action)
+	for _, a := range config.Module.Actions {
+		if a != nil {
+			addr := a.Addr().InModule(config.Path)
+			allConfigActions[addr.String()] = a
+			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
+			abstract := &NodeAbstractAction{
+				Addr:   addr,
+				Config: *a,
+			}
+			var node dag.Vertex
+			if f := t.ConcreteAction; f != nil {
+				node = f(abstract)
+			} else {
+				node = DefaultConcreteActionNodeFunc(abstract)
+			}
+			g.Add(node)
+		}
+	}
+
+	var diags tfdiags.Diagnostics
+	for _, r := range config.Module.ManagedResources {
+		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
+		if r.Managed != nil && r.Managed.ActionTriggers != nil {
+			for i, at := range r.Managed.ActionTriggers {
+				for _, action := range at.Actions {
+
+					refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+					if parseRefDiags != nil {
+						return parseRefDiags.Err()
+					}
+
+					var configAction addrs.ConfigAction
+
+					for _, ref := range refs {
+						switch a := ref.Subject.(type) {
+						case addrs.Action:
+							configAction = a.InModule(config.Path)
+						case addrs.ActionInstance:
+							configAction = a.Action.InModule(config.Path)
+						case addrs.CountAttr, addrs.ForEachAttr:
+							// nothing to do, these will get evaluated later
+						default:
+							// This should have been caught during validation
+							panic(fmt.Sprintf("unexpected action address %T", a))
+						}
+					}
+
+					_, ok := allConfigActions[configAction.String()]
+					if !ok {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Configuration for triggered action does not exist",
+							Detail:   fmt.Sprintf("The configuration for the given action %s does not exist. All triggered actions must have an associated configuration.", configAction.String()),
+							Subject:  &r.Managed.ActionTriggers[i].DeclRange,
+						})
+					}
+				}
+			}
+		}
+	}
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+
+	return nil
+}
+
+func (t *ActionPlanTransformer) transformActionTrigger(g *Graph, config *configs.Config) error {
+	// Add our action triggers
+	if err := t.transformActionTriggerSingle(g, config); err != nil {
+		return err
+	}
+
+	// Transform all the children.
+	for _, c := range config.Children {
+		if err := t.transformActionTrigger(g, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *ActionPlanTransformer) transformActionTriggerSingle(g *Graph, config *configs.Config) error {
 	actionConfigs := addrs.MakeMap[addrs.ConfigAction, *configs.Action]()
 	for _, a := range config.Module.Actions {
 		actionConfigs.Put(a.Addr().InModule(config.Path), a)

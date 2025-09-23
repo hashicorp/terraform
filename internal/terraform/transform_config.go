@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -28,8 +27,7 @@ import (
 // resources including module resources, rather than creating module nodes that
 // are then "flattened".
 type ConfigTransformer struct {
-	Concrete       ConcreteResourceNodeFunc
-	ConcreteAction ConcreteActionNodeFunc
+	Concrete ConcreteResourceNodeFunc
 
 	// Module is the module to add resources from.
 	Config *configs.Config
@@ -132,29 +130,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 	}
 
-	// collect all the Action Declarations (configs.Actions) in this module so
-	// we can validate that actions referenced in a resource's ActionTriggers
-	// exist in this module.
-	allConfigActions := make(map[string]*configs.Action)
-	for _, a := range module.Actions {
-		if a != nil {
-			addr := a.Addr().InModule(path)
-			allConfigActions[addr.String()] = a
-			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
-			abstract := &NodeAbstractAction{
-				Addr:   addr,
-				Config: *a,
-			}
-			var node dag.Vertex
-			if f := t.ConcreteAction; f != nil {
-				node = f(abstract)
-			} else {
-				node = DefaultConcreteActionNodeFunc(abstract)
-			}
-			g.Add(node)
-		}
-	}
-
 	for _, r := range allResources {
 		relAddr := r.Addr()
 
@@ -166,49 +141,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		if t.resourceMatcher != nil && !t.resourceMatcher(r.Mode) {
 			// Skip resources that do not match the filter
 			continue
-		}
-
-		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
-		var diags tfdiags.Diagnostics
-		if r.Managed != nil && r.Managed.ActionTriggers != nil {
-			for i, at := range r.Managed.ActionTriggers {
-				for _, action := range at.Actions {
-
-					refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
-					if parseRefDiags != nil {
-						return parseRefDiags.Err()
-					}
-
-					var configAction addrs.ConfigAction
-
-					for _, ref := range refs {
-						switch a := ref.Subject.(type) {
-						case addrs.Action:
-							configAction = a.InModule(config.Path)
-						case addrs.ActionInstance:
-							configAction = a.Action.InModule(config.Path)
-						case addrs.CountAttr, addrs.ForEachAttr:
-							// nothing to do, these will get evaluated later
-						default:
-							// This should have been caught during validation
-							panic(fmt.Sprintf("unexpected action address %T", a))
-						}
-					}
-
-					_, ok := allConfigActions[configAction.String()]
-					if !ok {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Configuration for triggered action does not exist",
-							Detail:   fmt.Sprintf("The configuration for the given action %s does not exist. All triggered actions must have an associated configuration.", configAction.String()),
-							Subject:  &r.Managed.ActionTriggers[i].DeclRange,
-						})
-					}
-				}
-			}
-		}
-		if diags.HasErrors() {
-			return diags.Err()
 		}
 
 		// If any of the import targets can apply to this node's instances,

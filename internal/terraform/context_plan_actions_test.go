@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"maps"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -271,6 +272,38 @@ resource "test_object" "a" {
 				},
 				expectPlanActionCalled: false,
 				planOpts:               SimplePlanOpts(plans.DestroyMode, InputValues{}),
+			},
+
+			"query run": {
+				module: map[string]string{
+					"main.tf": ` 
+action "test_action" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+
+					"main.tfquery.hcl": `
+list "test_resource" "test1" {
+  provider = "test"
+	config {
+		filter = {
+			attr = "foo"
+		}
+	}
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				planOpts: &PlanOpts{
+					Mode:  plans.NormalMode,
+					Query: true,
+				},
 			},
 
 			"non-default provider namespace": {
@@ -3269,6 +3302,47 @@ resource "test_object" "a" {
 									},
 								},
 							},
+							ListResourceTypes: map[string]providers.Schema{
+								"test_resource": {
+									Body: &configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"data": {
+												Type:     cty.DynamicPseudoType,
+												Computed: true,
+											},
+										},
+										BlockTypes: map[string]*configschema.NestedBlock{
+											"config": {
+												Block: configschema.Block{
+													Attributes: map[string]*configschema.Attribute{
+														"filter": {
+															Required: true,
+															NestedType: &configschema.Object{
+																Nesting: configschema.NestingSingle,
+																Attributes: map[string]*configschema.Attribute{
+																	"attr": {
+																		Type:     cty.String,
+																		Required: true,
+																	},
+																},
+															},
+														},
+													},
+												},
+												Nesting: configschema.NestingSingle,
+											},
+										},
+									},
+								},
+							},
+						},
+						ListResourceFn: func(req providers.ListResourceRequest) providers.ListResourceResponse {
+							resp := []cty.Value{}
+							ret := req.Config.AsValueMap()
+							maps.Copy(ret, map[string]cty.Value{
+								"data": cty.TupleVal(resp),
+							})
+							return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
 						},
 					}
 
