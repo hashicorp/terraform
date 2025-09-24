@@ -412,11 +412,6 @@ func TestTest_Runs(t *testing.T) {
 		"no-tests": {
 			code: 0,
 		},
-		"expect-failures-assertions": {
-			expectedOut: []string{"0 passed, 1 failed."},
-			expectedErr: []string{"Test assertion failed"},
-			code:        1,
-		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -5451,6 +5446,76 @@ func TestTest_JUnitOutput(t *testing.T) {
 				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 			}
 		})
+	}
+}
+
+func TestTest_ReferencesIntoIncompletePlan(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "expect-failures-assertions")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	if code != 1 {
+		t.Errorf("expected status code %d but got %d", 0, code)
+	}
+	output := done(t)
+
+	out, err := output.Stdout(), output.Stderr()
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "fail"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`
+
+	if diff := cmp.Diff(out, expectedOut); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, out, diff)
+	}
+
+	if !strings.Contains(err, "Reference to uninitialized resource") {
+		t.Errorf("missing reference to uninitialized resource error: \n%s", err)
+	}
+
+	if !strings.Contains(err, "Reference to uninitialized local") {
+		t.Errorf("missing reference to uninitialized local error: \n%s", err)
 	}
 }
 
