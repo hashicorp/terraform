@@ -12,6 +12,7 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/e2e"
@@ -19,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
-func TestMetaBackend_getStateStoreProviderFactory(t *testing.T) {
+func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 	t.Run("gets the matching factory from local provider cache", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
@@ -65,8 +66,8 @@ func TestMetaBackend_getStateStoreProviderFactory(t *testing.T) {
 		}
 
 		// Setup the meta and test providerFactoriesDuringInit
-		m := testMetaBackend(t, nil)
-		factory, diags := m.getStateStoreProviderFactory(config, locks)
+		m := command.Meta{}
+		factory, diags := m.GetStateStoreProviderFactory(config, locks)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected error : %s", err)
 		}

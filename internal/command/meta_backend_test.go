@@ -2401,7 +2401,7 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	}
 }
 
-func TestMetaBackend_getStateStoreProviderFactory(t *testing.T) {
+func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 	// See internal/command/e2etest/meta_backend_test.go for test case
 	// where a provider factory is found using a local provider cache
 
@@ -2430,7 +2430,7 @@ func TestMetaBackend_getStateStoreProviderFactory(t *testing.T) {
 
 		// Setup the meta and test providerFactoriesDuringInit
 		m := testMetaBackend(t, nil)
-		_, diags := m.getStateStoreProviderFactory(config, locks)
+		_, diags := m.GetStateStoreProviderFactory(config, locks)
 		if !diags.HasErrors() {
 			t.Fatalf("expected error but got none")
 		}
@@ -2460,7 +2460,7 @@ func TestMetaBackend_getStateStoreProviderFactory(t *testing.T) {
 
 		// Setup the meta and test providerFactoriesDuringInit
 		m := testMetaBackend(t, nil)
-		_, diags := m.getStateStoreProviderFactory(config, locks)
+		_, diags := m.GetStateStoreProviderFactory(config, locks)
 		if !diags.HasErrors() {
 			t.Fatal("expected and error but got none")
 		}

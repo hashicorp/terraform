@@ -1747,11 +1747,11 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 	return diags
 }
 
-func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
+func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if config == nil || locks == nil {
-		panic(fmt.Sprintf("nil config or nil locks passed to getStateStoreProviderFactory: config %#v, locks %#v", config, locks))
+		panic(fmt.Sprintf("nil config or nil locks passed to GetStateStoreProviderFactory: config %#v, locks %#v", config, locks))
 	}
 
 	if config.ProviderAddr.IsZero() {
