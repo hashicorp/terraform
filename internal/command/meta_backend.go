@@ -33,6 +33,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -1746,7 +1747,7 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 	return diags
 }
 
-func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (providers.Factory, tfdiags.Diagnostics) {
+func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if config.ProviderAddr.IsZero() {
@@ -1757,15 +1758,23 @@ func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (provide
 			config.Provider.Name))
 	}
 
-	ctxOpts, err := m.contextOpts()
+	factories, err := m.ProviderFactoriesFromLocks(locks)
 	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unable to obtain provider factories",
+			Detail: fmt.Sprintf("Terraform was unable to access any provider factories while trying to launch provider %s (%q) to initialize the %q state store. This is a bug in Terraform and should be reported.",
+				config.Provider.Name,
+				config.ProviderAddr,
+				config.Type,
+			),
+			// No subject as this isn't a problem specific to the provider/state_store in use
+		})
 	}
 
-	factory, exists := ctxOpts.Providers[config.ProviderAddr]
+	factory, exists := factories[config.ProviderAddr]
 	if !exists {
-		diags = diags.Append(&hcl.Diagnostic{
+		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Provider unavailable",
 			Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
@@ -1775,7 +1784,6 @@ func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (provide
 			),
 			Subject: &config.TypeRange,
 		})
-		return nil, diags
 	}
 
 	return factory, diags
