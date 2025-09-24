@@ -887,7 +887,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 			},
 		},
 		{
-			name: ".tf file blocks should not be processed in query mode",
+			name: ".tf file blocks should not be evaluated in query mode",
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -902,7 +902,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					foo = "bar"
 				}
 				
-				// This would produce an error if triggered, but we expect it to be ignored in query mode
+				// This would produce a plan error if triggered, but we expect it to be ignored in query mode
 				resource "test_resource" "example" {
 					instance_type = "ami-123456"
 					
@@ -914,10 +914,6 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				
-				// This would produce an error if triggered, but we expect it to be ignored in query mode
-				output "resource_attr" {
-					value = sensitive(test_resource.example.instance_type)
-				}
 				`,
 			queryConfig: `
 				list "test_resource" "test" {

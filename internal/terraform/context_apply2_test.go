@@ -4336,6 +4336,7 @@ func TestContext2Apply_noListValidated(t *testing.T) {
 			diags := ctx.Validate(m, &ValidateOpts{
 				Query: tc.query,
 			})
+			tfdiags.AssertNoErrors(t, diags)
 
 			plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 			tfdiags.AssertNoErrors(t, diags)
