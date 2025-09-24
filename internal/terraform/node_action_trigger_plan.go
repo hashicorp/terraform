@@ -101,9 +101,12 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 		for _, key := range keys {
 			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
 
+			// If the triggering resource was targeted, make sure the instance
+			// that triggered this was targeted specifically.
+			// This is necessary since the expansion of a resource instance (and of an action trigger)
+			// happens during the graph walk / execution, therefore the target transformer can not
+			// filter out individual instances, this needs to happen during the graph walk / execution.
 			if n.resourceTargets != nil {
-				// If the triggering resource was targeted, make sure the instance
-				// that triggered this was targeted specifically.
 				matched := false
 				for _, resourceTarget := range n.resourceTargets {
 					if resourceTarget.TargetContains(absResourceInstanceAddr) {

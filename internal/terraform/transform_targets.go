@@ -66,7 +66,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 			// We need to add everything this node depends on or that is closely associated with
 			// this node. In case of resource nodes, action triggers are considered closely related
 			// since they belong to the resource.
-			t.addDependencies(g, v, targetedNodes, addrs)
+			t.addVertexDependenciesToTargetedNodes(g, v, targetedNodes, addrs)
 
 			// We inform nodes that ask about the list of targets - helps for nodes
 			// that need to dynamically expand. Note that this only occurs for nodes
@@ -138,26 +138,27 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 	return targetedNodes
 }
 
-// addDependencies adds dependencies of the targeted vertex. This includes all ancestors in the
-// graph. It also includes all action trigger nodes in the graph. Actions are planned after the
+// addVertexDependenciesToTargetedNodes adds dependencies of the targeted vertex to the
+// targetedNodes set. This includes all ancestors in the graph.
+// It also includes all action trigger nodes in the graph. Actions are planned after the
 // triggering node has planned so that we can ensure the actions are only planned if the triggering
 // resource has an action (Create / Update) corresponding to one of the events in the action trigger
 // blocks event list.
-func (t *TargetsTransformer) addDependencies(g *Graph, v dag.Vertex, targetedNodes dag.Set, addrs []addrs.Targetable) {
+func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v dag.Vertex, targetedNodes dag.Set, addrs []addrs.Targetable) {
 	if targetedNodes.Include(v) {
 		return
 	}
 	targetedNodes.Add(v)
 
 	for _, d := range g.Ancestors(v) {
-		t.addDependencies(g, d, targetedNodes, addrs)
+		t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
 	}
 
 	if _, ok := v.(*nodeExpandPlannableResource); ok {
 		// We want to also add the action triggers related to this resource
 		for _, d := range g.Children(v) {
 			if _, ok := d.(*nodeActionTriggerPlanExpand); ok {
-				t.addDependencies(g, d, targetedNodes, addrs)
+				t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
 			}
 		}
 	}
@@ -167,7 +168,7 @@ func (t *TargetsTransformer) addDependencies(g *Graph, v dag.Vertex, targetedNod
 	if _, ok := v.(*NodeApplyableResourceInstance); ok {
 		for _, f := range g.Children(v) {
 			if _, ok := f.(*nodeActionTriggerApply); ok {
-				t.addDependencies(g, f, targetedNodes, addrs)
+				t.addVertexDependenciesToTargetedNodes(g, f, targetedNodes, addrs)
 			}
 		}
 	}
