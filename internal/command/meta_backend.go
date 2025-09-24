@@ -33,6 +33,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -1744,6 +1745,57 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 		}
 	}
 	return diags
+}
+
+func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if config == nil || locks == nil {
+		panic(fmt.Sprintf("nil config or nil locks passed to GetStateStoreProviderFactory: config %#v, locks %#v", config, locks))
+	}
+
+	if config.ProviderAddr.IsZero() {
+		// This should not happen; this data is populated when parsing config,
+		// even for builtin providers
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown provider used for state storage",
+			Detail:   "Terraform could not find the provider used with the state_store. This is a bug in Terraform and should be reported.",
+			Subject:  &config.TypeRange,
+		})
+	}
+
+	factories, err := m.ProviderFactoriesFromLocks(locks)
+	if err != nil {
+		// This may happen if the provider isn't present in the provider cache.
+		// This should be caught earlier by logic that diffs the config against the backend state file.
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider unavailable",
+			Detail: fmt.Sprintf("Terraform experienced an error when trying to use provider %s (%q) to initialize the %q state store: %s",
+				config.Provider.Name,
+				config.ProviderAddr,
+				config.Type,
+				err),
+			Subject: &config.TypeRange,
+		})
+	}
+
+	factory, exists := factories[config.ProviderAddr]
+	if !exists {
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider unavailable",
+			Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+				config.Provider.Name,
+				config.ProviderAddr,
+				config.Type,
+			),
+			Subject: &config.TypeRange,
+		})
+	}
+
+	return factory, diags
 }
 
 //-------------------------------------------------------------------
