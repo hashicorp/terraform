@@ -164,9 +164,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		BackendConfig: config.Module.Backend,
-	})
+	b, backendDiags := c.Meta.prepareBackend(config.Root.Module)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

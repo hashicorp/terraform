@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StatePushCommand is a Command implementation that allows
@@ -76,10 +75,17 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
+	mod, diags := c.Meta.loadSingleModule(".")
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
+	b, backendDiags := c.Meta.prepareBackend(mod)
+	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(backendDiags)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -135,7 +141,6 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	// Get schemas, if possible, before writing state
 	var schemas *terraform.Schemas
-	var diags tfdiags.Diagnostics
 	if isCloudMode(b) {
 		schemas, diags = c.MaybeGetSchemas(srcStateFile.State, nil)
 	}

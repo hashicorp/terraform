@@ -34,10 +34,16 @@ func (c *StateMeta) State() (statemgr.Full, error) {
 	if c.statePath != "" {
 		realState = statemgr.NewFilesystem(c.statePath)
 	} else {
+		mod, diags := c.Meta.loadSingleModule(".")
+		if diags.HasErrors() {
+			return nil, diags.Err()
+		}
+
 		// Load the backend
-		b, backendDiags := c.Backend(nil)
+		b, backendDiags := c.Meta.prepareBackend(mod)
+		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
-			return nil, backendDiags.Err()
+			return nil, diags.Err()
 		}
 
 		workspace, err := c.Workspace()

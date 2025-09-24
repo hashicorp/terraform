@@ -68,17 +68,14 @@ func (c *GraphCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
+	mod, diags := c.Meta.loadSingleModule(configPath)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		BackendConfig: backendConfig,
-	})
+	b, backendDiags := c.Meta.prepareBackend(mod)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

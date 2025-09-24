@@ -31,6 +31,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/backend/local"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 )
@@ -2395,6 +2396,229 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 
 		})
 	}
+}
+
+func TestMeta_getStateStoreProviderFactory(t *testing.T) {
+	t.Run("defends against missing state_store config", func(t *testing.T) {
+		m := testMetaBackend(t, nil)
+		var config *configs.StateStore = nil
+		factory, diags := m.getStateStoreProviderFactory(config)
+		if !diags.HasErrors() {
+			t.Fatal("expected error but got none")
+		}
+		expectedErr := "Missing state_store configuration"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected error to include %q but it is missing: %q",
+				expectedErr,
+				diags.Err())
+		}
+		if factory != nil {
+			t.Fatal("unexpected factory returned")
+		}
+	})
+
+	t.Run("defends against missing provider addr data", func(t *testing.T) {
+		m := testMetaBackend(t, nil)
+		config := &configs.StateStore{
+			Type: "foo_bar",
+			Provider: &configs.Provider{
+				Name: "foo",
+			},
+			// ProviderAddr is not set
+		}
+		factory, diags := m.getStateStoreProviderFactory(config)
+		if !diags.HasErrors() {
+			t.Fatal("expected error but got none")
+		}
+		expectedErr := "Missing state_store provider data"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected error to include %q but it is missing: %q",
+				expectedErr,
+				diags.Err())
+		}
+		if factory != nil {
+			t.Fatal("unexpected factory returned")
+		}
+	})
+
+	t.Run("retrieves a matching factory from those available", func(t *testing.T) {
+		m := testMetaBackend(t, nil)
+
+		// Make the Meta report it has a factory for 'foo'
+		fooProviderAddress := addrs.NewDefaultProvider("foo")
+		fooProvider := new(testing_provider.MockProvider)
+		fooFactory := providers.FactoryFixed(fooProvider)
+		m.testingOverrides = &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				fooProviderAddress: fooFactory,
+			},
+		}
+
+		config := &configs.StateStore{
+			Type: "foo_bar",
+			Provider: &configs.Provider{
+				Name: "foo",
+			},
+			ProviderAddr: fooProviderAddress,
+		}
+
+		factory, diags := m.getStateStoreProviderFactory(config)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %q", diags.Err())
+		}
+		if factory == nil {
+			t.Fatal("expected a factory to be returned")
+		}
+
+		// Assert the factory returns the mock provider
+		p, err := factory()
+		if err != nil {
+			t.Fatal("unexpected err: ", err)
+		}
+		_ = p.GetProviderSchema()
+		if !fooProvider.GetProviderSchemaCalled {
+			// fooProvider.GetProviderSchemaCalled should be true
+			t.Fatal("the provider returned from the factor is not the expected provider")
+		}
+	})
+
+	// This error would only be surfaced if there are issues in parsing logic, which is where a matching
+	// required_providers entry is asserted, or if calling code is incorrect.
+	t.Run("returns an error if there is no matching provider", func(t *testing.T) {
+		m := testMetaBackend(t, nil)
+
+		// Make the Meta report it has a factory for 'not_foo'
+		notFooProviderAddress := addrs.NewDefaultProvider("not-foo")
+		notFooProvider := new(testing_provider.MockProvider)
+		notFooFactory := providers.FactoryFixed(notFooProvider)
+		m.testingOverrides = &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				notFooProviderAddress: notFooFactory,
+			},
+		}
+
+		config := &configs.StateStore{
+			Type: "foo_bar",
+			Provider: &configs.Provider{
+				Name: "foo",
+			},
+			ProviderAddr: addrs.NewDefaultProvider("foo"),
+		}
+
+		factory, diags := m.getStateStoreProviderFactory(config)
+		if !diags.HasErrors() {
+			t.Fatal("expected error but got none")
+		}
+		expectedErr := "Provider unavailable"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected error to include %q but it is missing: %q",
+				expectedErr,
+				diags.Err())
+		}
+		if factory != nil {
+			t.Fatal("unexpected factory returned")
+		}
+	})
+}
+
+func TestMetaBackend_prepareBackend(t *testing.T) {
+	t.Run("it returns a cloud backend from cloud backend config", func(t *testing.T) {
+		// Create a temporary working directory with cloud configuration in
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("cloud-config"), td)
+		t.Chdir(td)
+
+		m := testMetaBackend(t, nil)
+
+		// Get the cloud config
+		mod, loadDiags := m.loadSingleModule(td)
+		if loadDiags.HasErrors() {
+			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+		}
+
+		// We cannot initialize a cloud backend so we instead check
+		// the init error is referencing HCP Terraform
+		_, bDiags := m.prepareBackend(mod)
+		if !bDiags.HasErrors() {
+			t.Fatal("expected error but got none")
+		}
+		wantErr := "HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\""
+		if !strings.Contains(bDiags.Err().Error(), wantErr) {
+			t.Fatalf("expected error to contain %q, but got: %q",
+				wantErr,
+				bDiags.Err())
+		}
+	})
+	t.Run("it returns a backend from backend config", func(t *testing.T) {
+		// Create a temporary working directory with backend configuration in
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("backend-unchanged"), td)
+		t.Chdir(td)
+
+		m := testMetaBackend(t, nil)
+
+		// Get the backend config
+		mod, loadDiags := m.loadSingleModule(td)
+		if loadDiags.HasErrors() {
+			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+		}
+
+		b, bDiags := m.prepareBackend(mod)
+		if bDiags.HasErrors() {
+			t.Fatal("unexpected error: ", bDiags.Err())
+		}
+
+		if _, ok := b.(*local.Local); !ok {
+			t.Fatal("expected returned operations backend to be a Local backend")
+		}
+	})
+
+	t.Run("it returns a local backend when there is empty configuration", func(t *testing.T) {
+		m := testMetaBackend(t, nil)
+		emptyConfig := configs.NewEmptyConfig()
+
+		b, bDiags := m.prepareBackend(emptyConfig.Module)
+		if bDiags.HasErrors() {
+			t.Fatal("unexpected error: ", bDiags.Err())
+		}
+
+		if _, ok := b.(*local.Local); !ok {
+			t.Fatal("expected returned operations backend to be a Local backend")
+		}
+	})
+
+	t.Run("it returns a state_store from state_store config", func(t *testing.T) {
+		// Create a temporary working directory with backend configuration in
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		t.Chdir(td)
+
+		m := testMetaBackend(t, nil)
+		m.AllowExperimentalFeatures = true
+		mock := testStateStoreMock(t)
+		m.testingOverrides = &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+			},
+		}
+
+		// Get the backend config
+		mod, loadDiags := m.loadSingleModule(td)
+		if loadDiags.HasErrors() {
+			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+		}
+
+		_, bDiags := m.prepareBackend(mod)
+		if !bDiags.HasErrors() {
+			// TODO(SarahFrench/radeksimko): In future, we don't expect an error here!
+			t.Fatal("expected errors while state_store, due to incomplete implementation")
+		}
+		if !strings.Contains(bDiags.Err().Error(), "Changing a state store configuration is not implemented yet") {
+			t.Fatal("unexpected error: ", bDiags.Err())
+		}
+
+		// TODO(SarahFrench/radeksimko): Make assertion about returned operations backend.
+	})
 }
 
 func testMetaBackend(t *testing.T, args []string) *Meta {
