@@ -885,6 +885,94 @@ func TestContext2Plan_queryList(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: ".tf file blocks should not be processed in query mode",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				
+				locals {
+					foo = "bar"
+				}
+				
+				// This would produce an error if triggered, but we expect it to be ignored in query mode
+				resource "test_resource" "example" {
+					instance_type = "ami-123456"
+					
+					lifecycle {
+						precondition {
+							condition = local.foo != "bar"
+							error_message = "This should not be executed"
+						}
+					}
+				}
+				
+				// This would produce an error if triggered, but we expect it to be ignored in query mode
+				// output "resource_attr" {
+				// 	value = sensitive(test_resource.example.instance_type)
+				// }
+				`,
+			queryConfig: `
+				list "test_resource" "test" {
+					provider = test
+					include_resource = true
+
+					config {
+						filter = {
+							attr = "foo"
+						}
+					}
+				}
+				`,
+			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+				madeUp := []cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
+					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
+					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-789012")}),
+				}
+				ids := []cty.Value{}
+				for i := range madeUp {
+					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+					}))
+				}
+
+				resp := []cty.Value{}
+				for i, v := range madeUp {
+					mp := map[string]cty.Value{
+						"identity":     ids[i],
+						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
+					}
+					if request.IncludeResourceObject {
+						mp["state"] = v
+					}
+					resp = append(resp, cty.ObjectVal(mp))
+				}
+
+				ret := request.Config.AsValueMap()
+				maps.Copy(ret, map[string]cty.Value{
+					"data": cty.TupleVal(resp),
+				})
+
+				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+			},
+			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
+				expectedResources := []string{"list.test_resource.test"}
+				actualResources := make([]string, 0)
+				for _, change := range changes.Queries {
+					actualResources = append(actualResources, change.Addr.String())
+				}
+				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
+				}
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -922,7 +1010,9 @@ func TestContext2Plan_queryList(t *testing.T) {
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			diags = ctx.Validate(mod, &ValidateOpts{})
+			diags = ctx.Validate(mod, &ValidateOpts{
+				Query: true,
+			})
 			if tc.assertValidateDiags != nil {
 				tc.assertValidateDiags(t, diags)
 				return

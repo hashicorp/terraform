@@ -122,10 +122,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ConfigTransformer{
 			Concrete: concreteResource,
 			Config:   b.Config,
-			resourceMatcher: func(mode addrs.ResourceMode) bool {
-				// list resources are not added to the graph during apply
-				return mode != addrs.ListResourceMode
-			},
 		},
 
 		// Add dynamic values
@@ -238,6 +234,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets, ActionTargets: b.ActionTargets},
+
+		// Exclude list resources and their descendants from the apply graph
+		&QueryTransformer{includeLists: false},
 
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},
