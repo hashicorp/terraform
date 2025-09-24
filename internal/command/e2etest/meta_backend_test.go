@@ -65,7 +65,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 			// No other fields necessary for test.
 		}
 
-		// Setup the meta and test providerFactoriesDuringInit
+		// Setup the meta and test GetStateStoreProviderFactory
 		m := command.Meta{}
 		factory, diags := m.GetStateStoreProviderFactory(config, locks)
 		if diags.HasErrors() {

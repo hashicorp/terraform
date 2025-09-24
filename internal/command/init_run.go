@@ -171,7 +171,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		// initBackend has new parameters that aren't relevant to the original version of the init command logic here.
+		// initBackend has new parameters that aren't relevant to the original (unpluggable) version of the init command logic here.
 		// So for this version of the init command, we pass in empty locks intentionally.
 		emptyLocks := depsfile.NewLocks()
 		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, emptyLocks, view)
