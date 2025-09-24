@@ -17,30 +17,23 @@ type QueryTransformer struct {
 }
 
 func (t *QueryTransformer) Transform(g *Graph) error {
-	if t.validate && t.queryPlan {
+	if !t.queryPlan {
+		// if we are not running a query-specific operation, we don't need to transform the graph
+		// as query-related files would not have been part of the parsed config.
+		return nil
+	}
+
+	if t.validate {
 		// if we are validating query files, we validate all resources
 		return nil
 	}
 
 	for v := range dag.SelectSeq[GraphNodeConfigResource](g.VerticesSeq()) {
-		mode := v.ResourceAddr().Resource.Mode
-		var shouldRemove bool
-		switch {
-		// we are in default validate mode, we do not want to include list resources
-		case t.validate:
-			shouldRemove = mode == addrs.ListResourceMode
-
-		// We are planning list resources, so we should remove all non-list resources and their dependencies.
-		case t.queryPlan && mode != addrs.ListResourceMode:
-			shouldRemove = true
-
-		// We are planning/applying non-list resources, so we should remove all list resources and their dependencies.
-		case !t.queryPlan && mode == addrs.ListResourceMode:
-			shouldRemove = true
-		}
-
+		// we only get here if we are building a query plan, but not validating.
+		// Because the config would contain resource blocks from traditional .tf files,
+		// we need to exclude them from the plan graph.
 		// If the node is to be removed, we need to remove it and its descendants from the graph.
-		if shouldRemove {
+		if v.ResourceAddr().Resource.Mode != addrs.ListResourceMode {
 			deps := g.Descendants(v)
 			g.Remove(v)
 			for node := range deps {
