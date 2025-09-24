@@ -220,6 +220,19 @@ func (a ActionSchema) IsNil() bool {
 	return a.ConfigSchema == nil
 }
 
+type ListResourceSchema struct {
+	// schema for the nested "config" block.
+	ConfigSchema *configschema.Block
+
+	// schema for the entire block (including "config" block)
+	FullSchema *configschema.Block
+}
+
+// IsNil() returns true if there is no list resource schema at all.
+func (l ListResourceSchema) IsNil() bool {
+	return l.FullSchema == nil
+}
+
 // Schema pairs a provider or resource schema with that schema's version.
 // This is used to be able to upgrade the schema in UpgradeResourceState.
 //

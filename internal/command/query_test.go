@@ -270,7 +270,9 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 						},
 					},
 				},
-				Nesting: configschema.NestingSingle,
+				Nesting:  configschema.NestingSingle,
+				MinItems: 1,
+				MaxItems: 1,
 			},
 		},
 	}
@@ -291,7 +293,9 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 						},
 					},
 				},
-				Nesting: configschema.NestingSingle,
+				Nesting:  configschema.NestingSingle,
+				MinItems: 1,
+				MaxItems: 1,
 			},
 		},
 	}
