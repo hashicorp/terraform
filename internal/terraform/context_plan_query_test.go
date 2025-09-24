@@ -34,6 +34,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 		transformSchema     func(*providers.GetProviderSchemaResponse)
 		assertState         func(*states.State)
 		assertValidateDiags func(t *testing.T, diags tfdiags.Diagnostics)
+		assertPlanDiags     func(t *testing.T, diags tfdiags.Diagnostics)
 		assertChanges       func(providers.ProviderSchema, *plans.ChangesSrc)
 		listResourceFn      func(request providers.ListResourceRequest) providers.ListResourceResponse
 	}{
@@ -900,6 +901,8 @@ func TestContext2Plan_queryList(t *testing.T) {
 				
 				locals {
 					foo = "bar"
+					// This local variable is not evaluated in query mode, but it is still validated
+					bar = resource.test_resource.example.instance_type
 				}
 				
 				// This would produce a plan error if triggered, but we expect it to be ignored in query mode
@@ -970,6 +973,101 @@ func TestContext2Plan_queryList(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "when list provider depends on managed resource",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				
+				locals {
+					foo = "bar"
+					bar = resource.test_resource.example.instance_type
+				}
+				
+				// This is the provider used by the list resource, but it depends on the managed resource,
+				// so we will get an error.
+				provider "test" {
+					alias = "example"
+					region = resource.test_resource.example.instance_type
+				}
+				
+				// This would produce a plan error if triggered, but we expect it to be ignored in query mode
+				resource "test_resource" "example" {
+					instance_type = "ami-123456"
+					
+					lifecycle {
+						precondition {
+							condition = local.foo != "bar"
+							error_message = "This should not be executed"
+						}
+					}
+				}
+				
+				`,
+			queryConfig: `
+				list "test_resource" "test" {
+					provider = test.example
+					include_resource = true
+
+					config {
+						filter = {
+							attr = "foo"
+						}
+					}
+				}
+				`,
+			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
+				madeUp := []cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
+					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
+					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-789012")}),
+				}
+				ids := []cty.Value{}
+				for i := range madeUp {
+					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+					}))
+				}
+
+				resp := []cty.Value{}
+				for i, v := range madeUp {
+					mp := map[string]cty.Value{
+						"identity":     ids[i],
+						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
+					}
+					if request.IncludeResourceObject {
+						mp["state"] = v
+					}
+					resp = append(resp, cty.ObjectVal(mp))
+				}
+
+				ret := request.Config.AsValueMap()
+				maps.Copy(ret, map[string]cty.Value{
+					"data": cty.TupleVal(resp),
+				})
+
+				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+			},
+			assertPlanDiags: func(t *testing.T, diags tfdiags.Diagnostics) {
+				tfdiags.AssertDiagnosticCount(t, diags, 1)
+				var exp tfdiags.Diagnostics
+
+				exp = exp.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to uninitialized resource",
+					Detail:   "The resource test_resource.example was not processed by the most recent operation, this likely means the previous operation either failed or was incomplete due to targeting.",
+					Subject:  diags[0].Source().Subject.ToHCL().Ptr(),
+				})
+
+				tfdiags.AssertDiagnosticsMatch(t, diags, exp)
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -1023,7 +1121,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 				Query:              true,
 				GenerateConfigPath: tc.generatedPath,
 			})
-			tfdiags.AssertNoDiagnostics(t, diags)
+			if tc.assertPlanDiags != nil {
+				tc.assertPlanDiags(t, diags)
+				return
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
 
 			if tc.assertChanges != nil {
 				sch, err := ctx.Schemas(mod, states.NewState())
@@ -1212,6 +1315,14 @@ func getListProviderSchemaResp() *providers.GetProviderSchemaResponse {
 	}
 
 	return getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"region": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
 		ResourceTypes: map[string]*configschema.Block{
 			"list": {
 				Attributes: map[string]*configschema.Attribute{

@@ -28,18 +28,33 @@ func (t *QueryTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
+	// a set to hold the resources that we want to keep and vertices along its path.
+	keep := dag.Set{}
+
 	for v := range dag.SelectSeq[GraphNodeConfigResource](g.VerticesSeq()) {
 		// we only get here if we are building a query plan, but not validating.
-		// Because the config would contain resource blocks from traditional .tf files,
-		// we need to exclude them from the plan graph.
-		// If the node is to be removed, we need to remove it and its descendants from the graph.
-		if v.ResourceAddr().Resource.Mode != addrs.ListResourceMode {
-			deps := g.Descendants(v)
-			g.Remove(v)
+		//
+		// By now, the graph already contains all resources from the config, including non-list resources.
+		// We start from each list resource node, look at its ancestors, and keep all vertices along its path except for non-list resources.
+		// The implication is that if there is any other node within the ancestors that depends on the remove non-list resource,
+		// its evaluation will be an error.
+		if v.ResourceAddr().Resource.Mode == addrs.ListResourceMode {
+			keep.Add(v)
+			deps := g.Ancestors(v)
 			for node := range deps {
-				g.Remove(node)
+				if _, ok := node.(GraphNodeConfigResource); !ok {
+					keep.Add(node)
+				}
 			}
 		}
 	}
+
+	// Remove all nodes that are not in the keep set.
+	for v := range g.VerticesSeq() {
+		if _, ok := keep[v]; !ok {
+			g.Remove(v)
+		}
+	}
+
 	return nil
 }
