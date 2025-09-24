@@ -13,9 +13,9 @@ import (
 )
 
 type ActionPlanTransformer struct {
-	Config    *configs.Config
-	Targets   []addrs.Targetable
-	Operation walkOperation
+	Config        *configs.Config
+	ActionTargets []addrs.Targetable
+	Operation     walkOperation
 
 	queryPlanMode bool
 }
@@ -25,11 +25,11 @@ func (t *ActionPlanTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	if len(t.Targets) > 0 {
+	if len(t.ActionTargets) > 0 {
 		// Then we're invoking and we're just going to include the actions that
 		// have been specifically asked for.
 
-		for _, target := range t.Targets {
+		for _, target := range t.ActionTargets {
 			var config *configs.Action
 			switch target := target.(type) {
 			case addrs.AbsAction:

@@ -22,6 +22,7 @@ type nodeActionTriggerPlanExpand struct {
 	Config           *configs.Action
 
 	lifecycleActionTrigger *lifecycleActionTrigger
+	resourceTargets        []addrs.Targetable
 }
 
 type lifecycleActionTrigger struct {
@@ -99,6 +100,21 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 		_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
 		for _, key := range keys {
 			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
+
+			if n.resourceTargets != nil {
+				// If the triggering resource was targeted, make sure the instance
+				// that triggered this was targeted specifically.
+				matched := false
+				for _, resourceTarget := range n.resourceTargets {
+					if resourceTarget.TargetContains(absResourceInstanceAddr) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					continue
+				}
+			}
 
 			// The n.Addr was derived from the ActionRef hcl.Expression referenced inside the resource's lifecycle block, and has not yet been
 			// expanded or fully evaluated, so we will do that now.
@@ -190,4 +206,8 @@ func (n *nodeActionTriggerPlanExpand) Provider() (provider addrs.Provider) {
 
 func (n *nodeActionTriggerPlanExpand) SetProvider(config addrs.AbsProviderConfig) {
 	n.resolvedProvider = config
+}
+
+func (n *nodeActionTriggerPlanExpand) SetResourceTargets(addrs []addrs.Targetable) {
+	n.resourceTargets = addrs
 }
