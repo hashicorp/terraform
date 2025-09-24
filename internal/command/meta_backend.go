@@ -1746,6 +1746,41 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 	return diags
 }
 
+func (m *Meta) getStateStoreProviderFactory(config *configs.StateStore) (providers.Factory, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if config.ProviderAddr.IsZero() {
+		// This should not happen; this data is populated when parsing config,
+		// even for builtin providers
+		panic(fmt.Sprintf("unknown provider while beginning to initialize state store %q from provider %q",
+			config.Type,
+			config.Provider.Name))
+	}
+
+	ctxOpts, err := m.contextOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	factory, exists := ctxOpts.Providers[config.ProviderAddr]
+	if !exists {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider unavailable",
+			Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+				config.Provider.Name,
+				config.ProviderAddr,
+				config.Type,
+			),
+			Subject: &config.TypeRange,
+		})
+		return nil, diags
+	}
+
+	return factory, diags
+}
+
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
