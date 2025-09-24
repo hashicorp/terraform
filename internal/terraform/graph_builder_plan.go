@@ -285,7 +285,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Filter the graph to only include nodes that are relevant to the
 		// current operation. In case of a query, this will filter out nodes
 		// that are not relevant to the query.
-		&QueryTransformer{includeLists: b.queryPlan},
+		&QueryTransformer{includeLists: b.queryPlan, validate: b.Operation == walkValidate},
 
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.

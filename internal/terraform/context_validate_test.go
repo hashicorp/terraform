@@ -3555,7 +3555,9 @@ func TestContext2Validate_queryList(t *testing.T) {
 			// true externally.
 			provider.ConfigureProviderCalled = true
 
-			diags = ctx.Validate(m, nil)
+			diags = ctx.Validate(m, &ValidateOpts{
+				Query: true,
+			})
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
 			}
