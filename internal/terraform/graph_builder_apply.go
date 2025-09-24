@@ -236,7 +236,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&TargetsTransformer{Targets: b.Targets, ActionTargets: b.ActionTargets},
 
 		// Exclude list resources and their descendants from the apply graph
-		&QueryTransformer{includeLists: false},
+		&QueryTransformer{queryPlan: false},
 
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},

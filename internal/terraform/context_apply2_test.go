@@ -4271,3 +4271,77 @@ resource "test_resource" "foo" {
 		t.Fatalf("missing identity in state, got %q", fooState.Current.IdentityJSON)
 	}
 }
+
+func TestContext2Apply_noListValidated(t *testing.T) {
+	tests := map[string]struct {
+		name        string
+		mainConfig  string
+		queryConfig string
+		query       bool
+	}{
+		"query files not validated in default validate mode": {
+			mainConfig: `
+			terraform {	
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+			`,
+			queryConfig: `
+			// This config is invalid, but should not be validated in default validate mode
+			list "test_resource" "test" {
+				provider = test
+
+				config {
+					filter = {
+						attr = list.non_existent.attr
+					}
+				}
+			}
+			
+			locals {
+				test = list.non_existent.attr
+			}
+			`,
+			query: false,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			configFiles := map[string]string{"main.tf": tc.mainConfig}
+			if tc.queryConfig != "" {
+				configFiles["main.tfquery.hcl"] = tc.queryConfig
+			}
+
+			opts := []configs.Option{}
+			if tc.query {
+				opts = append(opts, configs.MatchQueryFiles())
+			}
+
+			m := testModuleInline(t, configFiles, opts...)
+
+			p := testProvider("test")
+			p.GetProviderSchemaResponse = getListProviderSchemaResp()
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			diags := ctx.Validate(m, &ValidateOpts{
+				Query: tc.query,
+			})
+
+			plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+			tfdiags.AssertNoErrors(t, diags)
+
+			_, diags = ctx.Apply(plan, m, nil)
+			tfdiags.AssertNoErrors(t, diags)
+		})
+	}
+}

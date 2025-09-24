@@ -3313,7 +3313,17 @@ resource "test_object" "a" {
 						t.Skip("Test not implemented yet")
 					}
 
-					m := testModuleInline(t, tc.module)
+					opts := SimplePlanOpts(plans.NormalMode, InputValues{})
+					if tc.planOpts != nil {
+						opts = tc.planOpts
+					}
+
+					configOpts := []configs.Option{}
+					if opts.Query {
+						configOpts = append(configOpts, configs.MatchQueryFiles())
+					}
+
+					m := testModuleInline(t, tc.module, configOpts...)
 
 					p := &testing_provider.MockProvider{
 						GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
@@ -3444,7 +3454,9 @@ resource "test_object" "a" {
 						},
 					})
 
-					diags := ctx.Validate(m, &ValidateOpts{})
+					diags := ctx.Validate(m, &ValidateOpts{
+						Query: opts.Query,
+					})
 					if tc.expectValidateDiagnostics != nil {
 						tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
 					} else if tc.assertValidateDiagnostics != nil {
@@ -3460,11 +3472,6 @@ resource "test_object" "a" {
 					var prevRunState *states.State
 					if tc.buildState != nil {
 						prevRunState = states.BuildState(tc.buildState)
-					}
-
-					opts := SimplePlanOpts(plans.NormalMode, InputValues{})
-					if tc.planOpts != nil {
-						opts = tc.planOpts
 					}
 
 					plan, diags := ctx.Plan(m, prevRunState, opts)

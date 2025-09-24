@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -914,9 +915,9 @@ func TestContext2Plan_queryList(t *testing.T) {
 				}
 				
 				// This would produce an error if triggered, but we expect it to be ignored in query mode
-				// output "resource_attr" {
-				// 	value = sensitive(test_resource.example.instance_type)
-				// }
+				output "resource_attr" {
+					value = sensitive(test_resource.example.instance_type)
+				}
 				`,
 			queryConfig: `
 				list "test_resource" "test" {
@@ -977,12 +978,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			configs := map[string]string{"main.tf": tc.mainConfig}
+			configFiles := map[string]string{"main.tf": tc.mainConfig}
 			if tc.queryConfig != "" {
-				configs["main.tfquery.hcl"] = tc.queryConfig
+				configFiles["main.tfquery.hcl"] = tc.queryConfig
 			}
 
-			mod := testModuleInline(t, configs)
+			mod := testModuleInline(t, configFiles, configs.MatchQueryFiles())
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
 			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
@@ -1130,10 +1131,10 @@ func TestContext2Plan_queryListArgs(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			configs := map[string]string{"main.tf": mainConfig}
-			configs["main.tfquery.hcl"] = tc.queryConfig
+			configFiles := map[string]string{"main.tf": mainConfig}
+			configFiles["main.tfquery.hcl"] = tc.queryConfig
 
-			mod := testModuleInline(t, configs)
+			mod := testModuleInline(t, configFiles, configs.MatchQueryFiles())
 
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
