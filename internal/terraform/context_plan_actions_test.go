@@ -176,12 +176,11 @@ list "test_resource" "test1" {
 				},
 			},
 			"query run, action references resource": {
-				toBeImplemented: true, // TODO: Fix the graph built by query operations.
 				module: map[string]string{
 					"main.tf": `
 action "test_action" "hello" {
   config {
-   attr = resource.test_object.a
+   attr = resource.test_object.a.name
   }
 }
 resource "test_object" "a" {
