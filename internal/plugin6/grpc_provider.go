@@ -20,7 +20,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -172,24 +171,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, list := range protoResp.ListResourceSchemas {
-		ret := convert.ProtoToProviderSchema(list, nil)
-		resp.ListResourceTypes[name] = providers.Schema{
-			Version: ret.Version,
-			Body: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"data": {
-						Type:     cty.DynamicPseudoType,
-						Computed: true,
-					},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"config": {
-						Block:   *ret.Body,
-						Nesting: configschema.NestingSingle,
-					},
-				},
-			},
-		}
+		resp.ListResourceTypes[name] = convert.ProtoToListSchema(list)
 	}
 
 	for name, store := range protoResp.StateStoreSchemas {
@@ -377,11 +359,14 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
+
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	config := cty.NullVal(configSchema.ImpliedType())
-	if r.Config.Type().HasAttribute("config") {
-		config = r.Config.GetAttr("config")
+	if !r.Config.Type().HasAttribute("config") {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing required attribute \"config\"; this is a bug in Terraform - please report it"))
+		return resp
 	}
+
+	config := r.Config.GetAttr("config")
 	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -1337,10 +1322,12 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	}
 
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	config := cty.NullVal(configSchema.ImpliedType())
-	if r.Config.Type().HasAttribute("config") {
-		config = r.Config.GetAttr("config")
+	if !r.Config.Type().HasAttribute("config") {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing required attribute \"config\"; this is a bug in Terraform - please report it"))
+		return resp
 	}
+
+	config := r.Config.GetAttr("config")
 	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
