@@ -5519,6 +5519,60 @@ Failure! 0 passed, 1 failed.
 	}
 }
 
+func TestTest_ReferencesIntoTargetedPlan(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid-reference-with-target")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	if code != 1 {
+		t.Errorf("expected status code %d but got %d", 0, code)
+	}
+	output := done(t)
+
+	err := output.Stderr()
+
+	if !strings.Contains(err, "Reference to uninitialized variable") {
+		t.Errorf("missing reference to uninitialized variable error: \n%s", err)
+	}
+}
+
 // https://github.com/hashicorp/terraform/issues/37546
 func TestTest_TeardownOrder(t *testing.T) {
 	td := t.TempDir()

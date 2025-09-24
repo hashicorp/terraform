@@ -297,7 +297,18 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		return ret, diags
 	}
 
-	val := d.Evaluator.NamedValues.GetInputVariableValue(d.ModulePath.InputVariable(addr.Name))
+	var val cty.Value
+	if target := d.ModulePath.InputVariable(addr.Name); !d.Evaluator.NamedValues.HasInputVariableValue(target) {
+		val = cty.DynamicVal
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to uninitialized variable",
+			Detail:   fmt.Sprintf("The variable %s was not processed by the most recent operation, this likely means the previous operation either failed or was incomplete due to targeting.", addr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	} else {
+		val = d.Evaluator.NamedValues.GetInputVariableValue(target)
+	}
 
 	// Mark if sensitive and/or ephemeral
 	if config.Sensitive {
