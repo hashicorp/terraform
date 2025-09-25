@@ -24,6 +24,9 @@ type Validate struct {
 
 	// ViewType specifies which output format to use: human, JSON, or "raw".
 	ViewType ViewType
+
+	// Query indicates that Terraform should also validate .tfquery files.
+	Query bool
 }
 
 // ParseValidate processes CLI arguments, returning a Validate value and errors.
@@ -40,6 +43,7 @@ func ParseValidate(args []string) (*Validate, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&validate.TestDirectory, "test-directory", "tests", "test-directory")
 	cmdFlags.BoolVar(&validate.NoTests, "no-tests", false, "no-tests")
+	cmdFlags.BoolVar(&validate.Query, "query", false, "query")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
