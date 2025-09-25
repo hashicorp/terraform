@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"fmt"
-	"maps"
 	"sort"
 	"strings"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -24,6 +24,44 @@ import (
 )
 
 func TestContext2Plan_queryList(t *testing.T) {
+	listResourceFn := func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		instanceTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
+		madeUp := []cty.Value{}
+		for i := range len(instanceTypes) {
+			madeUp = append(madeUp, cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal(instanceTypes[i])}))
+		}
+
+		ids := []cty.Value{}
+		for i := range madeUp {
+			ids = append(ids, cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+			}))
+		}
+
+		resp := []cty.Value{}
+		for i, v := range madeUp {
+			mp := map[string]cty.Value{
+				"identity":     ids[i],
+				"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
+			}
+			if request.IncludeResourceObject {
+				mp["state"] = v
+			}
+			resp = append(resp, cty.ObjectVal(mp))
+		}
+
+		ret := map[string]cty.Value{
+			"data": cty.TupleVal(resp),
+		}
+		for k, v := range request.Config.AsValueMap() {
+			if k != "data" {
+				ret[k] = v
+			}
+		}
+
+		return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+	}
+
 	cases := []struct {
 		name                string
 		mainConfig          string
@@ -33,6 +71,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 		transformSchema     func(*providers.GetProviderSchemaResponse)
 		assertState         func(*states.State)
 		assertValidateDiags func(t *testing.T, diags tfdiags.Diagnostics)
+		assertPlanDiags     func(t *testing.T, diags tfdiags.Diagnostics)
 		assertChanges       func(providers.ProviderSchema, *plans.ChangesSrc)
 		listResourceFn      func(request providers.ListResourceRequest) providers.ListResourceResponse
 	}{
@@ -75,39 +114,8 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			generatedPath: t.TempDir(),
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				madeUp := []cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-789012")}),
-				}
-				ids := []cty.Value{}
-				for i := range madeUp {
-					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-					}))
-				}
-
-				resp := []cty.Value{}
-				for i, v := range madeUp {
-					mp := map[string]cty.Value{
-						"identity":     ids[i],
-						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
-					}
-					if request.IncludeResourceObject {
-						mp["state"] = v
-					}
-					resp = append(resp, cty.ObjectVal(mp))
-				}
-
-				ret := request.Config.AsValueMap()
-				maps.Copy(ret, map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				})
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
-			},
+			generatedPath:  t.TempDir(),
+			listResourceFn: listResourceFn,
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test", "list.test_resource.test2"}
 				actualResources := make([]string, 0)
@@ -189,38 +197,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				madeUp := []cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
-				}
-				ids := []cty.Value{}
-				for i := range madeUp {
-					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-					}))
-				}
-
-				resp := []cty.Value{}
-				for i, v := range madeUp {
-					resp = append(resp, cty.ObjectVal(map[string]cty.Value{
-						"state":        v,
-						"identity":     ids[i],
-						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
-					}))
-				}
-
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
-			},
+			listResourceFn: listResourceFn,
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test[0]", "list.test_resource.test2"}
 				actualResources := make([]string, 0)
@@ -233,7 +210,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 
 					// Verify instance types
-					expectedTypes := []string{"ami-123456", "ami-654321"}
+					expectedTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
 					actualTypes := make([]string, 0)
 					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
@@ -369,38 +346,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 				}
 
 			},
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				madeUp := []cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-654321")}),
-				}
-				ids := []cty.Value{}
-				for i := range madeUp {
-					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-					}))
-				}
-
-				resp := []cty.Value{}
-				for i, v := range madeUp {
-					resp = append(resp, cty.ObjectVal(map[string]cty.Value{
-						"state":        v,
-						"identity":     ids[i],
-						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
-					}))
-				}
-
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
-			},
+			listResourceFn: listResourceFn,
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test"}
 				actualResources := make([]string, 0)
@@ -412,22 +358,22 @@ func TestContext2Plan_queryList(t *testing.T) {
 						t.Fatalf("failed to decode change: %s", err)
 					}
 
-					// Verify instance types
-					expectedTypes := []string{"ami-123456", "ami-654321"}
+					// Verify identities
+					expectedTypes := []string{"i-v1", "i-v2", "i-v3"}
 					actualTypes := make([]string, 0)
 					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
 						t.Fatalf("Expected 'data' attribute to be present, but it is null")
 					}
 					obj.ForEachElement(func(key cty.Value, val cty.Value) bool {
-						val = val.GetAttr("state")
+						val = val.GetAttr("identity")
 						if val.IsNull() {
-							t.Fatalf("Expected 'state' attribute to be present, but it is null")
+							t.Fatalf("Expected 'identity' attribute to be present, but it is null")
 						}
-						if val.GetAttr("instance_type").IsNull() {
-							t.Fatalf("Expected 'instance_type' attribute to be present, but it is missing")
+						if val.GetAttr("id").IsNull() {
+							t.Fatalf("Expected 'id' attribute to be present, but it is missing")
 						}
-						actualTypes = append(actualTypes, val.GetAttr("instance_type").AsString())
+						actualTypes = append(actualTypes, val.GetAttr("id").AsString())
 						return false
 					})
 					sort.Strings(actualTypes)
@@ -584,37 +530,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 
 				tfdiags.AssertDiagnosticsMatch(t, diags, exp)
 			},
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				madeUp := []cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
-				}
-				ids := []cty.Value{}
-				for i := range madeUp {
-					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-					}))
-				}
-
-				resp := []cty.Value{}
-				for i, v := range madeUp {
-					resp = append(resp, cty.ObjectVal(map[string]cty.Value{
-						"state":        v,
-						"identity":     ids[i],
-						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
-					}))
-				}
-
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
-			},
+			listResourceFn: listResourceFn,
 		},
 		{
 			name: "circular reference between list resources",
@@ -702,37 +618,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				madeUp := []cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
-				}
-				ids := []cty.Value{}
-				for i := range madeUp {
-					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-					}))
-				}
-
-				resp := []cty.Value{}
-				for i, v := range madeUp {
-					resp = append(resp, cty.ObjectVal(map[string]cty.Value{
-						"state":        v,
-						"identity":     ids[i],
-						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
-					}))
-				}
-
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
-			},
+			listResourceFn: listResourceFn,
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1", "list.test_resource.test2"}
 				actualResources := make([]string, 0)
@@ -745,7 +631,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 
 					// Verify instance types
-					expectedTypes := []string{"ami-123456"}
+					expectedTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
 					actualTypes := make([]string, 0)
 					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
@@ -812,37 +698,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 				}
 				`,
-			listResourceFn: func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				madeUp := []cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-123456")}),
-				}
-				ids := []cty.Value{}
-				for i := range madeUp {
-					ids = append(ids, cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-					}))
-				}
-
-				resp := []cty.Value{}
-				for i, v := range madeUp {
-					resp = append(resp, cty.ObjectVal(map[string]cty.Value{
-						"state":        v,
-						"identity":     ids[i],
-						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
-					}))
-				}
-
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
-					}
-				}
-
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
-			},
+			listResourceFn: listResourceFn,
 			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
 				expectedResources := []string{"list.test_resource.test1[\"foo\"]", "list.test_resource.test1[\"bar\"]", "list.test_resource.test2[\"foo\"]", "list.test_resource.test2[\"bar\"]"}
 				actualResources := make([]string, 0)
@@ -855,7 +711,7 @@ func TestContext2Plan_queryList(t *testing.T) {
 					}
 
 					// Verify instance types
-					expectedTypes := []string{"ami-123456"}
+					expectedTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
 					actualTypes := make([]string, 0)
 					obj := cs.Results.Value.GetAttr("data")
 					if obj.IsNull() {
@@ -885,16 +741,135 @@ func TestContext2Plan_queryList(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: ".tf file blocks should not be evaluated in query mode unless in path of list resources",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				
+				locals {
+					foo = "bar"
+					// This local variable is not evaluated in query mode, but it is still validated
+					bar = resource.test_resource.example.instance_type
+				}
+				
+				// This would produce a plan error if triggered, but we expect it to be ignored in query mode
+				// because no list resource depends on it
+				resource "test_resource" "example" {
+					instance_type = "ami-123456"
+					
+					lifecycle {
+						precondition {
+							condition = local.foo != "bar"
+							error_message = "This should not be executed"
+						}
+					}
+				}
+				
+				`,
+			queryConfig: `
+				list "test_resource" "test" {
+					provider = test
+					include_resource = true
+
+					config {
+						filter = {
+							attr = "foo"
+						}
+					}
+				}
+				`,
+			listResourceFn: listResourceFn,
+			assertChanges: func(sch providers.ProviderSchema, changes *plans.ChangesSrc) {
+				expectedResources := []string{"list.test_resource.test"}
+				actualResources := make([]string, 0)
+				for _, change := range changes.Queries {
+					actualResources = append(actualResources, change.Addr.String())
+				}
+				if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
+				}
+			},
+		},
+		{
+			name: "when list provider depends on managed resource",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				
+				locals {
+					foo = "bar"
+					bar = resource.test_resource.example.instance_type
+				}
+				
+				provider "test" {
+					alias = "example"
+					region = resource.test_resource.example.instance_type
+				}
+				
+				// The list resource depends on this via the provider,
+				// so this resource will be evaluated as well.
+				resource "test_resource" "example" {
+					instance_type = "ami-123456"
+				}
+				
+				`,
+			queryConfig: `
+				list "test_resource" "test" {
+					provider = test.example
+					include_resource = true
+
+					config {
+						filter = {
+							attr = "foo"
+						}
+					}
+				}
+				`,
+			listResourceFn: listResourceFn,
+			assertChanges: func(ps providers.ProviderSchema, changes *plans.ChangesSrc) {
+				expectedListResources := []string{"list.test_resource.test"}
+				actualResources := make([]string, 0)
+				for _, change := range changes.Queries {
+					actualResources = append(actualResources, change.Addr.String())
+				}
+				if diff := cmp.Diff(expectedListResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
+				}
+
+				expectedManagedResources := []string{"test_resource.example"}
+				actualResources = make([]string, 0)
+				for _, change := range changes.Resources {
+					actualResources = append(actualResources, change.Addr.String())
+				}
+				if diff := cmp.Diff(expectedManagedResources, actualResources); diff != "" {
+					t.Fatalf("Expected resources to match, but they differ: %s", diff)
+				}
+
+			},
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			configs := map[string]string{"main.tf": tc.mainConfig}
+			configFiles := map[string]string{"main.tf": tc.mainConfig}
 			if tc.queryConfig != "" {
-				configs["main.tfquery.hcl"] = tc.queryConfig
+				configFiles["main.tfquery.hcl"] = tc.queryConfig
 			}
 
-			mod := testModuleInline(t, configs)
+			mod := testModuleInline(t, configFiles, configs.MatchQueryFiles())
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
 			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
@@ -922,7 +897,9 @@ func TestContext2Plan_queryList(t *testing.T) {
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			diags = ctx.Validate(mod, &ValidateOpts{})
+			diags = ctx.Validate(mod, &ValidateOpts{
+				Query: true,
+			})
 			if tc.assertValidateDiags != nil {
 				tc.assertValidateDiags(t, diags)
 				return
@@ -936,7 +913,12 @@ func TestContext2Plan_queryList(t *testing.T) {
 				Query:              true,
 				GenerateConfigPath: tc.generatedPath,
 			})
-			tfdiags.AssertNoDiagnostics(t, diags)
+			if tc.assertPlanDiags != nil {
+				tc.assertPlanDiags(t, diags)
+				return
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
 
 			if tc.assertChanges != nil {
 				sch, err := ctx.Schemas(mod, states.NewState())
@@ -1040,10 +1022,10 @@ func TestContext2Plan_queryListArgs(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			configs := map[string]string{"main.tf": mainConfig}
-			configs["main.tfquery.hcl"] = tc.queryConfig
+			configFiles := map[string]string{"main.tf": mainConfig}
+			configFiles["main.tfquery.hcl"] = tc.queryConfig
 
-			mod := testModuleInline(t, configs)
+			mod := testModuleInline(t, configFiles, configs.MatchQueryFiles())
 
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
@@ -1125,6 +1107,14 @@ func getListProviderSchemaResp() *providers.GetProviderSchemaResponse {
 	}
 
 	return getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"region": {
+					Type:     cty.String,
+					Optional: true,
+				},
+			},
+		},
 		ResourceTypes: map[string]*configschema.Block{
 			"list": {
 				Attributes: map[string]*configschema.Attribute{
