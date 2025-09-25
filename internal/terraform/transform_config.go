@@ -53,8 +53,6 @@ type ConfigTransformer struct {
 	// try to delete the imported resource unless the config is updated
 	// manually.
 	generateConfigPathForImportTargets string
-
-	resourceMatcher func(addrs.ResourceMode) bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -163,11 +161,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			continue
 		}
 
-		if t.resourceMatcher != nil && !t.resourceMatcher(r.Mode) {
-			// Skip resources that do not match the filter
-			continue
-		}
-
 		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
 		var diags tfdiags.Diagnostics
 		if r.Managed != nil && r.Managed.ActionTriggers != nil {
@@ -262,10 +255,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// If any import targets were not claimed by resources we may be
 	// generating configuration. Add them to the graph for validation.
 	for _, i := range importTargets {
-		if t.resourceMatcher != nil && !t.resourceMatcher(i.Config.ToResource.Resource.Mode) {
-			// Skip resources that do not match the filter
-			continue
-		}
 
 		log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
 

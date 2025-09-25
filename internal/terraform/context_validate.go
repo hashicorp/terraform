@@ -34,6 +34,9 @@ type ValidateOpts struct {
 	// not available to this function. Therefore, it is the responsibility of
 	// the caller to ensure that the provider configurations are valid.
 	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
+
+	// When true, query files will also be validated.
+	Query bool
 }
 
 // Validate performs semantic validation of a configuration, and returns
@@ -105,6 +108,7 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 		Operation:               walkValidate,
 		ExternalProviderConfigs: opts.ExternalProviders,
 		ImportTargets:           c.findImportTargets(config),
+		queryPlan:               opts.Query,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
