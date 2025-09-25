@@ -13,7 +13,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/cli"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -21,6 +23,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -2395,6 +2399,79 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 
 		})
 	}
+}
+
+func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
+	// See internal/command/e2etest/meta_backend_test.go for test case
+	// where a provider factory is found using a local provider cache
+
+	t.Run("returns an error if a matching factory can't be found", func(t *testing.T) {
+		// Set up locks
+		locks := depsfile.NewLocks()
+		providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/simple")
+		constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+		if err != nil {
+			t.Fatalf("test setup failed when making constraint: %s", err)
+		}
+		locks.SetProvider(
+			providerAddr,
+			versions.MustParseVersion("9.9.9"),
+			constraint,
+			[]providerreqs.Hash{""},
+		)
+
+		config := &configs.StateStore{
+			ProviderAddr: tfaddr.MustParseProviderSource("registry.terraform.io/hashicorp/simple"),
+			Provider: &configs.Provider{
+				Name: "foobar",
+			},
+			Type: "store",
+		}
+
+		// Setup the meta and test providerFactoriesDuringInit
+		m := testMetaBackend(t, nil)
+		_, diags := m.GetStateStoreProviderFactory(config, locks)
+		if !diags.HasErrors() {
+			t.Fatalf("expected error but got none")
+		}
+		expectedErr := "Provider unavailable"
+		expectedDetail := "Terraform experienced an error when trying to use provider foobar (\"registry.terraform.io/hashicorp/simple\") to initialize the \"store\" state store"
+		if diags[0].Description().Summary != expectedErr {
+			t.Fatalf("expected error summary to include %q but got: %s",
+				expectedErr,
+				diags[0].Description().Summary,
+			)
+		}
+		if !strings.Contains(diags[0].Description().Detail, expectedDetail) {
+			t.Fatalf("expected error detail to include %q but got: %s",
+				expectedErr,
+				diags[0].Description().Detail,
+			)
+		}
+	})
+
+	t.Run("returns an error if provider addr data is missing", func(t *testing.T) {
+		// Only minimal locks needed
+		locks := depsfile.NewLocks()
+
+		config := &configs.StateStore{
+			ProviderAddr: tfaddr.Provider{}, // Empty
+		}
+
+		// Setup the meta and test providerFactoriesDuringInit
+		m := testMetaBackend(t, nil)
+		_, diags := m.GetStateStoreProviderFactory(config, locks)
+		if !diags.HasErrors() {
+			t.Fatal("expected and error but got none")
+		}
+		expectedErr := "Unknown provider used for state storage"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected error to include %q but got: %s",
+				expectedErr,
+				diags.Err().Error(),
+			)
+		}
+	})
 }
 
 func testMetaBackend(t *testing.T, args []string) *Meta {

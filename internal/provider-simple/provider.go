@@ -47,7 +47,9 @@ func Provider() providers.Interface {
 	return simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Body: nil,
+				Body: &configschema.Block{
+					Description: "This is terraform-provider-simple v5",
+				},
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,

@@ -159,7 +159,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -187,34 +187,9 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		return nil, true, diags
 	case root.StateStore != nil:
 		// state_store config present
-		// Access provider factories
-		ctxOpts, err := c.contextOpts()
-		if err != nil {
-			diags = diags.Append(err)
-			return nil, true, diags
-		}
-
-		if root.StateStore.ProviderAddr.IsZero() {
-			// This should not happen; this data is populated when parsing config,
-			// even for builtin providers
-			panic(fmt.Sprintf("unknown provider while beginning to initialize state store %q from provider %q",
-				root.StateStore.Type,
-				root.StateStore.Provider.Name))
-		}
-
-		var exists bool
-		factory, exists := ctxOpts.Providers[root.StateStore.ProviderAddr]
-		if !exists {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Provider unavailable",
-				Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
-					root.StateStore.Provider.Name,
-					root.StateStore.ProviderAddr,
-					root.StateStore.Type,
-				),
-				Subject: &root.StateStore.TypeRange,
-			})
+		factory, fDiags := c.Meta.GetStateStoreProviderFactory(root.StateStore, configLocks)
+		diags = diags.Append(fDiags)
+		if fDiags.HasErrors() {
 			return nil, true, diags
 		}
 
