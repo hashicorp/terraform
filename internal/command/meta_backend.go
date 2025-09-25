@@ -63,20 +63,6 @@ const (
 	maxStateStoreChunkSize int64 = 128 << 20 // 128 MB
 )
 
-const (
-	// defaultStateStoreChunkSize is the default chunk size proposed
-	// to the provider.
-	// This can be tweaked but should provide reasonable performance
-	// trade-offs for average network conditions and state file sizes.
-	defaultStateStoreChunkSize int64 = 8 << 20 // 8 MB
-
-	// maxStateStoreChunkSize is the highest chunk size provider may choose
-	// which we still consider reasonable/safe.
-	// This reflects terraform-plugin-go's max. RPC message size of 256MB
-	// and leaves plenty of space for other variable data like diagnostics.
-	maxStateStoreChunkSize int64 = 128 << 20 // 128 MB
-)
-
 // BackendOpts are the options used to initialize a backendrun.OperationsBackend.
 type BackendOpts struct {
 	// BackendConfig is a representation of the backend configuration block given in
