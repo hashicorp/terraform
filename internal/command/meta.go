@@ -546,7 +546,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 		opts.Provisioners = m.testingOverrides.Provisioners
 	} else {
 		var providerFactories map[addrs.Provider]providers.Factory
-		providerFactories, err = m.providerFactories()
+		providerFactories, err = m.ProviderFactories()
 		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
 	}
