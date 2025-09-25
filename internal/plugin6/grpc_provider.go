@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -1561,7 +1562,6 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 
 	buf := &bytes.Buffer{}
 	var expectedTotalLength int
-	// TODO: Send warning if client misbehaves and uses (lower) chunk size that we didn't agree on
 	for {
 		chunk, err := client.Recv()
 		if err == io.EOF {
@@ -1583,6 +1583,36 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 			expectedTotalLength = int(chunk.TotalLength)
 		}
 		logger.Trace("GRPCProvider.v6: ReadStateBytes: received chunk for range", chunk.Range)
+
+		// check the size of chunks matches to what was agreed
+		chunkSize, ok := p.stateChunkSize[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Unable to determine chunk size for provider %s; this is a bug in Terraform - please report it", r.TypeName))
+			return resp
+		}
+		if chunk.Range.End < chunk.TotalLength {
+			// all but last chunk must match exactly
+			if len(chunk.Bytes) != chunkSize {
+				resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Unexpected size of chunk received",
+					Detail: fmt.Sprintf("Unexpected chunk of size %d was received, expected %d; this is a bug in the provider %s - please report it there",
+						len(chunk.Bytes), chunkSize, r.TypeName),
+				})
+				return resp
+			}
+		} else {
+			// last chunk must be still within the agreed size
+			if len(chunk.Bytes) > chunkSize {
+				resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Unexpected size of last chunk received",
+					Detail: fmt.Sprintf("Last chunk exceeded agreed size, expected %d, given %d; this is a bug in the provider %s - please report it there",
+						chunkSize, len(chunk.Bytes), r.TypeName),
+				})
+				return resp
+			}
+		}
 
 		n, err := buf.Write(chunk.Bytes)
 		if err != nil {
