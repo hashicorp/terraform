@@ -1678,10 +1678,18 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 			break
 		}
 
+		var meta *proto6.RequestChunkMeta
+		if totalBytesProcessed == 0 {
+			// Send metadata with the first chunk only
+			meta = &proto6.RequestChunkMeta{
+				TypeName: r.TypeName,
+				StateId:  r.StateId,
+			}
+		}
+
 		// There is more data to write
 		protoReq := &proto6.WriteStateBytes_RequestChunk{
-			TypeName:    r.TypeName,
-			StateId:     r.StateId,
+			Meta:        meta,
 			Bytes:       chunk,
 			TotalLength: totalLength,
 			Range: &proto6.StateRange{
