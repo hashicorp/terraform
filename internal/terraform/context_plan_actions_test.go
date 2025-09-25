@@ -3053,6 +3053,73 @@ resource "test_object" "a" {
 				},
 			},
 
+			"referencing triggering resource in before_* condition": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+action "test_action" "world" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = test_object.a.name == "foo"
+      actions = [action.test_action.hello]
+    }
+    action_trigger {
+      events = [before_update]
+      condition = test_object.a.name == "bar"
+      actions = [action.test_action.world]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !diags.HasErrors() {
+						t.Errorf("expected errors, got none")
+					}
+
+					err := diags.Err().Error()
+					if !strings.Contains(err, "Cycle:") || !strings.Contains(err, "action.test_action.hello") || !strings.Contains(err, "test_object.a") {
+						t.Fatalf("Expected '[Error] Cycle: action.test_action.hello (instance), test_object.a', got '%s'", err)
+					}
+				},
+			},
+
+			"referencing triggering resource in after_* condition": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+action "test_action" "world" {}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = test_object.a.name == "foo"
+      actions = [action.test_action.hello]
+    }
+    action_trigger {
+      events = [after_update]
+      condition = test_object.a.name == "bar"
+      actions = [action.test_action.world]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Errorf("expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+					}
+				},
+			},
+
 			"using each in before_* condition": {
 				module: map[string]string{
 					"main.tf": `
