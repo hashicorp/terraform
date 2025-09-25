@@ -122,10 +122,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ConfigTransformer{
 			Concrete: concreteResource,
 			Config:   b.Config,
-			resourceMatcher: func(mode addrs.ResourceMode) bool {
-				// list resources are not added to the graph during apply
-				return mode != addrs.ListResourceMode
-			},
 		},
 
 		// Add dynamic values
