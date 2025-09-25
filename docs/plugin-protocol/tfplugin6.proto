@@ -946,17 +946,21 @@ message ReadStateBytes {
 
 message WriteStateBytes {
     message RequestChunk {
-        // TODO: Can we decouple this outside of the stream?
-        string type_name = 1;
-        string state_id = 3;
+        // meta is sent with the first chunk only
+        optional RequestChunkMeta meta = 1;
 
         bytes bytes = 2;
-        int64 total_length = 4;
-        StateRange range = 5;
+        int64 total_length = 3;
+        StateRange range = 4;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
     }
+}
+
+message RequestChunkMeta {
+    string type_name = 1;
+    string state_id = 2;
 }
 
 message StateRange {
