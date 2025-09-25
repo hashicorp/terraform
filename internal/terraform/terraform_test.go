@@ -89,15 +89,13 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
-func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
+func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...configs.Option) *configs.Config {
 	t.Helper()
 
 	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	var queryOpt configs.Option
 
 	for path, configStr := range sources {
 		dir := filepath.Dir(path)
@@ -118,15 +116,6 @@ func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 		if err != nil {
 			t.Fatalf("Error creating temporary file for config: %s", err)
 		}
-
-		if strings.HasSuffix(path, "tfquery.hcl") || strings.HasSuffix(path, "tfquery.json") {
-			queryOpt = configs.MatchQueryFiles()
-		}
-	}
-
-	var parserOpts []configs.Option
-	if queryOpt != nil {
-		parserOpts = append(parserOpts, queryOpt)
 	}
 
 	loader, cleanup := configload.NewLoaderForTests(t, parserOpts...)

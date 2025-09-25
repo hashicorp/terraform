@@ -159,14 +159,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ConcreteAction: b.ConcreteAction,
 			Config:         b.Config,
 			destroy:        b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
-			resourceMatcher: func(mode addrs.ResourceMode) bool {
-				// all resources are included during validation.
-				if b.Operation == walkValidate {
-					return true
-				}
-
-				return b.queryPlan == (mode == addrs.ListResourceMode)
-			},
 
 			importTargets: b.ImportTargets,
 
@@ -289,6 +281,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
+
+		// Filter the graph to only include nodes that are relevant to the query operation.
+		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},
 
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.

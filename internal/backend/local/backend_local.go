@@ -132,7 +132,9 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 		// If validation is enabled, validate
 		if b.OpValidation {
 			log.Printf("[TRACE] backend/local: running validation operation")
-			validateDiags := ret.Core.Validate(ret.Config, nil)
+			// TODO: Implement query validate command. op.Query is false when running the command "terraform validate"
+			opts := &terraform.ValidateOpts{Query: op.Query}
+			validateDiags := ret.Core.Validate(ret.Config, opts)
 			diags = diags.Append(validateDiags)
 		}
 	}

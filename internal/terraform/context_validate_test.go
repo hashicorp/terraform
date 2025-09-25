@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -3521,13 +3522,13 @@ func TestContext2Validate_queryList(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			configs := map[string]string{"main.tf": tc.mainConfig}
+			configFiles := map[string]string{"main.tf": tc.mainConfig}
 			if tc.queryConfig != "" {
-				configs["main.tfquery.hcl"] = tc.queryConfig
+				configFiles["main.tfquery.hcl"] = tc.queryConfig
 			}
-			maps.Copy(configs, tc.extraConfig)
+			maps.Copy(configFiles, tc.extraConfig)
 
-			m := testModuleInline(t, configs)
+			m := testModuleInline(t, configFiles, configs.MatchQueryFiles())
 
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
@@ -3555,7 +3556,9 @@ func TestContext2Validate_queryList(t *testing.T) {
 			// true externally.
 			provider.ConfigureProviderCalled = true
 
-			diags = ctx.Validate(m, nil)
+			diags = ctx.Validate(m, &ValidateOpts{
+				Query: true,
+			})
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
 			}
@@ -3772,6 +3775,74 @@ resource "test_instance" "foo" {
 					t.Fatal("unexpected Validate RCP call")
 				}
 			}
+		})
+	}
+}
+
+func TestContext2Validate_noListValidated(t *testing.T) {
+	tests := map[string]struct {
+		name        string
+		mainConfig  string
+		queryConfig string
+		query       bool
+	}{
+		"query files not validated in default validate mode": {
+			mainConfig: `
+			terraform {	
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+			`,
+			queryConfig: `
+			list "test_resource" "test" {
+				provider = test
+
+				config {
+					filter = {
+						attr = list.non_existent.attr
+					}
+				}
+			}
+			
+			locals {
+				test = list.non_existent.attr
+			}
+			`,
+			query: false,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			configFiles := map[string]string{"main.tf": tc.mainConfig}
+			if tc.queryConfig != "" {
+				configFiles["main.tfquery.hcl"] = tc.queryConfig
+			}
+
+			opts := []configs.Option{}
+			if tc.query {
+				opts = append(opts, configs.MatchQueryFiles())
+			}
+
+			m := testModuleInline(t, configFiles, opts...)
+
+			p := testProvider("test")
+			p.GetProviderSchemaResponse = getListProviderSchemaResp()
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			diags := ctx.Validate(m, &ValidateOpts{
+				Query: tc.query,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
 		})
 	}
 }
