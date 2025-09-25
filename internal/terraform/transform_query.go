@@ -35,16 +35,12 @@ func (t *QueryTransformer) Transform(g *Graph) error {
 		// we only get here if we are building a query plan, but not validating.
 		//
 		// By now, the graph already contains all resources from the config, including non-list resources.
-		// We start from each list resource node, look at its ancestors, and keep all vertices along its path except for non-list resources.
-		// The implication is that if there is any other node within the ancestors that depends on the remove non-list resource,
-		// its evaluation will be an error.
+		// We start from each list resource node, look at its ancestors, and keep all vertices along its path.
 		if v.ResourceAddr().Resource.Mode == addrs.ListResourceMode {
 			keep.Add(v)
 			deps := g.Ancestors(v)
 			for node := range deps {
-				if _, ok := node.(GraphNodeConfigResource); !ok {
-					keep.Add(node)
-				}
+				keep.Add(node)
 			}
 		}
 	}
