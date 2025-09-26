@@ -48,22 +48,36 @@ var protocSteps = []protocStep{
 	{
 		"tfplugin5 (provider wire protocol version 5)",
 		"internal/tfplugin5",
-		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "./tfplugin5.proto"},
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"./tfplugin5.proto",
+		},
 	},
 	{
 		"tfplugin6 (provider wire protocol version 6)",
 		"internal/tfplugin6",
-		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "./tfplugin6.proto"},
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"./tfplugin6.proto",
+		},
 	},
 	{
 		"terraform1 (Terraform Core RPC API)",
 		"internal/rpcapi/terraform1",
-		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1", "./terraform1.proto"},
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1",
+			"./terraform1.proto",
+		},
 	},
 	{
 		"terraform1 (Terraform Core RPC API) setup",
 		"internal/rpcapi/terraform1/setup",
-		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "--go_opt=Msetup.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1/setup", "./setup.proto"},
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"--go_opt=Msetup.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1/setup",
+			"./setup.proto",
+		},
 	},
 	{
 		"terraform1 (Terraform Core RPC API) dependencies",
@@ -104,22 +118,37 @@ var protocSteps = []protocStep{
 	{
 		"tfplan (plan file serialization)",
 		"internal/plans/planproto",
-		[]string{"--go_out=paths=source_relative:.", "planfile.proto"},
+		[]string{
+			"--go_out=paths=source_relative:.",
+			"planfile.proto",
+		},
 	},
 	{
 		"tfstackdata1 (Internal data formats for Stack state and plan)",
 		"internal/stacks/tfstackdata1",
-		[]string{"--go_out=paths=source_relative:.", "--go_opt=Mtfstackdata1.proto=github.com/hashicorp/terraform/internal/stacks/tfstackdata1", "-I.", "-I../../plans/planproto", "./tfstackdata1.proto"},
+		[]string{
+			"--go_out=paths=source_relative:.",
+			"--go_opt=Mtfstackdata1.proto=github.com/hashicorp/terraform/internal/stacks/tfstackdata1",
+			"-I.",
+			"-I../../plans/planproto",
+			"./tfstackdata1.proto",
+		},
 	},
 	{
 		"cloudproto1 (cloud protocol version 1)",
 		"internal/cloudplugin/cloudproto1",
-		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "cloudproto1.proto"},
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"cloudproto1.proto",
+		},
 	},
 	{
 		"stacksproto1 (stacks protocol version 1)",
 		"internal/stacksplugin/stacksproto1",
-		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "stacksproto1.proto"},
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"stacksproto1.proto",
+		},
 	},
 }
 
