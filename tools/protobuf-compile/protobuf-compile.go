@@ -113,25 +113,25 @@ var protocSteps = []protocStep{
 			"./dependencies.proto",
 		},
 	},
-	// // Currently experiencing an issue with use of -M flag
-	// {
-	// 	"terraform1 (Terraform Core RPC API) stacks",
-	// 	"internal/rpcapi/terraform1/stacks",
-	// 	[]string{
-	// 		"--go_out=.",
-	// 		"--go_opt=paths=source_relative",
-	// 		"--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1",
-	// 		"--go_opt=Mstacks.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks",
-	// 		"--go-grpc_out=.",
-	// 		"--go-grpc_opt=paths=source_relative",
-	// 		"--go-grpc_out=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1",
-	// 		"--go-grpc_opt=require_unimplemented_servers=false",
-	// 		"-I.",
-	// 		"-I..",
-	// 		"./stacks.proto",
-	// 	},
-	// },
-	// // Currently experiencing an issue with use of -M flag
+	// Currently experiencing an issue with use of -M flag
+	{
+		"terraform1 (Terraform Core RPC API) stacks",
+		"internal/rpcapi/terraform1/stacks",
+		[]string{
+			"--go_out=.",
+			"--go_opt=paths=source_relative",
+			// "--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1",
+			"--go_opt=Mstacks.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks",
+			"--go-grpc_out=.",
+			"--go-grpc_opt=paths=source_relative",
+			"--go-grpc_out=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1",
+			"--go-grpc_opt=require_unimplemented_servers=false",
+			"-I.",
+			"-I..",
+			"./stacks.proto",
+		},
+	},
+	// Currently experiencing an issue with use of -M flag
 	// {
 	// 	"terraform1 (Terraform Core RPC API) packages",
 	// 	"internal/rpcapi/terraform1/packages",
@@ -254,6 +254,10 @@ func main() {
 			Stdout: os.Stdout,
 			Stderr: os.Stderr,
 		}
+		log.Printf("running command: %s", cmd.String())
+		wd, _ := os.Getwd()
+		log.Printf("from directory: %s", wd)
+
 		err := cmd.Run()
 		if err != nil {
 			log.Printf("failed to compile: %s", err)
