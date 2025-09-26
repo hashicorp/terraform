@@ -175,7 +175,7 @@ func main() {
 
 		cmd := &exec.Cmd{
 			Path:   cmdLine[0],
-			Args:   cmdLine[1:],
+			Args:   cmdLine,
 			Dir:    step.WorkDir,
 			Env:    os.Environ(),
 			Stdout: os.Stdout,
