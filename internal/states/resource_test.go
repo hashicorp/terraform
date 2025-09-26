@@ -8,24 +8,13 @@ import (
 )
 
 func TestResourceInstanceDeposeCurrentObject(t *testing.T) {
-	t.Run("nil receiver HasCurrent", func(t *testing.T) {
-		// small helper to catch panics
-		callHasCurrent := func(ri *ResourceInstance) (ret bool, panicked bool) {
-			defer func() {
-				if r := recover(); r != nil {
-					panicked = true
-				}
-			}()
-			return ri.HasCurrent(), false
-		}
-
+	t.Run("nil resource", func(t *testing.T) {
 		var nilRI *ResourceInstance
-		got, panicked := callHasCurrent(nilRI)
-		if panicked {
-			t.Fatalf("HasCurrent(nil) panicked; want no panic and false")
-		}
-		if got {
-			t.Fatalf("HasCurrent(nil) = true; want false")
+		dk := nilRI.deposeCurrentObject(NotDeposed)
+		t.Logf("deposedKey (nil receiver) is %q", dk)
+
+		if dk != NotDeposed {
+			t.Fatalf("expected NotDeposed for nil receiver, got %q", dk)
 		}
 	})
 	obj := &ResourceInstanceObjectSrc{
