@@ -1599,7 +1599,6 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 					Detail: fmt.Sprintf("Unexpected chunk of size %d was received, expected %d; this is a bug in the provider %s - please report it there",
 						len(chunk.Bytes), chunkSize, r.TypeName),
 				})
-				return resp
 			}
 		} else {
 			// last chunk must be still within the agreed size
@@ -1610,7 +1609,6 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 					Detail: fmt.Sprintf("Last chunk exceeded agreed size, expected %d, given %d; this is a bug in the provider %s - please report it there",
 						chunkSize, len(chunk.Bytes), r.TypeName),
 				})
-				return resp
 			}
 		}
 
