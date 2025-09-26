@@ -33,6 +33,8 @@ const protocVersion = "3.15.6"
 // in Go modules our version selection for these comes from our top-level
 // go.mod, as with all other Go dependencies. If you want to switch to a newer
 // version of either tool then you can upgrade their modules in the usual way.
+//
+// TODO: Swap to using google.golang.org/protobuf/cmd/protoc-gen-go
 const protocGenGoPackage = "github.com/golang/protobuf/protoc-gen-go"
 const protocGenGoGrpcPackage = "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 
@@ -144,7 +146,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = buildProtocGenGoGrpc(workDir)
+	protocGenGoGrpcExec, err := buildProtocGenGoGrpc(workDir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -157,7 +159,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	protocGenGoGrpcExec, err := filepath.Abs(protocGenGoExec)
+	protocGenGoGrpcExec, err = filepath.Abs(protocGenGoGrpcExec)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -175,7 +177,7 @@ func main() {
 
 		cmd := &exec.Cmd{
 			Path:   cmdLine[0],
-			Args:   cmdLine[1:],
+			Args:   cmdLine,
 			Dir:    step.WorkDir,
 			Env:    os.Environ(),
 			Stdout: os.Stdout,
