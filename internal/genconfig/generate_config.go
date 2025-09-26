@@ -145,8 +145,8 @@ type UniqueAddr struct {
 	// Addr is the address of the resource instance.
 	Addr addrs.AbsResourceInstance
 
-	// ExpansionCounter is the enumeration of the address during expansion.
-	ExpansionCounter int
+	// ExpansionEnum is the enumeration of the address during expansion.
+	ExpansionEnum int
 }
 
 func GenerateListResourceContents(uniqAddr UniqueAddr,
@@ -178,7 +178,7 @@ func GenerateListResourceContents(uniqAddr UniqueAddr,
 		if addr.Resource.Key == addrs.NoKey {
 			resAddr.Resource.Resource.Name = fmt.Sprintf("%s_%d", addr.Resource.Resource.Name, idx)
 		} else {
-			resAddr.Resource.Resource.Name = fmt.Sprintf("%s_%d_%d", addr.Resource.Resource.Name, uniqAddr.ExpansionCounter, idx)
+			resAddr.Resource.Resource.Name = fmt.Sprintf("%s_%d_%d", addr.Resource.Resource.Name, uniqAddr.ExpansionEnum, idx)
 		}
 
 		content, gDiags := GenerateResourceContents(resAddr, schema, pc, res.Config, true)

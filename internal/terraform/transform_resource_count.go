@@ -27,7 +27,7 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 	for idx, addr := range t.InstanceAddrs {
 		abstract := NewNodeAbstractResourceInstance(addr)
 		abstract.Schema = t.Schema
-		abstract.expansionCounter = idx
+		abstract.expansionEnum = idx
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
