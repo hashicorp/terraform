@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -17,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeActionTriggerPlanInstance struct {
@@ -89,7 +89,8 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	}
 
 	if change == nil {
-		panic("change cannot be nil")
+		// nothing to do (this may be a refresh )
+		return nil
 	}
 
 	if n.lifecycleActionTrigger == nil {
