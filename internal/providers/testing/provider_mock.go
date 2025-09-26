@@ -146,6 +146,16 @@ type MockProvider struct {
 	ConfigureStateStoreRequest  providers.ConfigureStateStoreRequest
 	ConfigureStateStoreFn       func(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse
 
+	ReadStateBytesCalled   bool
+	ReadStateBytesRequest  providers.ReadStateBytesRequest
+	ReadStateBytesFn       func(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse
+	ReadStateBytesResponse providers.ReadStateBytesResponse
+
+	WriteStateBytesCalled   bool
+	WriteStateBytesRequest  providers.WriteStateBytesRequest
+	WriteStateBytesFn       func(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse
+	WriteStateBytesResponse providers.WriteStateBytesResponse
+
 	GetStatesCalled   bool
 	GetStatesResponse *providers.GetStatesResponse
 	GetStatesRequest  providers.GetStatesRequest
@@ -302,6 +312,32 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 	}
 
 	return resp
+}
+
+func (p *MockProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
+	p.Lock()
+	defer p.Unlock()
+	p.ReadStateBytesCalled = true
+	p.ReadStateBytesRequest = r
+
+	if p.ReadStateBytesFn != nil {
+		return p.ReadStateBytesFn(r)
+	}
+
+	return p.ReadStateBytesResponse
+}
+
+func (p *MockProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
+	p.Lock()
+	defer p.Unlock()
+	p.WriteStateBytesCalled = true
+	p.WriteStateBytesRequest = r
+
+	if p.WriteStateBytesFn != nil {
+		return p.WriteStateBytesFn(r)
+	}
+
+	return p.WriteStateBytesResponse
 }
 
 func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {

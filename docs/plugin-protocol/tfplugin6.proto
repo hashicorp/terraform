@@ -390,6 +390,11 @@ service Provider {
     // ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
     rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
 
+    // ReadStateBytes streams byte chunks of a given state file from a state store
+    rpc ReadStateBytes(ReadStateBytes.Request) returns (stream ReadStateBytes.Response);
+    // WriteStateBytes streams byte chunks of a given state file into a state store
+    rpc WriteStateBytes(stream WriteStateBytes.RequestChunk) returns (WriteStateBytes.Response);
+
     // GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
     rpc GetStates(GetStates.Request) returns (GetStates.Response);
     // DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
@@ -896,7 +901,6 @@ message ValidateListResourceConfig {
     }
 }
 
-
 message ValidateStateStore {
     message Request {
         string type_name = 1;
@@ -911,10 +915,57 @@ message ConfigureStateStore {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
+        StateStoreClientCapabilities capabilities = 3;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+        StateStoreServerCapabilities capabilities = 2;
+    }
+}
+
+message StateStoreClientCapabilities {
+    int64 chunk_size = 1; // suggested chunk size by Core
+}
+
+message StateStoreServerCapabilities {
+    int64 chunk_size = 1; // chosen chunk size by plugin
+}
+
+message ReadStateBytes {
+    message Request {
+        string type_name = 1;
+        string state_id = 2;
+    }
+    message Response {
+        bytes bytes = 1;
+        int64 total_length = 2;
+        StateRange range = 3;
+        repeated Diagnostic diagnostics = 4;
+    }
+}
+
+message WriteStateBytes {
+    message RequestChunk {
+        // meta is sent with the first chunk only
+        optional RequestChunkMeta meta = 1;
+
+        bytes bytes = 2;
+        int64 total_length = 3;
+        StateRange range = 4;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
     }
+}
+
+message RequestChunkMeta {
+    string type_name = 1;
+    string state_id = 2;
+}
+
+message StateRange {
+    int64 start = 1;
+    int64 end = 2;
 }
 
 message GetStates {
