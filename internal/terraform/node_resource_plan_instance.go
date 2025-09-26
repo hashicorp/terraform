@@ -958,7 +958,7 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalConte
 		listElements = append(listElements, genconfig.ResourceListElement{Config: config, Identity: idVal})
 	}
 
-	return genconfig.GenerateListResourceContents(addr, schema.Body, schema.Identity, providerAddr, listElements)
+	return genconfig.GenerateListResourceContents(genconfig.UniqueAddr{Addr: addr, ExpansionCounter: n.expansionCounter}, schema.Body, schema.Identity, providerAddr, listElements)
 }
 
 func (n *NodePlannableResourceInstance) generateResourceConfig(ctx EvalContext, state cty.Value) (cty.Value, tfdiags.Diagnostics) {
