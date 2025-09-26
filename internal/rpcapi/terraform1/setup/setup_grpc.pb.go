@@ -60,7 +60,7 @@ func (c *setupClient) Stop(ctx context.Context, in *Stop_Request, opts ...grpc.C
 }
 
 // SetupServer is the server API for Setup service.
-// All implementations must embed UnimplementedSetupServer
+// All implementations should embed UnimplementedSetupServer
 // for forward compatibility
 type SetupServer interface {
 	// Clients must call Handshake before any other function of any other
@@ -72,10 +72,9 @@ type SetupServer interface {
 	// At any time after handshaking, clients may call Stop to initiate a
 	// graceful shutdown of the server.
 	Stop(context.Context, *Stop_Request) (*Stop_Response, error)
-	mustEmbedUnimplementedSetupServer()
 }
 
-// UnimplementedSetupServer must be embedded to have forward compatible implementations.
+// UnimplementedSetupServer should be embedded to have forward compatible implementations.
 type UnimplementedSetupServer struct {
 }
 
@@ -85,7 +84,6 @@ func (UnimplementedSetupServer) Handshake(context.Context, *Handshake_Request) (
 func (UnimplementedSetupServer) Stop(context.Context, *Stop_Request) (*Stop_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
 }
-func (UnimplementedSetupServer) mustEmbedUnimplementedSetupServer() {}
 
 // UnsafeSetupServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to SetupServer will

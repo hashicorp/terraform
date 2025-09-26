@@ -67,22 +67,20 @@ func (x *commandServiceExecuteClient) Recv() (*CommandResponse, error) {
 }
 
 // CommandServiceServer is the server API for CommandService service.
-// All implementations must embed UnimplementedCommandServiceServer
+// All implementations should embed UnimplementedCommandServiceServer
 // for forward compatibility
 type CommandServiceServer interface {
 	// Execute runs a specific command with the provided flags and returns the result.
 	Execute(*CommandRequest, CommandService_ExecuteServer) error
-	mustEmbedUnimplementedCommandServiceServer()
 }
 
-// UnimplementedCommandServiceServer must be embedded to have forward compatible implementations.
+// UnimplementedCommandServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedCommandServiceServer struct {
 }
 
 func (UnimplementedCommandServiceServer) Execute(*CommandRequest, CommandService_ExecuteServer) error {
 	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
 }
-func (UnimplementedCommandServiceServer) mustEmbedUnimplementedCommandServiceServer() {}
 
 // UnsafeCommandServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to CommandServiceServer will
