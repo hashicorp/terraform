@@ -33,6 +33,8 @@ const protocVersion = "3.15.6"
 // in Go modules our version selection for these comes from our top-level
 // go.mod, as with all other Go dependencies. If you want to switch to a newer
 // version of either tool then you can upgrade their modules in the usual way.
+//
+// TODO: Swap to using google.golang.org/protobuf/cmd/protoc-gen-go
 const protocGenGoPackage = "github.com/golang/protobuf/protoc-gen-go"
 const protocGenGoGrpcPackage = "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 
