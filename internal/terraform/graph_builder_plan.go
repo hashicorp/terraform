@@ -168,7 +168,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ActionPlanTransformer{
 			Config:        b.Config,
 			Operation:     b.Operation,
-			Targets:       b.ActionTargets,
+			ActionTargets: b.ActionTargets,
 			queryPlanMode: b.queryPlan,
 		},
 
