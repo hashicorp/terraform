@@ -61,27 +61,27 @@ type ApplyHuman struct {
 var _ Apply = (*ApplyHuman)(nil)
 
 func (v *ApplyHuman) ResourceCount(stateOutPath string) {
+	var summary string
 	if v.destroy {
-		v.view.streams.Printf(
-			v.view.colorize.Color("[reset][bold][green]\nDestroy complete! Resources: %d destroyed.\n"),
-			v.countHook.Removed,
-		)
+		summary = fmt.Sprintf("Destroy complete! Resources: %d destroyed.", v.countHook.Removed)
 	} else if v.countHook.Imported > 0 {
-		v.view.streams.Printf(
-			v.view.colorize.Color("[reset][bold][green]\nApply complete! Resources: %d imported, %d added, %d changed, %d destroyed.\n"),
+		summary = fmt.Sprintf("Apply complete! Resources: %d imported, %d added, %d changed, %d destroyed.",
 			v.countHook.Imported,
 			v.countHook.Added,
 			v.countHook.Changed,
-			v.countHook.Removed,
-		)
+			v.countHook.Removed)
 	} else {
-		v.view.streams.Printf(
-			v.view.colorize.Color("[reset][bold][green]\nApply complete! Resources: %d added, %d changed, %d destroyed.\n"),
+		summary = fmt.Sprintf("Apply complete! Resources: %d added, %d changed, %d destroyed.",
 			v.countHook.Added,
 			v.countHook.Changed,
-			v.countHook.Removed,
-		)
+			v.countHook.Removed)
 	}
+	v.view.streams.Print(v.view.colorize.Color("[reset][bold][green]\n" + summary))
+	if v.countHook.ActionInvocation > 0 {
+		actionsStr := fmt.Sprintf("[reset][bold][green] Actions: %d invoked.", v.countHook.ActionInvocation)
+		v.view.streams.Print(v.view.colorize.Color(actionsStr))
+	}
+	v.view.streams.Print("\n")
 	if (v.countHook.Added > 0 || v.countHook.Changed > 0) && stateOutPath != "" {
 		v.view.streams.Printf("\n%s\n\n", format.WordWrap(stateOutPathPostApply, v.view.outputColumns()))
 		v.view.streams.Printf("State path: %s\n", stateOutPath)
