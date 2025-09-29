@@ -8,3 +8,4 @@ Added a new documentation page "Destroy Best Practices" to provide guidance for 
 - Backing up state files
 - Managing workspaces
 - Team confirmation and coordination
+
