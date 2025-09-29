@@ -1,3 +1,9 @@
+---
+type: docs
+pr: 4404
+author: Wiryenkfea-Eric
+---
+
 # Destroy Best Practices
 
 Added a new documentation page "Destroy Best Practices" to provide guidance for safely using `terraform destroy`, including:
@@ -8,4 +14,5 @@ Added a new documentation page "Destroy Best Practices" to provide guidance for 
 - Backing up state files
 - Managing workspaces
 - Team confirmation and coordination
+
 
