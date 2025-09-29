@@ -159,7 +159,10 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	extraConfig := initArgs.BackendConfig
+	viewType := initArgs.ViewType
+
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
