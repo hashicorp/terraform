@@ -983,7 +983,7 @@ func TestGenerateResourceAndIDContents(t *testing.T) {
 	}
 
 	// Generate content
-	content, diags := GenerateListResourceContents(UniqueAddr{Addr: instAddr1, ExpansionEnum: 0}, schema, idSchema, pc, listElements)
+	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, listElements)
 	// Check for diagnostics
 	if diags.HasErrors() {
 		t.Fatalf("unexpected diagnostics: %s", diags.Err())

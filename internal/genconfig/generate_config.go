@@ -138,18 +138,12 @@ type ResourceListElement struct {
 	Config cty.Value
 
 	Identity cty.Value
-}
 
-// UniqueAddr is a unique address for each resource instance
-type UniqueAddr struct {
-	// Addr is the address of the resource instance.
-	Addr addrs.AbsResourceInstance
-
-	// ExpansionEnum is the enumeration of the address during expansion.
+	// ExpansionEnum is a unique enumeration of the list resource address relative to its expanded siblings.
 	ExpansionEnum int
 }
 
-func GenerateListResourceContents(uniqAddr UniqueAddr,
+func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
 	idSchema *configschema.Object,
 	pc addrs.LocalProviderConfig,
@@ -158,8 +152,6 @@ func GenerateListResourceContents(uniqAddr UniqueAddr,
 
 	var diags tfdiags.Diagnostics
 	ret := ImportGroup{}
-
-	addr := uniqAddr.Addr
 
 	for idx, res := range resources {
 		// Generate a unique resource name for each instance in the list.
@@ -178,7 +170,7 @@ func GenerateListResourceContents(uniqAddr UniqueAddr,
 		if addr.Resource.Key == addrs.NoKey {
 			resAddr.Resource.Resource.Name = fmt.Sprintf("%s_%d", addr.Resource.Resource.Name, idx)
 		} else {
-			resAddr.Resource.Resource.Name = fmt.Sprintf("%s_%d_%d", addr.Resource.Resource.Name, uniqAddr.ExpansionEnum, idx)
+			resAddr.Resource.Resource.Name = fmt.Sprintf("%s_%d_%d", addr.Resource.Resource.Name, res.ExpansionEnum, idx)
 		}
 
 		content, gDiags := GenerateResourceContents(resAddr, schema, pc, res.Config, true)

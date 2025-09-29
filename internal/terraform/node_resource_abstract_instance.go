@@ -52,12 +52,6 @@ type NodeAbstractResourceInstance struct {
 
 	// override is set by the graph itself, just before this node executes.
 	override *configs.Override
-
-	// expansionEnum tracks the index of the resource instance within the resource.
-	// While the index is an enumerated value, it does not represent the evaluation order
-	// of the instances. It is currently used to generate unique hcl identifiers, because
-	// for_each keys are not guaranteed to be valid identifiers.
-	expansionEnum int
 }
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
