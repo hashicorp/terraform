@@ -1,4 +1,4 @@
----
+echo "--- 
 type: docs
 pr: 4404
 author: Wiryenkfea-Eric
@@ -6,13 +6,14 @@ author: Wiryenkfea-Eric
 
 # Destroy Best Practices
 
-Added a new documentation page "Destroy Best Practices" to provide guidance for safely using `terraform destroy`, including:
+Added a new documentation page \"Destroy Best Practices\" to provide guidance for safely using \`terraform destroy\`, including:
 
-- Using `-target` carefully
+- Using \`-target\` carefully
 - Reviewing the plan before destruction
-- Protecting critical resources with `prevent_destroy`
+- Protecting critical resources with \`prevent_destroy\`
 - Backing up state files
 - Managing workspaces
 - Team confirmation and coordination
+" > docs/.changes/v1.15/add-destroy-best-practices.md
 
 
