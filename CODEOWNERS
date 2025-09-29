@@ -32,6 +32,3 @@
 builtin/provisioners/file               @hashicorp/terraform-core
 builtin/provisioners/local-exec         @hashicorp/terraform-core
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
-
-# temporary go.mod protection during freeze
-/go.mod      @tommyokeefe
