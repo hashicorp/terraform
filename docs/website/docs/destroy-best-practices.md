@@ -20,7 +20,6 @@ If you only want to destroy specific resources, you can use the `-target` flag:
 terraform destroy -target=aws_instance.example
 ```
 
-
 ## 2. Always Review the Plan First
 
 Before running a full destroy, generate and inspect the plan:
@@ -28,7 +27,6 @@ Before running a full destroy, generate and inspect the plan:
 ```bash
 terraform plan -destroy
 ```
-
 
 This shows exactly what resources will be removed, helping you avoid surprises.
 
@@ -45,12 +43,11 @@ resource "aws_db_instance" "prod" {
 }
 ```
 
-
 This ensures Terraform fails if you try to destroy these resources.
 
-## 4. Back Up state files
+## 4. Back Up State Files
 
-Always back up your .tfstate files before running `terraform destroy`.
+Always back up your `.tfstate` files before running `terraform destroy`.
 You can use remote backends like S3 with DynamoDB locking to protect state consistency.
 
 ## 5. Use Workspaces for Isolation
@@ -62,19 +59,15 @@ terraform workspace new dev
 terraform workspace select dev
 ```
 
-
 This prevents accidental destruction of production infrastructure when testing.
 
 ## 6. Confirm with Your Team
 
-If you work in a shared environment, never run terraform destroy without alignment.
+If you work in a shared environment, never run `terraform destroy` without alignment.
 Coordinate with your team to avoid unexpected downtime.
 
 ## Conclusion
 
-The terraform destroy command is powerful, but with great power comes great responsibility.
+The `terraform destroy` command is powerful, but with great power comes great responsibility.
 By following these best practices, you can ensure that destruction is intentional, controlled, and safe.
-
-
 ---
-
