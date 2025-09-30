@@ -23,7 +23,6 @@ type nodeActionTriggerPlanExpand struct {
 
 	lifecycleActionTrigger *lifecycleActionTrigger
 }
-
 type lifecycleActionTrigger struct {
 	resourceAddress         addrs.ConfigResource
 	events                  []configs.ActionTriggerEvent
@@ -41,6 +40,7 @@ func (at *lifecycleActionTrigger) Name() string {
 var (
 	_ GraphNodeDynamicExpandable = (*nodeActionTriggerPlanExpand)(nil)
 	_ GraphNodeReferencer        = (*nodeActionTriggerPlanExpand)(nil)
+	_ GraphNodeReferenceable     = (*nodeActionTriggerPlanExpand)(nil)
 )
 
 func (n *nodeActionTriggerPlanExpand) Name() string {
@@ -169,6 +169,15 @@ func (n *nodeActionTriggerPlanExpand) References() []*addrs.Reference {
 	}
 
 	return refs
+}
+
+func (n *nodeActionTriggerPlanExpand) ReferenceableAddrs() []addrs.Referenceable {
+	// the action triggers themselves aren't directly referenceable, but during
+	// planning we do want to force any dependents on the resource to wait for
+	// any triggered actions to be planned in case the action results in the
+	// original resource being deferred. therefore, we expose the address of the
+	// underlying resource as being the referenceable address for this node.
+	return []addrs.Referenceable{n.lifecycleActionTrigger.resourceAddress.Resource}
 }
 
 func (n *nodeActionTriggerPlanExpand) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {

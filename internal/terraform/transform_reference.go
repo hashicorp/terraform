@@ -140,6 +140,20 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 				continue
 			}
 
+			if _, ok := parent.(*nodeActionTriggerPlanExpand); ok {
+				// action triggers "pretend" to be the triggering resource
+				// to ensure deferrals execute in order, but we don't want
+				// to connect the action to them, or themselves to themselves.
+
+				if _, ok := v.(*nodeActionTriggerPlanExpand); ok {
+					continue
+				}
+
+				if _, ok := v.(*nodeExpandActionDeclaration); ok {
+					continue
+				}
+			}
+
 			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, parent) {
 				g.Connect(dag.BasicEdge(v, parent))
 			} else {

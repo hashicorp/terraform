@@ -846,6 +846,83 @@ resource "test_object" "a" {
 					}
 				},
 			},
+
+			"after_create identifies cycle": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "a" {
+  name = "a"
+
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.action]
+    }
+  }
+}
+
+resource "test_object" "b" {
+  name = test_object.a.name
+}
+
+action "test_action" "action" {
+  config {
+    attr = resource.test_object.b.name
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !diags.HasErrors() {
+						t.Errorf("expected errors, got none")
+					}
+
+					err := diags.Err().Error()
+					t.Log(err)
+					if !strings.Contains(err, "Cycle:") || !strings.Contains(err, "action.test_action.action") || !strings.Contains(err, "test_object.a") || !strings.Contains(err, "test_object.b") {
+						t.Fatalf("Expected '[Error] Cycle: action.test_action.action (expand), action.test_action.action triggered by test_object.a, test_object.b (expand)', got '%s'", err)
+					}
+				},
+			},
+
+			"before_create identifies cycle": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "a" {
+  name = "a"
+
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.action]
+    }
+  }
+}
+
+resource "test_object" "b" {
+  name = test_object.a.name
+}
+
+action "test_action" "action" {
+  config {
+    attr = resource.test_object.b.name
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !diags.HasErrors() {
+						t.Errorf("expected errors, got none")
+					}
+
+					err := diags.Err().Error()
+					if !strings.Contains(err, "Cycle:") || !strings.Contains(err, "action.test_action.action") || !strings.Contains(err, "test_object.a") || !strings.Contains(err, "test_object.b") {
+						t.Fatalf("Expected '[Error] Cycle: action.test_action.action (expand), action.test_action.action triggered by test_object.a, test_object.b (expand)', got '%s'", err)
+					}
+				},
+			},
 		},
 
 		// ======== EXPANSION ========
@@ -2371,6 +2448,56 @@ resource "test_object" "a" {
 					}
 					if p.DeferredResources[1].DeferredReason != providers.DeferredReasonAbsentPrereq {
 						t.Errorf("Expected DeferredReasonAbsentPrereq, got %s", p.DeferredResources[1].DeferredReason)
+					}
+				},
+			},
+
+			"deferring action should defer resource dependencies": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "a" {
+  name = "a"
+
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.action]
+    }
+  }
+}
+
+resource "test_object" "b" {
+  name = test_object.a.name
+}
+
+action "test_action" "action" {}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode:            plans.NormalMode,
+					DeferralAllowed: true,
+				},
+				planResourceFn: func(t *testing.T, request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+					return providers.PlanResourceChangeResponse{
+						PlannedState:    request.ProposedNewState,
+						PlannedIdentity: request.PriorIdentity,
+					}
+				},
+				planActionFn: func(t *testing.T, request providers.PlanActionRequest) providers.PlanActionResponse {
+					return providers.PlanActionResponse{
+						Deferred: &providers.Deferred{
+							Reason: providers.DeferredReasonResourceConfigUnknown,
+						},
+					}
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.DeferredResources) != 2 {
+						t.Error("missing deferred resource")
+					}
+
+					if len(plan.DeferredActionInvocations) != 1 {
+						t.Error("missing deferred action")
 					}
 				},
 			},
