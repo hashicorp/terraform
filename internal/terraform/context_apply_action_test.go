@@ -1308,6 +1308,54 @@ resource "test_object" "resource" {
 			}},
 		},
 
+		"ephemeral values": {
+			module: map[string]string{
+				"main.tf": `
+variable "attr" {
+  type = string
+  ephemeral = true
+}
+
+resource "test_object" "resource" {
+  name = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+
+action "action_example" "hello" {
+  config {
+    attr = var.attr
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("wo-apply"),
+					}),
+				},
+			},
+			planOpts: SimplePlanOpts(plans.NormalMode, InputValues{
+				"attr": {
+					Value: cty.StringVal("wo-plan"),
+				},
+			}),
+			applyOpts: &ApplyOpts{
+				SetVariables: InputValues{
+					"attr": {
+						Value: cty.StringVal("wo-apply"),
+					},
+				},
+			},
+		},
+
 		"write-only attributes": {
 			module: map[string]string{
 				"main.tf": `
