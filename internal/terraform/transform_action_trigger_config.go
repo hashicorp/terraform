@@ -12,57 +12,27 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
-type ActionPlanTransformer struct {
-	Config    *configs.Config
-	Targets   []addrs.Targetable
-	Operation walkOperation
+type ActionTriggerConfigTransformer struct {
+	Config        *configs.Config
+	ActionTargets []addrs.Targetable
+	Operation     walkOperation
 
 	queryPlanMode bool
+
+	ConcreteActionTriggerNodeFunc ConcreteActionTriggerNodeFunc
+	CreateNodesAsAfter            bool
 }
 
-func (t *ActionPlanTransformer) Transform(g *Graph) error {
-	if t.Operation != walkPlan || t.queryPlanMode {
+func (t *ActionTriggerConfigTransformer) Transform(g *Graph) error {
+	// We don't want to run if we are using the query plan mode or have targets in place
+	if (t.Operation != walkPlan && t.Operation != walkApply) || t.queryPlanMode || len(t.ActionTargets) > 0 {
 		return nil
 	}
-
-	if len(t.Targets) > 0 {
-		// Then we're invoking and we're just going to include the actions that
-		// have been specifically asked for.
-
-		for _, target := range t.Targets {
-			var config *configs.Action
-			switch target := target.(type) {
-			case addrs.AbsAction:
-				module := t.Config.DescendantForInstance(target.Module)
-				if module != nil {
-					config = module.Module.Actions[target.Action.String()]
-				}
-			case addrs.AbsActionInstance:
-				module := t.Config.DescendantForInstance(target.Module)
-				if module != nil {
-					config = module.Module.Actions[target.Action.Action.String()]
-				}
-			}
-
-			if config == nil {
-				return fmt.Errorf("action %s does not exist in the configuration", target.String())
-			}
-
-			g.Add(&nodeActionInvokeExpand{
-				Target: target,
-				Config: config,
-			})
-		}
-
-		return nil
-	}
-
-	// otherwise, add all the action triggers from the config.
 
 	return t.transform(g, t.Config)
 }
 
-func (t *ActionPlanTransformer) transform(g *Graph, config *configs.Config) error {
+func (t *ActionTriggerConfigTransformer) transform(g *Graph, config *configs.Config) error {
 	// Add our resources
 	if err := t.transformSingle(g, config); err != nil {
 		return err
@@ -78,7 +48,7 @@ func (t *ActionPlanTransformer) transform(g *Graph, config *configs.Config) erro
 	return nil
 }
 
-func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config) error {
+func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *configs.Config) error {
 	actionConfigs := addrs.MakeMap[addrs.ConfigAction, *configs.Action]()
 	for _, a := range config.Module.Actions {
 		actionConfigs.Put(a.Addr().InModule(config.Path), a)
@@ -102,8 +72,19 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 	}
 
 	for _, r := range config.Module.ManagedResources {
-		priorNodes := []*nodeActionTriggerPlanExpand{}
+		priorBeforeNodes := []dag.Vertex{}
+		priorAfterNodes := []dag.Vertex{}
 		for i, at := range r.Managed.ActionTriggers {
+			containsBeforeEvent := false
+			containsAfterEvent := false
+			for _, event := range at.Events {
+				if event == configs.BeforeCreate || event == configs.BeforeUpdate {
+					containsBeforeEvent = true
+				} else if event == configs.AfterCreate || event == configs.AfterUpdate {
+					containsAfterEvent = true
+				}
+			}
+
 			for j, action := range at.Actions {
 				refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
 				if parseRefDiags != nil {
@@ -138,7 +119,7 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 					panic(fmt.Sprintf("Could not find node for %s", resourceAddr))
 				}
 
-				nat := &nodeActionTriggerPlanExpand{
+				abstract := &nodeAbstractActionTriggerExpand{
 					Addr:   configAction,
 					Config: actionConfig,
 					lifecycleActionTrigger: &lifecycleActionTrigger{
@@ -152,18 +133,39 @@ func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config
 					},
 				}
 
-				g.Add(nat)
+				// If CreateNodesAsAfter is set we want all nodes to run after the resource
+				// If not we want expansion nodes only to exist if they are being used
+				if !t.CreateNodesAsAfter && containsBeforeEvent {
+					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingBefore)
+					g.Add(nat)
 
-				// We always want to plan after the resource is done planning
-				for _, node := range resourceNode {
-					g.Connect(dag.BasicEdge(nat, node))
+					// We want to run before the resource nodes
+					for _, node := range resourceNode {
+						g.Connect(dag.BasicEdge(node, nat))
+					}
+
+					// We want to run after all prior nodes
+					for _, priorNode := range priorBeforeNodes {
+						g.Connect(dag.BasicEdge(nat, priorNode))
+					}
+					priorBeforeNodes = append(priorBeforeNodes, nat)
 				}
 
-				// We want to plan after all prior nodes
-				for _, priorNode := range priorNodes {
-					g.Connect(dag.BasicEdge(nat, priorNode))
+				if t.CreateNodesAsAfter || containsAfterEvent {
+					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingAfter)
+					g.Add(nat)
+
+					// We want to run after the resource nodes
+					for _, node := range resourceNode {
+						g.Connect(dag.BasicEdge(nat, node))
+					}
+
+					// We want to run after all prior nodes
+					for _, priorNode := range priorAfterNodes {
+						g.Connect(dag.BasicEdge(nat, priorNode))
+					}
+					priorAfterNodes = append(priorAfterNodes, nat)
 				}
-				priorNodes = append(priorNodes, nat)
 			}
 		}
 	}

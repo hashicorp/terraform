@@ -71,7 +71,6 @@ func TestProvidersSchema(t *testing.T) {
             "provider": {
                 "version": 0,
                 "block": {
-                    "description": "This is terraform-provider-simple v5",
                     "description_kind": "plain"
                 }
             },
@@ -166,7 +165,6 @@ func TestProvidersSchema(t *testing.T) {
             "provider": {
                 "version": 0,
                 "block": {
-                    "description": "This is terraform-provider-simple v6",
                     "description_kind": "plain"
                 }
             },

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'terraform test: expected diagnostics will be included in test output when running in verbose mode"'
+time: 2025-07-23T12:29:22.244611+02:00
+custom:
+    Issue: "37362"

@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -21,85 +20,40 @@ type ActionDiffTransformer struct {
 
 func (t *ActionDiffTransformer) Transform(g *Graph) error {
 	applyNodes := addrs.MakeMap[addrs.AbsResourceInstance, *NodeApplyableResourceInstance]()
+	actionTriggerNodes := addrs.MakeMap[addrs.ConfigResource, []*nodeActionTriggerApplyExpand]()
 	for _, vs := range g.Vertices() {
-		applyableResource, ok := vs.(*NodeApplyableResourceInstance)
+		if applyableResource, ok := vs.(*NodeApplyableResourceInstance); ok {
+			applyNodes.Put(applyableResource.Addr, applyableResource)
+		}
+
+		if atn, ok := vs.(*nodeActionTriggerApplyExpand); ok {
+			configResource := actionTriggerNodes.Get(atn.lifecycleActionTrigger.resourceAddress)
+			actionTriggerNodes.Put(atn.lifecycleActionTrigger.resourceAddress, append(configResource, atn))
+		}
+	}
+
+	for _, ai := range t.Changes.ActionInvocations {
+		lat, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
 		if !ok {
 			continue
 		}
+		isBefore := lat.ActionTriggerEvent == configs.BeforeCreate || lat.ActionTriggerEvent == configs.BeforeUpdate
+		isAfter := lat.ActionTriggerEvent == configs.AfterCreate || lat.ActionTriggerEvent == configs.AfterUpdate
 
-		applyNodes.Put(applyableResource.Addr, applyableResource)
-	}
-
-	invocationMap := map[*plans.ActionInvocationInstanceSrc]*nodeActionTriggerApply{}
-	triggerMap := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
-	for _, action := range t.Changes.ActionInvocations {
-		// Add nodes for each action invocation
-		node := &nodeActionTriggerApply{
-			ActionInvocation: action,
-		}
-
-		// If the action invocations is triggered within the lifecycle of a resource
-		// we want to add information about the source location to the apply node
-		if at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger); ok {
-			moduleInstance := t.Config.DescendantForInstance(at.TriggeringResourceAddr.Module)
-			if moduleInstance == nil {
-				panic(fmt.Sprintf("Could not find module instance for resource %s in config", at.TriggeringResourceAddr.String()))
-			}
-
-			resourceInstance := moduleInstance.Module.ResourceByAddr(at.TriggeringResourceAddr.Resource.Resource)
-			if resourceInstance == nil {
-				panic(fmt.Sprintf("Could not find resource instance for resource %s in config", at.TriggeringResourceAddr.String()))
-			}
-
-			triggerBlock := resourceInstance.Managed.ActionTriggers[at.ActionTriggerBlockIndex]
-			if triggerBlock == nil {
-				panic(fmt.Sprintf("Could not find action trigger block %d for resource %s in config", at.ActionTriggerBlockIndex, at.TriggeringResourceAddr.String()))
-			}
-
-			triggerMap.Put(at.TriggeringResourceAddr, append(triggerMap.Get(at.TriggeringResourceAddr), action))
-
-			act := triggerBlock.Actions[at.ActionsListIndex]
-			node.ActionTriggerRange = &act.Range
-			node.ConditionExpr = triggerBlock.Condition
-		}
-
-		g.Add(node)
-		invocationMap[action] = node
-
-		// Add edge to triggering resource
-		if lat, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger); ok {
-			// Add edges for lifecycle action triggers
-			resourceNode, ok := applyNodes.GetOk(lat.TriggeringResourceAddr)
-			if !ok {
-				panic("Could not find resource node for lifecycle action trigger")
-			}
-
-			switch lat.ActionTriggerEvent {
-			case configs.BeforeCreate, configs.BeforeUpdate, configs.BeforeDestroy:
-				g.Connect(dag.BasicEdge(resourceNode, node))
-			case configs.AfterCreate, configs.AfterUpdate, configs.AfterDestroy:
-				g.Connect(dag.BasicEdge(node, resourceNode))
-			default:
-				panic("Unknown event")
-			}
-		}
-	}
-
-	// Find all dependencies between action invocations
-	for _, action := range t.Changes.ActionInvocations {
-		at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+		atns, ok := actionTriggerNodes.GetOk(lat.TriggeringResourceAddr.ConfigResource())
 		if !ok {
-			// only add dependencies between lifecycle actions. invoke actions
-			// all act independently.
-			continue
+			return fmt.Errorf("no action trigger nodes found for resource %s", lat.TriggeringResourceAddr)
 		}
+		// We add the action invocations one by one
+		for _, atn := range atns {
+			beforeMatches := atn.relativeTiming == RelativeActionTimingBefore && isBefore
+			afterMatches := atn.relativeTiming == RelativeActionTimingAfter && isAfter
 
-		node := invocationMap[action]
-		others := action.FilterLaterActionInvocations(triggerMap.Get(at.TriggeringResourceAddr))
-		for _, other := range others {
-			otherNode := invocationMap[other]
-			g.Connect(dag.BasicEdge(otherNode, node))
+			if (beforeMatches || afterMatches) && atn.lifecycleActionTrigger.actionTriggerBlockIndex == lat.ActionTriggerBlockIndex && atn.lifecycleActionTrigger.actionListIndex == lat.ActionsListIndex {
+				atn.actionInvocationInstances = append(atn.actionInvocationInstances, ai)
+			}
 		}
 	}
+
 	return nil
 }

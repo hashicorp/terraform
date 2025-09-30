@@ -38,6 +38,7 @@ func TestContextApply_actions(t *testing.T) {
 		expectInvokeActionCalls             []providers.InvokeActionRequest
 		expectInvokeActionCallsAreUnordered bool
 		expectDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
+		ignoreWarnings                      bool
 	}{
 		"before_create triggered": {
 			module: map[string]string{
@@ -1852,46 +1853,6 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 		},
-		"referencing triggering resource in after_* condition": {
-			module: map[string]string{
-				"main.tf": `
-action "action_example" "hello" {
-  config {
-    attr = "hello"
-  }
-}
-action "action_example" "world" {
-  config {
-    attr = "world"
-  }
-}
-resource "test_object" "a" {
-  name = "foo"
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = test_object.a.name == "foo"
-      actions = [action.action_example.hello]
-    }
-    action_trigger {
-      events = [after_update]
-      condition = test_object.a.name == "bar"
-      actions = [action.action_example.world]
-    }
-  }
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("hello"),
-					}),
-				},
-			},
-		},
 		"multiple events triggering in same action trigger": {
 			module: map[string]string{
 				"main.tf": `
@@ -1965,6 +1926,441 @@ resource "test_object" "a" {
 					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 						"attr": cty.String,
 					})),
+				},
+			},
+		},
+
+		"targeted run": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+action "action_example" "there" {
+  config {
+    attr = "there"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there]
+    }
+  }
+}
+action "action_example" "general" {
+  config {
+    attr = "general"
+  }
+}
+action "action_example" "kenobi" {
+  config {
+    attr = "kenobi"
+  }
+}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_update]
+      actions = [action.action_example.general]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("there"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run with ancestor that has actions": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+action "action_example" "there" {
+  config {
+    attr = "there"
+  }
+}
+resource "test_object" "origin" {
+  name = "origin"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+resource "test_object" "a" {
+  name = test_object.origin.name
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there]
+    }
+  }
+}
+action "action_example" "general" {}
+action "action_example" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_update]
+      actions = [action.action_example.general]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("there"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run with expansion": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  count = 3
+  config {
+    attr = "hello-${count.index}"
+  }
+}
+action "action_example" "there" {
+  count = 3
+  config {
+    attr = "there-${count.index}"
+  }
+}
+resource "test_object" "a" {
+  count = 3
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello[count.index]]
+    }
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there[count.index]]
+    }
+  }
+}
+action "action_example" "general" {}
+action "action_example" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_update]
+      actions = [action.action_example.general]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					// action_example.hello[2] before_create
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello-2"),
+					}),
+				},
+				{
+					// action_example.there[2] after_create
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("there-2"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.
+						Resource(addrs.ManagedResourceMode, "test_object", "a").
+						Instance(addrs.IntKey(2)),
+				},
+			},
+		},
+
+		"targeted run with resource reference": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "source" {
+  name = "src"
+}
+action "action_example" "hello" {
+  config {
+    attr = test_object.source.name
+  }
+}
+action "action_example" "there" {
+  config {
+    attr = "there"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there]
+    }
+  }
+}
+action "action_example" "general" {}
+action "action_example" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_update]
+      actions = [action.action_example.general]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					// action_example.hello before_create with config (attr = test_object.source.name -> "src")
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("src"),
+					}),
+				},
+				{
+					// action_example.there after_create with static config attr = "there"
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("there"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run with condition referencing another resource": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "source" {
+  name = "source"
+}
+action "action_example" "hello" {
+  config {
+    attr = test_object.source.name
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events    = [before_create]
+      condition = test_object.source.name == "source"
+      actions   = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					// action_example.hello before_create with config (attr = test_object.source.name -> "source")
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("source"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run with action referencing another resource that also triggers actions": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "source" {
+  name = "source"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+action "action_example" "there" {
+  config {
+    attr = test_object.source.name
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there]
+    }
+  }
+}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					// action_example.hello before_create with static config attr = "hello"
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					// action_example.there after_create with config attr = source.name ("source")
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("source"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run triggers resources and actions referenced by not-running actions": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "source" {
+name = "source"
+lifecycle {
+	action_trigger {
+		events = [before_create]
+		actions = [action.action_example.hello]
+	}
+}
+}
+action "action_example" "there" {
+config {
+	attr = test_object.source.name
+}
+}
+resource "test_object" "a" {
+lifecycle {
+	action_trigger {
+		events = [after_update]
+		actions = [action.action_example.there]
+	}
+}
+}
+resource "test_object" "b" {
+lifecycle {
+	action_trigger {
+		events = [before_update]
+		actions = [action.action_example.hello]
+	}
+}
+}
+		`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
 				},
 			},
 		},
@@ -2137,7 +2533,11 @@ resource "test_object" "a" {
 			}
 
 			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
-			tfdiags.AssertNoDiagnostics(t, diags)
+			if tc.ignoreWarnings {
+				tfdiags.AssertNoErrors(t, diags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
 
 			if !plan.Applyable {
 				t.Fatalf("plan is not applyable but should be")
@@ -2147,7 +2547,11 @@ resource "test_object" "a" {
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
 			} else {
-				tfdiags.AssertNoDiagnostics(t, diags)
+				if tc.ignoreWarnings {
+					tfdiags.AssertNoErrors(t, diags)
+				} else {
+					tfdiags.AssertNoDiagnostics(t, diags)
+				}
 			}
 
 			if tc.expectInvokeActionCalled && len(invokeActionCalls) == 0 {
@@ -2155,7 +2559,7 @@ resource "test_object" "a" {
 			}
 
 			if len(tc.expectInvokeActionCalls) > 0 && len(invokeActionCalls) != len(tc.expectInvokeActionCalls) {
-				t.Fatalf("expected %d invoke action calls, got %d", len(tc.expectInvokeActionCalls), len(invokeActionCalls))
+				t.Fatalf("expected %d invoke action calls, got %d (%#v)", len(tc.expectInvokeActionCalls), len(invokeActionCalls), invokeActionCalls)
 			}
 
 			for i, expectedCall := range tc.expectInvokeActionCalls {

@@ -31,7 +31,7 @@ label to enable the backport bot.
 
 -->
 
-1.15.x
+1.14.x
 
 <!-- heimdall_github_prtemplate:grc-pci_dss-2024-01-05 -->
 ## Rollback Plan

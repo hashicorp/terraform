@@ -146,26 +146,6 @@ type MockProvider struct {
 	ConfigureStateStoreRequest  providers.ConfigureStateStoreRequest
 	ConfigureStateStoreFn       func(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse
 
-	ReadStateBytesCalled   bool
-	ReadStateBytesRequest  providers.ReadStateBytesRequest
-	ReadStateBytesFn       func(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse
-	ReadStateBytesResponse providers.ReadStateBytesResponse
-
-	WriteStateBytesCalled   bool
-	WriteStateBytesRequest  providers.WriteStateBytesRequest
-	WriteStateBytesFn       func(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse
-	WriteStateBytesResponse providers.WriteStateBytesResponse
-
-	LockStateCalled   bool
-	LockStateResponse providers.LockStateResponse
-	LockStateRequest  providers.LockStateRequest
-	LockStateFn       func(providers.LockStateRequest) providers.LockStateResponse
-
-	UnlockStateCalled   bool
-	UnlockStateResponse providers.UnlockStateResponse
-	UnlockStateRequest  providers.UnlockStateRequest
-	UnlockStateFn       func(providers.UnlockStateRequest) providers.UnlockStateResponse
-
 	GetStatesCalled   bool
 	GetStatesResponse *providers.GetStatesResponse
 	GetStatesRequest  providers.GetStatesRequest
@@ -322,58 +302,6 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 	}
 
 	return resp
-}
-
-func (p *MockProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
-	p.Lock()
-	defer p.Unlock()
-	p.ReadStateBytesCalled = true
-	p.ReadStateBytesRequest = r
-
-	if p.ReadStateBytesFn != nil {
-		return p.ReadStateBytesFn(r)
-	}
-
-	return p.ReadStateBytesResponse
-}
-
-func (p *MockProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
-	p.Lock()
-	defer p.Unlock()
-	p.WriteStateBytesCalled = true
-	p.WriteStateBytesRequest = r
-
-	if p.WriteStateBytesFn != nil {
-		return p.WriteStateBytesFn(r)
-	}
-
-	return p.WriteStateBytesResponse
-}
-
-func (p *MockProvider) LockState(r providers.LockStateRequest) (resp providers.LockStateResponse) {
-	p.Lock()
-	defer p.Unlock()
-	p.LockStateCalled = true
-	p.LockStateRequest = r
-
-	if p.LockStateFn != nil {
-		return p.LockStateFn(r)
-	}
-
-	return p.LockStateResponse
-}
-
-func (p *MockProvider) UnlockState(r providers.UnlockStateRequest) (resp providers.UnlockStateResponse) {
-	p.Lock()
-	defer p.Unlock()
-	p.UnlockStateCalled = true
-	p.UnlockStateRequest = r
-
-	if p.UnlockStateFn != nil {
-		return p.UnlockStateFn(r)
-	}
-
-	return p.UnlockStateResponse
 }
 
 func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
