@@ -1351,6 +1351,55 @@ resource "test_object" "a" {
 				},
 			},
 
+			"ephemeral values": {
+				module: map[string]string{
+					"main.tf": `
+variable "secret" {
+  type           = string
+  ephemeral      = true
+}
+action "test_action" "hello" {
+  config {
+    attr = var.secret
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					SetVariables: InputValues{
+						"secret": &InputValue{
+							Value:      cty.StringVal("secret"),
+							SourceType: ValueFromCLIArg,
+						}},
+				},
+				expectPlanActionCalled: true,
+
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+					}
+
+					action := p.Changes.ActionInvocations[0]
+					ac, err := action.Decode(&testActionSchema)
+					if err != nil {
+						t.Fatalf("expected action to decode successfully, but got error: %v", err)
+					}
+
+					if !ac.ConfigValue.GetAttr("attr").IsNull() {
+						t.Fatal("should have converted ephemeral value to null in the plan")
+					}
+				},
+			},
+
 			"write-only attributes": {
 				module: map[string]string{
 					"main.tf": `
