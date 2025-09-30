@@ -452,6 +452,7 @@ type actionComplete struct {
 	Action           ActionAddr              `json:"action"`
 	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
 	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
+	Elapsed          float64                 `json:"elapsed_seconds"`
 }
 
 var _ Hook = (*actionComplete)(nil)
@@ -469,9 +470,10 @@ func (h *actionComplete) String() string {
 	}
 }
 
-func NewActionComplete(id terraform.HookActionIdentity) Hook {
+func NewActionComplete(id terraform.HookActionIdentity, elapsed time.Duration) Hook {
 	action := &actionComplete{
-		Action: newActionAddr(id.Addr),
+		Action:  newActionAddr(id.Addr),
+		Elapsed: elapsed.Seconds(),
 	}
 
 	switch trigger := id.ActionTrigger.(type) {
@@ -494,6 +496,7 @@ type actionErrored struct {
 	Error            string                  `json:"error"`
 	LifecycleTrigger *lifecycleActionTrigger `json:"lifecycle,omitempty"`
 	InvokeTrigger    *invokeActionTrigger    `json:"invoke,omitempty"`
+	Elapsed          float64                 `json:"elapsed_seconds"`
 }
 
 var _ Hook = (*actionErrored)(nil)
@@ -511,10 +514,11 @@ func (h *actionErrored) String() string {
 	}
 }
 
-func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
+func NewActionErrored(id terraform.HookActionIdentity, err error, elapsed time.Duration) Hook {
 	action := &actionErrored{
-		Action: newActionAddr(id.Addr),
-		Error:  err.Error(),
+		Action:  newActionAddr(id.Addr),
+		Error:   err.Error(),
+		Elapsed: elapsed.Seconds(),
 	}
 
 	switch trigger := id.ActionTrigger.(type) {

@@ -41,6 +41,12 @@ type jsonHook struct {
 	resourceProgress   map[string]resourceProgress
 	resourceProgressMu sync.Mutex
 
+	// Concurrent map of action addresses to allow tracking
+	// the time each action took. there can be multiple action instances running, therefore
+	// we store all of them in a list indexed by the action instance address.
+	actionProgress   map[string][]actionProgress
+	actionProgressMu sync.Mutex
+
 	// Mockable functions for testing the progress timer goroutine
 	timeNow   func() time.Time
 	timeAfter func(time.Duration) <-chan time.Time
@@ -61,6 +67,11 @@ type resourceProgress struct {
 	// heartbeatDone is used to allow tests to safely wait for the progress
 	// goroutine to finish
 	heartbeatDone chan struct{}
+}
+
+type actionProgress struct {
+	id    terraform.HookActionIdentity
+	start time.Time
 }
 
 func (h *jsonHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
@@ -275,6 +286,17 @@ func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plan
 }
 
 func (h *jsonHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	progress := actionProgress{
+		id:    id,
+		start: h.timeNow().Round(time.Second),
+	}
+	h.actionProgressMu.Lock()
+	if current, ok := h.actionProgress[id.Addr.String()]; ok {
+		h.actionProgress[id.Addr.String()] = append(current, progress)
+	} else {
+		h.actionProgress[id.Addr.String()] = []actionProgress{progress}
+	}
+	h.actionProgressMu.Unlock()
 	h.view.Hook(json.NewActionStart(id))
 	return terraform.HookActionContinue, nil
 }
@@ -286,10 +308,17 @@ func (h *jsonHook) ProgressAction(id terraform.HookActionIdentity, progress stri
 
 func (h *jsonHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
 
+	var elapsed time.Duration
+	for _, pr := range h.actionProgress[id.String()] {
+		if pr.id.Addr.Equal(id.Addr) && pr.id.ActionTrigger.Equals(id.ActionTrigger) {
+			elapsed = h.timeNow().Round(time.Second).Sub(pr.start)
+			break
+		}
+	}
 	if err != nil {
-		h.view.Hook(json.NewActionErrored(id, err))
+		h.view.Hook(json.NewActionErrored(id, err, elapsed))
 	} else {
-		h.view.Hook(json.NewActionComplete(id))
+		h.view.Hook(json.NewActionComplete(id, elapsed))
 	}
 	return terraform.HookActionContinue, nil
 }
