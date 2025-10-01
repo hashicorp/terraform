@@ -938,6 +938,9 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalConte
 
 	var listElements []genconfig.ResourceListElement
 
+	expander := ctx.InstanceExpander()
+	enum := expander.ResourceExpansionEnum(addr)
+
 	iter := state.ElementIterator()
 	for iter.Next() {
 		_, val := iter.Element()
@@ -955,7 +958,7 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalConte
 		}
 		idVal := val.GetAttr("identity")
 
-		listElements = append(listElements, genconfig.ResourceListElement{Config: config, Identity: idVal})
+		listElements = append(listElements, genconfig.ResourceListElement{Config: config, Identity: idVal, ExpansionEnum: enum})
 	}
 
 	return genconfig.GenerateListResourceContents(addr, schema.Body, schema.Identity, providerAddr, listElements)

@@ -1042,6 +1042,239 @@ func getListProviderSchemaResp() *providers.GetProviderSchemaResponse {
 	})
 }
 
+func TestContext2Plan_queryListConfigGeneration(t *testing.T) {
+	listResourceFn := func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		instanceTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
+		madeUp := []cty.Value{}
+		for i := range len(instanceTypes) {
+			madeUp = append(madeUp, cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal(instanceTypes[i])}))
+		}
+
+		ids := []cty.Value{}
+		for i := range madeUp {
+			ids = append(ids, cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+			}))
+		}
+
+		resp := []cty.Value{}
+		for i, v := range madeUp {
+			mp := map[string]cty.Value{
+				"identity":     ids[i],
+				"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
+			}
+			if request.IncludeResourceObject {
+				mp["state"] = v
+			}
+			resp = append(resp, cty.ObjectVal(mp))
+		}
+
+		ret := map[string]cty.Value{
+			"data": cty.TupleVal(resp),
+		}
+		for k, v := range request.Config.AsValueMap() {
+			if k != "data" {
+				ret[k] = v
+			}
+		}
+
+		return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+	}
+
+	mainConfig := `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+		`
+	queryConfig := `
+		variable "input" {
+			type = string
+			default = "foo"
+		}
+		
+		list "test_resource" "test2" {
+			for_each = toset(["§us-east-2", "§us-west-1"])
+			provider = test
+
+			config {
+				filter = {
+					attr = var.input
+				}
+			}
+		}
+		`
+
+	configFiles := map[string]string{"main.tf": mainConfig}
+	configFiles["main.tfquery.hcl"] = queryConfig
+
+	mod := testModuleInline(t, configFiles, configs.MatchQueryFiles())
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+	provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+
+	var requestConfigs = make(map[string]cty.Value)
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		if request.Config.IsNull() || request.Config.GetAttr("config").IsNull() {
+			t.Fatalf("config should never be null, got null for %s", request.TypeName)
+		}
+		requestConfigs[request.TypeName] = request.Config
+		return listResourceFn(request)
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	diags = ctx.Validate(mod, &ValidateOpts{
+		Query: true,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	generatedPath := t.TempDir()
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		SetVariables:       testInputValuesUnset(mod.Module.Variables),
+		Query:              true,
+		GenerateConfigPath: generatedPath,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	sch, err := ctx.Schemas(mod, states.NewState())
+	if err != nil {
+		t.Fatalf("failed to get schemas: %s", err)
+	}
+
+	expectedResources := []string{
+		`list.test_resource.test2["§us-east-2"]`,
+		`list.test_resource.test2["§us-west-1"]`,
+	}
+	actualResources := make([]string, 0)
+	generatedCfgs := make([]string, 0)
+	uniqCfgs := make(map[string]struct{})
+
+	for _, change := range plan.Changes.Queries {
+		actualResources = append(actualResources, change.Addr.String())
+		schema := sch.Providers[providerAddr].ListResourceTypes[change.Addr.Resource.Resource.Type]
+		cs, err := change.Decode(schema)
+		if err != nil {
+			t.Fatalf("failed to decode change: %s", err)
+		}
+
+		// Verify data. If the state is included, we check that, otherwise we check the id.
+		expectedData := []string{"ami-123456", "ami-654321", "ami-789012"}
+		includeState := change.Addr.String() == "list.test_resource.test"
+		if !includeState {
+			expectedData = []string{"i-v1", "i-v2", "i-v3"}
+		}
+		actualData := make([]string, 0)
+		obj := cs.Results.Value.GetAttr("data")
+		if obj.IsNull() {
+			t.Fatalf("Expected 'data' attribute to be present, but it is null")
+		}
+		obj.ForEachElement(func(key cty.Value, val cty.Value) bool {
+			if includeState {
+				val = val.GetAttr("state")
+				if val.IsNull() {
+					t.Fatalf("Expected 'state' attribute to be present, but it is null")
+				}
+				if val.GetAttr("instance_type").IsNull() {
+					t.Fatalf("Expected 'instance_type' attribute to be present, but it is missing")
+				}
+				actualData = append(actualData, val.GetAttr("instance_type").AsString())
+			} else {
+				val = val.GetAttr("identity")
+				if val.IsNull() {
+					t.Fatalf("Expected 'identity' attribute to be present, but it is null")
+				}
+				if val.GetAttr("id").IsNull() {
+					t.Fatalf("Expected 'id' attribute to be present, but it is missing")
+				}
+				actualData = append(actualData, val.GetAttr("id").AsString())
+			}
+			return false
+		})
+		sort.Strings(actualData)
+		sort.Strings(expectedData)
+		if diff := cmp.Diff(expectedData, actualData); diff != "" {
+			t.Fatalf("Expected instance types to match, but they differ: %s", diff)
+		}
+
+		generatedCfgs = append(generatedCfgs, change.Generated.String())
+		uniqCfgs[change.Addr.String()] = struct{}{}
+	}
+
+	sort.Strings(actualResources)
+	sort.Strings(expectedResources)
+	if diff := cmp.Diff(expectedResources, actualResources); diff != "" {
+		t.Fatalf("Expected resources to match, but they differ: %s", diff)
+	}
+
+	// Verify no managed resources are created
+	if len(plan.Changes.Resources) != 0 {
+		t.Fatalf("Expected no managed resources, but got %d", len(plan.Changes.Resources))
+	}
+
+	// Verify generated configs match expected
+	expected := `resource "test_resource" "test2_0_0" {
+  provider      = test
+  instance_type = "ami-123456"
+}
+
+import {
+  to       = test_resource.test2_0_0
+  provider = test
+  identity = {
+    id = "i-v1"
+  }
+}
+
+resource "test_resource" "test2_0_1" {
+  provider      = test
+  instance_type = "ami-654321"
+}
+
+import {
+  to       = test_resource.test2_0_1
+  provider = test
+  identity = {
+    id = "i-v2"
+  }
+}
+
+resource "test_resource" "test2_0_2" {
+  provider      = test
+  instance_type = "ami-789012"
+}
+
+import {
+  to       = test_resource.test2_0_2
+  provider = test
+  identity = {
+    id = "i-v3"
+  }
+}
+`
+	joinedCfgs := strings.Join(generatedCfgs, "\n")
+	if !strings.Contains(joinedCfgs, expected) {
+		t.Fatalf("Expected config to contain expected resource, but it does not: %s", cmp.Diff(expected, joinedCfgs))
+	}
+
+	// Verify that the generated config is valid.
+	// The function panics if the config is invalid.
+	testModuleInline(t, map[string]string{
+		"main.tf": strings.Join(generatedCfgs, "\n"),
+	})
+}
+
 var (
 	testResourceCfg = `resource "test_resource" "test_0" {
   provider      = test
