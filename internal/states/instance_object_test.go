@@ -61,22 +61,22 @@ func TestResourceInstanceObject_encode(t *testing.T) {
 
 	// multiple instances may have been assigned the same deps slice
 	objs := []*ResourceInstanceObject{
-		&ResourceInstanceObject{
+		{
 			Value:        value,
 			Status:       ObjectPlanned,
 			Dependencies: depsOne,
 		},
-		&ResourceInstanceObject{
+		{
 			Value:        value,
 			Status:       ObjectPlanned,
 			Dependencies: depsTwo,
 		},
-		&ResourceInstanceObject{
+		{
 			Value:        value,
 			Status:       ObjectPlanned,
 			Dependencies: depsOne,
 		},
-		&ResourceInstanceObject{
+		{
 			Value:        value,
 			Status:       ObjectPlanned,
 			Dependencies: depsOne,
@@ -91,10 +91,7 @@ func TestResourceInstanceObject_encode(t *testing.T) {
 	var mu sync.Mutex
 
 	for _, obj := range objs {
-		obj := obj
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			rios, err := obj.Encode(schema)
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)
@@ -102,7 +99,7 @@ func TestResourceInstanceObject_encode(t *testing.T) {
 			mu.Lock()
 			encoded = append(encoded, rios)
 			mu.Unlock()
-		}()
+		})
 	}
 	wg.Wait()
 
