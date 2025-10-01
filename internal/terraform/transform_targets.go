@@ -77,7 +77,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 
 			if _, ok := v.(*nodeExpandPlannableResource); ok {
 				// We want to also set the resource instance triggers on the related action triggers
-				for _, d := range g.Children(v) {
+				for _, d := range g.UpEdges(v) {
 					if actionTrigger, ok := d.(*nodeActionTriggerPlanExpand); ok {
 						actionTrigger.SetResourceTargets(addrs)
 					}
@@ -156,7 +156,7 @@ func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v da
 
 	if _, ok := v.(*nodeExpandPlannableResource); ok {
 		// We want to also add the action triggers related to this resource
-		for _, d := range g.Children(v) {
+		for _, d := range g.UpEdges(v) {
 			if _, ok := d.(*nodeActionTriggerPlanExpand); ok {
 				t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
 			}
@@ -166,7 +166,7 @@ func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v da
 	// An applyable resource instance might have an associated after_* triggered action.
 	// We need to add that action to the targeted nodes as well, together with all its dependencies.
 	if _, ok := v.(*NodeApplyableResourceInstance); ok {
-		for _, f := range g.Children(v) {
+		for _, f := range g.UpEdges(v) {
 			if _, ok := f.(*nodeActionTriggerApply); ok {
 				t.addVertexDependenciesToTargetedNodes(g, f, targetedNodes, addrs)
 			}

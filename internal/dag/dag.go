@@ -121,11 +121,6 @@ func (g *AcyclicGraph) Descendants(v Vertex) Set {
 	return s
 }
 
-// Children returns a Set of direct children of the provided starting Vertex v.
-func (g *AcyclicGraph) Children(v Vertex) Set {
-	return g.upEdgesNoCopy(v)
-}
-
 // FirstDescendantsWith returns a Set that includes every Vertex yielded by
 // walking up from the provided starting Vertex v, and stopping each branch when
 // match returns true. This will return the set of all first descendants
