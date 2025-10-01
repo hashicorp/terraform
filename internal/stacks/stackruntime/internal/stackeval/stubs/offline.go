@@ -349,6 +349,32 @@ func (o *offlineProvider) DeleteState(providers.DeleteStateRequest) providers.De
 	}
 }
 
+func (o *offlineProvider) LockState(providers.LockStateRequest) providers.LockStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called LockState on an unconfigured provider",
+		"Cannot use this state store to lock a state because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.LockStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (o *offlineProvider) UnlockState(providers.UnlockStateRequest) providers.UnlockStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called UnlockState on an unconfigured provider",
+		"Cannot use this state store to unlock a state because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.UnlockStateResponse{
+		Diagnostics: diags,
+	}
+}
+
 // PlanAction implements providers.Interface.
 func (o *offlineProvider) PlanAction(request providers.PlanActionRequest) providers.PlanActionResponse {
 	var diags tfdiags.Diagnostics

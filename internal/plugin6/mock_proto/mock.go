@@ -343,6 +343,26 @@ func (mr *MockProviderClientMockRecorder) ListResource(ctx, in any, opts ...any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListResource", reflect.TypeOf((*MockProviderClient)(nil).ListResource), varargs...)
 }
 
+// LockState mocks base method.
+func (m *MockProviderClient) LockState(ctx context.Context, in *tfplugin6.LockState_Request, opts ...grpc.CallOption) (*tfplugin6.LockState_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "LockState", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.LockState_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LockState indicates an expected call of LockState.
+func (mr *MockProviderClientMockRecorder) LockState(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockState", reflect.TypeOf((*MockProviderClient)(nil).LockState), varargs...)
+}
+
 // MoveResourceState mocks base method.
 func (m *MockProviderClient) MoveResourceState(ctx context.Context, in *tfplugin6.MoveResourceState_Request, opts ...grpc.CallOption) (*tfplugin6.MoveResourceState_Response, error) {
 	m.ctrl.T.Helper()
@@ -521,6 +541,26 @@ func (mr *MockProviderClientMockRecorder) StopProvider(ctx, in any, opts ...any)
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopProvider", reflect.TypeOf((*MockProviderClient)(nil).StopProvider), varargs...)
+}
+
+// UnlockState mocks base method.
+func (m *MockProviderClient) UnlockState(ctx context.Context, in *tfplugin6.UnlockState_Request, opts ...grpc.CallOption) (*tfplugin6.UnlockState_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UnlockState", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.UnlockState_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnlockState indicates an expected call of UnlockState.
+func (mr *MockProviderClientMockRecorder) UnlockState(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnlockState", reflect.TypeOf((*MockProviderClient)(nil).UnlockState), varargs...)
 }
 
 // UpgradeResourceIdentity mocks base method.

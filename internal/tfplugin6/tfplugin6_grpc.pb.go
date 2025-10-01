@@ -68,6 +68,8 @@ const (
 	Provider_ConfigureStateStore_FullMethodName             = "/tfplugin6.Provider/ConfigureStateStore"
 	Provider_ReadStateBytes_FullMethodName                  = "/tfplugin6.Provider/ReadStateBytes"
 	Provider_WriteStateBytes_FullMethodName                 = "/tfplugin6.Provider/WriteStateBytes"
+	Provider_LockState_FullMethodName                       = "/tfplugin6.Provider/LockState"
+	Provider_UnlockState_FullMethodName                     = "/tfplugin6.Provider/UnlockState"
 	Provider_GetStates_FullMethodName                       = "/tfplugin6.Provider/GetStates"
 	Provider_DeleteState_FullMethodName                     = "/tfplugin6.Provider/DeleteState"
 	Provider_PlanAction_FullMethodName                      = "/tfplugin6.Provider/PlanAction"
@@ -129,6 +131,10 @@ type ProviderClient interface {
 	ReadStateBytes(ctx context.Context, in *ReadStateBytes_Request, opts ...grpc.CallOption) (Provider_ReadStateBytesClient, error)
 	// WriteStateBytes streams byte chunks of a given state file into a state store
 	WriteStateBytes(ctx context.Context, opts ...grpc.CallOption) (Provider_WriteStateBytesClient, error)
+	// LockState locks a given state (i.e. CE workspace)
+	LockState(ctx context.Context, in *LockState_Request, opts ...grpc.CallOption) (*LockState_Response, error)
+	// UnlockState unlocks a given state (i.e. CE workspace)
+	UnlockState(ctx context.Context, in *UnlockState_Request, opts ...grpc.CallOption) (*UnlockState_Response, error)
 	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
 	GetStates(ctx context.Context, in *GetStates_Request, opts ...grpc.CallOption) (*GetStates_Response, error)
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
@@ -472,6 +478,24 @@ func (x *providerWriteStateBytesClient) CloseAndRecv() (*WriteStateBytes_Respons
 	return m, nil
 }
 
+func (c *providerClient) LockState(ctx context.Context, in *LockState_Request, opts ...grpc.CallOption) (*LockState_Response, error) {
+	out := new(LockState_Response)
+	err := c.cc.Invoke(ctx, Provider_LockState_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *providerClient) UnlockState(ctx context.Context, in *UnlockState_Request, opts ...grpc.CallOption) (*UnlockState_Response, error) {
+	out := new(UnlockState_Response)
+	err := c.cc.Invoke(ctx, Provider_UnlockState_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *providerClient) GetStates(ctx context.Context, in *GetStates_Request, opts ...grpc.CallOption) (*GetStates_Response, error) {
 	out := new(GetStates_Response)
 	err := c.cc.Invoke(ctx, Provider_GetStates_FullMethodName, in, out, opts...)
@@ -602,6 +626,10 @@ type ProviderServer interface {
 	ReadStateBytes(*ReadStateBytes_Request, Provider_ReadStateBytesServer) error
 	// WriteStateBytes streams byte chunks of a given state file into a state store
 	WriteStateBytes(Provider_WriteStateBytesServer) error
+	// LockState locks a given state (i.e. CE workspace)
+	LockState(context.Context, *LockState_Request) (*LockState_Response, error)
+	// UnlockState unlocks a given state (i.e. CE workspace)
+	UnlockState(context.Context, *UnlockState_Request) (*UnlockState_Response, error)
 	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
 	GetStates(context.Context, *GetStates_Request) (*GetStates_Response, error)
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
@@ -701,6 +729,12 @@ func (UnimplementedProviderServer) ReadStateBytes(*ReadStateBytes_Request, Provi
 }
 func (UnimplementedProviderServer) WriteStateBytes(Provider_WriteStateBytesServer) error {
 	return status.Errorf(codes.Unimplemented, "method WriteStateBytes not implemented")
+}
+func (UnimplementedProviderServer) LockState(context.Context, *LockState_Request) (*LockState_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LockState not implemented")
+}
+func (UnimplementedProviderServer) UnlockState(context.Context, *UnlockState_Request) (*UnlockState_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnlockState not implemented")
 }
 func (UnimplementedProviderServer) GetStates(context.Context, *GetStates_Request) (*GetStates_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStates not implemented")
@@ -1250,6 +1284,42 @@ func (x *providerWriteStateBytesServer) Recv() (*WriteStateBytes_RequestChunk, e
 	return m, nil
 }
 
+func _Provider_LockState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LockState_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProviderServer).LockState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Provider_LockState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProviderServer).LockState(ctx, req.(*LockState_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Provider_UnlockState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnlockState_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProviderServer).UnlockState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Provider_UnlockState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProviderServer).UnlockState(ctx, req.(*UnlockState_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Provider_GetStates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetStates_Request)
 	if err := dec(in); err != nil {
@@ -1467,6 +1537,14 @@ var Provider_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConfigureStateStore",
 			Handler:    _Provider_ConfigureStateStore_Handler,
+		},
+		{
+			MethodName: "LockState",
+			Handler:    _Provider_LockState_Handler,
+		},
+		{
+			MethodName: "UnlockState",
+			Handler:    _Provider_UnlockState_Handler,
 		},
 		{
 			MethodName: "GetStates",

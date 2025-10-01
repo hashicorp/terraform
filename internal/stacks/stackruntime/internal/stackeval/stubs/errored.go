@@ -304,6 +304,34 @@ func (p *erroredProvider) WriteStateBytes(providers.WriteStateBytesRequest) prov
 	}
 }
 
+// LockState implements providers.Interface.
+func (p *erroredProvider) LockState(providers.LockStateRequest) providers.LockStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot lock state managed by this state store because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.LockStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+// UnlockState implements providers.Interface.
+func (p *erroredProvider) UnlockState(providers.UnlockStateRequest) providers.UnlockStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot unlock state managed by this state store because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.UnlockStateResponse{
+		Diagnostics: diags,
+	}
+}
+
 // GetStates implements providers.Interface.
 func (p *erroredProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
 	var diags tfdiags.Diagnostics

@@ -150,6 +150,14 @@ func (provider *mockProvider) DeleteState(req providers.DeleteStateRequest) prov
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
 	panic("not implemented in mock")
 }

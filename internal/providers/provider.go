@@ -128,6 +128,11 @@ type Interface interface {
 	// WriteStateBytes streams byte chunks of a given state file into a state store
 	WriteStateBytes(WriteStateBytesRequest) WriteStateBytesResponse
 
+	// LockState locks a given state (i.e. CE workspace)
+	LockState(LockStateRequest) LockStateResponse
+	// UnlockState unlocks a given state (i.e. CE workspace)
+	UnlockState(UnlockStateRequest) UnlockStateResponse
+
 	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
 	GetStates(GetStatesRequest) GetStatesResponse
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
@@ -899,6 +904,29 @@ type WriteStateBytesRequest struct {
 }
 
 type WriteStateBytesResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type LockStateRequest struct {
+	TypeName  string
+	StateId   string
+	Operation string
+}
+
+type LockStateResponse struct {
+	LockId string
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type UnlockStateRequest struct {
+	TypeName string
+	StateId  string
+	LockId   string
+}
+
+type UnlockStateResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
