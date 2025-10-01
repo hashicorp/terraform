@@ -30,7 +30,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 		instanceTypes := []string{"ami-123456", "ami-654321", "ami-789012"}
 		madeUp := []cty.Value{}
 		for i := range len(instanceTypes) {
-			madeUp = append(madeUp, cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal(instanceTypes[i])}))
+			madeUp = append(madeUp, cty.ObjectVal(map[string]cty.Value{
+				"instance_type": cty.StringVal(instanceTypes[i]),
+				"id":            cty.StringVal(fmt.Sprint(i)),
+			}))
 		}
 
 		ids := []cty.Value{}
@@ -1003,6 +1006,10 @@ func getListProviderSchemaResp() *providers.GetProviderSchemaResponse {
 						Type:     cty.String,
 						Computed: true,
 						Optional: true,
+					},
+					"id": {
+						Type:     cty.String,
+						Computed: true,
 					},
 				},
 			},

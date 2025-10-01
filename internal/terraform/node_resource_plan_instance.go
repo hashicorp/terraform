@@ -977,10 +977,17 @@ func (n *NodePlannableResourceInstance) generateResourceConfig(ctx EvalContext, 
 	if diags.HasErrors() {
 		return cty.DynamicVal, diags
 	}
-	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+
+	// the calling node may be a list resource, in which case we still need to
+	// lookup the schema for the corresponding managed resource for generating
+	// configuration.
+	managedAddr := n.Addr.Resource.Resource
+	managedAddr.Mode = addrs.ManagedResourceMode
+
+	schema := providerSchema.SchemaForResourceAddr(managedAddr)
 	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", managedAddr))
 		return cty.DynamicVal, diags
 	}
 
