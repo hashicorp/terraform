@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -729,64 +730,51 @@ func (d *Deferred) ReportActionDeferred(addr addrs.AbsActionInstance, reason pro
 	configMap.Put(addr, reason)
 }
 
-// ShouldDeferActionInvocation returns true if there is a reason to defer the action invocation instance
-// We want to defer an action invocation if
-// a) the resource was deferred
-// or
-// b) a previously run action was deferred
-func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance) bool {
+// ShouldDeferActionInvocation returns true if there is a reason to defer the
+// action invocation instance. We want to defer an action invocation only if
+// the triggering resource was deferred. In addition, we will check if the
+// underlying action was deferred via a reference, and consider it an error if
+// the triggering resource wasn't also deferred.
+//
+// The reason behind the slightly different behaviour here, is that if an
+// action invocation is deferred, then that implies the triggering action
+// should also be deferred.
+//
+// We don't yet have the capability to retroactively defer a resource, so for
+// now actions initiating deferrals themselves is considered an error.
+func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance, triggerRange *hcl.Range) (bool, tfdiags.Diagnostics) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	// The expansion of the action itself is deferred
-	if ai.Addr.Action.Key == addrs.WildcardKey {
-		return true
-	}
-
-	if c, ok := d.actionExpansionDeferred.GetOk(ai.Addr.ConfigAction()); ok {
-		if c.Has(ai.Addr) {
-			return true
-		}
-
-		for _, k := range c.Keys() {
-			if k.Action.Key == addrs.WildcardKey {
-				return true
-			}
-		}
-	}
-
-	if d.partialExpandedActionsDeferred.Has(ai.Addr.ConfigAction()) {
-		return true
-	}
+	var diags tfdiags.Diagnostics
 
 	// We only want to defer actions that are lifecycle triggered
 	at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
 	if !ok {
-		return false
+		return false, diags
 	}
 
 	// If the resource was deferred, we also need to defer any action potentially triggering from this
 	if configResourceMap, ok := d.resourceInstancesDeferred.GetOk(at.TriggeringResourceAddr.ConfigResource()); ok {
 		if configResourceMap.Has(at.TriggeringResourceAddr) {
-			return true
+			return true, diags
 		}
 	}
 
-	// Since all actions plan in order we can just check if an action for this resource instance
-	// has been deferred already
-	for _, deferred := range d.actionInvocationDeferred {
-		deferredAt, deferredOk := deferred.ActionInvocationInstance.ActionTrigger.(*plans.LifecycleActionTrigger)
-		if !deferredOk {
-			continue // We only care about lifecycle triggered actions here
-		}
-
-		if deferredAt.TriggeringResourceAddr.Equal(at.TriggeringResourceAddr) {
-			return true
+	if c, ok := d.actionExpansionDeferred.GetOk(ai.Addr.ConfigAction()); ok {
+		if c.Has(ai.Addr) {
+			// Then in this case, the resource wasn't deferred but the action
+			// was and so we will consider this to be an error.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid action deferral",
+				Detail:   fmt.Sprintf("The action %s was marked as deferred, but was triggered by a non-deferred resource %s. To work around this, use the -target argument to first apply only the resources that the action block depends on.", ai.Addr, at.TriggeringResourceAddr),
+				Subject:  triggerRange,
+			})
 		}
 	}
 
-	// We found no reason, so we return false
-	return false
+	return false, diags
 }
 
 // ShouldDeferAction returns true if the action should be deferred. This is the case if a
