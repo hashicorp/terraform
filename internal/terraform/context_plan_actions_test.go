@@ -1381,21 +1381,18 @@ resource "test_object" "a" {
 							SourceType: ValueFromCLIArg,
 						}},
 				},
-				expectPlanActionCalled: true,
-
-				assertPlan: func(t *testing.T, p *plans.Plan) {
-					if len(p.Changes.ActionInvocations) != 1 {
-						t.Fatalf("expected 1 action in plan, got %d", len(p.Changes.ActionInvocations))
+				expectPlanActionCalled: false,
+				assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if len(diags) != 1 {
+						t.Fatalf("expected exactly 1 diagnostic but had %d", len(diags))
 					}
 
-					action := p.Changes.ActionInvocations[0]
-					ac, err := action.Decode(&testActionSchema)
-					if err != nil {
-						t.Fatalf("expected action to decode successfully, but got error: %v", err)
+					if diags[0].Severity() != tfdiags.Error {
+						t.Error("expected error diagnostic")
 					}
 
-					if !ac.ConfigValue.GetAttr("attr").IsNull() {
-						t.Fatal("should have converted ephemeral value to null in the plan")
+					if diags[0].Description().Summary != "Invalid use of ephemeral value" {
+						t.Errorf("expected diagnostics to be because of ephemeral values but was %s", diags[0].Description().Summary)
 					}
 				},
 			},
