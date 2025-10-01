@@ -138,6 +138,9 @@ type ResourceListElement struct {
 	Config cty.Value
 
 	Identity cty.Value
+
+	// ExpansionEnum is a unique enumeration of the list resource address relative to its expanded siblings.
+	ExpansionEnum int
 }
 
 func GenerateListResourceContents(addr addrs.AbsResourceInstance,
@@ -158,10 +161,16 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 				Resource: addrs.Resource{
 					Mode: addrs.ManagedResourceMode,
 					Type: addr.Resource.Resource.Type,
-					Name: fmt.Sprintf("%s_%d", addr.Resource.Resource.Name, idx),
 				},
-				Key: addr.Resource.Key,
 			},
+		}
+
+		// If the list resource instance is keyed, the expansion counter is included in the address
+		// to ensure uniqueness across the entire configuration.
+		if addr.Resource.Key == addrs.NoKey {
+			resAddr.Resource.Resource.Name = fmt.Sprintf("%s_%d", addr.Resource.Resource.Name, idx)
+		} else {
+			resAddr.Resource.Resource.Name = fmt.Sprintf("%s_%d_%d", addr.Resource.Resource.Name, res.ExpansionEnum, idx)
 		}
 
 		content, gDiags := GenerateResourceContents(resAddr, schema, pc, res.Config, true)
