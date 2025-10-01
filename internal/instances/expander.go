@@ -5,6 +5,7 @@ package instances
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"sync"
 
@@ -336,6 +337,16 @@ func (e *Expander) ExpandResource(resourceAddr addrs.AbsResource) []addrs.AbsRes
 		return ret[i].Less(ret[j])
 	})
 	return ret
+}
+
+// ResourceExpansionEnum returns the expansion enum for the given resource instance address
+// within the sorted list of resource instances belonging to the same resource config within
+// the same module instance.
+func (e *Expander) ResourceExpansionEnum(resourceAddr addrs.AbsResourceInstance) int {
+	res := e.ExpandResource(resourceAddr.ContainingResource())
+	return slices.IndexFunc(res, func(addr addrs.AbsResourceInstance) bool {
+		return addr.Equal(resourceAddr)
+	})
 }
 
 // UnknownResourceInstances finds a set of patterns that collectively cover

@@ -19,6 +19,8 @@ import (
 // ValidateCommand is a Command implementation that validates the terraform files
 type ValidateCommand struct {
 	Meta
+
+	ParsedArgs *arguments.Validate
 }
 
 func (c *ValidateCommand) Run(rawArgs []string) int {
@@ -34,6 +36,7 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	c.ParsedArgs = args
 	view := views.NewValidate(args.ViewType, c.View)
 
 	// After this point, we must only produce JSON output if JSON mode is
@@ -54,7 +57,7 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 		return view.Results(diags)
 	}
 
-	validateDiags := c.validate(dir, args.TestDirectory, args.NoTests)
+	validateDiags := c.validate(dir)
 	diags = diags.Append(validateDiags)
 
 	// Validating with dev overrides in effect means that the result might
@@ -66,47 +69,54 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	return view.Results(diags)
 }
 
-func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Diagnostics {
+func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	var cfg *configs.Config
 
-	if noTests {
+	// If the query flag is set, include query files in the validation.
+	c.includeQueryFiles = c.ParsedArgs.Query
+
+	if c.ParsedArgs.NoTests {
 		cfg, diags = c.loadConfig(dir)
 	} else {
-		cfg, diags = c.loadConfigWithTests(dir, testDir)
+		cfg, diags = c.loadConfigWithTests(dir, c.ParsedArgs.TestDirectory)
 	}
 	if diags.HasErrors() {
 		return diags
 	}
 
-	validate := func(cfg *configs.Config) tfdiags.Diagnostics {
-		var diags tfdiags.Diagnostics
+	diags = diags.Append(c.validateConfig(cfg))
 
-		opts, err := c.contextOpts()
-		if err != nil {
-			diags = diags.Append(err)
-			return diags
-		}
-
-		tfCtx, ctxDiags := terraform.NewContext(opts)
-		diags = diags.Append(ctxDiags)
-		if ctxDiags.HasErrors() {
-			return diags
-		}
-
-		return diags.Append(tfCtx.Validate(cfg, nil))
+	// Unless excluded, we'll also do a quick validation of the Terraform test files. These live
+	// outside the Terraform graph so we have to do this separately.
+	if !c.ParsedArgs.NoTests {
+		diags = diags.Append(c.validateTestFiles(cfg))
 	}
 
-	diags = diags.Append(validate(cfg))
+	return diags
+}
 
-	if noTests {
+func (c *ValidateCommand) validateConfig(cfg *configs.Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	opts, err := c.contextOpts()
+	if err != nil {
+		diags = diags.Append(err)
 		return diags
 	}
 
-	validatedModules := make(map[string]bool)
+	tfCtx, ctxDiags := terraform.NewContext(opts)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return diags
+	}
 
-	// We'll also do a quick validation of the Terraform test files. These live
-	// outside the Terraform graph so we have to do this separately.
+	return diags.Append(tfCtx.Validate(cfg, nil))
+}
+
+func (c *ValidateCommand) validateTestFiles(cfg *configs.Config) tfdiags.Diagnostics {
+	diags := tfdiags.Diagnostics{}
+	validatedModules := make(map[string]bool)
 	for _, file := range cfg.Module.Tests {
 
 		// The file validation only returns warnings so we'll just add them
@@ -131,7 +141,7 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 						// not validate the same thing multiple times.
 
 						validatedModules[run.Module.Source.String()] = true
-						diags = diags.Append(validate(run.ConfigUnderTest))
+						diags = diags.Append(c.validateConfig(run.ConfigUnderTest))
 					}
 
 				}
@@ -188,6 +198,8 @@ Options:
   -no-tests             If specified, Terraform will not validate test files.
 
   -test-directory=path	Set the Terraform test directory, defaults to "tests".
+  
+  -query                If specified, the command will also validate .tfquery.hcl files.
 `
 	return strings.TrimSpace(helpText)
 }
