@@ -7,6 +7,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
@@ -79,7 +80,14 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, keyData)
 
 		diags = diags.Append(configDiags)
-		if diags.HasErrors() {
+		if configDiags.HasErrors() {
+			return diags
+		}
+
+		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
+		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
+		if valDiags.HasErrors() {
 			return diags
 		}
 	}
