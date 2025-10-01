@@ -2352,6 +2352,65 @@ resource "test_object" "b" {
 				},
 			},
 		},
+
+		"targeted run triggers resources and actions referenced by not-running actions": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "source" {
+name = "source"
+
+lifecycle {
+	action_trigger {
+		events = [before_create]
+		actions = [action.action_example.hello]
+	}
+}
+}
+action "action_example" "there" {
+config {
+	attr = test_object.source.name
+}
+}
+resource "test_object" "a" {
+lifecycle {
+	action_trigger {
+		events = [after_update]
+		actions = [action.action_example.there]
+	}
+}
+}
+resource "test_object" "b" {
+lifecycle {
+	action_trigger {
+		events = [before_update]
+		actions = [action.action_example.hello]
+	}
+}
+}
+		`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {

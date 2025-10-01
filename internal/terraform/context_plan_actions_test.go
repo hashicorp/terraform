@@ -3720,6 +3720,79 @@ resource "test_object" "b" {
 					}
 				},
 			},
+			"targeted run with not-triggered action referencing another resource that also triggers actions": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+resource "test_object" "source" {
+	name = "source"
+	
+	lifecycle {
+		action_trigger {
+			events = [before_create]
+			actions = [action.test_action.hello]
+		}
+	}
+}
+action "test_action" "there" {
+	config {
+		attr = test_object.source.name
+	}
+}
+resource "test_object" "a" {
+	lifecycle {
+		action_trigger {
+			events = [after_update]
+			actions = [action.test_action.there]
+		}
+	}
+}
+resource "test_object" "b" {
+	lifecycle {
+		action_trigger {
+			events = [before_update]
+			actions = [action.test_action.hello]
+		}
+	}
+}
+			`,
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					// Only target resource a
+					Targets: []addrs.Targetable{
+						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					},
+				},
+				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if d.HasErrors() {
+						t.Fatalf("expected no errors, got %s", d.Err().Error())
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// Should plan for resource a and its dependency source, but not b
+					if len(p.Changes.Resources) != 2 {
+						t.Fatalf("expected plan to have 2 resource changes, got %d", len(p.Changes.Resources))
+					}
+					resourceAddrs := []string{
+						p.Changes.Resources[0].Addr.String(),
+						p.Changes.Resources[1].Addr.String(),
+					}
+					slices.Sort(resourceAddrs)
+					if resourceAddrs[0] != "test_object.a" || resourceAddrs[1] != "test_object.source" {
+						t.Fatalf("expected resource addresses to be ['test_object.a', 'test_object.source'], got %v", resourceAddrs)
+					}
+
+					// Should plan only the before_create action of the dependant resource
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected plan to have 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action addresses to be 'action.test_action.hello', got %q", p.Changes.ActionInvocations[0].Addr.String())
+					}
+				},
+			},
 		},
 	} {
 		t.Run(topic, func(t *testing.T) {
