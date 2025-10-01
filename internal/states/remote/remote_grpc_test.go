@@ -4,12 +4,18 @@
 package remote
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Testing grpcClient's Get method, via the state manager made using a grpcClient.
@@ -114,6 +120,104 @@ func Test_grpcClient_Get(t *testing.T) {
 		s := c.State()
 		if s != nil {
 			t.Fatalf("expected refresh to fail due to error diagnostic, but state has been refreshed: %s", s.String())
+		}
+	})
+}
+
+// Testing grpcClient's Put method, via the state manager made using a grpcClient.
+// The PersistState method on a state manager calls the Put method of the underlying client.
+func Test_grpcClient_Put(t *testing.T) {
+	typeName := "foo_bar" // state store 'bar' in provider 'foo'
+	stateId := "production"
+
+	// State with 1 output
+	s := states.NewState()
+	s.SetOutputValue(addrs.AbsOutputValue{
+		Module:      addrs.RootModuleInstance,
+		OutputValue: addrs.OutputValue{Name: "foo"},
+	}, cty.StringVal("bar"), false)
+
+	t.Run("state manager made using grpcClient writes the expected state", func(t *testing.T) {
+		provider := testing_provider.MockProvider{
+			// Mock a provider and internal state store that
+			// have both been configured
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+
+			// Check values received by the provider from the Put method.
+			WriteStateBytesFn: func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+				if req.TypeName != typeName || req.StateId != stateId {
+					t.Fatalf("expected provider WriteStateBytes method to receive TypeName %q and StateId %q, instead got TypeName %q and StateId %q",
+						typeName,
+						stateId,
+						req.TypeName,
+						req.StateId)
+				}
+
+				r := bytes.NewReader(req.Bytes)
+				reqState, err := statefile.Read(r)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if reqState.State.String() != s.String() {
+					t.Fatalf("wanted state %s got %s", s.String(), reqState.State.String())
+				}
+				return providers.WriteStateBytesResponse{
+					// no diags
+				}
+			},
+		}
+
+		// This package will be consumed in a statemgr.Full, so we test using NewRemoteGRPC
+		// and invoke the method on that interface that uses Put.
+		c := NewRemoteGRPC(&provider, typeName, stateId)
+
+		// Set internal state value that will be persisted.
+		c.WriteState(s)
+
+		// Test PersistState, which uses Put.
+		err := c.PersistState(nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	})
+
+	t.Run("state manager made using grpcClient returns expected error from error diagnostic", func(t *testing.T) {
+		expectedErr := "error forced from test"
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  expectedErr,
+			Detail:   expectedErr,
+		})
+		provider := testing_provider.MockProvider{
+			// Mock a provider and internal state store that
+			// have both been configured
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+
+			// Force an error diagnostic
+			WriteStateBytesFn: func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+				return providers.WriteStateBytesResponse{
+					Diagnostics: diags,
+				}
+			},
+		}
+
+		// This package will be consumed in a statemgr.Full, so we test using NewRemoteGRPC
+		// and invoke the method on that interface that uses Get.
+		c := NewRemoteGRPC(&provider, typeName, stateId)
+
+		// Set internal state value that will be persisted.
+		c.WriteState(s)
+
+		// Test PersistState, which uses Put.
+		err := c.PersistState(nil)
+		if err == nil {
+			t.Fatalf("expected error but got none")
+		}
+		if !strings.Contains(err.Error(), expectedErr) {
+			t.Fatalf("expected error to contain %q, but got: %s", expectedErr, err.Error())
 		}
 	})
 }

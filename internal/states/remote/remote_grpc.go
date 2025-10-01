@@ -79,7 +79,14 @@ func (g *grpcClient) Get() (*Payload, tfdiags.Diagnostics) {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Put(state []byte) tfdiags.Diagnostics {
-	panic("not implemented yet")
+	req := providers.WriteStateBytesRequest{
+		TypeName: g.typeName,
+		StateId:  g.stateId,
+		Bytes:    state,
+	}
+	resp := g.provider.WriteStateBytes(req)
+
+	return resp.Diagnostics
 }
 
 // Delete invokes the DeleteState gRPC method in the plugin protocol
