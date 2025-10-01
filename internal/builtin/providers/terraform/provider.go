@@ -295,18 +295,6 @@ func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest)
 	return resp
 }
 
-func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	var resp providers.ReadStateBytesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	var resp providers.WriteStateBytesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
 func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
 	var resp providers.GetStatesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))

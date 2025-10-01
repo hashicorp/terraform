@@ -49,9 +49,7 @@ func Provider() providers.Interface {
 	return simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Body: &configschema.Block{
-					Description: "This is terraform-provider-simple v6",
-				},
+				Body: nil,
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
@@ -314,14 +312,6 @@ func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigR
 }
 
 func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	panic("not implemented")
-}
-
-func (s simple) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	panic("not implemented")
-}
-
-func (s simple) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
 	panic("not implemented")
 }
 

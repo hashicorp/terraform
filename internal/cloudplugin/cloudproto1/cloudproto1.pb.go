@@ -10,6 +10,10 @@
 package cloudproto1
 
 import (
+	context "context"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -239,4 +243,113 @@ func file_cloudproto1_proto_init() {
 	File_cloudproto1_proto = out.File
 	file_cloudproto1_proto_goTypes = nil
 	file_cloudproto1_proto_depIdxs = nil
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConnInterface
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion6
+
+// CommandServiceClient is the client API for CommandService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type CommandServiceClient interface {
+	// Execute runs a specific command with the provided flags and returns the result.
+	Execute(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (CommandService_ExecuteClient, error)
+}
+
+type commandServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewCommandServiceClient(cc grpc.ClientConnInterface) CommandServiceClient {
+	return &commandServiceClient{cc}
+}
+
+func (c *commandServiceClient) Execute(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (CommandService_ExecuteClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_CommandService_serviceDesc.Streams[0], "/cloudproto1.CommandService/Execute", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &commandServiceExecuteClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type CommandService_ExecuteClient interface {
+	Recv() (*CommandResponse, error)
+	grpc.ClientStream
+}
+
+type commandServiceExecuteClient struct {
+	grpc.ClientStream
+}
+
+func (x *commandServiceExecuteClient) Recv() (*CommandResponse, error) {
+	m := new(CommandResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// CommandServiceServer is the server API for CommandService service.
+type CommandServiceServer interface {
+	// Execute runs a specific command with the provided flags and returns the result.
+	Execute(*CommandRequest, CommandService_ExecuteServer) error
+}
+
+// UnimplementedCommandServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedCommandServiceServer struct {
+}
+
+func (*UnimplementedCommandServiceServer) Execute(*CommandRequest, CommandService_ExecuteServer) error {
+	return status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+
+func RegisterCommandServiceServer(s *grpc.Server, srv CommandServiceServer) {
+	s.RegisterService(&_CommandService_serviceDesc, srv)
+}
+
+func _CommandService_Execute_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(CommandRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CommandServiceServer).Execute(m, &commandServiceExecuteServer{stream})
+}
+
+type CommandService_ExecuteServer interface {
+	Send(*CommandResponse) error
+	grpc.ServerStream
+}
+
+type commandServiceExecuteServer struct {
+	grpc.ServerStream
+}
+
+func (x *commandServiceExecuteServer) Send(m *CommandResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+var _CommandService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "cloudproto1.CommandService",
+	HandlerType: (*CommandServiceServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Execute",
+			Handler:       _CommandService_Execute_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "cloudproto1.proto",
 }

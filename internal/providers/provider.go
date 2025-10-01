@@ -123,11 +123,6 @@ type Interface interface {
 	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
 	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
 
-	// ReadStateBytes streams byte chunks of a given state file from a state store
-	ReadStateBytes(ReadStateBytesRequest) ReadStateBytesResponse
-	// WriteStateBytes streams byte chunks of a given state file into a state store
-	WriteStateBytes(WriteStateBytesRequest) WriteStateBytesResponse
-
 	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
 	GetStates(GetStatesRequest) GetStatesResponse
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
@@ -144,10 +139,6 @@ type Interface interface {
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
-}
-
-type StateStoreChunkSizeSetter interface {
-	SetStateStoreChunkSize(typeName string, size int)
 }
 
 // GetProviderSchemaResponse is the return type for GetProviderSchema, and
@@ -856,49 +847,9 @@ type ConfigureStateStoreRequest struct {
 
 	// Config is the configuration value to configure the store with.
 	Config cty.Value
-
-	Capabilities StateStoreClientCapabilities
-}
-
-type StateStoreClientCapabilities struct {
-	ChunkSize int64
 }
 
 type ConfigureStateStoreResponse struct {
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-
-	Capabilities StateStoreServerCapabilities
-}
-
-type StateStoreServerCapabilities struct {
-	ChunkSize int64
-}
-
-type ReadStateBytesRequest struct {
-	// TypeName is the name of the state store to read state from
-	TypeName string
-	// StateId is the ID of a state file to read
-	StateId string
-}
-
-type ReadStateBytesResponse struct {
-	// Bytes represents all received bytes of the given state file
-	Bytes []byte
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-}
-
-type WriteStateBytesRequest struct {
-	// TypeName is the name of the state store to write state to
-	TypeName string
-	// Bytes represents all bytes of the given state file to write
-	Bytes []byte
-	// StateId is the ID of a state file to write
-	StateId string
-}
-
-type WriteStateBytesResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

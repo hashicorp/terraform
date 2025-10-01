@@ -907,14 +907,6 @@ func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.Conf
 	panic("not implemented")
 }
 
-func (p *provider6) ReadStateBytes(req *tfplugin6.ReadStateBytes_Request, srv tfplugin6.Provider_ReadStateBytesServer) error {
-	panic("not implemented")
-}
-
-func (p *provider6) WriteStateBytes(srv tfplugin6.Provider_WriteStateBytesServer) error {
-	panic("not implemented")
-}
-
 func (p *provider6) GetStates(ctx context.Context, req *tfplugin6.GetStates_Request) (*tfplugin6.GetStates_Response, error) {
 	panic("not implemented")
 }
