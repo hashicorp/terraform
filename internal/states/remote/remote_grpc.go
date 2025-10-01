@@ -54,7 +54,24 @@ type grpcClient struct {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Get() (*Payload, tfdiags.Diagnostics) {
-	panic("not implemented yet")
+	req := providers.ReadStateBytesRequest{
+		TypeName: g.typeName,
+		StateId:  g.stateId,
+	}
+	resp := g.provider.ReadStateBytes(req)
+
+	if len(resp.Bytes) == 0 {
+		// No state to return
+		return nil, resp.Diagnostics
+	}
+
+	// TODO: Remove or replace use of MD5?
+	// The MD5 value here is never used.
+	payload := &Payload{
+		Data: resp.Bytes,
+		MD5:  []byte{}, // empty, as this is unused downstream
+	}
+	return payload, resp.Diagnostics
 }
 
 // Put invokes the WriteStateBytes gRPC method in the plugin protocol
