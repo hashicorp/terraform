@@ -77,20 +77,20 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	}
 	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
 
-	// If we should defer the action invocation, we need to report it and if the resource instance
-	// was not deferred (and therefore was planned) we need to retroactively remove the change
-	if deferrals.ShouldDeferActionInvocation(ai) {
+	deferred, moreDiags := deferrals.ShouldDeferActionInvocation(ai, n.lifecycleActionTrigger.invokingSubject)
+	diags = diags.Append(moreDiags)
+	if deferred {
 		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
-		if change != nil {
-			ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
-			deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
-		}
-		return nil
+		return diags
+	}
+
+	if moreDiags.HasErrors() {
+		return diags
 	}
 
 	if change == nil {
 		// nothing to do (this may be a refresh )
-		return nil
+		return diags
 	}
 
 	if n.lifecycleActionTrigger == nil {
@@ -151,10 +151,12 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	// We remove the marks for planning, we will record the sensitive values in the plans.ActionInvocationInstance
 	unmarkedConfig, _ := actionInstance.ConfigValue.UnmarkDeepWithPaths()
 
+	cc := ctx.ClientCapabilities()
+	cc.DeferralAllowed = false // for now, deferrals in actions are always disabled
 	resp := provider.PlanAction(providers.PlanActionRequest{
 		ActionType:         n.actionAddress.Action.Action.Type,
 		ProposedActionData: unmarkedConfig,
-		ClientCapabilities: ctx.ClientCapabilities(),
+		ClientCapabilities: cc,
 	})
 
 	if len(resp.Diagnostics) > 0 {
@@ -174,7 +176,9 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 			Subject:  n.lifecycleActionTrigger.invokingSubject,
 		})
 	}
-	if resp.Deferred != nil && !deferrals.DeferralAllowed() {
+	if resp.Deferred != nil {
+		// we always set allow_deferrals to be false for actions, so this
+		// should not happen
 		diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.actionAddress))
 	}
 	if resp.Diagnostics.HasErrors() {
@@ -186,16 +190,6 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		eventSpecificAi := ai.DeepCopy()
 		// We need to set the triggering event on the action invocation
 		eventSpecificAi.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(triggeredEvent)
-
-		// If the action is deferred, we need to also defer the resource instance
-		if resp.Deferred != nil {
-			deferrals.ReportActionInvocationDeferred(*eventSpecificAi, resp.Deferred.Reason)
-			ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
-			deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
-
-			return diags
-		}
-
 		ctx.Changes().AppendActionInvocation(eventSpecificAi)
 	}
 	return diags
