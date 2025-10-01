@@ -199,7 +199,7 @@ Options:
 
   -test-directory=path	Set the Terraform test directory, defaults to "tests".
   
-  -query                If specified, the command will also validate .tfquery files.
+  -query                If specified, the command will also validate .tfquery.hcl files.
 `
 	return strings.TrimSpace(helpText)
 }
