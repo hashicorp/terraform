@@ -1818,7 +1818,7 @@ resource "test_object" "a" {
 				expectPlanActionCalled: true,
 				planOpts: &PlanOpts{
 					Mode:            plans.NormalMode,
-					DeferralAllowed: true,
+					DeferralAllowed: true, // actions should ignore this setting
 				},
 				planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
 					return providers.PlanActionResponse{
@@ -1827,25 +1827,13 @@ resource "test_object" "a" {
 						},
 					}
 				},
-
-				assertPlan: func(t *testing.T, p *plans.Plan) {
-					if len(p.Changes.ActionInvocations) != 0 {
-						t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
-					}
-
-					if len(p.DeferredActionInvocations) != 1 {
-						t.Fatalf("expected 1 deferred action in plan, got %d", len(p.DeferredActionInvocations))
-					}
-					deferredActionInvocation := p.DeferredActionInvocations[0]
-					if deferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
-						t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", deferredActionInvocation.DeferredReason)
-					}
-					if deferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
-						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
-					}
-
-					if deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
-						t.Fatalf("expected deferred action to be triggered by action.test_action.hello, but got %s", deferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+					return tfdiags.Diagnostics{
+						tfdiags.Sourceless(
+							tfdiags.Error,
+							"Provider deferred changes when Terraform did not allow deferrals",
+							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
+						),
 					}
 				},
 			},
@@ -1888,37 +1876,17 @@ resource "test_object" "a" {
 						},
 					}
 				},
-
-				assertPlan: func(t *testing.T, p *plans.Plan) {
-					if len(p.Changes.ActionInvocations) != 0 {
-						t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
-					}
-
-					if len(p.DeferredActionInvocations) != 2 {
-						t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
-					}
-					firstDeferredActionInvocation := p.DeferredActionInvocations[0]
-					if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
-						t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
-					}
-					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
-						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
-					}
-
-					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
-						t.Fatalf("expected deferred action to be triggered by action.test_action.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
-					}
-
-					secondDeferredActionInvocation := p.DeferredActionInvocations[1]
-					if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
-						t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
-					}
-					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
-						t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
-					}
-
-					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem.world" {
-						t.Fatalf("expected second deferred action to be triggered by action.ecosystem.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
+				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+					// for now, it's just an error for any deferrals but when
+					// this gets implemented we should check that all the
+					// actions are deferred even though only one of them
+					// was actually marked as deferred.
+					return tfdiags.Diagnostics{
+						tfdiags.Sourceless(
+							tfdiags.Error,
+							"Provider deferred changes when Terraform did not allow deferrals",
+							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
+						),
 					}
 				},
 			},
@@ -1965,50 +1933,17 @@ resource "test_object" "a" {
 						},
 					}
 				},
-
-				assertPlan: func(t *testing.T, p *plans.Plan) {
-					if len(p.Changes.ActionInvocations) != 0 {
-						t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
-					}
-
-					if len(p.DeferredActionInvocations) != 2 {
-						t.Fatalf("expected 2 deferred actions in plan, got %d", len(p.DeferredActionInvocations))
-					}
-					firstDeferredActionInvocation := p.DeferredActionInvocations[0]
-					if firstDeferredActionInvocation.DeferredReason != providers.DeferredReasonAbsentPrereq {
-						t.Fatalf("expected deferred action to be deferred due to absent prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
-					}
-					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
-						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
-					}
-
-					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
-						t.Fatalf("expected deferred action to be triggered by action.test_action.hello, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
-					}
-
-					secondDeferredActionInvocation := p.DeferredActionInvocations[1]
-					if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
-						t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
-					}
-					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
-						t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
-					}
-
-					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.ecosystem.world" {
-						t.Fatalf("expected second deferred action to be triggered by action.ecosystem.world, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String())
-					}
-
-					if len(p.DeferredResources) != 1 {
-						t.Fatalf("expected 1 resource to be deferred, got %d", len(p.DeferredResources))
-					}
-					deferredResource := p.DeferredResources[0]
-
-					if deferredResource.ChangeSrc.Addr.String() != "test_object.a" {
-						t.Fatalf("Expected resource %s to be deferred, but it was not", deferredResource.ChangeSrc.Addr)
-					}
-
-					if deferredResource.DeferredReason != providers.DeferredReasonDeferredPrereq {
-						t.Fatalf("Expected deferred reason to be deferred prereq, got %s", deferredResource.DeferredReason)
+				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+					// for now, it's just an error for any deferrals but when
+					// this gets implemented we should check that all the
+					// actions are deferred even though only one of them
+					// was actually marked as deferred.
+					return tfdiags.Diagnostics{
+						tfdiags.Sourceless(
+							tfdiags.Error,
+							"Provider deferred changes when Terraform did not allow deferrals",
+							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
+						),
 					}
 				},
 			},
@@ -2130,26 +2065,17 @@ resource "test_object" "a" {
 						},
 					},
 				},
-				assertPlan: func(t *testing.T, p *plans.Plan) {
-					if len(p.DeferredActionInvocations) != 1 {
-						t.Fatalf("expected exactly one invocation, and found %d", len(p.DeferredActionInvocations))
+				assertPlanDiagnostics: func(t *testing.T, diagnostics tfdiags.Diagnostics) {
+					if len(diagnostics) != 1 {
+						t.Fatal("wrong number of diagnostics")
 					}
 
-					if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
-						t.Fatalf("expected.DeferredReasonDeferredPrereq, got %s", p.DeferredActionInvocations[0].DeferredReason)
+					if diagnostics[0].Severity() != tfdiags.Error {
+						t.Error("expected error severity")
 					}
 
-					ai := p.DeferredActionInvocations[0].ActionInvocationInstanceSrc
-					if ai.Addr.String() != `action.test_action.hello["a"]` {
-						t.Fatalf(`expected action invocation for action.test_action.hello["a"], got %s`, ai.Addr.String())
-					}
-
-					if len(p.DeferredResources) != 1 {
-						t.Fatalf("expected 1 deferred resource, got %d", len(p.DeferredResources))
-					}
-
-					if p.DeferredResources[0].ChangeSrc.Addr.String() != "test_object.a" {
-						t.Fatalf("expected test_object.a, got %s", p.DeferredResources[0].ChangeSrc.Addr.String())
+					if diagnostics[0].Description().Summary != "Invalid for_each argument" {
+						t.Errorf("expected for_each argument to be source of error but was %s", diagnostics[0].Description().Summary)
 					}
 				},
 			},
@@ -2335,42 +2261,17 @@ resource "test_object" "a" {
 					}
 				},
 
-				assertPlan: func(t *testing.T, p *plans.Plan) {
-					if len(p.DeferredActionInvocations) != 1 {
-						t.Errorf("Expected 1 deferred action invocation, got %d", len(p.DeferredActionInvocations))
-					}
-					if p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
-						t.Errorf("Expected action. test_action.hello, got %s", p.DeferredActionInvocations[0].ActionInvocationInstanceSrc.Addr.String())
-					}
-					if p.DeferredActionInvocations[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
-						t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredActionInvocations[0].DeferredReason)
+				assertPlanDiagnostics: func(t *testing.T, diagnostics tfdiags.Diagnostics) {
+					if len(diagnostics) != 1 {
+						t.Fatal("wrong number of diagnostics")
 					}
 
-					if len(p.DeferredResources) != 2 {
-						t.Fatalf("Expected 2 deferred resources, got %d", len(p.DeferredResources))
+					if diagnostics[0].Severity() != tfdiags.Error {
+						t.Error("expected error diagnostics")
 					}
 
-					slices.SortFunc(p.DeferredResources, func(a, b *plans.DeferredResourceInstanceChangeSrc) int {
-						if a.ChangeSrc.Addr.Less(b.ChangeSrc.Addr) {
-							return -1
-						}
-						if b.ChangeSrc.Addr.Less(a.ChangeSrc.Addr) {
-							return 1
-						}
-						return 0
-					})
-
-					if p.DeferredResources[0].ChangeSrc.Addr.String() != "test_object.a" {
-						t.Errorf("Expected test_object.a to be first, got %s", p.DeferredResources[0].ChangeSrc.Addr.String())
-					}
-					if p.DeferredResources[0].DeferredReason != providers.DeferredReasonDeferredPrereq {
-						t.Errorf("Expected DeferredReasonDeferredPrereq, got %s", p.DeferredResources[0].DeferredReason)
-					}
-					if p.DeferredResources[1].ChangeSrc.Addr.String() != "test_object.origin" {
-						t.Errorf("Expected test_object.origin to be second, got %s", p.DeferredResources[1].ChangeSrc.Addr.String())
-					}
-					if p.DeferredResources[1].DeferredReason != providers.DeferredReasonAbsentPrereq {
-						t.Errorf("Expected DeferredReasonAbsentPrereq, got %s", p.DeferredResources[1].DeferredReason)
+					if diagnostics[0].Description().Summary != "Invalid action deferral" {
+						t.Errorf("expected deferral to be source of error was %s", diagnostics[0].Description().Summary)
 					}
 				},
 			},
