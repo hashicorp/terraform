@@ -286,15 +286,20 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		backendSchema := b.ConfigSchema()
 		backendConfig := root.Backend
 
-		backendConfigOverride, overrideDiags := c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema)
-		diags = diags.Append(overrideDiags)
-		if overrideDiags.HasErrors() {
-			return nil, true, diags
+		// If overrides supplied by -backend-config CLI flag, process them
+		var configOverride hcl.Body
+		if !initArgs.BackendConfig.Empty() {
+			var overrideDiags tfdiags.Diagnostics
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema)
+			diags = diags.Append(overrideDiags)
+			if overrideDiags.HasErrors() {
+				return nil, true, diags
+			}
 		}
 
 		opts = &BackendOpts{
 			BackendConfig:  backendConfig,
-			ConfigOverride: backendConfigOverride,
+			ConfigOverride: configOverride,
 			Init:           true,
 			ViewType:       initArgs.ViewType,
 		}
