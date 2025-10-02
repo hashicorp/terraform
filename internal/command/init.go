@@ -159,7 +159,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -195,7 +195,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 
 		// If overrides supplied by -backend-config CLI flag, process them
 		var configOverride hcl.Body
-		if !extraConfig.Empty() {
+		if !initArgs.BackendConfig.Empty() {
 			// We need to launch an instance of the provider to get the config of the state store for processing any overrides.
 			provider, err := factory()
 			defer provider.Close() // Stop the child process once we're done with it here.
@@ -238,7 +238,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 
 			// Handle any overrides supplied via -backend-config CLI flags
 			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, stateStoreSchema.Body)
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body)
 			diags = diags.Append(overrideDiags)
 			if overrideDiags.HasErrors() {
 				return nil, true, diags
@@ -250,7 +250,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 			ProviderFactory:  factory,
 			ConfigOverride:   configOverride,
 			Init:             true,
-			ViewType:         viewType,
+			ViewType:         initArgs.ViewType,
 		}
 
 	case root.Backend != nil:
@@ -286,7 +286,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		backendSchema := b.ConfigSchema()
 		backendConfig := root.Backend
 
-		backendConfigOverride, overrideDiags := c.backendConfigOverrideBody(extraConfig, backendSchema)
+		backendConfigOverride, overrideDiags := c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema)
 		diags = diags.Append(overrideDiags)
 		if overrideDiags.HasErrors() {
 			return nil, true, diags
@@ -296,7 +296,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 			BackendConfig:  backendConfig,
 			ConfigOverride: backendConfigOverride,
 			Init:           true,
-			ViewType:       viewType,
+			ViewType:       initArgs.ViewType,
 		}
 
 	default:
@@ -305,7 +305,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		// If the user supplied a -backend-config on the CLI but no backend
 		// block was found in the configuration, it's likely - but not
 		// necessarily - a mistake. Return a warning.
-		if !extraConfig.Empty() {
+		if !initArgs.BackendConfig.Empty() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Missing backend configuration",
@@ -328,7 +328,7 @@ the backend configuration is present and valid.
 
 		opts = &BackendOpts{
 			Init:     true,
-			ViewType: viewType,
+			ViewType: initArgs.ViewType,
 		}
 	}
 
