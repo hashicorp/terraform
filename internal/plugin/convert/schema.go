@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ConfigSchemaToProto takes a *configschema.Block and converts it to a
@@ -106,17 +107,48 @@ func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) pr
 }
 
 func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
-	schema := providers.ActionSchema{
+	return providers.ActionSchema{
 		ConfigSchema: ProtoToConfigSchema(s.Schema.Block),
 	}
+}
 
-	switch s.Type.(type) {
-	case *proto.ActionSchema_Unlinked_:
-		schema.Unlinked = &providers.UnlinkedAction{}
-	default:
-		panic("Unknown Action Type, expected unlinked action")
+func ProtoToListSchema(s *proto.Schema) providers.Schema {
+	listSchema := ProtoToProviderSchema(s, nil)
+	itemCount := 0
+	// check if the provider has set some attributes/blocks as required.
+	// When yes, then we set minItem = 1, which
+	// validates that the configuration contains a "config" block.
+	for _, attrS := range listSchema.Body.Attributes {
+		if attrS.Required {
+			itemCount = 1
+			break
+		}
 	}
-	return schema
+	for _, block := range listSchema.Body.BlockTypes {
+		if block.MinItems > 0 {
+			itemCount = 1
+			break
+		}
+	}
+	return providers.Schema{
+		Version: s.Version,
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"data": {
+					Type:     cty.DynamicPseudoType,
+					Computed: true,
+				},
+			},
+			BlockTypes: map[string]*configschema.NestedBlock{
+				"config": {
+					Block:    *listSchema.Body,
+					Nesting:  configschema.NestingSingle,
+					MinItems: itemCount,
+					MaxItems: itemCount,
+				},
+			},
+		},
+	}
 }
 
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it

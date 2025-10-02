@@ -1128,13 +1128,12 @@ func showFixtureSchema() *providers.GetProviderSchemaResponse {
 			},
 		},
 		Actions: map[string]providers.ActionSchema{
-			"test_unlinked": {
+			"test_action": {
 				ConfigSchema: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"attr": {Type: cty.String, Optional: true},
 					},
 				},
-				Unlinked: &providers.UnlinkedAction{},
 			},
 		},
 	}

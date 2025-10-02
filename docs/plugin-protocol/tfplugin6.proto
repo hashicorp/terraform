@@ -146,15 +146,7 @@ message ResourceIdentityData {
 
 // ActionSchema defines the schema for an action that can be invoked by Terraform.
 message ActionSchema {
-    // An Unlinked action is an action that is not linked to any resources. It may contain
-    // references to resources but it can not change the resource state of any resource.
-    message Unlinked {}
-
     Schema schema = 1; // of the action itself
-
-    oneof type {
-        Unlinked unlinked = 2;
-    }
 }
 
 // Schema is the configuration schema for a Resource or Provider.
@@ -300,6 +292,10 @@ message ServerCapabilities {
     // The move_resource_state capability signals that a provider supports the
     // MoveResourceState RPC.
     bool move_resource_state = 3;
+
+    // The generate_resource_config capability signals that a provider supports
+    // GenerateResourceConfig.
+    bool generate_resource_config = 4;
 }
 
 // ClientCapabilities allows Terraform to publish information regarding
@@ -371,6 +367,7 @@ service Provider {
     rpc ImportResourceState(ImportResourceState.Request) returns (ImportResourceState.Response);
     rpc MoveResourceState(MoveResourceState.Request) returns (MoveResourceState.Response);
     rpc ReadDataSource(ReadDataSource.Request) returns (ReadDataSource.Response);
+    rpc GenerateResourceConfig(GenerateResourceConfig.Request) returns (GenerateResourceConfig.Response);
 
     //////// Ephemeral Resource Lifecycle
     rpc ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfig.Request) returns (ValidateEphemeralResourceConfig.Response);
@@ -392,6 +389,11 @@ service Provider {
     rpc ValidateStateStoreConfig(ValidateStateStore.Request) returns (ValidateStateStore.Response);
     // ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
     rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
+
+    // ReadStateBytes streams byte chunks of a given state file from a state store
+    rpc ReadStateBytes(ReadStateBytes.Request) returns (stream ReadStateBytes.Response);
+    // WriteStateBytes streams byte chunks of a given state file into a state store
+    rpc WriteStateBytes(stream WriteStateBytes.RequestChunk) returns (WriteStateBytes.Response);
 
     // GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
     rpc GetStates(GetStates.Request) returns (GetStates.Response);
@@ -719,6 +721,19 @@ message ImportResourceState {
     }
 }
 
+message GenerateResourceConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue state = 2;
+    }
+
+    message Response {
+        // config is the provided state modified such that it represents a valid resource configuration value.
+        DynamicValue config = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
 message MoveResourceState {
     message Request {
         // The address of the provider the resource is being moved from.
@@ -886,7 +901,6 @@ message ValidateListResourceConfig {
     }
 }
 
-
 message ValidateStateStore {
     message Request {
         string type_name = 1;
@@ -901,10 +915,57 @@ message ConfigureStateStore {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
+        StateStoreClientCapabilities capabilities = 3;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+        StateStoreServerCapabilities capabilities = 2;
+    }
+}
+
+message StateStoreClientCapabilities {
+    int64 chunk_size = 1; // suggested chunk size by Core
+}
+
+message StateStoreServerCapabilities {
+    int64 chunk_size = 1; // chosen chunk size by plugin
+}
+
+message ReadStateBytes {
+    message Request {
+        string type_name = 1;
+        string state_id = 2;
+    }
+    message Response {
+        bytes bytes = 1;
+        int64 total_length = 2;
+        StateRange range = 3;
+        repeated Diagnostic diagnostics = 4;
+    }
+}
+
+message WriteStateBytes {
+    message RequestChunk {
+        // meta is sent with the first chunk only
+        optional RequestChunkMeta meta = 1;
+
+        bytes bytes = 2;
+        int64 total_length = 3;
+        StateRange range = 4;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
     }
+}
+
+message RequestChunkMeta {
+    string type_name = 1;
+    string state_id = 2;
+}
+
+message StateRange {
+    int64 start = 1;
+    int64 end = 2;
 }
 
 message GetStates {
@@ -929,55 +990,27 @@ message DeleteState {
 
 message PlanAction {
     message Request {
-        message LinkedResource {
-            // prior_state is the state of the linked resource before the action is planned.
-            DynamicValue prior_state = 1; 
-            // planned_state describes the value the linked resource has been last planned with.
-            // This could also be the output of a predecessor action.
-            DynamicValue planned_state = 2;
-            DynamicValue config = 3;
-            ResourceIdentityData prior_identity = 4;
-        }
         string action_type = 1;
-        // linked resources, this should match the order the resources are specified in the schema.
-        repeated LinkedResource linked_resources = 2;
         // config of the action, based on the schema of the actual action
-        DynamicValue config = 3;
+        DynamicValue config = 2;
         // metadata
-        ClientCapabilities client_capabilities = 4;
+        ClientCapabilities client_capabilities = 3;
     }
 
     message Response {
-        message LinkedResource {
-            DynamicValue planned_state = 1;
-            ResourceIdentityData planned_identity = 2;
-        }
-        // planned changes to the linked resources in the order they are specified in the schema.
-        repeated LinkedResource linked_resources = 1;
-        repeated Diagnostic diagnostics = 2;
+        repeated Diagnostic diagnostics = 1;
         // metadata
-        Deferred deferred = 3;
+        Deferred deferred = 2;
     }
 }
 
 message InvokeAction {
     message Request {
-        message LinkedResource {
-            DynamicValue prior_state = 1; 
-            // planned_state describes the value the linked resource has been last planned 
-            // with. This could also be the output of a predecessor action.
-            DynamicValue planned_state = 2;
-            DynamicValue config = 3;
-            ResourceIdentityData planned_identity = 4;
-        }
-
         string action_type = 1;
-        // linked resources, matching the order they are specified in the schema
-        repeated LinkedResource linked_resources = 2;
         // response from the plan
-        DynamicValue config = 3;
+        DynamicValue config = 2;
         // metadata
-        ClientCapabilities client_capabilities = 4;
+        ClientCapabilities client_capabilities = 3;
     }
 
     message Event {
@@ -987,15 +1020,7 @@ message InvokeAction {
       }
 
       message Completed {
-        message LinkedResource {
-            DynamicValue new_state = 1;
-            ResourceIdentityData new_identity = 2;
-            // Can only be set if error diagnostics are present. 
-            bool requires_replace = 3;
-        }
-        // linked resources, matching the order they are specified in the schema
-        repeated LinkedResource linked_resources = 1;
-        repeated Diagnostic diagnostics = 2;
+        repeated Diagnostic diagnostics = 1;
     }
 
     oneof type {
@@ -1009,14 +1034,8 @@ message ValidateActionConfig {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
-        repeated LinkedResourceConfig linked_resources = 3;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
     }
-}
-
-message LinkedResourceConfig {
-    string type_name = 1;
-    DynamicValue config = 2;
 }

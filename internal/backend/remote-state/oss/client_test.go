@@ -75,14 +75,14 @@ func TestRemoteClientLocks(t *testing.T) {
 	createTablestoreTable(t, b1.otsClient, tableName)
 	defer deleteTablestoreTable(t, b1.otsClient, tableName)
 
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
@@ -116,18 +116,18 @@ func TestRemoteClientLocks_multipleStates(t *testing.T) {
 	createTablestoreTable(t, b1.otsClient, tableName)
 	defer deleteTablestoreTable(t, b1.otsClient, tableName)
 
-	s1, err := b1.StateMgr("s1")
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr("s1")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if _, err := s1.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatal("failed to get lock for s1:", err)
 	}
 
 	// s1 is now locked, s2 should not be locked as it's a different state file
-	s2, err := b2.StateMgr("s2")
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr("s2")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if _, err := s2.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatal("failed to get lock for s2:", err)
@@ -283,9 +283,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	createTablestoreTable(t, b1.otsClient, tableName)
 	defer deleteTablestoreTable(t, b1.otsClient, tableName)
 
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 	client1 := s1.(*remote.State).Client
 
@@ -308,30 +308,30 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		"bucket": bucketName,
 		"prefix": path,
 	})).(*Backend)
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 	client2 := s2.(*remote.State).Client
 
 	// write the new state through client2 so that there is no checksum yet
-	if err := client2.Put(newState.Bytes()); err != nil {
-		t.Fatal(err)
+	if diags := client2.Put(newState.Bytes()); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// verify that we can pull a state without a checksum
-	if _, err := client1.Get(); err != nil {
-		t.Fatal(err)
+	if _, diags := client1.Get(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// write the new state back with its checksum
-	if err := client1.Put(newState.Bytes()); err != nil {
-		t.Fatal(err)
+	if diags := client1.Put(newState.Bytes()); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// put an empty state in place to check for panics during get
-	if err := client2.Put([]byte{}); err != nil {
-		t.Fatal(err)
+	if diags := client2.Put([]byte{}); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// remove the timeouts so we can fail immediately
@@ -346,25 +346,25 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 
 	// fetching an empty state through client1 should now error out due to a
 	// mismatched checksum.
-	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
-		t.Fatalf("expected state checksum error: got %s", err)
+	if _, diags := client1.Get(); !strings.HasPrefix(diags.Err().Error(), errBadChecksumFmt[:80]) {
+		t.Fatalf("expected state checksum error: got %s", diags.Err())
 	}
 
 	// put the old state in place of the new, without updating the checksum
-	if err := client2.Put(oldState.Bytes()); err != nil {
-		t.Fatal(err)
+	if diags := client2.Put(oldState.Bytes()); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// fetching the wrong state through client1 should now error out due to a
 	// mismatched checksum.
-	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
-		t.Fatalf("expected state checksum error: got %s", err)
+	if _, diags := client1.Get(); !strings.HasPrefix(diags.Err().Error(), errBadChecksumFmt[:80]) {
+		t.Fatalf("expected state checksum error: got %s", diags.Err())
 	}
 
 	// update the state with the correct one after we Get again
 	testChecksumHook = func() {
-		if err := client2.Put(newState.Bytes()); err != nil {
-			t.Fatal(err)
+		if diags := client2.Put(newState.Bytes()); diags.HasErrors() {
+			t.Fatal(diags.Err())
 		}
 		testChecksumHook = nil
 	}
@@ -374,7 +374,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	// this final Get will fail to fail the checksum verification, the above
 	// callback will update the state with the correct version, and Get should
 	// retry automatically.
-	if _, err := client1.Get(); err != nil {
-		t.Fatal(err)
+	if _, diags := client1.Get(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }

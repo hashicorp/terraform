@@ -1053,6 +1053,78 @@ func TestApply_planWithEnvVars(t *testing.T) {
 	}
 }
 
+func TestApply_planWithSensitiveEnvVars(t *testing.T) {
+	_, snap := testModuleWithSnapshot(t, "apply-sensitive-variable")
+	plan := testPlan(t)
+
+	addr, diags := addrs.ParseAbsOutputValueStr("output.shadow")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	shadowVal := mustNewDynamicValue("noot", cty.DynamicPseudoType)
+	plan.VariableValues = map[string]plans.DynamicValue{
+		"shadow": shadowVal,
+	}
+	plan.Changes.Outputs = append(plan.Changes.Outputs, &plans.OutputChangeSrc{
+		Addr: addr,
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+			After:  shadowVal,
+		},
+	})
+	planPath := testPlanFileMatchState(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+		statemgr.SnapshotMeta{},
+	)
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	t.Setenv("TF_VAR_shadow", "unique")
+
+	args := []string{
+		"-state", statePath,
+		"-no-color",
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatal("unexpected failure: ", output.All())
+	}
+
+	out := output.Stdout()
+
+	expectedWarn := "Warning: Ignoring variable when applying a saved plan\n"
+	if !strings.Contains(out, expectedWarn) {
+		t.Fatalf("expected warning in output, given: %q", out)
+	}
+
+	if !strings.Contains(out, "(sensitive value)") {
+		t.Error("should have elided sensitive value")
+	}
+
+	if strings.Contains(out, "noot") {
+		t.Error("should have elided sensitive input, but contained value")
+	}
+
+	if strings.Contains(out, "unique") {
+		t.Error("should have elided sensitive input, but contained value")
+	}
+}
+
 // A saved plan includes a list of "apply-time variables", i.e. ephemeral
 // input variables that were set during the plan, and must therefore be set
 // during apply. No other variables may be set during apply.

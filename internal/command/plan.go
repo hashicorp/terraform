@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -76,6 +77,18 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
+	}
+
+	if len(args.Operation.ActionTargets) > 0 {
+		if _, ok := be.(*local.Local); !ok {
+			// Temporarily block invoking actions when executing anything other
+			// than locally.
+			// TODO: Remove this when TFC supports remote operation of action
+			//       invoke plans.
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid argument", "The -invoke argument can currently only be used when Terraform is executing locally."))
+			view.Diagnostics(diags)
+			return 1
+		}
 	}
 
 	// Build the operation request
@@ -164,11 +177,11 @@ func (c *PlanCommand) OperationRequest(
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
+	opReq.ActionTargets = args.ActionTargets
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
 		opReq.DeferralAllowed = args.DeferralAllowed
-		opReq.ActionTargets = args.ActionTargets
 	} else if args.DeferralAllowed {
 		// Belated flag parse error, since we don't know about experiments
 		// support at actual parse time.
@@ -176,15 +189,6 @@ func (c *PlanCommand) OperationRequest(
 			tfdiags.Error,
 			"Failed to parse command-line flags",
 			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
-		))
-		return nil, diags
-	} else if len(args.ActionTargets) > 0 {
-		// Belated flag parse error, since we don't know about experiments
-		// support at actual parse time.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			"The -invoke flag is only valid in experimental builds of Terraform.",
 		))
 		return nil, diags
 	}

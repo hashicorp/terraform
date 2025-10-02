@@ -120,6 +120,15 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 		})
 	}
 
+	if !configValue.IsWhollyKnown() {
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action configuration unknown during apply",
+			Detail:   fmt.Sprintf("The action %s was not fully known during apply.\n\nThis is a bug in Terraform, please report it.", ai.Addr.Action.String()),
+			Subject:  n.ActionTriggerRange,
+		})
+	}
+
 	hookIdentity := HookActionIdentity{
 		Addr:          ai.Addr,
 		ActionTrigger: ai.ActionTrigger,
@@ -148,24 +157,33 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 		return diags
 	}
 
-	for event := range resp.Events {
-		switch ev := event.(type) {
-		case providers.InvokeActionEvent_Progress:
-			ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.ProgressAction(hookIdentity, ev.Message)
-			})
-		case providers.InvokeActionEvent_Completed:
-			// Enhance the diagnostics
-			diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
-			ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
-			})
-			if ev.Diagnostics.HasErrors() {
-				return diags
+	if resp.Events != nil { // should only occur in misconfigured tests
+		for event := range resp.Events {
+			switch ev := event.(type) {
+			case providers.InvokeActionEvent_Progress:
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.ProgressAction(hookIdentity, ev.Message)
+				})
+			case providers.InvokeActionEvent_Completed:
+				// Enhance the diagnostics
+				diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
+				})
+				if ev.Diagnostics.HasErrors() {
+					return diags
+				}
+			default:
+				panic(fmt.Sprintf("unexpected action event type %T", ev))
 			}
-		default:
-			panic(fmt.Sprintf("unexpected action event type %T", ev))
 		}
+	} else {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider return invalid response",
+			Detail:   "Provider response did not include any events",
+			Subject:  n.ActionTriggerRange,
+		})
 	}
 
 	return diags
@@ -202,12 +220,12 @@ func (n *nodeActionTriggerApply) References() []*addrs.Reference {
 	return refs
 }
 
-// GraphNodeModulePath
+// GraphNodeReferencer
 func (n *nodeActionTriggerApply) ModulePath() addrs.Module {
 	return n.ActionInvocation.Addr.Module.Module()
 }
 
-// GraphNodeModuleInstance
+// GraphNodeExecutable
 func (n *nodeActionTriggerApply) Path() addrs.ModuleInstance {
 	return n.ActionInvocation.Addr.Module
 }

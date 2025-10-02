@@ -4,6 +4,7 @@
 package plugin6
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"sync"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -20,7 +22,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -46,6 +47,11 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 	proto6.RegisterProviderServer(s, p.GRPCProvider())
 	return nil
 }
+
+// grpcMaxMessageSize is the maximum gRPC send and receive message sizes
+// This matches the maximum set by a server implemented via terraform-plugin-go.
+// See https://github.com/hashicorp/terraform-plugin-go/blob/a361c9bf/tfprotov6/tf6server/server.go#L88
+const grpcMaxMessageSize = 256 << 20
 
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
@@ -74,8 +80,12 @@ type GRPCProvider struct {
 
 	// schema stores the schema for this provider. This is used to properly
 	// serialize the requests for schemas.
-	mu     sync.Mutex
 	schema providers.GetProviderSchemaResponse
+	// stateChunkSize stores the negotiated chunk size for any implemented
+	// state store (keyed by type name) that have gone through successful configuration.
+	stateChunkSize map[string]int
+
+	mu sync.Mutex
 }
 
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
@@ -172,24 +182,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, list := range protoResp.ListResourceSchemas {
-		ret := convert.ProtoToProviderSchema(list, nil)
-		resp.ListResourceTypes[name] = providers.Schema{
-			Version: ret.Version,
-			Body: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"data": {
-						Type:     cty.DynamicPseudoType,
-						Computed: true,
-					},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"config": {
-						Block:   *ret.Body,
-						Nesting: configschema.NestingSingle,
-					},
-				},
-			},
-		}
+		resp.ListResourceTypes[name] = convert.ProtoToListSchema(list)
 	}
 
 	for name, store := range protoResp.StateStoreSchemas {
@@ -211,6 +204,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 		resp.ServerCapabilities.GetProviderSchemaOptional = protoResp.ServerCapabilities.GetProviderSchemaOptional
 		resp.ServerCapabilities.MoveResourceState = protoResp.ServerCapabilities.MoveResourceState
+		resp.ServerCapabilities.GenerateResourceConfig = protoResp.ServerCapabilities.GenerateResourceConfig
 	}
 
 	// set the global cache if we can
@@ -376,11 +370,14 @@ func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
 		return resp
 	}
+
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	config := cty.NullVal(configSchema.ImpliedType())
-	if r.Config.Type().HasAttribute("config") {
-		config = r.Config.GetAttr("config")
+	if !r.Config.Type().HasAttribute("config") {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing required attribute \"config\"; this is a bug in Terraform - please report it"))
+		return resp
 	}
+
+	config := r.Config.GetAttr("config")
 	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -933,8 +930,47 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 	return resp
 }
 
+func (p *GRPCProvider) GenerateResourceConfig(r providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
+	logger.Trace("GRPCProvider.v6: GenerateResourceConfig")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	resSchema, ok := schema.ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto6.GenerateResourceConfig_Request{
+		TypeName: r.TypeName,
+		State:    nil,
+	}
+
+	protoResp, err := p.client.GenerateResourceConfig(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	ty := resSchema.Body.ImpliedType()
+
+	state, err := decodeDynamicValue(protoResp.Config, ty)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.Config = state
+
+	return resp
+}
+
 func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
-	logger.Trace("GRPCProvider: MoveResourceState")
+	logger.Trace("GRPCProvider.v6: MoveResourceState")
 
 	var sourceIdentity *proto6.RawState
 	if len(r.SourceIdentity) > 0 {
@@ -1297,10 +1333,12 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 	}
 
 	configSchema := listResourceSchema.Body.BlockTypes["config"]
-	config := cty.NullVal(configSchema.ImpliedType())
-	if r.Config.Type().HasAttribute("config") {
-		config = r.Config.GetAttr("config")
+	if !r.Config.Type().HasAttribute("config") {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing required attribute \"config\"; this is a bug in Terraform - please report it"))
+		return resp
 	}
+
+	config := r.Config.GetAttr("config")
 	mp, err := msgpack.Marshal(config, configSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -1462,11 +1500,15 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 		return resp
 	}
 
+	clientCapabilities := stateStoreClientCapabilitiesToProto(r.Capabilities)
+	logger.Trace("GRPCProvider.v6: ConfigureStateStore: proposing client capabilities", clientCapabilities)
+
 	protoReq := &proto6.ConfigureStateStore_Request{
 		TypeName: r.TypeName,
 		Config: &proto6.DynamicValue{
 			Msgpack: mp,
 		},
+		Capabilities: clientCapabilities,
 	}
 
 	protoResp, err := p.client.ConfigureStateStore(p.ctx, protoReq)
@@ -1474,8 +1516,235 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
+	resp.Capabilities = stateStoreServerCapabilitiesFromProto(protoResp.Capabilities)
+	logger.Trace("GRPCProvider.v6: ConfigureStateStore: received server capabilities", resp.Capabilities)
+
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
+}
+
+func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
+	logger.Trace("GRPCProvider.v6: ReadStateBytes")
+
+	// ReadStateBytes can be more sensitive to message sizes
+	// so we ensure it aligns with (the lower) terraform-plugin-go.
+	opts := grpc.MaxRecvMsgSizeCallOption{
+		MaxRecvMsgSize: grpcMaxMessageSize,
+	}
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto6.ReadStateBytes_Request{
+		TypeName: r.TypeName,
+		StateId:  r.StateId,
+	}
+
+	// Start the streaming RPC with a context. The context will be cancelled
+	// when this function returns, which will stop the stream if it is still
+	// running.
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+
+	client, err := p.client.ReadStateBytes(ctx, protoReq, opts)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	buf := &bytes.Buffer{}
+	var expectedTotalLength int
+	for {
+		chunk, err := client.Recv()
+		if err == io.EOF {
+			// No chunk is returned alongside an EOF.
+			// And as EOF is a sentinel error it isn't wrapped as a diagnostic.
+			break
+		}
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			break
+		}
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(chunk.Diagnostics))
+		if resp.Diagnostics.HasErrors() {
+			// If we have errors, we stop processing and return early
+			break
+		}
+
+		if expectedTotalLength == 0 {
+			expectedTotalLength = int(chunk.TotalLength)
+		}
+		logger.Trace("GRPCProvider.v6: ReadStateBytes: received chunk for range", chunk.Range)
+
+		// check the size of chunks matches to what was agreed
+		chunkSize, ok := p.stateChunkSize[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Unable to determine chunk size for provider %s; this is a bug in Terraform - please report it", r.TypeName))
+			return resp
+		}
+		if chunk.Range.End < chunk.TotalLength {
+			// all but last chunk must match exactly
+			if len(chunk.Bytes) != chunkSize {
+				resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Unexpected size of chunk received",
+					Detail: fmt.Sprintf("Unexpected chunk of size %d was received, expected %d; this is a bug in the provider %s - please report it there",
+						len(chunk.Bytes), chunkSize, r.TypeName),
+				})
+			}
+		} else {
+			// last chunk must be still within the agreed size
+			if len(chunk.Bytes) > chunkSize {
+				resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Unexpected size of last chunk received",
+					Detail: fmt.Sprintf("Last chunk exceeded agreed size, expected %d, given %d; this is a bug in the provider %s - please report it there",
+						chunkSize, len(chunk.Bytes), r.TypeName),
+				})
+			}
+		}
+
+		n, err := buf.Write(chunk.Bytes)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			break
+		}
+		logger.Trace("GRPCProvider.v6: ReadStateBytes: read bytes of a chunk", n)
+	}
+
+	if resp.Diagnostics.HasErrors() {
+		logger.Trace("GRPCProvider.v6: ReadStateBytes: experienced an error when receiving state data from the provider", resp.Diagnostics.Err())
+		return resp
+	}
+
+	if buf.Len() != expectedTotalLength {
+		logger.Trace("GRPCProvider.v6: ReadStateBytes: received %d bytes but expected the total bytes to be %d.", buf.Len(), expectedTotalLength)
+
+		err = fmt.Errorf("expected state file of total %d bytes, received %d bytes",
+			expectedTotalLength, buf.Len())
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	// We're done, so close the stream
+	logger.Trace("GRPCProvider.v6: ReadStateBytes: received all chunks, total bytes: ", buf.Len())
+	err = client.CloseSend()
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	// Add the state data in the response once we know there are no errors
+	resp.Bytes = buf.Bytes()
+
+	return resp
+}
+
+func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
+	logger.Trace("GRPCProvider.v6: WriteStateBytes")
+
+	// WriteStateBytes can be more sensitive to message sizes
+	// so we ensure it aligns with (the lower) terraform-plugin-go.
+	opts := grpc.MaxSendMsgSizeCallOption{
+		MaxSendMsgSize: grpcMaxMessageSize,
+	}
+
+	chunkSize, ok := p.stateChunkSize[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Unable to determine chunk size for provider %s; this is a bug in Terraform - please report it", r.TypeName))
+		return resp
+	}
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if _, ok := schema.StateStores[r.TypeName]; !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	// Start the streaming RPC with a context. The context will be cancelled
+	// when this function returns, which will stop the stream if it is still
+	// running.
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+
+	client, err := p.client.WriteStateBytes(ctx, opts)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	buf := bytes.NewBuffer(r.Bytes)
+	var totalLength int64 = int64(len(r.Bytes))
+	var totalBytesProcessed int
+	for {
+		chunk := buf.Next(chunkSize)
+
+		if len(chunk) == 0 {
+			// The previous iteration read the last of the data. Now we finish up.
+			protoResp, err := client.CloseAndRecv()
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+				return resp
+			}
+			resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+			if resp.Diagnostics.HasErrors() {
+				return resp
+			}
+			break
+		}
+
+		var meta *proto6.RequestChunkMeta
+		if totalBytesProcessed == 0 {
+			// Send metadata with the first chunk only
+			meta = &proto6.RequestChunkMeta{
+				TypeName: r.TypeName,
+				StateId:  r.StateId,
+			}
+		}
+
+		// There is more data to write
+		protoReq := &proto6.WriteStateBytes_RequestChunk{
+			Meta:        meta,
+			Bytes:       chunk,
+			TotalLength: totalLength,
+			Range: &proto6.StateRange{
+				Start: int64(totalBytesProcessed),
+				End:   int64(totalBytesProcessed + len(chunk)),
+			},
+		}
+		err = client.Send(protoReq)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
+		}
+
+		// Track progress before next iteration
+		totalBytesProcessed += len(chunk)
+	}
+
+	return resp
+}
+
+func (p *GRPCProvider) SetStateStoreChunkSize(typeName string, size int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.stateChunkSize == nil {
+		p.stateChunkSize = make(map[string]int, 1)
+	}
+	p.stateChunkSize[typeName] = size
 }
 
 func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) (resp providers.GetStatesResponse) {
@@ -1576,16 +1845,9 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		return resp
 	}
 
-	linkedResources, err := linkedResourcePlanDataToProto(schema, actionSchema.LinkedResources(), r.LinkedResources)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
-	}
-
 	protoReq := &proto6.PlanAction_Request{
 		ActionType:         r.ActionType,
 		Config:             &proto6.DynamicValue{Msgpack: configMP},
-		LinkedResources:    linkedResources,
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
@@ -1601,12 +1863,6 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		return resp
 	}
 	if resp.Diagnostics.HasErrors() {
-		return resp
-	}
-
-	resp.LinkedResources, err = protoToLinkedResourcePlans(schema, actionSchema.LinkedResources(), protoResp.LinkedResources)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
 
@@ -1628,12 +1884,6 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 		return resp
 	}
 
-	linkedResources, err := linkedResourceInvokeDataToProto(schema, actionSchema.LinkedResources(), r.LinkedResources)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
-	}
-
 	configMP, err := msgpack.Marshal(r.PlannedActionData, actionSchema.ConfigSchema.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -1643,7 +1893,6 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 	protoReq := &proto6.InvokeAction_Request{
 		ActionType:         r.ActionType,
 		Config:             &proto6.DynamicValue{Msgpack: configMP},
-		LinkedResources:    linkedResources,
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
@@ -1679,13 +1928,8 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 
 			case *proto6.InvokeAction_Event_Completed_:
 				diags := convert.ProtoToDiagnostics(ev.Completed.Diagnostics)
-				linkedResources, err := protoToLinkedResourceResults(schema, actionSchema.LinkedResources(), ev.Completed.LinkedResources)
-				if err != nil {
-					diags = diags.Append(grpcErr(err))
-				}
 				yield(providers.InvokeActionEvent_Completed{
-					LinkedResources: linkedResources,
-					Diagnostics:     diags,
+					Diagnostics: diags,
 				})
 
 			default:
@@ -1723,30 +1967,6 @@ func (p *GRPCProvider) ValidateActionConfig(r providers.ValidateActionConfigRequ
 		Config:   &proto6.DynamicValue{Msgpack: mp},
 	}
 
-	lrs := make([]*proto6.LinkedResourceConfig, 0, len(r.LinkedResources))
-	for i, lr := range r.LinkedResources {
-		resourceSchema, ok := schema.ResourceTypes[lr.TypeName]
-		if !ok {
-			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
-			return resp
-		}
-
-		mp, err := msgpack.Marshal(r.Config, resourceSchema.Body.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
-
-		lrs[i] = &proto6.LinkedResourceConfig{
-			TypeName: r.TypeName,
-			Config:   &proto6.DynamicValue{Msgpack: mp},
-		}
-	}
-
-	if len(lrs) > 0 {
-		protoReq.LinkedResources = lrs
-	}
-
 	protoResp, err := p.client.ValidateActionConfig(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
@@ -1781,173 +2001,14 @@ func clientCapabilitiesToProto(c providers.ClientCapabilities) *proto6.ClientCap
 	}
 }
 
-func linkedResourcePlanDataToProto(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []providers.LinkedResourcePlanData) ([]*proto6.PlanAction_Request_LinkedResource, error) {
-	protoLinkedResources := make([]*proto6.PlanAction_Request_LinkedResource, 0, len(lrs))
-
-	if len(lrs) != len(linkedResourceSchema) {
-		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
+func stateStoreClientCapabilitiesToProto(c providers.StateStoreClientCapabilities) *proto6.StateStoreClientCapabilities {
+	return &proto6.StateStoreClientCapabilities{
+		ChunkSize: c.ChunkSize,
 	}
-
-	for i, lr := range lrs {
-		linkedResourceType := linkedResourceSchema[i].TypeName
-		// Currently we restrict linked resources to be within the same provider,
-		// therefore we can use the schema from the provider to encode and decode the values
-		resSchema, ok := schema.ResourceTypes[linkedResourceType]
-		if !ok {
-			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
-		}
-
-		priorStateMP, err := msgpack.Marshal(lr.PriorState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal prior state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		plannedStateMp, err := msgpack.Marshal(lr.PlannedState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal planned state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		configMp, err := msgpack.Marshal(lr.Config, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal config for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		priorIdentityMp, err := msgpack.Marshal(lr.PriorIdentity, resSchema.Identity.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal prior identity for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		protoLinkedResources = append(protoLinkedResources, &proto6.PlanAction_Request_LinkedResource{
-			PriorState:    &proto6.DynamicValue{Msgpack: priorStateMP},
-			PlannedState:  &proto6.DynamicValue{Msgpack: plannedStateMp},
-			Config:        &proto6.DynamicValue{Msgpack: configMp},
-			PriorIdentity: &proto6.ResourceIdentityData{IdentityData: &proto6.DynamicValue{Msgpack: priorIdentityMp}},
-		})
-	}
-	return protoLinkedResources, nil
 }
 
-func linkedResourceInvokeDataToProto(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []providers.LinkedResourceInvokeData) ([]*proto6.InvokeAction_Request_LinkedResource, error) {
-	protoLinkedResources := make([]*proto6.InvokeAction_Request_LinkedResource, 0, len(lrs))
-
-	if len(lrs) != len(linkedResourceSchema) {
-		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
+func stateStoreServerCapabilitiesFromProto(c *proto6.StateStoreServerCapabilities) providers.StateStoreServerCapabilities {
+	return providers.StateStoreServerCapabilities{
+		ChunkSize: c.ChunkSize,
 	}
-
-	for i, lr := range lrs {
-		linkedResourceType := linkedResourceSchema[i].TypeName
-		// Currently we restrict linked resources to be within the same provider,
-		// therefore we can use the schema from the provider to encode and decode the values
-		resSchema, ok := schema.ResourceTypes[linkedResourceType]
-		if !ok {
-			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
-		}
-
-		priorStateMP, err := msgpack.Marshal(lr.PriorState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal prior state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		plannedStateMp, err := msgpack.Marshal(lr.PlannedState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal planned state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		configMp, err := msgpack.Marshal(lr.Config, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal config for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		plannedIdentityMp, err := msgpack.Marshal(lr.PlannedIdentity, resSchema.Identity.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal planned identity for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		protoLinkedResources = append(protoLinkedResources, &proto6.InvokeAction_Request_LinkedResource{
-			PriorState:      &proto6.DynamicValue{Msgpack: priorStateMP},
-			PlannedState:    &proto6.DynamicValue{Msgpack: plannedStateMp},
-			Config:          &proto6.DynamicValue{Msgpack: configMp},
-			PlannedIdentity: &proto6.ResourceIdentityData{IdentityData: &proto6.DynamicValue{Msgpack: plannedIdentityMp}},
-		})
-	}
-	return protoLinkedResources, nil
-}
-
-func protoToLinkedResourcePlans(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []*proto6.PlanAction_Response_LinkedResource) ([]providers.LinkedResourcePlan, error) {
-
-	linkedResources := make([]providers.LinkedResourcePlan, 0, len(lrs))
-
-	if len(lrs) != len(linkedResourceSchema) {
-		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
-	}
-
-	for i, lr := range lrs {
-		linkedResourceType := linkedResourceSchema[i].TypeName
-		// Currently we restrict linked resources to be within the same provider,
-		// therefore we can use the schema from the provider to decode the values
-		resSchema, ok := schema.ResourceTypes[linkedResourceType]
-		if !ok {
-			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
-		}
-
-		plannedState, err := decodeDynamicValue(lr.PlannedState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode planned state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		plannedIdentity := cty.NullVal(resSchema.Identity.ImpliedType())
-		if lr.PlannedIdentity != nil && lr.PlannedIdentity.IdentityData != nil {
-			plannedIdentity, err = decodeDynamicValue(lr.PlannedIdentity.IdentityData, resSchema.Identity.ImpliedType())
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode prior identity for linked resource %q: %w", linkedResourceType, err)
-			}
-		}
-
-		linkedResources = append(linkedResources, providers.LinkedResourcePlan{
-			PlannedState:    plannedState,
-			PlannedIdentity: plannedIdentity,
-		})
-	}
-
-	return linkedResources, nil
-}
-
-func protoToLinkedResourceResults(schema providers.GetProviderSchemaResponse, linkedResourceSchema []providers.LinkedResourceSchema, lrs []*proto6.InvokeAction_Event_Completed_LinkedResource) ([]providers.LinkedResourceResult, error) {
-
-	linkedResources := make([]providers.LinkedResourceResult, 0, len(lrs))
-
-	if len(lrs) != len(linkedResourceSchema) {
-		return nil, fmt.Errorf("mismatched number of linked resources: expected %d, got %d", len(linkedResourceSchema), len(lrs))
-	}
-
-	for i, lr := range lrs {
-		linkedResourceType := linkedResourceSchema[i].TypeName
-		// Currently we restrict linked resources to be within the same provider,
-		// therefore we can use the schema from the provider to decode the values
-		resSchema, ok := schema.ResourceTypes[linkedResourceType]
-		if !ok {
-			return nil, fmt.Errorf("unknown resource type %q for linked resource #%d", linkedResourceType, i)
-		}
-
-		newState, err := decodeDynamicValue(lr.NewState, resSchema.Body.ImpliedType())
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode planned state for linked resource %q: %w", linkedResourceType, err)
-		}
-
-		newIdentity := cty.NullVal(resSchema.Identity.ImpliedType())
-		if lr.NewIdentity != nil && lr.NewIdentity.IdentityData != nil {
-			newIdentity, err = decodeDynamicValue(lr.NewIdentity.IdentityData, resSchema.Identity.ImpliedType())
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode prior identity for linked resource %q: %w", linkedResourceType, err)
-			}
-		}
-
-		linkedResources = append(linkedResources, providers.LinkedResourceResult{
-			NewState:        newState,
-			NewIdentity:     newIdentity,
-			RequiresReplace: lr.RequiresReplace,
-		})
-	}
-
-	return linkedResources, nil
 }

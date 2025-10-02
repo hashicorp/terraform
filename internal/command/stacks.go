@@ -82,7 +82,6 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("stacks")
 	cmdFlags.StringVar(&pluginCacheDirOverride, "plugin-cache-dir", "", "plugin cache directory")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	cmdFlags.Parse(args)
 
 	if pluginCacheDirOverride != "" {
@@ -379,8 +378,17 @@ func (c *StacksCommand) Run(args []string) int {
 // Help returns help text for the stacks command.
 func (c *StacksCommand) Help() string {
 	helpText := new(bytes.Buffer)
-	if exitCode := c.realRun([]string{}, helpText, io.Discard); exitCode != 0 {
-		return ""
+	errorText := new(bytes.Buffer)
+
+	parsedArgs := []string{}
+	for _, arg := range os.Args[1:] {
+		if arg == "stacks" {
+			continue // skip stacks command name
+		}
+		parsedArgs = append(parsedArgs, arg)
+	}
+	if exitCode := c.realRun(parsedArgs, helpText, errorText); exitCode != 0 {
+		return errorText.String()
 	}
 
 	return helpText.String()

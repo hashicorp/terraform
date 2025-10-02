@@ -471,8 +471,8 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		resp := provider.ValidateEphemeralResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	case addrs.ListResourceMode:
-		schema := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
-		if schema.Body == nil {
+		schema := providerSchema.SchemaForListResourceType(n.Config.Type)
+		if schema.IsNil() {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid list resource",
@@ -482,7 +482,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		blockVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
+		blockVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.FullSchema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return diags
@@ -502,6 +502,13 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		// Use unmarked value for validate request
 		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
+
+		// if the config value is null, we still want to send a full object with all attributes being null
+		if !unmarkedBlockVal.IsNull() && unmarkedBlockVal.GetAttr("config").IsNull() {
+			mp := unmarkedBlockVal.AsValueMap()
+			mp["config"] = schema.ConfigSchema.EmptyValue()
+			unmarkedBlockVal = cty.ObjectVal(mp)
+		}
 		req := providers.ValidateListResourceConfigRequest{
 			TypeName:              n.Config.Type,
 			Config:                unmarkedBlockVal,

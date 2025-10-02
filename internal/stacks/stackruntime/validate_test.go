@@ -478,7 +478,7 @@ Terraform uses references to decide a suitable order for performing operations, 
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Provider missing from lockfile",
-					Detail:   "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
+					Detail:   "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `terraform stacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
 					Subject: &hcl.Range{
 						Filename: "git::https://example.com/test.git//with-single-input/input-from-component/input-from-component.tfcomponent.hcl",
 						Start:    hcl.Pos{Line: 8, Column: 1, Byte: 98},

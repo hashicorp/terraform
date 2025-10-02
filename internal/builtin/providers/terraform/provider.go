@@ -149,6 +149,10 @@ func (p *Provider) ReadDataSource(req providers.ReadDataSourceRequest) providers
 	return res
 }
 
+func (p *Provider) GenerateResourceConfig(providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+	panic("not implemented")
+}
+
 // Stop is called when the provider should halt any in-flight actions.
 func (p *Provider) Stop() error {
 	log.Println("[DEBUG] terraform provider cannot Stop")
@@ -287,6 +291,18 @@ func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConf
 
 func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	var resp providers.ConfigureStateStoreResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
+}
+
+func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	var resp providers.ReadStateBytesResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
+}
+
+func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	var resp providers.WriteStateBytesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }

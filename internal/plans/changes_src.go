@@ -207,7 +207,7 @@ type QueryInstanceSrc struct {
 	Addr         addrs.AbsResourceInstance
 	ProviderAddr addrs.AbsProviderConfig
 	Results      DynamicValue
-	Generated    *genconfig.Resource
+	Generated    genconfig.ImportGroup
 }
 
 func (qis *QueryInstanceSrc) Decode(schema providers.Schema) (*QueryInstance, error) {
@@ -558,11 +558,11 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 	}, nil
 }
 
-// AppendResourceInstanceChange records the given resource instance change in
+// AppendActionInvocationInstanceChange records the given resource instance change in
 // the set of planned resource changes.
 func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocationInstanceSrc) {
 	if c == nil {
-		panic("AppendResourceInstanceChange on nil ChangesSync")
+		panic("AppendActionInvocationInstanceChange on nil ChangesSync")
 	}
 
 	a := action.DeepCopy()
@@ -579,7 +579,7 @@ type ActionInvocationInstanceSrc struct {
 	ProviderAddr addrs.AbsProviderConfig
 }
 
-// Decode unmarshals the raw representation of any linked resources.
+// Decode unmarshals the raw representation of actions.
 func (acs *ActionInvocationInstanceSrc) Decode(schema *providers.ActionSchema) (*ActionInvocationInstance, error) {
 	ty := cty.DynamicPseudoType
 	if schema != nil {
@@ -617,16 +617,28 @@ func (acs *ActionInvocationInstanceSrc) Less(other *ActionInvocationInstanceSrc)
 	return acs.ActionTrigger.Less(other.ActionTrigger)
 }
 
+// FilterLaterActionInvocations returns the list of action invocations that
+// should be triggered after this one. This function assumes the supplied list
+// of action invocations has already been filtered to invocations against the
+// same resource as the current invocation.
 func (acs *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
 	needleLat := acs.ActionTrigger.(*LifecycleActionTrigger)
 
 	var laterInvocations []*ActionInvocationInstanceSrc
 	for _, invocation := range actionInvocations {
 		if lat, ok := invocation.ActionTrigger.(*LifecycleActionTrigger); ok {
-			if lat.TriggeringResourceAddr.Equal(needleLat.TriggeringResourceAddr) && (lat.ActionTriggerBlockIndex > needleLat.ActionTriggerBlockIndex || lat.ActionTriggerBlockIndex == needleLat.ActionTriggerBlockIndex && lat.ActionsListIndex > needleLat.ActionsListIndex) {
+			if sameTriggerEvent(lat, needleLat) && triggersLater(lat, needleLat) {
 				laterInvocations = append(laterInvocations, invocation)
 			}
 		}
 	}
 	return laterInvocations
+}
+
+func sameTriggerEvent(one, two *LifecycleActionTrigger) bool {
+	return one.ActionTriggerEvent == two.ActionTriggerEvent
+}
+
+func triggersLater(one, two *LifecycleActionTrigger) bool {
+	return one.ActionTriggerBlockIndex > two.ActionTriggerBlockIndex || (one.ActionTriggerBlockIndex == two.ActionTriggerBlockIndex && one.ActionsListIndex > two.ActionsListIndex)
 }

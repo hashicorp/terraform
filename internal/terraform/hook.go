@@ -117,8 +117,8 @@ type Hook interface {
 
 	// PreListQuery and PostListQuery are called during a query operation before and after
 	// resources are queried from the provider.
-	PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error)
-	PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error)
+	PreListQuery(id HookResourceIdentity, inputConfig cty.Value) (HookAction, error)
+	PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error)
 
 	// StartAction, ProgressAction, and CompleteAction are called during the
 	// lifecycle of an action invocation.
@@ -236,7 +236,7 @@ func (h *NilHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) 
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+func (h *NilHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

@@ -10,7 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -25,9 +27,8 @@ import (
 // more variables than are required by the config. FilterVariablesToConfig
 // should be called before trying to use these variables within a Terraform
 // plan, apply, or destroy operation.
-func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terraform.InputValues, tfdiags.Diagnostics) {
+func GetVariables(ctx *EvalContext, run *configs.TestRun, module *configs.Config, includeWarnings bool) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	run := n.run
 	// relevantVariables contains the variables that are of interest to this
 	// run block. This is a combination of the variables declared within the
 	// configuration for this run block, and the variables referenced by the
@@ -36,14 +37,15 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 
 	// First, we'll check to see which variables the run block assertions
 	// reference.
-	for _, reference := range n.References() {
+	references, _ := moduletest.GetRunReferences(run)
+	for _, reference := range references {
 		if addr, ok := reference.Subject.(addrs.InputVariable); ok {
 			relevantVariables[addr.Name] = reference
 		}
 	}
 
 	// And check to see which variables the run block configuration references.
-	for name := range run.ModuleConfig.Module.Variables {
+	for name := range module.Module.Variables {
 		relevantVariables[name] = nil
 	}
 
@@ -53,7 +55,7 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 	// First, let's step through the expressions within the run block and work
 	// them out.
 
-	for name, expr := range run.Config.Variables {
+	for name, expr := range run.Variables {
 		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
 		diags = append(diags, refDiags...)
 		if refDiags.HasErrors() {
@@ -99,7 +101,7 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 	// use a default fallback value to let Terraform attempt to apply defaults
 	// if they exist.
 
-	for name, variable := range run.ModuleConfig.Module.Variables {
+	for name, variable := range module.Module.Variables {
 		if _, exists := values[name]; exists {
 			// Then we've provided a variable for this explicitly. It's all
 			// good.
@@ -197,11 +199,11 @@ func (n *NodeTestRun) GetVariables(ctx *EvalContext, includeWarnings bool) (terr
 //
 // This function can only return warnings, and the callers can rely on this so
 // please check the callers of this function if you add any error diagnostics.
-func (n *NodeTestRun) FilterVariablesToModule(values terraform.InputValues) (moduleVars, testOnlyVars terraform.InputValues, diags tfdiags.Diagnostics) {
+func FilterVariablesToModule(config *configs.Config, values terraform.InputValues) (moduleVars, testOnlyVars terraform.InputValues, diags tfdiags.Diagnostics) {
 	moduleVars = make(terraform.InputValues)
 	testOnlyVars = make(terraform.InputValues)
 	for name, value := range values {
-		_, exists := n.run.ModuleConfig.Module.Variables[name]
+		_, exists := config.Module.Variables[name]
 		if !exists {
 			// If it's not in the configuration then it's a test-only variable.
 			testOnlyVars[name] = value

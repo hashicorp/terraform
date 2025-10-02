@@ -383,7 +383,7 @@ func (h *MockHook) PreListQuery(id HookResourceIdentity, input_config cty.Value)
 	return h.PreListQueryReturn, h.PreListQueryReturnError
 }
 
-func (h *MockHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+func (h *MockHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

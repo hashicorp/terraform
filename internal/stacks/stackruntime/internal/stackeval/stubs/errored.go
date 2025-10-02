@@ -132,6 +132,11 @@ func (p *erroredProvider) ReadResource(req providers.ReadResourceRequest) provid
 	}
 }
 
+// GenerateResourceConfig implements providers.Interface
+func (p *erroredProvider) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+	panic("not implemented")
+}
+
 // OpenEphemeralResource implements providers.Interface.
 func (p *erroredProvider) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
 	var diags tfdiags.Diagnostics
@@ -268,6 +273,34 @@ func (p *erroredProvider) ValidateStateStoreConfig(providers.ValidateStateStoreC
 func (p *erroredProvider) ConfigureStateStore(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	return providers.ConfigureStateStoreResponse{
 		Diagnostics: nil,
+	}
+}
+
+// ReadStateBytes implements providers.Interface.
+func (p *erroredProvider) ReadStateBytes(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot read state managed by this state store because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ReadStateBytesResponse{
+		Diagnostics: diags,
+	}
+}
+
+// WriteStateBytes implements providers.Interface.
+func (p *erroredProvider) WriteStateBytes(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot write state managed by this state store because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.WriteStateBytesResponse{
+		Diagnostics: diags,
 	}
 }
 

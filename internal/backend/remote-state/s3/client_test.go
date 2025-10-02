@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -83,14 +84,14 @@ func TestRemoteClientLocks(t *testing.T) {
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
@@ -354,23 +355,23 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	client2 := s2.(*remote.State).Client
 
 	// write the new state through client2 so that there is no checksum yet
-	if err := client2.Put(newState.Bytes()); err != nil {
-		t.Fatal(err)
+	if diags := client2.Put(newState.Bytes()); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// verify that we can pull a state without a checksum
-	if _, err := client1.Get(); err != nil {
-		t.Fatal(err)
+	if _, diags := client1.Get(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// write the new state back with its checksum
-	if err := client1.Put(newState.Bytes()); err != nil {
-		t.Fatal(err)
+	if diags := client1.Put(newState.Bytes()); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// put an empty state in place to check for panics during get
-	if err := client2.Put([]byte{}); err != nil {
-		t.Fatal(err)
+	if diags := client2.Put([]byte{}); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// remove the timeouts so we can fail immediately
@@ -385,27 +386,43 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 
 	// fetching an empty state through client1 should now error out due to a
 	// mismatched checksum.
-	if _, err := client1.Get(); !IsA[badChecksumError](err) {
-		t.Fatalf("expected state checksum error: got %s", err)
-	} else if bse, ok := As[badChecksumError](err); ok && len(bse.digest) != 0 {
-		t.Fatalf("expected empty checksum, got %x", bse.digest)
+	if _, diags := client1.Get(); diags.HasErrors() {
+		var comparableErr error
+		if errValue, isDiag := diags.Err().(tfdiags.DiagnosticsAsError); isDiag {
+			// To use `As` below we need to extract the error that's wrapped
+			// in a diagnostic.
+			comparableErr = errValue.WrappedErrors()[0]
+		}
+		if !IsA[badChecksumError](comparableErr) {
+			t.Fatalf("expected state checksum error: got %s", diags.Err())
+		} else if bse, ok := As[badChecksumError](comparableErr); ok && len(bse.digest) != 0 {
+			t.Fatalf("expected empty checksum, got %x", bse.digest)
+		}
 	}
 
 	// put the old state in place of the new, without updating the checksum
-	if err := client2.Put(oldState.Bytes()); err != nil {
-		t.Fatal(err)
+	if diags := client2.Put(oldState.Bytes()); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// fetching the wrong state through client1 should now error out due to a
 	// mismatched checksum.
-	if _, err := client1.Get(); !IsA[badChecksumError](err) {
-		t.Fatalf("expected state checksum error: got %s", err)
+	if _, diags := client1.Get(); diags.HasErrors() {
+		var comparableErr error
+		if errValue, isDiag := diags.Err().(tfdiags.DiagnosticsAsError); isDiag {
+			// To use `As` below we need to extract the error that's wrapped
+			// in a diagnostic.
+			comparableErr = errValue.WrappedErrors()[0]
+		}
+		if !IsA[badChecksumError](comparableErr) {
+			t.Fatalf("expected state checksum error: got %s", diags.Err())
+		}
 	}
 
 	// update the state with the correct one after we Get again
 	testChecksumHook = func() {
-		if err := client2.Put(newState.Bytes()); err != nil {
-			t.Fatal(err)
+		if diags := client2.Put(newState.Bytes()); diags.HasErrors() {
+			t.Fatal(diags.Err())
 		}
 		testChecksumHook = nil
 	}
@@ -415,8 +432,8 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	// this final Get will fail to fail the checksum verification, the above
 	// callback will update the state with the correct version, and Get should
 	// retry automatically.
-	if _, err := client1.Get(); err != nil {
-		t.Fatal(err)
+	if _, diags := client1.Get(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }
 
@@ -440,9 +457,9 @@ func TestRemoteClientPutLargeUploadWithObjectLock_Compliance(t *testing.T) {
 	)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	s1, sDiags := b.StateMgr(backend.DefaultStateName)
-	if sDiags.HasErrors() {
-		t.Fatal(sDiags)
+	s1, diags := b.StateMgr(backend.DefaultStateName)
+	if diags.HasErrors() {
+		t.Fatal(diags)
 	}
 	client := s1.(*remote.State).Client
 
@@ -453,9 +470,9 @@ func TestRemoteClientPutLargeUploadWithObjectLock_Compliance(t *testing.T) {
 		t.Fatalf("writing dummy data: %s", err)
 	}
 
-	err = client.Put(state.Bytes())
-	if err != nil {
-		t.Fatalf("putting data: %s", err)
+	diags = client.Put(state.Bytes())
+	if diags.HasErrors() {
+		t.Fatalf("putting data: %s", diags.Err())
 	}
 }
 
@@ -480,9 +497,9 @@ func TestRemoteClientLockFileWithObjectLock_Compliance(t *testing.T) {
 	)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	s1, sDiags := b.StateMgr(backend.DefaultStateName)
-	if sDiags.HasErrors() {
-		t.Fatal(sDiags)
+	s1, diags := b.StateMgr(backend.DefaultStateName)
+	if diags.HasErrors() {
+		t.Fatal(diags)
 	}
 	client := s1.(*remote.State).Client
 
@@ -493,9 +510,9 @@ func TestRemoteClientLockFileWithObjectLock_Compliance(t *testing.T) {
 		t.Fatalf("writing dummy data: %s", err)
 	}
 
-	err = client.Put(state.Bytes())
-	if err != nil {
-		t.Fatalf("putting data: %s", err)
+	diags = client.Put(state.Bytes())
+	if diags.HasErrors() {
+		t.Fatalf("putting data: %s", diags.Err())
 	}
 }
 
@@ -520,9 +537,9 @@ func TestRemoteClientLockFileWithObjectLock_Governance(t *testing.T) {
 	)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	s1, sDiags := b.StateMgr(backend.DefaultStateName)
-	if sDiags.HasErrors() {
-		t.Fatal(sDiags)
+	s1, diags := b.StateMgr(backend.DefaultStateName)
+	if diags.HasErrors() {
+		t.Fatal(diags)
 	}
 	client := s1.(*remote.State).Client
 
@@ -533,9 +550,9 @@ func TestRemoteClientLockFileWithObjectLock_Governance(t *testing.T) {
 		t.Fatalf("writing dummy data: %s", err)
 	}
 
-	err = client.Put(state.Bytes())
-	if err != nil {
-		t.Fatalf("putting data: %s", err)
+	diags = client.Put(state.Bytes())
+	if diags.HasErrors() {
+		t.Fatalf("putting data: %s", diags.Err())
 	}
 }
 

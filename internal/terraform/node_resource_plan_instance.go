@@ -838,7 +838,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 
 		// Generate the HCL string first, then parse the HCL body from it.
-		generatedResource, generatedDiags := n.generateHCLResourceDef(n.Addr, instanceRefreshState.Value, schema)
+		generatedResource, generatedDiags := n.generateHCLResourceDef(ctx, n.Addr, instanceRefreshState.Value)
 		diags = diags.Append(generatedDiags)
 
 		// This wraps the content of the resource block in an enclosing resource block
@@ -884,21 +884,131 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 // generateHCLResourceDef generates the HCL definition for the resource
 // instance, including the surrounding block. This is used to generate the
 // configuration for the resource instance when importing or generating
-func (n *NodePlannableResourceInstance) generateHCLResourceDef(addr addrs.AbsResourceInstance, state cty.Value, schema providers.Schema) (*genconfig.Resource, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) generateHCLResourceDef(ctx EvalContext, addr addrs.AbsResourceInstance, state cty.Value) (genconfig.Resource, tfdiags.Diagnostics) {
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
 	}
 
-	switch addr.Resource.Resource.Mode {
-	case addrs.ManagedResourceMode:
-		return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, state, false)
-	case addrs.ListResourceMode:
-		identitySchema := schema.Identity
-		return genconfig.GenerateListResourceContents(addr, schema.Body, identitySchema, providerAddr, state)
-	default:
-		panic(fmt.Sprintf("unexpected resource mode %s for resource %s", addr.Resource.Resource.Mode, addr))
+	var diags tfdiags.Diagnostics
+
+	providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+	if err != nil {
+		return genconfig.Resource{}, diags.Append(err)
 	}
+
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		return genconfig.Resource{}, diags
+	}
+
+	config, genDiags := n.generateResourceConfig(ctx, state)
+	diags = diags.Append(genDiags)
+	if diags.HasErrors() {
+		return genconfig.Resource{}, diags
+	}
+
+	return genconfig.GenerateResourceContents(addr, schema.Body, providerAddr, config, false)
+}
+
+func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalContext, addr addrs.AbsResourceInstance, state cty.Value) (genconfig.ImportGroup, tfdiags.Diagnostics) {
+	providerAddr := addrs.LocalProviderConfig{
+		LocalName: n.ResolvedProvider.Provider.Type,
+		Alias:     n.ResolvedProvider.Alias,
+	}
+	var diags tfdiags.Diagnostics
+
+	providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+	if err != nil {
+		return genconfig.ImportGroup{}, diags.Append(err)
+	}
+
+	schema := providerSchema.ResourceTypes[n.Addr.Resource.Resource.Type]
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		return genconfig.ImportGroup{}, diags
+	}
+
+	if !state.CanIterateElements() {
+		panic(fmt.Sprintf("invalid list resource data: %#v\n", state))
+	}
+
+	var listElements []genconfig.ResourceListElement
+
+	expander := ctx.InstanceExpander()
+	enum := expander.ResourceExpansionEnum(addr)
+
+	iter := state.ElementIterator()
+	for iter.Next() {
+		_, val := iter.Element()
+		// we still need to generate the resource block even if the state is not given,
+		// so that the import block can reference it.
+		stateVal := cty.NullVal(schema.Body.ImpliedType())
+		if val.Type().HasAttribute("state") {
+			stateVal = val.GetAttr("state")
+		}
+
+		config, genDiags := n.generateResourceConfig(ctx, stateVal)
+		diags = diags.Append(genDiags)
+		if diags.HasErrors() {
+			return genconfig.ImportGroup{}, diags
+		}
+		idVal := val.GetAttr("identity")
+
+		listElements = append(listElements, genconfig.ResourceListElement{Config: config, Identity: idVal, ExpansionEnum: enum})
+	}
+
+	return genconfig.GenerateListResourceContents(addr, schema.Body, schema.Identity, providerAddr, listElements)
+}
+
+func (n *NodePlannableResourceInstance) generateResourceConfig(ctx EvalContext, state cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// There should be no marks when generating config, because this is entirely
+	// new config being generated. We already have the schema for any relevant
+	// metadata.
+	state, _ = state.UnmarkDeep()
+
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+
+	// the calling node may be a list resource, in which case we still need to
+	// lookup the schema for the corresponding managed resource for generating
+	// configuration.
+	managedAddr := n.Addr.Resource.Resource
+	managedAddr.Mode = addrs.ManagedResourceMode
+
+	schema := providerSchema.SchemaForResourceAddr(managedAddr)
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", managedAddr))
+		return cty.DynamicVal, diags
+	}
+
+	// Use the config value from providers which can generate it themselves
+	if providerSchema.ServerCapabilities.GenerateResourceConfig {
+		req := providers.GenerateResourceConfigRequest{
+			TypeName: n.Addr.Resource.Resource.Type,
+			State:    state,
+		}
+
+		resp := provider.GenerateResourceConfig(req)
+		diags = diags.Append(resp.Diagnostics)
+		if diags.HasErrors() {
+			return cty.DynamicVal, diags
+		}
+
+		return resp.Config, diags
+	}
+
+	// or fallback to the default process of guessing at a legacy config.
+	return genconfig.ExtractLegacyConfigFromState(schema.Body, state), diags
 }
 
 // mergeDeps returns the union of 2 sets of dependencies
@@ -958,24 +1068,25 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	return true
 }
 
-func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) (*configs.ActionTriggerEvent, bool) {
+func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
+	triggeredEvents := []configs.ActionTriggerEvent{}
 	for _, event := range events {
 		switch event {
 		case configs.BeforeCreate, configs.AfterCreate:
 			if action.IsReplace() || action == plans.Create {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
 		case configs.BeforeUpdate, configs.AfterUpdate:
 			if action == plans.Update {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
 		case configs.BeforeDestroy, configs.AfterDestroy:
 			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
@@ -983,5 +1094,5 @@ func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.
 			panic(fmt.Sprintf("unknown action trigger event %s", event))
 		}
 	}
-	return nil, false
+	return triggeredEvents
 }

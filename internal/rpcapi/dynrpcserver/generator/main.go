@@ -94,6 +94,16 @@ func main() {
 			filename := toFilenameCase(baseName) + ".go"
 			absFilename := filepath.Join(outDir, filename)
 
+			if regexp.MustCompile("^Unsafe").MatchString(ifaceName) {
+				// This isn't a gRPC server interface, so skip it.
+				//
+				// This is an interface that's intended to be embedded to help users to meet requirements for Unimplemented servers.
+				// See:
+				// > Docs: https://pkg.go.dev/google.golang.org/grpc/cmd/protoc-gen-go-grpc#readme-future-proofing-services
+				// > PR for Unsafe interfaces: https://github.com/grpc/grpc-go/pull/3911
+				continue Types
+			}
+
 			var buf bytes.Buffer
 
 			fmt.Fprintf(&buf, `// Copyright (c) HashiCorp, Inc.

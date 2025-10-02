@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -3521,13 +3522,13 @@ func TestContext2Validate_queryList(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			configs := map[string]string{"main.tf": tc.mainConfig}
+			configFiles := map[string]string{"main.tf": tc.mainConfig}
 			if tc.queryConfig != "" {
-				configs["main.tfquery.hcl"] = tc.queryConfig
+				configFiles["main.tfquery.hcl"] = tc.queryConfig
 			}
-			maps.Copy(configs, tc.extraConfig)
+			maps.Copy(configFiles, tc.extraConfig)
 
-			m := testModuleInline(t, configs)
+			m := testModuleInline(t, configFiles, configs.MatchQueryFiles())
 
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
@@ -3555,7 +3556,9 @@ func TestContext2Validate_queryList(t *testing.T) {
 			// true externally.
 			provider.ConfigureProviderCalled = true
 
-			diags = ctx.Validate(m, nil)
+			diags = ctx.Validate(m, &ValidateOpts{
+				Query: true,
+			})
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
 			}
@@ -3575,60 +3578,114 @@ func TestContext2Validate_queryList(t *testing.T) {
 // Action Validation is largely exercised in context_plan_actions_test.go
 func TestContext2Validate_action(t *testing.T) {
 	tests := map[string]struct {
-		config  string
-		wantErr string
+		config               string
+		wantErr              string
+		expectValidateCalled bool
 	}{
 		"valid config": {
 			`
-terraform {
-	required_providers {
-		test = {
-			source = "hashicorp/test"
-			version = "1.0.0"
-		}
-	}
-}
-action "test_register" "foo" {
-  config {
-      host = "cmdb.snot"
-  }
-}
-resource "test_instance" "foo" {
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.test_register.foo]
-    }
-  }
-}
-`,
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				action "test_register" "foo" {
+				  config {
+				      host = "cmdb.snot"
+				  }
+				}
+				resource "test_instance" "foo" {
+				  lifecycle {
+				    action_trigger {
+				      events = [after_create]
+				      actions = [action.test_register.foo]
+				    }
+				  }
+				}
+				`,
 			"",
+			true,
+		},
+		"validly null config": { // this doesn't seem likely, but let's make sure nothing panics.
+			`
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+		action "test_other" "foo" {
+		}
+		resource "test_instance" "foo" {
+		  lifecycle {
+		    action_trigger {
+		      events = [after_create]
+		      actions = [action.test_other.foo]
+		    }
+		  }
+		}
+		`,
+			"",
+			true,
 		},
 		"missing required config": {
 			`
-terraform {
-	required_providers {
-		test = {
-			source = "hashicorp/test"
-			version = "1.0.0"
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
 		}
-	}
-}
-action "test_register" "foo" {
-    config {}
-}
-resource "test_instance" "foo" {
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.test_register.foo]
-    }
-  }
-}
-`,
-			"host is null",
+		action "test_register" "foo" {
+			config {}
+		}
+		resource "test_instance" "foo" {
+			lifecycle {
+			action_trigger {
+				events = [after_create]
+				actions = [action.test_register.foo]
+			}
+			}
+		}
+				`,
+			"Missing required argument: The argument \"host\" is required, but no definition was found.",
+			false,
 		},
-		"invalid nil config config": {
+		"invalid required config (provider validation)": {
+			`
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+		action "test_register" "foo" {
+		    config {
+				host = "invalid"
+			}
+		}
+		resource "test_instance" "foo" {
+		  lifecycle {
+		    action_trigger {
+		      events = [after_create]
+		      actions = [action.test_register.foo]
+		    }
+		  }
+		}
+		`,
+			"Invalid value for required argument \"host\" because I said so",
+			true,
+		},
+		"invalid nil config": {
 			`
 terraform {
 	required_providers {
@@ -3649,7 +3706,8 @@ resource "test_instance" "foo" {
   }
 }
 `,
-			"config is null",
+			"Missing required argument: The argument \"host\" is required, but was not set.",
+			false,
 		},
 	}
 
@@ -3667,8 +3725,16 @@ resource "test_instance" "foo" {
 						},
 					},
 				},
-				Actions: map[string]providers.ActionSchema{
+				Actions: map[string]*providers.ActionSchema{
 					"test_register": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"host":   {Type: cty.String, Required: true},
+								"output": {Type: cty.String, Computed: true, Optional: true},
+							},
+						},
+					},
+					"test_other": {
 						ConfigSchema: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"host": {Type: cty.String, Optional: true},
@@ -3678,12 +3744,8 @@ resource "test_instance" "foo" {
 				},
 			})
 			p.ValidateActionConfigFn = func(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {
-				if r.Config.IsNull() {
-					resp.Diagnostics = resp.Diagnostics.Append(errors.New("config is null"))
-					return
-				}
-				if r.Config.GetAttr("host").IsNull() {
-					resp.Diagnostics = resp.Diagnostics.Append(errors.New("host is null"))
+				if r.Config.GetAttr("host") == cty.StringVal("invalid") {
+					resp.Diagnostics = resp.Diagnostics.Append(errors.New("Invalid value for required argument \"host\" because I said so"))
 				}
 				return
 			}
@@ -3695,10 +3757,6 @@ resource "test_instance" "foo" {
 			})
 
 			diags := ctx.Validate(m, nil)
-			if !p.ValidateActionConfigCalled {
-				t.Fatal("ValidateAction RPC was not called")
-			}
-
 			if test.wantErr != "" {
 				if !diags.HasErrors() {
 					t.Errorf("unexpected success\nwant errors: %s", test.wantErr)
@@ -3710,6 +3768,81 @@ resource "test_instance" "foo" {
 					t.Errorf("unexpected error\ngot: %s", diags.Err().Error())
 				}
 			}
+			if p.ValidateActionConfigCalled != test.expectValidateCalled {
+				if test.expectValidateCalled {
+					t.Fatal("provider Validate RPC was expected, but not called")
+				} else {
+					t.Fatal("unexpected Validate RCP call")
+				}
+			}
+		})
+	}
+}
+
+func TestContext2Validate_noListValidated(t *testing.T) {
+	tests := map[string]struct {
+		name        string
+		mainConfig  string
+		queryConfig string
+		query       bool
+	}{
+		"query files not validated in default validate mode": {
+			mainConfig: `
+			terraform {	
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+			`,
+			queryConfig: `
+			list "test_resource" "test" {
+				provider = test
+
+				config {
+					filter = {
+						attr = list.non_existent.attr
+					}
+				}
+			}
+			
+			locals {
+				test = list.non_existent.attr
+			}
+			`,
+			query: false,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			configFiles := map[string]string{"main.tf": tc.mainConfig}
+			if tc.queryConfig != "" {
+				configFiles["main.tfquery.hcl"] = tc.queryConfig
+			}
+
+			opts := []configs.Option{}
+			if tc.query {
+				opts = append(opts, configs.MatchQueryFiles())
+			}
+
+			m := testModuleInline(t, configFiles, opts...)
+
+			p := testProvider("test")
+			p.GetProviderSchemaResponse = getListProviderSchemaResp()
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			diags := ctx.Validate(m, &ValidateOpts{
+				Query: tc.query,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
 		})
 	}
 }

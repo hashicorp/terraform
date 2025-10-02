@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -17,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeActionTriggerPlanInstance struct {
@@ -72,25 +72,25 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 
 	// We need the action invocation early to check if we need to
 	ai := plans.ActionInvocationInstance{
-		Addr: n.actionAddress,
-
+		Addr:          n.actionAddress,
 		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
 	}
 	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
 
-	// If we should defer the action invocation, we need to report it and if the resource instance
-	// was not deferred (and therefore was planned) we need to retroactively remove the change
-	if deferrals.ShouldDeferActionInvocation(ai) {
+	deferred, moreDiags := deferrals.ShouldDeferActionInvocation(ai, n.lifecycleActionTrigger.invokingSubject)
+	diags = diags.Append(moreDiags)
+	if deferred {
 		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
-		if change != nil {
-			ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
-			deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
-		}
-		return nil
+		return diags
+	}
+
+	if moreDiags.HasErrors() {
+		return diags
 	}
 
 	if change == nil {
-		panic("change cannot be nil")
+		// nothing to do (this may be a refresh )
+		return diags
 	}
 
 	if n.lifecycleActionTrigger == nil {
@@ -113,16 +113,13 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	// provider so we'll do that ourselves now.
 	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue)
 
-	triggeringEvent, isTriggered := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
-	if !isTriggered {
+	triggeredEvents := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
+	if len(triggeredEvents) == 0 {
 		return diags
-	}
-	if triggeringEvent == nil {
-		panic("triggeringEvent cannot be nil")
 	}
 
 	// Evaluate the condition expression if it exists (otherwise it's true)
-	if n.lifecycleActionTrigger != nil && n.lifecycleActionTrigger.conditionExpr != nil {
+	if n.lifecycleActionTrigger.conditionExpr != nil {
 		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
 			events:          n.lifecycleActionTrigger.events,
 			conditionExpr:   n.lifecycleActionTrigger.conditionExpr,
@@ -139,9 +136,6 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		}
 	}
 
-	// We need to set the triggering event on the action invocation
-	ai.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(*triggeringEvent)
-
 	provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -157,10 +151,12 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	// We remove the marks for planning, we will record the sensitive values in the plans.ActionInvocationInstance
 	unmarkedConfig, _ := actionInstance.ConfigValue.UnmarkDeepWithPaths()
 
+	cc := ctx.ClientCapabilities()
+	cc.DeferralAllowed = false // for now, deferrals in actions are always disabled
 	resp := provider.PlanAction(providers.PlanActionRequest{
 		ActionType:         n.actionAddress.Action.Action.Type,
 		ProposedActionData: unmarkedConfig,
-		ClientCapabilities: ctx.ClientCapabilities(),
+		ClientCapabilities: cc,
 	})
 
 	if len(resp.Diagnostics) > 0 {
@@ -180,22 +176,22 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 			Subject:  n.lifecycleActionTrigger.invokingSubject,
 		})
 	}
-	if resp.Deferred != nil && !deferrals.DeferralAllowed() {
+	if resp.Deferred != nil {
+		// we always set allow_deferrals to be false for actions, so this
+		// should not happen
 		diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.actionAddress))
 	}
 	if resp.Diagnostics.HasErrors() {
 		return diags
 	}
 
-	// If the action is deferred, we need to also defer the resource instance
-	if resp.Deferred != nil {
-		deferrals.ReportActionInvocationDeferred(ai, resp.Deferred.Reason)
-		ctx.Changes().RemoveResourceInstanceChange(change.Addr, change.Addr.CurrentObject().DeposedKey)
-		deferrals.ReportResourceInstanceDeferred(change.Addr, providers.DeferredReasonDeferredPrereq, change)
-		return diags
+	// We are planning to run this action multiple times so
+	for _, triggeredEvent := range triggeredEvents {
+		eventSpecificAi := ai.DeepCopy()
+		// We need to set the triggering event on the action invocation
+		eventSpecificAi.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(triggeredEvent)
+		ctx.Changes().AppendActionInvocation(eventSpecificAi)
 	}
-
-	ctx.Changes().AppendActionInvocation(&ai)
 	return diags
 }
 

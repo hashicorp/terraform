@@ -7,6 +7,8 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"testing"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestRemoteClient_noPayload(t *testing.T) {
@@ -21,11 +23,11 @@ func TestRemoteClient_noPayload(t *testing.T) {
 // nilClient returns nil for everything
 type nilClient struct{}
 
-func (nilClient) Get() (*Payload, error) { return nil, nil }
+func (nilClient) Get() (*Payload, tfdiags.Diagnostics) { return nil, nil }
 
-func (c nilClient) Put([]byte) error { return nil }
+func (c nilClient) Put([]byte) tfdiags.Diagnostics { return nil }
 
-func (c nilClient) Delete() error { return nil }
+func (c nilClient) Delete() tfdiags.Diagnostics { return nil }
 
 // mockClient is a client that tracks persisted state snapshots only in
 // memory and also logs what it has been asked to do for use in test
@@ -40,7 +42,8 @@ type mockClientRequest struct {
 	Content map[string]interface{}
 }
 
-func (c *mockClient) Get() (*Payload, error) {
+func (c *mockClient) Get() (*Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	c.appendLog("Get", c.current)
 	if c.current == nil {
 		return nil, nil
@@ -49,19 +52,21 @@ func (c *mockClient) Get() (*Payload, error) {
 	return &Payload{
 		Data: c.current,
 		MD5:  checksum[:],
-	}, nil
+	}, diags
 }
 
-func (c *mockClient) Put(data []byte) error {
+func (c *mockClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	c.appendLog("Put", data)
 	c.current = data
-	return nil
+	return diags
 }
 
-func (c *mockClient) Delete() error {
+func (c *mockClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	c.appendLog("Delete", c.current)
 	c.current = nil
-	return nil
+	return diags
 }
 
 func (c *mockClient) appendLog(method string, content []byte) {
@@ -89,26 +94,28 @@ type mockClientForcePusher struct {
 	log     []mockClientRequest
 }
 
-func (c *mockClientForcePusher) Get() (*Payload, error) {
+func (c *mockClientForcePusher) Get() (*Payload, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	c.appendLog("Get", c.current)
 	if c.current == nil {
-		return nil, nil
+		return nil, diags
 	}
 	checksum := md5.Sum(c.current)
 	return &Payload{
 		Data: c.current,
 		MD5:  checksum[:],
-	}, nil
+	}, diags
 }
 
-func (c *mockClientForcePusher) Put(data []byte) error {
+func (c *mockClientForcePusher) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	if c.force {
 		c.appendLog("Force Put", data)
 	} else {
 		c.appendLog("Put", data)
 	}
 	c.current = data
-	return nil
+	return diags
 }
 
 // Implements remote.ClientForcePusher
@@ -116,11 +123,13 @@ func (c *mockClientForcePusher) EnableForcePush() {
 	c.force = true
 }
 
-func (c *mockClientForcePusher) Delete() error {
+func (c *mockClientForcePusher) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	c.appendLog("Delete", c.current)
 	c.current = nil
-	return nil
+	return diags
 }
+
 func (c *mockClientForcePusher) appendLog(method string, content []byte) {
 	var contentVal map[string]interface{}
 	if content != nil {

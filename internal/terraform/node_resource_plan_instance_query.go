@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -35,9 +36,15 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		keyData = EvalDataForInstanceKey(addr.Resource.Key, forEach)
 	}
 
+	schema := providerSchema.SchemaForListResourceType(n.Config.Type)
+	if schema.IsNil() { // Not possible, as the schema should have already been validated to exist
+		diags = diags.Append(fmt.Errorf("no schema available for %s; this is a bug in Terraform and should be reported", addr))
+		return diags
+	}
+
 	// evaluate the list config block
 	var configDiags tfdiags.Diagnostics
-	blockVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema.Body, nil, keyData)
+	blockVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema.FullSchema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if diags.HasErrors() {
 		return diags
@@ -78,6 +85,13 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 
 	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
+	// if the config value is null, we still want to send a full object with all attributes being null
+	if !unmarkedBlockVal.IsNull() && unmarkedBlockVal.GetAttr("config").IsNull() {
+		mp := unmarkedBlockVal.AsValueMap()
+		mp["config"] = schema.ConfigSchema.EmptyValue()
+		unmarkedBlockVal = cty.ObjectVal(mp)
+	}
+
 	validateResp := provider.ValidateListResourceConfig(
 		providers.ValidateListResourceConfigRequest{
 			TypeName:              n.Config.Type,
@@ -106,15 +120,17 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	// If a path is specified, generate the config for the resource
 	if n.generateConfigPath != "" {
 		var gDiags tfdiags.Diagnostics
-		results.Generated, gDiags = n.generateHCLResourceDef(addr, resp.Result.GetAttr("data"), providerSchema.ResourceTypes[n.Config.Type])
+		results.Generated, gDiags = n.generateHCLListResourceDef(ctx, addr, resp.Result.GetAttr("data"))
 		diags = diags.Append(gDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 	}
 
+	identityVersion := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, addr.Resource.Resource.Type).IdentityVersion
+
 	ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostListQuery(rId, results)
+		return h.PostListQuery(rId, results, identityVersion)
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {

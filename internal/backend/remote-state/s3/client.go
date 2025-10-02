@@ -28,6 +28,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -65,7 +66,7 @@ var (
 // test hook called when checksums don't match
 var testChecksumHook func()
 
-func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
+func (c *RemoteClient) Get() (payload *remote.Payload, diags tfdiags.Diagnostics) {
 	ctx := context.TODO()
 	log := c.logger(operationClientGet)
 
@@ -78,10 +79,11 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 
 	// If we have a checksum, and the returned payload doesn't match, we retry
 	// up until deadline.
+	var err error
 	for {
 		payload, err = c.get(ctx)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// If the remote state was manually removed the payload will be nil,
@@ -113,13 +115,13 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 				continue
 			}
 
-			return nil, newBadChecksumError(c.bucketName, c.path, digest, expected)
+			return nil, diags.Append(newBadChecksumError(c.bucketName, c.path, digest, expected))
 		}
 
 		break
 	}
 
-	return payload, err
+	return payload, diags.Append(err)
 }
 
 func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
@@ -185,8 +187,9 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	return payload, nil
 }
 
-func (c *RemoteClient) Put(data []byte) error {
-	return c.put(data)
+func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	return diags.Append(c.put(data))
 }
 
 func (c *RemoteClient) put(data []byte, optFns ...func(*s3.Options)) error {
@@ -246,7 +249,8 @@ func (c *RemoteClient) put(data []byte, optFns ...func(*s3.Options)) error {
 	return nil
 }
 
-func (c *RemoteClient) Delete() error {
+func (c *RemoteClient) Delete() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	ctx := context.TODO()
 	log := c.logger(operationClientDelete)
 
@@ -261,7 +265,7 @@ func (c *RemoteClient) Delete() error {
 	})
 
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
 	if err := c.deleteMD5(ctx); err != nil {
@@ -270,7 +274,7 @@ func (c *RemoteClient) Delete() error {
 		)
 	}
 
-	return nil
+	return diags
 }
 
 // Lock attempts to obtain a lock, returning the lock ID if successful.

@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -244,18 +245,19 @@ func (h *jsonHook) PreListQuery(id terraform.HookResourceIdentity, input_config 
 	return terraform.HookActionContinue, nil
 }
 
-func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults) (terraform.HookAction, error) {
+func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults, identityVersion int64) (terraform.HookAction, error) {
 	addr := id.Addr
 	data := results.Value.GetAttr("data")
 	iter := data.ElementIterator()
 	for idx := 0; iter.Next(); idx++ {
 		_, value := iter.Element()
 
-		generated := results.Generated
-		if generated != nil {
-			generated = generated.Results[idx]
+		var generated *genconfig.ResourceImport
+		if len(results.Generated.Imports) > 0 {
+			generated = &results.Generated.Imports[idx]
 		}
-		result := json.NewQueryResult(addr, value, generated)
+
+		result := json.NewQueryResult(addr, value, identityVersion, generated)
 
 		h.view.log.Info(
 			fmt.Sprintf("%s: Result found", addr.String()),

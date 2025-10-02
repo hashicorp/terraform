@@ -34,12 +34,10 @@ func TestRenderHuman_InvokeActionPlan(t *testing.T) {
 	plan := Plan{
 		ActionInvocations: []jsonplan.ActionInvocation{
 			{
-				Address: "action.test_action.action",
-				Type:    "test_action",
-				Name:    "action",
-				ConfigValues: map[string]json.RawMessage{
-					"attr": []byte("\"one\""),
-				},
+				Address:             "action.test_action.action",
+				Type:                "test_action",
+				Name:                "action",
+				ConfigValues:        json.RawMessage("{\"attr\":\"one\"}"),
 				ConfigSensitive:     nil,
 				ProviderName:        "test",
 				InvokeActionTrigger: new(jsonplan.InvokeActionTrigger),
@@ -56,7 +54,6 @@ func TestRenderHuman_InvokeActionPlan(t *testing.T) {
 								},
 							},
 						},
-						Unlinked: new(jsonprovider.UnlinkedAction),
 					},
 				},
 			},
@@ -95,12 +92,10 @@ func TestRenderHuman_InvokeActionPlanWithRefresh(t *testing.T) {
 	plan := Plan{
 		ActionInvocations: []jsonplan.ActionInvocation{
 			{
-				Address: "action.test_action.action",
-				Type:    "test_action",
-				Name:    "action",
-				ConfigValues: map[string]json.RawMessage{
-					"attr": []byte("\"one\""),
-				},
+				Address:             "action.test_action.action",
+				Type:                "test_action",
+				Name:                "action",
+				ConfigValues:        json.RawMessage("{\"attr\":\"one\"}"),
 				ConfigSensitive:     nil,
 				ProviderName:        "test",
 				InvokeActionTrigger: new(jsonplan.InvokeActionTrigger),
@@ -138,7 +133,6 @@ func TestRenderHuman_InvokeActionPlanWithRefresh(t *testing.T) {
 								},
 							},
 						},
-						Unlinked: new(jsonprovider.UnlinkedAction),
 					},
 				},
 			},
@@ -8077,7 +8071,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				return
 			}
 
-			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas, false)
+			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas)
 			change := structured.FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher())
 			renderer := Renderer{Colorize: color}
 			diff := diff{
@@ -8427,7 +8421,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 			}
 
 			renderer := Renderer{Colorize: color}
-			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema, false)
+			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema)
 			diffs := precomputeDiffs(Plan{
 				DeferredChanges: deferredChanges,
 				ProviderSchemas: jsonschemas,
@@ -8473,8 +8467,8 @@ func TestResourceChange_actions(t *testing.T) {
 		"before actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8483,7 +8477,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "BeforeCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"),
 						"disk": cty.ObjectVal(map[string]cty.Value{
 							"size": cty.StringVal("100"),
@@ -8500,7 +8494,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             disk = {
                 size = "100"
@@ -8517,8 +8511,8 @@ func TestResourceChange_actions(t *testing.T) {
 		"after actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8527,7 +8521,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "AfterCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"),
 						"disk": cty.ObjectVal(map[string]cty.Value{
 							"size": cty.StringVal("100"),
@@ -8544,7 +8538,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked after this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             disk = {
                 size = "100"
@@ -8561,8 +8555,8 @@ func TestResourceChange_actions(t *testing.T) {
 		"before and after actions": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8571,13 +8565,13 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "BeforeCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("first-block-and-action"),
 					})),
 				},
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8586,13 +8580,13 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "BeforeCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("first-block-second-action"),
 					})),
 				},
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8601,13 +8595,13 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "AfterCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("second-block-first-action"),
 					})),
 				},
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8616,13 +8610,13 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "AfterCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("third-block-first-action"),
 					})),
 				},
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8631,7 +8625,7 @@ func TestResourceChange_actions(t *testing.T) {
 						TriggeringResourceAddress: triggeringResourceAddr.String(),
 						ActionTriggerEvent:        "BeforeCreate",
 					},
-					ConfigValues: marshalConfigValues(cty.ObjectVal(map[string]cty.Value{
+					ConfigValues: marshalCtyJson(t, cty.ObjectVal(map[string]cty.Value{
 						"id": cty.StringVal("fourth-block-first-action"),
 					})),
 				},
@@ -8642,17 +8636,17 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "first-block-and-action"
         }
     }
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "first-block-second-action"
         }
     }
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "fourth-block-first-action"
         }
@@ -8660,12 +8654,12 @@ func TestResourceChange_actions(t *testing.T) {
 
 
     # Actions to be invoked after this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "second-block-first-action"
         }
     }
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
         config {
             id = "third-block-first-action"
         }
@@ -8675,8 +8669,8 @@ func TestResourceChange_actions(t *testing.T) {
 		"no config value": {
 			actionInvocations: []jsonplan.ActionInvocation{
 				{
-					Address:      "action.test_unlinked.hello",
-					Type:         "test_unlinked",
+					Address:      "action.test_action.hello",
+					Type:         "test_action",
 					Name:         "hello",
 					ProviderName: "registry.terraform.io/hashicorp/test",
 					LifecycleActionTrigger: &jsonplan.LifecycleActionTrigger{
@@ -8693,7 +8687,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
-    action "test_unlinked" "hello" {
+    action "test_action" "hello" {
     }
 `,
 		},
@@ -8713,15 +8707,14 @@ func TestResourceChange_actions(t *testing.T) {
 							},
 						},
 						Actions: map[string]providers.ActionSchema{
-							"test_unlinked": {
+							"test_action": {
 								ConfigSchema: blockSchema,
-								Unlinked:     &providers.UnlinkedAction{},
 							},
 						},
 					},
 				},
 			}
-			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema, false)
+			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema)
 			diffs := precomputeDiffs(Plan{
 				ResourceChanges:   []jsonplan.ResourceChange{defaultResourceChange},
 				ActionInvocations: tc.actionInvocations,
@@ -8738,23 +8731,6 @@ func TestResourceChange_actions(t *testing.T) {
 			}
 		})
 	}
-}
-func marshalConfigValues(value cty.Value) map[string]json.RawMessage {
-	// unmark our value to show all values
-	v, _ := value.UnmarkDeep()
-
-	if v == cty.NilVal || v.IsNull() {
-		return nil
-	}
-
-	ret := make(map[string]json.RawMessage)
-	it := value.ElementIterator()
-	for it.Next() {
-		k, v := it.Element()
-		vJSON, _ := ctyjson.Marshal(v, v.Type())
-		ret[k.AsString()] = json.RawMessage(vJSON)
-	}
-	return ret
 }
 
 func outputChange(name string, before, after cty.Value, sensitive bool) *plans.OutputChangeSrc {
@@ -8926,6 +8902,14 @@ func testSchemaPlus(nesting configschema.NestingMode) *configschema.Block {
 
 func marshalJson(t *testing.T, data interface{}) json.RawMessage {
 	result, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("failed to marshal json: %v", err)
+	}
+	return result
+}
+
+func marshalCtyJson(t *testing.T, data cty.Value) json.RawMessage {
+	result, err := ctyjson.Marshal(data, data.Type())
 	if err != nil {
 		t.Fatalf("failed to marshal json: %v", err)
 	}

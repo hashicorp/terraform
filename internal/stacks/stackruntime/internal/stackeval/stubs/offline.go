@@ -161,6 +161,11 @@ func (o *offlineProvider) ReadResource(_ providers.ReadResourceRequest) provider
 	}
 }
 
+// GenerateResourceConfig implements providers.Interface
+func (p *offlineProvider) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+	panic("not implemented")
+}
+
 func (o *offlineProvider) PlanResourceChange(_ providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -284,6 +289,34 @@ func (o *offlineProvider) ConfigureStateStore(providers.ConfigureStateStoreReque
 		nil, // nil attribute path means the overall configuration block
 	))
 	return providers.ConfigureStateStoreResponse{
+		Diagnostics: diags,
+	}
+}
+
+// ReadStateBytes implements providers.Interface.
+func (o *offlineProvider) ReadStateBytes(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ReadStateBytes on an unconfigured provider",
+		"Cannot read from state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ReadStateBytesResponse{
+		Diagnostics: diags,
+	}
+}
+
+// WriteStateBytes implements providers.Interface.
+func (o *offlineProvider) WriteStateBytes(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called WriteStateBytes on an unconfigured provider",
+		"Cannot write to state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.WriteStateBytesResponse{
 		Diagnostics: diags,
 	}
 }
