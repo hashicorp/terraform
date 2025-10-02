@@ -1632,17 +1632,19 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 		return nil, diags
 	}
 
-	// Validate store config
+	// Validate and configure the state store
+	// We're unmarking the state_store config despite store schemas being unable to include Sensitive (etc) attributes.
+	// This code is defensive in case we enable schemas to include those behaviors in future.
+	unmarkedStateStoreConfigVal, _ := stateStoreConfigVal.UnmarkDeep()
 	validateStoreResp := provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
 		TypeName: s.StateStore.Type,
-		Config:   stateStoreConfigVal,
+		Config:   unmarkedStateStoreConfigVal,
 	})
 	diags = diags.Append(validateStoreResp.Diagnostics)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	// Configure state store
 	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
 		TypeName: s.StateStore.Type,
 		Config:   stateStoreConfigVal,
