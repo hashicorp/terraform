@@ -174,7 +174,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		// initBackend has new parameters that aren't relevant to the original (unpluggable) version of the init command logic here.
 		// So for this version of the init command, we pass in empty locks intentionally.
 		emptyLocks := depsfile.NewLocks()
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, emptyLocks, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, emptyLocks, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
