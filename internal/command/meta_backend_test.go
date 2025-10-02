@@ -2434,56 +2434,131 @@ func TestSavedBackend(t *testing.T) {
 }
 
 func TestSavedStateStore(t *testing.T) {
-	// Create a temporary working directory
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
-	t.Chdir(td)
+	t.Run("the returned state store is configured with the backend state and not the current config", func(t *testing.T) {
+		// Create a temporary working directory
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		t.Chdir(td)
 
-	// Make a state manager for the backend state file,
-	// read state from file
-	m := testMetaBackend(t, nil)
-	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
-	sMgr := &clistate.LocalState{Path: statePath}
-	err := sMgr.RefreshState()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-
-	// Prepare provider factories for use
-	mock := testStateStoreMock(t)
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
-	mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
-		// Assert that the state store is configured using backend state file values from the fixtures
-		config := req.Config.AsValueMap()
-		if config["region"].AsString() != "old-value" {
-			t.Fatalf("expected the provider to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+		// Make a state manager for accessing the backend state file,
+		// and read the backend state from file
+		m := testMetaBackend(t, nil)
+		statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		err := sMgr.RefreshState()
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
 		}
-		return providers.ConfigureProviderResponse{}
-	}
-	mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-		// Assert that the state store is configured using backend state file values from the fixtures
-		config := req.Config.AsValueMap()
-		if config["value"].AsString() != "old-value" {
-			t.Fatalf("expected the state store to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+
+		// Prepare provider factories for use
+		mock := testStateStoreMock(t)
+		factory := func() (providers.Interface, error) {
+			return mock, nil
 		}
-		return providers.ConfigureStateStoreResponse{}
-	}
+		mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+			// Assert that the state store is configured using backend state file values from the fixtures
+			config := req.Config.AsValueMap()
+			if config["region"].AsString() != "old-value" {
+				t.Fatalf("expected the provider to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+			}
+			return providers.ConfigureProviderResponse{}
+		}
+		mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+			// Assert that the state store is configured using backend state file values from the fixtures
+			config := req.Config.AsValueMap()
+			if config["value"].AsString() != "old-value" {
+				t.Fatalf("expected the state store to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+			}
+			return providers.ConfigureStateStoreResponse{}
+		}
 
-	// Code under test
-	b, diags := m.savedStateStore(sMgr, factory)
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
-	}
+		// Code under test
+		b, diags := m.savedStateStore(sMgr, factory)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
 
-	if _, ok := b.(*pluggable.Pluggable); !ok {
-		t.Fatalf(
-			"expected savedStateStore to return a backend.Backend interface with concrete type %s, but got something else: %#v",
-			"*pluggable.Pluggable",
-			b,
-		)
-	}
+		if _, ok := b.(*pluggable.Pluggable); !ok {
+			t.Fatalf(
+				"expected savedStateStore to return a backend.Backend interface with concrete type %s, but got something else: %#v",
+				"*pluggable.Pluggable",
+				b,
+			)
+		}
+	})
+
+	t.Run("configuration received by provider methods contain no marks", func(t *testing.T) {
+		// Create a temporary working directory
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		t.Chdir(td)
+
+		// Make a state manager for accessing the backend state file,
+		// and read the backend state from file
+		m := testMetaBackend(t, nil)
+		statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		err := sMgr.RefreshState()
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		// Prepare provider factories for use
+		mock := testStateStoreMock(t)
+		// Make the provider attr sensitive (and required, to ensure the test uses it)
+		mock.GetProviderSchemaResponse.Provider.Body.Attributes["region"] = &configschema.Attribute{
+			Type:      cty.String,
+			Required:  true,
+			Sensitive: true,
+		}
+		// Make the state store have a sensitive & required attr too
+		mock.GetProviderSchemaResponse.StateStores["test_store"].Body.Attributes["value"] = &configschema.Attribute{
+			Type:      cty.String,
+			Required:  true,
+			Sensitive: true,
+		}
+		factory := func() (providers.Interface, error) {
+			return mock, nil
+		}
+		mock.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
+			if req.Config.ContainsMarked() {
+				t.Fatal("expected config to have marks removed but they were not")
+			}
+			return providers.ValidateProviderConfigResponse{}
+		}
+		mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+			if req.Config.ContainsMarked() {
+				t.Fatal("expected config to have marks removed but they were not")
+			}
+			return providers.ConfigureProviderResponse{}
+		}
+		mock.ValidateStateStoreConfigFn = func(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+			if req.Config.ContainsMarked() {
+				t.Fatal("expected config to have marks removed but they were not")
+			}
+			return providers.ValidateStateStoreConfigResponse{}
+		}
+		mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+			if req.Config.ContainsMarked() {
+				t.Fatal("expected config to have marks removed but they were not")
+			}
+			return providers.ConfigureStateStoreResponse{}
+		}
+
+		// Code under test
+		b, diags := m.savedStateStore(sMgr, factory)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+
+		if _, ok := b.(*pluggable.Pluggable); !ok {
+			t.Fatalf(
+				"expected savedStateStore to return a backend.Backend interface with concrete type %s, but got something else: %#v",
+				"*pluggable.Pluggable",
+				b,
+			)
+		}
+	})
 
 	// NOTE: the mock's functions include assertions about the values passed to
 	// the ConfigureProvider and ConfigureStateStore methods
