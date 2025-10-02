@@ -636,7 +636,7 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 }
 
 // Saved backend state matching config
-func TestMetaBackend_configuredUnchanged(t *testing.T) {
+func TestMetaBackend_configuredBackendUnchanged(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	t.Chdir(td)
