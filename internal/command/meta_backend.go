@@ -1614,8 +1614,9 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	}
 
 	// Validate and configure the provider
+	unmarkedProviderConfigVal, _ := providerConfigVal.UnmarkDeep() // Unmark, no need to keep marks
 	validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
-		Config: providerConfigVal,
+		Config: unmarkedProviderConfigVal,
 	})
 	diags = diags.Append(validateResp.Diagnostics)
 	if diags.HasErrors() {
@@ -1624,7 +1625,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 
 	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
 		TerraformVersion: tfversion.SemVer.String(),
-		Config:           validateResp.PreparedConfig,
+		Config:           unmarkedProviderConfigVal,
 	})
 	diags = diags.Append(configureResp.Diagnostics)
 	if diags.HasErrors() {
