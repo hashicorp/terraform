@@ -20,6 +20,8 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/apparentlymart/go-versions/versions/constraints"
 
+	"github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -84,6 +86,12 @@ type Selections map[addrs.Provider]Version
 // which is the version syntax we use for provider versions.
 func ParseVersion(str string) (Version, error) {
 	return versions.ParseVersion(str)
+}
+
+// GoVersionFromVersion converts a Version from the providerreqs package
+// into a Version from the hashicorp/go-version module.
+func GoVersionFromVersion(v Version) (*version.Version, error) {
+	return version.NewVersion(v.String())
 }
 
 // MustParseVersion is a variant of ParseVersion that panics if it encounters

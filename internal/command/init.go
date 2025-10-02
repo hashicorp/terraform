@@ -159,7 +159,10 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	extraConfig := initArgs.BackendConfig
+	viewType := initArgs.ViewType
+
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -246,11 +249,13 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		}
 
 		opts = &BackendOpts{
-			StateStoreConfig: root.StateStore,
-			ProviderFactory:  factory,
-			ConfigOverride:   configOverride,
-			Init:             true,
-			ViewType:         viewType,
+			StateStoreConfig:       root.StateStore,
+			Locks:                  configLocks,
+			ProviderFactory:        factory,
+			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
+			ConfigOverride:         configOverride,
+			Init:                   true,
+			ViewType:               viewType,
 		}
 
 	case root.Backend != nil:
@@ -286,15 +291,19 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 		backendSchema := b.ConfigSchema()
 		backendConfig := root.Backend
 
-		backendConfigOverride, overrideDiags := c.backendConfigOverrideBody(extraConfig, backendSchema)
-		diags = diags.Append(overrideDiags)
-		if overrideDiags.HasErrors() {
-			return nil, true, diags
+		var configOverride hcl.Body
+		if len(*extraConfig.Items) > 0 {
+			var overrideDiags tfdiags.Diagnostics
+			configOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
+			diags = diags.Append(overrideDiags)
+			if overrideDiags.HasErrors() {
+				return nil, true, diags
+			}
 		}
 
 		opts = &BackendOpts{
 			BackendConfig:  backendConfig,
-			ConfigOverride: backendConfigOverride,
+			ConfigOverride: configOverride,
 			Init:           true,
 			ViewType:       viewType,
 		}
