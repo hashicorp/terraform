@@ -149,6 +149,13 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 			fmt.Sprintf("Failed to encode state for %s after resource schema upgrade: %s.", addr, tfdiags.FormatError(err)),
 		))
 	}
+
+	new, upgradeDiags := upgradeResourceIdentity(addr, provider, new, currentSchema)
+	diags = diags.Append(upgradeDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	return new, diags
 }
 
@@ -197,6 +204,15 @@ func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.
 			tfdiags.Error,
 			"Invalid resource identity upgrade",
 			fmt.Sprintf("The %s provider upgraded the identity for %s from a previous version, but produced an invalid result: The returned state contains unknown values.", providerType, addr),
+		))
+		return nil, diags
+	}
+
+	if resp.UpgradedIdentity.IsNull() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid resource identity upgrade",
+			fmt.Sprintf("The %s provider upgraded the identity for %s from a previous version, but produced an invalid result: The returned state is null.", providerType, addr),
 		))
 		return nil, diags
 	}

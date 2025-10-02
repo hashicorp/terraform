@@ -471,7 +471,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 		if !resp.PlannedIdentity.IsNull() {
 			// Destroying is an operation where we allow identity changes.
-			diags = diags.Append(n.validateIdentityKnown(resp.PlannedIdentity))
+			diags = diags.Append(n.validateIdentityKnown(currentState.Identity, resp.PlannedIdentity))
 			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity, schema.Identity))
 		}
 
@@ -685,7 +685,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		}
 
 		if !resp.Identity.IsNull() {
-			diags = diags.Append(n.validateIdentityKnown(resp.Identity))
+			diags = diags.Append(n.validateIdentityKnown(state.Identity, resp.Identity))
 			diags = diags.Append(n.validateIdentity(resp.Identity, schema.Identity))
 		}
 		if resp.Deferred != nil {
@@ -1089,25 +1089,16 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 	}
 
-	if resp.LegacyTypeSystem {
-		// Because we allow legacy providers to depart from the contract and
-		// return changes to non-computed values, the plan response may have
-		// altered values that were already suppressed with ignore_changes.
-		// A prime example of this is where providers attempt to obfuscate
-		// config data by turning the config value into a hash and storing the
-		// hash value in the state. There are enough cases of this in existing
-		// providers that we must accommodate the behavior for now, so for
-		// ignore_changes to work at all on these values, we will revert the
-		// ignored values once more.
-		// A nil schema is passed to processIgnoreChanges to indicate that we
-		// don't want to fixup a config value according to the schema when
-		// ignoring "all", rather we are reverting provider imposed changes.
-		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal, nil)
-		diags = diags.Append(ignoreChangeDiags)
-		if ignoreChangeDiags.HasErrors() {
-			return nil, nil, deferred, keyData, diags
-		}
-	}
+	// if err := objchange.AssertIdentityValid(, priorState, config, plannedState); err != nil {
+	// 	diags = diags.Append(tfdiags.Sourceless(
+	// 		tfdiags.Error,
+	// 		"Provider produced invalid plan",
+	// 		fmt.Sprintf(
+	// 			"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+	// 			n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+	// 		),
+	// 	))
+	// }
 
 	// Add the marks back to the planned new value -- this must happen after
 	// ignore changes have been processed. We add in the schema marks as well,
@@ -1136,7 +1127,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	if !plannedIdentity.IsNull() {
 		if !action.IsReplace() && action != plans.Create {
-			diags = diags.Append(n.validateIdentityKnown(plannedIdentity))
+			diags = diags.Append(n.validateIdentityKnown(priorIdentity, plannedIdentity))
 		}
 
 		diags = diags.Append(n.validateIdentity(plannedIdentity, schema.Identity))
@@ -2658,7 +2649,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		})
 
 		if !resp.NewIdentity.IsNull() {
-			diags = diags.Append(n.validateIdentityKnown(resp.NewIdentity))
+			diags = diags.Append(n.validateIdentityKnown(change.AfterIdentity, resp.NewIdentity))
 			diags = diags.Append(n.validateIdentity(resp.NewIdentity, schema.Identity))
 		}
 	}
@@ -2911,13 +2902,28 @@ func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsRes
 	return resourceInstancePrevRunAddr(ctx, n.Addr)
 }
 
-func (n *NodeAbstractResourceInstance) validateIdentityKnown(newIdentity cty.Value) (diags tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) validateIdentityKnown(priorIdentity, newIdentity cty.Value) (diags tfdiags.Diagnostics) {
 	if !newIdentity.IsWhollyKnown() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid identity",
 			fmt.Sprintf(
 				"Provider %q returned an identity with unknown values for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+		return
+	}
+
+	// We already performed an upgrade to the priorIdentity before we got here.
+	// Any changes to the identity should have been made in the `UpgradeResourceIdentity` RPC, not when planning / reading.
+	nonEmpty := priorIdentity != cty.NilVal && !newIdentity.IsNull()
+	if nonEmpty && priorIdentity.Equals(newIdentity).False() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid identity",
+			fmt.Sprintf(
+				"Provider %q returned a different identity from the one in state with the same version for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ResolvedProvider.Provider, n.Addr,
 			),
 		))

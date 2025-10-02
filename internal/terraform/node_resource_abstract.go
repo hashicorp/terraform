@@ -522,12 +522,6 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, diags
 	}
 
-	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
-	diags = diags.Append(upgradeDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
 	obj, err := src.Decode(schema)
 	if err != nil {
 		diags = diags.Append(err)
@@ -576,12 +570,6 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		// accept that for now since warnings during a schema upgrade would
 		// be pretty weird anyway, since this operation is supposed to seem
 		// invisible to the user.
-		return nil, diags
-	}
-
-	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
-	diags = diags.Append(upgradeDiags)
-	if diags.HasErrors() {
 		return nil, diags
 	}
 
