@@ -1647,7 +1647,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 
 	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
 		TypeName: s.StateStore.Type,
-		Config:   stateStoreConfigVal,
+		Config:   unmarkedStateStoreConfigVal,
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
 	if diags.HasErrors() {
