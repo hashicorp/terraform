@@ -2105,20 +2105,17 @@ func TestMetaBackend_configureNewStateStore(t *testing.T) {
 		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 	}
 
-	// Get mock provider factory to be used during init
+	// Get mock provider to be used during init
 	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
+	// This imagines a provider called "test" that contains
+	// a pluggable state store implementation called "store".
 	mock := testStateStoreMock(t)
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
 
 	// Get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
+		ProviderFactory:  providers.FactoryFixed(mock),
 	})
 	if !beDiags.HasErrors() {
 		t.Fatal("expected an error to be returned during partial implementation of PSS")
@@ -2195,20 +2192,17 @@ func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
 		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 	}
 
-	// Get mock provider factory to be used during init
+	// Get mock provider to be used during init
 	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
+	// This imagines a provider called "test" that contains
+	// a pluggable state store implementation called "store".
 	mock := testStateStoreMock(t)
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
 
 	// Get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
+		ProviderFactory:  providers.FactoryFixed(mock),
 	})
 
 	if !beDiags.HasErrors() {
@@ -2241,20 +2235,17 @@ func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
 		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 	}
 
-	// Get mock provider factory to be used during init
+	// Get mock provider to be used during init
 	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
+	// This imagines a provider called "test" that contains
+	// a pluggable state store implementation called "store".
 	mock := testStateStoreMock(t)
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
 
 	// Get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
+		ProviderFactory:  providers.FactoryFixed(mock),
 	})
 	if !beDiags.HasErrors() {
 		t.Fatal("expected an error to be returned during partial implementation of PSS")
@@ -2284,20 +2275,17 @@ func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 	}
 
-	// Get mock provider factory to be used during init
+	// Get mock provider to be used during init
 	//
-	// This imagines a provider called foo that contains
-	// a pluggable state store implementation called bar.
+	// This imagines a provider called "test" that contains
+	// a pluggable state store implementation called "store".
 	mock := testStateStoreMock(t)
-	factory := func() (providers.Interface, error) {
-		return mock, nil
-	}
 
 	// Get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  factory,
+		ProviderFactory:  providers.FactoryFixed(mock),
 	})
 	if !beDiags.HasErrors() {
 		t.Fatal("expected an error to be returned during partial implementation of PSS")
@@ -2381,20 +2369,17 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 				t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 			}
 
-			// Get mock provider factory to be used during init
+			// Get mock provider to be used during init
 			//
-			// This imagines a provider called foo that contains
-			// a pluggable state store implementation called bar.
+			// This imagines a provider called "test" that contains
+			// a pluggable state store implementation called "store".
 			mock := testStateStoreMock(t)
-			factory := func() (providers.Interface, error) {
-				return mock, nil
-			}
 
 			// Get the operations backend
 			_, err := m.Backend(&BackendOpts{
 				Init:             true,
 				StateStoreConfig: mod.StateStore,
-				ProviderFactory:  factory,
+				ProviderFactory:  providers.FactoryFixed(mock),
 			})
 			if err == nil {
 				t.Fatal("should error")
