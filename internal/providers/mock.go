@@ -444,6 +444,14 @@ func (m *Mock) WriteStateBytes(req WriteStateBytesRequest) WriteStateBytesRespon
 	return m.Provider.WriteStateBytes(req)
 }
 
+func (m *Mock) LockState(req LockStateRequest) LockStateResponse {
+	return m.Provider.LockState(req)
+}
+
+func (m *Mock) UnlockState(req UnlockStateRequest) UnlockStateResponse {
+	return m.Provider.UnlockState(req)
+}
+
 func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
 	return m.Provider.GetStates(req)
 }

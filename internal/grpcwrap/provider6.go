@@ -915,6 +915,14 @@ func (p *provider6) WriteStateBytes(srv tfplugin6.Provider_WriteStateBytesServer
 	panic("not implemented")
 }
 
+func (p *provider6) LockState(ctx context.Context, req *tfplugin6.LockState_Request) (*tfplugin6.LockState_Response, error) {
+	panic("not implemented")
+}
+
+func (p *provider6) UnlockState(ctx context.Context, req *tfplugin6.UnlockState_Request) (*tfplugin6.UnlockState_Response, error) {
+	panic("not implemented")
+}
+
 func (p *provider6) GetStates(ctx context.Context, req *tfplugin6.GetStates_Request) (*tfplugin6.GetStates_Response, error) {
 	panic("not implemented")
 }

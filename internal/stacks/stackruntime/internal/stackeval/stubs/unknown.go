@@ -369,6 +369,32 @@ func (u *unknownProvider) WriteStateBytes(providers.WriteStateBytesRequest) prov
 	}
 }
 
+func (u *unknownProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot lock to this state store because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.LockStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (u *unknownProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot unlock to this state store because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.UnlockStateResponse{
+		Diagnostics: diags,
+	}
+}
+
 // GetStates implements providers.Interface.
 func (u *unknownProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
 	var diags tfdiags.Diagnostics

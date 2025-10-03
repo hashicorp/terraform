@@ -1452,6 +1452,14 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) provi
 	panic("not implemented")
 }
 
+func (p *GRPCProvider) LockState(r providers.LockStateRequest) providers.LockStateResponse {
+	panic("not implemented")
+}
+
+func (p *GRPCProvider) UnlockState(r providers.UnlockStateRequest) providers.UnlockStateResponse {
+	panic("not implemented")
+}
+
 func (p *GRPCProvider) GetStates(r providers.GetStatesRequest) providers.GetStatesResponse {
 	panic("not implemented")
 }
