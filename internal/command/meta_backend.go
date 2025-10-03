@@ -567,6 +567,14 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 	}
 
 	// Check - is the state store type in the config supported by the provider?
+	if opts.ProviderFactory == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing provider details when configuring state store",
+			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
+		})
+		return nil, 0, 0, diags
+	}
 	provider, err := opts.ProviderFactory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
