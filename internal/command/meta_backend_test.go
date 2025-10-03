@@ -5,6 +5,7 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -2676,6 +2679,146 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 		}
 	})
 }
+
+// Test the stateStoreInitFromConfig method, which relies on calling code to have already parsed the state_store block
+// from the config and for config overrides to already be reflected in the first config argument.
+func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
+	expectedRegionAttr := "foobar"
+	expectedValueAttr := "foobar"
+	config := &configs.StateStore{
+		Type:   "test_store",
+		Config: configBodyForTest(t, fmt.Sprintf(`value = "%s"`, expectedValueAttr)),
+		Provider: &configs.Provider{
+			Config: configBodyForTest(t, fmt.Sprintf(`region = "%s"`, expectedRegionAttr)),
+		},
+		ProviderAddr: addrs.NewDefaultProvider("test"),
+	}
+
+	t.Run("the returned state store is configured with the provided config", func(t *testing.T) {
+		// Prepare provider factories for use
+		mock := testStateStoreMock(t)
+		mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+			// Assert that the state store is configured using backend state file values from the fixtures
+			config := req.Config.AsValueMap()
+			if config["region"].AsString() != expectedRegionAttr {
+				t.Fatalf("expected the provider attr to be configured with %q, got %q", expectedRegionAttr, config["region"].AsString())
+			}
+			return providers.ConfigureProviderResponse{}
+		}
+		mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+			// Assert that the state store is configured using backend state file values from the fixtures
+			config := req.Config.AsValueMap()
+			if config["value"].AsString() != expectedValueAttr {
+				t.Fatalf("expected the state store attr to be configured with %q, got %q", expectedValueAttr, config["value"].AsString())
+			}
+			return providers.ConfigureStateStoreResponse{}
+		}
+
+		// Prepare the meta
+		m := testMetaBackend(t, nil)
+
+		// Code under test
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			ProviderFactory:  providers.FactoryFixed(mock),
+			Init:             true,
+		}
+		b, _, _, diags := m.stateStoreInitFromConfig(config, opts)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+		if _, ok := b.(*pluggable.Pluggable); !ok {
+			t.Fatalf(
+				"expected stateStoreInitFromConfig to return a backend.Backend interface with concrete type %s, but got something else: %#v",
+				"*pluggable.Pluggable",
+				b,
+			)
+		}
+	})
+
+	t.Run("error - no provider factory set", func(t *testing.T) {
+		// Prepare the meta
+		m := testMetaBackend(t, nil)
+
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			ProviderFactory:  nil, // unset
+			Init:             true,
+		}
+		_, _, _, diags := m.stateStoreInitFromConfig(config, opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "Missing provider details when configuring state store"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+	})
+
+	t.Run("error - when there's no state stores in provider", func(t *testing.T) {
+		// Prepare the meta
+		m := testMetaBackend(t, nil)
+
+		mock := testStateStoreMock(t)
+		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
+
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			ProviderFactory:  providers.FactoryFixed(mock),
+			Init:             true,
+		}
+		_, _, _, diags := m.stateStoreInitFromConfig(config, opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "Provider does not support pluggable state storage"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+	})
+
+	t.Run("error - when there's no matching state store in provider Terraform suggests different identifier", func(t *testing.T) {
+		// Prepare the meta
+		m := testMetaBackend(t, nil)
+
+		mock := testStateStoreMock(t)
+		testStore := mock.GetProviderSchemaResponse.StateStores["test_store"]
+		delete(mock.GetProviderSchemaResponse.StateStores, "test_store")
+		// Make the provider contain a "test_bore" impl., while the config specifies a "test_store" impl.
+		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
+
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			ProviderFactory:  providers.FactoryFixed(mock),
+			Init:             true,
+		}
+		_, _, _, diags := m.stateStoreInitFromConfig(config, opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "State store not implemented by the provider"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+		expectedStateStore := `Did you mean "test_bore"?`
+		if !strings.Contains(diags.Err().Error(), expectedStateStore) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedStateStore,
+				diags.Err(),
+			)
+		}
+	})
+}
+
 func TestMetaBackend_stateStoreConfig(t *testing.T) {
 	// Reused in tests
 	config := &configs.StateStore{
@@ -2866,4 +3009,13 @@ func testStateStoreMock(t *testing.T) *testing_provider.MockProvider {
 			},
 		},
 	}
+}
+
+func configBodyForTest(t *testing.T, config string) hcl.Body {
+	t.Helper()
+	f, diags := hclsyntax.ParseConfig([]byte(config), "", hcl.Pos{Line: 1, Column: 1})
+	if diags.HasErrors() {
+		t.Fatalf("failure creating hcl.Body during test setup: %s", diags.Error())
+	}
+	return f.Body
 }
