@@ -11,7 +11,6 @@ import (
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -72,14 +71,7 @@ func (s *StateStoreConfigState) Config(schema *configschema.Block) (cty.Value, e
 	if s == nil {
 		return cty.NullVal(ty), nil
 	}
-	val, err := ctyjson.Unmarshal(s.ConfigRaw, ty)
-	if err != nil {
-		return cty.NilVal, err
-	}
-
-	sensitivePaths := schema.SensitivePaths(val, nil)
-	val = marks.MarkPaths(val, marks.Sensitive, sensitivePaths)
-	return val, nil
+	return ctyjson.Unmarshal(s.ConfigRaw, ty)
 }
 
 // SetConfig replaces (in-place) the type-specific configuration object using
@@ -180,14 +172,7 @@ func (s *ProviderConfigState) Config(schema *configschema.Block) (cty.Value, err
 	if s == nil {
 		return cty.NullVal(ty), nil
 	}
-	val, err := ctyjson.Unmarshal(s.ConfigRaw, ty)
-	if err != nil {
-		return cty.NilVal, err
-	}
-
-	sensitivePaths := schema.SensitivePaths(val, nil)
-	val = marks.MarkPaths(val, marks.Sensitive, sensitivePaths)
-	return val, nil
+	return ctyjson.Unmarshal(s.ConfigRaw, ty)
 }
 
 // SetConfig replaces (in-place) the type-specific configuration object using
