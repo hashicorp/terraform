@@ -1768,6 +1768,12 @@ func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.Backen
 	return true
 }
 
+// backendInitFromConfig returns an initialized and configured backend, using the backend.Backend interface.
+// During this process:
+// > Users are prompted for input if required attributes are missing.
+// > The backend config is validated
+// > The backend is configured
+// > Service discovery is handled for operations backends (only relevant to `cloud` and `remote`)
 func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
