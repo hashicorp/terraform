@@ -1738,6 +1738,67 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 	return resp
 }
 
+func (p *GRPCProvider) LockState(r providers.LockStateRequest) (resp providers.LockStateResponse) {
+	logger.Trace("GRPCProvider.v6: LockState")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	_, ok := schema.StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto6.LockState_Request{
+		TypeName:  r.TypeName,
+		StateId:   r.StateId,
+		Operation: r.Operation,
+	}
+
+	protoResp, err := p.client.LockState(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.LockId = protoResp.LockId
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
+}
+
+func (p *GRPCProvider) UnlockState(r providers.UnlockStateRequest) (resp providers.UnlockStateResponse) {
+	logger.Trace("GRPCProvider.v6: UnlockState")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	_, ok := schema.StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown state store type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto6.UnlockState_Request{
+		TypeName: r.TypeName,
+		StateId:  r.StateId,
+		LockId:   r.LockId,
+	}
+
+	protoResp, err := p.client.UnlockState(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
+}
+
 func (p *GRPCProvider) SetStateStoreChunkSize(typeName string, size int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()

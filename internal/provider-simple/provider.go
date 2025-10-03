@@ -285,6 +285,14 @@ func (s simple) WriteStateBytes(req providers.WriteStateBytesRequest) providers.
 	panic("not implemented")
 }
 
+func (s simple) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	panic("not implemented")
+}
+
+func (s simple) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	panic("not implemented")
+}
+
 func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
 	// provider-simple uses protocol version 5, which does not include the RPC that maps to this method
 	panic("not implemented")
