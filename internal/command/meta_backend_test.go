@@ -2676,6 +2676,148 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 		}
 	})
 }
+func TestMetaBackend_stateStoreConfig(t *testing.T) {
+	// Reused in tests
+	config := &configs.StateStore{
+		Type:   "test_store",
+		Config: configBodyForTest(t, fmt.Sprintf(`value = "%s"`, "foobar")),
+		Provider: &configs.Provider{
+			Config: configBodyForTest(t, fmt.Sprintf(`region = "%s"`, "foobar")),
+		},
+		ProviderAddr: addrs.NewDefaultProvider("test"),
+	}
+
+	t.Run("override config can change values of custom attributes in the state_store block", func(t *testing.T) {
+		overrideValue := "overridden"
+		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
+		mock := testStateStoreMock(t)
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			ConfigOverride:   configOverride,
+			ProviderFactory:  providers.FactoryFixed(mock),
+			Init:             true,
+		}
+
+		m := testMetaBackend(t, nil)
+		finalConfig, _, _, diags := m.stateStoreConfig(opts)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+		attrs, attrDiags := finalConfig.Config.JustAttributes()
+		if attrDiags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+		gotAttr, attrDiags := attrs["value"].Expr.Value(nil)
+		if attrDiags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", attrDiags.Error())
+		}
+		if gotAttr.AsString() != overrideValue {
+			t.Fatalf("expected the `value` attr in the state_store block to be overridden with value %q, but got %q",
+				overrideValue,
+				attrs["value"],
+			)
+		}
+	})
+
+	t.Run("error - no config present", func(t *testing.T) {
+		opts := &BackendOpts{
+			StateStoreConfig: nil, //unset
+			Init:             true,
+		}
+
+		m := testMetaBackend(t, nil)
+		_, _, _, diags := m.stateStoreConfig(opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "Missing state store configuration"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+	})
+
+	t.Run("error - no provider factory present", func(t *testing.T) {
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			ProviderFactory:  nil, // unset
+			Init:             true,
+		}
+
+		m := testMetaBackend(t, nil)
+		_, _, _, diags := m.stateStoreConfig(opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "Missing provider details when configuring state store"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+	})
+
+	t.Run("error - when there's no state stores in provider", func(t *testing.T) {
+		mock := testStateStoreMock(t)
+		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
+
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			ProviderFactory:  providers.FactoryFixed(mock),
+			Init:             true,
+		}
+
+		m := testMetaBackend(t, nil)
+		_, _, _, diags := m.stateStoreConfig(opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "Provider does not support pluggable state storage"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+	})
+
+	t.Run("error - when there's no matching state store in provider Terraform suggests different identifier", func(t *testing.T) {
+		mock := testStateStoreMock(t)
+		testStore := mock.GetProviderSchemaResponse.StateStores["test_store"]
+		delete(mock.GetProviderSchemaResponse.StateStores, "test_store")
+		// Make the provider contain a "test_bore" impl., while the config specifies a "test_store" impl.
+		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
+
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			ProviderFactory:  providers.FactoryFixed(mock),
+			Init:             true,
+		}
+
+		m := testMetaBackend(t, nil)
+		_, _, _, diags := m.stateStoreConfig(opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "State store not implemented by the provider"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+		expectedSuggestion := `Did you mean "test_bore"?`
+		if !strings.Contains(diags.Err().Error(), expectedSuggestion) {
+			t.Fatalf("expected the returned error to include a suggestion for fixing a typo %q, got: %s",
+				expectedSuggestion,
+				diags.Err(),
+			)
+		}
+	})
+}
 
 func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
