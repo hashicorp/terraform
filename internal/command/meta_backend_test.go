@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -35,7 +36,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/backend/local"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/backend/pluggable"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 )
 
@@ -2399,6 +2402,97 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 
 		})
 	}
+}
+
+func TestSavedBackend(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("backend-unset"), td) // Backend state file describes local backend, config lacks backend config
+	t.Chdir(td)
+
+	// Make a state manager for the backend state file,
+	// read state from file
+	m := testMetaBackend(t, nil)
+	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	err := sMgr.RefreshState()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// Code under test
+	b, diags := m.savedBackend(sMgr)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	// The test fixtures used in this test include a backend state file describing
+	// a local backend with the non-default path value below (local-state.tfstate)
+	localB, ok := b.(*local.Local)
+	if !ok {
+		t.Fatalf("expected the returned backend to be a local backend, matching the test fixtures.")
+	}
+	if localB.StatePath != "local-state.tfstate" {
+		t.Fatalf("expected the local backend to be configured using the backend state file, but got unexpected configuration values.")
+	}
+}
+
+func TestSavedStateStore(t *testing.T) {
+	t.Run("the returned state store is configured with the backend state and not the current config", func(t *testing.T) {
+		// Create a temporary working directory
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		t.Chdir(td)
+
+		// Make a state manager for accessing the backend state file,
+		// and read the backend state from file
+		m := testMetaBackend(t, nil)
+		statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		err := sMgr.RefreshState()
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		// Prepare provider factories for use
+		mock := testStateStoreMock(t)
+		factory := func() (providers.Interface, error) {
+			return mock, nil
+		}
+		mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+			// Assert that the state store is configured using backend state file values from the fixtures
+			config := req.Config.AsValueMap()
+			if config["region"].AsString() != "old-value" {
+				t.Fatalf("expected the provider to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+			}
+			return providers.ConfigureProviderResponse{}
+		}
+		mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+			// Assert that the state store is configured using backend state file values from the fixtures
+			config := req.Config.AsValueMap()
+			if config["value"].AsString() != "old-value" {
+				t.Fatalf("expected the state store to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+			}
+			return providers.ConfigureStateStoreResponse{}
+		}
+
+		// Code under test
+		b, diags := m.savedStateStore(sMgr, factory)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+
+		if _, ok := b.(*pluggable.Pluggable); !ok {
+			t.Fatalf(
+				"expected savedStateStore to return a backend.Backend interface with concrete type %s, but got something else: %#v",
+				"*pluggable.Pluggable",
+				b,
+			)
+		}
+	})
+
+	// NOTE: the mock's functions include assertions about the values passed to
+	// the ConfigureProvider and ConfigureStateStore methods
 }
 
 func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
