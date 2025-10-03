@@ -1615,9 +1615,12 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	}
 
 	// Validate and configure the provider
-	unmarkedProviderConfigVal, _ := providerConfigVal.UnmarkDeep() // Unmark, no need to keep marks
+	//
+	// NOTE: there are no marks we need to remove at this point.
+	// We haven't added marks since the provider config from the backend state was used
+	// because the state-storage provider's config isn't going to be presented to the user via terminal output or diags.
 	validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
-		Config: unmarkedProviderConfigVal,
+		Config: providerConfigVal,
 	})
 	diags = diags.Append(validateResp.Diagnostics)
 	if diags.HasErrors() {
@@ -1626,7 +1629,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 
 	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
 		TerraformVersion: tfversion.SemVer.String(),
-		Config:           unmarkedProviderConfigVal,
+		Config:           providerConfigVal,
 	})
 	diags = diags.Append(configureResp.Diagnostics)
 	if diags.HasErrors() {
@@ -1634,12 +1637,13 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	}
 
 	// Validate and configure the state store
-	// We're unmarking the state_store config despite store schemas being unable to include Sensitive (etc) attributes.
-	// This code is defensive in case we enable schemas to include those behaviors in future.
-	unmarkedStateStoreConfigVal, _ := stateStoreConfigVal.UnmarkDeep()
+	//
+	// NOTE: there are no marks we need to remove at this point.
+	// We haven't added marks since the state store config from the backend state was used
+	// because the state store's config isn't going to be presented to the user via terminal output or diags.
 	validateStoreResp := provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
 		TypeName: s.StateStore.Type,
-		Config:   unmarkedStateStoreConfigVal,
+		Config:   stateStoreConfigVal,
 	})
 	diags = diags.Append(validateStoreResp.Diagnostics)
 	if diags.HasErrors() {
@@ -1648,7 +1652,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 
 	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
 		TypeName: s.StateStore.Type,
-		Config:   unmarkedStateStoreConfigVal,
+		Config:   stateStoreConfigVal,
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
 	if diags.HasErrors() {
