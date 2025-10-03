@@ -2718,12 +2718,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 		m := testMetaBackend(t, nil)
 
 		// Code under test
-		opts := &BackendOpts{
-			StateStoreConfig: config,
-			ProviderFactory:  providers.FactoryFixed(mock),
-			Init:             true,
-		}
-		b, _, _, diags := m.stateStoreInitFromConfig(config, opts)
+		b, _, _, diags := m.stateStoreInitFromConfig(config, providers.FactoryFixed(mock))
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
@@ -2740,12 +2735,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 		// Prepare the meta
 		m := testMetaBackend(t, nil)
 
-		opts := &BackendOpts{
-			StateStoreConfig: config,
-			ProviderFactory:  nil, // unset
-			Init:             true,
-		}
-		_, _, _, diags := m.stateStoreInitFromConfig(config, opts)
+		_, _, _, diags := m.stateStoreInitFromConfig(config, nil) // Factory value isn't set
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2765,12 +2755,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 		mock := testStateStoreMock(t)
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
 
-		opts := &BackendOpts{
-			StateStoreConfig: config,
-			ProviderFactory:  providers.FactoryFixed(mock),
-			Init:             true,
-		}
-		_, _, _, diags := m.stateStoreInitFromConfig(config, opts)
+		_, _, _, diags := m.stateStoreInitFromConfig(config, providers.FactoryFixed(mock))
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2793,12 +2778,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 		// Make the provider contain a "test_bore" impl., while the config specifies a "test_store" impl.
 		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
 
-		opts := &BackendOpts{
-			StateStoreConfig: config,
-			ProviderFactory:  providers.FactoryFixed(mock),
-			Init:             true,
-		}
-		_, _, _, diags := m.stateStoreInitFromConfig(config, opts)
+		_, _, _, diags := m.stateStoreInitFromConfig(config, providers.FactoryFixed(mock))
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
