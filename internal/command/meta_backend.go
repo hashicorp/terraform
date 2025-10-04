@@ -1667,11 +1667,31 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
 		TypeName: s.StateStore.Type,
 		Config:   stateStoreConfigVal,
+		Capabilities: providers.StateStoreClientCapabilities{
+			ChunkSize: defaultStateStoreChunkSize,
+		},
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	chunkSize := cfgStoreResp.Capabilities.ChunkSize
+	if chunkSize == 0 || chunkSize > maxStateStoreChunkSize {
+		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
+			"Expected size >0, <= %d bytes, provider wants %d bytes",
+			maxStateStoreChunkSize, chunkSize,
+		))
+		return nil, diags
+	}
+
+	p, ok := provider.(providers.StateStoreChunkSizeSetter)
+	if !ok {
+		msg := fmt.Sprintf("Unable to set chunk size for provider %s; this is a bug in Terraform - please report it", s.StateStore.Type)
+		panic(msg)
+	}
+	// casting to int here is okay because the number should never exceed int32
+	p.SetStateStoreChunkSize(s.StateStore.Type, int(chunkSize))
 
 	// Now we have a fully configured state store, ready to be used.
 	// To make it usable we need to return it in a backend.Backend interface.

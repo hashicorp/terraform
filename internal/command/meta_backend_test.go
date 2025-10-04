@@ -2440,6 +2440,7 @@ func TestSavedBackend(t *testing.T) {
 func TestSavedStateStore(t *testing.T) {
 	t.Run("the returned state store is configured with the backend state and not the current config", func(t *testing.T) {
 		// Create a temporary working directory
+		chunkSize := 42
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
 		t.Chdir(td)
@@ -2473,7 +2474,21 @@ func TestSavedStateStore(t *testing.T) {
 			if config["value"].AsString() != "old-value" {
 				t.Fatalf("expected the state store to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
 			}
-			return providers.ConfigureStateStoreResponse{}
+			return providers.ConfigureStateStoreResponse{
+				Capabilities: providers.StateStoreServerCapabilities{
+					ChunkSize: int64(chunkSize),
+				},
+			}
+		}
+		mock.SetStateStoreChunkSizeFn = func(storeType string, size int) {
+			if storeType != "test_store" || size != chunkSize {
+				t.Fatalf("expected SetStateStoreChunkSize to be passed store type %q and chunk size %v, but got %q and %v",
+					"test_store",
+					chunkSize,
+					storeType,
+					chunkSize,
+				)
+			}
 		}
 
 		// Code under test
@@ -2489,10 +2504,12 @@ func TestSavedStateStore(t *testing.T) {
 				b,
 			)
 		}
+
+		if !mock.SetStateStoreChunkSizeCalled {
+			t.Fatal("expected configuring the pluggable state store to include a call to SetStateStoreChunkSize on the provider")
+		}
 	})
 
-	// NOTE: the mock's functions include assertions about the values passed to
-	// the ConfigureProvider and ConfigureStateStore methods
 }
 
 func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
