@@ -1562,7 +1562,6 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 
 	buf := &bytes.Buffer{}
 	var expectedTotalLength int
-	// TODO: Send warning if client misbehaves and uses (lower) chunk size that we didn't agree on
 	for {
 		chunk, err := client.Recv()
 		if err == io.EOF {
