@@ -37,6 +37,15 @@ Show off your Terraform knowledge by passing a certification exam. Visit the [ce
 
 This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins, and Terraform can automatically download providers that are published on [the Terraform Registry](https://registry.terraform.io). HashiCorp develops some providers, and others are developed by other organizations. For more information, refer to [Plugin development](https://developer.hashicorp.com/terraform/plugin).
 
+
+### How does `terraform` work?
+
+Check out this interactive walkthrough of the `terraform` codebase on CodeCanvas [here](https://www.code-canvas.com/?session=unauthenticatedGithub&repo=terraform&owner=hashicorp&branch=main&OnboardingTutorial=true).
+
+To update the diagram, follow the quick tutorial [here](https://docs.code-canvas.com/updating-diagram).
+
+<img width="1916" alt="CodeCanvas Screenshot" src="https://codecanvas-media-public.s3.amazonaws.com/images/codecanvas-readme-screenshot.png" />
+
 - To learn more about compiling Terraform and contributing suggested changes, refer to [the contributing guide](.github/CONTRIBUTING.md).
 
 - To learn more about how we handle bug reports, refer to the [bug triage guide](./BUGPROCESS.md).
