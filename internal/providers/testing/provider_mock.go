@@ -16,6 +16,7 @@ import (
 )
 
 var _ providers.Interface = (*MockProvider)(nil)
+var _ providers.StateStoreChunkSizeSetter = (*MockProvider)(nil)
 
 // MockProvider implements providers.Interface but mocks out all the
 // calls for testing purposes.
@@ -155,6 +156,10 @@ type MockProvider struct {
 	WriteStateBytesRequest  providers.WriteStateBytesRequest
 	WriteStateBytesFn       func(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse
 	WriteStateBytesResponse providers.WriteStateBytesResponse
+
+	// See providers.StateStoreChunkSizeSetter interface
+	SetStateStoreChunkSizeCalled bool
+	SetStateStoreChunkSizeFn     func(string, int)
 
 	LockStateCalled   bool
 	LockStateResponse providers.LockStateResponse
@@ -1180,4 +1185,13 @@ func (p *MockProvider) ValidateActionConfig(r providers.ValidateActionConfigRequ
 	}
 
 	return resp
+}
+
+func (p *MockProvider) SetStateStoreChunkSize(storeType string, chunkSize int) {
+	p.SetStateStoreChunkSizeCalled = true
+	if p.SetStateStoreChunkSizeFn != nil {
+		p.SetStateStoreChunkSizeFn(storeType, chunkSize)
+	}
+
+	// If there's no function to use above we do nothing
 }
