@@ -2694,8 +2694,9 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 		ProviderAddr: addrs.NewDefaultProvider("test"),
 	}
 
-	t.Run("the returned state store is configured with the provided config", func(t *testing.T) {
+	t.Run("the returned state store is configured with the provided config and expected chunk size", func(t *testing.T) {
 		// Prepare provider factories for use
+		chunkSize := 42
 		mock := testStateStoreMock(t)
 		mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 			// Assert that the state store is configured using backend state file values from the fixtures
@@ -2711,7 +2712,21 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 			if config["value"].AsString() != expectedValueAttr {
 				t.Fatalf("expected the state store attr to be configured with %q, got %q", expectedValueAttr, config["value"].AsString())
 			}
-			return providers.ConfigureStateStoreResponse{}
+			return providers.ConfigureStateStoreResponse{
+				Capabilities: providers.StateStoreServerCapabilities{
+					ChunkSize: int64(chunkSize),
+				},
+			}
+		}
+		mock.SetStateStoreChunkSizeFn = func(storeType string, size int) {
+			if storeType != "test_store" || size != chunkSize {
+				t.Fatalf("expected SetStateStoreChunkSize to be passed store type %q and chunk size %v, but got %q and %v",
+					"test_store",
+					chunkSize,
+					storeType,
+					chunkSize,
+				)
+			}
 		}
 
 		// Prepare the meta
@@ -2728,6 +2743,10 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 				"*pluggable.Pluggable",
 				b,
 			)
+		}
+
+		if !mock.SetStateStoreChunkSizeCalled {
+			t.Fatal("expected configuring the pluggable state store to include a call to SetStateStoreChunkSize on the provider")
 		}
 	})
 
