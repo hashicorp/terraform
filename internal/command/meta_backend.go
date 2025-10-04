@@ -1543,7 +1543,7 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 }
 
 // Initializing a saved state store from the backend state file (aka 'cache file', aka 'legacy state file')
-func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory providers.Factory) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Factory) (backend.Backend, tfdiags.Diagnostics) {
 	// We're preparing a state_store version of backend.Backend.
 	//
 	// The provider and state store will be configured using the backend state file.
@@ -1551,9 +1551,15 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	var diags tfdiags.Diagnostics
 	var b backend.Backend
 
-	s := sMgr.State()
-
-	provider, err := providerFactory()
+	if factory == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing provider details when configuring state store",
+			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
+		})
+		return nil, diags
+	}
+	provider, err := factory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
 		return nil, diags
@@ -1562,6 +1568,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	// running provider instance inside the returned backend.Backend instance.
 	// Stopping the provider process is the responsibility of the calling code.
 
+	s := sMgr.State()
 	resp := provider.GetProviderSchema()
 
 	if len(resp.StateStores) == 0 {
