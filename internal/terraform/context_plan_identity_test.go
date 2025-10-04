@@ -153,7 +153,6 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			ExpectedError:                       fmt.Errorf("failed to upgrade resource identity: provider was unable to do so"),
 		},
 		"identity sent to provider differs from returned one": {
-			// We don't throw an error here, because there are resource types with mutable identities
 			StoredIdentitySchemaVersion: 0,
 			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
 			IdentitySchema: providers.IdentitySchema{
@@ -171,9 +170,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			IdentityData: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("bar"),
 			}),
-			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
-				"id": cty.StringVal("bar"),
-			}),
+			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" returned a different identity from the one in state with the same version for aws_instance.web. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 		"identity with unknowns": {
 			IdentitySchema: providers.IdentitySchema{
@@ -538,6 +535,7 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 
 		"update - changing identity": {
 			// We don't throw an error here, because there are resource types with mutable identities
+			// but when they change, the identity schema version must have been incremented.
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					addrs.Resource{
@@ -557,7 +555,11 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 					},
 				)
 			}),
+			identitySchemaVersion: 1,
 			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			upgradedIdentity: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("foo"),
 			}),
 
@@ -624,6 +626,32 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 			identitySchemaVersion: 1,
 			expectDiagnostics: tfdiags.Diagnostics{
 				tfdiags.Sourceless(tfdiags.Error, "Resource instance managed by newer provider version", "The current state of test_resource.test was created by a newer provider version than is currently selected. Upgrade the test provider to work with this state."),
+			},
+		},
+		"update - updating identity to null": {
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"bar"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"bar"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			identitySchemaVersion: 1,
+			upgradedIdentity:      cty.NilVal,
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Invalid resource identity upgrade", "The test provider upgraded the identity for test_resource.test from a previous version, but produced an invalid result: The returned state is null."),
 			},
 		},
 
@@ -723,6 +751,33 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 			expectedIdentity: cty.UnknownVal(cty.Object(map[string]cty.Type{
 				"id": cty.String,
 			})),
+		},
+		"update - identity changed but schemaversion did not": {
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"bar"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"foo"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Provider produced invalid identity", "Provider \"registry.terraform.io/hashicorp/test\" returned a different identity from the one in state with the same version for test_resource.test. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

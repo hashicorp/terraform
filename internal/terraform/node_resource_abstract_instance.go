@@ -471,7 +471,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 		if !resp.PlannedIdentity.IsNull() {
 			// Destroying is an operation where we allow identity changes.
-			diags = diags.Append(n.validateIdentityKnown(resp.PlannedIdentity))
+			diags = diags.Append(n.validateIdentityKnown(currentState.Identity, resp.PlannedIdentity))
 			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity, schema.Identity))
 		}
 
@@ -685,7 +685,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		}
 
 		if !resp.Identity.IsNull() {
-			diags = diags.Append(n.validateIdentityKnown(resp.Identity))
+			diags = diags.Append(n.validateIdentityKnown(state.Identity, resp.Identity))
 			diags = diags.Append(n.validateIdentity(resp.Identity, schema.Identity))
 		}
 		if resp.Deferred != nil {
@@ -1136,7 +1136,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	if !plannedIdentity.IsNull() {
 		if !action.IsReplace() && action != plans.Create {
-			diags = diags.Append(n.validateIdentityKnown(plannedIdentity))
+			diags = diags.Append(n.validateIdentityKnown(priorIdentity, plannedIdentity))
 		}
 
 		diags = diags.Append(n.validateIdentity(plannedIdentity, schema.Identity))
@@ -2658,7 +2658,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		})
 
 		if !resp.NewIdentity.IsNull() {
-			diags = diags.Append(n.validateIdentityKnown(resp.NewIdentity))
+			diags = diags.Append(n.validateIdentityKnown(change.AfterIdentity, resp.NewIdentity))
 			diags = diags.Append(n.validateIdentity(resp.NewIdentity, schema.Identity))
 		}
 	}
@@ -2911,13 +2911,28 @@ func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsRes
 	return resourceInstancePrevRunAddr(ctx, n.Addr)
 }
 
-func (n *NodeAbstractResourceInstance) validateIdentityKnown(newIdentity cty.Value) (diags tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) validateIdentityKnown(priorIdentity, newIdentity cty.Value) (diags tfdiags.Diagnostics) {
 	if !newIdentity.IsWhollyKnown() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid identity",
 			fmt.Sprintf(
 				"Provider %q returned an identity with unknown values for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+		return
+	}
+
+	// We already performed an upgrade to the priorIdentity before we got here.
+	// Any changes to the identity should have been made in the `UpgradeResourceIdentity` RPC, not when planning / reading.
+	nonEmpty := priorIdentity != cty.NilVal && !newIdentity.IsNull()
+	if nonEmpty && priorIdentity.Equals(newIdentity).False() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid identity",
+			fmt.Sprintf(
+				"Provider %q returned a different identity from the one in state with the same version for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ResolvedProvider.Provider, n.Addr,
 			),
 		))

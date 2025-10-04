@@ -43,6 +43,7 @@ func TestContext2Apply_identity(t *testing.T) {
 				"id": cty.BoolVal(false),
 			}),
 			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Provider produced invalid identity", "Provider \"registry.terraform.io/hashicorp/test\" returned a different identity from the one in state with the same version for test_resource.test. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 				tfdiags.Sourceless(tfdiags.Error, "Provider produced an identity that doesn't match the schema", "Provider \"registry.terraform.io/hashicorp/test\" returned an identity for test_resource.test that doesn't match the identity schema: .id: string required, but received bool. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 			},
 		},
