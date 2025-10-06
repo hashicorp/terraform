@@ -2724,7 +2724,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 					"test_store",
 					chunkSize,
 					storeType,
-					chunkSize,
+					size,
 				)
 			}
 		}
