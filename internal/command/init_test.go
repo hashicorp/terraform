@@ -3318,6 +3318,122 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
+	t.Run("an init command with the flag -create-default-workspace=false will not make the default workspace by default", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true", "-create-default-workspace=false"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutput := `Terraform has been configured to skip creation of the default workspace`
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+		}
+
+		// Assert the default workspace was created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
+			t.Fatal("expected Terraform to skip creating the default workspace, but it has been created")
+		}
+	})
+
+	// This scenario would be rare, but protecting against it is easy and avoids assumptions.
+	t.Run("when a custom workspace is selected but doesn't exist, no backend state file is made and the init command returns an error", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Select a custom workspace (which will not exist)
+		customWorkspace := "my-custom-workspace"
+		t.Setenv(WorkspaceNameEnvVar, customWorkspace)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			fmt.Sprintf("Workspace %q has not been created yet", customWorkspace),
+			fmt.Sprintf("To create the custom workspace %q use the command `terraform workspace new %s`", customWorkspace, customWorkspace),
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(cleanString(output), expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, cleanString(output))
+			}
+		}
+
+		// Assert no workspaces exist
+		if len(mockProvider.MockStates) != 0 {
+			t.Fatalf("expected no workspaces, but got: %#v", mockProvider.MockStates)
+		}
+
+		// Assert no backend state file made due to the error
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		_, err := os.Stat(statePath)
+		if pathErr, ok := err.(*os.PathError); !ok || !os.IsNotExist(pathErr.Err) {
+			t.Fatalf("expected backend state file to not be created, but it exists")
+		}
+	})
+
 	// TODO(SarahFrench/radeksimko): Add test cases below:
 	// 1) "during a non-init command, the command ends in with an error telling the user to run an init command"
 	// >>> Currently this is handled at a lower level in `internal/command/meta_backend_test.go`
