@@ -17,11 +17,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -3227,6 +3231,198 @@ func TestInit_testsWithModule(t *testing.T) {
 	}
 }
 
+// Testing init's behaviors with `state_store` when run in an empty working directory
+func TestInit_stateStore_newWorkingDir(t *testing.T) {
+	t.Run("the init command creates a backend state file, and creates the default workspace by default", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the default workspace was created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to be created during init, but it is missing")
+		}
+
+		// Assert contents of the backend state file
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be created, but there isn't one")
+		}
+		v1_0_0, _ := version.NewVersion("1.0.0")
+		expectedState := &workdir.StateStoreConfigState{
+			Type:      "test_store",
+			ConfigRaw: []byte("{\n      \"value\": \"foobar\"\n    }"),
+			Hash:      uint64(2116468040), // Hash affected by config
+			Provider: &workdir.ProviderConfigState{
+				Version: v1_0_0,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
+				Hash:      uint64(3976463117), // Hash of empty config
+			},
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+	})
+
+	// TODO(SarahFrench/radeksimko): Add test cases below:
+	// 1) "during a non-init command, the command ends in with an error telling the user to run an init command"
+	// >>> Currently this is handled at a lower level in `internal/command/meta_backend_test.go`
+}
+
+// Testing init's behaviors with `state_store` when run in a working directory where the configuration
+// doesn't match the backend state file.
+func TestInit_stateStore_configChanges(t *testing.T) {
+	t.Run("the -reconfigure flag makes Terraform ignore the backend state file during initialization", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-reconfigure"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-reconfigure",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the default workspace was created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to be created during init, but it is missing")
+		}
+
+		// Assert contents of the backend state file
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be created, but there isn't one")
+		}
+		v1_0_0, _ := version.NewVersion("1.0.0")
+		expectedState := &workdir.StateStoreConfigState{
+			Type:      "test_store",
+			ConfigRaw: []byte("{\n      \"value\": \"changed-value\"\n    }"),
+			Hash:      uint64(1417640992), // Hash affected by config
+			Provider: &workdir.ProviderConfigState{
+				Version: v1_0_0,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
+				Hash:      uint64(3976463117), // Hash of empty config
+			},
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+	})
+
+	// TODO(SarahFrench/radeksimko): Add more test cases related to changing the
+	// configuration and the forced need for state migration.
+	// More complicated situations might benefit from being separate tests altogether.
+	// Simpler scenarios that make sense to keep here are:
+	// 1) Changing config of the same state_store type
+	// 2) Changing config of the same provider (and version) used for PSS
+}
+
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).
@@ -3366,4 +3562,73 @@ func expectedPackageInstallPath(name, version string, exe bool) string {
 	return filepath.ToSlash(filepath.Join(
 		baseDir, fmt.Sprintf("registry.terraform.io/hashicorp/%s/%s/%s", name, version, platform),
 	))
+}
+
+func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
+	// Create a mock provider to use for PSS
+	// Get mock provider factory to be used during init
+	//
+	// This imagines a provider called `test` that contains
+	// a pluggable state store implementation called `store`.
+	pssName := "test_store"
+	mock := testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources:       map[string]providers.Schema{},
+			ResourceTypes:     map[string]providers.Schema{},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores: map[string]providers.Schema{
+				pssName: {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+		return providers.ConfigureStateStoreResponse{
+			Capabilities: providers.StateStoreServerCapabilities{
+				ChunkSize: 1234, // arbitrary number that isn't 0
+			},
+		}
+	}
+	mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+		// Workspaces exist once the artefact representing it is written
+		if _, exist := mock.MockStates[req.StateId]; !exist {
+			// Ensure non-nil map
+			if mock.MockStates == nil {
+				mock.MockStates = make(map[string]interface{})
+			}
+
+			mock.MockStates[req.StateId] = req.Bytes
+		}
+		return providers.WriteStateBytesResponse{
+			Diagnostics: nil, // success
+		}
+	}
+	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+		state := []byte{}
+		if v, exist := mock.MockStates[req.StateId]; exist {
+			if s, ok := v.([]byte); ok {
+				state = s
+			}
+		}
+		return providers.ReadStateBytesResponse{
+			Bytes:       state,
+			Diagnostics: nil, // success
+		}
+	}
+	return &mock
 }
