@@ -2486,7 +2486,7 @@ func TestSavedStateStore(t *testing.T) {
 					"test_store",
 					chunkSize,
 					storeType,
-					chunkSize,
+					size,
 				)
 			}
 		}
