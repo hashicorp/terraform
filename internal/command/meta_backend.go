@@ -567,6 +567,14 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 	}
 
 	// Check - is the state store type in the config supported by the provider?
+	if opts.ProviderFactory == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing provider details when configuring state store",
+			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
+		})
+		return nil, 0, 0, diags
+	}
 	provider, err := opts.ProviderFactory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
@@ -1768,6 +1776,12 @@ func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.Backen
 	return true
 }
 
+// backendInitFromConfig returns an initialized and configured backend, using the backend.Backend interface.
+// During this process:
+// > Users are prompted for input if required attributes are missing.
+// > The backend config is validated
+// > The backend is configured
+// > Service discovery is handled for operations backends (only relevant to `cloud` and `remote`)
 func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -1831,6 +1845,155 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	}
 
 	return b, configVal, diags
+}
+
+// stateStoreInitFromConfig returns an initialized and configured state store, using the backend.Backend interface.
+// During this process:
+// > The provider is configured, after validating provider config
+// > The state store is configured, after validating state_store config
+//
+// NOTE: the backend version of this method, `backendInitFromConfig`, prompts users for input if any required fields
+// are missing from the backend config. In `stateStoreInitFromConfig` we don't do this, and instead users will see an error.
+func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, factory providers.Factory) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if factory == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing provider details when configuring state store",
+			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
+		})
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+	provider, err := factory()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+	// We purposefully don't have a deferred call to the provider's Close method here because the calling code needs a
+	// running provider instance inside the returned backend.Backend instance.
+	// Stopping the provider process is the responsibility of the calling code.
+
+	resp := provider.GetProviderSchema()
+
+	if len(resp.StateStores) == 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider does not support pluggable state storage",
+			Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+				c.Provider.Name,
+				c.ProviderAddr),
+			Subject: &c.DeclRange,
+		})
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	schema, exists := resp.StateStores[c.Type]
+	if !exists {
+		suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+		suggestion := didyoumean.NameSuggestion(c.Type, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "State store not implemented by the provider",
+			Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+				c.Type, c.Provider.Name,
+				c.ProviderAddr, suggestion),
+			Subject: &c.DeclRange,
+		})
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	// Handle the nested provider block.
+	pDecSpec := resp.Provider.Body.DecoderSpec()
+	pConfig := c.Provider.Config
+	providerConfigVal, pDecDiags := hcldec.Decode(pConfig, pDecSpec, nil)
+	diags = diags.Append(pDecDiags)
+
+	// Handle the schema for the state store itself, excluding the provider block.
+	ssdecSpec := schema.Body.DecoderSpec()
+	stateStoreConfigVal, ssDecDiags := hcldec.Decode(c.Config, ssdecSpec, nil)
+	diags = diags.Append(ssDecDiags)
+	if ssDecDiags.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	// Validate and configure the provider
+	//
+	// NOTE: there are no marks we need to remove at this point.
+	// We haven't added marks since the provider config from the backend state was used
+	// because the state-storage provider's config isn't going to be presented to the user via terminal output or diags.
+	validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+		Config: providerConfigVal,
+	})
+	diags = diags.Append(validateResp.Diagnostics)
+	if validateResp.Diagnostics.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
+		TerraformVersion: tfversion.String(),
+		Config:           providerConfigVal,
+	})
+	diags = diags.Append(configureResp.Diagnostics)
+	if configureResp.Diagnostics.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	// Validate state store config and configure the state store
+	//
+	// NOTE: there are no marks we need to remove at this point.
+	// We haven't added marks since the provider config from the backend state was used
+	// because the state-storage provider's config isn't going to be presented to the user via terminal output or diags.
+	validateStoreResp := provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
+		TypeName: c.Type,
+		Config:   stateStoreConfigVal,
+	})
+	diags = diags.Append(validateStoreResp.Diagnostics)
+	if validateStoreResp.Diagnostics.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
+		TypeName: c.Type,
+		Config:   stateStoreConfigVal,
+		Capabilities: providers.StateStoreClientCapabilities{
+			ChunkSize: defaultStateStoreChunkSize,
+		},
+	})
+	diags = diags.Append(cfgStoreResp.Diagnostics)
+	if cfgStoreResp.Diagnostics.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	chunkSize := cfgStoreResp.Capabilities.ChunkSize
+	if chunkSize == 0 || chunkSize > maxStateStoreChunkSize {
+		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
+			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
+			maxStateStoreChunkSize, chunkSize,
+		))
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	p, ok := provider.(providers.StateStoreChunkSizeSetter)
+	if !ok {
+		msg := fmt.Sprintf("Unable to set chunk size for provider %s; this is a bug in Terraform - please report it", c.Type)
+		panic(msg)
+	}
+	// casting to int here is okay because the number should never exceed int32
+	p.SetStateStoreChunkSize(c.Type, int(chunkSize))
+
+	// Now we have a fully configured state store, ready to be used.
+	// To make it usable we need to return it in a backend.Backend interface.
+	b, err := backendPluggable.NewPluggable(provider, c.Type)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, cty.NilVal, cty.NilVal, diags
+	}
+
+	return b, stateStoreConfigVal, providerConfigVal, diags
 }
 
 // Helper method to get aliases from the enhanced backend and alias them
