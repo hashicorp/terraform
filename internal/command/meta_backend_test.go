@@ -2440,6 +2440,7 @@ func TestSavedBackend(t *testing.T) {
 func TestSavedStateStore(t *testing.T) {
 	t.Run("the returned state store is configured with the backend state and not the current config", func(t *testing.T) {
 		// Create a temporary working directory
+		chunkSize := 42
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
 		t.Chdir(td)
@@ -2473,7 +2474,21 @@ func TestSavedStateStore(t *testing.T) {
 			if config["value"].AsString() != "old-value" {
 				t.Fatalf("expected the state store to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
 			}
-			return providers.ConfigureStateStoreResponse{}
+			return providers.ConfigureStateStoreResponse{
+				Capabilities: providers.StateStoreServerCapabilities{
+					ChunkSize: int64(chunkSize),
+				},
+			}
+		}
+		mock.SetStateStoreChunkSizeFn = func(storeType string, size int) {
+			if storeType != "test_store" || size != chunkSize {
+				t.Fatalf("expected SetStateStoreChunkSize to be passed store type %q and chunk size %v, but got %q and %v",
+					"test_store",
+					chunkSize,
+					storeType,
+					size,
+				)
+			}
 		}
 
 		// Code under test
@@ -2489,10 +2504,104 @@ func TestSavedStateStore(t *testing.T) {
 				b,
 			)
 		}
+
+		if !mock.SetStateStoreChunkSizeCalled {
+			t.Fatal("expected configuring the pluggable state store to include a call to SetStateStoreChunkSize on the provider")
+		}
 	})
 
-	// NOTE: the mock's functions include assertions about the values passed to
-	// the ConfigureProvider and ConfigureStateStore methods
+	t.Run("error - no provider factory", func(t *testing.T) {
+		// sMgr pointing to a file that doesn't exist is sufficient setup for this test
+		sMgr := &clistate.LocalState{Path: "foobar.tfstate"}
+
+		m := testMetaBackend(t, nil)
+		_, diags := m.savedStateStore(sMgr, nil)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+
+		expectedErr := "Missing provider details when configuring state store"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+	})
+
+	t.Run("error - when there's no state stores in provider", func(t *testing.T) {
+		// Create a temporary working directory
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		t.Chdir(td)
+
+		// Make a state manager for accessing the backend state file,
+		// and read the backend state from file
+		m := testMetaBackend(t, nil)
+		statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		err := sMgr.RefreshState()
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		mock := testStateStoreMock(t)
+		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
+
+		_, diags := m.savedStateStore(sMgr, providers.FactoryFixed(mock))
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "Provider does not support pluggable state storage"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+	})
+
+	t.Run("error - when there's no matching state store in provider Terraform suggests different identifier", func(t *testing.T) {
+		// Create a temporary working directory
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		t.Chdir(td)
+
+		// Make a state manager for accessing the backend state file,
+		// and read the backend state from file
+		m := testMetaBackend(t, nil)
+		statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		err := sMgr.RefreshState()
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		mock := testStateStoreMock(t)
+		testStore := mock.GetProviderSchemaResponse.StateStores["test_store"]
+		delete(mock.GetProviderSchemaResponse.StateStores, "test_store")
+		// Make the provider contain a "test_bore" impl., while the config specifies a "test_store" impl.
+		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
+
+		_, diags := m.savedStateStore(sMgr, providers.FactoryFixed(mock))
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErr := "State store not implemented by the provider"
+		if !strings.Contains(diags.Err().Error(), expectedErr) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedErr,
+				diags.Err(),
+			)
+		}
+		expectedMsg := `Did you mean "test_bore"?`
+		if !strings.Contains(diags.Err().Error(), expectedMsg) {
+			t.Fatalf("expected the returned error to include %q, got: %s",
+				expectedMsg,
+				diags.Err(),
+			)
+		}
+	})
 }
 
 func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {

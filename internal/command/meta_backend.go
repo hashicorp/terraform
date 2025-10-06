@@ -44,6 +44,20 @@ import (
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
+const (
+	// defaultStateStoreChunkSize is the default chunk size proposed
+	// to the provider.
+	// This can be tweaked but should provide reasonable performance
+	// trade-offs for average network conditions and state file sizes.
+	defaultStateStoreChunkSize int64 = 8 << 20 // 8 MB
+
+	// maxStateStoreChunkSize is the highest chunk size provider may choose
+	// which we still consider reasonable/safe.
+	// This reflects terraform-plugin-go's max. RPC message size of 256MB
+	// and leaves plenty of space for other variable data like diagnostics.
+	maxStateStoreChunkSize int64 = 128 << 20 // 128 MB
+)
+
 // BackendOpts are the options used to initialize a backendrun.OperationsBackend.
 type BackendOpts struct {
 	// BackendConfig is a representation of the backend configuration block given in
@@ -1529,7 +1543,7 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 }
 
 // Initializing a saved state store from the backend state file (aka 'cache file', aka 'legacy state file')
-func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory providers.Factory) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Factory) (backend.Backend, tfdiags.Diagnostics) {
 	// We're preparing a state_store version of backend.Backend.
 	//
 	// The provider and state store will be configured using the backend state file.
@@ -1537,9 +1551,15 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	var diags tfdiags.Diagnostics
 	var b backend.Backend
 
-	s := sMgr.State()
-
-	provider, err := providerFactory()
+	if factory == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing provider details when configuring state store",
+			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
+		})
+		return nil, diags
+	}
+	provider, err := factory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
 		return nil, diags
@@ -1548,6 +1568,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	// running provider instance inside the returned backend.Backend instance.
 	// Stopping the provider process is the responsibility of the calling code.
 
+	s := sMgr.State()
 	resp := provider.GetProviderSchema()
 
 	if len(resp.StateStores) == 0 {
@@ -1653,11 +1674,31 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, providerFactory provid
 	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
 		TypeName: s.StateStore.Type,
 		Config:   stateStoreConfigVal,
+		Capabilities: providers.StateStoreClientCapabilities{
+			ChunkSize: defaultStateStoreChunkSize,
+		},
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	chunkSize := cfgStoreResp.Capabilities.ChunkSize
+	if chunkSize == 0 || chunkSize > maxStateStoreChunkSize {
+		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
+			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
+			maxStateStoreChunkSize, chunkSize,
+		))
+		return nil, diags
+	}
+
+	p, ok := provider.(providers.StateStoreChunkSizeSetter)
+	if !ok {
+		msg := fmt.Sprintf("Unable to set chunk size for provider %s; this is a bug in Terraform - please report it", s.StateStore.Type)
+		panic(msg)
+	}
+	// casting to int here is okay because the number should never exceed int32
+	p.SetStateStoreChunkSize(s.StateStore.Type, int(chunkSize))
 
 	// Now we have a fully configured state store, ready to be used.
 	// To make it usable we need to return it in a backend.Backend interface.
