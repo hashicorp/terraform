@@ -309,6 +309,76 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_resource_identity_refresh_downgrade(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-basic")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:                states.ObjectReady,
+			AttrsJSON:             []byte(`{"id":"foo","foo":"bar"}`),
+			IdentitySchemaVersion: 0,
+			IdentityJSON:          []byte(`{"id": "foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"]
+
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
+	}
+
+	s, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.RefreshOnlyMode})
+
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
+	}
+
+	mod := s.PriorState.RootModule()
+	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !fromState.Identity.IsNull() {
+		t.Fatalf("wrong identity\nwant: null\ngot: %s", fromState.Identity.GoString())
+	}
+}
+
 // This test validates if a resource identity that is deposed and will be destroyed
 // can be refreshed with an identity during the plan.
 func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
