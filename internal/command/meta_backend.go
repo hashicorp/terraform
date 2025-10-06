@@ -672,7 +672,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Get the local 'backend' or 'state_store' configuration.
 	var backendConfig *configs.Backend
 	var stateStoreConfig *configs.StateStore
-	var cHash int // backend hash
+	var backendHash int
 	var stateStoreHash int
 	var stateStoreProviderHash int
 	if opts.StateStoreConfig != nil {
@@ -687,7 +687,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// backend config may or may not have been parsed and included in opts,
 		// or may not exist in config at all (default/implied local backend)
 		var beDiags tfdiags.Diagnostics
-		backendConfig, cHash, beDiags = m.backendConfig(opts)
+		backendConfig, backendHash, beDiags = m.backendConfig(opts)
 		diags = diags.Append(beDiags)
 		if beDiags.HasErrors() {
 			return nil, diags
@@ -778,7 +778,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		return m.backend_c_r_S(backendConfig, cHash, sMgr, true, opts)
+		return m.backend_c_r_S(backendConfig, backendHash, sMgr, true, opts)
 
 	// We're unsetting a state_store (moving from state_store => local)
 	case stateStoreConfig == nil && !s.StateStore.Empty() &&
@@ -808,7 +808,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			}
 			return nil, diags
 		}
-		return m.backend_C_r_s(backendConfig, cHash, sMgr, opts)
+		return m.backend_C_r_s(backendConfig, backendHash, sMgr, opts)
 
 	// Configuring a state store for the first time or -reconfigure flag was used
 	case stateStoreConfig != nil && s.StateStore.Empty() &&
@@ -869,7 +869,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// We're not initializing
 		// AND the backend cache hash values match, indicating that the stored config is valid and completely unchanged.
 		// AND we're not providing any overrides. An override can mean a change overriding an unchanged backend block (indicated by the hash value).
-		if (uint64(cHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
+		if (uint64(backendHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", backendConfig.Type)
 			savedBackend, diags := m.savedBackend(sMgr)
 			// Verify that selected workspace exist. Otherwise prompt user to create one
@@ -897,7 +897,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			// It's possible for a backend to be unchanged, and the config itself to
 			// have changed by moving a parameter from the config to `-backend-config`
 			// In this case, we update the Hash.
-			moreDiags = m.updateSavedBackendHash(cHash, sMgr)
+			moreDiags = m.updateSavedBackendHash(backendHash, sMgr)
 			if moreDiags.HasErrors() {
 				return nil, diags
 			}
@@ -928,7 +928,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 
 		log.Printf("[WARN] backend config has changed since last init")
-		return m.backend_C_r_S_changed(backendConfig, cHash, sMgr, true, opts)
+		return m.backend_C_r_S_changed(backendConfig, backendHash, sMgr, true, opts)
 
 	// Potentially changing a state store configuration
 	case backendConfig == nil && s.Backend.Empty() &&
