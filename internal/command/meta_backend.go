@@ -103,6 +103,10 @@ type BackendOpts struct {
 	// ViewType will set console output format for the
 	// initialization operation (JSON or human-readable).
 	ViewType arguments.ViewType
+
+	// CreateDefaultWorkspace signifies whether the operations backend should create
+	// the default workspace or not
+	CreateDefaultWorkspace bool
 }
 
 // BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
@@ -820,11 +824,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 				stateStoreConfig.Provider.Name,
 				stateStoreConfig.ProviderAddr,
 			)
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"State store initialization required, please run \"terraform init\"",
-				fmt.Sprintf(strings.TrimSpace(errStateStoreInit), initReason),
-			))
+			diags = diags.Append(errStateStoreInitDiag(initReason))
 			return nil, diags
 		}
 
@@ -1586,19 +1586,19 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 
 	workspaces, wDiags := localB.Workspaces()
 	if wDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf(errBackendLocalRead, wDiags.Err()))
+		diags = diags.Append(&errBackendLocalRead{wDiags.Err()})
 		return nil, diags
 	}
 
 	var localStates []statemgr.Full
 	for _, workspace := range workspaces {
-		localState, err := localB.StateMgr(workspace)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+		localState, sDiags := localB.StateMgr(workspace)
+		if sDiags.HasErrors() {
+			diags = diags.Append(&errBackendLocalRead{sDiags.Err()})
 			return nil, diags
 		}
 		if err := localState.RefreshState(); err != nil {
-			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+			diags = diags.Append(&errBackendLocalRead{err})
 			return nil, diags
 		}
 
@@ -1640,11 +1640,11 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 		for _, localState := range localStates {
 			// We always delete the local state, unless that was our new state too.
 			if err := localState.WriteState(nil); err != nil {
-				diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+				diags = diags.Append(&errBackendMigrateLocalDelete{err})
 				return nil, diags
 			}
 			if err := localState.PersistState(nil); err != nil {
-				diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+				diags = diags.Append(&errBackendMigrateLocalDelete{err})
 				return nil, diags
 			}
 		}
@@ -1672,33 +1672,33 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 		// We must record a value into the backend state file, and we cannot include a value that changes (e.g. the Terraform core binary version) as migration
 		// is impossible with builtin providers.
 		// So, we use an arbitrary stand-in version.
-			standInVersion, err := version.NewVersion("0.0.1")
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Error when creating a backend state file. This is a bug in Terraform and should be reported: %w",
-					err))
-				return nil, diags
-			}
-			pVersion = standInVersion
-		} else {
-			// The provider is not built in and is being managed by Terraform
-			// This is the most common scenario, by far.
-			pLock := opts.Locks.Provider(c.ProviderAddr)
-			if pLock == nil {
-				diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
-					c.Provider.Name,
-					c.ProviderAddr,
-					c.Type))
-				return nil, diags
-			}
+		standInVersion, err := version.NewVersion("0.0.1")
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Error when creating a backend state file. This is a bug in Terraform and should be reported: %w",
+				err))
+			return nil, diags
+		}
+		pVersion = standInVersion
+	} else {
+		// The provider is not built in and is being managed by Terraform
+		// This is the most common scenario, by far.
+		pLock := opts.Locks.Provider(c.ProviderAddr)
+		if pLock == nil {
+			diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
+				c.Provider.Name,
+				c.ProviderAddr,
+				c.Type))
+			return nil, diags
+		}
 		var err error
-			pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
-					c.Provider.Name,
-					c.ProviderAddr,
-					c.Type,
-					err))
-				return nil, diags
+		pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
+				c.Provider.Name,
+				c.ProviderAddr,
+				c.Type,
+				err))
+			return nil, diags
 		}
 	}
 	s.StateStore = &workdir.StateStoreConfigState{
@@ -1723,23 +1723,37 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 		if err != nil {
 			if strings.Contains(err.Error(), "No existing workspaces") {
 				// If there are no workspaces, Terraform either needs to create the default workspace here
-				defaultSMgr, sDiags := b.StateMgr(backend.DefaultStateName)
-				diags = diags.Append(sDiags)
-				if sDiags.HasErrors() {
-					diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
-						c.Type,
-						c.Provider.Name,
-						c.ProviderAddr,
-						sDiags.Err()))
+				// or instruct the user to run a `terraform workspace new` command.
+				ws, err := m.Workspace()
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
 					return nil, diags
 				}
-				emptyState := states.NewState()
-				if err := defaultSMgr.WriteState(emptyState); err != nil {
-					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
-					return nil, diags
-				}
-				if err := defaultSMgr.PersistState(nil); err != nil {
-					diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
+
+				if ws == backend.DefaultStateName {
+					// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
+					if opts.CreateDefaultWorkspace {
+						diags = diags.Append(m.createDefaultWorkspace(c, b))
+					} else {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "The default workspace does not exist",
+							Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. To create it, either remove the `-create-default-workspace=false` flag and re-run the 'init' command, or create it using a 'workspace new' command",
+						})
+					}
+				} else {
+					// User needs to run a `terraform workspace new` command to create the missing custom workspace.
+					diags = append(diags, tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("Workspace %q has not been created yet", ws),
+						fmt.Sprintf("State store %q in provider %s (%q) reports that no workspaces currently exist. To create the custom workspace %q use the command `terraform workspace new %s`.",
+							c.Type,
+							c.Provider.Name,
+							c.ProviderAddr,
+							ws,
+							ws,
+						),
+					))
 					return nil, diags
 				}
 			} else {
@@ -1754,15 +1768,44 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 
 	// Update backend state file
 	if err := backendSMgr.WriteState(s); err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		diags = diags.Append(errBackendWriteSavedDiag(err))
 		return nil, diags
 	}
 	if err := backendSMgr.PersistState(); err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		diags = diags.Append(errBackendWriteSavedDiag(err))
 		return nil, diags
 	}
 
 	return b, diags
+}
+
+// createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,
+// and persists an empty state file in the default workspace. By creating this artifact we ensure that the default
+// workspace is created and usable by Terraform in later operations.
+func (m *Meta) createDefaultWorkspace(c *configs.StateStore, b backend.Backend) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	defaultSMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	diags = diags.Append(sDiags)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
+			c.Type,
+			c.Provider.Name,
+			c.ProviderAddr,
+			sDiags.Err()))
+		return diags
+	}
+	emptyState := states.NewState()
+	if err := defaultSMgr.WriteState(emptyState); err != nil {
+		diags = diags.Append(errStateStoreWorkspaceCreateDiag(err, c.Type))
+		return diags
+	}
+	if err := defaultSMgr.PersistState(nil); err != nil {
+		diags = diags.Append(errStateStoreWorkspaceCreateDiag(err, c.Type))
+		return diags
+	}
+
+	return diags
 }
 
 // Initializing a saved state store from the backend state file (aka 'cache file', aka 'legacy state file')

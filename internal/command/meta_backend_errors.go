@@ -123,6 +123,35 @@ configuration or state have been made.`, initReason)
 	)
 }
 
+// errStateStoreInitDiag creates a diagnostic to present to users when
+// users attempt to run a non-init command after making a change to their
+// state_store configuration.
+//
+// An init reason should be provided as an argument.
+func errStateStoreInitDiag(initReason string) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Reason: %s
+
+The "state store" is the interface that Terraform uses to store state when
+performing operations on the local machine. If this message is showing up,
+it means that the Terraform configuration you're using is using a custom
+configuration for state storage in Terraform.
+
+Changes to state store configurations require reinitialization. This allows
+Terraform to set up the new configuration, copy existing state, etc. Please run
+"terraform init" with either the "-reconfigure" or "-migrate-state" flags to
+use the current configuration.
+
+If the change reason above is incorrect, please verify your configuration
+hasn't changed and try again. At this point, no changes to your existing
+configuration or state have been made.`, initReason)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"State store initialization required, please run \"terraform init\"",
+		msg,
+	)
+}
+
 // errBackendInitCloudDiag creates a diagnostic to present to users when
 // an init command encounters config changes in a `cloud` block.
 //
@@ -174,6 +203,23 @@ func (e *errBackendNoExistingWorkspaces) Error() string {
 Use the "terraform workspace" command to create and select a new workspace.
 If the backend already contains existing workspaces, you may need to update
 the backend configuration.`
+}
+
+func errStateStoreWorkspaceCreateDiag(innerError error, storeType string) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Error creating the default workspace using pluggable state store %s: %s
+
+This could be a bug in the provider used for state storage, or a bug in
+Terraform. Please file an issue with the provider developers before reporting
+a bug for Terraform.`,
+		storeType,
+		innerError,
+	)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Cannot create the default workspace",
+		msg,
+	)
 }
 
 // migrateOrReconfigDiag creates a diagnostic to present to users when
