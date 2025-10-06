@@ -1971,7 +1971,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, factory providers
 	chunkSize := cfgStoreResp.Capabilities.ChunkSize
 	if chunkSize == 0 || chunkSize > maxStateStoreChunkSize {
 		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
-			"Expected size >0, <= %d bytes, provider wants %d bytes",
+			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
 			maxStateStoreChunkSize, chunkSize,
 		))
 		return nil, cty.NilVal, cty.NilVal, diags
