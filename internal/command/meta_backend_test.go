@@ -2808,10 +2808,10 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 				diags.Err(),
 			)
 		}
-		expectedStateStore := `Did you mean "test_bore"?`
-		if !strings.Contains(diags.Err().Error(), expectedStateStore) {
+		expectedMsg := `Did you mean "test_bore"?`
+		if !strings.Contains(diags.Err().Error(), expectedMsg) {
 			t.Fatalf("expected the returned error to include %q, got: %s",
-				expectedStateStore,
+				expectedMsg,
 				diags.Err(),
 			)
 		}
