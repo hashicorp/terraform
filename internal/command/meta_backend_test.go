@@ -2086,47 +2086,6 @@ func Test_determineInitReason(t *testing.T) {
 	}
 }
 
-// Newly configured state store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_configureNewStateStore(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-new"), td)
-	t.Chdir(td)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get mock provider to be used during init
-	//
-	// This imagines a provider called "test" that contains
-	// a pluggable state store implementation called "store".
-	mock := testStateStoreMock(t)
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  providers.FactoryFixed(mock),
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Configuring a state store for the first time is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-
-}
-
 // Unsetting a saved state store
 //
 // TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
@@ -2163,56 +2122,6 @@ func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
 	if !strings.Contains(beDiags.Err().Error(), wantErr) {
 		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
 	}
-}
-
-// Reconfiguring with an already configured state store.
-// This should ignore the existing state_store config, and configure the new
-// state store is if this is the first time.
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_reconfigureStateStoreChange(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-reconfigure"), td)
-	t.Chdir(td)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// this should not ask for input
-	m.input = false
-
-	// cli flag -reconfigure
-	m.reconfigure = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get mock provider to be used during init
-	//
-	// This imagines a provider called "test" that contains
-	// a pluggable state store implementation called "store".
-	mock := testStateStoreMock(t)
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  providers.FactoryFixed(mock),
-	})
-
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Configuring a state store for the first time is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-
 }
 
 // Changing a configured state store
