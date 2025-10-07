@@ -78,7 +78,8 @@ func (v *ApplyHuman) ResourceCount(stateOutPath string) {
 	}
 	v.view.streams.Print(v.view.colorize.Color("[reset][bold][green]\n" + summary))
 	if v.countHook.ActionInvocation > 0 {
-		v.view.streams.Print(v.view.colorize.Color(fmt.Sprintf("[reset][bold][green] Actions: %d invoked.", v.countHook.ActionInvocation)))
+		actionsStr := fmt.Sprintf("[reset][bold][green] Actions: %d invoked.", v.countHook.ActionInvocation)
+		v.view.streams.Print(v.view.colorize.Color(actionsStr))
 	}
 	v.view.streams.Print("\n")
 	if (v.countHook.Added > 0 || v.countHook.Changed > 0) && stateOutPath != "" {

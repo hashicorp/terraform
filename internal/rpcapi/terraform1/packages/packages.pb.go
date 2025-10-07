@@ -10,7 +10,11 @@
 package packages
 
 import (
+	context "context"
 	terraform1 "github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -917,4 +921,228 @@ func file_packages_proto_init() {
 	File_packages_proto = out.File
 	file_packages_proto_goTypes = nil
 	file_packages_proto_depIdxs = nil
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConnInterface
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion6
+
+// PackagesClient is the client API for Packages service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type PackagesClient interface {
+	ProviderPackageVersions(ctx context.Context, in *ProviderPackageVersions_Request, opts ...grpc.CallOption) (*ProviderPackageVersions_Response, error)
+	FetchProviderPackage(ctx context.Context, in *FetchProviderPackage_Request, opts ...grpc.CallOption) (*FetchProviderPackage_Response, error)
+	ModulePackageVersions(ctx context.Context, in *ModulePackageVersions_Request, opts ...grpc.CallOption) (*ModulePackageVersions_Response, error)
+	ModulePackageSourceAddr(ctx context.Context, in *ModulePackageSourceAddr_Request, opts ...grpc.CallOption) (*ModulePackageSourceAddr_Response, error)
+	FetchModulePackage(ctx context.Context, in *FetchModulePackage_Request, opts ...grpc.CallOption) (*FetchModulePackage_Response, error)
+}
+
+type packagesClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewPackagesClient(cc grpc.ClientConnInterface) PackagesClient {
+	return &packagesClient{cc}
+}
+
+func (c *packagesClient) ProviderPackageVersions(ctx context.Context, in *ProviderPackageVersions_Request, opts ...grpc.CallOption) (*ProviderPackageVersions_Response, error) {
+	out := new(ProviderPackageVersions_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.packages.Packages/ProviderPackageVersions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *packagesClient) FetchProviderPackage(ctx context.Context, in *FetchProviderPackage_Request, opts ...grpc.CallOption) (*FetchProviderPackage_Response, error) {
+	out := new(FetchProviderPackage_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.packages.Packages/FetchProviderPackage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *packagesClient) ModulePackageVersions(ctx context.Context, in *ModulePackageVersions_Request, opts ...grpc.CallOption) (*ModulePackageVersions_Response, error) {
+	out := new(ModulePackageVersions_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.packages.Packages/ModulePackageVersions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *packagesClient) ModulePackageSourceAddr(ctx context.Context, in *ModulePackageSourceAddr_Request, opts ...grpc.CallOption) (*ModulePackageSourceAddr_Response, error) {
+	out := new(ModulePackageSourceAddr_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.packages.Packages/ModulePackageSourceAddr", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *packagesClient) FetchModulePackage(ctx context.Context, in *FetchModulePackage_Request, opts ...grpc.CallOption) (*FetchModulePackage_Response, error) {
+	out := new(FetchModulePackage_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.packages.Packages/FetchModulePackage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PackagesServer is the server API for Packages service.
+type PackagesServer interface {
+	ProviderPackageVersions(context.Context, *ProviderPackageVersions_Request) (*ProviderPackageVersions_Response, error)
+	FetchProviderPackage(context.Context, *FetchProviderPackage_Request) (*FetchProviderPackage_Response, error)
+	ModulePackageVersions(context.Context, *ModulePackageVersions_Request) (*ModulePackageVersions_Response, error)
+	ModulePackageSourceAddr(context.Context, *ModulePackageSourceAddr_Request) (*ModulePackageSourceAddr_Response, error)
+	FetchModulePackage(context.Context, *FetchModulePackage_Request) (*FetchModulePackage_Response, error)
+}
+
+// UnimplementedPackagesServer can be embedded to have forward compatible implementations.
+type UnimplementedPackagesServer struct {
+}
+
+func (*UnimplementedPackagesServer) ProviderPackageVersions(context.Context, *ProviderPackageVersions_Request) (*ProviderPackageVersions_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProviderPackageVersions not implemented")
+}
+func (*UnimplementedPackagesServer) FetchProviderPackage(context.Context, *FetchProviderPackage_Request) (*FetchProviderPackage_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchProviderPackage not implemented")
+}
+func (*UnimplementedPackagesServer) ModulePackageVersions(context.Context, *ModulePackageVersions_Request) (*ModulePackageVersions_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModulePackageVersions not implemented")
+}
+func (*UnimplementedPackagesServer) ModulePackageSourceAddr(context.Context, *ModulePackageSourceAddr_Request) (*ModulePackageSourceAddr_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModulePackageSourceAddr not implemented")
+}
+func (*UnimplementedPackagesServer) FetchModulePackage(context.Context, *FetchModulePackage_Request) (*FetchModulePackage_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchModulePackage not implemented")
+}
+
+func RegisterPackagesServer(s *grpc.Server, srv PackagesServer) {
+	s.RegisterService(&_Packages_serviceDesc, srv)
+}
+
+func _Packages_ProviderPackageVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProviderPackageVersions_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).ProviderPackageVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.packages.Packages/ProviderPackageVersions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).ProviderPackageVersions(ctx, req.(*ProviderPackageVersions_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Packages_FetchProviderPackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchProviderPackage_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).FetchProviderPackage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.packages.Packages/FetchProviderPackage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).FetchProviderPackage(ctx, req.(*FetchProviderPackage_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Packages_ModulePackageVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModulePackageVersions_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).ModulePackageVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.packages.Packages/ModulePackageVersions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).ModulePackageVersions(ctx, req.(*ModulePackageVersions_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Packages_ModulePackageSourceAddr_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModulePackageSourceAddr_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).ModulePackageSourceAddr(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.packages.Packages/ModulePackageSourceAddr",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).ModulePackageSourceAddr(ctx, req.(*ModulePackageSourceAddr_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Packages_FetchModulePackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchModulePackage_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).FetchModulePackage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.packages.Packages/FetchModulePackage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).FetchModulePackage(ctx, req.(*FetchModulePackage_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Packages_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "terraform1.packages.Packages",
+	HandlerType: (*PackagesServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ProviderPackageVersions",
+			Handler:    _Packages_ProviderPackageVersions_Handler,
+		},
+		{
+			MethodName: "FetchProviderPackage",
+			Handler:    _Packages_FetchProviderPackage_Handler,
+		},
+		{
+			MethodName: "ModulePackageVersions",
+			Handler:    _Packages_ModulePackageVersions_Handler,
+		},
+		{
+			MethodName: "ModulePackageSourceAddr",
+			Handler:    _Packages_ModulePackageSourceAddr_Handler,
+		},
+		{
+			MethodName: "FetchModulePackage",
+			Handler:    _Packages_FetchModulePackage_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "packages.proto",
 }

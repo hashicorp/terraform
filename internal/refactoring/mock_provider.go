@@ -134,27 +134,11 @@ func (provider *mockProvider) ConfigureStateStore(req providers.ConfigureStateSt
 	panic("not implemented in mock")
 }
 
-func (provider *mockProvider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	panic("not implemented in mock")
-}
-
-func (provider *mockProvider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	panic("not implemented in mock")
-}
-
 func (provider *mockProvider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
 	panic("not implemented in mock")
 }
 
 func (provider *mockProvider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
-	panic("not implemented in mock")
-}
-
-func (provider *mockProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
-	panic("not implemented in mock")
-}
-
-func (provider *mockProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
 	panic("not implemented in mock")
 }
 
