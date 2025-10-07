@@ -21,43 +21,10 @@ type ActionTriggerConfigTransformer struct {
 }
 
 func (t *ActionTriggerConfigTransformer) Transform(g *Graph) error {
-	if t.Operation != walkPlan || t.queryPlanMode {
+	// We don't want to run if we are using the query plan mode or have targets in place
+	if t.Operation != walkPlan || t.queryPlanMode || len(t.Targets) > 0 {
 		return nil
 	}
-
-	if len(t.Targets) > 0 {
-		// Then we're invoking and we're just going to include the actions that
-		// have been specifically asked for.
-
-		for _, target := range t.Targets {
-			var config *configs.Action
-			switch target := target.(type) {
-			case addrs.AbsAction:
-				module := t.Config.DescendantForInstance(target.Module)
-				if module != nil {
-					config = module.Module.Actions[target.Action.String()]
-				}
-			case addrs.AbsActionInstance:
-				module := t.Config.DescendantForInstance(target.Module)
-				if module != nil {
-					config = module.Module.Actions[target.Action.Action.String()]
-				}
-			}
-
-			if config == nil {
-				return fmt.Errorf("action %s does not exist in the configuration", target.String())
-			}
-
-			g.Add(&nodeActionInvokeExpand{
-				Target: target,
-				Config: config,
-			})
-		}
-
-		return nil
-	}
-
-	// otherwise, add all the action triggers from the config.
 
 	return t.transform(g, t.Config)
 }
