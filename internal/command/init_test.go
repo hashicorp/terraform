@@ -3368,7 +3368,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	})
 
 	// This scenario would be rare, but protecting against it is easy and avoids assumptions.
-	t.Run("when a custom workspace is selected but doesn't exist, no backend state file is made and the init command returns an error", func(t *testing.T) {
+	t.Run("if a custom workspace is selected but no workspaces exist an error is returned", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3431,6 +3431,99 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		_, err := os.Stat(statePath)
 		if pathErr, ok := err.(*os.PathError); !ok || !os.IsNotExist(pathErr.Err) {
 			t.Fatalf("expected backend state file to not be created, but it exists")
+		}
+	})
+
+	// Tests outcome when input enabled and disabled
+	t.Run("if the default workspace is selected and doesn't exist, but other custom workspaces do exist...", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesFn = func(gsr providers.GetStatesRequest) providers.GetStatesResponse {
+			return providers.GetStatesResponse{
+				States: []string{
+					"foobar1",
+					"foobar2",
+					// Force provider to report workspaces exist
+					// But default workspace doesn't exist
+				},
+			}
+		}
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// If input is disabled users receive an error about the missing workspace
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-input=false",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+		output := testOutput.All()
+		expectedOutput := "Failed to select a workspace: Currently selected workspace \"default\" does not exist"
+		if !strings.Contains(cleanString(output), expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, cleanString(output))
+		}
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		_, err := os.Stat(statePath)
+		if _, ok := err.(*os.PathError); !ok {
+			if err == nil {
+				t.Fatalf("expected backend state file to not be created, but it exists")
+			}
+
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		// If input is enabled, users are prompted to select an existing workspace via input.
+		// This allows the init command to complete successfully.
+		args = []string{"-enable-pluggable-state-storage-experiment=true"}
+		defer testStdinPipe(t, strings.NewReader("1\n"))() // supply input to prompt
+
+		ui = new(cli.MockUi)
+		view, done = testView(t)
+		c.Meta.Ui = ui
+		c.Meta.View = view
+		code = c.Run(args)
+		testOutput = done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+		output = testOutput.All()
+		expectedOutput = "Terraform has been successfully initialized!"
+		if !strings.Contains(cleanString(output), expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, cleanString(output))
+		}
+		// Backend state file is made here, as init completes with a different workspace in use.
+		statePath = filepath.Join(meta.DataDir(), DefaultStateFilename)
+		_, err = os.Stat(statePath)
+		if pathErr, ok := err.(*os.PathError); ok && os.IsNotExist(pathErr.Err) {
+			t.Fatalf("expected backend state file to created, but it doesn't")
 		}
 	})
 
