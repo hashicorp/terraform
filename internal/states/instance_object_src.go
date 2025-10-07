@@ -117,7 +117,7 @@ func (os *ResourceInstanceObjectSrc) Decode(schema providers.Schema) (*ResourceI
 	var identity cty.Value
 	if os.decodeIdentityCache != cty.NilVal {
 		identity = os.decodeIdentityCache
-	} else if os.IdentityJSON != nil {
+	} else if os.IdentityJSON != nil && schema.Identity != nil {
 		identity, err = ctyjson.Unmarshal(os.IdentityJSON, schema.Identity.ImpliedType())
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode identity: %s. This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version", err.Error())
