@@ -13,16 +13,16 @@ import (
 )
 
 type ActionTriggerConfigTransformer struct {
-	Config    *configs.Config
-	Targets   []addrs.Targetable
-	Operation walkOperation
+	Config        *configs.Config
+	ActionTargets []addrs.Targetable
+	Operation     walkOperation
 
 	queryPlanMode bool
 }
 
 func (t *ActionTriggerConfigTransformer) Transform(g *Graph) error {
 	// We don't want to run if we are using the query plan mode or have targets in place
-	if t.Operation != walkPlan || t.queryPlanMode || len(t.Targets) > 0 {
+	if t.Operation != walkPlan || t.queryPlanMode || len(t.ActionTargets) > 0 {
 		return nil
 	}
 
