@@ -6,36 +6,15 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type nodeActionTriggerPlanExpand struct {
-	Addr             addrs.ConfigAction
-	resolvedProvider addrs.AbsProviderConfig
-	Config           *configs.Action
-
-	lifecycleActionTrigger *lifecycleActionTrigger
-}
-
-type lifecycleActionTrigger struct {
-	resourceAddress         addrs.ConfigResource
-	events                  []configs.ActionTriggerEvent
-	actionTriggerBlockIndex int
-	actionListIndex         int
-	invokingSubject         *hcl.Range
-	actionExpr              hcl.Expression
-	conditionExpr           hcl.Expression
-}
-
-func (at *lifecycleActionTrigger) Name() string {
-	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
+	*nodeAbstractActionTriggerExpand
 }
 
 var (
@@ -44,14 +23,7 @@ var (
 )
 
 func (n *nodeActionTriggerPlanExpand) Name() string {
-	triggeredBy := "triggered by "
-	if n.lifecycleActionTrigger != nil {
-		triggeredBy += n.lifecycleActionTrigger.resourceAddress.String()
-	} else {
-		triggeredBy += "unknown"
-	}
-
-	return fmt.Sprintf("%s %s", n.Addr.String(), triggeredBy)
+	return fmt.Sprintf("%s (plan)", n.nodeAbstractActionTriggerExpand.Name())
 }
 
 func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
@@ -147,47 +119,4 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 	addRootNodeToGraph(&g)
 	return &g, diags
-}
-
-func (n *nodeActionTriggerPlanExpand) ModulePath() addrs.Module {
-	return n.Addr.Module
-}
-
-func (n *nodeActionTriggerPlanExpand) References() []*addrs.Reference {
-	var refs []*addrs.Reference
-	refs = append(refs, &addrs.Reference{
-		Subject: n.Addr.Action,
-	})
-
-	if n.lifecycleActionTrigger != nil {
-		refs = append(refs, &addrs.Reference{
-			Subject: n.lifecycleActionTrigger.resourceAddress.Resource,
-		})
-
-		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.lifecycleActionTrigger.conditionExpr)
-		refs = append(refs, conditionRefs...)
-	}
-
-	return refs
-}
-
-func (n *nodeActionTriggerPlanExpand) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
-	if n.resolvedProvider.Provider.Type != "" {
-		return n.resolvedProvider, true
-	}
-
-	// Since we always have a config, we can use it
-	relAddr := n.Config.ProviderConfigAddr()
-	return addrs.LocalProviderConfig{
-		LocalName: relAddr.LocalName,
-		Alias:     relAddr.Alias,
-	}, false
-}
-
-func (n *nodeActionTriggerPlanExpand) Provider() (provider addrs.Provider) {
-	return n.Config.Provider
-}
-
-func (n *nodeActionTriggerPlanExpand) SetProvider(config addrs.AbsProviderConfig) {
-	n.resolvedProvider = config
 }
