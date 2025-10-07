@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-type nodeActionTriggerApply struct {
+type nodeActionTriggerApplyInstance struct {
 	ActionInvocation   *plans.ActionInvocationInstanceSrc
 	resolvedProvider   addrs.AbsProviderConfig
 	ActionTriggerRange *hcl.Range
@@ -26,15 +26,15 @@ type nodeActionTriggerApply struct {
 }
 
 var (
-	_ GraphNodeExecutable = (*nodeActionTriggerApply)(nil)
-	_ GraphNodeReferencer = (*nodeActionTriggerApply)(nil)
+	_ GraphNodeExecutable = (*nodeActionTriggerApplyInstance)(nil)
+	_ GraphNodeReferencer = (*nodeActionTriggerApplyInstance)(nil)
 )
 
-func (n *nodeActionTriggerApply) Name() string {
+func (n *nodeActionTriggerApplyInstance) Name() string {
 	return n.ActionInvocation.Addr.String() + " (instance)"
 }
 
-func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {
+func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	actionInvocation := n.ActionInvocation
 
@@ -189,20 +189,20 @@ func (n *nodeActionTriggerApply) Execute(ctx EvalContext, wo walkOperation) tfdi
 	return diags
 }
 
-func (n *nodeActionTriggerApply) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *nodeActionTriggerApplyInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
 	return n.ActionInvocation.ProviderAddr, true
 
 }
 
-func (n *nodeActionTriggerApply) Provider() (provider addrs.Provider) {
+func (n *nodeActionTriggerApplyInstance) Provider() (provider addrs.Provider) {
 	return n.ActionInvocation.ProviderAddr.Provider
 }
 
-func (n *nodeActionTriggerApply) SetProvider(config addrs.AbsProviderConfig) {
+func (n *nodeActionTriggerApplyInstance) SetProvider(config addrs.AbsProviderConfig) {
 	n.resolvedProvider = config
 }
 
-func (n *nodeActionTriggerApply) References() []*addrs.Reference {
+func (n *nodeActionTriggerApplyInstance) References() []*addrs.Reference {
 	var refs []*addrs.Reference
 
 	refs = append(refs, &addrs.Reference{
@@ -221,16 +221,16 @@ func (n *nodeActionTriggerApply) References() []*addrs.Reference {
 }
 
 // GraphNodeReferencer
-func (n *nodeActionTriggerApply) ModulePath() addrs.Module {
+func (n *nodeActionTriggerApplyInstance) ModulePath() addrs.Module {
 	return n.ActionInvocation.Addr.Module.Module()
 }
 
 // GraphNodeExecutable
-func (n *nodeActionTriggerApply) Path() addrs.ModuleInstance {
+func (n *nodeActionTriggerApplyInstance) Path() addrs.ModuleInstance {
 	return n.ActionInvocation.Addr.Module
 }
 
-func (n *nodeActionTriggerApply) AddSubjectToDiagnostics(input tfdiags.Diagnostics) tfdiags.Diagnostics {
+func (n *nodeActionTriggerApplyInstance) AddSubjectToDiagnostics(input tfdiags.Diagnostics) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if len(input) > 0 {
 		severity := hcl.DiagWarning
