@@ -18,6 +18,8 @@ type ActionTriggerConfigTransformer struct {
 	Operation     walkOperation
 
 	queryPlanMode bool
+
+	ConcreteActionTriggerNodeFunc ConcreteActionTriggerNodeFunc
 }
 
 func (t *ActionTriggerConfigTransformer) Transform(g *Graph) error {
@@ -69,7 +71,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 	}
 
 	for _, r := range config.Module.ManagedResources {
-		priorNodes := []*nodeActionTriggerPlanExpand{}
+		priorNodes := []dag.Vertex{}
 		for i, at := range r.Managed.ActionTriggers {
 			for j, action := range at.Actions {
 				refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
@@ -105,7 +107,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					panic(fmt.Sprintf("Could not find node for %s", resourceAddr))
 				}
 
-				nat := &nodeActionTriggerPlanExpand{
+				abstract := &nodeAbstractActionTriggerExpand{
 					Addr:   configAction,
 					Config: actionConfig,
 					lifecycleActionTrigger: &lifecycleActionTrigger{
@@ -119,6 +121,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					},
 				}
 
+				nat := t.ConcreteActionTriggerNodeFunc(abstract)
 				g.Add(nat)
 
 				// We always want to plan after the resource is done planning
