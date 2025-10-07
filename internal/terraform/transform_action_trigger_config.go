@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
-type ActionPlanTransformer struct {
+type ActionTriggerConfigTransformer struct {
 	Config    *configs.Config
 	Targets   []addrs.Targetable
 	Operation walkOperation
@@ -20,7 +20,7 @@ type ActionPlanTransformer struct {
 	queryPlanMode bool
 }
 
-func (t *ActionPlanTransformer) Transform(g *Graph) error {
+func (t *ActionTriggerConfigTransformer) Transform(g *Graph) error {
 	if t.Operation != walkPlan || t.queryPlanMode {
 		return nil
 	}
@@ -62,7 +62,7 @@ func (t *ActionPlanTransformer) Transform(g *Graph) error {
 	return t.transform(g, t.Config)
 }
 
-func (t *ActionPlanTransformer) transform(g *Graph, config *configs.Config) error {
+func (t *ActionTriggerConfigTransformer) transform(g *Graph, config *configs.Config) error {
 	// Add our resources
 	if err := t.transformSingle(g, config); err != nil {
 		return err
@@ -78,7 +78,7 @@ func (t *ActionPlanTransformer) transform(g *Graph, config *configs.Config) erro
 	return nil
 }
 
-func (t *ActionPlanTransformer) transformSingle(g *Graph, config *configs.Config) error {
+func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *configs.Config) error {
 	actionConfigs := addrs.MakeMap[addrs.ConfigAction, *configs.Action]()
 	for _, a := range config.Module.Actions {
 		actionConfigs.Put(a.Addr().InModule(config.Path), a)
