@@ -14,9 +14,16 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
+type RelativeActionTiming = string
+
+const (
+	RelativeActionTimingBefore = "before"
+	RelativeActionTimingAfter  = "after"
+)
+
 // ConcreteActionTriggerNodeFunc is a callback type used to convert an
 // abstract action trigger to a concrete one of some type.
-type ConcreteActionTriggerNodeFunc func(*nodeAbstractActionTriggerExpand) dag.Vertex
+type ConcreteActionTriggerNodeFunc func(*nodeAbstractActionTriggerExpand, RelativeActionTiming) dag.Vertex
 
 type nodeAbstractActionTriggerExpand struct {
 	Addr             addrs.ConfigAction

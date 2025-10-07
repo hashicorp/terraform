@@ -152,6 +152,29 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Config:   b.Config,
 		},
 
+		&ActionTriggerConfigTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, timing RelativeActionTiming) dag.Vertex {
+				return &nodeActionTriggerApplyExpand{
+					nodeAbstractActionTriggerExpand: node,
+
+					relativeTiming: timing,
+				}
+			},
+			// we want before_* actions to run before and after_* actions to run after the resource
+			CreateNodesAsAfter: false,
+		},
+
+		&ActionInvokeApplyTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			Changes:       b.Changes,
+		},
+
 		&ActionDiffTransformer{
 			Changes: b.Changes,
 			Config:  b.Config,
