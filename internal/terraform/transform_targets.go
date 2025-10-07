@@ -155,7 +155,7 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 		vertexAddr = r.ResourceAddr()
 	case *nodeActionInvokeExpand:
 		vertexAddr = r.Target
-	case *nodeActionTriggerApply:
+	case *nodeActionTriggerApplyInstance:
 		vertexAddr = r.ActionInvocation.Addr
 
 	default:
