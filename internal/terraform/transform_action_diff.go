@@ -30,11 +30,11 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 		applyNodes.Put(applyableResource.Addr, applyableResource)
 	}
 
-	invocationMap := map[*plans.ActionInvocationInstanceSrc]*nodeActionTriggerApply{}
+	invocationMap := map[*plans.ActionInvocationInstanceSrc]*nodeActionTriggerApplyInstance{}
 	triggerMap := addrs.MakeMap[addrs.AbsResourceInstance, []*plans.ActionInvocationInstanceSrc]()
 	for _, action := range t.Changes.ActionInvocations {
 		// Add nodes for each action invocation
-		node := &nodeActionTriggerApply{
+		node := &nodeActionTriggerApplyInstance{
 			ActionInvocation: action,
 		}
 
