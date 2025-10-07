@@ -52,7 +52,6 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 			if (beforeMatches || afterMatches) && atn.lifecycleActionTrigger.actionTriggerBlockIndex == lat.ActionTriggerBlockIndex && atn.lifecycleActionTrigger.actionListIndex == lat.ActionsListIndex {
 				atn.actionInvocationInstances = append(atn.actionInvocationInstances, ai)
 			}
-
 		}
 	}
 
