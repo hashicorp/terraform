@@ -3442,16 +3442,15 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
-		mockProvider.GetStatesFn = func(gsr providers.GetStatesRequest) providers.GetStatesResponse {
-			return providers.GetStatesResponse{
-				States: []string{
-					"foobar1",
-					"foobar2",
-					// Force provider to report workspaces exist
-					// But default workspace doesn't exist
-				},
-			}
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
+			States: []string{
+				"foobar1",
+				"foobar2",
+				// Force provider to report workspaces exist
+				// But default workspace doesn't exist
+			},
 		}
+
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
