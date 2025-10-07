@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 )
 
-type ActionInvokeTransformer struct {
+type ActionInvokePlanTransformer struct {
 	Config        *configs.Config
 	ActionTargets []addrs.Targetable
 	Operation     walkOperation
@@ -18,7 +18,7 @@ type ActionInvokeTransformer struct {
 	queryPlanMode bool
 }
 
-func (t *ActionInvokeTransformer) Transform(g *Graph) error {
+func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 	if t.Operation != walkPlan || t.queryPlanMode || len(t.ActionTargets) == 0 {
 		return nil
 	}
@@ -38,6 +38,8 @@ func (t *ActionInvokeTransformer) Transform(g *Graph) error {
 			if module != nil {
 				config = module.Module.Actions[target.Action.Action.String()]
 			}
+		default:
+			return fmt.Errorf("Targeted unknown action type %T", target)
 		}
 
 		if config == nil {

@@ -171,14 +171,17 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ActionTargets: b.ActionTargets,
 			queryPlanMode: b.queryPlan,
 
-			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand) dag.Vertex {
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, _ RelativeActionTiming) dag.Vertex {
 				return &nodeActionTriggerPlanExpand{
 					nodeAbstractActionTriggerExpand: node,
 				}
 			},
+
+			// We plan all actions after the resource is handled
+			CreateNodesAsAfter: true,
 		},
 
-		&ActionInvokeTransformer{
+		&ActionInvokePlanTransformer{
 			Config:        b.Config,
 			Operation:     b.Operation,
 			ActionTargets: b.ActionTargets,
