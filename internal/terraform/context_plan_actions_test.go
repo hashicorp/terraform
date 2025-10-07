@@ -3205,6 +3205,521 @@ resource "test_object" "a" {
 				},
 			},
 		},
+		// ======== TARGETING ========
+		// -target flag behavior
+		// ======== TARGETING ========
+		"targeting": {
+			"targeted run": {
+				module: map[string]string{
+					"main.tf": ` 
+action "test_action" "hello" {}
+action "test_action" "there" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.there]
+    }
+  }
+}
+action "test_action" "general" {}
+action "test_action" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.test_action.general]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					// We only target resource a
+					Targets: []addrs.Targetable{
+						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					},
+				},
+				// There is a warning related to targeting that we will just ignore
+				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if d.HasErrors() {
+						t.Fatalf("expected no errors, got %s", d.Err().Error())
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// Validate we are targeting resource a out of paranoia
+					if len(p.Changes.Resources) != 1 {
+						t.Fatalf("expected plan to have 1 resource change, got %d", len(p.Changes.Resources))
+					}
+					if p.Changes.Resources[0].Addr.String() != "test_object.a" {
+						t.Fatalf("expected plan to target resource 'test_object.a', got %s", p.Changes.Resources[0].Addr.String())
+					}
+
+					// Ensure the actions for test_object.a are planned
+					if len(p.Changes.ActionInvocations) != 2 {
+						t.Fatalf("expected plan to have 2 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+
+					actionAddrs := []string{
+						p.Changes.ActionInvocations[0].Addr.String(),
+						p.Changes.ActionInvocations[1].Addr.String(),
+					}
+
+					slices.Sort(actionAddrs)
+					if actionAddrs[0] != "action.test_action.hello" || actionAddrs[1] != "action.test_action.there" {
+						t.Fatalf("expected action addresses to be ['action.test_action.hello', 'action.test_action.there'], got %v", actionAddrs)
+					}
+
+				},
+			},
+			"targeted run with ancestor that has actions": {
+				module: map[string]string{
+					"main.tf": ` 
+action "test_action" "hello" {}
+action "test_action" "there" {}
+resource "test_object" "origin" {
+  name = "origin"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+resource "test_object" "a" {
+  name = test_object.origin.name
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.there]
+    }
+  }
+}
+action "test_action" "general" {}
+action "test_action" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.test_action.general]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					// We only target resource a
+					Targets: []addrs.Targetable{
+						mustResourceInstanceAddr("test_object.a"),
+					},
+				},
+				// There is a warning related to targeting that we will just ignore
+				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if d.HasErrors() {
+						t.Fatalf("expected no errors, got %s", d.Err().Error())
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// Validate we are targeting resource a out of paranoia
+					if len(p.Changes.Resources) != 2 {
+						t.Fatalf("expected plan to have 2 resource changes, got %d", len(p.Changes.Resources))
+					}
+					resourceAddrs := []string{
+						p.Changes.Resources[0].Addr.String(),
+						p.Changes.Resources[1].Addr.String(),
+					}
+
+					slices.Sort(resourceAddrs)
+					if resourceAddrs[0] != "test_object.a" || resourceAddrs[1] != "test_object.origin" {
+						t.Fatalf("expected resource addresses to be ['test_object.a', 'test_object.origin'], got %v", resourceAddrs)
+					}
+
+					// Ensure the actions for test_object.a are planned
+					if len(p.Changes.ActionInvocations) != 2 {
+						t.Fatalf("expected plan to have 2 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+
+					actionAddrs := []string{
+						p.Changes.ActionInvocations[0].Addr.String(),
+						p.Changes.ActionInvocations[1].Addr.String(),
+					}
+
+					slices.Sort(actionAddrs)
+					if actionAddrs[0] != "action.test_action.hello" || actionAddrs[1] != "action.test_action.there" {
+						t.Fatalf("expected action addresses to be ['action.test_action.hello', 'action.test_action.there'], got %v", actionAddrs)
+					}
+
+				},
+			},
+			"targeted run with expansion": {
+				module: map[string]string{
+					"main.tf": ` 
+action "test_action" "hello" {
+  count = 3
+}
+action "test_action" "there" {
+  count = 3
+}
+resource "test_object" "a" {
+  count = 3
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello[count.index]]
+    }
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.there[count.index]]
+    }
+  }
+}
+action "test_action" "general" {}
+action "test_action" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.test_action.general]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					// We only target resource a
+					Targets: []addrs.Targetable{
+						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a").Instance(addrs.IntKey(2)),
+					},
+				},
+				// There is a warning related to targeting that we will just ignore
+				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if d.HasErrors() {
+						t.Fatalf("expected no errors, got %s", d.Err().Error())
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// Validate we are targeting resource a out of paranoia
+					if len(p.Changes.Resources) != 1 {
+						t.Fatalf("expected plan to have 1 resource change, got %d", len(p.Changes.Resources))
+					}
+					if p.Changes.Resources[0].Addr.String() != "test_object.a[2]" {
+						t.Fatalf("expected plan to target resource 'test_object.a[2]', got %s", p.Changes.Resources[0].Addr.String())
+					}
+
+					// Ensure the actions for test_object.a are planned
+					if len(p.Changes.ActionInvocations) != 2 {
+						t.Fatalf("expected plan to have 2 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+
+					actionAddrs := []string{
+						p.Changes.ActionInvocations[0].Addr.String(),
+						p.Changes.ActionInvocations[1].Addr.String(),
+					}
+
+					slices.Sort(actionAddrs)
+					if actionAddrs[0] != "action.test_action.hello[2]" || actionAddrs[1] != "action.test_action.there[2]" {
+						t.Fatalf("expected action addresses to be ['action.test_action.hello[2]', 'action.test_action.there[2]'], got %v", actionAddrs)
+					}
+				},
+			},
+			"targeted run with resource reference": {
+				module: map[string]string{
+					"main.tf": ` 
+resource "test_object" "source" {}
+action "test_action" "hello" {
+  config {
+    attr = test_object.source.name
+  }
+}
+action "test_action" "there" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.there]
+    }
+  }
+}
+action "test_action" "general" {}
+action "test_action" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events = [before_create, after_update]
+      actions = [action.test_action.general]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					// We only target resource a
+					Targets: []addrs.Targetable{
+						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					},
+				},
+				// There is a warning related to targeting that we will just ignore
+				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if d.HasErrors() {
+						t.Fatalf("expected no errors, got %s", d.Err().Error())
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// Validate we are targeting resource a out of paranoia
+					if len(p.Changes.Resources) != 2 {
+						t.Fatalf("expected plan to have 2 resource changes, got %d", len(p.Changes.Resources))
+					}
+					resourceAddrs := []string{
+						p.Changes.Resources[0].Addr.String(),
+						p.Changes.Resources[1].Addr.String(),
+					}
+					slices.Sort(resourceAddrs)
+					if resourceAddrs[0] != "test_object.a" || resourceAddrs[1] != "test_object.source" {
+						t.Fatalf("expected resource addresses to be ['test_object.a', 'test_object.source'], got %v", resourceAddrs)
+					}
+
+					// Ensure the actions for test_object.a are planned
+					if len(p.Changes.ActionInvocations) != 2 {
+						t.Fatalf("expected plan to have 2 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+
+					actionAddrs := []string{
+						p.Changes.ActionInvocations[0].Addr.String(),
+						p.Changes.ActionInvocations[1].Addr.String(),
+					}
+
+					slices.Sort(actionAddrs)
+					if actionAddrs[0] != "action.test_action.hello" || actionAddrs[1] != "action.test_action.there" {
+						t.Fatalf("expected action addresses to be ['action.test_action.hello', 'action.test_action.there'], got %v", actionAddrs)
+					}
+				},
+			},
+
+			"targeted run with condition referencing another resource": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "source" {
+		name = "source"
+}
+action "test_action" "hello" {
+		config {
+			attr = test_object.source.name
+		}
+}
+resource "test_object" "a" {
+		lifecycle {
+			action_trigger {
+				events = [before_create]
+				condition = test_object.source.name == "source"
+				actions = [action.test_action.hello]
+			}
+		}
+}
+				`,
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					// Only target resource a
+					Targets: []addrs.Targetable{
+						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					},
+				},
+				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if d.HasErrors() {
+						t.Fatalf("expected no errors, got %s", d.Err().Error())
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// Only resource a should be planned
+					if len(p.Changes.Resources) != 2 {
+						t.Fatalf("expected plan to have 2 resource changes, got %d", len(p.Changes.Resources))
+					}
+					resourceAddrs := []string{p.Changes.Resources[0].Addr.String(), p.Changes.Resources[1].Addr.String()}
+					slices.Sort(resourceAddrs)
+
+					if resourceAddrs[0] != "test_object.a" || resourceAddrs[1] != "test_object.source" {
+						t.Fatalf("expected resource addresses to be ['test_object.a', 'test_object.source'], got %v", resourceAddrs)
+					}
+
+					// Only one action invocation for resource a
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected plan to have 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action address to be 'action.test_action.hello', got '%s'", p.Changes.ActionInvocations[0].Addr)
+					}
+				},
+			},
+
+			"targeted run with action referencing another resource that also triggers actions": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+resource "test_object" "source" {
+		name = "source"
+		
+		lifecycle {
+			action_trigger {
+				events = [before_create]
+				actions = [action.test_action.hello]
+			}
+		}
+}
+action "test_action" "there" {
+		config {
+			attr = test_object.source.name
+		}
+}
+resource "test_object" "a" {
+		lifecycle {
+			action_trigger {
+				events = [after_create]
+				actions = [action.test_action.there]
+			}
+		}
+}
+resource "test_object" "b" {
+		lifecycle {
+			action_trigger {
+				events = [before_create]
+				actions = [action.test_action.hello]
+			}
+		}
+}
+				`,
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					// Only target resource a
+					Targets: []addrs.Targetable{
+						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					},
+				},
+				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if d.HasErrors() {
+						t.Fatalf("expected no errors, got %s", d.Err().Error())
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// Should plan for resource a and its dependency source, but not b
+					if len(p.Changes.Resources) != 2 {
+						t.Fatalf("expected plan to have 2 resource changes, got %d", len(p.Changes.Resources))
+					}
+					resourceAddrs := []string{
+						p.Changes.Resources[0].Addr.String(),
+						p.Changes.Resources[1].Addr.String(),
+					}
+					slices.Sort(resourceAddrs)
+					if resourceAddrs[0] != "test_object.a" || resourceAddrs[1] != "test_object.source" {
+						t.Fatalf("expected resource addresses to be ['test_object.a', 'test_object.source'], got %v", resourceAddrs)
+					}
+
+					// Should plan both actions for resource a
+					if len(p.Changes.ActionInvocations) != 2 {
+						t.Fatalf("expected plan to have 2 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					actionAddrs := []string{
+						p.Changes.ActionInvocations[0].Addr.String(),
+						p.Changes.ActionInvocations[1].Addr.String(),
+					}
+					slices.Sort(actionAddrs)
+					if actionAddrs[0] != "action.test_action.hello" || actionAddrs[1] != "action.test_action.there" {
+						t.Fatalf("expected action addresses to be ['action.test_action.hello', 'action.test_action.there'], got %v", actionAddrs)
+					}
+				},
+			},
+			"targeted run with not-triggered action referencing another resource that also triggers actions": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+resource "test_object" "source" {
+		name = "source"
+		
+		lifecycle {
+			action_trigger {
+				events = [before_create]
+				actions = [action.test_action.hello]
+			}
+		}
+}
+action "test_action" "there" {
+		config {
+			attr = test_object.source.name
+		}
+}
+resource "test_object" "a" {
+		lifecycle {
+			action_trigger {
+				events = [after_update]
+				actions = [action.test_action.there]
+			}
+		}
+}
+resource "test_object" "b" {
+		lifecycle {
+			action_trigger {
+				events = [before_update]
+				actions = [action.test_action.hello]
+			}
+		}
+}
+				`,
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					// Only target resource a
+					Targets: []addrs.Targetable{
+						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					},
+				},
+				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if d.HasErrors() {
+						t.Fatalf("expected no errors, got %s", d.Err().Error())
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// Should plan for resource a and its dependency source, but not b
+					if len(p.Changes.Resources) != 2 {
+						t.Fatalf("expected plan to have 2 resource changes, got %d", len(p.Changes.Resources))
+					}
+					resourceAddrs := []string{
+						p.Changes.Resources[0].Addr.String(),
+						p.Changes.Resources[1].Addr.String(),
+					}
+					slices.Sort(resourceAddrs)
+					if resourceAddrs[0] != "test_object.a" || resourceAddrs[1] != "test_object.source" {
+						t.Fatalf("expected resource addresses to be ['test_object.a', 'test_object.source'], got %v", resourceAddrs)
+					}
+
+					// Should plan only the before_create action of the dependant resource
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected plan to have 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action addresses to be 'action.test_action.hello', got %q", p.Changes.ActionInvocations[0].Addr.String())
+					}
+				},
+			},
+		},
 	} {
 		t.Run(topic, func(t *testing.T) {
 			for name, tc := range tcs {

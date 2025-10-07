@@ -15,6 +15,8 @@ import (
 
 type nodeActionTriggerPlanExpand struct {
 	*nodeAbstractActionTriggerExpand
+
+	resourceTargets []addrs.Targetable
 }
 
 var (
@@ -74,6 +76,24 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 		for _, key := range keys {
 			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
 
+			// If the triggering resource was targeted, make sure the instance
+			// that triggered this was targeted specifically.
+			// This is necessary since the expansion of a resource instance (and of an action trigger)
+			// happens during the graph walk / execution, therefore the target transformer can not
+			// filter out individual instances, this needs to happen during the graph walk / execution.
+			if n.resourceTargets != nil {
+				matched := false
+				for _, resourceTarget := range n.resourceTargets {
+					if resourceTarget.TargetContains(absResourceInstanceAddr) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					continue
+				}
+			}
+
 			// The n.Addr was derived from the ActionRef hcl.Expression referenced inside the resource's lifecycle block, and has not yet been
 			// expanded or fully evaluated, so we will do that now.
 			// Grab the instance key, necessary if the action uses [count.index] or [each.key]
@@ -121,4 +141,8 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 	addRootNodeToGraph(&g)
 	return &g, diags
+}
+
+func (n *nodeActionTriggerPlanExpand) SetResourceTargets(addrs []addrs.Targetable) {
+	n.resourceTargets = addrs
 }
