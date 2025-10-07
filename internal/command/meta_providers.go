@@ -382,8 +382,11 @@ func (m *Meta) providerFactoriesFromLocks(locks *depsfile.Locks) (map[addrs.Prov
 	for provider, reattach := range unmanagedProviders {
 		factories[provider] = unmanagedProviderFactory(provider, reattach)
 	}
-	for provider, factory := range m.testingOverrides.Providers {
-		factories[provider] = factory
+	if m.testingOverrides != nil {
+		// Allow tests, where testingOverrides is set, to see test providers in locks
+		for provider, factory := range m.testingOverrides.Providers {
+			factories[provider] = factory
+		}
 	}
 
 	var err error
