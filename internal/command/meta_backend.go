@@ -1814,7 +1814,7 @@ func isProviderReattached(provider addrs.Provider) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
 		}
-		for p, _ := range m {
+		for p := range m {
 			a, diags := addrs.ParseProviderSourceString(p)
 			if diags.HasErrors() {
 				return false, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
