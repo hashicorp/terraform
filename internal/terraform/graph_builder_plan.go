@@ -172,6 +172,13 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			queryPlanMode: b.queryPlan,
 		},
 
+		&ActionInvokeTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			Targets:       b.ActionTargets,
+			queryPlanMode: b.queryPlan,
+		},
+
 		// Add dynamic values
 		&RootVariableTransformer{
 			Config:       b.Config,
