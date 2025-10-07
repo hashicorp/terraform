@@ -165,7 +165,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
 
-		&ActionPlanTransformer{
+		&ActionTriggerConfigTransformer{
 			Config:        b.Config,
 			Operation:     b.Operation,
 			Targets:       b.ActionTargets,
