@@ -28,7 +28,7 @@ var (
 )
 
 func (n *nodeActionTriggerApplyExpand) Name() string {
-	return fmt.Sprintf("%s (apply)", n.nodeAbstractActionTriggerExpand.Name())
+	return fmt.Sprintf("%s (apply - %s)", n.nodeAbstractActionTriggerExpand.Name(), n.relativeTiming)
 }
 
 func (n *nodeActionTriggerApplyExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
