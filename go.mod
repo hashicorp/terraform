@@ -29,7 +29,7 @@ require (
 	github.com/hashicorp/go-plugin v1.7.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/hashicorp/go-slug v0.16.7
-	github.com/hashicorp/go-tfe v1.91.0
+	github.com/hashicorp/go-tfe v1.93.1-0.20251002182228-05fd1dc4be13
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/hcl v1.0.0

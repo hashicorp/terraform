@@ -1330,6 +1330,10 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		r.Plan.GeneratedConfiguration = true
 	}
 
+	if options.InvokeActionAddrs != nil {
+		r.InvokeActionAddrs = options.InvokeActionAddrs
+	}
+
 	w, ok := m.client.Workspaces.workspaceIDs[options.Workspace.ID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -1395,7 +1399,8 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, options *t
 		hasChanges := r.IsDestroy ||
 			bytes.Contains(logs, []byte("1 to add")) ||
 			bytes.Contains(logs, []byte("1 to change")) ||
-			bytes.Contains(logs, []byte("1 to import"))
+			bytes.Contains(logs, []byte("1 to import")) ||
+			bytes.Contains(logs, []byte("Terraform will invoke the following action(s)"))
 		if hasChanges {
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
@@ -1633,6 +1638,11 @@ func (s *MockStateVersions) RestoreBackingData(ctx context.Context, svID string)
 
 func (s *MockStateVersions) PermanentlyDeleteBackingData(ctx context.Context, svID string) error {
 	panic("not implemented")
+}
+
+func (m *MockStateVersions) UploadSanitizedState(ctx context.Context, sanitizedStateUploadURL *string, sanitizedState []byte) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 type MockStateVersionOutputs struct {
