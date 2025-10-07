@@ -63,7 +63,10 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 
 	for _, v := range vertices {
 		if t.nodeIsTarget(v, addrs) {
-			targetedNodes.Add(v)
+			// We need to add everything this node depends on or that is closely associated with
+			// this node. In case of resource nodes, action triggers are considered closely related
+			// since they belong to the resource.
+			t.addVertexDependenciesToTargetedNodes(g, v, targetedNodes, addrs)
 
 			// We inform nodes that ask about the list of targets - helps for nodes
 			// that need to dynamically expand. Note that this only occurs for nodes
@@ -72,8 +75,13 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 				tn.SetTargets(addrs)
 			}
 
-			for _, d := range g.Ancestors(v) {
-				targetedNodes.Add(d)
+			if _, ok := v.(*nodeExpandPlannableResource); ok {
+				// We want to also set the resource instance triggers on the related action triggers
+				for _, d := range g.UpEdges(v) {
+					if actionTrigger, ok := d.(*nodeActionTriggerPlanExpand); ok {
+						actionTrigger.SetResourceTargets(addrs)
+					}
+				}
 			}
 		}
 	}
@@ -187,4 +195,40 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 	}
 
 	return false
+}
+
+// addVertexDependenciesToTargetedNodes adds dependencies of the targeted vertex to the
+// targetedNodes set. This includes all ancestors in the graph.
+// It also includes all action trigger nodes in the graph. Actions are planned after the
+// triggering node has planned so that we can ensure the actions are only planned if the triggering
+// resource has an action (Create / Update) corresponding to one of the events in the action trigger
+// blocks event list.
+func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v dag.Vertex, targetedNodes dag.Set, addrs []addrs.Targetable) {
+	if targetedNodes.Include(v) {
+		return
+	}
+	targetedNodes.Add(v)
+
+	for _, d := range g.Ancestors(v) {
+		t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
+	}
+
+	if _, ok := v.(*nodeExpandPlannableResource); ok {
+		// We want to also add the action triggers related to this resource
+		for _, d := range g.UpEdges(v) {
+			if _, ok := d.(*nodeActionTriggerPlanExpand); ok {
+				t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
+			}
+		}
+	}
+
+	// An applyable resources might have an associated after_* triggered action.
+	// We need to add that action to the targeted nodes as well, together with all its dependencies.
+	if _, ok := v.(*nodeExpandApplyableResource); ok {
+		for _, f := range g.UpEdges(v) {
+			if _, ok := f.(*nodeActionTriggerApplyExpand); ok {
+				t.addVertexDependenciesToTargetedNodes(g, f, targetedNodes, addrs)
+			}
+		}
+	}
 }
