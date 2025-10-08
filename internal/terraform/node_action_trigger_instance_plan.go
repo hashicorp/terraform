@@ -20,6 +20,11 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+var (
+	_ GraphNodeExecutable = (*nodeActionTriggerPlanInstance)(nil)
+	_ GraphNodeModulePath = (*nodeActionTriggerPlanInstance)(nil)
+)
+
 type nodeActionTriggerPlanInstance struct {
 	actionAddress    addrs.AbsActionInstance
 	resolvedProvider addrs.AbsProviderConfig

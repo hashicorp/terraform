@@ -23,6 +23,8 @@ type nodeActionTriggerApplyExpand struct {
 var (
 	_ GraphNodeDynamicExpandable = (*nodeActionTriggerApplyExpand)(nil)
 	_ GraphNodeReferencer        = (*nodeActionTriggerApplyExpand)(nil)
+	_ GraphNodeProviderConsumer  = (*nodeActionTriggerApplyExpand)(nil)
+	_ GraphNodeModulePath        = (*nodeActionTriggerApplyExpand)(nil)
 )
 
 func (n *nodeActionTriggerApplyExpand) Name() string {
