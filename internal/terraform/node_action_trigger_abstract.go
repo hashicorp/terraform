@@ -48,7 +48,9 @@ func (at *lifecycleActionTrigger) Name() string {
 }
 
 var (
-	_ GraphNodeReferencer = (*nodeAbstractActionTriggerExpand)(nil)
+	_ GraphNodeReferencer       = (*nodeAbstractActionTriggerExpand)(nil)
+	_ GraphNodeProviderConsumer = (*nodeAbstractActionTriggerExpand)(nil)
+	_ GraphNodeModulePath       = (*nodeAbstractActionTriggerExpand)(nil)
 )
 
 func (n *nodeAbstractActionTriggerExpand) Name() string {
