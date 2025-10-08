@@ -2150,11 +2150,26 @@ func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
 	// a pluggable state store implementation called "store".
 	mock := testStateStoreMock(t)
 
+	// Define some locks to pass in
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	locks.SetProvider(
+		providerAddr,
+		versions.MustParseVersion("9.9.9"),
+		constraint,
+		[]providerreqs.Hash{""},
+	)
+
 	// Get the operations backend
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  providers.FactoryFixed(mock),
+		Locks:            locks,
 	})
 	if !beDiags.HasErrors() {
 		t.Fatal("expected an error to be returned during partial implementation of PSS")
