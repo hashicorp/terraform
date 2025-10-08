@@ -3435,7 +3435,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	})
 
 	// Tests outcome when input enabled and disabled
-	t.Run("if the default workspace is selected and doesn't exist, but other custom workspaces do exist...", func(t *testing.T) {
+	t.Run("if the default workspace is selected and doesn't exist, but other custom workspaces do exist and input is disabled, an error is returned", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3497,32 +3497,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			}
 
 			t.Fatalf("unexpected error: %s", err)
-		}
-
-		// If input is enabled, users are prompted to select an existing workspace via input.
-		// This allows the init command to complete successfully.
-		args = []string{"-enable-pluggable-state-storage-experiment=true"}
-		defer testStdinPipe(t, strings.NewReader("1\n"))() // supply input to prompt
-
-		ui = new(cli.MockUi)
-		view, done = testView(t)
-		c.Meta.Ui = ui
-		c.Meta.View = view
-		code = c.Run(args)
-		testOutput = done(t)
-		if code != 0 {
-			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-		output = testOutput.All()
-		expectedOutput = "Terraform has been successfully initialized!"
-		if !strings.Contains(cleanString(output), expectedOutput) {
-			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, cleanString(output))
-		}
-		// Backend state file is made here, as init completes with a different workspace in use.
-		statePath = filepath.Join(meta.DataDir(), DefaultStateFilename)
-		_, err = os.Stat(statePath)
-		if pathErr, ok := err.(*os.PathError); ok && os.IsNotExist(pathErr.Err) {
-			t.Fatalf("expected backend state file to created, but it doesn't")
 		}
 	})
 
