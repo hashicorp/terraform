@@ -959,6 +959,38 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// > Changing how the store is configured.
 		// > Allowing values to be moved between partial overrides and config
 
+		// We are not going to migrate if...
+		//
+		// The state_store config cache hash values match, indicating that the state_store config is valid and completely unchanged.
+		// AND the provider config cache hash values match, indicating that the provider config is valid and completely unchanged.
+		// AND the provider version is the same
+		// AND we're not providing any overrides. An override can mean a change overriding an unchanged state_store block (indicated by the hash value).
+		pVersion, vDiags := getStateStorageProviderVersionFromLocks(stateStoreConfig, opts.Locks)
+		diags = diags.Append(vDiags)
+		if vDiags.HasErrors() {
+			return nil, diags
+		}
+
+		if (uint64(stateStoreHash) == s.StateStore.Hash) &&
+			(uint64(stateStoreProviderHash) == s.StateStore.Provider.Hash) &&
+			s.StateStore.Provider.Version.Equal(pVersion) &&
+			(!opts.Init || opts.ConfigOverride == nil) {
+			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q state_store configuration", stateStoreConfig.Type)
+			savedStateStore, sssDiags := m.savedStateStore(sMgr, opts.ProviderFactory)
+			diags = diags.Append(sssDiags)
+			// Verify that selected workspace exist. Otherwise prompt user to create one
+			if opts.Init && savedStateStore != nil {
+				if err := m.selectWorkspace(savedStateStore); err != nil {
+					diags = diags.Append(err)
+					return nil, diags
+				}
+			}
+			return savedStateStore, diags
+		}
+
+		// Above caters only for unchanged config
+		// but this switch case will also handle changes,
+		// which isn't implemented yet.
 		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Not implemented yet",
