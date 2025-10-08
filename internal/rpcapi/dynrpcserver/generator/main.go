@@ -125,6 +125,11 @@ func main() {
 			fmt.Fprintf(&buf, "type %s struct {\n", baseName)
 			fmt.Fprintf(&buf, "impl %s.%s\n", shortName, ifaceName)
 			fmt.Fprintln(&buf, "mu sync.RWMutex")
+
+			unimplementedServerInterface := fmt.Sprintf("%s.Unimplemented%s", shortName, ifaceName) // UnimplementedFoobarServer struct name that's generated from the proto file.
+			unimplementedServerMethod := fmt.Sprintf("mustEmbedUnimplemented%s", ifaceName)         // Name of the method implemented on UnimplementedFoobarServer.
+			fmt.Fprintln(&buf, unimplementedServerInterface)                                        // Embed UnimplementedFoobarServer struct into the struct we're generating.
+
 			buf.WriteString("}\n\n")
 
 			fmt.Fprintf(&buf, "var _ %s.%s = (*%s)(nil)\n\n", shortName, ifaceName, baseName)
@@ -135,6 +140,13 @@ func main() {
 
 			for i := 0; i < iface.NumMethods(); i++ {
 				method := iface.Method(i)
+
+				if method.Name() == unimplementedServerMethod {
+					// Code for this method doesn't need to be generated.
+					// The method is present via embedding, see use of `unimplementedServerInterface` above.
+					continue
+				}
+
 				sig := method.Type().(*types.Signature)
 
 				fmt.Fprintf(&buf, "func (s *%s) %s(", baseName, method.Name())
