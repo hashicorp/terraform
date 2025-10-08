@@ -1351,6 +1351,52 @@ resource "test_object" "a" {
 				},
 			},
 
+			"ephemeral values": {
+				module: map[string]string{
+					"main.tf": `
+variable "secret" {
+  type           = string
+  ephemeral      = true
+}
+action "test_action" "hello" {
+  config {
+    attr = var.secret
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.NormalMode,
+					SetVariables: InputValues{
+						"secret": &InputValue{
+							Value:      cty.StringVal("secret"),
+							SourceType: ValueFromCLIArg,
+						}},
+				},
+				expectPlanActionCalled: false,
+				assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if len(diags) != 1 {
+						t.Fatalf("expected exactly 1 diagnostic but had %d", len(diags))
+					}
+
+					if diags[0].Severity() != tfdiags.Error {
+						t.Error("expected error diagnostic")
+					}
+
+					if diags[0].Description().Summary != "Invalid use of ephemeral value" {
+						t.Errorf("expected diagnostics to be because of ephemeral values but was %s", diags[0].Description().Summary)
+					}
+				},
+			},
+
 			"write-only attributes": {
 				module: map[string]string{
 					"main.tf": `
