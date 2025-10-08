@@ -3558,6 +3558,69 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in a working directory where the configuration
 // doesn't match the backend state file.
+func TestInit_stateStore_configUnchanged(t *testing.T) {
+	t.Run("init is successful when the configuration and backend state match", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that matches the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		// If the working directory was previously initialized successfully then at least
+		// one workspace is guaranteed to exist when a user is re-running init with no config
+		// changes since last init. So this test says `default` exists.
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
+			States: []string{"default"},
+		}
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+	})
+}
+
+// Testing init's behaviors with `state_store` when run in a working directory where the configuration
+// doesn't match the backend state file.
 func TestInit_stateStore_configChanges(t *testing.T) {
 	t.Run("the -reconfigure flag makes Terraform ignore the backend state file during initialization", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
