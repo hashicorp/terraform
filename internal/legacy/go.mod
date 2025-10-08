@@ -21,11 +21,11 @@ require (
 	github.com/apparentlymart/go-versions v1.0.2 // indirect
 	github.com/bmatcuk/doublestar v1.1.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hashicorp/go-slug v0.16.7 // indirect
+	github.com/hashicorp/go-slug v0.16.8 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
-	github.com/hashicorp/terraform-registry-address v0.3.0 // indirect
+	github.com/hashicorp/terraform-registry-address v0.4.0 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect

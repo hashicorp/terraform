@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -169,6 +170,26 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		for _, addr := range op.Targets {
 			runOptions.TargetAddrs = append(runOptions.TargetAddrs, addr.String())
 		}
+	}
+
+	if len(op.ActionTargets) != 0 {
+		if len(op.ActionTargets) > 1 {
+			// For now, we only support a single action from the command line.
+			// We've future proofed the API and inputs so we can send multiple
+			// but versions of Terraform will enforce this both here, and
+			// on the other side.
+			//
+			// It shouldn't actually be possible to reach here anyway - we're
+			// validating at the point the flag is read that it only has a
+			// single entry. But, we'll check again to be safe.
+			return nil, b.generalError("Invalid arguments",
+				errors.New("at most 1 action can be invoked per operation"))
+		}
+
+		for _, target := range op.ActionTargets {
+			runOptions.InvokeActionAddrs = append(runOptions.InvokeActionAddrs, target.String())
+		}
+
 	}
 
 	if len(op.ForceReplace) != 0 {
