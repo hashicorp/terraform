@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -39,6 +40,8 @@ func TestContextApply_actions(t *testing.T) {
 		expectInvokeActionCallsAreUnordered bool
 		expectDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
 		ignoreWarnings                      bool
+
+		assertHooks func(*testing.T, actionHookCapture)
 	}{
 		"before_create triggered": {
 			module: map[string]string{
@@ -72,6 +75,55 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
+		},
+
+		"before and after created triggered": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create,after_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			assertHooks: func(t *testing.T, capture actionHookCapture) {
+				if len(capture.startActionHooks) != 2 {
+					t.Error("expected 2 start action hooks")
+				}
+				if len(capture.completeActionHooks) != 2 {
+					t.Error("expected 2 complete action hooks")
+				}
+
+				evaluateHook := func(got HookActionIdentity, wantAddr string, wantEvent configs.ActionTriggerEvent) {
+					trigger := got.ActionTrigger.(*plans.LifecycleActionTrigger)
+
+					if trigger.ActionTriggerEvent != wantEvent {
+						t.Errorf("wrong event, got %s, want %s", trigger.ActionTriggerEvent, wantEvent)
+					}
+					if diff := cmp.Diff(got.Addr.String(), wantAddr); len(diff) > 0 {
+						t.Errorf("wrong address: %s", diff)
+					}
+				}
+
+				// the before should have happened first, and the order should
+				// be correct.
+
+				beforeStart := capture.startActionHooks[0]
+				beforeComplete := capture.completeActionHooks[0]
+				evaluateHook(beforeStart, "action.action_example.hello", configs.BeforeCreate)
+				evaluateHook(beforeComplete, "action.action_example.hello", configs.BeforeCreate)
+
+				afterStart := capture.startActionHooks[1]
+				afterComplete := capture.completeActionHooks[1]
+				evaluateHook(afterStart, "action.action_example.hello", configs.AfterCreate)
+				evaluateHook(afterComplete, "action.action_example.hello", configs.AfterCreate)
+			},
 		},
 
 		"before_update triggered": {
@@ -2511,6 +2563,7 @@ lifecycle {
 				InvokeActionFn: invokeActionFn,
 			}
 
+			hookCapture := actionHookCapture{}
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
@@ -2520,6 +2573,9 @@ lifecycle {
 						Namespace: "danielmschmidt",
 						Hostname:  addrs.DefaultProviderRegistryHost,
 					}: testProviderFuncFixed(ecosystem),
+				},
+				Hooks: []Hook{
+					&hookCapture,
 				},
 			})
 
@@ -2587,6 +2643,119 @@ lifecycle {
 					}
 				}
 			}
+
+			if tc.assertHooks != nil {
+				tc.assertHooks(t, hookCapture)
+			}
 		})
 	}
+}
+
+var _ Hook = (*actionHookCapture)(nil)
+
+type actionHookCapture struct {
+	startActionHooks    []HookActionIdentity
+	completeActionHooks []HookActionIdentity
+}
+
+func (a *actionHookCapture) PreApply(HookResourceIdentity, addrs.DeposedKey, plans.Action, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostApply(HookResourceIdentity, addrs.DeposedKey, cty.Value, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreDiff(HookResourceIdentity, addrs.DeposedKey, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostDiff(HookResourceIdentity, addrs.DeposedKey, plans.Action, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreProvisionInstance(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostProvisionInstance(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreProvisionInstanceStep(HookResourceIdentity, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostProvisionInstanceStep(HookResourceIdentity, string, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) ProvisionOutput(HookResourceIdentity, string, string) {}
+
+func (a *actionHookCapture) PreRefresh(HookResourceIdentity, addrs.DeposedKey, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostRefresh(HookResourceIdentity, addrs.DeposedKey, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreImportState(HookResourceIdentity, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostImportState(HookResourceIdentity, []providers.ImportedResource) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PrePlanImport(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostPlanImport(HookResourceIdentity, []providers.ImportedResource) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreApplyImport(HookResourceIdentity, plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostApplyImport(HookResourceIdentity, plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreEphemeralOp(HookResourceIdentity, plans.Action) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostEphemeralOp(HookResourceIdentity, plans.Action, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreListQuery(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostListQuery(HookResourceIdentity, plans.QueryResults, int64) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) StartAction(identity HookActionIdentity) (HookAction, error) {
+	a.startActionHooks = append(a.startActionHooks, identity)
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) ProgressAction(HookActionIdentity, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) CompleteAction(identity HookActionIdentity, _ error) (HookAction, error) {
+	a.completeActionHooks = append(a.completeActionHooks, identity)
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) Stopping() {}
+
+func (a *actionHookCapture) PostStateUpdate(*states.State) (HookAction, error) {
+	return HookActionContinue, nil
 }
