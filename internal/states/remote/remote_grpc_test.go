@@ -279,6 +279,10 @@ func Test_grpcClient_Lock(t *testing.T) {
 	typeName := "foo_bar" // state store 'bar' in provider 'foo'
 	stateId := "production"
 	operation := "apply"
+	lockInfo := &statemgr.LockInfo{
+		Operation: operation,
+		// This is sufficient when locking via PSS
+	}
 
 	t.Run("state manager made using grpcClient sends expected values to Lock method", func(t *testing.T) {
 		expectedLockId := "id-from-mock"
@@ -310,10 +314,6 @@ func Test_grpcClient_Lock(t *testing.T) {
 		// and invoke the method on that interface that uses Lock.
 		c := NewRemoteGRPC(&provider, typeName, stateId)
 
-		lockInfo := &statemgr.LockInfo{
-			Operation: operation,
-			// This is sufficient when locking via PSS
-		}
 		lockId, err := c.Lock(lockInfo)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -351,10 +351,6 @@ func Test_grpcClient_Lock(t *testing.T) {
 		// and invoke the method on that interface that uses Lock.
 		c := NewRemoteGRPC(&provider, typeName, stateId)
 
-		lockInfo := &statemgr.LockInfo{
-			Operation: operation,
-			// This is sufficient when locking via PSS
-		}
 		_, err := c.Lock(lockInfo)
 		if !provider.LockStateCalled {
 			t.Fatal("expected remote grpc state manager's Lock method to call Lock method on underlying provider, but it has not been called")
@@ -390,10 +386,6 @@ func Test_grpcClient_Lock(t *testing.T) {
 
 		c := NewRemoteGRPC(&provider, typeName, stateId)
 
-		lockInfo := &statemgr.LockInfo{
-			Operation: operation,
-			// This is sufficient when locking via PSS
-		}
 		_, err := c.Lock(lockInfo)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
