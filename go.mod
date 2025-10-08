@@ -28,14 +28,14 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.7.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
-	github.com/hashicorp/go-slug v0.16.7
-	github.com/hashicorp/go-tfe v1.91.0
+	github.com/hashicorp/go-slug v0.16.8
+	github.com/hashicorp/go-tfe v1.94.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/hashicorp/jsonapi v1.4.3-0.20250220162346-81a76b606f3e
-	github.com/hashicorp/terraform-registry-address v0.3.0
+	github.com/hashicorp/terraform-registry-address v0.4.0
 	github.com/hashicorp/terraform-svchost v0.1.1
 	github.com/hashicorp/terraform/internal/backend/remote-state/azure v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/backend/remote-state/consul v0.0.0-00010101000000-000000000000
