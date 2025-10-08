@@ -14,6 +14,7 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -270,4 +271,253 @@ func Test_grpcClient_Delete(t *testing.T) {
 	if !provider.DeleteStateCalled {
 		t.Fatal("expected Delete method to call DeleteState method on underlying provider, but it has not been called")
 	}
+}
+
+// Testing grpcClient's Lock method.
+// The Lock method on a state manager calls the Lock method of the underlying client.
+func Test_grpcClient_Lock(t *testing.T) {
+	typeName := "foo_bar" // state store 'bar' in provider 'foo'
+	stateId := "production"
+	operation := "apply"
+
+	t.Run("state manager made using grpcClient sends expected values to Lock method", func(t *testing.T) {
+		expectedLockId := "id-from-mock"
+		provider := testing_provider.MockProvider{
+			// Mock a provider and internal state store that
+			// have both been configured
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+
+			// Check values received by the provider from the Lock method.
+			LockStateFn: func(req providers.LockStateRequest) providers.LockStateResponse {
+				if req.TypeName != typeName || req.StateId != stateId || req.Operation != operation {
+					t.Fatalf("expected provider ReadStateBytes method to receive TypeName %q, StateId %q, and Operation %q, instead got TypeName %q, StateId %q, and Operation %q",
+						typeName,
+						stateId,
+						operation,
+						req.TypeName,
+						req.StateId,
+						req.Operation,
+					)
+				}
+				return providers.LockStateResponse{
+					LockId: expectedLockId,
+				}
+			},
+		}
+
+		// This package will be consumed in a statemgr.Full, so we test using NewRemoteGRPC
+		// and invoke the method on that interface that uses Lock.
+		c := NewRemoteGRPC(&provider, typeName, stateId)
+
+		lockInfo := &statemgr.LockInfo{
+			Operation: operation,
+			// This is sufficient when locking via PSS
+		}
+		lockId, err := c.Lock(lockInfo)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if !provider.LockStateCalled {
+			t.Fatal("expected remote grpc state manager's Lock method to call Lock method on underlying provider, but it has not been called")
+		}
+		if lockId != expectedLockId {
+			t.Fatalf("unexpected lock id returned, wanted %q, got %q", expectedLockId, lockId)
+		}
+	})
+
+	t.Run("state manager made using grpcClient returns expected error from Lock method's error diagnostic", func(t *testing.T) {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "error forced from test",
+			Detail:   "error forced from test",
+		})
+
+		provider := testing_provider.MockProvider{
+			// Mock a provider and internal state store that
+			// have both been configured
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+
+			// Force return of an error.
+			LockStateResponse: providers.LockStateResponse{
+				Diagnostics: diags,
+			},
+		}
+
+		// This package will be consumed in a statemgr.Full, so we test using NewRemoteGRPC
+		// and invoke the method on that interface that uses Lock.
+		c := NewRemoteGRPC(&provider, typeName, stateId)
+
+		lockInfo := &statemgr.LockInfo{
+			Operation: operation,
+			// This is sufficient when locking via PSS
+		}
+		_, err := c.Lock(lockInfo)
+		if !provider.LockStateCalled {
+			t.Fatal("expected remote grpc state manager's Lock method to call Lock method on underlying provider, but it has not been called")
+		}
+		if err == nil {
+			t.Fatal("expected error but got none")
+		}
+		expectedMsg := "error forced from test"
+		if !strings.Contains(err.Error(), expectedMsg) {
+			t.Fatalf("expected error to include %q but got: %s", expectedMsg, err)
+		}
+	})
+
+	t.Run("state manager made using grpcClient currently swallows warning diagnostics returned from the Lock method", func(t *testing.T) {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "warning forced from test",
+			Detail:   "warning forced from test",
+		})
+
+		provider := testing_provider.MockProvider{
+			// Mock a provider and internal state store that
+			// have both been configured
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+
+			// Force return of a warning.
+			LockStateResponse: providers.LockStateResponse{
+				Diagnostics: diags,
+			},
+		}
+
+		c := NewRemoteGRPC(&provider, typeName, stateId)
+
+		lockInfo := &statemgr.LockInfo{
+			Operation: operation,
+			// This is sufficient when locking via PSS
+		}
+		_, err := c.Lock(lockInfo)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		// The warning is swallowed by the Lock method.
+		// The Locker interface should be updated to allow use of diagnostics instead of errors,
+		// and this test should be updated.
+	})
+}
+
+// Testing grpcClient's Unlock method.
+// The Unlock method on a state manager calls the Unlock method of the underlying client.
+func Test_grpcClient_Unlock(t *testing.T) {
+	typeName := "foo_bar" // state store 'bar' in provider 'foo'
+	stateId := "production"
+
+	t.Run("state manager made using grpcClient sends expected values to Unlock method", func(t *testing.T) {
+		expectedLockId := "id-from-mock"
+		provider := testing_provider.MockProvider{
+			// Mock a provider and internal state store that
+			// have both been configured
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+
+			// Check values received by the provider from the Lock method.
+			UnlockStateFn: func(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+				if req.TypeName != typeName || req.StateId != stateId || req.LockId != expectedLockId {
+					t.Fatalf("expected provider ReadStateBytes method to receive TypeName %q, StateId %q, and LockId %q, instead got TypeName %q, StateId %q, and LockId %q",
+						typeName,
+						stateId,
+						expectedLockId,
+						req.TypeName,
+						req.StateId,
+						req.LockId,
+					)
+				}
+				return providers.UnlockStateResponse{}
+			},
+		}
+
+		// This package will be consumed in a statemgr.Full, so we test using NewRemoteGRPC
+		// and invoke the method on that interface that uses Unlock.
+		c := NewRemoteGRPC(&provider, typeName, stateId)
+
+		err := c.Unlock(expectedLockId)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if !provider.UnlockStateCalled {
+			t.Fatal("expected remote grpc state manager's Unlock method to call Unlock method on underlying provider, but it has not been called")
+		}
+
+	})
+
+	t.Run("state manager made using grpcClient returns expected error from Unlock method's error diagnostic", func(t *testing.T) {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "error forced from test",
+			Detail:   "error forced from test",
+		})
+
+		provider := testing_provider.MockProvider{
+			// Mock a provider and internal state store that
+			// have both been configured
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+
+			// Force return of an error.
+			UnlockStateResponse: providers.UnlockStateResponse{
+				Diagnostics: diags,
+			},
+		}
+
+		// This package will be consumed in a statemgr.Full, so we test using NewRemoteGRPC
+		// and invoke the method on that interface that uses Unlock.
+		c := NewRemoteGRPC(&provider, typeName, stateId)
+
+		err := c.Unlock("foobar") // argument used here isn't important in this test
+		if !provider.UnlockStateCalled {
+			t.Fatal("expected remote grpc state manager's Unlock method to call Unlock method on underlying provider, but it has not been called")
+		}
+		if err == nil {
+			t.Fatal("expected error but got none")
+		}
+		expectedMsg := "error forced from test"
+		if !strings.Contains(err.Error(), expectedMsg) {
+			t.Fatalf("expected error to include %q but got: %s", expectedMsg, err)
+		}
+	})
+
+	t.Run("state manager made using grpcClient currently swallows warning diagnostics returned from the Unlock method", func(t *testing.T) {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "warning forced from test",
+			Detail:   "warning forced from test",
+		})
+
+		provider := testing_provider.MockProvider{
+			// Mock a provider and internal state store that
+			// have both been configured
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+
+			// Force return of a warning.
+			UnlockStateResponse: providers.UnlockStateResponse{
+				Diagnostics: diags,
+			},
+		}
+
+		c := NewRemoteGRPC(&provider, typeName, stateId)
+
+		err := c.Unlock("foobar") // argument used here isn't important in this test
+		if !provider.UnlockStateCalled {
+			t.Fatal("expected remote grpc state manager's Unlock method to call Unlock method on underlying provider, but it has not been called")
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		// The warning is swallowed by the Unlock method.
+		// The Locker interface should be updated to allow use of diagnostics instead of errors,
+		// and this test should be updated.
+	})
 }
