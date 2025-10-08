@@ -363,7 +363,7 @@ func (c *stacksClient) ListResourceIdentities(ctx context.Context, in *ListResou
 }
 
 // StacksServer is the server API for Stacks service.
-// All implementations should embed UnimplementedStacksServer
+// All implementations must embed UnimplementedStacksServer
 // for forward compatibility
 type StacksServer interface {
 	// Load and perform initial static validation of a stack configuration
@@ -411,9 +411,10 @@ type StacksServer interface {
 	MigrateTerraformState(*MigrateTerraformState_Request, Stacks_MigrateTerraformStateServer) error
 	// ListResourceIdentities lists the identities of all resources in a stack.
 	ListResourceIdentities(context.Context, *ListResourceIdentities_Request) (*ListResourceIdentities_Response, error)
+	mustEmbedUnimplementedStacksServer()
 }
 
-// UnimplementedStacksServer should be embedded to have forward compatible implementations.
+// UnimplementedStacksServer must be embedded to have forward compatible implementations.
 type UnimplementedStacksServer struct {
 }
 
@@ -465,6 +466,7 @@ func (UnimplementedStacksServer) MigrateTerraformState(*MigrateTerraformState_Re
 func (UnimplementedStacksServer) ListResourceIdentities(context.Context, *ListResourceIdentities_Request) (*ListResourceIdentities_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListResourceIdentities not implemented")
 }
+func (UnimplementedStacksServer) mustEmbedUnimplementedStacksServer() {}
 
 // UnsafeStacksServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to StacksServer will

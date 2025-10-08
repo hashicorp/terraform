@@ -94,7 +94,7 @@ func (c *packagesClient) FetchModulePackage(ctx context.Context, in *FetchModule
 }
 
 // PackagesServer is the server API for Packages service.
-// All implementations should embed UnimplementedPackagesServer
+// All implementations must embed UnimplementedPackagesServer
 // for forward compatibility
 type PackagesServer interface {
 	ProviderPackageVersions(context.Context, *ProviderPackageVersions_Request) (*ProviderPackageVersions_Response, error)
@@ -102,9 +102,10 @@ type PackagesServer interface {
 	ModulePackageVersions(context.Context, *ModulePackageVersions_Request) (*ModulePackageVersions_Response, error)
 	ModulePackageSourceAddr(context.Context, *ModulePackageSourceAddr_Request) (*ModulePackageSourceAddr_Response, error)
 	FetchModulePackage(context.Context, *FetchModulePackage_Request) (*FetchModulePackage_Response, error)
+	mustEmbedUnimplementedPackagesServer()
 }
 
-// UnimplementedPackagesServer should be embedded to have forward compatible implementations.
+// UnimplementedPackagesServer must be embedded to have forward compatible implementations.
 type UnimplementedPackagesServer struct {
 }
 
@@ -123,6 +124,7 @@ func (UnimplementedPackagesServer) ModulePackageSourceAddr(context.Context, *Mod
 func (UnimplementedPackagesServer) FetchModulePackage(context.Context, *FetchModulePackage_Request) (*FetchModulePackage_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchModulePackage not implemented")
 }
+func (UnimplementedPackagesServer) mustEmbedUnimplementedPackagesServer() {}
 
 // UnsafePackagesServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to PackagesServer will
