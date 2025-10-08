@@ -26,8 +26,10 @@ type nodeActionTriggerApplyInstance struct {
 }
 
 var (
-	_ GraphNodeExecutable = (*nodeActionTriggerApplyInstance)(nil)
-	_ GraphNodeReferencer = (*nodeActionTriggerApplyInstance)(nil)
+	_ GraphNodeExecutable       = (*nodeActionTriggerApplyInstance)(nil)
+	_ GraphNodeReferencer       = (*nodeActionTriggerApplyInstance)(nil)
+	_ GraphNodeProviderConsumer = (*nodeActionTriggerApplyInstance)(nil)
+	_ GraphNodeModulePath       = (*nodeActionTriggerApplyInstance)(nil)
 )
 
 func (n *nodeActionTriggerApplyInstance) Name() string {
