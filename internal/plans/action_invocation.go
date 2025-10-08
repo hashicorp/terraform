@@ -79,7 +79,8 @@ func (t *LifecycleActionTrigger) Equals(other ActionTrigger) bool {
 
 	return t.TriggeringResourceAddr.Equal(o.TriggeringResourceAddr) &&
 		t.ActionTriggerBlockIndex == o.ActionTriggerBlockIndex &&
-		t.ActionsListIndex == o.ActionsListIndex
+		t.ActionsListIndex == o.ActionsListIndex &&
+		t.ActionTriggerEvent == o.ActionTriggerEvent
 }
 
 func (t *LifecycleActionTrigger) Less(other ActionTrigger) bool {
@@ -93,7 +94,8 @@ func (t *LifecycleActionTrigger) Less(other ActionTrigger) bool {
 			t.ActionTriggerBlockIndex < o.ActionTriggerBlockIndex) ||
 		(t.TriggeringResourceAddr.Equal(o.TriggeringResourceAddr) &&
 			t.ActionTriggerBlockIndex == o.ActionTriggerBlockIndex &&
-			t.ActionsListIndex < o.ActionsListIndex)
+			t.ActionsListIndex < o.ActionsListIndex &&
+			t.ActionTriggerEvent < o.ActionTriggerEvent)
 }
 
 type InvokeActionTrigger struct{}
