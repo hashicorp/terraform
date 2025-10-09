@@ -29,6 +29,11 @@ var protobufPkgs = map[string]string{
 	"packages":     "github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages",
 }
 
+var additionalImportsByName = map[string]string{
+	"dependencies": `"google.golang.org/grpc"`,
+	"stacks":       `"google.golang.org/grpc"`,
+}
+
 func main() {
 	for shortName, pkgName := range protobufPkgs {
 		cfg := &packages.Config{
@@ -118,12 +123,12 @@ func main() {
 				"context"
 				"sync"
 
-				"google.golang.org/grpc"
+				%s
 
 				%s %q
 			)
 
-		`, shortName, pkg)
+		`, additionalImportsByName[shortName], shortName, pkg)
 			fmt.Fprintf(&buf, "type %s struct {\n", baseName)
 			fmt.Fprintf(&buf, "impl %s.%s\n", shortName, ifaceName)
 			fmt.Fprintln(&buf, "mu sync.RWMutex")
