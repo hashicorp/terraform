@@ -230,6 +230,7 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	if diags.HasErrors() {
 		return diags
 	}
+	diags = diags.Append(validateExprUsingDeprecatedValues(val, n.Expr))
 
 	// Set values for arguments of a child module call, for later retrieval
 	// during expression evaluation.
