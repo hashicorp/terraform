@@ -437,7 +437,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 }
 
 func (b *Cloud) AppName() string {
-	if isValidAppName(b.appName) {
+	if b != nil && isValidAppName(b.appName) {
 		return b.appName
 	}
 	return "HCP Terraform"
