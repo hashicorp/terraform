@@ -34,6 +34,8 @@ type provider struct {
 	provider        providers.Interface
 	schema          providers.GetProviderSchemaResponse
 	identitySchemas providers.GetResourceIdentitySchemasResponse
+
+	tfplugin5.UnimplementedProviderServer
 }
 
 func (p *provider) GetMetadata(_ context.Context, req *tfplugin5.GetMetadata_Request) (*tfplugin5.GetMetadata_Response, error) {

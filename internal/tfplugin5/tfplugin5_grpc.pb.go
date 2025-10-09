@@ -430,7 +430,7 @@ func (c *providerClient) Stop(ctx context.Context, in *Stop_Request, opts ...grp
 }
 
 // ProviderServer is the server API for Provider service.
-// All implementations should embed UnimplementedProviderServer
+// All implementations must embed UnimplementedProviderServer
 // for forward compatibility
 type ProviderServer interface {
 	// GetMetadata returns upfront information about server capabilities and
@@ -480,9 +480,10 @@ type ProviderServer interface {
 	ValidateActionConfig(context.Context, *ValidateActionConfig_Request) (*ValidateActionConfig_Response, error)
 	// ////// Graceful Shutdown
 	Stop(context.Context, *Stop_Request) (*Stop_Response, error)
+	mustEmbedUnimplementedProviderServer()
 }
 
-// UnimplementedProviderServer should be embedded to have forward compatible implementations.
+// UnimplementedProviderServer must be embedded to have forward compatible implementations.
 type UnimplementedProviderServer struct {
 }
 
@@ -570,6 +571,7 @@ func (UnimplementedProviderServer) ValidateActionConfig(context.Context, *Valida
 func (UnimplementedProviderServer) Stop(context.Context, *Stop_Request) (*Stop_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
 }
+func (UnimplementedProviderServer) mustEmbedUnimplementedProviderServer() {}
 
 // UnsafeProviderServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to ProviderServer will
@@ -1304,16 +1306,17 @@ func (c *provisionerClient) Stop(ctx context.Context, in *Stop_Request, opts ...
 }
 
 // ProvisionerServer is the server API for Provisioner service.
-// All implementations should embed UnimplementedProvisionerServer
+// All implementations must embed UnimplementedProvisionerServer
 // for forward compatibility
 type ProvisionerServer interface {
 	GetSchema(context.Context, *GetProvisionerSchema_Request) (*GetProvisionerSchema_Response, error)
 	ValidateProvisionerConfig(context.Context, *ValidateProvisionerConfig_Request) (*ValidateProvisionerConfig_Response, error)
 	ProvisionResource(*ProvisionResource_Request, Provisioner_ProvisionResourceServer) error
 	Stop(context.Context, *Stop_Request) (*Stop_Response, error)
+	mustEmbedUnimplementedProvisionerServer()
 }
 
-// UnimplementedProvisionerServer should be embedded to have forward compatible implementations.
+// UnimplementedProvisionerServer must be embedded to have forward compatible implementations.
 type UnimplementedProvisionerServer struct {
 }
 
@@ -1329,6 +1332,7 @@ func (UnimplementedProvisionerServer) ProvisionResource(*ProvisionResource_Reque
 func (UnimplementedProvisionerServer) Stop(context.Context, *Stop_Request) (*Stop_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
 }
+func (UnimplementedProvisionerServer) mustEmbedUnimplementedProvisionerServer() {}
 
 // UnsafeProvisionerServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to ProvisionerServer will

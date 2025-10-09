@@ -574,7 +574,7 @@ func (c *providerClient) StopProvider(ctx context.Context, in *StopProvider_Requ
 }
 
 // ProviderServer is the server API for Provider service.
-// All implementations should embed UnimplementedProviderServer
+// All implementations must embed UnimplementedProviderServer
 // for forward compatibility
 type ProviderServer interface {
 	// GetMetadata returns upfront information about server capabilities and
@@ -640,9 +640,10 @@ type ProviderServer interface {
 	ValidateActionConfig(context.Context, *ValidateActionConfig_Request) (*ValidateActionConfig_Response, error)
 	// ////// Graceful Shutdown
 	StopProvider(context.Context, *StopProvider_Request) (*StopProvider_Response, error)
+	mustEmbedUnimplementedProviderServer()
 }
 
-// UnimplementedProviderServer should be embedded to have forward compatible implementations.
+// UnimplementedProviderServer must be embedded to have forward compatible implementations.
 type UnimplementedProviderServer struct {
 }
 
@@ -754,6 +755,7 @@ func (UnimplementedProviderServer) ValidateActionConfig(context.Context, *Valida
 func (UnimplementedProviderServer) StopProvider(context.Context, *StopProvider_Request) (*StopProvider_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StopProvider not implemented")
 }
+func (UnimplementedProviderServer) mustEmbedUnimplementedProviderServer() {}
 
 // UnsafeProviderServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to ProviderServer will

@@ -241,7 +241,7 @@ func (c *dependenciesClient) GetProviderSchema(ctx context.Context, in *GetProvi
 }
 
 // DependenciesServer is the server API for Dependencies service.
-// All implementations should embed UnimplementedDependenciesServer
+// All implementations must embed UnimplementedDependenciesServer
 // for forward compatibility
 type DependenciesServer interface {
 	// Opens a source bundle that was already extracted into the filesystem
@@ -303,9 +303,10 @@ type DependenciesServer interface {
 	// has the potential to run in a context that probably has access to
 	// private source code and other sensitive information.
 	GetProviderSchema(context.Context, *GetProviderSchema_Request) (*GetProviderSchema_Response, error)
+	mustEmbedUnimplementedDependenciesServer()
 }
 
-// UnimplementedDependenciesServer should be embedded to have forward compatible implementations.
+// UnimplementedDependenciesServer must be embedded to have forward compatible implementations.
 type UnimplementedDependenciesServer struct {
 }
 
@@ -345,6 +346,7 @@ func (UnimplementedDependenciesServer) GetBuiltInProviders(context.Context, *Get
 func (UnimplementedDependenciesServer) GetProviderSchema(context.Context, *GetProviderSchema_Request) (*GetProviderSchema_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProviderSchema not implemented")
 }
+func (UnimplementedDependenciesServer) mustEmbedUnimplementedDependenciesServer() {}
 
 // UnsafeDependenciesServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to DependenciesServer will
