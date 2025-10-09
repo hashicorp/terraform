@@ -4,6 +4,7 @@
 package marks
 
 import (
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -16,17 +17,46 @@ func (m valueMark) GoString() string {
 	return "marks." + string(m)
 }
 
+// dataMarks allow creating strictly typed values for use as cty.Value marks that
+// can contain arbitrary data. This allows for marks where not only the existance of
+// the mark is important, but also the metadata associated with it.
+type dataMark[D dataMarkData] struct {
+	Type string
+	Data D
+}
+type dataMarkData interface {
+	GoString() string
+}
+
+func (m dataMark[D]) GoString() string {
+	return "marks." + m.Type + m.Data.GoString()
+}
+
 // Has returns true if and only if the cty.Value has the given mark.
-func Has(val cty.Value, mark valueMark) bool {
-	return val.HasMark(mark)
+func Has(val cty.Value, mark interface{}) bool {
+	switch m := mark.(type) {
+	case valueMark:
+		return val.HasMark(m)
+
+	// For value marks Has returns true if a mark of the type is present
+	case DeprecationMark:
+		for depMark := range val.Marks() {
+			if _, ok := depMark.(DeprecationMark); ok {
+				return true
+			}
+		}
+		return false
+	default:
+		panic("Unknown mark type")
+	}
 }
 
 // Contains returns true if the cty.Value or any any value within it contains
 // the given mark.
-func Contains(val cty.Value, mark valueMark) bool {
+func Contains(val cty.Value, mark interface{}) bool {
 	ret := false
 	cty.Walk(val, func(_ cty.Path, v cty.Value) (bool, error) {
-		if v.HasMark(mark) {
+		if Has(v, mark) {
 			ret = true
 			return false, nil
 		}
@@ -51,3 +81,27 @@ const Ephemeral = valueMark("Ephemeral")
 // another value's type. This is part of the implementation of the console-only
 // `type` function.
 const TypeType = valueMark("TypeType")
+
+type DeprecationMarkData struct {
+	Message string
+	Origin  *hcl.Range
+}
+
+func (d DeprecationMarkData) GoString() string {
+	return "<" + d.Message + ">"
+}
+
+type DeprecationMark = dataMark[DeprecationMarkData]
+
+// Empty deprecation mark for usage in marks.Has / Contains / etc
+var Deprecation = NewDeprecation("", nil)
+
+func NewDeprecation(message string, origin *hcl.Range) DeprecationMark {
+	return DeprecationMark{
+		Type: "Deprecation",
+		Data: DeprecationMarkData{
+			Message: message,
+			Origin:  origin,
+		},
+	}
+}
