@@ -8,8 +8,6 @@ import (
 	"context"
 	"sync"
 
-	"google.golang.org/grpc"
-
 	packages "github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
 )
 
