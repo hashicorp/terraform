@@ -52,7 +52,7 @@ func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, allowUnknown 
 	}
 
 	// Ephemeral values are not allowed in count expressions.
-	if countVal.HasMark(marks.Ephemeral) {
+	if marks.Has(countVal, marks.Ephemeral) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid count argument",
@@ -87,7 +87,7 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		return nullCount, diags
 	}
 
-	if countVal.HasMark(marks.Ephemeral) {
+	if marks.Has(countVal, marks.Ephemeral) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid count argument",

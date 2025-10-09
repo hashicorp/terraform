@@ -537,7 +537,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 }
 
 func SensitiveAsBool(val cty.Value) cty.Value {
-	if val.HasMark(marks.Sensitive) {
+	if marks.Has(val, marks.Sensitive) {
 		return cty.True
 	}
 

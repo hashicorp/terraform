@@ -116,7 +116,7 @@ func (e *ExprEvaluator[T, U]) evaluateExpr(ctx EvalContext, expression hcl.Expre
 			Extra:    diagnosticCausedByUnknown(true),
 		})
 		return val, diags
-	case val.HasMark(marks.Ephemeral) && !e.allowEphemeral:
+	case marks.Has(val, marks.Ephemeral) && !e.allowEphemeral:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  fmt.Sprintf("Invalid %q argument", e.argName),
