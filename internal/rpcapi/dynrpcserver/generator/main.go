@@ -118,6 +118,8 @@ func main() {
 				"context"
 				"sync"
 
+				"google.golang.org/grpc"
+
 				%s %q
 			)
 
@@ -258,6 +260,25 @@ func typeRef(fullType, name, pkg string) string {
 		return "*" + name + "." + fullType[len(pkg)+2:]
 	case strings.HasPrefix(fullType, pkg+"."):
 		return name + "." + fullType[len(pkg)+1:]
+	case strings.HasPrefix(fullType, "google.golang.org/grpc.ServerStreamingServer"):
+		// Handling use of google.golang.org/grpc.ServerStreamingServer generic type.
+		// Example: google.golang.org/grpc.ServerStreamingServer[github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies.BuildProviderPluginCache_Event]
+		r := regexp.MustCompile(fmt.Sprintf(`%s.\w+`, name)) // Gets dependencies.BuildProviderPluginCache_Event from example above
+
+		return fmt.Sprintf("grpc.ServerStreamingServer[%s]", r.FindString(fullType))
+	case strings.HasPrefix(fullType, "google.golang.org/grpc.ClientStreamingServer"):
+		// Handling use of google.golang.org/grpc.ClientStreamingServer generic type.
+		// Example: google.golang.org/grpc.ClientStreamingServer[github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks.OpenStackPlan_RequestItem, github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks.OpenStackPlan_Response]
+		r := regexp.MustCompile(fmt.Sprintf(`%s.\w+`, name)) // Gets "stacks.OpenStackPlan_RequestItem" and "stacks.OpenStackPlan_Response" from example above
+		matches := r.FindAllString(fullType, -1)
+		if len(matches) != 2 {
+			log.Fatalf("expected 2 types to be in google.golang.org/grpc.ClientStreamingServer generic, but got %d. Original input: %s",
+				len(matches),
+				fullType,
+			)
+		}
+
+		return fmt.Sprintf("grpc.ClientStreamingServer[%s, %s]", matches[0], matches[1])
 	default:
 		log.Fatalf("don't know what to do with parameter type %s", fullType)
 		return ""
