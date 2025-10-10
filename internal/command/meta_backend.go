@@ -1332,11 +1332,11 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if err := sMgr.WriteState(s); err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		diags = diags.Append(&errBackendWriteSaved{err})
 		return nil, diags
 	}
 	if err := sMgr.PersistState(); err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		diags = diags.Append(&errBackendWriteSaved{err})
 		return nil, diags
 	}
 
@@ -1462,11 +1462,11 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if err := sMgr.WriteState(s); err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		diags = diags.Append(&errBackendWriteSaved{err})
 		return nil, diags
 	}
 	if err := sMgr.PersistState(); err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		diags = diags.Append(&errBackendWriteSaved{err})
 		return nil, diags
 	}
 
@@ -2154,15 +2154,6 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
-
-const errBackendWriteSaved = `
-Error saving the backend configuration: %s
-
-Terraform saves the complete backend configuration in a local file for
-configuring the backend on future operations. This cannot be disabled. Errors
-are usually due to simple file permission errors. Please look at the error
-above, resolve it, and try again.
-`
 
 const outputBackendMigrateChange = `
 Terraform detected that the backend type changed from %q to %q.
