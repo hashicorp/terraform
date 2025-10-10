@@ -1396,6 +1396,10 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 	return ret, nil
 }
 
+func ActionInvocationToProto(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {
+	return actionInvocationToTfPlan(action)
+}
+
 func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {
 	if action == nil {
 		return nil, nil

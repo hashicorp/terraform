@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -854,8 +853,6 @@ func (pc *PlannedChangeProviderFunctionResults) PlannedChangeProto() (*stacks.Pl
 	}, nil
 }
 
-// PlannedChangeActionInvocationInstancePlanned represents a planned action
-// invocation within a component instance.
 type PlannedChangeActionInvocationInstancePlanned struct {
 	ActionInvocationAddr stackaddrs.AbsActionInvocationInstance
 
@@ -864,29 +861,30 @@ type PlannedChangeActionInvocationInstancePlanned struct {
 
 	// ProviderConfigAddr is the address of the provider configuration
 	// that planned this change, resolved in terms of the configuration for
-	// the component this action invocation belongs to.
+	// the component this resource instance object belongs to.
 	ProviderConfigAddr addrs.AbsProviderConfig
 
 	// Schema MUST be the same schema that was used to encode the dynamic
-	// values inside Invocation.
+	// values inside ChangeSrc
 	//
-	// Can be empty if and only if Invocation is nil.
+	// Can be empty if and only if ChangeSrc is nil.
 	Schema providers.ActionSchema
 }
 
 var _ PlannedChange = (*PlannedChangeActionInvocationInstancePlanned)(nil)
 
-// PlanActionInvocationProto converts the planned action invocation to the
-// internal protobuf representation for persistence.
 func (pc *PlannedChangeActionInvocationInstancePlanned) PlanActionInvocationProto() (*tfstackdata1.PlanActionInvocationPlanned, error) {
 	addr := pc.ActionInvocationAddr
 
 	if pc.Invocation == nil {
-		// Return a minimal placeholder if there's no actual invocation
+		// This is just a stubby placeholder to remind us to drop the
+		// apparently-deleted-outside-of-Terraform object from the state
+		// if this plan later gets applied.
+
 		return &tfstackdata1.PlanActionInvocationPlanned{
 			ComponentInstanceAddr: addr.Component.String(),
 			ActionInvocationAddr:  addr.Item.String(),
-			ProviderConfigAddr:    pc.ProviderConfigAddr.Provider.String(),
+			ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
 		}, nil
 	}
 
@@ -898,13 +896,11 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) PlanActionInvocationProt
 	return &tfstackdata1.PlanActionInvocationPlanned{
 		ComponentInstanceAddr: addr.Component.String(),
 		ActionInvocationAddr:  addr.Item.String(),
-		ProviderConfigAddr:    pc.ProviderConfigAddr.Provider.String(),
+		ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
 		Invocation:            invocationProto,
 	}, nil
 }
 
-// ChangeDescription implements PlannedChange by producing an external
-// description of the action invocation for the RPC API.
 func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*stacks.PlannedChange_ChangeDescription, error) {
 	addr := pc.ActionInvocationAddr
 
@@ -913,60 +909,19 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*st
 		return nil, nil
 	}
 
-	invoke := stacks.PlannedChange_ActionInvocationInstance{
-		Addr:         stacks.NewActionInvocationInStackAddr(addr),
-		ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
-		ActionType:   pc.Invocation.Addr.Action.Action.Type,
-
-		ConfigValue: stacks.NewDynamicValue(
-			pc.Invocation.ConfigValue,
-			pc.Invocation.SensitiveConfigPaths,
-		),
-	}
-
-	// Convert the action trigger information
-	switch at := pc.Invocation.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
-		triggerEvent := stacks.PlannedChange_INVALID_EVENT
-		switch at.ActionTriggerEvent {
-		case configs.BeforeCreate:
-			triggerEvent = stacks.PlannedChange_BEFORE_CREATE
-		case configs.AfterCreate:
-			triggerEvent = stacks.PlannedChange_AFTER_CREATE
-		case configs.BeforeUpdate:
-			triggerEvent = stacks.PlannedChange_BEFORE_UPDATE
-		case configs.AfterUpdate:
-			triggerEvent = stacks.PlannedChange_AFTER_UPDATE
-		case configs.BeforeDestroy:
-			triggerEvent = stacks.PlannedChange_BEFORE_DESTROY
-		case configs.AfterDestroy:
-			triggerEvent = stacks.PlannedChange_AFTER_DESTROY
-		}
-
-		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_LifecycleActionTrigger{
-			LifecycleActionTrigger: &stacks.PlannedChange_LifecycleActionTrigger{
-				TriggerEvent: triggerEvent,
-				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(stackaddrs.AbsResourceInstance{
-					Component: addr.Component,
-					Item:      at.TriggeringResourceAddr,
-				}),
-				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
-				ActionsListIndex:        int64(at.ActionsListIndex),
-			},
-		}
-	case *plans.InvokeActionTrigger:
-		// TODO Implement this when implementing Stacks support for Direct Action Invocation
-		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_InvokeActionTrigger{
-			InvokeActionTrigger: &stacks.PlannedChange_InvokeActionTrigger{},
-		}
-	default:
-		// This should be exhaustive
-		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
-	}
-
 	return &stacks.PlannedChange_ChangeDescription{
 		Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationPlanned{
-			ActionInvocationPlanned: &invoke,
+			ActionInvocationPlanned: &stacks.PlannedChange_ActionInvocationInstance{
+				Addr:         stacks.NewActionInvocationInStackAddr(addr),
+				ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
+
+				ConfigValue: stacks.NewDynamicValue(
+					pc.Invocation.ConfigValue,
+					pc.Invocation.SensitiveConfigPaths,
+				),
+
+				ActionTrigger: nil,
+			},
 		},
 	}, nil
 }

@@ -276,7 +276,7 @@ message PlanDeferredActionInvocation {
     PlanActionInvocationPlanned invocation = 2;
 }
 
-// Represents that we need to emit "delete" requests for one or more raw
+// Represents that we need to emit "delete" requests for one or more raw raw
 // state and/or state description objects during the apply phase.
 //
 // This situation arises if the previous state (given as input to the apply
