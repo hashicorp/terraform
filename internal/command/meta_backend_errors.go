@@ -32,6 +32,22 @@ with a backend, we must delete the local state file. Please resolve the
 issue above and retry the command.`, e.innerError)
 }
 
+type errBackendNewUnknown struct {
+	backendName string
+}
+
+func (e *errBackendNewUnknown) Error() string {
+	return fmt.Sprintf(`The backend %q could not be found.
+
+This is the backend specified in your Terraform configuration file.
+This error could be a simple typo in your configuration, but it can also
+be caused by using a Terraform version that doesn't support the specified
+backend type. Please check your configuration and your Terraform version.
+
+If you'd like to run Terraform and store state locally, you can fix this
+error by removing the backend configuration from your configuration.`, e.backendName)
+}
+
 type errBackendNoExistingWorkspaces struct{}
 
 func (e *errBackendNoExistingWorkspaces) Error() string {

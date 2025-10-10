@@ -1788,7 +1788,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	// Get the backend
 	f := backendInit.Backend(c.Type)
 	if f == nil {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendNewUnknown), c.Type))
+		diags = diags.Append(errBackendNewUnknown{c.Type})
 		return nil, cty.NilVal, diags
 	}
 	b := f()
@@ -2148,18 +2148,6 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
-
-const errBackendNewUnknown = `
-The backend %q could not be found.
-
-This is the backend specified in your Terraform configuration file.
-This error could be a simple typo in your configuration, but it can also
-be caused by using a Terraform version that doesn't support the specified
-backend type. Please check your configuration and your Terraform version.
-
-If you'd like to run Terraform and store state locally, you can fix this
-error by removing the backend configuration from your configuration.
-`
 
 const errBackendSavedUnknown = `
 The backend %q could not be found.
