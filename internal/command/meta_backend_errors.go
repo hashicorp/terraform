@@ -18,6 +18,20 @@ without this check because that would risk losing state. Please resolve the
 error above and try again.`, e.innerError)
 }
 
+type errBackendMigrateLocalDelete struct {
+	innerError error
+}
+
+func (e *errBackendMigrateLocalDelete) Error() string {
+	return fmt.Sprintf(`Error deleting local state after migration: %s
+
+Your local state is deleted after successfully migrating it to the newly
+configured backend. As part of the deletion process, a backup is made at
+the standard backup path unless explicitly asked not to. To cleanly operate
+with a backend, we must delete the local state file. Please resolve the
+issue above and retry the command.`, e.innerError)
+}
+
 type errBackendNoExistingWorkspaces struct{}
 
 func (e *errBackendNoExistingWorkspaces) Error() string {

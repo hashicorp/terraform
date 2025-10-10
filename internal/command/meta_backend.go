@@ -1268,11 +1268,11 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 			for _, localState := range localStates {
 				// We always delete the local state, unless that was our new state too.
 				if err := localState.WriteState(nil); err != nil {
-					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+					diags = diags.Append(&errBackendMigrateLocalDelete{err})
 					return nil, diags
 				}
 				if err := localState.PersistState(nil); err != nil {
-					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+					diags = diags.Append(&errBackendMigrateLocalDelete{err})
 					return nil, diags
 				}
 			}
@@ -2148,16 +2148,6 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
-
-const errBackendMigrateLocalDelete = `
-Error deleting local state after migration: %s
-
-Your local state is deleted after successfully migrating it to the newly
-configured backend. As part of the deletion process, a backup is made at
-the standard backup path unless explicitly asked not to. To cleanly operate
-with a backend, we must delete the local state file. Please resolve the
-issue above and retry the command.
-`
 
 const errBackendNewUnknown = `
 The backend %q could not be found.
