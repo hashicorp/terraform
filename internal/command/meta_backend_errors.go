@@ -123,17 +123,19 @@ Terraform has not yet made changes to your existing configuration or state.`, in
 	)
 }
 
-type errBackendWriteSaved struct {
-	innerError error
-}
-
-func (e *errBackendWriteSaved) Error() string {
-	return fmt.Sprintf(`Error saving the backend configuration: %s
+func errBackendWriteSavedDiag(innerError error) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Error saving the backend configuration: %s
 
 Terraform saves the complete backend configuration in a local file for
 configuring the backend on future operations. This cannot be disabled. Errors
 are usually due to simple file permission errors. Please look at the error
-above, resolve it, and try again.`, e.innerError)
+above, resolve it, and try again.`, innerError)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
+		msg,
+	)
 }
 
 type errBackendNoExistingWorkspaces struct{}

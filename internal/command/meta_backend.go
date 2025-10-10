@@ -1302,11 +1302,11 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if err := sMgr.WriteState(s); err != nil {
-		diags = diags.Append(&errBackendWriteSaved{err})
+		diags = diags.Append(errBackendWriteSavedDiag(err))
 		return nil, diags
 	}
 	if err := sMgr.PersistState(); err != nil {
-		diags = diags.Append(&errBackendWriteSaved{err})
+		diags = diags.Append(errBackendWriteSavedDiag(err))
 		return nil, diags
 	}
 
@@ -1432,11 +1432,11 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if err := sMgr.WriteState(s); err != nil {
-		diags = diags.Append(&errBackendWriteSaved{err})
+		diags = diags.Append(errBackendWriteSavedDiag(err))
 		return nil, diags
 	}
 	if err := sMgr.PersistState(); err != nil {
-		diags = diags.Append(&errBackendWriteSaved{err})
+		diags = diags.Append(errBackendWriteSavedDiag(err))
 		return nil, diags
 	}
 
