@@ -1158,11 +1158,11 @@ func (m *Meta) backend_c_r_S(
 	// Remove the stored metadata
 	s.Backend = nil
 	if err := sMgr.WriteState(s); err != nil {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendClearSaved), err))
+		diags = diags.Append(errBackendClearSaved{err})
 		return nil, diags
 	}
 	if err := sMgr.PersistState(); err != nil {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendClearSaved), err))
+		diags = diags.Append(errBackendClearSaved{err})
 		return nil, diags
 	}
 
@@ -2148,15 +2148,6 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
-
-const errBackendClearSaved = `
-Error clearing the backend configuration: %s
-
-Terraform removes the saved backend configuration when you're removing a
-configured backend. This must be done so future Terraform runs know to not
-use the backend configuration. Please look at the error above, resolve it,
-and try again.
-`
 
 const errBackendInit = `
 Reason: %s

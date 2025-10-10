@@ -65,6 +65,19 @@ If you'd like to force remove this backend, you must update your configuration
 to not use the backend and run "terraform init" (or any other command) again.`, e.backendName)
 }
 
+type errBackendClearSaved struct {
+	innerError error
+}
+
+func (e *errBackendClearSaved) Error() string {
+	return fmt.Sprintf(`Error clearing the backend configuration: %s
+
+Terraform removes the saved backend configuration when you're removing a
+configured backend. This must be done so future Terraform runs know to not
+use the backend configuration. Please look at the error above, resolve it,
+and try again.`, e.innerError)
+}
+
 type errBackendNoExistingWorkspaces struct{}
 
 func (e *errBackendNoExistingWorkspaces) Error() string {
