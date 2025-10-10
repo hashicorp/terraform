@@ -751,12 +751,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		initReason := fmt.Sprintf("Unsetting the previously set backend %q", s.Backend.Type)
 		if !opts.Init {
-			err := errBackendInit{initReason}
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Backend initialization required, please run \"terraform init\"",
-				err.Error(),
-			))
+			diags = diags.Append(errBackendInitDiag(initReason))
 			return nil, diags
 		}
 
@@ -796,12 +791,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 				))
 			} else {
 				initReason := fmt.Sprintf("Initial configuration of the requested backend %q", backendConfig.Type)
-				err := errBackendInit{initReason}
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Backend initialization required, please run \"terraform init\"",
-					err.Error(),
-				))
+				diags = diags.Append(errBackendInitDiag(initReason))
 			}
 			return nil, diags
 		}
@@ -996,12 +986,7 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 			err.Error(),
 		))
 	default:
-		err := errBackendInit{initReason}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Backend initialization required: please run \"terraform init\"",
-			err.Error(),
-		))
+		diags = diags.Append(errBackendInitDiag(initReason))
 	}
 
 	return diags

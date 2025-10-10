@@ -82,12 +82,8 @@ use the backend configuration. Please look at the error above, resolve it,
 and try again.`, e.innerError)
 }
 
-type errBackendInit struct {
-	initReason string
-}
-
-func (e *errBackendInit) Error() string {
-	return fmt.Sprintf(`Reason: %s
+func errBackendInitDiag(initReason string) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Reason: %s
 
 The "backend" is the interface that Terraform uses to store state,
 perform operations, etc. If this message is showing up, it means that the
@@ -101,7 +97,13 @@ use the current configuration.
 
 If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
-configuration or state have been made.`, e.initReason)
+configuration or state have been made.`, initReason)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Backend initialization required, please run \"terraform init\"",
+		msg,
+	)
 }
 
 type errBackendInitCloud struct {
