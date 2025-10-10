@@ -177,6 +177,36 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 		seenObjects.Add(objAddr)
 	}
 
+	// Keep track of Action Invocations
+	for _, actionChange := range plan.Changes.ActionInvocations {
+		schema, err := producer.ActionSchema(
+			ctx,
+			actionChange.ProviderAddr.Provider,
+			actionChange.Addr.String(),
+		)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Can't fetch provider schema to save plan",
+				fmt.Sprintf(
+					"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
+					actionChange.Addr, actionChange.ProviderAddr.Provider, err,
+				),
+			))
+			continue
+		}
+
+		changes = append(changes, &PlannedChangeActionInvocationInstancePlanned{
+			ActionInvocationAddr: stackaddrs.AbsActionInvocationInstance{
+				Component: producer.Addr(),
+				Item:      actionChange.Addr,
+			},
+			Invocation:         actionChange,
+			Schema:             schema,
+			ProviderConfigAddr: actionChange.ProviderAddr,
+		})
+	}
+
 	// We also need to catch any objects that exist in the "prior state"
 	// but don't have any actions planned, since we still need to capture
 	// the prior state part in case it was updated by refreshing during

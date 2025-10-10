@@ -87,6 +87,10 @@ type AbsResourceInstance = InAbsComponentInstance[addrs.AbsResourceInstance]
 // of a resource from inside a particular component instance.
 type AbsResourceInstanceObject = InAbsComponentInstance[addrs.AbsResourceInstanceObject]
 
+// AbsActionInvocationInstance represents an instance of an action from inside a
+// particular component instance.
+type AbsActionInvocationInstance = InAbsComponentInstance[addrs.AbsActionInstance]
+
 // AbsModuleInstance represents an instance of a module from inside a
 // particular component instance.
 //

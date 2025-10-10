@@ -539,7 +539,7 @@ message PlannedChange {
       bool plan_applyable = 4;
       ResourceInstanceDeferred resource_instance_deferred = 5;
       InputVariable input_variable_planned = 6;
-      ActionInvocationInstance action_invocation_instance = 7;
+      ActionInvocationInstance action_invocation_planned = 7;
     }
   }
 
