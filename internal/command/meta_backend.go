@@ -1171,8 +1171,8 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	workspaces, wDiags := localB.Workspaces()
-	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
+		diags = diags.Append(wDiags.Warnings())
 		diags = diags.Append(&errBackendLocalRead{wDiags.Err()})
 		return nil, diags
 	}
@@ -1181,6 +1181,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	for _, workspace := range workspaces {
 		localState, sDiags := localB.StateMgr(workspace)
 		if sDiags.HasErrors() {
+			diags = diags.Append(sDiags.Warnings())
 			diags = diags.Append(&errBackendLocalRead{sDiags.Err()})
 			return nil, diags
 		}
