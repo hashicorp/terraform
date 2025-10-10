@@ -4436,7 +4436,7 @@ type PlannedChange_ChangeDescription struct {
 	//	*PlannedChange_ChangeDescription_PlanApplyable
 	//	*PlannedChange_ChangeDescription_ResourceInstanceDeferred
 	//	*PlannedChange_ChangeDescription_InputVariablePlanned
-	//	*PlannedChange_ChangeDescription_ActionInvocationInstance
+	//	*PlannedChange_ChangeDescription_ActionInvocationPlanned
 	Description   isPlannedChange_ChangeDescription_Description `protobuf_oneof:"description"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4533,10 +4533,10 @@ func (x *PlannedChange_ChangeDescription) GetInputVariablePlanned() *PlannedChan
 	return nil
 }
 
-func (x *PlannedChange_ChangeDescription) GetActionInvocationInstance() *PlannedChange_ActionInvocationInstance {
+func (x *PlannedChange_ChangeDescription) GetActionInvocationPlanned() *PlannedChange_ActionInvocationInstance {
 	if x != nil {
-		if x, ok := x.Description.(*PlannedChange_ChangeDescription_ActionInvocationInstance); ok {
-			return x.ActionInvocationInstance
+		if x, ok := x.Description.(*PlannedChange_ChangeDescription_ActionInvocationPlanned); ok {
+			return x.ActionInvocationPlanned
 		}
 	}
 	return nil
@@ -4570,8 +4570,8 @@ type PlannedChange_ChangeDescription_InputVariablePlanned struct {
 	InputVariablePlanned *PlannedChange_InputVariable `protobuf:"bytes,6,opt,name=input_variable_planned,json=inputVariablePlanned,proto3,oneof"`
 }
 
-type PlannedChange_ChangeDescription_ActionInvocationInstance struct {
-	ActionInvocationInstance *PlannedChange_ActionInvocationInstance `protobuf:"bytes,7,opt,name=action_invocation_instance,json=actionInvocationInstance,proto3,oneof"`
+type PlannedChange_ChangeDescription_ActionInvocationPlanned struct {
+	ActionInvocationPlanned *PlannedChange_ActionInvocationInstance `protobuf:"bytes,7,opt,name=action_invocation_planned,json=actionInvocationPlanned,proto3,oneof"`
 }
 
 func (*PlannedChange_ChangeDescription_ComponentInstancePlanned) isPlannedChange_ChangeDescription_Description() {
@@ -4592,7 +4592,7 @@ func (*PlannedChange_ChangeDescription_ResourceInstanceDeferred) isPlannedChange
 func (*PlannedChange_ChangeDescription_InputVariablePlanned) isPlannedChange_ChangeDescription_Description() {
 }
 
-func (*PlannedChange_ChangeDescription_ActionInvocationInstance) isPlannedChange_ChangeDescription_Description() {
+func (*PlannedChange_ChangeDescription_ActionInvocationPlanned) isPlannedChange_ChangeDescription_Description() {
 }
 
 // Reports the existence of a particular instance of a component,
@@ -6987,18 +6987,18 @@ const file_stacks_proto_rawDesc = "" +
 	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\x124\n" +
 	"\x16resource_instance_addr\x18\x02 \x01(\tR\x14resourceInstanceAddr\x12\x1f\n" +
 	"\vdeposed_key\x18\x03 \x01(\tR\n" +
-	"deposedKey\"\xf0\x1d\n" +
+	"deposedKey\"\xee\x1d\n" +
 	"\rPlannedChange\x12&\n" +
 	"\x03raw\x18\x01 \x03(\v2\x14.google.protobuf.AnyR\x03raw\x12V\n" +
-	"\fdescriptions\x18\x02 \x03(\v22.terraform1.stacks.PlannedChange.ChangeDescriptionR\fdescriptions\x1a\xf0\x05\n" +
+	"\fdescriptions\x18\x02 \x03(\v22.terraform1.stacks.PlannedChange.ChangeDescriptionR\fdescriptions\x1a\xee\x05\n" +
 	"\x11ChangeDescription\x12r\n" +
 	"\x1acomponent_instance_planned\x18\x01 \x01(\v22.terraform1.stacks.PlannedChange.ComponentInstanceH\x00R\x18componentInstancePlanned\x12o\n" +
 	"\x19resource_instance_planned\x18\x02 \x01(\v21.terraform1.stacks.PlannedChange.ResourceInstanceH\x00R\x17resourceInstancePlanned\x12`\n" +
 	"\x14output_value_planned\x18\x03 \x01(\v2,.terraform1.stacks.PlannedChange.OutputValueH\x00R\x12outputValuePlanned\x12'\n" +
 	"\x0eplan_applyable\x18\x04 \x01(\bH\x00R\rplanApplyable\x12y\n" +
 	"\x1aresource_instance_deferred\x18\x05 \x01(\v29.terraform1.stacks.PlannedChange.ResourceInstanceDeferredH\x00R\x18resourceInstanceDeferred\x12f\n" +
-	"\x16input_variable_planned\x18\x06 \x01(\v2..terraform1.stacks.PlannedChange.InputVariableH\x00R\x14inputVariablePlanned\x12y\n" +
-	"\x1aaction_invocation_instance\x18\a \x01(\v29.terraform1.stacks.PlannedChange.ActionInvocationInstanceH\x00R\x18actionInvocationInstanceB\r\n" +
+	"\x16input_variable_planned\x18\x06 \x01(\v2..terraform1.stacks.PlannedChange.InputVariableH\x00R\x14inputVariablePlanned\x12w\n" +
+	"\x19action_invocation_planned\x18\a \x01(\v29.terraform1.stacks.PlannedChange.ActionInvocationInstanceH\x00R\x17actionInvocationPlannedB\r\n" +
 	"\vdescription\x1a\xb6\x01\n" +
 	"\x11ComponentInstance\x12C\n" +
 	"\x04addr\x18\x01 \x01(\v2/.terraform1.stacks.ComponentInstanceInStackAddrR\x04addr\x127\n" +
@@ -7455,7 +7455,7 @@ var file_stacks_proto_depIdxs = []int32{
 	94,  // 70: terraform1.stacks.PlannedChange.ChangeDescription.output_value_planned:type_name -> terraform1.stacks.PlannedChange.OutputValue
 	95,  // 71: terraform1.stacks.PlannedChange.ChangeDescription.resource_instance_deferred:type_name -> terraform1.stacks.PlannedChange.ResourceInstanceDeferred
 	96,  // 72: terraform1.stacks.PlannedChange.ChangeDescription.input_variable_planned:type_name -> terraform1.stacks.PlannedChange.InputVariable
-	90,  // 73: terraform1.stacks.PlannedChange.ChangeDescription.action_invocation_instance:type_name -> terraform1.stacks.PlannedChange.ActionInvocationInstance
+	90,  // 73: terraform1.stacks.PlannedChange.ChangeDescription.action_invocation_planned:type_name -> terraform1.stacks.PlannedChange.ActionInvocationInstance
 	28,  // 74: terraform1.stacks.PlannedChange.ComponentInstance.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
 	2,   // 75: terraform1.stacks.PlannedChange.ComponentInstance.actions:type_name -> terraform1.stacks.ChangeType
 	29,  // 76: terraform1.stacks.PlannedChange.ActionInvocationInstance.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
@@ -7599,7 +7599,7 @@ func file_stacks_proto_init() {
 		(*PlannedChange_ChangeDescription_PlanApplyable)(nil),
 		(*PlannedChange_ChangeDescription_ResourceInstanceDeferred)(nil),
 		(*PlannedChange_ChangeDescription_InputVariablePlanned)(nil),
-		(*PlannedChange_ChangeDescription_ActionInvocationInstance)(nil),
+		(*PlannedChange_ChangeDescription_ActionInvocationPlanned)(nil),
 	}
 	file_stacks_proto_msgTypes[81].OneofWrappers = []any{
 		(*PlannedChange_ActionInvocationInstance_LifecycleActionTrigger)(nil),

@@ -254,6 +254,21 @@ message PlanDeferredResourceInstanceChange {
     PlanResourceInstanceChangePlanned change = 2;
 }
 
+message PlanActionInvocationPlanned {
+    // The same string must previously have been announced with a
+    // PlanComponentInstance message, or the overall plan sequence is invalid.
+    string component_instance_addr = 1;
+    string action_invocation_addr = 3;
+
+    // The address of the provider configuration that planned this change,
+    // or that produced the prior state for messages where "change" is
+    // unpopulated. This is a module-centric view relative to the root module
+    // of the component identified in component_instance_addr.
+    string provider_config_addr = 4;
+
+    tfplan.ActionInvocationInstance invocation = 2;
+}
+
 // Represents that we need to emit "delete" requests for one or more raw
 // state and/or state description objects during the apply phase.
 //
