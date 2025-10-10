@@ -144,14 +144,6 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 		))
 	}
 
-	if init.InputEnabled && !init.CreateDefaultWorkspace {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Invalid init options",
-			"The flag -create-default-workspace=false is ignored when Terraform is configured to ask users for input. Instead, add -input=false or remove the -create-default-workspace flag",
-		))
-	}
-
 	init.Args = cmdFlags.Args()
 
 	backendFlagSet := FlagIsSet(cmdFlags, "backend")
