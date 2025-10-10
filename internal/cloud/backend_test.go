@@ -1705,3 +1705,15 @@ func TestCloud_ServiceDiscoveryAliases(t *testing.T) {
 		t.Fatalf("expected 1 alias but got %d", len(aliases))
 	}
 }
+
+// When a user tries to view a cloud plan without having a cloud backend in their
+// configuration, a call to AppName() would fail with a nil pointer exception
+// See: https://github.com/hashicorp/terraform/issues/37748
+func TestCloud_AppName_with_nil(t *testing.T) {
+	var backend *Cloud = nil
+
+	name := backend.AppName()
+	if name != "HCP Terraform" {
+		t.Fatalf("expected name to be HCP Terraform, got %q", name)
+	}
+}
