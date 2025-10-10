@@ -571,7 +571,7 @@ message PlannedChange {
   // ActionInvocation describes the reason an action was triggered
   enum ActionTriggerEvent {
       INVALID_EVENT = 0;
-      BEFORE_CERATE = 1;
+      BEFORE_CREATE = 1;
       AFTER_CREATE = 2;
       BEFORE_UPDATE = 3;
       AFTER_UPDATE = 4;
