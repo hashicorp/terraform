@@ -100,6 +100,21 @@ hasn't changed and try again. At this point, no changes to your existing
 configuration or state have been made.`, e.initReason)
 }
 
+type errBackendInitCloud struct {
+	initReason string
+}
+
+func (e *errBackendInitCloud) Error() string {
+	return fmt.Sprintf(`Reason: %s.
+
+Changes to the HCP Terraform configuration block require reinitialization, to discover any changes to the available workspaces.
+
+To re-initialize, run:
+  terraform init
+
+Terraform has not yet made changes to your existing configuration or state.`, e.initReason)
+}
+
 type errBackendNoExistingWorkspaces struct{}
 
 func (e *errBackendNoExistingWorkspaces) Error() string {

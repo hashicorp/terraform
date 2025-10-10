@@ -788,10 +788,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		if !opts.Init {
 			if backendConfig.Type == "cloud" {
 				initReason := "Initial configuration of HCP Terraform or Terraform Enterprise"
+				err := errBackendInitCloud{initReason}
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
-					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
+					err.Error(),
 				))
 			} else {
 				initReason := fmt.Sprintf("Initial configuration of the requested backend %q", backendConfig.Type)
@@ -981,16 +982,18 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	var diags tfdiags.Diagnostics
 	switch cloudMode {
 	case cloud.ConfigChangeInPlace:
+		err := errBackendInitCloud{initReason}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
-			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
+			err.Error(),
 		))
 	case cloud.ConfigMigrationIn:
+		err := errBackendInitCloud{initReason}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
-			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
+			err.Error(),
 		))
 	default:
 		err := errBackendInit{initReason}
@@ -2151,17 +2154,6 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
-
-const errBackendInitCloud = `
-Reason: %s.
-
-Changes to the HCP Terraform configuration block require reinitialization, to discover any changes to the available workspaces.
-
-To re-initialize, run:
-  terraform init
-
-Terraform has not yet made changes to your existing configuration or state.
-`
 
 const errBackendWriteSaved = `
 Error saving the backend configuration: %s
