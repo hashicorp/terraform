@@ -110,8 +110,14 @@ func (g *grpcClient) Delete() tfdiags.Diagnostics {
 // to lock a named state in the remote location.
 //
 // Implementation of remote.Client
-func (g *grpcClient) Lock(*statemgr.LockInfo) (string, error) {
-	panic("not implemented yet")
+func (g *grpcClient) Lock(lock *statemgr.LockInfo) (string, error) {
+	req := providers.LockStateRequest{
+		TypeName:  g.typeName,
+		StateId:   g.stateId,
+		Operation: lock.Operation,
+	}
+	resp := g.provider.LockState(req)
+	return resp.LockId, resp.Diagnostics.Err()
 }
 
 // Unlock invokes the UnlockState gRPC method in the plugin protocol
@@ -119,5 +125,11 @@ func (g *grpcClient) Lock(*statemgr.LockInfo) (string, error) {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Unlock(id string) error {
-	panic("not implemented yet")
+	req := providers.UnlockStateRequest{
+		TypeName: g.typeName,
+		StateId:  g.stateId,
+		LockId:   id,
+	}
+	resp := g.provider.UnlockState(req)
+	return resp.Diagnostics.Err()
 }
