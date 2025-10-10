@@ -136,9 +136,12 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		ActionTrigger: ai.ActionTrigger,
 	}
 
-	ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.StartAction(hookIdentity)
-	})
+	}))
+	if diags.HasErrors() {
+		return diags
+	}
 
 	// We don't want to send the marks, but all marks are okay in the context
 	// of an action invocation. We can't reuse our ephemeral free value from
@@ -153,9 +156,9 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 	respDiags := n.AddSubjectToDiagnostics(resp.Diagnostics)
 	diags = diags.Append(respDiags)
 	if respDiags.HasErrors() {
-		ctx.Hook(func(h Hook) (HookAction, error) {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.CompleteAction(hookIdentity, respDiags.Err())
-		})
+		}))
 		return diags
 	}
 
@@ -163,16 +166,22 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		for event := range resp.Events {
 			switch ev := event.(type) {
 			case providers.InvokeActionEvent_Progress:
-				ctx.Hook(func(h Hook) (HookAction, error) {
+				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.ProgressAction(hookIdentity, ev.Message)
-				})
+				}))
+				if diags.HasErrors() {
+					return diags
+				}
 			case providers.InvokeActionEvent_Completed:
 				// Enhance the diagnostics
 				diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
-				ctx.Hook(func(h Hook) (HookAction, error) {
+				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
-				})
+				}))
 				if ev.Diagnostics.HasErrors() {
+					return diags
+				}
+				if diags.HasErrors() {
 					return diags
 				}
 			default:
