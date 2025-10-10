@@ -244,14 +244,14 @@ func (mr *MockProviderClientMockRecorder) ImportResourceState(ctx, in any, opts 
 }
 
 // InvokeAction mocks base method.
-func (m *MockProviderClient) InvokeAction(ctx context.Context, in *tfplugin5.InvokeAction_Request, opts ...grpc.CallOption) (tfplugin5.Provider_InvokeActionClient, error) {
+func (m *MockProviderClient) InvokeAction(ctx context.Context, in *tfplugin5.InvokeAction_Request, opts ...grpc.CallOption) (grpc.ServerStreamingClient[tfplugin5.InvokeAction_Event], error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "InvokeAction", varargs...)
-	ret0, _ := ret[0].(tfplugin5.Provider_InvokeActionClient)
+	ret0, _ := ret[0].(grpc.ServerStreamingClient[tfplugin5.InvokeAction_Event])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -264,14 +264,14 @@ func (mr *MockProviderClientMockRecorder) InvokeAction(ctx, in any, opts ...any)
 }
 
 // ListResource mocks base method.
-func (m *MockProviderClient) ListResource(ctx context.Context, in *tfplugin5.ListResource_Request, opts ...grpc.CallOption) (tfplugin5.Provider_ListResourceClient, error) {
+func (m *MockProviderClient) ListResource(ctx context.Context, in *tfplugin5.ListResource_Request, opts ...grpc.CallOption) (grpc.ServerStreamingClient[tfplugin5.ListResource_Event], error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListResource", varargs...)
-	ret0, _ := ret[0].(tfplugin5.Provider_ListResourceClient)
+	ret0, _ := ret[0].(grpc.ServerStreamingClient[tfplugin5.ListResource_Event])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -648,14 +648,14 @@ func (mr *MockProvisionerClientMockRecorder) GetSchema(ctx, in any, opts ...any)
 }
 
 // ProvisionResource mocks base method.
-func (m *MockProvisionerClient) ProvisionResource(ctx context.Context, in *tfplugin5.ProvisionResource_Request, opts ...grpc.CallOption) (tfplugin5.Provisioner_ProvisionResourceClient, error) {
+func (m *MockProvisionerClient) ProvisionResource(ctx context.Context, in *tfplugin5.ProvisionResource_Request, opts ...grpc.CallOption) (grpc.ServerStreamingClient[tfplugin5.ProvisionResource_Response], error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ProvisionResource", varargs...)
-	ret0, _ := ret[0].(tfplugin5.Provisioner_ProvisionResourceClient)
+	ret0, _ := ret[0].(grpc.ServerStreamingClient[tfplugin5.ProvisionResource_Response])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -708,31 +708,31 @@ func (mr *MockProvisionerClientMockRecorder) ValidateProvisionerConfig(ctx, in a
 }
 
 // MockProvisioner_ProvisionResourceClient is a mock of Provisioner_ProvisionResourceClient interface.
-type MockProvisioner_ProvisionResourceClient struct {
+type MockProvisioner_ProvisionResourceClient[Res any] struct {
 	ctrl     *gomock.Controller
-	recorder *MockProvisioner_ProvisionResourceClientMockRecorder
+	recorder *MockProvisioner_ProvisionResourceClientMockRecorder[Res]
 	isgomock struct{}
 }
 
 // MockProvisioner_ProvisionResourceClientMockRecorder is the mock recorder for MockProvisioner_ProvisionResourceClient.
-type MockProvisioner_ProvisionResourceClientMockRecorder struct {
-	mock *MockProvisioner_ProvisionResourceClient
+type MockProvisioner_ProvisionResourceClientMockRecorder[Res any] struct {
+	mock *MockProvisioner_ProvisionResourceClient[Res]
 }
 
 // NewMockProvisioner_ProvisionResourceClient creates a new mock instance.
-func NewMockProvisioner_ProvisionResourceClient(ctrl *gomock.Controller) *MockProvisioner_ProvisionResourceClient {
-	mock := &MockProvisioner_ProvisionResourceClient{ctrl: ctrl}
-	mock.recorder = &MockProvisioner_ProvisionResourceClientMockRecorder{mock}
+func NewMockProvisioner_ProvisionResourceClient[Res any](ctrl *gomock.Controller) *MockProvisioner_ProvisionResourceClient[Res] {
+	mock := &MockProvisioner_ProvisionResourceClient[Res]{ctrl: ctrl}
+	mock.recorder = &MockProvisioner_ProvisionResourceClientMockRecorder[Res]{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockProvisioner_ProvisionResourceClient) EXPECT() *MockProvisioner_ProvisionResourceClientMockRecorder {
+func (m *MockProvisioner_ProvisionResourceClient[Res]) EXPECT() *MockProvisioner_ProvisionResourceClientMockRecorder[Res] {
 	return m.recorder
 }
 
 // CloseSend mocks base method.
-func (m *MockProvisioner_ProvisionResourceClient) CloseSend() error {
+func (m *MockProvisioner_ProvisionResourceClient[Res]) CloseSend() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSend")
 	ret0, _ := ret[0].(error)
@@ -740,13 +740,13 @@ func (m *MockProvisioner_ProvisionResourceClient) CloseSend() error {
 }
 
 // CloseSend indicates an expected call of CloseSend.
-func (mr *MockProvisioner_ProvisionResourceClientMockRecorder) CloseSend() *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceClientMockRecorder[Res]) CloseSend() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient)(nil).CloseSend))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient[Res])(nil).CloseSend))
 }
 
 // Context mocks base method.
-func (m *MockProvisioner_ProvisionResourceClient) Context() context.Context {
+func (m *MockProvisioner_ProvisionResourceClient[Res]) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
 	ret0, _ := ret[0].(context.Context)
@@ -754,13 +754,13 @@ func (m *MockProvisioner_ProvisionResourceClient) Context() context.Context {
 }
 
 // Context indicates an expected call of Context.
-func (mr *MockProvisioner_ProvisionResourceClientMockRecorder) Context() *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceClientMockRecorder[Res]) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient)(nil).Context))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient[Res])(nil).Context))
 }
 
 // Header mocks base method.
-func (m *MockProvisioner_ProvisionResourceClient) Header() (metadata.MD, error) {
+func (m *MockProvisioner_ProvisionResourceClient[Res]) Header() (metadata.MD, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header")
 	ret0, _ := ret[0].(metadata.MD)
@@ -769,13 +769,13 @@ func (m *MockProvisioner_ProvisionResourceClient) Header() (metadata.MD, error) 
 }
 
 // Header indicates an expected call of Header.
-func (mr *MockProvisioner_ProvisionResourceClientMockRecorder) Header() *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceClientMockRecorder[Res]) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient)(nil).Header))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient[Res])(nil).Header))
 }
 
 // Recv mocks base method.
-func (m *MockProvisioner_ProvisionResourceClient) Recv() (*tfplugin5.ProvisionResource_Response, error) {
+func (m *MockProvisioner_ProvisionResourceClient[Res]) Recv() (*tfplugin5.ProvisionResource_Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
 	ret0, _ := ret[0].(*tfplugin5.ProvisionResource_Response)
@@ -784,13 +784,13 @@ func (m *MockProvisioner_ProvisionResourceClient) Recv() (*tfplugin5.ProvisionRe
 }
 
 // Recv indicates an expected call of Recv.
-func (mr *MockProvisioner_ProvisionResourceClientMockRecorder) Recv() *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceClientMockRecorder[Res]) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient)(nil).Recv))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient[Res])(nil).Recv))
 }
 
 // RecvMsg mocks base method.
-func (m_2 *MockProvisioner_ProvisionResourceClient) RecvMsg(m any) error {
+func (m_2 *MockProvisioner_ProvisionResourceClient[Res]) RecvMsg(m any) error {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "RecvMsg", m)
 	ret0, _ := ret[0].(error)
@@ -798,13 +798,13 @@ func (m_2 *MockProvisioner_ProvisionResourceClient) RecvMsg(m any) error {
 }
 
 // RecvMsg indicates an expected call of RecvMsg.
-func (mr *MockProvisioner_ProvisionResourceClientMockRecorder) RecvMsg(m any) *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceClientMockRecorder[Res]) RecvMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient)(nil).RecvMsg), m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient[Res])(nil).RecvMsg), m)
 }
 
 // SendMsg mocks base method.
-func (m_2 *MockProvisioner_ProvisionResourceClient) SendMsg(m any) error {
+func (m_2 *MockProvisioner_ProvisionResourceClient[Res]) SendMsg(m any) error {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "SendMsg", m)
 	ret0, _ := ret[0].(error)
@@ -812,13 +812,13 @@ func (m_2 *MockProvisioner_ProvisionResourceClient) SendMsg(m any) error {
 }
 
 // SendMsg indicates an expected call of SendMsg.
-func (mr *MockProvisioner_ProvisionResourceClientMockRecorder) SendMsg(m any) *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceClientMockRecorder[Res]) SendMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient)(nil).SendMsg), m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient[Res])(nil).SendMsg), m)
 }
 
 // Trailer mocks base method.
-func (m *MockProvisioner_ProvisionResourceClient) Trailer() metadata.MD {
+func (m *MockProvisioner_ProvisionResourceClient[Res]) Trailer() metadata.MD {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Trailer")
 	ret0, _ := ret[0].(metadata.MD)
@@ -826,37 +826,37 @@ func (m *MockProvisioner_ProvisionResourceClient) Trailer() metadata.MD {
 }
 
 // Trailer indicates an expected call of Trailer.
-func (mr *MockProvisioner_ProvisionResourceClientMockRecorder) Trailer() *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceClientMockRecorder[Res]) Trailer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient)(nil).Trailer))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockProvisioner_ProvisionResourceClient[Res])(nil).Trailer))
 }
 
 // MockProvisioner_ProvisionResourceServer is a mock of Provisioner_ProvisionResourceServer interface.
-type MockProvisioner_ProvisionResourceServer struct {
+type MockProvisioner_ProvisionResourceServer[Res any] struct {
 	ctrl     *gomock.Controller
-	recorder *MockProvisioner_ProvisionResourceServerMockRecorder
+	recorder *MockProvisioner_ProvisionResourceServerMockRecorder[Res]
 	isgomock struct{}
 }
 
 // MockProvisioner_ProvisionResourceServerMockRecorder is the mock recorder for MockProvisioner_ProvisionResourceServer.
-type MockProvisioner_ProvisionResourceServerMockRecorder struct {
-	mock *MockProvisioner_ProvisionResourceServer
+type MockProvisioner_ProvisionResourceServerMockRecorder[Res any] struct {
+	mock *MockProvisioner_ProvisionResourceServer[Res]
 }
 
 // NewMockProvisioner_ProvisionResourceServer creates a new mock instance.
-func NewMockProvisioner_ProvisionResourceServer(ctrl *gomock.Controller) *MockProvisioner_ProvisionResourceServer {
-	mock := &MockProvisioner_ProvisionResourceServer{ctrl: ctrl}
-	mock.recorder = &MockProvisioner_ProvisionResourceServerMockRecorder{mock}
+func NewMockProvisioner_ProvisionResourceServer[Res any](ctrl *gomock.Controller) *MockProvisioner_ProvisionResourceServer[Res] {
+	mock := &MockProvisioner_ProvisionResourceServer[Res]{ctrl: ctrl}
+	mock.recorder = &MockProvisioner_ProvisionResourceServerMockRecorder[Res]{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockProvisioner_ProvisionResourceServer) EXPECT() *MockProvisioner_ProvisionResourceServerMockRecorder {
+func (m *MockProvisioner_ProvisionResourceServer[Res]) EXPECT() *MockProvisioner_ProvisionResourceServerMockRecorder[Res] {
 	return m.recorder
 }
 
 // Context mocks base method.
-func (m *MockProvisioner_ProvisionResourceServer) Context() context.Context {
+func (m *MockProvisioner_ProvisionResourceServer[Res]) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
 	ret0, _ := ret[0].(context.Context)
@@ -864,13 +864,13 @@ func (m *MockProvisioner_ProvisionResourceServer) Context() context.Context {
 }
 
 // Context indicates an expected call of Context.
-func (mr *MockProvisioner_ProvisionResourceServerMockRecorder) Context() *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceServerMockRecorder[Res]) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer)(nil).Context))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer[Res])(nil).Context))
 }
 
 // RecvMsg mocks base method.
-func (m_2 *MockProvisioner_ProvisionResourceServer) RecvMsg(m any) error {
+func (m_2 *MockProvisioner_ProvisionResourceServer[Res]) RecvMsg(m any) error {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "RecvMsg", m)
 	ret0, _ := ret[0].(error)
@@ -878,13 +878,13 @@ func (m_2 *MockProvisioner_ProvisionResourceServer) RecvMsg(m any) error {
 }
 
 // RecvMsg indicates an expected call of RecvMsg.
-func (mr *MockProvisioner_ProvisionResourceServerMockRecorder) RecvMsg(m any) *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceServerMockRecorder[Res]) RecvMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer)(nil).RecvMsg), m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer[Res])(nil).RecvMsg), m)
 }
 
 // Send mocks base method.
-func (m *MockProvisioner_ProvisionResourceServer) Send(arg0 *tfplugin5.ProvisionResource_Response) error {
+func (m *MockProvisioner_ProvisionResourceServer[Res]) Send(arg0 *tfplugin5.ProvisionResource_Response) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0)
 	ret0, _ := ret[0].(error)
@@ -892,13 +892,13 @@ func (m *MockProvisioner_ProvisionResourceServer) Send(arg0 *tfplugin5.Provision
 }
 
 // Send indicates an expected call of Send.
-func (mr *MockProvisioner_ProvisionResourceServerMockRecorder) Send(arg0 any) *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceServerMockRecorder[Res]) Send(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer)(nil).Send), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer[Res])(nil).Send), arg0)
 }
 
 // SendHeader mocks base method.
-func (m *MockProvisioner_ProvisionResourceServer) SendHeader(arg0 metadata.MD) error {
+func (m *MockProvisioner_ProvisionResourceServer[Res]) SendHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendHeader", arg0)
 	ret0, _ := ret[0].(error)
@@ -906,13 +906,13 @@ func (m *MockProvisioner_ProvisionResourceServer) SendHeader(arg0 metadata.MD) e
 }
 
 // SendHeader indicates an expected call of SendHeader.
-func (mr *MockProvisioner_ProvisionResourceServerMockRecorder) SendHeader(arg0 any) *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceServerMockRecorder[Res]) SendHeader(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHeader", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer)(nil).SendHeader), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHeader", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer[Res])(nil).SendHeader), arg0)
 }
 
 // SendMsg mocks base method.
-func (m_2 *MockProvisioner_ProvisionResourceServer) SendMsg(m any) error {
+func (m_2 *MockProvisioner_ProvisionResourceServer[Res]) SendMsg(m any) error {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "SendMsg", m)
 	ret0, _ := ret[0].(error)
@@ -920,13 +920,13 @@ func (m_2 *MockProvisioner_ProvisionResourceServer) SendMsg(m any) error {
 }
 
 // SendMsg indicates an expected call of SendMsg.
-func (mr *MockProvisioner_ProvisionResourceServerMockRecorder) SendMsg(m any) *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceServerMockRecorder[Res]) SendMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer)(nil).SendMsg), m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer[Res])(nil).SendMsg), m)
 }
 
 // SetHeader mocks base method.
-func (m *MockProvisioner_ProvisionResourceServer) SetHeader(arg0 metadata.MD) error {
+func (m *MockProvisioner_ProvisionResourceServer[Res]) SetHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetHeader", arg0)
 	ret0, _ := ret[0].(error)
@@ -934,49 +934,49 @@ func (m *MockProvisioner_ProvisionResourceServer) SetHeader(arg0 metadata.MD) er
 }
 
 // SetHeader indicates an expected call of SetHeader.
-func (mr *MockProvisioner_ProvisionResourceServerMockRecorder) SetHeader(arg0 any) *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceServerMockRecorder[Res]) SetHeader(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHeader", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer)(nil).SetHeader), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHeader", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer[Res])(nil).SetHeader), arg0)
 }
 
 // SetTrailer mocks base method.
-func (m *MockProvisioner_ProvisionResourceServer) SetTrailer(arg0 metadata.MD) {
+func (m *MockProvisioner_ProvisionResourceServer[Res]) SetTrailer(arg0 metadata.MD) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetTrailer", arg0)
 }
 
 // SetTrailer indicates an expected call of SetTrailer.
-func (mr *MockProvisioner_ProvisionResourceServerMockRecorder) SetTrailer(arg0 any) *gomock.Call {
+func (mr *MockProvisioner_ProvisionResourceServerMockRecorder[Res]) SetTrailer(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTrailer", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer)(nil).SetTrailer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTrailer", reflect.TypeOf((*MockProvisioner_ProvisionResourceServer[Res])(nil).SetTrailer), arg0)
 }
 
 // MockProvider_InvokeActionClient is a mock of Provider_InvokeActionClient interface.
-type MockProvider_InvokeActionClient struct {
+type MockProvider_InvokeActionClient[Res any] struct {
 	ctrl     *gomock.Controller
-	recorder *MockProvider_InvokeActionClientMockRecorder
+	recorder *MockProvider_InvokeActionClientMockRecorder[Res]
 	isgomock struct{}
 }
 
 // MockProvider_InvokeActionClientMockRecorder is the mock recorder for MockProvider_InvokeActionClient.
-type MockProvider_InvokeActionClientMockRecorder struct {
-	mock *MockProvider_InvokeActionClient
+type MockProvider_InvokeActionClientMockRecorder[Res any] struct {
+	mock *MockProvider_InvokeActionClient[Res]
 }
 
 // NewMockProvider_InvokeActionClient creates a new mock instance.
-func NewMockProvider_InvokeActionClient(ctrl *gomock.Controller) *MockProvider_InvokeActionClient {
-	mock := &MockProvider_InvokeActionClient{ctrl: ctrl}
-	mock.recorder = &MockProvider_InvokeActionClientMockRecorder{mock}
+func NewMockProvider_InvokeActionClient[Res any](ctrl *gomock.Controller) *MockProvider_InvokeActionClient[Res] {
+	mock := &MockProvider_InvokeActionClient[Res]{ctrl: ctrl}
+	mock.recorder = &MockProvider_InvokeActionClientMockRecorder[Res]{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockProvider_InvokeActionClient) EXPECT() *MockProvider_InvokeActionClientMockRecorder {
+func (m *MockProvider_InvokeActionClient[Res]) EXPECT() *MockProvider_InvokeActionClientMockRecorder[Res] {
 	return m.recorder
 }
 
 // CloseSend mocks base method.
-func (m *MockProvider_InvokeActionClient) CloseSend() error {
+func (m *MockProvider_InvokeActionClient[Res]) CloseSend() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSend")
 	ret0, _ := ret[0].(error)
@@ -984,13 +984,13 @@ func (m *MockProvider_InvokeActionClient) CloseSend() error {
 }
 
 // CloseSend indicates an expected call of CloseSend.
-func (mr *MockProvider_InvokeActionClientMockRecorder) CloseSend() *gomock.Call {
+func (mr *MockProvider_InvokeActionClientMockRecorder[Res]) CloseSend() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockProvider_InvokeActionClient)(nil).CloseSend))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockProvider_InvokeActionClient[Res])(nil).CloseSend))
 }
 
 // Context mocks base method.
-func (m *MockProvider_InvokeActionClient) Context() context.Context {
+func (m *MockProvider_InvokeActionClient[Res]) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
 	ret0, _ := ret[0].(context.Context)
@@ -998,13 +998,13 @@ func (m *MockProvider_InvokeActionClient) Context() context.Context {
 }
 
 // Context indicates an expected call of Context.
-func (mr *MockProvider_InvokeActionClientMockRecorder) Context() *gomock.Call {
+func (mr *MockProvider_InvokeActionClientMockRecorder[Res]) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockProvider_InvokeActionClient)(nil).Context))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockProvider_InvokeActionClient[Res])(nil).Context))
 }
 
 // Header mocks base method.
-func (m *MockProvider_InvokeActionClient) Header() (metadata.MD, error) {
+func (m *MockProvider_InvokeActionClient[Res]) Header() (metadata.MD, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header")
 	ret0, _ := ret[0].(metadata.MD)
@@ -1013,13 +1013,13 @@ func (m *MockProvider_InvokeActionClient) Header() (metadata.MD, error) {
 }
 
 // Header indicates an expected call of Header.
-func (mr *MockProvider_InvokeActionClientMockRecorder) Header() *gomock.Call {
+func (mr *MockProvider_InvokeActionClientMockRecorder[Res]) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockProvider_InvokeActionClient)(nil).Header))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockProvider_InvokeActionClient[Res])(nil).Header))
 }
 
 // Recv mocks base method.
-func (m *MockProvider_InvokeActionClient) Recv() (*tfplugin5.InvokeAction_Event, error) {
+func (m *MockProvider_InvokeActionClient[Res]) Recv() (*tfplugin5.InvokeAction_Event, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
 	ret0, _ := ret[0].(*tfplugin5.InvokeAction_Event)
@@ -1028,13 +1028,13 @@ func (m *MockProvider_InvokeActionClient) Recv() (*tfplugin5.InvokeAction_Event,
 }
 
 // Recv indicates an expected call of Recv.
-func (mr *MockProvider_InvokeActionClientMockRecorder) Recv() *gomock.Call {
+func (mr *MockProvider_InvokeActionClientMockRecorder[Res]) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockProvider_InvokeActionClient)(nil).Recv))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockProvider_InvokeActionClient[Res])(nil).Recv))
 }
 
 // RecvMsg mocks base method.
-func (m_2 *MockProvider_InvokeActionClient) RecvMsg(m any) error {
+func (m_2 *MockProvider_InvokeActionClient[Res]) RecvMsg(m any) error {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "RecvMsg", m)
 	ret0, _ := ret[0].(error)
@@ -1042,13 +1042,13 @@ func (m_2 *MockProvider_InvokeActionClient) RecvMsg(m any) error {
 }
 
 // RecvMsg indicates an expected call of RecvMsg.
-func (mr *MockProvider_InvokeActionClientMockRecorder) RecvMsg(m any) *gomock.Call {
+func (mr *MockProvider_InvokeActionClientMockRecorder[Res]) RecvMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvider_InvokeActionClient)(nil).RecvMsg), m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockProvider_InvokeActionClient[Res])(nil).RecvMsg), m)
 }
 
 // SendMsg mocks base method.
-func (m_2 *MockProvider_InvokeActionClient) SendMsg(m any) error {
+func (m_2 *MockProvider_InvokeActionClient[Res]) SendMsg(m any) error {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "SendMsg", m)
 	ret0, _ := ret[0].(error)
@@ -1056,13 +1056,13 @@ func (m_2 *MockProvider_InvokeActionClient) SendMsg(m any) error {
 }
 
 // SendMsg indicates an expected call of SendMsg.
-func (mr *MockProvider_InvokeActionClientMockRecorder) SendMsg(m any) *gomock.Call {
+func (mr *MockProvider_InvokeActionClientMockRecorder[Res]) SendMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvider_InvokeActionClient)(nil).SendMsg), m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockProvider_InvokeActionClient[Res])(nil).SendMsg), m)
 }
 
 // Trailer mocks base method.
-func (m *MockProvider_InvokeActionClient) Trailer() metadata.MD {
+func (m *MockProvider_InvokeActionClient[Res]) Trailer() metadata.MD {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Trailer")
 	ret0, _ := ret[0].(metadata.MD)
@@ -1070,7 +1070,7 @@ func (m *MockProvider_InvokeActionClient) Trailer() metadata.MD {
 }
 
 // Trailer indicates an expected call of Trailer.
-func (mr *MockProvider_InvokeActionClientMockRecorder) Trailer() *gomock.Call {
+func (mr *MockProvider_InvokeActionClientMockRecorder[Res]) Trailer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockProvider_InvokeActionClient)(nil).Trailer))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockProvider_InvokeActionClient[Res])(nil).Trailer))
 }
