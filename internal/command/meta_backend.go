@@ -1836,7 +1836,7 @@ func (m *Meta) createDefaultWorkspace(c *configs.StateStore, b backend.Backend) 
 	defaultSMgr, sDiags := b.StateMgr(backend.DefaultStateName)
 	diags = diags.Append(sDiags)
 	if sDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in  provider %s (%q). This is a bug in Terraform and should be reported: %w",
+		diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in provider %s (%q). This is a bug in Terraform and should be reported: %w",
 			c.Type,
 			c.Provider.Name,
 			c.ProviderAddr,
