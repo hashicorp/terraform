@@ -48,6 +48,23 @@ If you'd like to run Terraform and store state locally, you can fix this
 error by removing the backend configuration from your configuration.`, e.backendName)
 }
 
+type errBackendSavedUnknown struct {
+	backendName string
+}
+
+func (e *errBackendSavedUnknown) Error() string {
+	return fmt.Sprintf(`The backend %q could not be found.
+
+This is the backend that this Terraform environment is configured to use
+both in your configuration and saved locally as your last-used backend.
+If it isn't found, it could mean an alternate version of Terraform was
+used with this configuration. Please use the proper version of Terraform that
+contains support for this backend.
+
+If you'd like to force remove this backend, you must update your configuration
+to not use the backend and run "terraform init" (or any other command) again.`, e.backendName)
+}
+
 type errBackendNoExistingWorkspaces struct{}
 
 func (e *errBackendNoExistingWorkspaces) Error() string {

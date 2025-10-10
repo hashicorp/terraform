@@ -341,7 +341,7 @@ func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backendrun.Operation
 
 	f := backendInit.Backend(settings.Type)
 	if f == nil {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), settings.Type))
+		diags = diags.Append(errBackendSavedUnknown{settings.Type})
 		return nil, diags
 	}
 	b := f()
@@ -1035,7 +1035,7 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 	}
 	f := backendInit.Backend(s.Backend.Type)
 	if f == nil {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type))
+		diags = diags.Append(errBackendSavedUnknown{s.Backend.Type})
 		return nil, diags
 	}
 	b := f()
@@ -1489,7 +1489,7 @@ func (m *Meta) savedBackend(sMgr *clistate.LocalState) (backend.Backend, tfdiags
 	// Get the backend
 	f := backendInit.Backend(s.Backend.Type)
 	if f == nil {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type))
+		diags = diags.Append(errBackendSavedUnknown{s.Backend.Type})
 		return nil, diags
 	}
 	b := f()
@@ -2148,19 +2148,6 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
-
-const errBackendSavedUnknown = `
-The backend %q could not be found.
-
-This is the backend that this Terraform environment is configured to use
-both in your configuration and saved locally as your last-used backend.
-If it isn't found, it could mean an alternate version of Terraform was
-used with this configuration. Please use the proper version of Terraform that
-contains support for this backend.
-
-If you'd like to force remove this backend, you must update your configuration
-to not use the backend and run "terraform init" (or any other command) again.
-`
 
 const errBackendClearSaved = `
 Error clearing the backend configuration: %s
