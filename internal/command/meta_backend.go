@@ -1519,8 +1519,9 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 	if s.Backend.Hash != uint64(cHash) {
 		s.Backend.Hash = uint64(cHash)
 		if err := sMgr.WriteState(s); err != nil {
-			diags = diags.Append(err)
+			diags = diags.Append(errBackendWriteSavedDiag(err))
 		}
+		// No need to call PersistState as it's a no-op
 	}
 
 	return diags
