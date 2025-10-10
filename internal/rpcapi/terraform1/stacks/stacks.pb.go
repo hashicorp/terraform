@@ -4788,11 +4788,11 @@ func (*PlannedChange_ActionInvocationInstance_InvokeActionTrigger) isPlannedChan
 // LifecycleActionTrigger contains details on the conditions that led to the
 // triggering of an action.
 type PlannedChange_LifecycleActionTrigger struct {
-	state                     protoimpl.MessageState             `protogen:"open.v1"`
-	TriggeringResourceAddress *ResourceInstanceObjectInStackAddr `protobuf:"bytes,1,opt,name=triggering_resource_address,json=triggeringResourceAddress,proto3" json:"triggering_resource_address,omitempty"`
-	TriggerEvent              PlannedChange_ActionTriggerEvent   `protobuf:"varint,2,opt,name=trigger_event,json=triggerEvent,proto3,enum=terraform1.stacks.PlannedChange_ActionTriggerEvent" json:"trigger_event,omitempty"`
-	ActionTriggerBlockIndex   int64                              `protobuf:"varint,3,opt,name=action_trigger_block_index,json=actionTriggerBlockIndex,proto3" json:"action_trigger_block_index,omitempty"`
-	ActionsListIndex          int64                              `protobuf:"varint,4,opt,name=actions_list_index,json=actionsListIndex,proto3" json:"actions_list_index,omitempty"`
+	state                     protoimpl.MessageState           `protogen:"open.v1"`
+	TriggeringResourceAddress *ResourceInstanceInStackAddr     `protobuf:"bytes,1,opt,name=triggering_resource_address,json=triggeringResourceAddress,proto3" json:"triggering_resource_address,omitempty"`
+	TriggerEvent              PlannedChange_ActionTriggerEvent `protobuf:"varint,2,opt,name=trigger_event,json=triggerEvent,proto3,enum=terraform1.stacks.PlannedChange_ActionTriggerEvent" json:"trigger_event,omitempty"`
+	ActionTriggerBlockIndex   int64                            `protobuf:"varint,3,opt,name=action_trigger_block_index,json=actionTriggerBlockIndex,proto3" json:"action_trigger_block_index,omitempty"`
+	ActionsListIndex          int64                            `protobuf:"varint,4,opt,name=actions_list_index,json=actionsListIndex,proto3" json:"actions_list_index,omitempty"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -4827,7 +4827,7 @@ func (*PlannedChange_LifecycleActionTrigger) Descriptor() ([]byte, []int) {
 	return file_stacks_proto_rawDescGZIP(), []int{23, 3}
 }
 
-func (x *PlannedChange_LifecycleActionTrigger) GetTriggeringResourceAddress() *ResourceInstanceObjectInStackAddr {
+func (x *PlannedChange_LifecycleActionTrigger) GetTriggeringResourceAddress() *ResourceInstanceInStackAddr {
 	if x != nil {
 		return x.TriggeringResourceAddress
 	}
@@ -6987,7 +6987,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\x124\n" +
 	"\x16resource_instance_addr\x18\x02 \x01(\tR\x14resourceInstanceAddr\x12\x1f\n" +
 	"\vdeposed_key\x18\x03 \x01(\tR\n" +
-	"deposedKey\"\xee\x1d\n" +
+	"deposedKey\"\xe8\x1d\n" +
 	"\rPlannedChange\x12&\n" +
 	"\x03raw\x18\x01 \x03(\v2\x14.google.protobuf.AnyR\x03raw\x12V\n" +
 	"\fdescriptions\x18\x02 \x03(\v22.terraform1.stacks.PlannedChange.ChangeDescriptionR\fdescriptions\x1a\xee\x05\n" +
@@ -7010,9 +7010,9 @@ const file_stacks_proto_rawDesc = "" +
 	"\fconfig_value\x18\x04 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\vconfigValue\x12s\n" +
 	"\x18lifecycle_action_trigger\x18\x06 \x01(\v27.terraform1.stacks.PlannedChange.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12j\n" +
 	"\x15invoke_action_trigger\x18\a \x01(\v24.terraform1.stacks.PlannedChange.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
-	"\x0eaction_trigger\x1a\xd3\x02\n" +
-	"\x16LifecycleActionTrigger\x12t\n" +
-	"\x1btriggering_resource_address\x18\x01 \x01(\v24.terraform1.stacks.ResourceInstanceObjectInStackAddrR\x19triggeringResourceAddress\x12X\n" +
+	"\x0eaction_trigger\x1a\xcd\x02\n" +
+	"\x16LifecycleActionTrigger\x12n\n" +
+	"\x1btriggering_resource_address\x18\x01 \x01(\v2..terraform1.stacks.ResourceInstanceInStackAddrR\x19triggeringResourceAddress\x12X\n" +
 	"\rtrigger_event\x18\x02 \x01(\x0e23.terraform1.stacks.PlannedChange.ActionTriggerEventR\ftriggerEvent\x12;\n" +
 	"\x1aaction_trigger_block_index\x18\x03 \x01(\x03R\x17actionTriggerBlockIndex\x12,\n" +
 	"\x12actions_list_index\x18\x04 \x01(\x03R\x10actionsListIndex\x1a\x15\n" +
@@ -7462,7 +7462,7 @@ var file_stacks_proto_depIdxs = []int32{
 	24,  // 77: terraform1.stacks.PlannedChange.ActionInvocationInstance.config_value:type_name -> terraform1.stacks.DynamicValue
 	91,  // 78: terraform1.stacks.PlannedChange.ActionInvocationInstance.lifecycle_action_trigger:type_name -> terraform1.stacks.PlannedChange.LifecycleActionTrigger
 	92,  // 79: terraform1.stacks.PlannedChange.ActionInvocationInstance.invoke_action_trigger:type_name -> terraform1.stacks.PlannedChange.InvokeActionTrigger
-	31,  // 80: terraform1.stacks.PlannedChange.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	30,  // 80: terraform1.stacks.PlannedChange.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
 	4,   // 81: terraform1.stacks.PlannedChange.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.PlannedChange.ActionTriggerEvent
 	31,  // 82: terraform1.stacks.PlannedChange.ResourceInstance.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
 	2,   // 83: terraform1.stacks.PlannedChange.ResourceInstance.actions:type_name -> terraform1.stacks.ChangeType
