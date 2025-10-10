@@ -659,8 +659,7 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 		defer w.Close()
 		_, err := io.Copy(w, src)
 		if err != nil {
-			t.Logf("error when copying data from testStdinPipe reader argument to stdin: %s", err)
-			t.Fail()
+			t.Errorf("error when copying data from testStdinPipe reader argument to stdin: %s", err)
 		}
 	}()
 
