@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -909,19 +910,55 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*st
 		return nil, nil
 	}
 
+	invoke := stacks.PlannedChange_ActionInvocationInstance{
+		Addr:         stacks.NewActionInvocationInStackAddr(addr),
+		ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
+
+		ConfigValue: stacks.NewDynamicValue(
+			pc.Invocation.ConfigValue,
+			pc.Invocation.SensitiveConfigPaths,
+		),
+	}
+
+	switch at := pc.Invocation.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		triggerEvent := stacks.PlannedChange_INVALID_EVENT
+		switch at.ActionTriggerEvent {
+		case configs.BeforeCreate:
+			triggerEvent = stacks.PlannedChange_BEFORE_CREATE
+		case configs.AfterCreate:
+			triggerEvent = stacks.PlannedChange_AFTER_CREATE
+		case configs.BeforeUpdate:
+			triggerEvent = stacks.PlannedChange_BEFORE_UPDATE
+		case configs.AfterUpdate:
+			triggerEvent = stacks.PlannedChange_AFTER_UPDATE
+		case configs.BeforeDestroy:
+			triggerEvent = stacks.PlannedChange_BEFORE_DESTROY
+		case configs.AfterDestroy:
+			triggerEvent = stacks.PlannedChange_AFTER_DESTROY
+		}
+
+		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_LifecycleActionTrigger{
+			LifecycleActionTrigger: &stacks.PlannedChange_LifecycleActionTrigger{
+				TriggerEvent: triggerEvent,
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(stackaddrs.AbsResourceInstance{
+					Component: addr.Component,
+					Item:      at.TriggeringResourceAddr,
+				}),
+				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(at.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		invoke.ActionTrigger = new(stacks.PlannedChange_ActionInvocationInstance_InvokeActionTrigger)
+	default:
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
+	}
+
 	return &stacks.PlannedChange_ChangeDescription{
 		Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationPlanned{
-			ActionInvocationPlanned: &stacks.PlannedChange_ActionInvocationInstance{
-				Addr:         stacks.NewActionInvocationInStackAddr(addr),
-				ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
-
-				ConfigValue: stacks.NewDynamicValue(
-					pc.Invocation.ConfigValue,
-					pc.Invocation.SensitiveConfigPaths,
-				),
-
-				ActionTrigger: nil,
-			},
+			ActionInvocationPlanned: &invoke,
 		},
 	}, nil
 }

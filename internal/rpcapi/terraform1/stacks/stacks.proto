@@ -599,7 +599,7 @@ message PlannedChange {
   // LifecycleActionTrigger contains details on the conditions that led to the
   // triggering of an action.
   message LifecycleActionTrigger {
-    ResourceInstanceObjectInStackAddr triggering_resource_address = 1;
+    ResourceInstanceInStackAddr triggering_resource_address = 1;
     ActionTriggerEvent trigger_event = 2;
     int64 action_trigger_block_index = 3;
     int64 actions_list_index = 4;
