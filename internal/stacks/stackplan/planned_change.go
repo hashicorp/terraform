@@ -493,7 +493,6 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 			},
 		},
 	}, nil
-
 }
 
 func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*stacks.DynamicValue, error) {
@@ -851,5 +850,115 @@ func (pc *PlannedChangeProviderFunctionResults) PlannedChangeProto() (*stacks.Pl
 
 	return &stacks.PlannedChange{
 		Raw: []*anypb.Any{&raw},
+	}, nil
+}
+
+type PlannedChangeActionInvocationInstancePlanned struct {
+	ActionInvocationAddr stackaddrs.AbsActionInvocationInstance
+
+	// Invocation describes the planned invocation.
+	Invocation *plans.ActionInvocationInstanceSrc
+
+	// ProviderConfigAddr is the address of the provider configuration
+	// that planned this change, resolved in terms of the configuration for
+	// the component this resource instance object belongs to.
+	ProviderConfigAddr addrs.AbsProviderConfig
+
+	// Schema MUST be the same schema that was used to encode the dynamic
+	// values inside ChangeSrc
+	//
+	// Can be empty if and only if ChangeSrc is nil.
+	Schema providers.ActionSchema
+}
+
+var _ PlannedChange = (*PlannedChangeActionInvocationInstancePlanned)(nil)
+
+func (pc *PlannedChangeActionInvocationInstancePlanned) PlanActionInvocationProto() (*tfstackdata1.PlanActionInvocationPlanned, error) {
+	addr := pc.ActionInvocationAddr
+
+	if pc.Invocation == nil {
+		// This is just a stubby placeholder to remind us to drop the
+		// apparently-deleted-outside-of-Terraform object from the state
+		// if this plan later gets applied.
+
+		return &tfstackdata1.PlanActionInvocationPlanned{
+			ComponentInstanceAddr: addr.Component.String(),
+			ActionInvocationAddr:  addr.Item.String(),
+			ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
+		}, nil
+	}
+
+	invocationProto, err := planfile.ActionInvocationToProto(pc.Invocation)
+	if err != nil {
+		return nil, fmt.Errorf("converting action invocation to proto: %w", err)
+	}
+
+	return &tfstackdata1.PlanActionInvocationPlanned{
+		ComponentInstanceAddr: addr.Component.String(),
+		ActionInvocationAddr:  addr.Item.String(),
+		ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
+		Invocation:            invocationProto,
+	}, nil
+}
+
+func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*stacks.PlannedChange_ChangeDescription, error) {
+	addr := pc.ActionInvocationAddr
+
+	// We only emit an external description if there's an invocation to describe.
+	if pc.Invocation == nil {
+		return nil, nil
+	}
+
+	return &stacks.PlannedChange_ChangeDescription{
+		Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationPlanned{
+			ActionInvocationPlanned: &stacks.PlannedChange_ActionInvocationInstance{
+				Addr:         stacks.NewActionInvocationInStackAddr(addr),
+				ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
+
+				ConfigValue: stacks.NewDynamicValue(
+					pc.Invocation.ConfigValue,
+					pc.Invocation.SensitiveConfigPaths,
+				),
+
+				ActionTrigger: nil,
+			},
+		},
+	}, nil
+}
+
+// PlannedChangeProto implements PlannedChange.
+func (pc *PlannedChangeActionInvocationInstancePlanned) PlannedChangeProto() (*stacks.PlannedChange, error) {
+	paip, err := pc.PlanActionInvocationProto()
+	if err != nil {
+		return nil, err
+	}
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, paip, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	if pc.Invocation == nil {
+		// We only emit a "raw" in this case, because this is a relatively
+		// uninteresting edge-case. The PlanActionInvocationProto
+		// function should have returned a placeholder value for this use case.
+
+		return &stacks.PlannedChange{
+			Raw: []*anypb.Any{&raw},
+		}, nil
+	}
+
+	var descs []*stacks.PlannedChange_ChangeDescription
+	desc, err := pc.ChangeDescription()
+	if err != nil {
+		return nil, err
+	}
+	if desc != nil {
+		descs = append(descs, desc)
+	}
+
+	return &stacks.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
 	}, nil
 }
