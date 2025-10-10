@@ -17,3 +17,13 @@ state to migrate to your newly configured backend. Terraform can't continue
 without this check because that would risk losing state. Please resolve the
 error above and try again.`, e.innerError)
 }
+
+type errBackendNoExistingWorkspaces struct{}
+
+func (e *errBackendNoExistingWorkspaces) Error() string {
+	return `No existing workspaces.
+
+Use the "terraform workspace" command to create and select a new workspace.
+If the backend already contains existing workspaces, you may need to update
+the backend configuration.`
+}

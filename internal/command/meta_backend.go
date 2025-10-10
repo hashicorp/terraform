@@ -276,7 +276,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new HCP Terraform workspace requested by the user (%s)", name)
 			return m.SetWorkspace(name)
 		} else {
-			return errors.New(strings.TrimSpace(errBackendNoExistingWorkspaces))
+			return &errBackendNoExistingWorkspaces{}
 		}
 	}
 
@@ -2169,14 +2169,6 @@ backend type. Please check your configuration and your Terraform version.
 
 If you'd like to run Terraform and store state locally, you can fix this
 error by removing the backend configuration from your configuration.
-`
-
-const errBackendNoExistingWorkspaces = `
-No existing workspaces.
-
-Use the "terraform workspace" command to create and select a new workspace.
-If the backend already contains existing workspaces, you may need to update
-the backend configuration.
 `
 
 const errBackendSavedUnknown = `
