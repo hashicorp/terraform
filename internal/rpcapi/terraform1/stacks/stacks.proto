@@ -419,7 +419,7 @@ message ComponentInstanceInStackAddr {
 
 // Represents the address of a specific action inside a specific 
 // component instance within the containing stack.
-message ResourceInstanceInStackAddr {
+message ActionInvocationInstanceInStackAddr {
   // Unique address of the component instance that this action instance
   // belongs to. 
   string component_instance_addr = 1;
@@ -581,18 +581,14 @@ message PlannedChange {
 
   // ActionInvocationInstance contains a planned action invocation and any embedded ResourceInstanceActionChanges
   message ActionInvocationInstance {
-      ActionInvocationInstanceObjectInStackAddr addr = 1;
+      ActionInvocationInstanceInStackAddr addr = 1;
 
       // provider is the address of the provider configuration that this change
       // was planned with, and thus the configuration that must be used to
       // apply it.
-      string provider = 2;
+      string provider_addr = 2;
 
       DynamicValue config_value = 4;
-      // An unordered set of paths into config_value which are marked as
-      // sensitive. Values at these paths should be obscured in human-readable
-      // output.
-      repeated Path sensitive_config_paths = 5;
 
       oneof action_trigger {
           LifecycleActionTrigger lifecycle_action_trigger = 6;
@@ -603,7 +599,7 @@ message PlannedChange {
   // LifecycleActionTrigger contains details on the conditions that led to the
   // triggering of an action.
   message LifecycleActionTrigger {
-    ResourceInstanceObjectInStackAddr = 1;
+    ResourceInstanceObjectInStackAddr triggering_resource_address = 1;
     ActionTriggerEvent trigger_event = 2;
     int64 action_trigger_block_index = 3;
     int64 actions_list_index = 4;
