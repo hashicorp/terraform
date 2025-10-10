@@ -4,6 +4,7 @@
 package arguments
 
 import (
+	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -126,6 +127,13 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
+	}
+
+	if v := os.Getenv("TF_SKIP_CREATE_DEFAULT_WORKSPACE"); v != "" {
+		// If TF_SKIP_CREATE_DEFAULT_WORKSPACE is set it will override
+		// a -create-default-workspace=true flag that's set explicitly,
+		// as that's indistinguishable from the default value being used.
+		init.CreateDefaultWorkspace = false
 	}
 
 	if init.MigrateState && init.Json {
