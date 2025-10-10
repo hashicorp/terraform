@@ -37,6 +37,9 @@ type PlanProducer interface {
 
 	// ResourceSchema returns the schema for a resource type from a provider.
 	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (providers.Schema, error)
+
+	// ActionSchema returns the schema for an action type from a provider.
+	ActionSchema(ctx context.Context, providerTypeAddr addrs.Provider, actionType string) (providers.ActionSchema, error)
 }
 
 func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, refreshPlan *plans.Plan, action plans.Action, producer PlanProducer) ([]PlannedChange, tfdiags.Diagnostics) {
