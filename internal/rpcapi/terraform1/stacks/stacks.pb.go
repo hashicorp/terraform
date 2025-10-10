@@ -236,7 +236,7 @@ type PlannedChange_ActionTriggerEvent int32
 
 const (
 	PlannedChange_INVALID_EVENT  PlannedChange_ActionTriggerEvent = 0
-	PlannedChange_BEFORE_CERATE  PlannedChange_ActionTriggerEvent = 1
+	PlannedChange_BEFORE_CREATE  PlannedChange_ActionTriggerEvent = 1
 	PlannedChange_AFTER_CREATE   PlannedChange_ActionTriggerEvent = 2
 	PlannedChange_BEFORE_UPDATE  PlannedChange_ActionTriggerEvent = 3
 	PlannedChange_AFTER_UPDATE   PlannedChange_ActionTriggerEvent = 4
@@ -249,7 +249,7 @@ const (
 var (
 	PlannedChange_ActionTriggerEvent_name = map[int32]string{
 		0: "INVALID_EVENT",
-		1: "BEFORE_CERATE",
+		1: "BEFORE_CREATE",
 		2: "AFTER_CREATE",
 		3: "BEFORE_UPDATE",
 		4: "AFTER_UPDATE",
@@ -259,7 +259,7 @@ var (
 	}
 	PlannedChange_ActionTriggerEvent_value = map[string]int32{
 		"INVALID_EVENT":  0,
-		"BEFORE_CERATE":  1,
+		"BEFORE_CREATE":  1,
 		"AFTER_CREATE":   2,
 		"BEFORE_UPDATE":  3,
 		"AFTER_UPDATE":   4,
@@ -7058,7 +7058,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\x15required_during_apply\x18\x04 \x01(\bR\x13requiredDuringApply\"\xa4\x01\n" +
 	"\x12ActionTriggerEvent\x12\x11\n" +
 	"\rINVALID_EVENT\x10\x00\x12\x11\n" +
-	"\rBEFORE_CERATE\x10\x01\x12\x10\n" +
+	"\rBEFORE_CREATE\x10\x01\x12\x10\n" +
 	"\fAFTER_CREATE\x10\x02\x12\x11\n" +
 	"\rBEFORE_UPDATE\x10\x03\x12\x10\n" +
 	"\fAFTER_UPDATE\x10\x04\x12\x12\n" +
