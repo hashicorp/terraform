@@ -452,8 +452,8 @@ github.com/hashicorp/go-cleanhttp v0.5.2 h1:035FKYIWjmULyFRBKPs8TBQoi0x6d9G4xc9n
 github.com/hashicorp/go-cleanhttp v0.5.2/go.mod h1:kO/YDlP8L1346E6Sodw+PrpBSV4/SoxCXGY6BqNFT48=
 github.com/hashicorp/go-cty v1.4.1 h1:T4i4kbEKuyMoe4Ujh52Ud07VXr05dnP/Si9JiVDpx3Y=
 github.com/hashicorp/go-cty v1.4.1/go.mod h1:EiZBMaudVLy8fmjf9Npq1dq9RalhveqZG5w/yz3mHWs=
-github.com/hashicorp/go-getter v1.8.0 h1:GMRdoMBDz12Mim366pWsRVIrrkugJ19rrmykkv0Nhzo=
-github.com/hashicorp/go-getter v1.8.0/go.mod h1:/K0O5zR6R72O3r2x3z2UHadiC0XHMbbzHO9pS8ZeJPA=
+github.com/hashicorp/go-getter v1.8.2 h1:CGCK+bZQLl44PYiwJweVzfpjg7bBwtuXu3AGcLiod2o=
+github.com/hashicorp/go-getter v1.8.2/go.mod h1:CUTt9x2bCtJ/sV8ihgrITL3IUE+0BE1j/e4n5P/GIM4=
 github.com/hashicorp/go-hclog v0.0.0-20180709165350-ff2cf002a8dd/go.mod h1:9bjs9uLqI8l75knNv3lV1kA55veR+WUPSiKIWcQHudI=
 github.com/hashicorp/go-hclog v0.8.0/go.mod h1:5CU+agLiy3J7N7QjHK5d05KxGsuXiQLrjA0H7acj2lQ=
 github.com/hashicorp/go-hclog v0.12.0/go.mod h1:whpDNt7SSdeAju8AWKIWsul05p54N/39EeqMAyrmvFQ=
@@ -482,8 +482,6 @@ github.com/hashicorp/go-retryablehttp v0.7.8/go.mod h1:rjiScheydd+CxvumBsIrFKlx3
 github.com/hashicorp/go-rootcerts v1.0.1/go.mod h1:pqUvnprVnM5bf7AOirdbb01K4ccR319Vf4pU3K5EGc8=
 github.com/hashicorp/go-rootcerts v1.0.2 h1:jzhAVGtqPKbwpyCPELlgNWhE1znq+qwJtW5Oi2viEzc=
 github.com/hashicorp/go-rootcerts v1.0.2/go.mod h1:pqUvnprVnM5bf7AOirdbb01K4ccR319Vf4pU3K5EGc8=
-github.com/hashicorp/go-safetemp v1.0.0 h1:2HR189eFNrjHQyENnQMMpCiBAsRxzbTMIgBhEyExpmo=
-github.com/hashicorp/go-safetemp v1.0.0/go.mod h1:oaerMy3BhqiTbVye6QuFhFtIceqFoDHxNAB65b+Rj1I=
 github.com/hashicorp/go-slug v0.16.8 h1:f4/sDZqRsxx006HrE6e9BE5xO9lWXydKhVoH6Kb0v1M=
 github.com/hashicorp/go-slug v0.16.8/go.mod h1:hB4mUcVHl4RPu0205s0fwmB9i31MxQgeafGkko3FD+Y=
 github.com/hashicorp/go-sockaddr v1.0.0/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
