@@ -106,19 +106,21 @@ configuration or state have been made.`, initReason)
 	)
 }
 
-type errBackendInitCloud struct {
-	initReason string
-}
-
-func (e *errBackendInitCloud) Error() string {
-	return fmt.Sprintf(`Reason: %s.
+func errBackendInitCloudDiag(initReason string) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Reason: %s.
 
 Changes to the HCP Terraform configuration block require reinitialization, to discover any changes to the available workspaces.
 
 To re-initialize, run:
   terraform init
 
-Terraform has not yet made changes to your existing configuration or state.`, e.initReason)
+Terraform has not yet made changes to your existing configuration or state.`, initReason)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
+		msg,
+	)
 }
 
 type errBackendWriteSaved struct {

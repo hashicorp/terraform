@@ -783,12 +783,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		if !opts.Init {
 			if backendConfig.Type == "cloud" {
 				initReason := "Initial configuration of HCP Terraform or Terraform Enterprise"
-				err := errBackendInitCloud{initReason}
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
-					err.Error(),
-				))
+				diags = diags.Append(errBackendInitCloudDiag(initReason))
 			} else {
 				initReason := fmt.Sprintf("Initial configuration of the requested backend %q", backendConfig.Type)
 				diags = diags.Append(errBackendInitDiag(initReason))
@@ -972,19 +967,9 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	var diags tfdiags.Diagnostics
 	switch cloudMode {
 	case cloud.ConfigChangeInPlace:
-		err := errBackendInitCloud{initReason}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
-			err.Error(),
-		))
+		diags = diags.Append(errBackendInitCloudDiag(initReason))
 	case cloud.ConfigMigrationIn:
-		err := errBackendInitCloud{initReason}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
-			err.Error(),
-		))
+		diags = diags.Append(errBackendInitCloudDiag(initReason))
 	default:
 		diags = diags.Append(errBackendInitDiag(initReason))
 	}
