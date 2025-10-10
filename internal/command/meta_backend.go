@@ -1197,7 +1197,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	workspaces, wDiags := localB.Workspaces()
 	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf(errBackendLocalRead, wDiags.Err()))
+		diags = diags.Append(&errBackendLocalRead{wDiags.Err()})
 		return nil, diags
 	}
 
@@ -1205,11 +1205,11 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	for _, workspace := range workspaces {
 		localState, sDiags := localB.StateMgr(workspace)
 		if sDiags.HasErrors() {
-			diags = diags.Append(fmt.Errorf(errBackendLocalRead, sDiags.Err()))
+			diags = diags.Append(&errBackendLocalRead{sDiags.Err()})
 			return nil, diags
 		}
 		if err := localState.RefreshState(); err != nil {
-			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+			diags = diags.Append(&errBackendLocalRead{err})
 			return nil, diags
 		}
 
@@ -2148,15 +2148,6 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
-
-const errBackendLocalRead = `
-Error reading local state: %s
-
-Terraform is trying to read your local state to determine if there is
-state to migrate to your newly configured backend. Terraform can't continue
-without this check because that would risk losing state. Please resolve the
-error above and try again.
-`
 
 const errBackendMigrateLocalDelete = `
 Error deleting local state after migration: %s
