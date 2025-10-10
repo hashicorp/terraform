@@ -381,3 +381,16 @@ func (r *RemovedComponentInstance) ActionSchema(ctx context.Context, providerTyp
 func (r *RemovedComponentInstance) tracingName() string {
 	return r.Addr().String() + " (removed)"
 }
+
+func (r *RemovedComponentInstance) ActionSchema(ctx context.Context, providerTypeAddr addrs.Provider, typ string) (providers.ActionSchema, error) {
+	providerType := r.main.ProviderType(providerTypeAddr)
+	providerSchema, err := providerType.Schema(ctx)
+	if err != nil {
+		return providers.ActionSchema{}, err
+	}
+	ret := providerSchema.SchemaForActionType(typ)
+	if ret.ConfigSchema == nil {
+		return providers.ActionSchema{}, fmt.Errorf("schema does not include %q", typ)
+	}
+	return ret, nil
+}
