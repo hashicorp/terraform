@@ -4,6 +4,7 @@
 package arguments
 
 import (
+	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -78,6 +79,10 @@ type Init struct {
 	// TODO(SarahFrench/radeksimko): Remove this once the feature is no longer
 	// experimental
 	EnablePssExperiment bool
+
+	// CreateDefaultWorkspace indicates whether the default workspace should be created by
+	// Terraform when initializing a state store for the first time.
+	CreateDefaultWorkspace bool
 }
 
 // ParseInit processes CLI arguments, returning an Init value and errors.
@@ -111,6 +116,7 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&init.Json, "json", false, "json")
 	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
+	cmdFlags.BoolVar(&init.CreateDefaultWorkspace, "create-default-workspace", true, "when -input=false, use this flag to block creation of the default workspace")
 
 	// Used for enabling experimental code that's invoked before configuration is parsed.
 	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
@@ -121,6 +127,13 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
+	}
+
+	if v := os.Getenv("TF_SKIP_CREATE_DEFAULT_WORKSPACE"); v != "" {
+		// If TF_SKIP_CREATE_DEFAULT_WORKSPACE is set it will override
+		// a -create-default-workspace=true flag that's set explicitly,
+		// as that's indistinguishable from the default value being used.
+		init.CreateDefaultWorkspace = false
 	}
 
 	if init.MigrateState && init.Json {

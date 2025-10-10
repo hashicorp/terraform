@@ -14,15 +14,18 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -36,8 +39,10 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -75,6 +80,13 @@ type BackendOpts struct {
 	// This will only be set if the configuration contains a state_store block.
 	ProviderFactory providers.Factory
 
+	// Locks allows state-migration logic to detect when the provider used for pluggable state storage
+	// during the last init (i.e. what's in the backend state file) is mismatched with the provider
+	// version in use currently.
+	//
+	// This will only be set if the configuration contains a state_store block.
+	Locks *depsfile.Locks
+
 	// ConfigOverride is an hcl.Body that, if non-nil, will be used with
 	// configs.MergeBodies to override the type-specific backend configuration
 	// arguments in Config.
@@ -92,6 +104,10 @@ type BackendOpts struct {
 	// ViewType will set console output format for the
 	// initialization operation (JSON or human-readable).
 	ViewType arguments.ViewType
+
+	// CreateDefaultWorkspace signifies whether the operations backend should create
+	// the default workspace or not
+	CreateDefaultWorkspace bool
 }
 
 // BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
@@ -239,7 +255,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 		}
 	}
 
-	return local, nil
+	return local, diags
 }
 
 // selectWorkspace gets a list of existing workspaces and then checks
@@ -656,11 +672,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Get the local 'backend' or 'state_store' configuration.
 	var backendConfig *configs.Backend
 	var stateStoreConfig *configs.StateStore
-	var cHash int
+	var backendHash int
+	var stateStoreHash int
+	var stateStoreProviderHash int
 	if opts.StateStoreConfig != nil {
 		// state store has been parsed from config and is included in opts
 		var ssDiags tfdiags.Diagnostics
-		stateStoreConfig, cHash, _, ssDiags = m.stateStoreConfig(opts)
+		stateStoreConfig, stateStoreHash, stateStoreProviderHash, ssDiags = m.stateStoreConfig(opts)
 		diags = diags.Append(ssDiags)
 		if ssDiags.HasErrors() {
 			return nil, diags
@@ -669,7 +687,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// backend config may or may not have been parsed and included in opts,
 		// or may not exist in config at all (default/implied local backend)
 		var beDiags tfdiags.Diagnostics
-		backendConfig, cHash, beDiags = m.backendConfig(opts)
+		backendConfig, backendHash, beDiags = m.backendConfig(opts)
 		diags = diags.Append(beDiags)
 		if beDiags.HasErrors() {
 			return nil, diags
@@ -699,7 +717,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
 	sMgr := &clistate.LocalState{Path: statePath}
 	if err := sMgr.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		diags = diags.Append(fmt.Errorf("Failed to load the backend state file: %s", err))
 		return nil, diags
 	}
 
@@ -764,7 +782,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		return m.backend_c_r_S(backendConfig, cHash, sMgr, true, opts)
+		return m.backend_c_r_S(backendConfig, backendHash, sMgr, true, opts)
 
 	// We're unsetting a state_store (moving from state_store => local)
 	case stateStoreConfig == nil && !s.StateStore.Empty() &&
@@ -802,7 +820,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			}
 			return nil, diags
 		}
-		return m.backend_C_r_s(backendConfig, cHash, sMgr, opts)
+		return m.backend_C_r_s(backendConfig, backendHash, sMgr, opts)
 
 	// Configuring a state store for the first time or -reconfigure flag was used
 	case stateStoreConfig != nil && s.StateStore.Empty() &&
@@ -812,11 +830,22 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			stateStoreConfig.Provider.Name,
 			stateStoreConfig.ProviderAddr,
 		)
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Not implemented yet",
-			Detail:   "Configuring a state store for the first time is not implemented yet",
-		})
+
+		if !opts.Init {
+			initReason := fmt.Sprintf("Initial configuration of the requested state_store %q in provider %s (%q)",
+				stateStoreConfig.Type,
+				stateStoreConfig.Provider.Name,
+				stateStoreConfig.ProviderAddr,
+			)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"State store initialization required, please run \"terraform init\"",
+				fmt.Sprintf(strings.TrimSpace(errStateStoreInit), initReason),
+			))
+			return nil, diags
+		}
+
+		return m.stateStore_C_s(stateStoreConfig, stateStoreHash, stateStoreProviderHash, sMgr, opts)
 
 	// Migration from state store to backend
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -856,7 +885,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// We're not initializing
 		// AND the backend cache hash values match, indicating that the stored config is valid and completely unchanged.
 		// AND we're not providing any overrides. An override can mean a change overriding an unchanged backend block (indicated by the hash value).
-		if (uint64(cHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
+		if (uint64(backendHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", backendConfig.Type)
 			savedBackend, diags := m.savedBackend(sMgr)
 			// Verify that selected workspace exist. Otherwise prompt user to create one
@@ -884,7 +913,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			// It's possible for a backend to be unchanged, and the config itself to
 			// have changed by moving a parameter from the config to `-backend-config`
 			// In this case, we update the Hash.
-			moreDiags = m.updateSavedBackendHash(cHash, sMgr)
+			moreDiags = m.updateSavedBackendHash(backendHash, sMgr)
 			if moreDiags.HasErrors() {
 				return nil, diags
 			}
@@ -915,7 +944,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 
 		log.Printf("[WARN] backend config has changed since last init")
-		return m.backend_C_r_S_changed(backendConfig, cHash, sMgr, true, opts)
+		return m.backend_C_r_S_changed(backendConfig, backendHash, sMgr, true, opts)
 
 	// Potentially changing a state store configuration
 	case backendConfig == nil && s.Backend.Empty() &&
@@ -1545,6 +1574,309 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 		if err := sMgr.WriteState(s); err != nil {
 			diags = diags.Append(err)
 		}
+	}
+
+	return diags
+}
+
+//-------------------------------------------------------------------
+// State Store Config Scenarios
+// The functions below cover handling all the various scenarios that
+// can exist when loading a state store. They are named in the format of
+// "stateStore_C_S" where C and S may be upper or lowercase. Lowercase
+// means it is false, uppercase means it is true.
+//
+// The fields are:
+//
+//   * C - State store configuration is set and changed in TF files
+//   * S - State store configuration is set in the state
+//
+//-------------------------------------------------------------------
+
+// Configuring a state_store for the first time.
+func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, providerHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
+
+	// Grab a purely local backend to get the local state if it exists
+	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+	if localBDiags.HasErrors() {
+		diags = diags.Append(localBDiags)
+		return nil, diags
+	}
+
+	workspaces, wDiags := localB.Workspaces()
+	if wDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf(errBackendLocalRead, wDiags.Err()))
+		return nil, diags
+	}
+
+	var localStates []statemgr.Full
+	for _, workspace := range workspaces {
+		localState, err := localB.StateMgr(workspace)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+			return nil, diags
+		}
+		if err := localState.RefreshState(); err != nil {
+			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+			return nil, diags
+		}
+
+		// We only care about non-empty states.
+		if localS := localState.State(); !localS.Empty() {
+			log.Printf("[TRACE] Meta.Backend: will need to migrate workspace states because of existing %q workspace", workspace)
+			localStates = append(localStates, localState)
+		} else {
+			log.Printf("[TRACE] Meta.Backend: ignoring local %q workspace because its state is empty", workspace)
+		}
+	}
+
+	// Get the state store as an instance of backend.Backend
+	b, storeConfigVal, providerConfigVal, moreDiags := m.stateStoreInitFromConfig(c, opts.ProviderFactory)
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	if len(localStates) > 0 {
+		// Migrate any local states into the new state store
+		err := m.backendMigrateState(&backendMigrateOpts{
+			SourceType:      "local",
+			DestinationType: c.Type,
+			Source:          localB,
+			Destination:     b,
+			ViewType:        vt,
+		})
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+
+		// We remove the local state after migration to prevent confusion
+		// As we're migrating to a state store we don't have insight into whether it stores
+		// files locally at all, and whether those local files conflict with the location of
+		// the old local state.
+		log.Printf("[TRACE] Meta.Backend: removing old state snapshots from old backend")
+		for _, localState := range localStates {
+			// We always delete the local state, unless that was our new state too.
+			if err := localState.WriteState(nil); err != nil {
+				diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+				return nil, diags
+			}
+			if err := localState.PersistState(nil); err != nil {
+				diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+				return nil, diags
+			}
+		}
+	}
+
+	if m.stateLock {
+		view := views.NewStateLocker(vt, m.View)
+		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
+		if err := stateLocker.Lock(backendSMgr, "init is initializing state_store first time"); err != nil {
+			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
+			return nil, diags
+		}
+		defer stateLocker.Unlock()
+	}
+
+	// Store the state_store metadata in our saved state location
+	s := backendSMgr.State()
+	if s == nil {
+		s = workdir.NewBackendStateFile()
+	}
+
+	var pVersion *version.Version
+	if c.ProviderAddr.Equals(addrs.NewBuiltInProvider("terraform")) {
+		// If we're handling the builtin "terraform" provider then there's no version information to store in the dependency lock file, so don't access it.
+		// We must record a value into the backend state file, and we cannot include a value that changes (e.g. the Terraform core binary version) as migration
+		// is impossible with builtin providers.
+		// So, we use an arbitrary stand-in version.
+		standInVersion, err := version.NewVersion("0.0.1")
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Error when creating a backend state file. This is a bug in Terraform and should be reported: %w",
+				err))
+			return nil, diags
+		}
+		pVersion = standInVersion
+	} else {
+		isReattached, err := isProviderReattached(c.ProviderAddr)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Error determining if the state storage provider is reattached or not. This is a bug in Terraform and should be reported: %w",
+				err))
+			return nil, diags
+		}
+		if isReattached {
+			// If the provider is unmanaged then it won't be in the locks.
+			// If there are no locks then there's no version information to for us to access and use when creating the backend state file.
+			// So, we use an arbitrary stand-in version.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "State storage provider is not managed by Terraform",
+				Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. This will affect Terraform's ability to detect when state migrations are required.",
+			})
+			standInVersion, err := version.NewVersion("0.0.1")
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Error when creating a backend state file. This is a bug in Terraform and should be reported: %w",
+					err))
+				return nil, diags
+			}
+			pVersion = standInVersion
+		} else {
+			// The provider is not built in and is being managed by Terraform
+			// This is the most common scenario, by far.
+			pLock := opts.Locks.Provider(c.ProviderAddr)
+			if pLock == nil {
+				diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
+					c.Provider.Name,
+					c.ProviderAddr,
+					c.Type))
+				return nil, diags
+			}
+			var err error
+			pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
+					c.Provider.Name,
+					c.ProviderAddr,
+					c.Type,
+					err))
+				return nil, diags
+			}
+		}
+	}
+	s.StateStore = &workdir.StateStoreConfigState{
+		Type: c.Type,
+		Hash: uint64(stateStoreHash),
+		Provider: &workdir.ProviderConfigState{
+			Source:  &c.ProviderAddr,
+			Version: pVersion,
+			Hash:    uint64(providerHash),
+		},
+	}
+	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
+	if plug, ok := b.(*backendPluggable.Pluggable); ok {
+		// We need to convert away from backend.Backend interface to use the method
+		// for accessing the provider schema.
+		s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	}
+
+	// Verify that selected workspace exists in the state store.
+	if opts.Init && b != nil {
+		err := m.selectWorkspace(b)
+		if err != nil {
+			if strings.Contains(err.Error(), "No existing workspaces") {
+				// If there are no workspaces, Terraform either needs to create the default workspace here
+				// or instruct the user to run a `terraform workspace new` command.
+				ws, err := m.Workspace()
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
+					return nil, diags
+				}
+
+				if ws == backend.DefaultStateName {
+					// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
+					if opts.CreateDefaultWorkspace {
+						diags = diags.Append(m.createDefaultWorkspace(c, b))
+					} else {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "The default workspace does not exist",
+							Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. To create it, either remove the `-create-default-workspace=false` flag and re-run the 'init' command, or create it using a 'workspace new' command",
+						})
+					}
+				} else {
+					// User needs to run a `terraform workspace new` command to create the missing custom workspace.
+					diags = append(diags, tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("Workspace %q has not been created yet", ws),
+						fmt.Sprintf("State store %q in provider %s (%q) reports that no workspaces currently exist. To create the custom workspace %q use the command `terraform workspace new %s`.",
+							c.Type,
+							c.Provider.Name,
+							c.ProviderAddr,
+							ws,
+							ws,
+						),
+					))
+					return nil, diags
+				}
+			} else {
+				// For all other errors, report via diagnostics
+				diags = diags.Append(fmt.Errorf("Failed to select a workspace: %w", err))
+			}
+		}
+	}
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Update backend state file
+	if err := backendSMgr.WriteState(s); err != nil {
+		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		return nil, diags
+	}
+	if err := backendSMgr.PersistState(); err != nil {
+		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
+		return nil, diags
+	}
+
+	return b, diags
+}
+
+// isProviderReattached determines if a given provider is being supplied to Terraform via the TF_REATTACH_PROVIDERS
+// environment variable.
+func isProviderReattached(provider addrs.Provider) (bool, error) {
+	in := os.Getenv("TF_REATTACH_PROVIDERS")
+	if in != "" {
+		var m map[string]any
+		err := json.Unmarshal([]byte(in), &m)
+		if err != nil {
+			return false, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
+		}
+		for p := range m {
+			a, diags := addrs.ParseProviderSourceString(p)
+			if diags.HasErrors() {
+				return false, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
+			}
+			if a.Equals(provider) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+// createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,
+// and persists an empty state file in the default workspace. By creating this artifact we ensure that the default
+// workspace is created and usable by Terraform in later operations.
+func (m *Meta) createDefaultWorkspace(c *configs.StateStore, b backend.Backend) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	defaultSMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	diags = diags.Append(sDiags)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in provider %s (%q). This is a bug in Terraform and should be reported: %w",
+			c.Type,
+			c.Provider.Name,
+			c.ProviderAddr,
+			sDiags.Err()))
+		return diags
+	}
+	emptyState := states.NewState()
+	if err := defaultSMgr.WriteState(emptyState); err != nil {
+		diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
+		return diags
+	}
+	if err := defaultSMgr.PersistState(nil); err != nil {
+		diags = diags.Append(fmt.Errorf(errStateStoreWorkspaceCreate, c.Type, err))
+		return diags
 	}
 
 	return diags
@@ -2228,6 +2560,21 @@ hasn't changed and try again. At this point, no changes to your existing
 configuration or state have been made.
 `
 
+const errStateStoreInit = `
+Reason: %s
+The "state store" is the interface that Terraform uses to store state when
+performing operations on the local machine. If this message is showing up,
+it means that the Terraform configuration you're using is using a custom
+configuration for state storage in Terraform.
+Changes to state store configurations require reinitialization. This allows
+Terraform to set up the new configuration, copy existing state, etc. Please run
+"terraform init" with either the "-reconfigure" or "-migrate-state" flags to
+use the current configuration.
+If the change reason above is incorrect, please verify your configuration
+hasn't changed and try again. At this point, no changes to your existing
+configuration or state have been made.
+`
+
 const errBackendInitCloud = `
 Reason: %s.
 
@@ -2246,6 +2593,13 @@ Terraform saves the complete backend configuration in a local file for
 configuring the backend on future operations. This cannot be disabled. Errors
 are usually due to simple file permission errors. Please look at the error
 above, resolve it, and try again.
+`
+
+const errStateStoreWorkspaceCreate = `
+Error creating the default workspace using pluggable state store %s: %s
+This could be a bug in the provider used for state storage, or a bug in
+Terraform. Please file an issue with the provider developers before reporting
+a bug for Terraform.
 `
 
 const outputBackendMigrateChange = `

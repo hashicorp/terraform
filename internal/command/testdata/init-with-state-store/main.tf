@@ -1,11 +1,14 @@
 terraform {
 
   required_providers {
-    foo = {
-      source = "my-org/foo"
+    test = {
+      source = "hashicorp/test"
     }
   }
-  state_store "foo_foo" {
-    provider "foo" {}
+  state_store "test_store" {
+    provider "test" {
+    }
+
+    value = "foobar"
   }
 }
