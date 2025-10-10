@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// errBackendLocalRead is a custom error used to alert users that state
+// files on their local filesystem were not erased successfully after
+// migrating that state to a remote-state backend.
 type errBackendLocalRead struct {
 	innerError error
 }
@@ -22,6 +25,9 @@ without this check because that would risk losing state. Please resolve the
 error above and try again.`, e.innerError)
 }
 
+// errBackendMigrateLocalDelete is a custom error used to alert users that state
+// files on their local filesystem were not erased successfully after migrating
+// that state to a remote-state backend.
 type errBackendMigrateLocalDelete struct {
 	innerError error
 }
@@ -36,6 +42,8 @@ with a backend, we must delete the local state file. Please resolve the
 issue above and retry the command.`, e.innerError)
 }
 
+// errBackendSavedUnknown is a custom error used to alert users that their
+// configuration describes a backend that's not implemented in Terraform.
 type errBackendNewUnknown struct {
 	backendName string
 }
@@ -52,6 +60,8 @@ If you'd like to run Terraform and store state locally, you can fix this
 error by removing the backend configuration from your configuration.`, e.backendName)
 }
 
+// errBackendSavedUnknown is a custom error used to alert users that their
+// plan file describes a backend that's not implemented in Terraform.
 type errBackendSavedUnknown struct {
 	backendName string
 }
@@ -69,6 +79,8 @@ If you'd like to force remove this backend, you must update your configuration
 to not use the backend and run "terraform init" (or any other command) again.`, e.backendName)
 }
 
+// errBackendClearSaved is a custom error used to alert users that
+// Terraform failed to empty the backend state file's contents.
 type errBackendClearSaved struct {
 	innerError error
 }
@@ -82,6 +94,11 @@ use the backend configuration. Please look at the error above, resolve it,
 and try again.`, e.innerError)
 }
 
+// errBackendInitDiag creates a diagnostic to present to users when
+// users attempt to run a non-init command after making a change to their
+// backend configuration.
+//
+// An init reason should be provided as an argument.
 func errBackendInitDiag(initReason string) tfdiags.Diagnostic {
 	msg := fmt.Sprintf(`Reason: %s
 
@@ -106,6 +123,10 @@ configuration or state have been made.`, initReason)
 	)
 }
 
+// errBackendInitCloudDiag creates a diagnostic to present to users when
+// an init command encounters config changes in a `cloud` block.
+//
+// An init reason should be provided as an argument.
 func errBackendInitCloudDiag(initReason string) tfdiags.Diagnostic {
 	msg := fmt.Sprintf(`Reason: %s.
 
@@ -123,6 +144,8 @@ Terraform has not yet made changes to your existing configuration or state.`, in
 	)
 }
 
+// errBackendWriteSavedDiag creates a diagnostic to present to users when
+// an init command experiences an error while writing to the backend state file.
 func errBackendWriteSavedDiag(innerError error) tfdiags.Diagnostic {
 	msg := fmt.Sprintf(`Error saving the backend configuration: %s
 
@@ -138,6 +161,11 @@ above, resolve it, and try again.`, innerError)
 	)
 }
 
+// errBackendNoExistingWorkspaces is returned by calling code when it expects a backend.Backend
+// to report one or more workspaces exist.
+//
+// The returned error may be used as a sentinel error and acted upon or just wrapped in a
+// diagnostic and returned.
 type errBackendNoExistingWorkspaces struct{}
 
 func (e *errBackendNoExistingWorkspaces) Error() string {
@@ -148,6 +176,10 @@ If the backend already contains existing workspaces, you may need to update
 the backend configuration.`
 }
 
+// migrateOrReconfigDiag creates a diagnostic to present to users when
+// an init command encounters a mismatch in backend state and the current config
+// and Terraform needs users to provide additional instructions about how Terraform
+// should proceed.
 var migrateOrReconfigDiag = tfdiags.Sourceless(
 	tfdiags.Error,
 	"Backend configuration changed",
