@@ -32,7 +32,7 @@ func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	refs := n.NodeAbstractResource.References()
 
 	// The expand node needs to connect to the individual resource instances it
-	// references, but cannot refer to it's own instances without causing
+	// references, but cannot refer to its own instances without causing
 	// cycles. It would be preferable to entirely disallow self references
 	// without the `self` identifier, but those were allowed in provisioners
 	// for compatibility with legacy configuration. We also can't always just

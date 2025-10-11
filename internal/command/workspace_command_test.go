@@ -96,7 +96,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 		},
 	}
 	if code := selectCmd.Run(args); code != 1 {
-		t.Fatalf("expected failure when trying to select the the \"\" workspace.\noutput: %s", ui.OutputWriter)
+		t.Fatalf("expected failure when trying to select the \"\" workspace.\noutput: %s", ui.OutputWriter)
 	}
 
 	gotStderr = ui.ErrorWriter.String()
