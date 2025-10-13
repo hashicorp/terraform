@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix typos and linguistic errors in documentation
+time: 2025-10-12T00:00:00.000000+00:00
+custom:
+    PR: "37763"
