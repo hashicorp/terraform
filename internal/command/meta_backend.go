@@ -952,7 +952,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// AND the same state_store implementation is used
 		// AND the state_store config cache hash values match, indicating that the state_store config is valid and completely unchanged.
 		// AND we're not providing any overrides. An override can mean a change overriding an unchanged state_store block (indicated by the hash value).
-		pVersion, vDiags := getStateStorageProviderVersionFromLocks(stateStoreConfig, opts.Locks)
+		pVersion, vDiags := getStateStorageProviderVersion(stateStoreConfig, opts.Locks)
 		diags = diags.Append(vDiags)
 		if vDiags.HasErrors() {
 			return nil, diags
@@ -1728,7 +1728,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 			// The provider is not built in and is being managed by Terraform
 			// This is the most common scenario, by far.
 			var vDiags tfdiags.Diagnostics
-			pVersion, vDiags = getStateStorageProviderVersionFromLocks(c, opts.Locks)
+			pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks)
 			diags = diags.Append(vDiags)
 			if vDiags.HasErrors() {
 				return nil, diags
@@ -1819,11 +1819,21 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 	return b, diags
 }
 
-// getStateStorageProviderVersionFromLocks assumes that calling code has checked that the provider is fully managed by Terraform,
-// and isn't built-in, before using this method.
-func getStateStorageProviderVersionFromLocks(c *configs.StateStore, locks *depsfile.Locks) (*version.Version, tfdiags.Diagnostics) {
+// getStateStorageProviderVersion assumes that calling code has checked whether the provider is fully managed by Terraform,
+// or is built-in, before using this method and is prepared to receive a nil Version.
+func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks) (*version.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var pVersion *version.Version
+
+	isBuiltin := c.ProviderAddr.Hostname == addrs.BuiltInProviderHost
+	isReattached, err := isProviderReattached(c.ProviderAddr)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+	if isBuiltin || isReattached {
+		return nil, nil // nil Version returned
+	}
 
 	pLock := locks.Provider(c.ProviderAddr)
 	if pLock == nil {
@@ -1833,7 +1843,6 @@ func getStateStorageProviderVersionFromLocks(c *configs.StateStore, locks *depsf
 			c.Type))
 		return nil, diags
 	}
-	var err error
 	pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
