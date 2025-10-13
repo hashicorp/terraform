@@ -198,6 +198,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the state store...",
 		JSONValue:  "Initializing the state store...",
 	},
+	"default_workspace_created_message": {
+		HumanValue: defaultWorkspaceCreatedInfo,
+		JSONValue:  defaultWorkspaceCreatedInfo,
+	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
@@ -278,6 +282,7 @@ const (
 	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
 	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
+	DefaultWorkspaceCreatedMessage    InitMessageCode = "default_workspace_created_message"
 	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
 	LockInfo                          InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
@@ -392,6 +397,13 @@ Terraform has created a lock file .terraform.lock.hcl to record the provider
 selections it made above. Include this file in your version control repository
 so that Terraform can guarantee to make the same selections by default when
 you run "terraform init" in the future.`
+
+const defaultWorkspaceCreatedInfo = `
+Terraform created an empty state file for the default workspace in your state store
+as it didn't exist. If this was not intended, read the init command's documentation for
+more guidance:
+https://developer.hashicorp.com/terraform/cli/commands/init
+`
 
 const dependenciesLockChangesInfo = `
 Terraform has made some changes to the provider dependency selections recorded

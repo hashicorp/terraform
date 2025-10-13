@@ -1744,6 +1744,11 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 					// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
 					if opts.CreateDefaultWorkspace {
 						diags = diags.Append(m.createDefaultWorkspace(c, b))
+						if !diags.HasErrors() {
+							// Report workspace creation to the view
+							view := views.NewInit(vt, m.View)
+							view.Output(views.DefaultWorkspaceCreatedMessage)
+						}
 					} else {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagWarning,
