@@ -7,10 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -40,13 +42,13 @@ func (s *StateStoreConfigState) Validate() error {
 
 	// Are any bits of data totally missing?
 	if s.Empty() {
-		return fmt.Errorf("state store is not valid: data is empty")
+		return fmt.Errorf("attempted to encode a malformed backend state file; data is empty")
+	}
+	if s.Type == "" {
+		return fmt.Errorf("attempted to encode a malformed backend state file; state store type is missing")
 	}
 	if s.Provider == nil {
-		return fmt.Errorf("state store is not valid: provider data is missing")
-	}
-	if s.Provider.Version == nil {
-		return fmt.Errorf("state store is not valid: version data is missing")
+		return fmt.Errorf("attempted to encode a malformed backend state file; provider data is missing")
 	}
 	if s.ConfigRaw == nil {
 		return fmt.Errorf("attempted to encode a malformed backend state file; state_store configuration data is missing")
@@ -56,6 +58,18 @@ func (s *StateStoreConfigState) Validate() error {
 	err := s.Provider.Source.Validate()
 	if err != nil {
 		return fmt.Errorf("state store is not valid: %w", err)
+	}
+
+	// Version information is required if the provider isn't builtin or unmanaged by Terraform
+	isReattached, err := reattach.IsProviderReattached(*s.Provider.Source, os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		return fmt.Errorf("error determining if state storage provider is reattached: %w", err)
+	}
+	if (s.Provider.Source.Hostname != tfaddr.BuiltInProviderHost) &&
+		!isReattached {
+		if s.Provider.Version == nil {
+			return fmt.Errorf("state store is not valid: provider version data is missing")
+		}
 	}
 
 	return nil

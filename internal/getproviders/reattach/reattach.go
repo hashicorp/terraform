@@ -9,6 +9,7 @@ import (
 	"net"
 
 	"github.com/hashicorp/go-plugin"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -88,7 +89,7 @@ func ParseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 // environment variable.
 //
 // Calling code is expected to pass in a provider address and the value of os.Getenv("TF_REATTACH_PROVIDERS")
-func IsProviderReattached(provider addrs.Provider, in string) (bool, error) {
+func IsProviderReattached(provider tfaddr.Provider, in string) (bool, error) {
 	providers, err := ParseReattachProviders(in)
 	if err != nil {
 		return false, err
