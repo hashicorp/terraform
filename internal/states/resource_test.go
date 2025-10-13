@@ -8,6 +8,15 @@ import (
 )
 
 func TestResourceInstanceDeposeCurrentObject(t *testing.T) {
+	t.Run("nil resource", func(t *testing.T) {
+		var nilRI *ResourceInstance
+		dk := nilRI.deposeCurrentObject(NotDeposed)
+		t.Logf("deposedKey (nil receiver) is %q", dk)
+
+		if dk != NotDeposed {
+			t.Fatalf("expected NotDeposed for nil receiver, got %q", dk)
+		}
+	})
 	obj := &ResourceInstanceObjectSrc{
 		// Empty for the sake of this test, because we're just going to
 		// compare by pointer below anyway.

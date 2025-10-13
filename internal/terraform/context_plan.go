@@ -979,8 +979,8 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		externalProviderConfigs = opts.ExternalProviders
 	}
 
-	if opts != nil && opts.OverridePreventDestroy && opts.Mode != plans.DestroyMode {
-		panic("you can only set OverridePreventDestroy during destroy operations.")
+	if opts != nil && opts.OverridePreventDestroy && opts.Mode == plans.RefreshOnlyMode {
+		panic("you can't set OverridePreventDestroy during refresh operations.")
 	}
 
 	switch mode := opts.Mode; mode {
@@ -1010,6 +1010,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			GenerateConfigPath:      opts.GenerateConfigPath,
 			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 			queryPlan:               opts.Query,
+			overridePreventDestroy:  opts.OverridePreventDestroy,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:

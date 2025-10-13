@@ -122,10 +122,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ConfigTransformer{
 			Concrete: concreteResource,
 			Config:   b.Config,
-			resourceMatcher: func(mode addrs.ResourceMode) bool {
-				// list resources are not added to the graph during apply
-				return mode != addrs.ListResourceMode
-			},
 		},
 
 		// Add dynamic values
@@ -154,6 +150,29 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:    b.State,
 			Changes:  b.Changes,
 			Config:   b.Config,
+		},
+
+		&ActionTriggerConfigTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, timing RelativeActionTiming) dag.Vertex {
+				return &nodeActionTriggerApplyExpand{
+					nodeAbstractActionTriggerExpand: node,
+
+					relativeTiming: timing,
+				}
+			},
+			// we want before_* actions to run before and after_* actions to run after the resource
+			CreateNodesAsAfter: false,
+		},
+
+		&ActionInvokeApplyTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			Changes:       b.Changes,
 		},
 
 		&ActionDiffTransformer{

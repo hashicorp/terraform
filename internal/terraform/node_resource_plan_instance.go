@@ -938,6 +938,9 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalConte
 
 	var listElements []genconfig.ResourceListElement
 
+	expander := ctx.InstanceExpander()
+	enum := expander.ResourceExpansionEnum(addr)
+
 	iter := state.ElementIterator()
 	for iter.Next() {
 		_, val := iter.Element()
@@ -955,7 +958,7 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalConte
 		}
 		idVal := val.GetAttr("identity")
 
-		listElements = append(listElements, genconfig.ResourceListElement{Config: config, Identity: idVal})
+		listElements = append(listElements, genconfig.ResourceListElement{Config: config, Identity: idVal, ExpansionEnum: enum})
 	}
 
 	return genconfig.GenerateListResourceContents(addr, schema.Body, schema.Identity, providerAddr, listElements)
@@ -974,10 +977,17 @@ func (n *NodePlannableResourceInstance) generateResourceConfig(ctx EvalContext, 
 	if diags.HasErrors() {
 		return cty.DynamicVal, diags
 	}
-	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+
+	// the calling node may be a list resource, in which case we still need to
+	// lookup the schema for the corresponding managed resource for generating
+	// configuration.
+	managedAddr := n.Addr.Resource.Resource
+	managedAddr.Mode = addrs.ManagedResourceMode
+
+	schema := providerSchema.SchemaForResourceAddr(managedAddr)
 	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", managedAddr))
 		return cty.DynamicVal, diags
 	}
 
@@ -1058,24 +1068,25 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	return true
 }
 
-func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) (*configs.ActionTriggerEvent, bool) {
+func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
+	triggeredEvents := []configs.ActionTriggerEvent{}
 	for _, event := range events {
 		switch event {
 		case configs.BeforeCreate, configs.AfterCreate:
 			if action.IsReplace() || action == plans.Create {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
 		case configs.BeforeUpdate, configs.AfterUpdate:
 			if action == plans.Update {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
 		case configs.BeforeDestroy, configs.AfterDestroy:
 			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
-				return &event, true
+				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
@@ -1083,5 +1094,5 @@ func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.
 			panic(fmt.Sprintf("unknown action trigger event %s", event))
 		}
 	}
-	return nil, false
+	return triggeredEvents
 }

@@ -281,31 +281,33 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 	// Although that behavior was accidental, it makes simple validation rules
 	// more useful and is protected by compatibility promises, and so we'll
 	// fake it here by overwriting the unknown value that scope.EvalContext
-	// will have inserted with a possibly-more-known value using the same
-	// strategy our special code used to use.
-	ourVal := ctx.NamedValues().GetInputVariableValue(addr)
-	if ourVal != cty.NilVal {
-		// (it would be weird for ourVal to be nil here, but we'll tolerate it
-		// because it was scope.EvalContext's responsibility to check for the
-		// absent final value, and even if it didn't we'll just get an
-		// evaluation error when evaluating the expressions below anyway.)
+	// will have inserted during validate walks with a possibly-more-known value
+	// using the same strategy our special code used to use.
+	if validateWalk {
+		ourVal := ctx.NamedValues().GetInputVariableValue(addr)
+		if ourVal != cty.NilVal {
+			// (it would be weird for ourVal to be nil here, but we'll tolerate it
+			// because it was scope.EvalContext's responsibility to check for the
+			// absent final value, and even if it didn't we'll just get an
+			// evaluation error when evaluating the expressions below anyway.)
 
-		// Our goal here is to make sure that a reference to the variable
-		// we're checking will evaluate to ourVal, regardless of what else
-		// scope.EvalContext might have put in the variables table.
-		if hclCtx.Variables == nil {
-			hclCtx.Variables = make(map[string]cty.Value)
-		}
-		if varsVal, ok := hclCtx.Variables["var"]; ok {
-			// Unfortunately we need to unpack and repack the object here,
-			// because cty values are immutable.
-			attrs := varsVal.AsValueMap()
-			attrs[addr.Variable.Name] = ourVal
-			hclCtx.Variables["var"] = cty.ObjectVal(attrs)
-		} else {
-			hclCtx.Variables["var"] = cty.ObjectVal(map[string]cty.Value{
-				addr.Variable.Name: ourVal,
-			})
+			// Our goal here is to make sure that a reference to the variable
+			// we're checking will evaluate to ourVal, regardless of what else
+			// scope.EvalContext might have put in the variables table.
+			if hclCtx.Variables == nil {
+				hclCtx.Variables = make(map[string]cty.Value)
+			}
+			if varsVal, ok := hclCtx.Variables["var"]; ok {
+				// Unfortunately we need to unpack and repack the object here,
+				// because cty values are immutable.
+				attrs := varsVal.AsValueMap()
+				attrs[addr.Variable.Name] = ourVal
+				hclCtx.Variables["var"] = cty.ObjectVal(attrs)
+			} else {
+				hclCtx.Variables["var"] = cty.ObjectVal(map[string]cty.Value{
+					addr.Variable.Name: ourVal,
+				})
+			}
 		}
 	}
 

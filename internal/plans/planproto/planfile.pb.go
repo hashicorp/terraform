@@ -542,8 +542,7 @@ type Plan struct {
 	// checks, and each of those may have zero or more dynamic objects that
 	// the checks were applied to nested within.
 	CheckResults []*CheckResults `protobuf:"bytes,19,rep,name=check_results,json=checkResults,proto3" json:"check_results,omitempty"`
-	// An unordered set of proposed action invocations. This includes any
-	// embedded ResourceInstanceActionChanges for LinkedResources
+	// An unordered set of proposed action invocations.
 	ActionInvocations []*ActionInvocationInstance `protobuf:"bytes,30,rep,name=action_invocations,json=actionInvocations,proto3" json:"action_invocations,omitempty"`
 	// An unordered set of target addresses to include when applying. If no
 	// target addresses are present, the plan applies to the whole
@@ -1733,9 +1732,8 @@ type ActionInvocationInstance struct {
 	// provider is the address of the provider configuration that this change
 	// was planned with, and thus the configuration that must be used to
 	// apply it.
-	Provider        string                          `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	LinkedResources []*ResourceInstanceActionChange `protobuf:"bytes,3,rep,name=linked_resources,json=linkedResources,proto3" json:"linked_resources,omitempty"`
-	ConfigValue     *DynamicValue                   `protobuf:"bytes,4,opt,name=config_value,json=configValue,proto3" json:"config_value,omitempty"`
+	Provider    string        `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	ConfigValue *DynamicValue `protobuf:"bytes,4,opt,name=config_value,json=configValue,proto3" json:"config_value,omitempty"`
 	// An unordered set of paths into config_value which are marked as
 	// sensitive. Values at these paths should be obscured in human-readable
 	// output.
@@ -1791,13 +1789,6 @@ func (x *ActionInvocationInstance) GetProvider() string {
 		return x.Provider
 	}
 	return ""
-}
-
-func (x *ActionInvocationInstance) GetLinkedResources() []*ResourceInstanceActionChange {
-	if x != nil {
-		return x.LinkedResources
-	}
-	return nil
 }
 
 func (x *ActionInvocationInstance) GetConfigValue() *DynamicValue {
@@ -2349,11 +2340,10 @@ const file_planfile_proto_rawDesc = "" +
 	"\aunknown\x18\x02 \x01(\bR\aunknown\x120\n" +
 	"\bidentity\x18\x03 \x01(\v2\x14.tfplan.DynamicValueR\bidentity\":\n" +
 	"\bDeferred\x12.\n" +
-	"\x06reason\x18\x01 \x01(\x0e2\x16.tfplan.DeferredReasonR\x06reason\"\xd9\x03\n" +
+	"\x06reason\x18\x01 \x01(\x0e2\x16.tfplan.DeferredReasonR\x06reason\"\x88\x03\n" +
 	"\x18ActionInvocationInstance\x12\x12\n" +
 	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x1a\n" +
-	"\bprovider\x18\x02 \x01(\tR\bprovider\x12O\n" +
-	"\x10linked_resources\x18\x03 \x03(\v2$.tfplan.ResourceInstanceActionChangeR\x0flinkedResources\x127\n" +
+	"\bprovider\x18\x02 \x01(\tR\bprovider\x127\n" +
 	"\fconfig_value\x18\x04 \x01(\v2\x14.tfplan.DynamicValueR\vconfigValue\x12B\n" +
 	"\x16sensitive_config_paths\x18\x05 \x03(\v2\f.tfplan.PathR\x14sensitiveConfigPaths\x12Z\n" +
 	"\x18lifecycle_action_trigger\x18\x06 \x01(\v2\x1e.tfplan.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12Q\n" +
@@ -2507,22 +2497,21 @@ var file_planfile_proto_depIdxs = []int32{
 	29, // 34: tfplan.Path.steps:type_name -> tfplan.Path.Step
 	18, // 35: tfplan.Importing.identity:type_name -> tfplan.DynamicValue
 	3,  // 36: tfplan.Deferred.reason:type_name -> tfplan.DeferredReason
-	25, // 37: tfplan.ActionInvocationInstance.linked_resources:type_name -> tfplan.ResourceInstanceActionChange
-	18, // 38: tfplan.ActionInvocationInstance.config_value:type_name -> tfplan.DynamicValue
-	19, // 39: tfplan.ActionInvocationInstance.sensitive_config_paths:type_name -> tfplan.Path
-	23, // 40: tfplan.ActionInvocationInstance.lifecycle_action_trigger:type_name -> tfplan.LifecycleActionTrigger
-	24, // 41: tfplan.ActionInvocationInstance.invoke_action_trigger:type_name -> tfplan.InvokeActionTrigger
-	4,  // 42: tfplan.LifecycleActionTrigger.trigger_event:type_name -> tfplan.ActionTriggerEvent
-	11, // 43: tfplan.ResourceInstanceActionChange.change:type_name -> tfplan.Change
-	18, // 44: tfplan.Plan.VariablesEntry.value:type_name -> tfplan.DynamicValue
-	19, // 45: tfplan.Plan.resource_attr.attr:type_name -> tfplan.Path
-	5,  // 46: tfplan.CheckResults.ObjectResult.status:type_name -> tfplan.CheckResults.Status
-	18, // 47: tfplan.Path.Step.element_key:type_name -> tfplan.DynamicValue
-	48, // [48:48] is the sub-list for method output_type
-	48, // [48:48] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	18, // 37: tfplan.ActionInvocationInstance.config_value:type_name -> tfplan.DynamicValue
+	19, // 38: tfplan.ActionInvocationInstance.sensitive_config_paths:type_name -> tfplan.Path
+	23, // 39: tfplan.ActionInvocationInstance.lifecycle_action_trigger:type_name -> tfplan.LifecycleActionTrigger
+	24, // 40: tfplan.ActionInvocationInstance.invoke_action_trigger:type_name -> tfplan.InvokeActionTrigger
+	4,  // 41: tfplan.LifecycleActionTrigger.trigger_event:type_name -> tfplan.ActionTriggerEvent
+	11, // 42: tfplan.ResourceInstanceActionChange.change:type_name -> tfplan.Change
+	18, // 43: tfplan.Plan.VariablesEntry.value:type_name -> tfplan.DynamicValue
+	19, // 44: tfplan.Plan.resource_attr.attr:type_name -> tfplan.Path
+	5,  // 45: tfplan.CheckResults.ObjectResult.status:type_name -> tfplan.CheckResults.Status
+	18, // 46: tfplan.Path.Step.element_key:type_name -> tfplan.DynamicValue
+	47, // [47:47] is the sub-list for method output_type
+	47, // [47:47] is the sub-list for method input_type
+	47, // [47:47] is the sub-list for extension type_name
+	47, // [47:47] is the sub-list for extension extendee
+	0,  // [0:47] is the sub-list for field type_name
 }
 
 func init() { file_planfile_proto_init() }

@@ -39,9 +39,9 @@ There are various pairs of types in this package that represent a static object
 in the configuration and dynamic instances of that object respectively.
 
 For example, `InputVariableConfig` directly represents a `variable` block
-from a `.tfstack.hcl` file, while `InputVariable` represents the possibly-many
-dynamic instances of that object that can be caused by being within a stack
-that was called using `for_each`.
+from a `.tfcomponent.hcl` file, while `InputVariable` represents the 
+possibly-many dynamic instances of that object that can be caused by being 
+within a stack that was called using `for_each`.
 
 In general, the static types are responsible for "static validation"-type tasks,
 such as checking whether expressions refer to instances of other configuration

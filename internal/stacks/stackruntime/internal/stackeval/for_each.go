@@ -46,7 +46,7 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 	invalidForEachDetail := fmt.Sprintf("The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this %s.", callerDiagName)
 	const sensitiveForEachDetail = "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key."
 	switch {
-	case result.Value.HasMark(marks.Sensitive):
+	case marks.Has(result.Value, marks.Sensitive):
 		// Sensitive values are not allowed as for_each arguments because
 		// they could be exposed as resource instance keys.
 		// TODO: This should have Extra: tdiagnosticCausedBySensitive(true),

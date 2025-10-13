@@ -276,6 +276,12 @@ func initCommands(
 			}, nil
 		},
 
+		"query": func() (cli.Command, error) {
+			return &command.QueryCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"refresh": func() (cli.Command, error) {
 			return &command.RefreshCommand{
 				Meta: meta,
@@ -451,8 +457,8 @@ func initCommands(
 			}, nil
 		}
 
-		Commands["query"] = func() (cli.Command, error) {
-			return &command.QueryCommand{
+		Commands["test cleanup"] = func() (cli.Command, error) {
+			return &command.TestCleanupCommand{
 				Meta: meta,
 			}, nil
 		}

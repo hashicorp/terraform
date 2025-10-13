@@ -442,7 +442,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 			{
 				DeferredReason: providers.DeferredReasonDeferredPrereq,
 				ActionInvocationInstanceSrc: &plans.ActionInvocationInstanceSrc{
-					Addr: addrs.Action{Type: "test_unlinked", Name: "generic_action"}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
+					Addr: addrs.Action{Type: "test_action", Name: "example"}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
 					ActionTrigger: &plans.LifecycleActionTrigger{
 						TriggeringResourceAddr: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,

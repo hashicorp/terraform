@@ -90,22 +90,9 @@ func LoadSingleStackConfig(sourceAddr sourceaddrs.FinalSource, sources *sourcebu
 		Declarations: makeDeclarations(),
 	}
 
-	var priorSuffix string
 	for _, entry := range allEntries {
-		suffix := validFilenameSuffix(entry.Name())
-		if suffix == "" {
+		if suffix := validFilenameSuffix(entry.Name()); suffix == "" {
 			// not a file we're interested in, then
-			continue
-		}
-
-		if priorSuffix == "" {
-			priorSuffix = suffix
-		} else if priorSuffix != suffix {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid stack configuration directory",
-				"This stack configuration has mixed the deprecated .tfstack.hcl or .tfstack.json file extensions with the latest .tfcomponent.hcl or .tfcomponent.json file extensions. Update all files to the latest .tfcomponent file extension.",
-			))
 			continue
 		}
 
@@ -143,7 +130,7 @@ func LoadSingleStackConfig(sourceAddr sourceaddrs.FinalSource, sources *sourcebu
 			))
 		}
 
-		file, moreDiags := ParseFileSource(src, priorSuffix, fileSourceAddr)
+		file, moreDiags := ParseFileSource(src, fileSourceAddr)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			// We'll still try to analyze other files, so we can gather up
@@ -174,14 +161,6 @@ func LoadSingleStackConfig(sourceAddr sourceaddrs.FinalSource, sources *sourcebu
 			continue
 		}
 		pc.ProviderAddr = providerAddr
-	}
-
-	if priorSuffix == "tfstack" {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Deprecated filename usage",
-			Detail:   "This configuration is using the deprecated .tfstack.hcl or .tfstack.json file extensions. This will not be supported in a future version of Terraform, please update your files to use the latest .tfcomponent.hcl or .tfcomponent.json file extensions.",
-		})
 	}
 
 	return ret, diags

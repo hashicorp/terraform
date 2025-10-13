@@ -76,27 +76,23 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 		_, knownInstKeys, haveUnknownKeys := expander.ActionInstanceKeys(absActAddr)
 		if haveUnknownKeys {
+			// this should never happen, n.recordActionData explicitly sets
+			// allowUnknown to be false, so we should pick up diagnostics
+			// during that call instance reaching this branch.
+			panic("found unknown keys in action instance")
+		}
+
+		// Expand the action instances for this module.
+		for _, knownInstKey := range knownInstKeys {
 			node := NodeActionDeclarationInstance{
-				Addr:             absActAddr.Instance(addrs.WildcardKey),
+				Addr:             absActAddr.Instance(knownInstKey),
 				Config:           &n.Config,
 				Schema:           n.Schema,
 				ResolvedProvider: n.ResolvedProvider,
 				Dependencies:     n.Dependencies,
 			}
-			g.Add(&node)
-		} else {
-			// Expand the action instances for this module.
-			for _, knownInstKey := range knownInstKeys {
-				node := NodeActionDeclarationInstance{
-					Addr:             absActAddr.Instance(knownInstKey),
-					Config:           &n.Config,
-					Schema:           n.Schema,
-					ResolvedProvider: n.ResolvedProvider,
-					Dependencies:     n.Dependencies,
-				}
 
-				g.Add(&node)
-			}
+			g.Add(&node)
 		}
 
 		addRootNodeToGraph(&g)
@@ -113,16 +109,15 @@ func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr add
 	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
 
-	// Allowing unknown values in count and for_each is a top-level plan option.
-	//
-	// If this is false then the codepaths that handle unknown values below
-	// become unreachable, because the evaluate functions will reject unknown
-	// values as an error.
-	allowUnknown := ctx.Deferrals().DeferralAllowed()
+	// For now, action instances cannot evaluate to unknown. When an action
+	// would have an unknown instance key, we'd want to defer executing that
+	// action, and in turn defer executing the triggering resource. Delayed
+	// deferrals are not currently possible (we need to reconfigure exactly how
+	// deferrals are checked) so for now deferred actions are simply blocked.
 
 	switch {
 	case n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, allowUnknown)
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, false)
 		diags = diags.Append(countDiags)
 		if countDiags.HasErrors() {
 			return diags
@@ -131,12 +126,13 @@ func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr add
 		if count >= 0 {
 			expander.SetActionCount(addr.Module, n.Addr.Action, count)
 		} else {
-			// -1 represents "unknown"
-			expander.SetActionCountUnknown(addr.Module, n.Addr.Action)
+			// this should not be possible as allowUnknown was set to false
+			// in the evaluateCountExpression function call.
+			panic("evaluateCountExpression returned unknown")
 		}
 
 	case n.Config.ForEach != nil:
-		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, allowUnknown)
+		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, false)
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
 			return diags
@@ -147,7 +143,9 @@ func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr add
 		if known {
 			expander.SetActionForEach(addr.Module, n.Addr.Action, forEach)
 		} else {
-			expander.SetActionForEachUnknown(addr.Module, n.Addr.Action)
+			// this should not be possible as allowUnknown was set to false
+			// in the evaluateForEachExpression function call.
+			panic("evaluateForEachExpression returned unknown")
 		}
 
 	default:

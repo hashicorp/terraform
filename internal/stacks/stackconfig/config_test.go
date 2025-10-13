@@ -14,51 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestLoadConfigDirDeprecated(t *testing.T) {
-	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/deprecated.git").(sourceaddrs.RemoteSource)
-	_, gotDiags := LoadConfigDir(rootAddr, bundle)
-
-	wantDiags := tfdiags.Diagnostics{
-		tfdiags.Sourceless(tfdiags.Warning, "Deprecated filename usage", "This configuration is using the deprecated .tfstack.hcl or .tfstack.json file extensions. This will not be supported in a future version of Terraform, please update your files to use the latest .tfcomponent.hcl or .tfcomponent.json file extensions."),
-	}
-
-	count := len(wantDiags)
-	if len(gotDiags) > count {
-		count = len(gotDiags)
-	}
-
-	for i := 0; i < count; i++ {
-		if i >= len(wantDiags) {
-			t.Errorf("unexpected diagnostic:\n%s", gotDiags[i])
-			continue
-		}
-
-		if i >= len(gotDiags) {
-			t.Errorf("missing diagnostic:\n%s", wantDiags[i])
-			continue
-		}
-
-		got, want := gotDiags[i], wantDiags[i]
-
-		if got, want := got.Severity(), want.Severity(); got != want {
-			t.Errorf("diagnostics[%d] severity\ngot:  %s\nwant: %s", i, got, want)
-		}
-
-		if got, want := got.Description().Summary, want.Description().Summary; got != want {
-			t.Errorf("diagnostics[%d] summary\ngot:  %s\nwant: %s", i, got, want)
-		}
-
-		if got, want := got.Description().Detail, want.Description().Detail; got != want {
-			t.Errorf("diagnostics[%d] detail\ngot:  %s\nwant: %s", i, got, want)
-		}
-	}
-}
-
 func TestLoadConfigDirErrors(t *testing.T) {
 	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
 	if err != nil {

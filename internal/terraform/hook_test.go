@@ -176,7 +176,7 @@ func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value)
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults) (HookAction, error) {
+func (h *testHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostListQuery", id.Addr.String()})

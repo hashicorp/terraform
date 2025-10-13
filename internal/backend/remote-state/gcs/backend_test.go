@@ -151,9 +151,9 @@ func TestAccRemoteClient(t *testing.T) {
 	be := setupBackend(t, config)
 	defer teardownBackend(t, be, noPrefix)
 
-	ss, err := be.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, err)
+	ss, sDiags := be.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, sDiags.Err())
 	}
 
 	rs, ok := ss.(*remote.State)
@@ -177,9 +177,9 @@ func TestAccRemoteClientWithEncryption(t *testing.T) {
 	be := setupBackend(t, config)
 	defer teardownBackend(t, be, noPrefix)
 
-	ss, err := be.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, err)
+	ss, sDiags := be.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, sDiags.Err())
 	}
 
 	rs, ok := ss.(*remote.State)

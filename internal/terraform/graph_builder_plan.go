@@ -152,10 +152,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		panic("invalid plan operation: " + b.Operation.String())
 	}
 
-	if b.overridePreventDestroy && b.Operation != walkPlanDestroy {
-		panic("overridePreventDestroy can only be set during walkPlanDestroy operations")
-	}
-
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
@@ -163,24 +159,33 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ConcreteAction: b.ConcreteAction,
 			Config:         b.Config,
 			destroy:        b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
-			resourceMatcher: func(mode addrs.ResourceMode) bool {
-				// all resources are included during validation.
-				if b.Operation == walkValidate {
-					return true
-				}
-
-				return b.queryPlan == (mode == addrs.ListResourceMode)
-			},
 
 			importTargets: b.ImportTargets,
 
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
 
-		&ActionPlanTransformer{
-			Config:    b.Config,
-			Operation: b.Operation,
-			Targets:   b.ActionTargets,
+		&ActionTriggerConfigTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			queryPlanMode: b.queryPlan,
+
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, _ RelativeActionTiming) dag.Vertex {
+				return &nodeActionTriggerPlanExpand{
+					nodeAbstractActionTriggerExpand: node,
+				}
+			},
+
+			// We plan all actions after the resource is handled
+			CreateNodesAsAfter: true,
+		},
+
+		&ActionInvokePlanTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			queryPlanMode: b.queryPlan,
 		},
 
 		// Add dynamic values
@@ -293,6 +298,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
+		// Filter the graph to only include nodes that are relevant to the query operation.
+		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},
+
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
@@ -322,6 +330,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
 			skipRefresh:          b.skipRefresh,
@@ -332,6 +341,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResourceOrphan = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
@@ -342,6 +352,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResourceInstanceDeposed = func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDeposedResourceInstanceObject{
 			NodeAbstractResourceInstance: a,
 			DeposedKey:                   key,

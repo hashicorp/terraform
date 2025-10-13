@@ -227,7 +227,12 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 			path := filepath.Join(testDir, name)
 			parser.AllowLanguageExperiments(true)
 
-			mod, diags := parser.LoadConfigDirWithTests(path, "tests")
+			opts := []Option{MatchTestFiles("tests")}
+			if name == "list-in-child-module" {
+				opts = append(opts, MatchQueryFiles())
+			}
+
+			mod, diags := parser.LoadConfigDir(path, opts...)
 			if diags.HasErrors() {
 				// these tests should only trigger errors that are caught in
 				// the config loader.
@@ -265,7 +270,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 					// for simplicity, these tests will treat all source
 					// addresses as relative to the root module
 					sourcePath := filepath.Join(path, req.SourceAddr.String())
-					mod, diags := parser.LoadConfigDir(sourcePath)
+					mod, diags := parser.LoadConfigDir(sourcePath, opts...)
 					version, _ := version.NewVersion("1.0.0")
 					return mod, version, diags
 				}),

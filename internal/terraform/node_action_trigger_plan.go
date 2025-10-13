@@ -6,52 +6,28 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type nodeActionTriggerPlanExpand struct {
-	Addr             addrs.ConfigAction
-	resolvedProvider addrs.AbsProviderConfig
-	Config           *configs.Action
+	*nodeAbstractActionTriggerExpand
 
-	lifecycleActionTrigger *lifecycleActionTrigger
-}
-
-type lifecycleActionTrigger struct {
-	resourceAddress         addrs.ConfigResource
-	events                  []configs.ActionTriggerEvent
-	actionTriggerBlockIndex int
-	actionListIndex         int
-	invokingSubject         *hcl.Range
-	actionExpr              hcl.Expression
-	conditionExpr           hcl.Expression
-}
-
-func (at *lifecycleActionTrigger) Name() string {
-	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
+	resourceTargets []addrs.Targetable
 }
 
 var (
 	_ GraphNodeDynamicExpandable = (*nodeActionTriggerPlanExpand)(nil)
 	_ GraphNodeReferencer        = (*nodeActionTriggerPlanExpand)(nil)
+	_ GraphNodeProviderConsumer  = (*nodeActionTriggerPlanExpand)(nil)
+	_ GraphNodeModulePath        = (*nodeActionTriggerPlanExpand)(nil)
 )
 
 func (n *nodeActionTriggerPlanExpand) Name() string {
-	triggeredBy := "triggered by "
-	if n.lifecycleActionTrigger != nil {
-		triggeredBy += n.lifecycleActionTrigger.resourceAddress.String()
-	} else {
-		triggeredBy += "unknown"
-	}
-
-	return fmt.Sprintf("%s %s", n.Addr.String(), triggeredBy)
+	return fmt.Sprintf("%s (plan)", n.nodeAbstractActionTriggerExpand.Name())
 }
 
 func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
@@ -99,6 +75,24 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 		_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
 		for _, key := range keys {
 			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
+
+			// If the triggering resource was targeted, make sure the instance
+			// that triggered this was targeted specifically.
+			// This is necessary since the expansion of a resource instance (and of an action trigger)
+			// happens during the graph walk / execution, therefore the target transformer can not
+			// filter out individual instances, this needs to happen during the graph walk / execution.
+			if n.resourceTargets != nil {
+				matched := false
+				for _, resourceTarget := range n.resourceTargets {
+					if resourceTarget.TargetContains(absResourceInstanceAddr) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					continue
+				}
+			}
 
 			// The n.Addr was derived from the ActionRef hcl.Expression referenced inside the resource's lifecycle block, and has not yet been
 			// expanded or fully evaluated, so we will do that now.
@@ -149,45 +143,6 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 	return &g, diags
 }
 
-func (n *nodeActionTriggerPlanExpand) ModulePath() addrs.Module {
-	return n.Addr.Module
-}
-
-func (n *nodeActionTriggerPlanExpand) References() []*addrs.Reference {
-	var refs []*addrs.Reference
-	refs = append(refs, &addrs.Reference{
-		Subject: n.Addr.Action,
-	})
-
-	if n.lifecycleActionTrigger != nil {
-		refs = append(refs, &addrs.Reference{
-			Subject: n.lifecycleActionTrigger.resourceAddress.Resource,
-		})
-
-		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.lifecycleActionTrigger.conditionExpr)
-		refs = append(refs, conditionRefs...)
-	}
-
-	return refs
-}
-
-func (n *nodeActionTriggerPlanExpand) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
-	if n.resolvedProvider.Provider.Type != "" {
-		return n.resolvedProvider, true
-	}
-
-	// Since we always have a config, we can use it
-	relAddr := n.Config.ProviderConfigAddr()
-	return addrs.LocalProviderConfig{
-		LocalName: relAddr.LocalName,
-		Alias:     relAddr.Alias,
-	}, false
-}
-
-func (n *nodeActionTriggerPlanExpand) Provider() (provider addrs.Provider) {
-	return n.Config.Provider
-}
-
-func (n *nodeActionTriggerPlanExpand) SetProvider(config addrs.AbsProviderConfig) {
-	n.resolvedProvider = config
+func (n *nodeActionTriggerPlanExpand) SetResourceTargets(addrs []addrs.Targetable) {
+	n.resourceTargets = addrs
 }

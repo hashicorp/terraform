@@ -14,6 +14,7 @@ import (
 type Stacks struct {
 	impl stacks.StacksServer
 	mu   sync.RWMutex
+	stacks.UnimplementedStacksServer
 }
 
 var _ stacks.StacksServer = (*Stacks)(nil)

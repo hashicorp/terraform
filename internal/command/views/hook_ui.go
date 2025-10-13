@@ -511,7 +511,7 @@ func (h *UiHook) PreListQuery(id terraform.HookResourceIdentity, input_config ct
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults) (terraform.HookAction, error) {
+func (h *UiHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults, identityVersion int64) (terraform.HookAction, error) {
 	addr := id.Addr
 	data := results.Value.GetAttr("data")
 

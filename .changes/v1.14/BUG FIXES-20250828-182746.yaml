@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Fix OSS backend proxy support by adding a proxy layer for OSS backend operations. Resolves hashicorp/terraform#36897.
-time: 2025-08-28T18:27:46.867411+05:30
-custom:
-    Issue: "36897"

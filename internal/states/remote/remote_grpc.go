@@ -54,7 +54,24 @@ type grpcClient struct {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Get() (*Payload, tfdiags.Diagnostics) {
-	panic("not implemented yet")
+	req := providers.ReadStateBytesRequest{
+		TypeName: g.typeName,
+		StateId:  g.stateId,
+	}
+	resp := g.provider.ReadStateBytes(req)
+
+	if len(resp.Bytes) == 0 {
+		// No state to return
+		return nil, resp.Diagnostics
+	}
+
+	// TODO: Remove or replace use of MD5?
+	// The MD5 value here is never used.
+	payload := &Payload{
+		Data: resp.Bytes,
+		MD5:  []byte{}, // empty, as this is unused downstream
+	}
+	return payload, resp.Diagnostics
 }
 
 // Put invokes the WriteStateBytes gRPC method in the plugin protocol
@@ -62,7 +79,14 @@ func (g *grpcClient) Get() (*Payload, tfdiags.Diagnostics) {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Put(state []byte) tfdiags.Diagnostics {
-	panic("not implemented yet")
+	req := providers.WriteStateBytesRequest{
+		TypeName: g.typeName,
+		StateId:  g.stateId,
+		Bytes:    state,
+	}
+	resp := g.provider.WriteStateBytes(req)
+
+	return resp.Diagnostics
 }
 
 // Delete invokes the DeleteState gRPC method in the plugin protocol
@@ -86,8 +110,14 @@ func (g *grpcClient) Delete() tfdiags.Diagnostics {
 // to lock a named state in the remote location.
 //
 // Implementation of remote.Client
-func (g *grpcClient) Lock(*statemgr.LockInfo) (string, error) {
-	panic("not implemented yet")
+func (g *grpcClient) Lock(lock *statemgr.LockInfo) (string, error) {
+	req := providers.LockStateRequest{
+		TypeName:  g.typeName,
+		StateId:   g.stateId,
+		Operation: lock.Operation,
+	}
+	resp := g.provider.LockState(req)
+	return resp.LockId, resp.Diagnostics.Err()
 }
 
 // Unlock invokes the UnlockState gRPC method in the plugin protocol
@@ -95,5 +125,11 @@ func (g *grpcClient) Lock(*statemgr.LockInfo) (string, error) {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Unlock(id string) error {
-	panic("not implemented yet")
+	req := providers.UnlockStateRequest{
+		TypeName: g.typeName,
+		StateId:  g.stateId,
+		LockId:   id,
+	}
+	resp := g.provider.UnlockState(req)
+	return resp.Diagnostics.Err()
 }

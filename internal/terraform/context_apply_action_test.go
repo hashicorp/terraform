@@ -5,8 +5,10 @@ package terraform
 
 import (
 	"path/filepath"
+	"sync"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -37,18 +39,20 @@ func TestContextApply_actions(t *testing.T) {
 		expectInvokeActionCalled            bool
 		expectInvokeActionCalls             []providers.InvokeActionRequest
 		expectInvokeActionCallsAreUnordered bool
+		expectDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
+		ignoreWarnings                      bool
 
-		expectDiagnostics func(m *configs.Config) tfdiags.Diagnostics
+		assertHooks func(*testing.T, actionHookCapture)
 	}{
 		"before_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -60,12 +64,12 @@ resource "test_object" "a" {
 		"after_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -74,16 +78,65 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 		},
 
+		"before and after created triggered": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create,after_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			assertHooks: func(t *testing.T, capture actionHookCapture) {
+				if len(capture.startActionHooks) != 2 {
+					t.Error("expected 2 start action hooks")
+				}
+				if len(capture.completeActionHooks) != 2 {
+					t.Error("expected 2 complete action hooks")
+				}
+
+				evaluateHook := func(got HookActionIdentity, wantAddr string, wantEvent configs.ActionTriggerEvent) {
+					trigger := got.ActionTrigger.(*plans.LifecycleActionTrigger)
+
+					if trigger.ActionTriggerEvent != wantEvent {
+						t.Errorf("wrong event, got %s, want %s", trigger.ActionTriggerEvent, wantEvent)
+					}
+					if diff := cmp.Diff(got.Addr.String(), wantAddr); len(diff) > 0 {
+						t.Errorf("wrong address: %s", diff)
+					}
+				}
+
+				// the before should have happened first, and the order should
+				// be correct.
+
+				beforeStart := capture.startActionHooks[0]
+				beforeComplete := capture.completeActionHooks[0]
+				evaluateHook(beforeStart, "action.action_example.hello", configs.BeforeCreate)
+				evaluateHook(beforeComplete, "action.action_example.hello", configs.BeforeCreate)
+
+				afterStart := capture.startActionHooks[1]
+				afterComplete := capture.completeActionHooks[1]
+				evaluateHook(afterStart, "action.action_example.hello", configs.AfterCreate)
+				evaluateHook(afterComplete, "action.action_example.hello", configs.AfterCreate)
+			},
+		},
+
 		"before_update triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   name = "new name"
   lifecycle {
     action_trigger {
       events = [before_update]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -112,13 +165,13 @@ resource "test_object" "a" {
 		"after_update triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   name = "new name"
   lifecycle {
     action_trigger {
       events = [after_update]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -147,12 +200,12 @@ resource "test_object" "a" {
 		"before_create failing": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -180,8 +233,8 @@ resource "test_object" "a" {
 					Detail:   "test case for failing: this simulates a provider failing",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 18, Byte: 146},
-						End:      hcl.Pos{Line: 7, Column: 43, Byte: 171},
+						Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
+						End:      hcl.Pos{Line: 7, Column: 45, Byte: 175},
 					},
 				})
 			},
@@ -190,9 +243,9 @@ resource "test_object" "a" {
 		"before_create failing with successfully completed actions": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
-action "act_unlinked" "world" {}
-action "act_unlinked" "failure" {
+action "action_example" "hello" {}
+action "action_example" "world" {}
+action "action_example" "failure" {
   config {
     attr = "failure"
   }
@@ -201,7 +254,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello, action.act_unlinked.world, action.act_unlinked.failure]
+      actions = [action.action_example.hello, action.action_example.world, action.action_example.failure]
     }
   }
 }
@@ -236,8 +289,8 @@ resource "test_object" "a" {
 						Detail:   `test case for failing: this simulates a provider failing`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 72, Byte: 305},
-							End:      hcl.Pos{Line: 13, Column: 99, Byte: 332},
+							Start:    hcl.Pos{Line: 13, Column: 76, Byte: 315},
+							End:      hcl.Pos{Line: 13, Column: 105, Byte: 344},
 						},
 					},
 				)
@@ -248,12 +301,12 @@ resource "test_object" "a" {
 		"before_create failing when calling invoke": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -277,8 +330,8 @@ resource "test_object" "a" {
 						Detail:   "test case for failing: this simulates a provider failing before the action is invoked",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 146},
-							End:      hcl.Pos{Line: 7, Column: 43, Byte: 171},
+							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
+							End:      hcl.Pos{Line: 7, Column: 47, Byte: 175},
 						},
 					},
 				)
@@ -288,18 +341,18 @@ resource "test_object" "a" {
 		"failing an action by action event stops next actions in list": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
-action "act_unlinked" "failure" {
+action "action_example" "hello" {}
+action "action_example" "failure" {
   config {
     attr = "failure"
   }
 }
-action "act_unlinked" "goodbye" {}
+action "action_example" "goodbye" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello, action.act_unlinked.failure, action.act_unlinked.goodbye]
+      actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
     }
   }
 }
@@ -328,8 +381,8 @@ resource "test_object" "a" {
 						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 45, Byte: 280},
-							End:      hcl.Pos{Line: 13, Column: 72, Byte: 307},
+							Start:    hcl.Pos{Line: 13, Column: 47, Byte: 288},
+							End:      hcl.Pos{Line: 13, Column: 76, Byte: 317},
 						},
 					},
 				)
@@ -337,12 +390,12 @@ resource "test_object" "a" {
 
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("failure"),
 				}),
@@ -352,18 +405,18 @@ resource "test_object" "a" {
 		"failing an action during invocation stops next actions in list": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
-action "act_unlinked" "failure" {
+action "action_example" "hello" {}
+action "action_example" "failure" {
   config {
     attr = "failure"
   }
 }
-action "act_unlinked" "goodbye" {}
+action "action_example" "goodbye" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello, action.act_unlinked.failure, action.act_unlinked.goodbye]
+      actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
     }
   }
 }
@@ -391,8 +444,8 @@ resource "test_object" "a" {
 						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 45, Byte: 280},
-							End:      hcl.Pos{Line: 13, Column: 72, Byte: 307},
+							Start:    hcl.Pos{Line: 13, Column: 47, Byte: 288},
+							End:      hcl.Pos{Line: 13, Column: 76, Byte: 317},
 						},
 					},
 				)
@@ -400,12 +453,12 @@ resource "test_object" "a" {
 
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("failure"),
 				}),
@@ -415,26 +468,26 @@ resource "test_object" "a" {
 		"failing an action stops next action triggers": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
-action "act_unlinked" "failure" {
+action "action_example" "hello" {}
+action "action_example" "failure" {
   config {
     attr = "failure"
   }
 }
-action "act_unlinked" "goodbye" {}
+action "action_example" "goodbye" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.failure]
+      actions = [action.action_example.failure]
     }
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.goodbye]
+      actions = [action.action_example.goodbye]
     }
   }
 }
@@ -462,20 +515,20 @@ resource "test_object" "a" {
 						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 17, Column: 18, Byte: 355},
-							End:      hcl.Pos{Line: 17, Column: 45, Byte: 382},
+							Start:    hcl.Pos{Line: 17, Column: 18, Byte: 363},
+							End:      hcl.Pos{Line: 17, Column: 47, Byte: 392},
 						},
 					},
 				)
 			},
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("failure"),
 				}),
@@ -488,7 +541,7 @@ resource "test_object" "a" {
 resource "test_object" "a" {
   name = "foo"
 }
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   config {
     attr = resource.test_object.a.name
   }
@@ -497,7 +550,7 @@ resource "test_object" "b" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -505,7 +558,7 @@ resource "test_object" "b" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("foo"),
 				}),
@@ -519,7 +572,7 @@ resource "test_object" "b" {
 variable "unknown_value" {
   type = string
 }
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   config {
     attr = var.unknown_value
   }
@@ -528,7 +581,7 @@ resource "test_object" "b" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -540,13 +593,19 @@ resource "test_object" "b" {
 				},
 			}),
 
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
-				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-					"attr": cty.UnknownVal(cty.String),
-				}),
-			}},
+			expectInvokeActionCalled: false,
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Action configuration unknown during apply",
+					Detail:   "The action action.action_example.hello was not fully known during apply.\n\nThis is a bug in Terraform, please report it.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 14, Column: 18, Byte: 238},
+						End:      hcl.Pos{Line: 14, Column: 45, Byte: 265},
+					},
+				})
+			},
 		},
 
 		"action with secrets in configuration": {
@@ -556,7 +615,7 @@ variable "secret_value" {
   type = string
   sensitive = true
 }
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   config {
     attr = var.secret_value
   }
@@ -565,7 +624,7 @@ resource "test_object" "b" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -579,7 +638,7 @@ resource "test_object" "b" {
 
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("psst, I'm secret"),
 				}),
@@ -589,17 +648,17 @@ resource "test_object" "b" {
 		"aliased provider": {
 			module: map[string]string{
 				"main.tf": `
-provider "act" {
+provider "action" {
   alias = "aliased"
 }
-action "act_unlinked" "hello" {
-  provider = act.aliased
+action "action_example" "hello" {
+  provider = action.aliased
 }
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -618,12 +677,12 @@ terraform {
     }
   }
 }
-action "ecosystem_unlinked" "hello" {}
+action "ecosystem" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.ecosystem_unlinked.hello]
+      actions = [action.ecosystem.hello]
     }
   }
 }
@@ -635,7 +694,7 @@ resource "test_object" "a" {
 		"after_create with config cycle": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   config {
     attr = test_object.a.name
   }
@@ -645,7 +704,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -653,7 +712,7 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("test_object_a"),
 				}),
@@ -668,12 +727,12 @@ module "mod" {
 }
 `,
 				"mod/mod.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -681,7 +740,7 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
@@ -697,12 +756,12 @@ module "mod" {
 }
 `,
 				"mod/mod.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -710,12 +769,12 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
@@ -730,17 +789,17 @@ module "mod" {
 }
 `,
 				"mod/mod.tf": `
-provider "act" {
+provider "action" {
     alias = "inthemodule"
 }
-action "act_unlinked" "hello" {
-  provider = act.inthemodule
+action "action_example" "hello" {
+  provider = action.inthemodule
 }
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -748,7 +807,7 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
@@ -758,7 +817,7 @@ resource "test_object" "a" {
 		"action for_each": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   for_each = toset(["a", "b"])
   
   config {
@@ -769,7 +828,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello["a"], action.act_unlinked.hello["b"]]
+      actions = [action.action_example.hello["a"], action.action_example.hello["b"]]
     }
   }
 }
@@ -777,12 +836,12 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("value-a"),
 				}),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("value-b"),
 				}),
@@ -792,7 +851,7 @@ resource "test_object" "a" {
 		"action count": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   count = 2
 
   config {
@@ -804,19 +863,19 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello[0], action.act_unlinked.hello[1]]
+      actions = [action.action_example.hello[0], action.action_example.hello[1]]
     }
   }
 }
 `,
 			},
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("value-0"),
 				}),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("value-1"),
 				}),
@@ -826,12 +885,12 @@ resource "test_object" "a" {
 		"before_update triggered - on create": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_update]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -843,12 +902,12 @@ resource "test_object" "a" {
 		"after_update triggered - on create": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_update]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -860,12 +919,12 @@ resource "test_object" "a" {
 		"before_update triggered - on replace": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_update]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -895,12 +954,12 @@ resource "test_object" "a" {
 		"after_update triggered - on replace": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_update]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -930,14 +989,14 @@ resource "test_object" "a" {
 		"expanded resource - unexpanded action": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   count = 2
   name = "test-${count.index}"
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -945,12 +1004,12 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
@@ -963,7 +1022,7 @@ resource "test_object" "a" {
 resource "test_object" "a" {
   name = "a"
 }
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   config {
     attr = test_object.a.name
   }
@@ -973,7 +1032,7 @@ resource "test_object" "b" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -981,7 +1040,7 @@ resource "test_object" "b" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("a"),
 				}),
@@ -997,12 +1056,12 @@ resource "test_object" "a" {
 resource "test_object" "b" {
   name = "b"
 }
-action "act_unlinked" "hello_a" {
+action "action_example" "hello_a" {
   config {
     attr = test_object.a.name
   }
 }
-action "act_unlinked" "hello_b" {
+action "action_example" "hello_b" {
   config {
     attr = test_object.a.name
   }
@@ -1012,7 +1071,7 @@ resource "test_object" "c" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello_a]
+      actions = [action.action_example.hello_a]
     }
   }
 }
@@ -1021,7 +1080,7 @@ resource "test_object" "d" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello_b]
+      actions = [action.action_example.hello_b]
     }
   }
 }
@@ -1030,7 +1089,7 @@ resource "test_object" "e" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello_a, action.act_unlinked.hello_b]
+      actions = [action.action_example.hello_a, action.action_example.hello_b]
     }
   }
 }
@@ -1038,22 +1097,22 @@ resource "test_object" "e" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("a"),
 				}),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("a"),
 				}),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("a"),
 				}),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("a"),
 				}),
@@ -1063,12 +1122,12 @@ resource "test_object" "e" {
 		"destroy run": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create, after_update]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1098,13 +1157,13 @@ resource "test_object" "a" {
 		"destroying expanded node": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   count = 2
   lifecycle {
     action_trigger {
       events = [before_create, after_update]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1166,7 +1225,7 @@ resource "test_object" "a" {
 		"action config with after_create dependency to triggering resource": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   config {
     attr = test_object.a.name
   }
@@ -1176,7 +1235,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [after_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1184,7 +1243,7 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("test_name"),
 				}),
@@ -1199,13 +1258,13 @@ module "action_mod" {
 }
 `,
 				"action_mod/main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "trigger" {
   name = "trigger_resource"
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1213,7 +1272,7 @@ resource "test_object" "trigger" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
 					"attr": cty.String,
 				})),
@@ -1233,7 +1292,7 @@ module "child" {
 }
 `,
 				"parent/child/main.tf": `
-action "act_unlinked" "nested_action" {
+action "action_example" "nested_action" {
   config {
     attr = "nested_value"
   }
@@ -1243,7 +1302,7 @@ resource "test_object" "nested_resource" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.nested_action]
+      actions = [action.action_example.nested_action]
     }
   }
 }
@@ -1251,7 +1310,7 @@ resource "test_object" "nested_resource" {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("nested_value"),
 				}),
@@ -1272,7 +1331,7 @@ variable "instance_name" {
   type = string
 }
 
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
   config {
     attr = "instance-${var.instance_name}"
   }
@@ -1282,7 +1341,7 @@ resource "test_object" "resource" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1291,12 +1350,12 @@ resource "test_object" "resource" {
 			expectInvokeActionCalled:            true,
 			expectInvokeActionCallsAreUnordered: true, // The order depends on the order of the modules
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("instance-a"),
 				}),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("instance-b"),
 				}),
@@ -1316,12 +1375,12 @@ resource "test_object" "resource" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.act_unlinked_wo.hello]
+      actions = [action.action_example_wo.hello]
     }
   }
 }
 
-action "act_unlinked_wo" "hello" {
+action "action_example_wo" "hello" {
   config {
     attr = var.attr
   }
@@ -1331,7 +1390,7 @@ action "act_unlinked_wo" "hello" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_unlinked_wo",
+					ActionType: "action_example_wo",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("wo-apply"),
 					}),
@@ -1353,12 +1412,12 @@ action "act_unlinked_wo" "hello" {
 		"simple action invoke": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "one" {
+action "action_example" "one" {
   config {
     attr = "one"
   }
 }
-action "act_unlinked" "two" {
+action "action_example" "two" {
   config {
     attr = "two"
   }
@@ -1368,7 +1427,7 @@ action "act_unlinked" "two" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_unlinked",
+					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("one"),
 					}),
@@ -1380,7 +1439,7 @@ action "act_unlinked" "two" {
 					addrs.AbsActionInstance{
 						Action: addrs.ActionInstance{
 							Action: addrs.Action{
-								Type: "act_unlinked",
+								Type: "action_example",
 								Name: "one",
 							},
 							Key: addrs.NoKey,
@@ -1393,14 +1452,14 @@ action "act_unlinked" "two" {
 		"action invoke with count (all)": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "one" {
+action "action_example" "one" {
   count = 2
 
   config {
     attr = "${count.index}"
   }
 }
-action "act_unlinked" "two" {
+action "action_example" "two" {
   count = 2
 
   config {
@@ -1414,7 +1473,7 @@ action "act_unlinked" "two" {
 				ActionTargets: []addrs.Targetable{
 					addrs.AbsAction{
 						Action: addrs.Action{
-							Type: "act_unlinked",
+							Type: "action_example",
 							Name: "one",
 						},
 					},
@@ -1423,13 +1482,13 @@ action "act_unlinked" "two" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_unlinked",
+					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("0"),
 					}),
 				},
 				{
-					ActionType: "act_unlinked",
+					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("1"),
 					}),
@@ -1441,14 +1500,14 @@ action "act_unlinked" "two" {
 		"action invoke with count (instance)": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "one" {
+action "action_example" "one" {
   count = 2
 
   config {
     attr = "${count.index}"
   }
 }
-action "act_unlinked" "two" {
+action "action_example" "two" {
   count = 2
 
   config {
@@ -1463,7 +1522,7 @@ action "act_unlinked" "two" {
 					addrs.AbsActionInstance{
 						Action: addrs.ActionInstance{
 							Action: addrs.Action{
-								Type: "act_unlinked",
+								Type: "action_example",
 								Name: "one",
 							},
 							Key: addrs.IntKey(0),
@@ -1474,7 +1533,7 @@ action "act_unlinked" "two" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_unlinked",
+					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("0"),
 					}),
@@ -1489,7 +1548,7 @@ resource "test_object" "a" {
   name = "hello"
 }
 
-action "act_unlinked" "one" {
+action "action_example" "one" {
   config {
     attr = test_object.a.name
   }
@@ -1501,7 +1560,7 @@ action "act_unlinked" "one" {
 				ActionTargets: []addrs.Targetable{
 					addrs.AbsAction{
 						Action: addrs.Action{
-							Type: "act_unlinked",
+							Type: "action_example",
 							Name: "one",
 						},
 					},
@@ -1510,7 +1569,7 @@ action "act_unlinked" "one" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_unlinked",
+					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("hello"),
 					}),
@@ -1531,7 +1590,7 @@ resource "test_object" "a" {
   name = "hello"
 }
 
-action "act_unlinked" "one" {
+action "action_example" "one" {
   config {
     attr = test_object.a.name
   }
@@ -1543,7 +1602,7 @@ action "act_unlinked" "one" {
 				ActionTargets: []addrs.Targetable{
 					addrs.AbsAction{
 						Action: addrs.Action{
-							Type: "act_unlinked",
+							Type: "action_example",
 							Name: "one",
 						},
 					},
@@ -1552,7 +1611,7 @@ action "act_unlinked" "one" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_unlinked",
+					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("drifted value"),
 					}),
@@ -1580,7 +1639,7 @@ resource "test_object" "a" {
   name = "hello"
 }
 
-action "act_unlinked" "one" {
+action "action_example" "one" {
   config {
     attr = test_object.a.name
   }
@@ -1593,7 +1652,7 @@ action "act_unlinked" "one" {
 				ActionTargets: []addrs.Targetable{
 					addrs.AbsAction{
 						Action: addrs.Action{
-							Type: "act_unlinked",
+							Type: "action_example",
 							Name: "one",
 						},
 					},
@@ -1602,7 +1661,7 @@ action "act_unlinked" "one" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_unlinked",
+					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("hello"),
 					}),
@@ -1626,7 +1685,7 @@ action "act_unlinked" "one" {
 		"nested action config single + list blocks applies": {
 			module: map[string]string{
 				"main.tf": `
-action "act_nested" "with_blocks" {
+action "action_nested" "with_blocks" {
   config {
     top_attr = "top"
     settings {
@@ -1641,7 +1700,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events  = [before_create]
-      actions = [action.act_nested.with_blocks]
+      actions = [action.action_nested.with_blocks]
     }
   }
 }
@@ -1650,7 +1709,7 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_nested",
+					ActionType: "action_nested",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"top_attr": cty.StringVal("top"),
 						"settings": cty.ObjectVal(map[string]cty.Value{
@@ -1670,7 +1729,7 @@ resource "test_object" "a" {
 		"nested action config top-level list blocks applies": {
 			module: map[string]string{
 				"main.tf": `
-action "act_nested" "with_list" {
+action "action_nested" "with_list" {
   config {
     settings_list { id = "one" }
     settings_list { id = "two" }
@@ -1680,7 +1739,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events  = [after_create]
-      actions = [action.act_nested.with_list]
+      actions = [action.action_nested.with_list]
     }
   }
 }
@@ -1689,7 +1748,7 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					ActionType: "act_nested",
+					ActionType: "action_nested",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"top_attr": cty.NullVal(cty.String),
 						"settings": cty.NullVal(cty.Object(map[string]cty.Type{
@@ -1709,7 +1768,7 @@ resource "test_object" "a" {
 		"conditions": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {
+action "action_example" "hello" {
 count = 3
 config {
   attr = "value-${count.index}"
@@ -1724,13 +1783,13 @@ lifecycle {
   action_trigger {
     events = [before_create]
     condition = test_object.foo.name == "bar"
-    actions = [action.act_unlinked.hello[0]]
+    actions = [action.action_example.hello[0]]
   }
   
   action_trigger {
     events = [before_create]
     condition = test_object.foo.name == "foo"
-    actions = [action.act_unlinked.hello[1], action.act_unlinked.hello[2]]
+    actions = [action.action_example.hello[1], action.action_example.hello[2]]
   }
   }
 }
@@ -1738,12 +1797,12 @@ lifecycle {
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("value-1"),
 				}),
 			}, {
-				ActionType: "act_unlinked",
+				ActionType: "action_example",
 				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("value-2"),
 				}),
@@ -1753,14 +1812,14 @@ lifecycle {
 		"simple condition evaluation - true": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   name = "foo"
   lifecycle {
     action_trigger {
       events = [after_create]
       condition = "foo" == "foo"
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1772,14 +1831,14 @@ resource "test_object" "a" {
 		"simple condition evaluation - false": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   name = "foo"
   lifecycle {
     action_trigger {
       events = [after_create]
       condition = "foo" == "bar"
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1791,7 +1850,7 @@ resource "test_object" "a" {
 		"using count.index in after_create condition": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   count = 3
   name = "item-${count.index}"
@@ -1799,7 +1858,7 @@ resource "test_object" "a" {
     action_trigger {
       events = [after_create]
       condition = count.index == 1
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1811,7 +1870,7 @@ resource "test_object" "a" {
 		"using each.key in after_create condition": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   for_each = toset(["foo", "bar"])
   name = each.key
@@ -1819,7 +1878,7 @@ resource "test_object" "a" {
     action_trigger {
       events = [after_create]
       condition = each.key == "foo"
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
@@ -1831,7 +1890,7 @@ resource "test_object" "a" {
 		"using each.value in after_create condition": {
 			module: map[string]string{
 				"main.tf": `
-action "act_unlinked" "hello" {}
+action "action_example" "hello" {}
 resource "test_object" "a" {
   for_each = {"foo" = "value1", "bar" = "value2"}
   name = each.value
@@ -1839,13 +1898,564 @@ resource "test_object" "a" {
     action_trigger {
       events = [after_create]
       condition = each.value == "value1"
-      actions = [action.act_unlinked.hello]
+      actions = [action.action_example.hello]
     }
   }
 }
 `,
 			},
 			expectInvokeActionCalled: true,
+		},
+		"referencing triggering resource in after_* condition": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+action "action_example" "world" {
+  config {
+    attr = "world"
+  }
+}
+resource "test_object" "a" {
+  name = "foo"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      condition = test_object.a.name == "foo"
+      actions = [action.action_example.hello]
+    }
+    action_trigger {
+      events = [after_update]
+      condition = test_object.a.name == "bar"
+      actions = [action.action_example.world]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+		},
+		"multiple events triggering in same action trigger": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [
+        before_create, // should trigger
+        after_create, // should trigger
+        before_update // should be ignored
+      ]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+			},
+		},
+
+		"multiple events triggering in multiple action trigger": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    // should trigger
+    action_trigger {
+      events = [before_create]
+      actions = [action.action_example.hello]
+    }
+    // should trigger
+    action_trigger {
+      events = [after_create]
+      actions = [action.action_example.hello]
+    }
+    // should be ignored
+    action_trigger {
+      events = [before_update]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+			},
+		},
+
+		"targeted run": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+action "action_example" "there" {
+  config {
+    attr = "there"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there]
+    }
+  }
+}
+action "action_example" "general" {
+  config {
+    attr = "general"
+  }
+}
+action "action_example" "kenobi" {
+  config {
+    attr = "kenobi"
+  }
+}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_update]
+      actions = [action.action_example.general]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("there"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run with ancestor that has actions": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+action "action_example" "there" {
+  config {
+    attr = "there"
+  }
+}
+resource "test_object" "origin" {
+  name = "origin"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+resource "test_object" "a" {
+  name = test_object.origin.name
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there]
+    }
+  }
+}
+action "action_example" "general" {}
+action "action_example" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_update]
+      actions = [action.action_example.general]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("there"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run with expansion": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  count = 3
+  config {
+    attr = "hello-${count.index}"
+  }
+}
+action "action_example" "there" {
+  count = 3
+  config {
+    attr = "there-${count.index}"
+  }
+}
+resource "test_object" "a" {
+  count = 3
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello[count.index]]
+    }
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there[count.index]]
+    }
+  }
+}
+action "action_example" "general" {}
+action "action_example" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_update]
+      actions = [action.action_example.general]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					// action_example.hello[2] before_create
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello-2"),
+					}),
+				},
+				{
+					// action_example.there[2] after_create
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("there-2"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.
+						Resource(addrs.ManagedResourceMode, "test_object", "a").
+						Instance(addrs.IntKey(2)),
+				},
+			},
+		},
+
+		"targeted run with resource reference": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "source" {
+  name = "src"
+}
+action "action_example" "hello" {
+  config {
+    attr = test_object.source.name
+  }
+}
+action "action_example" "there" {
+  config {
+    attr = "there"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there]
+    }
+  }
+}
+action "action_example" "general" {}
+action "action_example" "kenobi" {}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create, after_update]
+      actions = [action.action_example.general]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					// action_example.hello before_create with config (attr = test_object.source.name -> "src")
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("src"),
+					}),
+				},
+				{
+					// action_example.there after_create with static config attr = "there"
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("there"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run with condition referencing another resource": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "source" {
+  name = "source"
+}
+action "action_example" "hello" {
+  config {
+    attr = test_object.source.name
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events    = [before_create]
+      condition = test_object.source.name == "source"
+      actions   = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					// action_example.hello before_create with config (attr = test_object.source.name -> "source")
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("source"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run with action referencing another resource that also triggers actions": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "source" {
+  name = "source"
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+action "action_example" "there" {
+  config {
+    attr = test_object.source.name
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.there]
+    }
+  }
+}
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					// action_example.hello before_create with static config attr = "hello"
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					// action_example.there after_create with config attr = source.name ("source")
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("source"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
+		},
+
+		"targeted run triggers resources and actions referenced by not-running actions": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "source" {
+name = "source"
+lifecycle {
+	action_trigger {
+		events = [before_create]
+		actions = [action.action_example.hello]
+	}
+}
+}
+action "action_example" "there" {
+config {
+	attr = test_object.source.name
+}
+}
+resource "test_object" "a" {
+lifecycle {
+	action_trigger {
+		events = [after_update]
+		actions = [action.action_example.there]
+	}
+}
+}
+resource "test_object" "b" {
+lifecycle {
+	action_trigger {
+		events = [before_update]
+		actions = [action.action_example.hello]
+	}
+}
+}
+		`,
+			},
+			ignoreWarnings:           true,
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				},
+			},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -1912,7 +2522,7 @@ resource "test_object" "a" {
 			actionProvider := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
-						"act_unlinked": {
+						"action_example": {
 							ConfigSchema: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"attr": {
@@ -1921,10 +2531,8 @@ resource "test_object" "a" {
 									},
 								},
 							},
-
-							Unlinked: &providers.UnlinkedAction{},
 						},
-						"act_unlinked_wo": {
+						"action_example_wo": {
 							ConfigSchema: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"attr": {
@@ -1934,11 +2542,9 @@ resource "test_object" "a" {
 									},
 								},
 							},
-
-							Unlinked: &providers.UnlinkedAction{},
 						},
 						// Added nested action schema with nested blocks
-						"act_nested": {
+						"action_nested": {
 							ConfigSchema: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"top_attr": {Type: cty.String, Optional: true},
@@ -1972,7 +2578,6 @@ resource "test_object" "a" {
 									},
 								},
 							},
-							Unlinked: &providers.UnlinkedAction{},
 						},
 					},
 					ResourceTypes: map[string]providers.Schema{},
@@ -1983,7 +2588,7 @@ resource "test_object" "a" {
 			ecosystem := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
-						"ecosystem_unlinked": {
+						"ecosystem": {
 							ConfigSchema: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"attr": {
@@ -1992,7 +2597,6 @@ resource "test_object" "a" {
 									},
 								},
 							},
-							Unlinked: &providers.UnlinkedAction{},
 						},
 					},
 					ResourceTypes: map[string]providers.Schema{},
@@ -2000,15 +2604,19 @@ resource "test_object" "a" {
 				InvokeActionFn: invokeActionFn,
 			}
 
+			hookCapture := newActionHookCapture()
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
-					addrs.NewDefaultProvider("act"):  testProviderFuncFixed(actionProvider),
+					addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
+					addrs.NewDefaultProvider("action"): testProviderFuncFixed(actionProvider),
 					{
 						Type:      "ecosystem",
 						Namespace: "danielmschmidt",
 						Hostname:  addrs.DefaultProviderRegistryHost,
 					}: testProviderFuncFixed(ecosystem),
+				},
+				Hooks: []Hook{
+					&hookCapture,
 				},
 			})
 
@@ -2022,7 +2630,11 @@ resource "test_object" "a" {
 			}
 
 			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
-			tfdiags.AssertNoDiagnostics(t, diags)
+			if tc.ignoreWarnings {
+				tfdiags.AssertNoErrors(t, diags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
 
 			if !plan.Applyable {
 				t.Fatalf("plan is not applyable but should be")
@@ -2032,7 +2644,11 @@ resource "test_object" "a" {
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
 			} else {
-				tfdiags.AssertNoDiagnostics(t, diags)
+				if tc.ignoreWarnings {
+					tfdiags.AssertNoErrors(t, diags)
+				} else {
+					tfdiags.AssertNoDiagnostics(t, diags)
+				}
 			}
 
 			if tc.expectInvokeActionCalled && len(invokeActionCalls) == 0 {
@@ -2040,7 +2656,7 @@ resource "test_object" "a" {
 			}
 
 			if len(tc.expectInvokeActionCalls) > 0 && len(invokeActionCalls) != len(tc.expectInvokeActionCalls) {
-				t.Fatalf("expected %d invoke action calls, got %d", len(tc.expectInvokeActionCalls), len(invokeActionCalls))
+				t.Fatalf("expected %d invoke action calls, got %d (%#v)", len(tc.expectInvokeActionCalls), len(invokeActionCalls), invokeActionCalls)
 			}
 
 			for i, expectedCall := range tc.expectInvokeActionCalls {
@@ -2068,6 +2684,130 @@ resource "test_object" "a" {
 					}
 				}
 			}
+
+			if tc.assertHooks != nil {
+				tc.assertHooks(t, hookCapture)
+			}
 		})
 	}
+}
+
+var _ Hook = (*actionHookCapture)(nil)
+
+type actionHookCapture struct {
+	mu                  *sync.Mutex
+	startActionHooks    []HookActionIdentity
+	completeActionHooks []HookActionIdentity
+}
+
+func newActionHookCapture() actionHookCapture {
+	return actionHookCapture{
+		mu: &sync.Mutex{},
+	}
+}
+
+func (a *actionHookCapture) PreApply(HookResourceIdentity, addrs.DeposedKey, plans.Action, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostApply(HookResourceIdentity, addrs.DeposedKey, cty.Value, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreDiff(HookResourceIdentity, addrs.DeposedKey, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostDiff(HookResourceIdentity, addrs.DeposedKey, plans.Action, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreProvisionInstance(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostProvisionInstance(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreProvisionInstanceStep(HookResourceIdentity, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostProvisionInstanceStep(HookResourceIdentity, string, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) ProvisionOutput(HookResourceIdentity, string, string) {}
+
+func (a *actionHookCapture) PreRefresh(HookResourceIdentity, addrs.DeposedKey, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostRefresh(HookResourceIdentity, addrs.DeposedKey, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreImportState(HookResourceIdentity, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostImportState(HookResourceIdentity, []providers.ImportedResource) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PrePlanImport(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostPlanImport(HookResourceIdentity, []providers.ImportedResource) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreApplyImport(HookResourceIdentity, plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostApplyImport(HookResourceIdentity, plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreEphemeralOp(HookResourceIdentity, plans.Action) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostEphemeralOp(HookResourceIdentity, plans.Action, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreListQuery(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostListQuery(HookResourceIdentity, plans.QueryResults, int64) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) StartAction(identity HookActionIdentity) (HookAction, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.startActionHooks = append(a.startActionHooks, identity)
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) ProgressAction(HookActionIdentity, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) CompleteAction(identity HookActionIdentity, _ error) (HookAction, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.completeActionHooks = append(a.completeActionHooks, identity)
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) Stopping() {}
+
+func (a *actionHookCapture) PostStateUpdate(*states.State) (HookAction, error) {
+	return HookActionContinue, nil
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -345,6 +346,14 @@ func (b *Local) opApply(
 						Subject:  rng,
 					})
 				} else {
+					markedPlannedVar := plannedVar
+					markedParsedVar := parsedVar.Value
+
+					if decl.Sensitive {
+						markedPlannedVar = markedPlannedVar.Mark(marks.Sensitive)
+						markedParsedVar = markedParsedVar.Mark(marks.Sensitive)
+					}
+
 					// The user can't override the planned variables, so we
 					// error when possible to avoid confusion.
 					if parsedVar.Value.Equals(plannedVar).False() {
@@ -361,7 +370,7 @@ func (b *Local) opApply(
 									"because a saved plan includes the variable values that were set when it was created. "+
 									"The saved plan specifies %s as the value whereas during apply the value %s was %s. "+
 									"To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.",
-									varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
+									varName, tfdiags.CompactValueStr(markedPlannedVar), tfdiags.CompactValueStr(markedParsedVar),
 									parsedVar.SourceType.DiagnosticLabel()),
 								Subject: rng,
 							})
@@ -374,7 +383,7 @@ func (b *Local) opApply(
 									"set when it was created. The saved plan specifies %s as the value whereas during apply "+
 									"the value %s was %s. To declare an ephemeral variable which is not saved in the plan "+
 									"file, use ephemeral = true.",
-									varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
+									varName, tfdiags.CompactValueStr(markedPlannedVar), tfdiags.CompactValueStr(markedParsedVar),
 									parsedVar.SourceType.DiagnosticLabel()),
 								Subject: rng,
 							})
@@ -386,7 +395,7 @@ func (b *Local) opApply(
 							panic(fmt.Sprintf("Attempted to change variable %s when applying a saved plan. "+
 								"The saved plan specifies %s as the value whereas during apply the value %s was %s. "+
 								"This is a bug in Terraform, please report it.",
-								varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
+								varName, tfdiags.CompactValueStr(markedPlannedVar), tfdiags.CompactValueStr(markedParsedVar),
 								parsedVar.SourceType.DiagnosticLabel()))
 						}
 					}

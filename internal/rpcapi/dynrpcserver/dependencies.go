@@ -14,6 +14,7 @@ import (
 type Dependencies struct {
 	impl dependencies.DependenciesServer
 	mu   sync.RWMutex
+	dependencies.UnimplementedDependenciesServer
 }
 
 var _ dependencies.DependenciesServer = (*Dependencies)(nil)

@@ -39,7 +39,7 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 	content, contentDiags := body.Content(queryFileSchema)
 	diags = append(diags, contentDiags...)
 
-	listBlockNames := make(map[string]hcl.Range)
+	listBlockTypes := make(map[string]map[string]hcl.Range)
 
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -50,16 +50,20 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 				file.ListResources = append(file.ListResources, list)
 			}
 
-			if rng, exists := listBlockNames[list.Name]; exists {
+			if _, exists := listBlockTypes[list.Type]; !exists {
+				listBlockTypes[list.Type] = make(map[string]hcl.Range)
+			}
+			if rng, exists := listBlockTypes[list.Type][list.Name]; exists {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Duplicate \"list\" block names",
-					Detail:   fmt.Sprintf("This query file already has a list block named %s defined at %s.", list.Name, rng),
+					Detail:   fmt.Sprintf("This query file already has a list block named %s.%s defined at %s.", list.Type, list.Name, rng),
 					Subject:  block.DefRange.Ptr(),
 				})
 				continue
 			}
-			listBlockNames[list.Name] = list.DeclRange
+
+			listBlockTypes[list.Type][list.Name] = list.DeclRange
 		case "provider":
 			cfg, cfgDiags := decodeProviderBlock(block, false)
 			diags = append(diags, cfgDiags...)
@@ -190,15 +194,23 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 // QueryListResourceBlockSchema is the schema for a list resource type within
 // a terraform query file.
 var QueryListResourceBlockSchema = &hcl.BodySchema{
-	Attributes: append(
-		commonResourceAttributes,
-		hcl.AttributeSchema{
+	Attributes: []hcl.AttributeSchema{
+		{
+			Name: "count",
+		},
+		{
+			Name: "for_each",
+		},
+		{
+			Name: "provider",
+		},
+		{
 			Name: "include_resource",
 		},
-		hcl.AttributeSchema{
+		{
 			Name: "limit",
 		},
-	),
+	},
 }
 
 // queryFileSchema is the schema for a terraform query file. It defines the

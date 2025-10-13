@@ -126,6 +126,8 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 func TestParserLoadConfigDirWithTests(t *testing.T) {
 	directories := []string{
 		"testdata/valid-modules/with-tests",
+		"testdata/valid-modules/with-tests-backend",
+		"testdata/valid-modules/with-tests-same-backend-across-files",
 		"testdata/valid-modules/with-tests-expect-failures",
 		"testdata/valid-modules/with-tests-nested",
 		"testdata/valid-modules/with-tests-very-nested",
@@ -142,6 +144,7 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 			}
 
 			parser := NewParser(nil)
+			parser.AllowLanguageExperiments(true)
 			mod, diags := parser.LoadConfigDir(directory, MatchTestFiles(testDirectory))
 			if len(diags) > 0 { // We don't want any warnings or errors.
 				t.Errorf("unexpected diagnostics")
@@ -164,27 +167,23 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 		diagnostics      []string
 		listResources    int
 		managedResources int
-		allowExperiments bool
 	}{
 		{
-			name:             "simple",
-			directory:        "testdata/query-files/valid/simple",
-			listResources:    3,
-			allowExperiments: true,
+			name:          "simple",
+			directory:     "testdata/query-files/valid/simple",
+			listResources: 3,
 		},
 		{
 			name:             "mixed",
 			directory:        "testdata/query-files/valid/mixed",
-			listResources:    2,
+			listResources:    3,
 			managedResources: 1,
-			allowExperiments: true,
 		},
 		{
 			name:             "loading query lists with no-experiments",
 			directory:        "testdata/query-files/valid/mixed",
 			managedResources: 1,
-			listResources:    0,
-			allowExperiments: false,
+			listResources:    3,
 		},
 		{
 			name:      "no-provider",
@@ -192,15 +191,21 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 			diagnostics: []string{
 				"testdata/query-files/invalid/no-provider/main.tfquery.hcl:1,1-27: Missing \"provider\" attribute; You must specify a provider attribute when defining a list block.",
 			},
-			allowExperiments: true,
+		},
+		{
+			name:      "with-depends-on",
+			directory: "testdata/query-files/invalid/with-depends-on",
+			diagnostics: []string{
+				"testdata/query-files/invalid/with-depends-on/main.tfquery.hcl:23,3-13: Unsupported argument; An argument named \"depends_on\" is not expected here.",
+			},
+			listResources: 2,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			parser := NewParser(nil)
-			parser.AllowLanguageExperiments(test.allowExperiments)
-			mod, diags := parser.LoadConfigDir(test.directory)
+			mod, diags := parser.LoadConfigDir(test.directory, MatchQueryFiles())
 			if len(test.diagnostics) > 0 {
 				if !diags.HasErrors() {
 					t.Errorf("expected errors, but found none")
@@ -300,6 +305,24 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 			"duplicate_file_config.tftest.hcl:3,1-5: Multiple \"test\" blocks; This test file already has a \"test\" block defined at duplicate_file_config.tftest.hcl:1,1-5.",
 			"duplicate_file_config.tftest.hcl:5,1-5: Multiple \"test\" blocks; This test file already has a \"test\" block defined at duplicate_file_config.tftest.hcl:1,1-5.",
 		},
+		"duplicate_backend_blocks_in_test": {
+			"duplicate_backend_blocks_in_test.tftest.hcl:15,3-18: Duplicate backend blocks; The run \"test\" already uses an internal state file that's loaded by a backend in the run \"setup\". Please ensure that a backend block is only in the first apply run block for a given internal state file.",
+		},
+		"duplicate_backend_blocks_in_run": {
+			"duplicate_backend_blocks_in_run.tftest.hcl:6,3-18: Duplicate backend blocks; A backend block has already been defined inside the run \"setup\" at duplicate_backend_blocks_in_run.tftest.hcl:3,3-18.",
+		},
+		"backend_block_in_plan_run": {
+			"backend_block_in_plan_run.tftest.hcl:6,3-18: Invalid backend block; A backend block can only be used in the first apply run block for a given internal state file. It cannot be included in a block to run a plan command.",
+		},
+		"backend_block_in_second_apply_run": {
+			"backend_block_in_second_apply_run.tftest.hcl:10,3-18: Invalid backend block; The run \"test_2\" cannot load in state using a backend block, because internal state has already been created by an apply command in run \"test_1\". Backend blocks can only be present in the first apply command for a given internal state.",
+		},
+		"non_state_storage_backend_in_test": {
+			"non_state_storage_backend_in_test.tftest.hcl:4,3-19: Invalid backend block; The \"remote\" backend type cannot be used in the backend block in run \"test\" at non_state_storage_backend_in_test.tftest.hcl:4,3-19. Only state storage backends can be used in a test run.",
+		},
+		"skip_cleanup_after_backend": {
+			"skip_cleanup_after_backend.tftest.hcl:13,3-15: Duplicate \"skip_cleanup\" block; The run \"skip_cleanup\" has a skip_cleanup attribute set, but shares state with an earlier run \"backend\" that has a backend defined. The later run takes precedence, but the backend will still be used to manage this state.",
+		},
 	}
 
 	for name, expected := range tcs {
@@ -312,6 +335,7 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 			parser := testParser(map[string]string{
 				fmt.Sprintf("%s.tftest.hcl", name): string(src),
 			})
+			parser.AllowLanguageExperiments(true)
 
 			_, actual := parser.LoadTestFile(fmt.Sprintf("%s.tftest.hcl", name))
 			assertExactDiagnostics(t, actual, expected)

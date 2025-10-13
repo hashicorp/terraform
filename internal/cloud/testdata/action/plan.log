@@ -1,0 +1,22 @@
+Terraform v0.11.7
+
+Configuring remote state backend...
+Initializing Terraform configuration...
+Refreshing Terraform state in-memory prior to plan...
+The refreshed state will be used to calculate this plan, but will not be
+persisted to local or remote state storage.
+
+------------------------------------------------------------------------
+
+Terraform will invoke the following action(s):
+
+  # action.test_action.test will be invoked
+    action "test_action" "test" {
+        config {
+            program = [
+                "curl",
+                "https://checkpoint-api.hashicorp.com/v1/check/terraform",
+            ]
+        }
+    }
+

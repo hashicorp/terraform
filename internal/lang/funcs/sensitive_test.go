@@ -69,7 +69,7 @@ func TestSensitive(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if !got.HasMark(marks.Sensitive) {
+			if !marks.Has(got, marks.Sensitive) {
 				t.Errorf("result is not marked sensitive")
 			}
 
@@ -152,7 +152,7 @@ func TestNonsensitive(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if got.HasMark(marks.Sensitive) {
+			if marks.Has(got, marks.Sensitive) {
 				t.Errorf("result is still marked sensitive")
 			}
 			wantRaw, _ := test.Input.Unmark()

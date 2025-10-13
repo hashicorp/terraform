@@ -53,7 +53,7 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, hclDiags := loader.LoadConfig(rootDir, configs.MatchTestFiles(testsDir))
+	config, hclDiags := loader.LoadConfigWithTests(rootDir, testsDir)
 	diags = diags.Append(hclDiags)
 	return config, loader, cleanup, diags
 }

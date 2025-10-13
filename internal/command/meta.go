@@ -272,6 +272,9 @@ type Meta struct {
 	// Used with commands which write state to allow users to write remote
 	// state even if the remote and local Terraform versions don't match.
 	ignoreRemoteVersion bool
+
+	// set to true if query files should be parsed
+	includeQueryFiles bool
 }
 
 type testingOverrides struct {
@@ -543,7 +546,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 		opts.Provisioners = m.testingOverrides.Provisioners
 	} else {
 		var providerFactories map[addrs.Provider]providers.Factory
-		providerFactories, err = m.providerFactories()
+		providerFactories, err = m.ProviderFactories()
 		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
 	}

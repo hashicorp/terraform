@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'console and test: return explicit diagnostics when referencing resources that were not included in the most recent operation.'
+time: 2025-09-24T11:04:16.860364+02:00
+custom:
+    Issue: "37663"

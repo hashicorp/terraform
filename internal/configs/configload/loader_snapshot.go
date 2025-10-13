@@ -24,7 +24,7 @@ import (
 // creates an in-memory snapshot of the configuration files used, which can
 // be later used to create a loader that may read only from this snapshot.
 func (l *Loader) LoadConfigWithSnapshot(rootDir string) (*configs.Config, *Snapshot, hcl.Diagnostics) {
-	rootMod, diags := l.parser.LoadConfigDir(rootDir)
+	rootMod, diags := l.parser.LoadConfigDir(rootDir, l.parserOpts...)
 	if rootMod == nil {
 		return nil, nil, diags
 	}

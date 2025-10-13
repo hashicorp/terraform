@@ -436,6 +436,22 @@ func (m *Mock) ConfigureStateStore(req ConfigureStateStoreRequest) ConfigureStat
 	return m.Provider.ConfigureStateStore(req)
 }
 
+func (m *Mock) ReadStateBytes(req ReadStateBytesRequest) ReadStateBytesResponse {
+	return m.Provider.ReadStateBytes(req)
+}
+
+func (m *Mock) WriteStateBytes(req WriteStateBytesRequest) WriteStateBytesResponse {
+	return m.Provider.WriteStateBytes(req)
+}
+
+func (m *Mock) LockState(req LockStateRequest) LockStateResponse {
+	return m.Provider.LockState(req)
+}
+
+func (m *Mock) UnlockState(req UnlockStateRequest) UnlockStateResponse {
+	return m.Provider.UnlockState(req)
+}
+
 func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
 	return m.Provider.GetStates(req)
 }
@@ -445,33 +461,13 @@ func (m *Mock) DeleteState(req DeleteStateRequest) DeleteStateResponse {
 }
 
 func (m *Mock) PlanAction(request PlanActionRequest) PlanActionResponse {
-	plannedLinkedResources := make([]LinkedResourcePlan, 0, len(request.LinkedResources))
-	for i, linkedResource := range request.LinkedResources {
-		plannedLinkedResources[i] = LinkedResourcePlan{
-			PlannedState:    linkedResource.PlannedState,
-			PlannedIdentity: linkedResource.PriorIdentity,
-		}
-	}
-
-	return PlanActionResponse{
-		LinkedResources: plannedLinkedResources,
-		Diagnostics:     nil,
-	}
+	return PlanActionResponse{}
 }
 
 func (m *Mock) InvokeAction(request InvokeActionRequest) InvokeActionResponse {
-	linkedResources := make([]LinkedResourceResult, 0, len(request.LinkedResources))
-	for i, linkedResource := range request.LinkedResources {
-		linkedResources[i] = LinkedResourceResult{
-			NewState:    linkedResource.PlannedState,
-			NewIdentity: linkedResource.PlannedIdentity,
-		}
-	}
 	return InvokeActionResponse{
 		Events: func(yield func(InvokeActionEvent) bool) {
-			yield(InvokeActionEvent_Completed{
-				LinkedResources: linkedResources,
-			})
+			yield(InvokeActionEvent_Completed{})
 		},
 		Diagnostics: nil,
 	}

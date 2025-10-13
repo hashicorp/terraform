@@ -449,3 +449,85 @@ func TestValidate_json(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateWithInvalidListResource(t *testing.T) {
+	td := t.TempDir()
+	cases := []struct {
+		name      string
+		path      string
+		wantError string
+		args      []string
+		code      int
+	}{
+		{
+			name: "invalid-traversal with validate -query command",
+			path: "query/invalid-traversal",
+			wantError: `
+Error: Invalid list resource traversal
+
+  on main.tfquery.hcl line 19, in list "test_instance" "test2":
+  19:   	ami = list.test_instance.test.state.instance_type
+
+The first step in the traversal for a list resource must be an attribute
+"data".
+`,
+			args: []string{"-query"},
+			code: 1,
+		},
+		{
+			name: "invalid-traversal with no -query",
+			path: "query/invalid-traversal",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			testCopyDir(t, testFixturePath(tc.path), td)
+			t.Chdir(td)
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			provider := queryFixtureProvider()
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+			}
+
+			c := &ValidateCommand{
+				Meta: meta,
+			}
+
+			var args []string
+			args = append(args, "-no-color")
+			args = append(args, tc.args...)
+
+			code := c.Run(args)
+			output := done(t)
+
+			if code != tc.code {
+				t.Fatalf("Expected status code %d but got %d: %s", tc.code, code, output.Stderr())
+			}
+
+			if diff := cmp.Diff(tc.wantError, output.Stderr()); diff != "" {
+				t.Fatalf("Expected error string %q but got %q\n\ndiff: \n%s", tc.wantError, output.Stderr(), diff)
+			}
+		})
+	}
+}

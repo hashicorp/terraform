@@ -304,24 +304,7 @@ func (a *Action) merge(oa *Action, rps map[string]*RequiredProvider) hcl.Diagnos
 		}
 	}
 
-	if oa.LinkedResources != nil {
-		a.LinkedResources = oa.LinkedResources
-	}
-
 	a.Config = MergeBodies(a.Config, oa.Config)
-
-	/* depends_on: not yet supported in Actions
-	// We don't allow depends_on to be overridden because that is likely to
-	// cause confusing misbehavior.
-	if len(oa.DependsOn) != 0 {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported override",
-			Detail:   "The depends_on argument may not be overridden.",
-			Subject:  oa.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
-		})
-	}
-	*/
 
 	return diags
 }

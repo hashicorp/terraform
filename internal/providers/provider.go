@@ -123,6 +123,16 @@ type Interface interface {
 	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
 	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
 
+	// ReadStateBytes streams byte chunks of a given state file from a state store
+	ReadStateBytes(ReadStateBytesRequest) ReadStateBytesResponse
+	// WriteStateBytes streams byte chunks of a given state file into a state store
+	WriteStateBytes(WriteStateBytesRequest) WriteStateBytesResponse
+
+	// LockState locks a given state (i.e. CE workspace)
+	LockState(LockStateRequest) LockStateResponse
+	// UnlockState unlocks a given state (i.e. CE workspace)
+	UnlockState(UnlockStateRequest) UnlockStateResponse
+
 	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
 	GetStates(GetStatesRequest) GetStatesResponse
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
@@ -139,6 +149,10 @@ type Interface interface {
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
+}
+
+type StateStoreChunkSizeSetter interface {
+	SetStateStoreChunkSize(typeName string, size int)
 }
 
 // GetProviderSchemaResponse is the return type for GetProviderSchema, and
@@ -211,35 +225,26 @@ const (
 	ExecutionOrderAfter   ExecutionOrder = "after"
 )
 
-type LinkedResourceSchema struct {
-	TypeName string
-}
-
-type UnlinkedAction struct{}
-
-type LifecycleAction struct {
-	Executes       ExecutionOrder
-	LinkedResource LinkedResourceSchema
-}
-
-type LinkedAction struct {
-	LinkedResources []LinkedResourceSchema
-}
-
 type ActionSchema struct {
 	ConfigSchema *configschema.Block
-
-	// The only supported action type is currently unlinked.
-	Unlinked *UnlinkedAction
-}
-
-func (a ActionSchema) LinkedResources() []LinkedResourceSchema {
-	return []LinkedResourceSchema{}
 }
 
 // IsNil() returns true if there is no action schema at all.
 func (a ActionSchema) IsNil() bool {
-	return a.ConfigSchema == nil && a.Unlinked == nil
+	return a.ConfigSchema == nil
+}
+
+type ListResourceSchema struct {
+	// schema for the nested "config" block.
+	ConfigSchema *configschema.Block
+
+	// schema for the entire block (including "config" block)
+	FullSchema *configschema.Block
+}
+
+// IsNil() returns true if there is no list resource schema at all.
+func (l ListResourceSchema) IsNil() bool {
+	return l.FullSchema == nil
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
@@ -856,9 +861,72 @@ type ConfigureStateStoreRequest struct {
 
 	// Config is the configuration value to configure the store with.
 	Config cty.Value
+
+	Capabilities StateStoreClientCapabilities
+}
+
+type StateStoreClientCapabilities struct {
+	ChunkSize int64
 }
 
 type ConfigureStateStoreResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+
+	Capabilities StateStoreServerCapabilities
+}
+
+type StateStoreServerCapabilities struct {
+	ChunkSize int64
+}
+
+type ReadStateBytesRequest struct {
+	// TypeName is the name of the state store to read state from
+	TypeName string
+	// StateId is the ID of a state file to read
+	StateId string
+}
+
+type ReadStateBytesResponse struct {
+	// Bytes represents all received bytes of the given state file
+	Bytes []byte
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type WriteStateBytesRequest struct {
+	// TypeName is the name of the state store to write state to
+	TypeName string
+	// Bytes represents all bytes of the given state file to write
+	Bytes []byte
+	// StateId is the ID of a state file to write
+	StateId string
+}
+
+type WriteStateBytesResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type LockStateRequest struct {
+	TypeName  string
+	StateId   string
+	Operation string
+}
+
+type LockStateResponse struct {
+	LockId string
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type UnlockStateRequest struct {
+	TypeName string
+	StateId  string
+	LockId   string
+}
+
+type UnlockStateResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
@@ -890,46 +958,20 @@ type DeleteStateResponse struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-type LinkedResourcePlanData struct {
-	PriorState    cty.Value
-	PlannedState  cty.Value
-	Config        cty.Value
-	PriorIdentity cty.Value
-}
-type LinkedResourcePlan struct {
-	PlannedState    cty.Value
-	PlannedIdentity cty.Value
-}
-
-type LinkedResourceInvokeData struct {
-	PriorState      cty.Value
-	PlannedState    cty.Value
-	Config          cty.Value
-	PlannedIdentity cty.Value
-}
-type LinkedResourceResult struct {
-	NewState        cty.Value
-	NewIdentity     cty.Value
-	RequiresReplace bool
-}
-
 type PlanActionRequest struct {
 	ActionType         string
 	ProposedActionData cty.Value
 
-	LinkedResources    []LinkedResourcePlanData
 	ClientCapabilities ClientCapabilities
 }
 
 type PlanActionResponse struct {
-	LinkedResources []LinkedResourcePlan
-	Deferred        *Deferred
-	Diagnostics     tfdiags.Diagnostics
+	Deferred    *Deferred
+	Diagnostics tfdiags.Diagnostics
 }
 
 type InvokeActionRequest struct {
 	ActionType         string
-	LinkedResources    []LinkedResourceInvokeData
 	PlannedActionData  cty.Value
 	ClientCapabilities ClientCapabilities
 }
@@ -947,8 +989,7 @@ type InvokeActionEvent interface {
 var _ InvokeActionEvent = &InvokeActionEvent_Completed{}
 
 type InvokeActionEvent_Completed struct {
-	LinkedResources []LinkedResourceResult
-	Diagnostics     tfdiags.Diagnostics
+	Diagnostics tfdiags.Diagnostics
 }
 
 func (e InvokeActionEvent_Completed) isInvokeActionEvent() {}
@@ -964,18 +1005,6 @@ func (e InvokeActionEvent_Progress) isInvokeActionEvent() {}
 
 type ValidateActionConfigRequest struct {
 	// TypeName is the name of the action type to validate.
-	TypeName string
-
-	// Config is the configuration value to validate, which may contain unknown
-	// values.
-	Config cty.Value
-
-	// LinkedResources contains the configuration of any LinkedResources associated with the action.
-	LinkedResources []LinkedResourceConfig
-}
-
-type LinkedResourceConfig struct {
-	// TypeName is the name of the resource type to validate.
 	TypeName string
 
 	// Config is the configuration value to validate, which may contain unknown

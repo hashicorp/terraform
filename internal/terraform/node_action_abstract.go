@@ -44,9 +44,8 @@ func (n NodeAbstractAction) Name() string {
 // abstract action to a concrete one of some type.
 type ConcreteActionNodeFunc func(*NodeAbstractAction) dag.Vertex
 
-// I'm not sure why my ConcreteActionNodeFUnction kept being nil in tests, but
-// this is much more robust. If it isn't a validate walk, we need
-// nodeExpandActionDeclaration.
+// DefaultConcreteActionNodeFunc is the default ConcreteActionNodeFunc used by
+// everything except validate.
 func DefaultConcreteActionNodeFunc(a *NodeAbstractAction) dag.Vertex {
 	return &nodeExpandActionDeclaration{
 		NodeAbstractAction: a,

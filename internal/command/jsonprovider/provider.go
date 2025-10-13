@@ -45,22 +45,22 @@ func newProviders() *Providers {
 // schema into the public structured JSON versions.
 //
 // This is a format that can be read by the structured plan renderer.
-func MarshalForRenderer(s *terraform.Schemas, includeExperimentalSchemas bool) map[string]*Provider {
+func MarshalForRenderer(s *terraform.Schemas) map[string]*Provider {
 	schemas := make(map[string]*Provider, len(s.Providers))
 	for k, v := range s.Providers {
-		schemas[k.String()] = marshalProvider(v, includeExperimentalSchemas)
+		schemas[k.String()] = marshalProvider(v)
 	}
 	return schemas
 }
 
-func Marshal(s *terraform.Schemas, includeExperimentalSchemas bool) ([]byte, error) {
+func Marshal(s *terraform.Schemas) ([]byte, error) {
 	providers := newProviders()
-	providers.Schemas = MarshalForRenderer(s, includeExperimentalSchemas)
+	providers.Schemas = MarshalForRenderer(s)
 	ret, err := json.Marshal(providers)
 	return ret, err
 }
 
-func marshalProvider(tps providers.ProviderSchema, includeExperimentalSchemas bool) *Provider {
+func marshalProvider(tps providers.ProviderSchema) *Provider {
 	p := &Provider{
 		Provider:                 marshalSchema(tps.Provider),
 		ResourceSchemas:          marshalSchemas(tps.ResourceTypes),
@@ -71,20 +71,18 @@ func marshalProvider(tps providers.ProviderSchema, includeExperimentalSchemas bo
 		ActionSchemas:            marshalActionSchemas(tps.Actions),
 	}
 
-	if includeExperimentalSchemas {
-		// List resource schemas are nested under a "config" block, so we need to
-		// extract that block to get the actual provider schema for the list resource.
-		// When getting the provider schemas, Terraform adds this extra level to
-		// better match the actual configuration structure.
-		listSchemas := make(map[string]providers.Schema, len(tps.ListResourceTypes))
-		for k, v := range tps.ListResourceTypes {
-			listSchemas[k] = providers.Schema{
-				Body:    &v.Body.BlockTypes["config"].Block,
-				Version: v.Version,
-			}
+	// List resource schemas are nested under a "config" block, so we need to
+	// extract that block to get the actual provider schema for the list resource.
+	// When getting the provider schemas, Terraform adds this extra level to
+	// better match the actual configuration structure.
+	listSchemas := make(map[string]providers.Schema, len(tps.ListResourceTypes))
+	for k, v := range tps.ListResourceTypes {
+		listSchemas[k] = providers.Schema{
+			Body:    &v.Body.BlockTypes["config"].Block,
+			Version: v.Version,
 		}
-		p.ListResourceSchemas = marshalSchemas(listSchemas)
 	}
+	p.ListResourceSchemas = marshalSchemas(listSchemas)
 
 	return p
 }

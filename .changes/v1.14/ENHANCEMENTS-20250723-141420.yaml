@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: 'terraform test: ignore prevent_destroy attribute during when cleaning up tests"'
-time: 2025-07-23T14:14:20.602923+02:00
-custom:
-    Issue: "37364"

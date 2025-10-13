@@ -12,6 +12,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/setup"
 
@@ -215,7 +216,7 @@ func TestTelemetryInTests(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantSpans, gotSpans); diff != "" {
+	if diff := cmp.Diff(wantSpans, gotSpans, cmpopts.IgnoreUnexported(attribute.Set{})); diff != "" {
 		t.Errorf("wrong spans\n%s", diff)
 	}
 }

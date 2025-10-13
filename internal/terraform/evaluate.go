@@ -297,7 +297,18 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		return ret, diags
 	}
 
-	val := d.Evaluator.NamedValues.GetInputVariableValue(d.ModulePath.InputVariable(addr.Name))
+	var val cty.Value
+	if target := d.ModulePath.InputVariable(addr.Name); !d.Evaluator.NamedValues.HasInputVariableValue(target) {
+		val = cty.DynamicVal
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to uninitialized variable",
+			Detail:   fmt.Sprintf("The variable %s was not processed by the most recent operation, this likely means the previous operation either failed or was incomplete due to targeting.", addr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	} else {
+		val = d.Evaluator.NamedValues.GetInputVariableValue(target)
+	}
 
 	// Mark if sensitive and/or ephemeral
 	if config.Sensitive {
@@ -342,11 +353,17 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 		return cty.DynamicVal, diags
 	}
 
-	if target := addr.Absolute(d.ModulePath); d.Evaluator.NamedValues.HasLocalValue(target) {
-		return d.Evaluator.NamedValues.GetLocalValue(addr.Absolute(d.ModulePath)), diags
+	target := addr.Absolute(d.ModulePath)
+	if !d.Evaluator.NamedValues.HasLocalValue(target) {
+		return cty.DynamicVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to uninitialized local value",
+			Detail:   fmt.Sprintf("The local value %s was not processed by the most recent operation, this likely means the previous operation either failed or was incomplete due to targeting.", addr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
 	}
 
-	return cty.DynamicVal, diags
+	return d.Evaluator.NamedValues.GetLocalValue(target), diags
 }
 
 func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -556,7 +573,12 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			if addr.Mode == addrs.EphemeralResourceMode {
 				unknownVal = unknownVal.Mark(marks.Ephemeral)
 			}
-			return unknownVal, diags
+			return unknownVal, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to uninitialized resource",
+				Detail:   fmt.Sprintf("The resource %s was not processed by the most recent operation, this likely means the previous operation either failed or was incomplete due to targeting.", addr),
+				Subject:  rng.ToHCL().Ptr(),
+			})
 		}
 
 		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {

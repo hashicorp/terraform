@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: We now produce builds for Windows ARM64
+time: 2025-09-26T16:41:34.771437+02:00
+custom:
+    Issue: "32719"

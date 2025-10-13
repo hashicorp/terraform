@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'terraform test: prevent panic when resolving incomplete references'
-time: 2025-08-25T12:50:18.511449+02:00
-custom:
-    Issue: "37484"

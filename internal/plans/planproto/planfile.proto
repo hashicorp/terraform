@@ -99,8 +99,7 @@ message Plan {
     // the checks were applied to nested within.
     repeated CheckResults check_results = 19;
 
-    // An unordered set of proposed action invocations. This includes any
-    // embedded ResourceInstanceActionChanges for LinkedResources
+    // An unordered set of proposed action invocations.
     repeated ActionInvocationInstance action_invocations = 30;
 
     // An unordered set of target addresses to include when applying. If no
@@ -471,7 +470,6 @@ message ActionInvocationInstance {
     // apply it.
     string provider = 2;
 
-    repeated ResourceInstanceActionChange linked_resources = 3;
     DynamicValue config_value = 4;
     // An unordered set of paths into config_value which are marked as
     // sensitive. Values at these paths should be obscured in human-readable

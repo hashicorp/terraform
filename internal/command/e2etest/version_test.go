@@ -52,6 +52,9 @@ func TestVersionWithProvider(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "template-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
+	configFile := emptyConfigFileForTests(t, tf.Path(""))
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
+
 	// Initial run (before "init") should work without error but will not
 	// include the provider version, since we've not "locked" one yet.
 	{

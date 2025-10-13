@@ -71,6 +71,7 @@ func TestProvidersSchema(t *testing.T) {
             "provider": {
                 "version": 0,
                 "block": {
+                    "description": "This is terraform-provider-simple v5",
                     "description_kind": "plain"
                 }
             },
@@ -124,6 +125,21 @@ func TestProvidersSchema(t *testing.T) {
                                 "description_kind": "plain",
                                 "computed": true
                             },
+                            "value": {
+                                "type": "string",
+                                "description_kind": "plain",
+                                "optional": true
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            },
+            "list_resource_schemas": {
+                "simple_resource": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
                             "value": {
                                 "type": "string",
                                 "description_kind": "plain",
@@ -150,6 +166,7 @@ func TestProvidersSchema(t *testing.T) {
             "provider": {
                 "version": 0,
                 "block": {
+                    "description": "This is terraform-provider-simple v6",
                     "description_kind": "plain"
                 }
             },
@@ -203,6 +220,21 @@ func TestProvidersSchema(t *testing.T) {
                                 "description_kind": "plain",
                                 "computed": true
                             },
+                            "value": {
+                                "type": "string",
+                                "description_kind": "plain",
+                                "optional": true
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            },
+            "list_resource_schemas": {
+                "simple_resource": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
                             "value": {
                                 "type": "string",
                                 "description_kind": "plain",

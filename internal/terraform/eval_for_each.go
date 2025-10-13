@@ -263,7 +263,7 @@ func (ev *forEachEvaluator) ensureNotEphemeral(forEachVal cty.Value) tfdiags.Dia
 	// Ephemeral values are not allowed because instance keys persist from
 	// plan to apply and between plan/apply rounds, whereas ephemeral values
 	// do not.
-	if forEachVal.HasMark(marks.Ephemeral) {
+	if marks.Has(forEachVal, marks.Ephemeral) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     "Invalid for_each argument",
@@ -315,7 +315,7 @@ func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value
 	if blocktype == "action" {
 		msg = "an action"
 	}
-	if forEachVal.HasMark(marks.Sensitive) {
+	if marks.Has(forEachVal, marks.Sensitive) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     "Invalid for_each argument",

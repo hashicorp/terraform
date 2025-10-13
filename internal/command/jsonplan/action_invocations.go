@@ -28,8 +28,9 @@ type ActionInvocation struct {
 	Name string `json:"name,omitempty"`
 
 	// ConfigValues is the JSON representation of the values in the config block of the action
-	ConfigValues    map[string]json.RawMessage `json:"config_values,omitempty"`
-	ConfigSensitive json.RawMessage            `json:"config_sensitive,omitempty"`
+	ConfigValues    json.RawMessage `json:"config_values,omitempty"`
+	ConfigSensitive json.RawMessage `json:"config_sensitive,omitempty"`
+	ConfigUnknown   json.RawMessage `json:"config_unknown,omitempty"`
 
 	// ProviderName allows the property "type" to be interpreted unambiguously
 	// in the unusual situation where a provider offers a type whose
@@ -93,24 +94,6 @@ func ActionInvocationCompare(a, b ActionInvocation) int {
 	return 0
 }
 
-func marshalConfigValues(value cty.Value) map[string]json.RawMessage {
-	// unmark our value to show all values
-	v, _ := value.UnmarkDeep()
-
-	if v == cty.NilVal || v.IsNull() {
-		return nil
-	}
-
-	ret := make(map[string]json.RawMessage)
-	it := v.ElementIterator()
-	for it.Next() {
-		k, v := it.Element()
-		vJSON, _ := ctyjson.Marshal(v, v.Type())
-		ret[k.AsString()] = json.RawMessage(vJSON)
-	}
-	return ret
-}
-
 func MarshalActionInvocations(actions []*plans.ActionInvocationInstanceSrc, schemas *terraform.Schemas) ([]ActionInvocation, error) {
 	ret := make([]ActionInvocation, 0, len(actions))
 	for _, action := range actions {
@@ -157,8 +140,12 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 		return ai, fmt.Errorf("unsupported action trigger type: %T", at)
 	}
 
+	var config []byte
+	var sensitive []byte
+	var unknown []byte
+
 	if actionDec.ConfigValue != cty.NilVal {
-		_, pvms := actionDec.ConfigValue.UnmarkDeepWithPaths()
+		unmarkedValue, pvms := actionDec.ConfigValue.UnmarkDeepWithPaths()
 		sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
 		ephemeralPaths, otherMarks := marks.PathsWithMark(otherMarks, marks.Ephemeral)
 		if len(ephemeralPaths) > 0 {
@@ -168,19 +155,31 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 			return ai, fmt.Errorf("action %s has config values with unsupported marks: %v", action.Addr, otherMarks)
 		}
 
-		configValue := actionDec.ConfigValue
-		if !configValue.IsWhollyKnown() {
-			configValue = omitUnknowns(actionDec.ConfigValue)
-		}
-		cs := jsonstate.SensitiveAsBool(marks.MarkPaths(configValue, marks.Sensitive, sensitivePaths))
-		configSensitive, err := ctyjson.Marshal(cs, cs.Type())
+		unknownValue := unknownAsBool(unmarkedValue)
+		unknown, err = ctyjson.Marshal(unknownValue, unknownValue.Type())
 		if err != nil {
 			return ai, err
 		}
 
-		ai.ConfigValues = marshalConfigValues(configValue)
-		ai.ConfigSensitive = configSensitive
+		configValue := omitUnknowns(unmarkedValue)
+		config, err = ctyjson.Marshal(configValue, configValue.Type())
+		if err != nil {
+			return ai, err
+		}
+
+		sensitivePaths = append(sensitivePaths, schema.ConfigSchema.SensitivePaths(unmarkedValue, nil)...)
+		cs := jsonstate.SensitiveAsBool(marks.MarkPaths(unmarkedValue, marks.Sensitive, sensitivePaths))
+		sensitive, err = ctyjson.Marshal(cs, cs.Type())
+		if err != nil {
+			return ai, err
+		}
+
 	}
+
+	ai.ConfigValues = config
+	ai.ConfigSensitive = sensitive
+	ai.ConfigUnknown = unknown
+
 	return ai, nil
 }
 
