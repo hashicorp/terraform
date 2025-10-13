@@ -1528,6 +1528,62 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 	return diags
 }
 
+// prepareBackend returns an operations backend that may use a backend, cloud, or state_store block for state storage.
+// This method should be used in NON-init operations only; it's incapable of processing new init command CLI flags used
+// for partial configuration, however it will use the backend state file to use partial configuration from a previous
+// init command.
+func (m *Meta) prepareBackend(root *configs.Module) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	var opts *BackendOpts
+	switch {
+	case root.Backend != nil:
+		opts = &BackendOpts{
+			BackendConfig: root.Backend,
+		}
+	case root.CloudConfig != nil:
+		backendConfig := root.CloudConfig.ToBackendConfig()
+		opts = &BackendOpts{
+			BackendConfig: &backendConfig,
+		}
+	case root.StateStore != nil:
+		// In addition to config, use of a state_store requires
+		// provider factory and provider locks data
+		factory, fDiags := m.getStateStoreProviderFactory(root.StateStore)
+		diags = diags.Append(fDiags)
+		if fDiags.HasErrors() {
+			return nil, diags
+		}
+
+		// TODO(SarahFrench/radeksimko): Use locks from here in opts below
+		_, lDiags := m.lockedDependencies()
+		diags = diags.Append(lDiags)
+		if lDiags.HasErrors() {
+			return nil, diags
+		}
+
+		opts = &BackendOpts{
+			StateStoreConfig: root.StateStore,
+			ProviderFactory:  factory,
+			// TODO(SarahFrench/radeksimko): update once other work is merged into main
+			// Locks:            locks,
+		}
+	default:
+		// there is no config; defaults to local state storage
+		opts = &BackendOpts{}
+	}
+	opts.Init = false // To be explicit- this method should not be used in init commands!
+
+	// Load the backend
+	be, beDiags := m.Backend(opts)
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return be, diags
+}
+
 // Initializing a saved state store from the backend state file (aka 'cache file', aka 'legacy state file')
 func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Factory) (backend.Backend, tfdiags.Diagnostics) {
 	// We're preparing a state_store version of backend.Backend.
