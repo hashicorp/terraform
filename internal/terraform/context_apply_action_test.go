@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -2563,7 +2564,7 @@ lifecycle {
 				InvokeActionFn: invokeActionFn,
 			}
 
-			hookCapture := actionHookCapture{}
+			hookCapture := newActionHookCapture()
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
@@ -2654,8 +2655,15 @@ lifecycle {
 var _ Hook = (*actionHookCapture)(nil)
 
 type actionHookCapture struct {
+	mu                  *sync.Mutex
 	startActionHooks    []HookActionIdentity
 	completeActionHooks []HookActionIdentity
+}
+
+func newActionHookCapture() actionHookCapture {
+	return actionHookCapture{
+		mu: &sync.Mutex{},
+	}
 }
 
 func (a *actionHookCapture) PreApply(HookResourceIdentity, addrs.DeposedKey, plans.Action, cty.Value, cty.Value) (HookAction, error) {
@@ -2741,6 +2749,8 @@ func (a *actionHookCapture) PostListQuery(HookResourceIdentity, plans.QueryResul
 }
 
 func (a *actionHookCapture) StartAction(identity HookActionIdentity) (HookAction, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.startActionHooks = append(a.startActionHooks, identity)
 	return HookActionContinue, nil
 }
@@ -2750,6 +2760,8 @@ func (a *actionHookCapture) ProgressAction(HookActionIdentity, string) (HookActi
 }
 
 func (a *actionHookCapture) CompleteAction(identity HookActionIdentity, _ error) (HookAction, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.completeActionHooks = append(a.completeActionHooks, identity)
 	return HookActionContinue, nil
 }
