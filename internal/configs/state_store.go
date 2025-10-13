@@ -124,6 +124,8 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		return tfaddr.Provider{}, diags
 	default:
 		// We've got a required_providers entry to use
+		// This code path is used for both re-attached providers
+		// providers that are fully managed by Terraform.
 		return addr.Type, nil
 	}
 }
