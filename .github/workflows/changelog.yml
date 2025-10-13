@@ -189,7 +189,7 @@ jobs:
                       await createOrUpdateChangelogComment("", true);
 
             - name: Validate changie fragment is valid
-              uses: miniscruff/changie-action@6dcc2533cac0495148ed4046c438487e4dceaa23 # v2.0.0
+              uses: miniscruff/changie-action@5036dffa79ffc007110dc7f75eca7ef72780e147 # v2.1.0
               with:
                   version: latest
                   args: merge -u "." --dry-run
