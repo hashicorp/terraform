@@ -7,7 +7,7 @@ project "terraform" {
   // the team key is not used by CRT currently
   team = "terraform"
   slack {
-    notification_channel = "C011WJ112MD"
+    notification_channel = "C09L2R91Y12"
   }
   github {
     organization = "hashicorp"
