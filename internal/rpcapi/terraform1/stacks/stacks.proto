@@ -852,6 +852,7 @@ message StackChangeProgress {
     ComponentInstanceChanges component_instance_changes = 6;
     ComponentInstances component_instances = 7;
     DeferredResourceInstancePlannedChange deferred_resource_instance_planned_change = 8;
+    ActionInvocationPlanned action_invocation_planned = 9;
   }
 
   // ComponentInstanceStatus describes the current status of a component instance
@@ -912,6 +913,41 @@ message StackChangeProgress {
       bool unknown = 2;
     }
   }
+
+  message ActionInvocationPlanned {
+      ActionInvocationInstanceInStackAddr addr = 1;
+      string provider_addr = 2;
+      oneof action_trigger {
+          LifecycleActionTrigger lifecycle_action_trigger = 3;
+          InvokeActionTrigger invoke_action_trigger = 4;
+      }
+  }
+
+  // LifecycleActionTrigger contains details on the conditions that led to the
+  // triggering of an action.
+  message LifecycleActionTrigger {
+    ResourceInstanceInStackAddr triggering_resource_address = 1;
+    ActionTriggerEvent trigger_event = 2;
+    int64 action_trigger_block_index = 3;
+    int64 actions_list_index = 4;
+  }
+
+
+  // ActionInvocation describes the reason an action was triggered
+  enum ActionTriggerEvent {
+      INVALID_EVENT = 0;
+      BEFORE_CREATE = 1;
+      AFTER_CREATE = 2;
+      BEFORE_UPDATE = 3;
+      AFTER_UPDATE = 4;
+      BEFORE_DESTROY = 5;
+      AFTER_DESTROY = 6;
+      INVOKE = 7;
+  }
+
+  // InvokeActionTrigger indicates the action was triggered by the invoke command
+  // on the CLI.
+  message InvokeActionTrigger {}
 
   // DeferredResourceInstancePlannedChange represents a planned change for a
   // resource instance that is deferred due to the reason provided.
