@@ -182,7 +182,7 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 		schema, err := producer.ActionSchema(
 			ctx,
 			actionChange.ProviderAddr.Provider,
-			actionChange.Addr.String(),
+			actionChange.Addr.Action.Action.Type,
 		)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
