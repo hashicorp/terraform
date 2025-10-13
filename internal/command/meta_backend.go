@@ -1731,7 +1731,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 	if opts.Init && b != nil {
 		err := m.selectWorkspace(b)
 		if err != nil {
-			if strings.Contains(err.Error(), "No existing workspaces") {
+			if errors.Is(err, &errBackendNoExistingWorkspaces{}) {
 				// If there are no workspaces, Terraform either needs to create the default workspace here
 				// or instruct the user to run a `terraform workspace new` command.
 				ws, err := m.Workspace()
