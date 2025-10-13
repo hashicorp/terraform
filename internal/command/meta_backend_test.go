@@ -16,6 +16,7 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/cli"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
@@ -2864,6 +2865,107 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		if !strings.Contains(diags.Err().Error(), expectedSuggestion) {
 			t.Fatalf("expected the returned error to include a suggestion for fixing a typo %q, got: %s",
 				expectedSuggestion,
+				diags.Err(),
+			)
+		}
+	})
+}
+
+func Test_getStateStorageProviderVersion(t *testing.T) {
+	// Locks only contain hashicorp/test provider
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	setVersion := versions.MustParseVersion("9.9.9")
+	locks.SetProvider(
+		providerAddr,
+		setVersion,
+		constraint,
+		[]providerreqs.Hash{""},
+	)
+
+	t.Run("returns the version of the provider represented in the locks", func(t *testing.T) {
+		c := &configs.StateStore{
+			Provider:     &configs.Provider{},
+			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+		}
+		v, diags := getStateStorageProviderVersion(c, locks)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+
+		expectedVersion, err := providerreqs.GoVersionFromVersion(setVersion)
+		if err != nil {
+			t.Fatalf("test setup failed when making expected version: %s", err)
+		}
+		if !v.Equal(expectedVersion) {
+			t.Fatalf("expected version to be %#v, got %#v", expectedVersion, v)
+		}
+	})
+
+	t.Run("returns a nil version when using a builtin provider", func(t *testing.T) {
+		c := &configs.StateStore{
+			Provider:     &configs.Provider{},
+			ProviderAddr: tfaddr.NewProvider(addrs.BuiltInProviderHost, addrs.BuiltInProviderNamespace, "test"),
+		}
+		v, diags := getStateStorageProviderVersion(c, locks)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+
+		var expectedVersion *version.Version = nil
+		if !v.Equal(expectedVersion) {
+			t.Fatalf("expected version to be %#v, got %#v", expectedVersion, v)
+		}
+	})
+
+	t.Run("returns a nil version when using a re-attached provider", func(t *testing.T) {
+		t.Setenv("TF_REATTACH_PROVIDERS", `{
+			"test": {
+				"Protocol": "grpc",
+				"ProtocolVersion": 6,
+				"Pid": 12345,
+				"Test": true,
+				"Addr": {
+					"Network": "unix",
+					"String":"/var/folders/xx/abcde12345/T/plugin12345"
+				}
+			}
+		}`)
+		c := &configs.StateStore{
+			Provider:     &configs.Provider{},
+			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+		}
+		v, diags := getStateStorageProviderVersion(c, locks)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+
+		var expectedVersion *version.Version = nil
+		if !v.Equal(expectedVersion) {
+			t.Fatalf("expected version to be %#v, got %#v", expectedVersion, v)
+		}
+	})
+
+	t.Run("returns an error diagnostic when version info cannot be obtained from locks", func(t *testing.T) {
+		c := &configs.StateStore{
+			Type: "missing-provider_foobar",
+			Provider: &configs.Provider{
+				Name: "missing-provider",
+			},
+			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "missing-provider"),
+		}
+		_, diags := getStateStorageProviderVersion(c, locks)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectMsg := "not present in the lockfile"
+		if !strings.Contains(diags.Err().Error(), expectMsg) {
+			t.Fatalf("expected error to include %q but got: %s",
+				expectMsg,
 				diags.Err(),
 			)
 		}
