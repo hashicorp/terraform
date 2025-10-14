@@ -400,7 +400,7 @@ you run "terraform init" in the future.`
 
 const defaultWorkspaceCreatedInfo = `
 Terraform created an empty state file for the default workspace in your state store
-as it didn't exist. If this was not intended, read the init command's documentation for
+because it didn't exist. If this was not intended, read the init command's documentation for
 more guidance:
 https://developer.hashicorp.com/terraform/cli/commands/init
 `
