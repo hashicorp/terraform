@@ -3274,6 +3274,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"Initializing the state store...",
+			"Terraform created an empty state file for the default workspace",
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
