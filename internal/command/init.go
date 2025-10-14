@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"maps"
-	"os"
 	"reflect"
 	"slices"
 	"sort"
@@ -64,9 +63,6 @@ func (c *InitCommand) Run(args []string) int {
 	// 	> The user uses an experimental version of TF (alpha or built from source)
 	//  > Either the flag -enable-pluggable-state-storage-experiment is passed to the init command.
 	//  > Or, the environment variable TF_ENABLE_PLUGGABLE_STATE_STORAGE is set to any value.
-	if v := os.Getenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE"); v != "" {
-		initArgs.EnablePssExperiment = true
-	}
 	if c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
 		return c.runPssInit(initArgs, view)

@@ -129,6 +129,10 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 		))
 	}
 
+	if v := os.Getenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE"); v != "" {
+		init.EnablePssExperiment = true
+	}
+
 	if v := os.Getenv("TF_SKIP_CREATE_DEFAULT_WORKSPACE"); v != "" {
 		// If TF_SKIP_CREATE_DEFAULT_WORKSPACE is set it will override
 		// a -create-default-workspace=true flag that's set explicitly,
