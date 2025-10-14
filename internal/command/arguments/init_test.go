@@ -117,7 +117,8 @@ func TestParseInit_basicValid(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseInit(tc.args)
+			experimentsEnabled := false
+			got, diags := ParseInit(tc.args, experimentsEnabled)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
@@ -159,7 +160,8 @@ func TestParseInit_invalid(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseInit(tc.args)
+			experimentsEnabled := false
+			got, diags := ParseInit(tc.args, experimentsEnabled)
 			if len(diags) == 0 {
 				t.Fatal("expected diags but got none")
 			}
@@ -168,6 +170,68 @@ func TestParseInit_invalid(t *testing.T) {
 			}
 			if got.ViewType != tc.wantViewType {
 				t.Fatalf("wrong view type, got %#v, want %#v", got.ViewType, ViewHuman)
+			}
+		})
+	}
+}
+
+func TestParseInit_experimentalFlags(t *testing.T) {
+	testCases := map[string]struct {
+		args               []string
+		envs               map[string]string
+		wantErr            string
+		experimentsEnabled bool
+	}{
+		"error: -enable-pluggable-state-storage-experiment and experiments are disabled": {
+			args:               []string{"-enable-pluggable-state-storage-experiment"},
+			experimentsEnabled: false,
+			wantErr:            "Cannot use -enable-pluggable-state-storage-experiment flag without experiments enabled",
+		},
+		"error: TF_ENABLE_PLUGGABLE_STATE_STORAGE is set and experiments are disabled": {
+			envs: map[string]string{
+				"TF_ENABLE_PLUGGABLE_STATE_STORAGE": "1",
+			},
+			experimentsEnabled: false,
+			wantErr:            "Cannot use -enable-pluggable-state-storage-experiment flag without experiments enabled",
+		},
+		"error: -create-default-workspace=false and experiments are disabled": {
+			args:               []string{"-create-default-workspace=false"},
+			experimentsEnabled: false,
+			wantErr:            "Cannot use -create-default-workspace flag without experiments enabled",
+		},
+		"error: TF_SKIP_CREATE_DEFAULT_WORKSPACE is set and experiments are disabled": {
+			envs: map[string]string{
+				"TF_SKIP_CREATE_DEFAULT_WORKSPACE": "1",
+			},
+			experimentsEnabled: false,
+			wantErr:            "Cannot use -create-default-workspace flag without experiments enabled",
+		},
+		"error: -create-default-workspace=false used without -enable-pluggable-state-storage-experiment, while experiments are enabled": {
+			args:               []string{"-create-default-workspace=false"},
+			experimentsEnabled: true,
+			wantErr:            "Cannot use -create-default-workspace=false flag unless the pluggable state storage experiment is enabled",
+		},
+		"error: TF_SKIP_CREATE_DEFAULT_WORKSPACE used without -enable-pluggable-state-storage-experiment, while experiments are enabled": {
+			envs: map[string]string{
+				"TF_SKIP_CREATE_DEFAULT_WORKSPACE": "1",
+			},
+			experimentsEnabled: true,
+			wantErr:            "Cannot use -create-default-workspace=false flag unless the pluggable state storage experiment is enabled",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			for k, v := range tc.envs {
+				t.Setenv(k, v)
+			}
+
+			_, diags := ParseInit(tc.args, tc.experimentsEnabled)
+			if len(diags) == 0 {
+				t.Fatal("expected diags but got none")
+			}
+			if got, want := diags.Err().Error(), tc.wantErr; !strings.Contains(got, want) {
+				t.Fatalf("wrong diags\n got: %s\nwant: %s", got, want)
 			}
 		})
 	}
@@ -210,7 +274,8 @@ func TestParseInit_vars(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseInit(tc.args)
+			experimentsEnabled := false
+			got, diags := ParseInit(tc.args, experimentsEnabled)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}

@@ -88,7 +88,7 @@ type Init struct {
 // ParseInit processes CLI arguments, returning an Init value and errors.
 // If errors are encountered, an Init value is still returned representing
 // the best effort interpretation of the arguments.
-func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
+func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	init := &Init{
 		Vars: &Vars{},
@@ -138,6 +138,35 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 		// a -create-default-workspace=true flag that's set explicitly,
 		// as that's indistinguishable from the default value being used.
 		init.CreateDefaultWorkspace = false
+	}
+
+	if !experimentsEnabled {
+		// If experiments aren't enabled then these flags should not be used.
+		if init.EnablePssExperiment {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use -enable-pluggable-state-storage-experiment flag without experiments enabled",
+				"Terraform cannot use the-enable-pluggable-state-storage-experiment flag (or TF_ENABLE_PLUGGABLE_STATE_STORAGE environment variable) unless experiments are enabled.",
+			))
+		}
+		if !init.CreateDefaultWorkspace {
+			// Can only be set to false by using the flag
+			// and we cannot identify if -create-default-workspace=true is set explicitly.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use -create-default-workspace flag without experiments enabled",
+				"Terraform cannot use the -create-default-workspace flag (or TF_SKIP_CREATE_DEFAULT_WORKSPACE environment variable) unless experiments are enabled.",
+			))
+		}
+	} else {
+		// Errors using flags despite experiments being enabled.
+		if !init.CreateDefaultWorkspace && !init.EnablePssExperiment {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use -create-default-workspace=false flag unless the pluggable state storage experiment is enabled",
+				"Terraform cannot use the -create-default-workspace=false flag (or TF_SKIP_CREATE_DEFAULT_WORKSPACE environment variable) unless you also supply the -enable-pluggable-state-storage-experiment flag (or set the TF_ENABLE_PLUGGABLE_STATE_STORAGE environment variable).",
+			))
+		}
 	}
 
 	if init.MigrateState && init.Json {

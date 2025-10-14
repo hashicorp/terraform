@@ -48,7 +48,7 @@ type InitCommand struct {
 func (c *InitCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 	args = c.Meta.process(args)
-	initArgs, initDiags := arguments.ParseInit(args)
+	initArgs, initDiags := arguments.ParseInit(args, c.Meta.AllowExperimentalFeatures)
 
 	view := views.NewInit(initArgs.ViewType, c.View)
 
