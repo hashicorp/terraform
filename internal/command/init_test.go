@@ -3575,7 +3575,7 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 		}
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.2.3"},
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 		defer close()
 
@@ -3632,7 +3632,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 		defer close()
 
@@ -3722,7 +3722,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 		defer close()
 
