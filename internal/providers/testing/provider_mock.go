@@ -5,12 +5,15 @@ package testing
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/providers"
 )
@@ -170,6 +173,10 @@ type MockProvider struct {
 	UnlockStateResponse providers.UnlockStateResponse
 	UnlockStateRequest  providers.UnlockStateRequest
 	UnlockStateFn       func(providers.UnlockStateRequest) providers.UnlockStateResponse
+
+	// MockStates is an internal field that tracks which workspaces have been created in a test
+	// The map keys are state ids (workspaces) and the value depends on the test.
+	MockStates map[string]interface{}
 
 	GetStatesCalled   bool
 	GetStatesResponse *providers.GetStatesResponse
@@ -351,6 +358,10 @@ func (p *MockProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 	if p.WriteStateBytesFn != nil {
 		return p.WriteStateBytesFn(r)
 	}
+
+	// If we haven't already, record in the mock that
+	// the matching workspace exists
+	p.MockStates[r.StateId] = true
 
 	return p.WriteStateBytesResponse
 }
@@ -1073,11 +1084,8 @@ func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 		return p.GetStatesFn(r)
 	}
 
-	// If the mock has no further inputs, return an empty list.
-	// The state store should be reporting a minimum of the default workspace usually,
-	// but this should be achieved by querying data storage and identifying the artifact
-	// for that workspace, and reporting that the workspace exists.
-	resp.States = []string{}
+	// When no custom logic is provided to the mock, return the internal states list
+	resp.States = slices.Sorted(maps.Keys(p.MockStates))
 
 	return resp
 }
@@ -1104,7 +1112,16 @@ func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp provide
 		return p.DeleteStateFn(r)
 	}
 
-	// There's no logic we can include here in the absence of other fields on the mock.
+	// When no custom logic is provided to the mock, delete matching internal state
+	if _, match := p.MockStates[r.StateId]; match {
+		delete(p.MockStates, r.StateId)
+	} else {
+		resp.Diagnostics.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Workspace cannot be deleted",
+			Detail:   fmt.Sprintf("The workspace %q does not exist, so cannot be deleted", r.StateId),
+		})
+	}
 
 	// If the response contains no diagnostics then the deletion is assumed to be successful.
 	return resp

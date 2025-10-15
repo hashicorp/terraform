@@ -274,7 +274,7 @@ func configBodyForTest(t *testing.T, config string) hcl.Body {
 	t.Helper()
 	f, diags := hclsyntax.ParseConfig([]byte(config), "", hcl.Pos{Line: 1, Column: 1})
 	if diags.HasErrors() {
-		t.Fatalf("failure creating hcl.Body during test setup")
+		t.Fatalf("failure creating hcl.Body during test setup: %s", diags.Error())
 	}
 	return f.Body
 }
