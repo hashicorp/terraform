@@ -3632,6 +3632,11 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
+
+		// The previous init implied by this test scenario would have created this.
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}}
+		mockProvider.MockStates = map[string]interface{}{"default": true}
+
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
@@ -3675,11 +3680,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			if !strings.Contains(output, expected) {
 				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
 			}
-		}
-
-		// Assert the default workspace was created
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
-			t.Fatal("expected the default workspace to be created during init, but it is missing")
 		}
 
 		// Assert contents of the backend state file
