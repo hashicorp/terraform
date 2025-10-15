@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
-	github.com/oracle/oci-go-sdk/v65 v65.89.1
+	github.com/oracle/oci-go-sdk/v65 v65.101.1
 	github.com/zclconf/go-cty v1.16.3
 )
 
