@@ -3810,6 +3810,58 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 	})
 
+	t.Run("handling changed state store type in the same provider is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/state-store-type"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		storeName := "test_store"
+		otherStoreName := "test_otherstore"
+		// Make the provider report that it contains a 2nd storage implementation with the above name
+		mockProvider.GetProviderSchemaResponse.StateStores[otherStoreName] = mockProvider.GetProviderSchemaResponse.StateStores[storeName]
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
+
 }
 
 // newMockProviderSource is a helper to succinctly construct a mock provider
