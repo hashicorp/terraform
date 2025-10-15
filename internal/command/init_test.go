@@ -3561,6 +3561,24 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 // Testing init's behaviors with `state_store` when run in a working directory where the configuration
 // doesn't match the backend state file.
 func TestInit_stateStore_configUnchanged(t *testing.T) {
+	// This matches the backend state test fixture in "state-store-unchanged"
+	v1_2_3, _ := version.NewVersion("1.2.3")
+	expectedState := &workdir.StateStoreConfigState{
+		Type:      "test_store",
+		ConfigRaw: []byte("{\n            \"value\": \"foobar\"\n        }"),
+		Hash:      uint64(2116468040), // Hash affected by config
+		Provider: &workdir.ProviderConfigState{
+			Version: v1_2_3,
+			Source: &tfaddr.Provider{
+				Hostname:  tfaddr.DefaultProviderRegistryHost,
+				Namespace: "hashicorp",
+				Type:      "test",
+			},
+			ConfigRaw: []byte("{\n                \"region\": null\n            }"),
+			Hash:      uint64(3976463117), // Hash of empty config
+		},
+	}
+
 	t.Run("init is successful when the configuration and backend state match", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that matches the backend state file
@@ -3598,6 +3616,21 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 			Meta: meta,
 		}
 
+		// Before running init, confirm the contents of the backend state file before
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be present, but there isn't one")
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+
+		// Run init command
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
 		}
@@ -3617,6 +3650,15 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 			if !strings.Contains(output, expected) {
 				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
 			}
+		}
+
+		// Confirm init was a no-op and backend state is unchanged afterwards
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s = sMgr.State()
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
 		}
 	})
 }
