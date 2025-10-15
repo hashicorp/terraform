@@ -3242,7 +3242,9 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
 		})
 		defer close()
 
@@ -3298,13 +3300,13 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		if s == nil {
 			t.Fatal("expected backend state file to be created, but there isn't one")
 		}
-		v1_0_0, _ := version.NewVersion("1.0.0")
+		v1_2_3, _ := version.NewVersion("1.2.3")
 		expectedState := &workdir.StateStoreConfigState{
 			Type:      "test_store",
 			ConfigRaw: []byte("{\n      \"value\": \"foobar\"\n    }"),
 			Hash:      uint64(2116468040), // Hash affected by config
 			Provider: &workdir.ProviderConfigState{
-				Version: v1_0_0,
+				Version: v1_2_3,
 				Source: &tfaddr.Provider{
 					Hostname:  tfaddr.DefaultProviderRegistryHost,
 					Namespace: "hashicorp",
@@ -3690,13 +3692,13 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		if s == nil {
 			t.Fatal("expected backend state file to be created, but there isn't one")
 		}
-		v1_0_0, _ := version.NewVersion("1.0.0")
+		v1_2_3, _ := version.NewVersion("1.2.3")
 		expectedState := &workdir.StateStoreConfigState{
 			Type:      "test_store",
 			ConfigRaw: []byte("{\n      \"value\": \"changed-value\"\n    }"),
 			Hash:      uint64(1417640992), // Hash affected by config
 			Provider: &workdir.ProviderConfigState{
-				Version: v1_0_0,
+				Version: v1_2_3,
 				Source: &tfaddr.Provider{
 					Hostname:  tfaddr.DefaultProviderRegistryHost,
 					Namespace: "hashicorp",
