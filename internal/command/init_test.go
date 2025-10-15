@@ -3626,7 +3626,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-reconfigure"), td)
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
