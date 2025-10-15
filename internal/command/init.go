@@ -1579,6 +1579,16 @@ Options:
 
   -test-directory=path    Set the Terraform test directory, defaults to "tests".
 
+  -enable-pluggable-state-storage-experiment [EXPERIMENTAL]
+                          A flag to enable an alternative init command that allows use of
+                          pluggable state storage. Only usable with experiments enabled.
+
+  -create-default-workspace [EXPERIMENTAL]
+                          This flag must be used alongside the -enable-pluggable-state-storage-
+                          experiment flag with experiments enabled. This flag's value defaults
+                          to true, which allows the default workspace to be created if it does
+                          not exist. Use -create-default-workspace=false to disable this behavior.
+
 `
 	return strings.TrimSpace(helpText)
 }
