@@ -3862,6 +3862,63 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 	})
 
+	t.Run("handling changing the provider used for state storage is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-used"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
+
+		// Make a mock that implies its name is test2 based on returned schemas
+		mockProvider2 := mockPluggableStateStorageProvider()
+		mockProvider2.GetProviderSchemaResponse.StateStores["test2_store"] = mockProvider.GetProviderSchemaResponse.StateStores["test_store"]
+		delete(mockProvider2.GetProviderSchemaResponse.StateStores, "test_store")
+
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		mockProviderAddress2 := addrs.NewDefaultProvider("test2")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test":  {"1.2.3"}, // Provider in backend state file fixture
+			"hashicorp/test2": {"1.2.3"}, // Provider now used in config
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress:  providers.FactoryFixed(mockProvider),  // test provider
+					mockProviderAddress2: providers.FactoryFixed(mockProvider2), // test2 provider
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
 }
 
 // newMockProviderSource is a helper to succinctly construct a mock provider
