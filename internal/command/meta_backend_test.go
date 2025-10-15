@@ -2299,7 +2299,7 @@ func TestSavedStateStore(t *testing.T) {
 		// Create a temporary working directory
 		chunkSize := 42
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td) // Fixtures with config that differs from backend state file
 		t.Chdir(td)
 
 		// Make a state manager for accessing the backend state file,
@@ -2320,8 +2320,9 @@ func TestSavedStateStore(t *testing.T) {
 		mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 			// Assert that the state store is configured using backend state file values from the fixtures
 			config := req.Config.AsValueMap()
-			if config["region"].AsString() != "old-value" {
-				t.Fatalf("expected the provider to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+			if v, ok := config["region"]; ok && (v.Equals(cty.NullVal(cty.String)) != cty.True) {
+				// The backend state file has a null value for region, so if we're here we've somehow got a non-null value
+				t.Fatalf("expected the provider to be configured with values from the backend state file (where region is unset/null), not the config. Got value: %#v", v)
 			}
 			return providers.ConfigureProviderResponse{}
 		}
@@ -2389,7 +2390,7 @@ func TestSavedStateStore(t *testing.T) {
 	t.Run("error - when there's no state stores in provider", func(t *testing.T) {
 		// Create a temporary working directory
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td) // Fixtures with config that differs from backend state file
 		t.Chdir(td)
 
 		// Make a state manager for accessing the backend state file,
@@ -2421,7 +2422,7 @@ func TestSavedStateStore(t *testing.T) {
 	t.Run("error - when there's no matching state store in provider Terraform suggests different identifier", func(t *testing.T) {
 		// Create a temporary working directory
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td) // Fixtures with config that differs from backend state file
 		t.Chdir(td)
 
 		// Make a state manager for accessing the backend state file,
