@@ -3761,12 +3761,55 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 	})
 
-	// TODO(SarahFrench/radeksimko): Add more test cases related to changing the
-	// configuration and the forced need for state migration.
-	// More complicated situations might benefit from being separate tests altogether.
-	// Simpler scenarios that make sense to keep here are:
-	// 1) Changing config of the same state_store type
-	// 2) Changing config of the same provider (and version) used for PSS
+	t.Run("handling changed state store provider config is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-config"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
+
 }
 
 // newMockProviderSource is a helper to succinctly construct a mock provider
