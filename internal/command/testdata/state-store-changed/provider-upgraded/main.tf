@@ -2,7 +2,8 @@ terraform {
   required_providers {
     test = {
       source = "hashicorp/test"
-      # version = "9.9.9" // We've now specified using v9.9.9, versus the v1.2.3 used at last init and in the backend state file
+      # No version constraints here; we assume the test using this fixture forces the latest provider version
+      # to not match the backend state file in this folder.
     }
   }
   state_store "test_store" {
