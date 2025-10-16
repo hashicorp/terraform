@@ -952,18 +952,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// AND the same state_store implementation is used
 		// AND the state_store config cache hash values match, indicating that the state_store config is valid and completely unchanged.
 		// AND we're not providing any overrides. An override can mean a change overriding an unchanged state_store block (indicated by the hash value).
-		pVersion, vDiags := getStateStorageProviderVersion(stateStoreConfig, opts.Locks)
-		diags = diags.Append(vDiags)
-		if vDiags.HasErrors() {
+
+		migrate, mDiags := stateStoreConfigNeedsMigration(s.StateStore, stateStoreConfig, uint64(stateStoreHash), uint64(stateStoreProviderHash), opts.Locks)
+		diags = diags.Append(mDiags)
+		if mDiags.HasErrors() {
 			return nil, diags
 		}
-
-		if s.StateStore.Provider.Source.Equals(stateStoreConfig.ProviderAddr) &&
-			s.StateStore.Provider.Version.Equal(pVersion) &&
-			(uint64(stateStoreProviderHash) == s.StateStore.Provider.Hash) &&
-			s.StateStore.Type == stateStoreConfig.Type &&
-			(uint64(stateStoreHash) == s.StateStore.Hash) &&
-			(!opts.Init || opts.ConfigOverride == nil) {
+		if !migrate && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q state_store configuration", stateStoreConfig.Type)
 			savedStateStore, sssDiags := m.savedStateStore(sMgr, opts.ProviderFactory)
 			diags = diags.Append(sssDiags)
@@ -1001,6 +996,38 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		))
 		return nil, diags
 	}
+}
+
+func stateStoreConfigNeedsMigration(s *workdir.StateStoreConfigState, storeConfig *configs.StateStore, stateStoreHash, stateStoreProviderHash uint64, locks *depsfile.Locks) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	pVersion, vDiags := getStateStorageProviderVersion(storeConfig, locks)
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		return false, diags
+	}
+
+	if !s.Provider.Source.Equals(storeConfig.ProviderAddr) {
+		log.Printf("[TRACE] Meta.Backend: state store provider addresses do not match")
+		return true, diags
+	}
+	if !s.Provider.Version.Equal(pVersion) {
+		log.Printf("[TRACE] Meta.Backend: state store provider version does not match")
+		return true, diags
+	}
+	if stateStoreProviderHash != s.Provider.Hash {
+		log.Printf("[TRACE] Meta.Backend: state store provider configuration has changed")
+		return true, diags
+	}
+	if s.Type != storeConfig.Type {
+		log.Printf("[TRACE] Meta.Backend: state store implementation has changed")
+		return true, diags
+	}
+	if stateStoreHash != s.Hash {
+		log.Printf("[TRACE] Meta.Backend: state store configuration has changed")
+		return true, diags
+	}
+
+	return false, diags
 }
 
 // determineInitReason is used in non-Init commands to interrupt the command early and prompt users to instead run an init command.
