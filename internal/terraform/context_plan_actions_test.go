@@ -319,6 +319,75 @@ output "my_output2" {
 				},
 			},
 
+			"actions can't be used in depends_on": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "my_action" {
+  config {
+    attr = "value"
+  }
+}
+resource "test_object" "a" {
+  depends_on = [action.test_action.my_action]
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.my_action]
+    }
+  }
+}
+`,
+				},
+				expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+					return tfdiags.Diagnostics{}.Append(
+						&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid depends_on reference",
+							Detail:   "Actions can not be referenced in depends_on. Use depends_on on the resource that triggers the action instead.",
+							Subject: &hcl.Range{
+								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+								Start:    hcl.Pos{Line: 8, Column: 17, Byte: 117},
+								End:      hcl.Pos{Line: 8, Column: 45, Byte: 145},
+							},
+						})
+				},
+			},
+
+			"action instances can't be used in depends_on": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "my_action" {
+  count = 3
+  config {
+    attr = "value"
+  }
+}
+resource "test_object" "a" {
+  depends_on = [action.test_action.my_action[1]]
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.my_action[1]]
+    }
+  }
+}
+`,
+				},
+				expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+					return tfdiags.Diagnostics{}.Append(
+						&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid depends_on reference",
+							Detail:   "Actions can not be referenced in depends_on. Use depends_on on the resource that triggers the action instead.",
+							Subject: &hcl.Range{
+								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+								Start:    hcl.Pos{Line: 9, Column: 17, Byte: 129},
+								End:      hcl.Pos{Line: 9, Column: 48, Byte: 160},
+							},
+						})
+				},
+			},
+
 			"destroy run": {
 				module: map[string]string{
 					"main.tf": ` 
