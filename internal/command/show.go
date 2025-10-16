@@ -98,6 +98,8 @@ Options:
   -no-color           If specified, output won't contain any color.
   -json               If specified, output the Terraform plan or state in
                       a machine-readable form.
+  -redacted           If specified, output the Terraform plan or state in
+                      a redacted form.
 
 `
 	return strings.TrimSpace(helpText)
