@@ -3967,6 +3967,9 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when the provider used for state storage in a previous init
 // command is updated.
+//
+// TODO: Add a test case showing that downgrading provider version is ok as long as the schema version hasn't
+// changed. We should also have a test demonstrating that downgrades when the schema version HAS changed will fail.
 func TestInit_stateStore_providerUpgrade(t *testing.T) {
 	t.Run("handling upgrading the provider used for state storage is currently unimplemented", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
