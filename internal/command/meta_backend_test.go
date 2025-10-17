@@ -2696,7 +2696,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		}
 
 		m := testMetaBackend(t, nil)
-		finalConfig, _, _, diags := m.stateStoreConfig(opts)
+		finalConfig, _, diags := m.stateStoreConfig(opts)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
@@ -2723,7 +2723,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		}
 
 		m := testMetaBackend(t, nil)
-		_, _, _, diags := m.stateStoreConfig(opts)
+		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2744,7 +2744,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		}
 
 		m := testMetaBackend(t, nil)
-		_, _, _, diags := m.stateStoreConfig(opts)
+		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2768,7 +2768,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		}
 
 		m := testMetaBackend(t, nil)
-		_, _, _, diags := m.stateStoreConfig(opts)
+		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2795,7 +2795,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		}
 
 		m := testMetaBackend(t, nil)
-		_, _, _, diags := m.stateStoreConfig(opts)
+		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
