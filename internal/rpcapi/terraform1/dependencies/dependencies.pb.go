@@ -2384,10 +2384,10 @@ type GetBuiltInProviders_Response struct {
 	// The built-in providers that are compiled in to this Terraform Core
 	// server.
 	//
-	// This uses terraform1.ProviderPackage messages for consistency with the other
-	// operations which list providers, but built-in providers do not
-	// have version numbers nor hashes so those fields will always be
-	// unset in the result.
+	// This uses terraform1.ProviderPackage messages for consistency with the
+	// other operations which list providers, but built-in providers do not have
+	// version numbers nor hashes so those fields will always be unset in the
+	// result.
 	AvailableProviders []*terraform1.ProviderPackage `protobuf:"bytes,1,rep,name=available_providers,json=availableProviders,proto3" json:"available_providers,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -2435,8 +2435,8 @@ type GetProviderSchema_Request struct {
 	// The address of the provider to retrieve schema for, using the
 	// typical provider source address syntax.
 	//
-	// When requesting schema based on a terraform1.ProviderPackage message, populate
-	// this with its "source_addr" field.
+	// When requesting schema based on a terraform1.ProviderPackage message,
+	// populate this with its "source_addr" field.
 	ProviderAddr string `protobuf:"bytes,1,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
 	// The version number of the given provider to retrieve the schema
 	// of, which must have already been populated into the cache directory.
@@ -2445,8 +2445,8 @@ type GetProviderSchema_Request struct {
 	// single "version" of the provider that's compiled into this Terraform
 	// Core server, and so must be left unset or empty for those.
 	//
-	// When requesting schema based on a terraform1.ProviderPackage message, populate
-	// this with its "version" field.
+	// When requesting schema based on a terraform1.ProviderPackage message,
+	// populate this with its "version" field.
 	ProviderVersion string `protobuf:"bytes,2,opt,name=provider_version,json=providerVersion,proto3" json:"provider_version,omitempty"`
 	// The handle for the previously-opened provider plugin cache to
 	// load the provider plugin from.
