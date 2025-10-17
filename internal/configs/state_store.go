@@ -204,6 +204,7 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 		cty.StringVal(b.Type), // state store type
 		ssVal,                 // state store config
 
+		cty.StringVal(b.Provider.Name),         // provider name - this reflects the config, whereas provider source is influenced by config but separate
 		cty.StringVal(b.ProviderAddr.String()), // provider source
 		pVal,                                   // provider config
 	})
