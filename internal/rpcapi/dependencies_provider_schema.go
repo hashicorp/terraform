@@ -157,7 +157,7 @@ func providerSchemaToProto(schemaResp providers.GetProviderSchemaResponse) *depe
 		ProviderConfig:       schemaElementToProto(schemaResp.Provider),
 		ManagedResourceTypes: mrtSchemas,
 		DataResourceTypes:    drtSchemas,
-		ActionSchemas:        actionSchemas,
+		ActionTypes:          actionSchemas,
 	}
 }
 
