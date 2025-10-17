@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfplugin6"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
@@ -62,14 +63,14 @@ func mockProviderClient(t *testing.T) *mockproto.MockProviderClient {
 	return client
 }
 
-func mockReadStateBytesClient(t *testing.T) *mockproto.MockProvider_ReadStateBytesClient {
+func mockReadStateBytesClient(t *testing.T) *mockproto.MockProvider_ReadStateBytesClient[tfplugin6.ReadStateBytes_Response] {
 	ctrl := gomock.NewController(t)
-	return mockproto.NewMockProvider_ReadStateBytesClient(ctrl)
+	return mockproto.NewMockProvider_ReadStateBytesClient[tfplugin6.ReadStateBytes_Response](ctrl)
 }
 
-func mockWriteStateBytesClient(t *testing.T) *mockproto.MockProvider_WriteStateBytesClient {
+func mockWriteStateBytesClient(t *testing.T) *mockproto.MockProvider_WriteStateBytesClient[tfplugin6.WriteStateBytes_RequestChunk, tfplugin6.WriteStateBytes_Response] {
 	ctrl := gomock.NewController(t)
-	return mockproto.NewMockProvider_WriteStateBytesClient(ctrl)
+	return mockproto.NewMockProvider_WriteStateBytesClient[tfplugin6.WriteStateBytes_RequestChunk, tfplugin6.WriteStateBytes_Response](ctrl)
 }
 
 func checkDiags(t *testing.T, d tfdiags.Diagnostics) {
@@ -2082,7 +2083,7 @@ func TestGRPCProvider_invokeAction_valid(t *testing.T) {
 		client: client,
 	}
 
-	mockInvokeClient := mockproto.NewMockProvider_InvokeActionClient(ctrl)
+	mockInvokeClient := mockproto.NewMockProvider_InvokeActionClient[tfplugin6.InvokeAction_Event](ctrl)
 	mockInvokeClient.EXPECT().Recv().Return(&proto.InvokeAction_Event{
 		Type: &proto.InvokeAction_Event_Progress_{
 			Progress: &proto.InvokeAction_Event_Progress{
