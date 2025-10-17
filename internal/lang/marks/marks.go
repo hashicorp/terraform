@@ -17,21 +17,6 @@ func (m valueMark) GoString() string {
 	return "marks." + string(m)
 }
 
-// dataMarks allow creating strictly typed values for use as cty.Value marks that
-// can contain arbitrary data. This allows for marks where not only the existance of
-// the mark is important, but also the metadata associated with it.
-type dataMark[D dataMarkData] struct {
-	Type string
-	Data D
-}
-type dataMarkData interface {
-	GoString() string
-}
-
-func (m dataMark[D]) GoString() string {
-	return "marks." + m.Type + m.Data.GoString()
-}
-
 // Has returns true if and only if the cty.Value has the given mark.
 func Has(val cty.Value, mark interface{}) bool {
 	switch m := mark.(type) {
@@ -82,26 +67,21 @@ const Ephemeral = valueMark("Ephemeral")
 // `type` function.
 const TypeType = valueMark("TypeType")
 
-type DeprecationMarkData struct {
+type DeprecationMark struct {
 	Message string
 	Origin  *hcl.Range
 }
 
-func (d DeprecationMarkData) GoString() string {
-	return "<" + d.Message + ">"
+func (d DeprecationMark) GoString() string {
+	return "marks.deprecation<" + d.Message + ">"
 }
-
-type DeprecationMark = dataMark[DeprecationMarkData]
 
 // Empty deprecation mark for usage in marks.Has / Contains / etc
 var Deprecation = NewDeprecation("", nil)
 
 func NewDeprecation(message string, origin *hcl.Range) DeprecationMark {
 	return DeprecationMark{
-		Type: "Deprecation",
-		Data: DeprecationMarkData{
-			Message: message,
-			Origin:  origin,
-		},
+		Message: message,
+		Origin:  origin,
 	}
 }

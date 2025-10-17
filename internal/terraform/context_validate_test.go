@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -3844,5 +3845,98 @@ func TestContext2Validate_noListValidated(t *testing.T) {
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 		})
+	}
+}
+
+func TestContext2Validate_deprecated_output(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+output "old-and-unused" {
+    deprecated = "This should not show up in the errors, we are not using it"
+    value = "old"
+}
+output "new" {
+    value = "foo"
+}
+`,
+		"mod2/main.tf": `
+variable "input" {
+	type = string
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+resource "test_resource" "test" {
+    attr = module.mod.old # WARNING
+}
+resource "test_resource" "test2" {
+    attr = module.mod.new # OK
+}
+resource "test_resource" "test3" {
+    attr = module.mod.old # WARNING
+}
+output "test_output" {
+	value = module.mod.old # OK
+}
+output "test_output_conditional" {
+	value = false ? module.mod.old : module.mod.new # Not detectable during validate
+}
+module "mod2" {
+	source = "./mod2"
+	input = module.mod.old # OK
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	subjects := []string{}
+
+	// tfdiags.AssertDiagnosticsMatch didn't work
+	for _, d := range diags {
+		if d.Description().Summary != "Deprecated value used" {
+			t.Errorf("unexpected diagnostic: %s", d.Description().Summary)
+		}
+
+		if d.Description().Detail != "Please stop using this" {
+			t.Errorf("unexpected diagnostic detail: %s", d.Description().Detail)
+		}
+
+		subjects = append(subjects, fmt.Sprintf("%d:%d", d.Source().Subject.Start.Line, d.Source().Subject.Start.Column))
+	}
+
+	slices.Sort(subjects)
+	expectedSubjects := []string{
+		"12:12",
+		"6:12",
+	}
+	slices.Sort(expectedSubjects)
+	if diff := cmp.Diff(subjects, expectedSubjects); diff != "" {
+		t.Errorf("unexpected diagnostic subjects: %s", diff)
 	}
 }

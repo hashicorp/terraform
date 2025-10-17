@@ -33,7 +33,7 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 		pathHasOtherMarks := false
 		for mark := range pvm.Marks {
 			switch wantMark.(type) {
-			case string: // valueMark is a type alias for string
+			case valueMark:
 				if mark == wantMark {
 					pathHasMark = true
 				} else {
@@ -49,7 +49,7 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 				}
 
 			default:
-				panic(fmt.Sprintf("unexpected mark type %T", mark))
+				panic(fmt.Sprintf("unexpected mark type %T", wantMark))
 			}
 		}
 
@@ -79,7 +79,7 @@ func RemoveAll(pvms []cty.PathValueMarks, remove any) []cty.PathValueMarks {
 
 	for _, pvm := range pvms {
 		switch remove.(type) {
-		case string:
+		case valueMark:
 			delete(pvm.Marks, remove)
 
 		case DeprecationMark:

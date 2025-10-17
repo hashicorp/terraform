@@ -411,9 +411,19 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// structural type of similar kind, so that it can be considered as
 	// valid during both the validate and plan walks.
 	if d.Operation == walkValidate {
+		// In case of non-expanded module calls we return a known object with unknonwn values
+		// In case of an expanded module call we return unknown list/map
+		// This means deprecation can only for non-expanded modules be detected during validate
+		// since we don't want false positives. The plan walk will give definitive warnings.
 		atys := make(map[string]cty.Type, len(outputConfigs))
-		for name := range outputConfigs {
+		as := make(map[string]cty.Value, len(outputConfigs))
+		for name, c := range outputConfigs {
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
+			val := cty.UnknownVal(cty.DynamicPseudoType)
+			if c.DeprecatedSet {
+				val = val.Mark(marks.NewDeprecation(c.Deprecated, nil))
+			}
+			as[name] = val
 		}
 		instTy := cty.Object(atys)
 
@@ -423,7 +433,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		case callConfig.ForEach != nil:
 			return cty.UnknownVal(cty.Map(instTy)), diags
 		default:
-			return cty.UnknownVal(instTy), diags
+			val := cty.ObjectVal(as)
+			return val, diags
 		}
 	}
 
@@ -1133,6 +1144,9 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	val := output.Value
 	if output.Sensitive {
 		val = val.Mark(marks.Sensitive)
+	}
+	if config.DeprecatedSet {
+		val = val.Mark(marks.NewDeprecation(config.Deprecated, config.DeclRange.Ptr()))
 	}
 
 	return val, diags
