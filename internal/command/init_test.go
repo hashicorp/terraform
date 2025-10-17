@@ -3313,7 +3313,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 					Type:      "test",
 				},
 				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
-				Hash:      uint64(3976463117), // Hash of empty config
 			},
 		}
 		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
@@ -3575,7 +3574,6 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 				Type:      "test",
 			},
 			ConfigRaw: []byte("{\n                \"region\": null\n            }"),
-			Hash:      uint64(3976463117), // Hash of empty config
 		},
 	}
 
@@ -3747,7 +3745,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 					Type:      "test",
 				},
 				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
-				Hash:      uint64(3976463117), // Hash of empty config
 			},
 		}
 		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
