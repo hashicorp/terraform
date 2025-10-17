@@ -1807,7 +1807,7 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 	var pVersion *version.Version
 
 	isBuiltin := c.ProviderAddr.Hostname == addrs.BuiltInProviderHost
-	isReattached, err := isProviderReattached(c.ProviderAddr)
+	isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
 	if err != nil {
 		diags = diags.Append(err)
 		return nil, diags
@@ -1835,29 +1835,6 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 	}
 
 	return pVersion, diags
-}
-
-// isProviderReattached determines if a given provider is being supplied to Terraform via the TF_REATTACH_PROVIDERS
-// environment variable.
-func isProviderReattached(provider addrs.Provider) (bool, error) {
-	in := os.Getenv("TF_REATTACH_PROVIDERS")
-	if in != "" {
-		var m map[string]any
-		err := json.Unmarshal([]byte(in), &m)
-		if err != nil {
-			return false, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
-		}
-		for p := range m {
-			a, diags := addrs.ParseProviderSourceString(p)
-			if diags.HasErrors() {
-				return false, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
-			}
-			if a.Equals(provider) {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
 }
 
 // createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,
