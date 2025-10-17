@@ -913,6 +913,7 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*st
 	invoke := stacks.PlannedChange_ActionInvocationInstance{
 		Addr:         stacks.NewActionInvocationInStackAddr(addr),
 		ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
+		ActionType:   pc.Invocation.Addr.Action.Action.Name,
 
 		ConfigValue: stacks.NewDynamicValue(
 			pc.Invocation.ConfigValue,
