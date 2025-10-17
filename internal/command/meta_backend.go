@@ -985,34 +985,6 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	}
 }
 
-func stateStoreConfigNeedsMigration(s *workdir.StateStoreConfigState, storeConfig *configs.StateStore, stateStoreHash uint64, locks *depsfile.Locks) (bool, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	pVersion, vDiags := getStateStorageProviderVersion(storeConfig, locks)
-	diags = diags.Append(vDiags)
-	if vDiags.HasErrors() {
-		return false, diags
-	}
-
-	if !s.Provider.Source.Equals(storeConfig.ProviderAddr) {
-		log.Printf("[TRACE] Meta.Backend: state store provider addresses do not match")
-		return true, diags
-	}
-	if !s.Provider.Version.Equal(pVersion) {
-		log.Printf("[TRACE] Meta.Backend: state store provider version does not match")
-		return true, diags
-	}
-	if s.Type != storeConfig.Type {
-		log.Printf("[TRACE] Meta.Backend: state store implementation has changed")
-		return true, diags
-	}
-	if stateStoreHash != s.Hash {
-		log.Printf("[TRACE] Meta.Backend: state store configuration has changed")
-		return true, diags
-	}
-
-	return false, diags
-}
-
 // determineInitReason is used in non-Init commands to interrupt the command early and prompt users to instead run an init command.
 // That prompt needs to include the reason why init needs to be run, and it is determined here.
 //
