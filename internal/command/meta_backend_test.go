@@ -2151,10 +2151,23 @@ func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 	mock := testStateStoreMock(t)
 
 	// Get the operations backend
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	locks.SetProvider(
+		providerAddr,
+		versions.MustParseVersion("9.9.9"),
+		constraint,
+		[]providerreqs.Hash{""},
+	)
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  providers.FactoryFixed(mock),
+		Locks:            locks,
 	})
 	if !beDiags.HasErrors() {
 		t.Fatal("expected an error to be returned during partial implementation of PSS")
@@ -2207,6 +2220,19 @@ func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
 func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	wantErr := "Variables not allowed"
 
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	locks.SetProvider(
+		providerAddr,
+		versions.MustParseVersion("9.9.9"),
+		constraint,
+		[]providerreqs.Hash{""},
+	)
+
 	cases := map[string]struct {
 		fixture string
 		wantErr string
@@ -2249,6 +2275,7 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 				Init:             true,
 				StateStoreConfig: mod.StateStore,
 				ProviderFactory:  providers.FactoryFixed(mock),
+				Locks:            locks,
 			})
 			if err == nil {
 				t.Fatal("should error")
@@ -2684,6 +2711,19 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		ProviderAddr: addrs.NewDefaultProvider("test"),
 	}
 
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	locks.SetProvider(
+		providerAddr,
+		versions.MustParseVersion("9.9.9"),
+		constraint,
+		[]providerreqs.Hash{""},
+	)
+
 	t.Run("override config can change values of custom attributes in the state_store block", func(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
@@ -2693,6 +2733,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			ConfigOverride:   configOverride,
 			ProviderFactory:  providers.FactoryFixed(mock),
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2720,6 +2761,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		opts := &BackendOpts{
 			StateStoreConfig: nil, //unset
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2741,6 +2783,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			StateStoreConfig: config,
 			ProviderFactory:  nil, // unset
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2765,6 +2808,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			StateStoreConfig: config,
 			ProviderFactory:  providers.FactoryFixed(mock),
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2792,6 +2836,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			StateStoreConfig: config,
 			ProviderFactory:  providers.FactoryFixed(mock),
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
