@@ -581,3 +581,19 @@ func TestConfigImportProviderWithNoResourceProvider(t *testing.T) {
 Use the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.`,
 	})
 }
+
+func TestConfigActionInResourceDependsOn(t *testing.T) {
+	src, err := os.ReadFile("testdata/invalid-modules/action-in-depends_on/action-in-resource-depends_on.tf")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parser := testParser(map[string]string{
+		"main.tf": string(src),
+	})
+
+	_, diags := parser.LoadConfigFile("main.tf")
+	assertExactDiagnostics(t, diags, []string{
+		`main.tf:5,17-42: Invalid depends_on Action Reference; The depends_on attribute cannot reference action blocks directly. You must reference a resource or data source instead.`,
+	})
+}
