@@ -4761,8 +4761,10 @@ type PlannedChange_ActionInvocationInstance struct {
 	// provider is the address of the provider configuration that this change
 	// was planned with, and thus the configuration that must be used to
 	// apply it.
-	ProviderAddr string        `protobuf:"bytes,2,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
-	ConfigValue  *DynamicValue `protobuf:"bytes,4,opt,name=config_value,json=configValue,proto3" json:"config_value,omitempty"`
+	ProviderAddr string `protobuf:"bytes,2,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
+	// The type of the action used to extract schema information
+	ActionType  string        `protobuf:"bytes,3,opt,name=action_type,json=actionType,proto3" json:"action_type,omitempty"`
+	ConfigValue *DynamicValue `protobuf:"bytes,4,opt,name=config_value,json=configValue,proto3" json:"config_value,omitempty"`
 	// Types that are valid to be assigned to ActionTrigger:
 	//
 	//	*PlannedChange_ActionInvocationInstance_LifecycleActionTrigger
@@ -4812,6 +4814,13 @@ func (x *PlannedChange_ActionInvocationInstance) GetAddr() *ActionInvocationInst
 func (x *PlannedChange_ActionInvocationInstance) GetProviderAddr() string {
 	if x != nil {
 		return x.ProviderAddr
+	}
+	return ""
+}
+
+func (x *PlannedChange_ActionInvocationInstance) GetActionType() string {
+	if x != nil {
+		return x.ActionType
 	}
 	return ""
 }
@@ -7276,7 +7285,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\x124\n" +
 	"\x16resource_instance_addr\x18\x02 \x01(\tR\x14resourceInstanceAddr\x12\x1f\n" +
 	"\vdeposed_key\x18\x03 \x01(\tR\n" +
-	"deposedKey\"\xe8\x1d\n" +
+	"deposedKey\"\x89\x1e\n" +
 	"\rPlannedChange\x12&\n" +
 	"\x03raw\x18\x01 \x03(\v2\x14.google.protobuf.AnyR\x03raw\x12V\n" +
 	"\fdescriptions\x18\x02 \x03(\v22.terraform1.stacks.PlannedChange.ChangeDescriptionR\fdescriptions\x1a\xee\x05\n" +
@@ -7292,10 +7301,12 @@ const file_stacks_proto_rawDesc = "" +
 	"\x11ComponentInstance\x12C\n" +
 	"\x04addr\x18\x01 \x01(\v2/.terraform1.stacks.ComponentInstanceInStackAddrR\x04addr\x127\n" +
 	"\aactions\x18\x02 \x03(\x0e2\x1d.terraform1.stacks.ChangeTypeR\aactions\x12#\n" +
-	"\rplan_complete\x18\x03 \x01(\bR\fplanComplete\x1a\xc2\x03\n" +
+	"\rplan_complete\x18\x03 \x01(\bR\fplanComplete\x1a\xe3\x03\n" +
 	"\x18ActionInvocationInstance\x12J\n" +
 	"\x04addr\x18\x01 \x01(\v26.terraform1.stacks.ActionInvocationInstanceInStackAddrR\x04addr\x12#\n" +
-	"\rprovider_addr\x18\x02 \x01(\tR\fproviderAddr\x12B\n" +
+	"\rprovider_addr\x18\x02 \x01(\tR\fproviderAddr\x12\x1f\n" +
+	"\vaction_type\x18\x03 \x01(\tR\n" +
+	"actionType\x12B\n" +
 	"\fconfig_value\x18\x04 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\vconfigValue\x12s\n" +
 	"\x18lifecycle_action_trigger\x18\x06 \x01(\v27.terraform1.stacks.PlannedChange.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12j\n" +
 	"\x15invoke_action_trigger\x18\a \x01(\v24.terraform1.stacks.PlannedChange.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +

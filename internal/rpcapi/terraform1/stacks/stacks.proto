@@ -588,6 +588,9 @@ message PlannedChange {
       // apply it.
       string provider_addr = 2;
 
+      // The type of the action used to extract schema information
+      string action_type = 3;
+
       DynamicValue config_value = 4;
 
       oneof action_trigger {
