@@ -90,7 +90,7 @@ func TestGRPCProvisioner_ProvisionResource(t *testing.T) {
 		gomock.Any(),
 	).Return(provisionerProtoSchema(), nil)
 
-	stream := mockproto.NewMockProvisioner_ProvisionResourceClient(ctrl)
+	stream := mockproto.NewMockProvisioner_ProvisionResourceClient[provisioners.ProvisionResourceResponse](ctrl)
 	stream.EXPECT().Recv().Return(&proto.ProvisionResource_Response{
 		Output: "provisioned",
 	}, io.EOF)
