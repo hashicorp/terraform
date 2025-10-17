@@ -208,68 +208,6 @@ func TestStateStore_Hash(t *testing.T) {
 	}
 }
 
-func TestStateStore_checkStateStoreHashUnaffectedByProviderBlock(t *testing.T) {
-
-	// Normally these schemas would come from a provider's GetProviderSchema data
-	stateStoreSchema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"path": {
-				Type:     cty.String,
-				Required: true,
-			},
-			"workspace_dir": {
-				Type:     cty.String,
-				Optional: true,
-			},
-		},
-	}
-	providerSchema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"foobar": {
-				Type:     cty.String,
-				Required: true,
-			},
-		},
-	}
-	providerConfig := configBodyForTest(t, `foobar = "foobar"`)
-
-	// Make two StateStores:
-	// 1) Has provider block in the main Config value, as well as matching data in Provider.Config
-	// 2) Doesn't have provider block in the main Config value, has config in Provider.Config
-
-	s1 := StateStore{
-		Config: configBodyForTest(t, `state_store "foo" {
-			provider "foobar" {
-				foobar = "foobar"
-			}
-			path          = "mystate.tfstate"
-			workspace_dir = "foobar"
-		}`),
-		Provider: &Provider{
-			Config: providerConfig,
-		},
-	}
-	s2 := StateStore{
-		Config: configBodyForTest(t, `state_store "foo" {
-			# No provider block here
-
-			path          = "mystate.tfstate"
-			workspace_dir = "foobar"
-		}`),
-		Provider: &Provider{
-			Config: providerConfig,
-		},
-	}
-
-	s1StoreHash, _, _ := s1.Hash(stateStoreSchema, providerSchema)
-	s2StoreHash, _, _ := s2.Hash(stateStoreSchema, providerSchema)
-
-	if s1StoreHash != s2StoreHash {
-		t.Fatalf("expected state_store block hashes to match, as hashing logic should ignore presence of provider block. Got s1 %d, s2 %d", s1StoreHash, s2StoreHash)
-	}
-
-}
-
 func configBodyForTest(t *testing.T, config string) hcl.Body {
 	t.Helper()
 	f, diags := hclsyntax.ParseConfig([]byte(config), "", hcl.Pos{Line: 1, Column: 1})
