@@ -37,6 +37,5 @@ func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName, c
 			Type:      typeName,
 		},
 		ConfigRaw: []byte(config),
-		Hash:      12345,
 	}
 }

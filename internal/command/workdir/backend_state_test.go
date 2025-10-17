@@ -179,7 +179,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      },\n      \"hash\": 12345\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
 		},
 		"it's valid to record no version data when a builtin provider used for state store": {
 			Input: &BackendStateFile{
@@ -190,7 +190,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": null,\n      \"source\": \"terraform.io/builtin/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      },\n      \"hash\": 12345\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": null,\n      \"source\": \"terraform.io/builtin/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
 		},
 		"it's valid to record no version data when a re-attached provider used for state store": {
 			Input: &BackendStateFile{
@@ -215,7 +215,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 				}
 			}`,
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": null,\n      \"source\": \"registry.terraform.io/hashicorp/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      },\n      \"hash\": 12345\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": null,\n      \"source\": \"registry.terraform.io/hashicorp/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
 		},
 		"error when neither backend nor state_store config state are present": {
 			Input: &BackendStateFile{},

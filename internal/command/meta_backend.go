@@ -568,7 +568,7 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 // > Ensures that that state store type exists in the linked provider.
 // > Returns config that is the combination of config and any config overrides originally supplied via the CLI.
 // > Returns a hash of the config in the configuration files, i.e. excluding overrides
-func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, int, tfdiags.Diagnostics) {
+func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	c := opts.StateStoreConfig
@@ -580,7 +580,15 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 			Summary:  "Missing state store configuration",
 			Detail:   "Terraform attempted to configure a state store when no parsed 'state_store' configuration was present. This is a bug in Terraform and should be reported.",
 		})
-		return nil, 0, 0, diags
+		return nil, 0, diags
+	}
+
+	// Get the provider version from locks, as this impacts the hash
+	// NOTE: this assumes that we will never allow users to override config definint which provider is used for state storage
+	stateStoreProviderVersion, vDiags := getStateStorageProviderVersion(opts.StateStoreConfig, opts.Locks)
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		return nil, 0, diags
 	}
 
 	// Check - is the state store type in the config supported by the provider?
@@ -590,12 +598,12 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 			Summary:  "Missing provider details when configuring state store",
 			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
 		})
-		return nil, 0, 0, diags
+		return nil, 0, diags
 	}
 	provider, err := opts.ProviderFactory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
-		return nil, 0, 0, diags
+		return nil, 0, diags
 	}
 	defer provider.Close() // Stop the child process once we're done with it here.
 
@@ -610,7 +618,7 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 				c.ProviderAddr),
 			Subject: &c.DeclRange,
 		})
-		return nil, 0, 0, diags
+		return nil, 0, diags
 	}
 
 	stateStoreSchema, exists := resp.StateStores[c.Type]
@@ -628,7 +636,7 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 				c.ProviderAddr, suggestion),
 			Subject: &c.DeclRange,
 		})
-		return nil, 0, 0, diags
+		return nil, 0, diags
 	}
 
 	// We know that the provider contains a state store with the correct type name.
@@ -638,7 +646,7 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 	// > Apply any overrides
 
 	configBody := c.Config
-	stateStoreHash, providerHash, diags := c.Hash(stateStoreSchema.Body, resp.Provider.Body)
+	hash, diags := c.Hash(stateStoreSchema.Body, resp.Provider.Body, stateStoreProviderVersion)
 
 	// If we have an override configuration body then we must apply it now.
 	if opts.ConfigOverride != nil {
@@ -646,13 +654,13 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, in
 		configBody = configs.MergeBodies(configBody, opts.ConfigOverride)
 	}
 
-	log.Printf("[TRACE] Meta.Backend: built configuration for %q state_store with hash value %d and nested provider block with hash value %d", c.Type, stateStoreHash, providerHash)
+	log.Printf("[TRACE] Meta.Backend: built configuration for %q state_store with hash value %d", c.Type, hash)
 
 	// We'll shallow-copy configs.StateStore here so that we can replace the
 	// body without affecting others that hold this reference.
 	configCopy := *c
 	configCopy.Config = configBody
-	return &configCopy, stateStoreHash, providerHash, diags
+	return &configCopy, hash, diags
 }
 
 // backendFromConfig returns the initialized (not configured) backend
@@ -673,13 +681,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Get the local 'backend' or 'state_store' configuration.
 	var backendConfig *configs.Backend
 	var stateStoreConfig *configs.StateStore
-	var backendHash int
-	var stateStoreHash int
-	var stateStoreProviderHash int
+	var cHash int
 	if opts.StateStoreConfig != nil {
 		// state store has been parsed from config and is included in opts
 		var ssDiags tfdiags.Diagnostics
-		stateStoreConfig, stateStoreHash, stateStoreProviderHash, ssDiags = m.stateStoreConfig(opts)
+		stateStoreConfig, cHash, ssDiags = m.stateStoreConfig(opts)
 		diags = diags.Append(ssDiags)
 		if ssDiags.HasErrors() {
 			return nil, diags
@@ -688,7 +694,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// backend config may or may not have been parsed and included in opts,
 		// or may not exist in config at all (default/implied local backend)
 		var beDiags tfdiags.Diagnostics
-		backendConfig, backendHash, beDiags = m.backendConfig(opts)
+		backendConfig, cHash, beDiags = m.backendConfig(opts)
 		diags = diags.Append(beDiags)
 		if beDiags.HasErrors() {
 			return nil, diags
@@ -779,7 +785,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		return m.backend_c_r_S(backendConfig, backendHash, sMgr, true, opts)
+		return m.backend_c_r_S(backendConfig, cHash, sMgr, true, opts)
 
 	// We're unsetting a state_store (moving from state_store => local)
 	case stateStoreConfig == nil && !s.StateStore.Empty() &&
@@ -809,7 +815,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			}
 			return nil, diags
 		}
-		return m.backend_C_r_s(backendConfig, backendHash, sMgr, opts)
+		return m.backend_C_r_s(backendConfig, cHash, sMgr, opts)
 
 	// Configuring a state store for the first time or -reconfigure flag was used
 	case stateStoreConfig != nil && s.StateStore.Empty() &&
@@ -830,7 +836,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		return m.stateStore_C_s(stateStoreConfig, stateStoreHash, stateStoreProviderHash, sMgr, opts)
+		return m.stateStore_C_s(stateStoreConfig, cHash, sMgr, opts)
 
 	// Migration from state store to backend
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -870,7 +876,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// We're not initializing
 		// AND the backend cache hash values match, indicating that the stored config is valid and completely unchanged.
 		// AND we're not providing any overrides. An override can mean a change overriding an unchanged backend block (indicated by the hash value).
-		if (uint64(backendHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
+		if (uint64(cHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", backendConfig.Type)
 			savedBackend, diags := m.savedBackend(sMgr)
 			// Verify that selected workspace exist. Otherwise prompt user to create one
@@ -898,7 +904,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			// It's possible for a backend to be unchanged, and the config itself to
 			// have changed by moving a parameter from the config to `-backend-config`
 			// In this case, we update the Hash.
-			moreDiags = m.updateSavedBackendHash(backendHash, sMgr)
+			moreDiags = m.updateSavedBackendHash(cHash, sMgr)
 			if moreDiags.HasErrors() {
 				return nil, diags
 			}
@@ -929,7 +935,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 
 		log.Printf("[WARN] backend config has changed since last init")
-		return m.backend_C_r_S_changed(backendConfig, backendHash, sMgr, true, opts)
+		return m.backend_C_r_S_changed(backendConfig, cHash, sMgr, true, opts)
 
 	// Potentially changing a state store configuration
 	case backendConfig == nil && s.Backend.Empty() &&
@@ -944,6 +950,26 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// > Changing how the store is configured.
 		// > Allowing values to be moved between partial overrides and config
 
+		// We're not initializing
+		// AND the config's and backend state file's hash values match, indicating that the stored config is valid and completely unchanged.
+		// AND we're not providing any overrides. An override can mean a change overriding an unchanged backend block (indicated by the hash value).
+		if (uint64(cHash) == s.StateStore.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
+			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q state_store configuration", stateStoreConfig.Type)
+			savedStateStore, sssDiags := m.savedStateStore(sMgr, opts.ProviderFactory)
+			diags = diags.Append(sssDiags)
+			// Verify that selected workspace exist. Otherwise prompt user to create one
+			if opts.Init && savedStateStore != nil {
+				if err := m.selectWorkspace(savedStateStore); err != nil {
+					diags = diags.Append(err)
+					return nil, diags
+				}
+			}
+			return savedStateStore, diags
+		}
+
+		// Above caters only for unchanged config
+		// but this switch case will also handle changes,
+		// which isn't implemented yet.
 		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Not implemented yet",
@@ -1569,7 +1595,7 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 //-------------------------------------------------------------------
 
 // Configuring a state_store for the first time.
-func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, providerHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
@@ -1691,33 +1717,21 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 		} else {
 			// The provider is not built in and is being managed by Terraform
 			// This is the most common scenario, by far.
-			pLock := opts.Locks.Provider(c.ProviderAddr)
-			if pLock == nil {
-				diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
-					c.Provider.Name,
-					c.ProviderAddr,
-					c.Type))
-				return nil, diags
-			}
-			var err error
-			pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
-					c.Provider.Name,
-					c.ProviderAddr,
-					c.Type,
-					err))
+			var vDiags tfdiags.Diagnostics
+			pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks)
+			diags = diags.Append(vDiags)
+			if vDiags.HasErrors() {
 				return nil, diags
 			}
 		}
 	}
+
 	s.StateStore = &workdir.StateStoreConfigState{
 		Type: c.Type,
 		Hash: uint64(stateStoreHash),
 		Provider: &workdir.ProviderConfigState{
 			Source:  &c.ProviderAddr,
 			Version: pVersion,
-			Hash:    uint64(providerHash),
 		},
 	}
 	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
@@ -1792,6 +1806,46 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, provide
 	}
 
 	return b, diags
+}
+
+// getStateStorageProviderVersion gets the current version of the state store provider that's in use. This is achieved
+// by inspecting the current locks.
+//
+// This function assumes that calling code has checked whether the provider is fully managed by Terraform,
+// or is built-in, before using this method and is prepared to receive a nil Version.
+func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks) (*version.Version, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var pVersion *version.Version
+
+	isBuiltin := c.ProviderAddr.Hostname == addrs.BuiltInProviderHost
+	isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+	if isBuiltin || isReattached {
+		return nil, nil // nil Version returned
+	}
+
+	pLock := locks.Provider(c.ProviderAddr)
+	if pLock == nil {
+		diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
+			c.Provider.Name,
+			c.ProviderAddr,
+			c.Type))
+		return nil, diags
+	}
+	pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) used with state store %q. This is a bug in Terraform and should be reported: %w",
+			c.Provider.Name,
+			c.ProviderAddr,
+			c.Type,
+			err))
+		return nil, diags
+	}
+
+	return pVersion, diags
 }
 
 // createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,

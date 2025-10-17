@@ -27,7 +27,7 @@ type StateStoreConfigState struct {
 	Type      string               `json:"type"`     // State store type name
 	Provider  *ProviderConfigState `json:"provider"` // Details about the state-storage provider
 	ConfigRaw json.RawMessage      `json:"config"`   // state_store block raw config, barring provider details
-	Hash      uint64               `json:"hash"`     // Hash of the state_store block's configuration, excluding the provider block and any values supplied via methods other than config
+	Hash      uint64               `json:"hash"`     // Hash of the state_store block's configuration, including the nested provider block
 }
 
 // Empty returns true if there is no active state store.
@@ -139,7 +139,6 @@ func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
 	provider := &ProviderConfigState{
 		Version: s.Provider.Version,
 		Source:  s.Provider.Source,
-		Hash:    s.Provider.Hash,
 	}
 	if s.Provider.ConfigRaw != nil {
 		provider.ConfigRaw = make([]byte, len(s.Provider.ConfigRaw))
@@ -168,7 +167,6 @@ type ProviderConfigState struct {
 	Version   *version.Version `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
 	Source    *tfaddr.Provider `json:"source"`  // The FQN/fully-qualified name of the provider.
 	ConfigRaw json.RawMessage  `json:"config"`  // state_store block raw config, barring provider details
-	Hash      uint64           `json:"hash"`    // Hash of the nested provider block's configuration, excluding any values supplied via methods other than config
 }
 
 // Empty returns true if there is no provider config state data.
