@@ -131,9 +131,12 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 	}
 }
 
-// Hash produces a hash value for the receiver that covers the type and the
-// portions of the config that conform to the state_store schema. The provider
-// block that is nested inside state_store is ignored.
+// Hash produces a hash value for the receiver that covers:
+// 1) the portions of the config that conform to the state_store schema.
+// 2) the portions of the config that conform to the provider schema.
+// 3) the state store type
+// 4) the provider source
+// 5) the provider version
 //
 // If the config does not conform to the schema then the result is not
 // meaningful for comparison since it will be based on an incomplete result.
