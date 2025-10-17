@@ -583,6 +583,14 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 		return nil, 0, diags
 	}
 
+	// Get the provider version from locks, as this impacts the hash
+	// NOTE: this assumes that we will never allow users to override config definint which provider is used for state storage
+	stateStoreProviderVersion, vDiags := getStateStorageProviderVersion(opts.StateStoreConfig, opts.Locks)
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		return nil, 0, diags
+	}
+
 	// Check - is the state store type in the config supported by the provider?
 	if opts.ProviderFactory == nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -638,7 +646,7 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 	// > Apply any overrides
 
 	configBody := c.Config
-	hash, diags := c.Hash(stateStoreSchema.Body, resp.Provider.Body)
+	hash, diags := c.Hash(stateStoreSchema.Body, resp.Provider.Body, stateStoreProviderVersion)
 
 	// If we have an override configuration body then we must apply it now.
 	if opts.ConfigOverride != nil {
@@ -1800,7 +1808,10 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	return b, diags
 }
 
-// getStateStorageProviderVersion assumes that calling code has checked whether the provider is fully managed by Terraform,
+// getStateStorageProviderVersion gets the current version of the state store provider that's in use. This is achieved
+// by inspecting the current locks.
+//
+// This function assumes that calling code has checked whether the provider is fully managed by Terraform,
 // or is built-in, before using this method and is prepared to receive a nil Version.
 func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks) (*version.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -1826,7 +1837,7 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 	}
 	pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
 	if err != nil {
-		diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) when recording backend state for state store %q. This is a bug in Terraform and should be reported: %w",
+		diags = diags.Append(fmt.Errorf("Failed obtain the in-use version of provider %s (%q) used with state store %q. This is a bug in Terraform and should be reported: %w",
 			c.Provider.Name,
 			c.ProviderAddr,
 			c.Type,

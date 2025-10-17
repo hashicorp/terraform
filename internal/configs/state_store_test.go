@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
@@ -18,28 +19,8 @@ import (
 // and it requires calling code to remove the nested provider block from state_store config data.
 func TestStateStore_Hash(t *testing.T) {
 
-	// This test assumes a configuration like this,
-	// where the "fs" state store is implemented in
-	// the "foobar" provider:
-	//
-	// terraform {
-	//   required_providers = {
-	//     # entries would be here
-	//   }
-	//   state_store "foobar_fs" {
-	//     # Nested provider block
-	//     provider "foobar" {
-	//       foobar = "foobar"
-	//     }
-
-	//     # Attributes for configuring the state store
-	//     path          = "mystate.tfstate"
-	//     workspace_dir = "foobar"
-	//   }
-	// }
-
 	// Normally these schemas would come from a provider's GetProviderSchema data
-	stateStoreSchema := &configschema.Block{
+	exampleStateStoreSchema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"path": {
 				Type:     cty.String,
@@ -51,7 +32,7 @@ func TestStateStore_Hash(t *testing.T) {
 			},
 		},
 	}
-	providerSchema := &configschema.Block{
+	exampleProviderSchema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"foobar": {
 				Type:     cty.String,
@@ -60,7 +41,10 @@ func TestStateStore_Hash(t *testing.T) {
 		},
 	}
 
-	// These two values are coupled.
+	// These values are all coupled.
+	// The test case below asserts that given these inputs, the expected hash is returned.
+	exampleProviderVersion := version.Must(version.NewSemver("1.2.3"))
+	exampleProviderAddr := tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "foobar")
 	exampleConfig := configBodyForTest(t, `state_store "foobar_fs" {
 					provider "foobar" {
 						foobar = "foobar"
@@ -68,22 +52,40 @@ func TestStateStore_Hash(t *testing.T) {
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"
 			}`)
-	exampleHash := 33464751
+	exampleHash := 614398732
+	t.Run("example happy path with all attrs set in the configuration", func(t *testing.T) {
+		// Construct a configs.StateStore for the test.
+		content, _, cfgDiags := exampleConfig.PartialContent(terraformBlockSchema)
+		if len(cfgDiags) > 0 {
+			t.Fatalf("unexpected diagnostics: %s", cfgDiags)
+		}
+		var ssDiags hcl.Diagnostics
+		s, ssDiags := decodeStateStoreBlock(content.Blocks.OfType("state_store")[0])
+		if len(ssDiags) > 0 {
+			t.Fatalf("unexpected diagnostics: %s", ssDiags)
+		}
+		s.ProviderAddr = exampleProviderAddr
 
+		// Test Hash method.
+		gotHash, diags := s.Hash(exampleStateStoreSchema, exampleProviderSchema, exampleProviderVersion)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
+		}
+
+		if gotHash != exampleHash {
+			t.Fatalf("expected hash for state_store to be %d, but got %d", exampleHash, gotHash)
+		}
+	})
+
+	// Test cases each change a single input that affects the output hash
+	// Assertions check that the output hash doesn't match the hash above, following the changed input.
 	cases := map[string]struct {
 		config           hcl.Body
 		stateStoreSchema *configschema.Block
+		providerVersion  *version.Version
 		providerAddr     tfaddr.Provider
-		wantErrorString  string
-		wantHash         int
 	}{
-		"example happy path with all attrs set in the configuration": {
-			stateStoreSchema: stateStoreSchema,
-			config:           exampleConfig,
-			wantHash:         exampleHash,
-		},
 		"changing the state store type affects the hash value": {
-			stateStoreSchema: stateStoreSchema,
 			config: configBodyForTest(t, `state_store "foobar_CHANGED_VALUE_HERE" {
 					provider "foobar" {
 						foobar = "foobar"
@@ -91,11 +93,9 @@ func TestStateStore_Hash(t *testing.T) {
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"
 			}`),
-			wantHash: 559959421, // Differs from `exampleHash`
 		},
 		"changing the provider affects the hash value": {
-			stateStoreSchema: stateStoreSchema,
-			providerAddr:     tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "different-provider"),
+			providerAddr: tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "different-provider"),
 			config: configBodyForTest(t, `state_store "different-provider_fs" {
 					provider "different-provider" {
 						foobar = "foobar"
@@ -103,10 +103,11 @@ func TestStateStore_Hash(t *testing.T) {
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"
 			}`),
-			wantHash: 1672894798, // Differs from `exampleHash`
+		},
+		"changing the provider version affects the hash value": {
+			providerVersion: version.Must(version.NewSemver("9.9.9")),
 		},
 		"tolerates empty config block for the provider even when schema has Required field(s)": {
-			stateStoreSchema: stateStoreSchema,
 			config: configBodyForTest(t, `state_store "foobar_fs" {
 					provider "foobar" {
 						# required field "foobar" is missing
@@ -114,10 +115,9 @@ func TestStateStore_Hash(t *testing.T) {
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"
 			}`),
-			wantHash: 3558227459,
 		},
 		"tolerates missing Required field(s) in state_store config": {
-			stateStoreSchema: stateStoreSchema,
+			stateStoreSchema: exampleStateStoreSchema,
 			config: configBodyForTest(t, `state_store "foobar_fs" {
 					provider "foobar" {
 					  foobar = "foobar"
@@ -126,10 +126,93 @@ func TestStateStore_Hash(t *testing.T) {
 					# required field "path" is missing
 					workspace_dir = "foobar"
 			}`),
-			wantHash: 3682853451,
 		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			// If a test case doesn't set an override for these inputs,
+			// instead use a default value from the example above.
+			var config hcl.Body
+			var schema *configschema.Block
+			var providerVersion *version.Version
+			var providerAddr tfaddr.Provider
+			if tc.config == nil {
+				config = exampleConfig
+			} else {
+				config = tc.config
+			}
+			if tc.stateStoreSchema == nil {
+				schema = exampleStateStoreSchema
+			} else {
+				schema = tc.stateStoreSchema
+			}
+			if tc.providerVersion == nil {
+				providerVersion = exampleProviderVersion
+			} else {
+				providerVersion = tc.providerVersion
+			}
+			if tc.providerAddr.IsZero() {
+				providerAddr = exampleProviderAddr
+			} else {
+				providerAddr = tc.providerAddr
+			}
+
+			// Construct a configs.StateStore for the test.
+			content, _, cfgDiags := config.PartialContent(terraformBlockSchema)
+			if len(cfgDiags) > 0 {
+				t.Fatalf("unexpected diagnostics: %s", cfgDiags)
+			}
+			var ssDiags hcl.Diagnostics
+			s, ssDiags := decodeStateStoreBlock(content.Blocks.OfType("state_store")[0])
+			if len(ssDiags) > 0 {
+				t.Fatalf("unexpected diagnostics: %s", ssDiags)
+			}
+			s.ProviderAddr = providerAddr
+
+			// Test Hash method.
+			gotHash, diags := s.Hash(schema, exampleProviderSchema, providerVersion)
+			if diags.HasErrors() {
+				t.Fatalf("unexpected error: %s", diags.Err())
+			}
+			if gotHash == exampleHash {
+				t.Fatal("expected hash for state_store to be different from the example due to a changed input, but it matched.")
+			}
+		})
+	}
+}
+
+func TestStateStore_Hash_errorConditions(t *testing.T) {
+	// Normally these schemas would come from a provider's GetProviderSchema data
+	exampleStateStoreSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"path": {
+				Type:     cty.String,
+				Required: true,
+			},
+			"workspace_dir": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+	exampleProviderSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foobar": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+
+	// Cases where an error would occur
+	cases := map[string]struct {
+		config           hcl.Body
+		stateStoreSchema *configschema.Block
+		wantErrorString  string
+	}{
 		"returns errors when the state_store config doesn't match the schema": {
-			stateStoreSchema: stateStoreSchema,
+			stateStoreSchema: exampleStateStoreSchema,
 			config: configBodyForTest(t, `state_store "foobar_fs" {
 					provider "foobar" {
 					  foobar = "foobar"
@@ -144,7 +227,7 @@ func TestStateStore_Hash(t *testing.T) {
 			wantErrorString: "Unsupported argument",
 		},
 		"returns errors when the provider config doesn't match the schema": {
-			stateStoreSchema: stateStoreSchema,
+			stateStoreSchema: exampleStateStoreSchema,
 			config: configBodyForTest(t, `state_store "foobar_fs" {
 					provider "foobar" {
 					  foobar = "foobar"
@@ -215,32 +298,15 @@ func TestStateStore_Hash(t *testing.T) {
 			if len(ssDiags) > 0 {
 				t.Fatalf("unexpected diagnostics: %s", ssDiags)
 			}
-			// Add provider addr
-			if tc.providerAddr.IsZero() {
-				s.ProviderAddr = tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "foobar")
-			} else {
-				s.ProviderAddr = tc.providerAddr
-			}
+			s.ProviderAddr = tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "foobar")
 
 			// Test Hash method.
-			gotHash, diags := s.Hash(tc.stateStoreSchema, providerSchema)
-			if diags.HasErrors() {
-				if tc.wantErrorString == "" {
-					t.Fatalf("unexpected error: %s", diags.Err())
-				}
-				if !strings.Contains(diags.Err().Error(), tc.wantErrorString) {
-					t.Fatalf("expected %q to be in the returned error string but it's missing: %q", tc.wantErrorString, diags.Err())
-				}
-
-				return // early return if testing an error case
+			_, diags := s.Hash(tc.stateStoreSchema, exampleProviderSchema, version.Must(version.NewSemver("1.2.3")))
+			if !diags.HasErrors() {
+				t.Fatal("expected error but got none")
 			}
-
-			if !diags.HasErrors() && tc.wantErrorString != "" {
-				t.Fatal("expected an error when generating a hash, but got none")
-			}
-
-			if gotHash != tc.wantHash {
-				t.Fatalf("expected hash for state_store to be %d, but got %d", tc.wantHash, gotHash)
+			if !strings.Contains(diags.Err().Error(), tc.wantErrorString) {
+				t.Fatalf("expected error to contain %q but got: %s", tc.wantErrorString, diags.Err())
 			}
 		})
 	}

@@ -6,6 +6,7 @@ package configs
 import (
 	"fmt"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
@@ -141,7 +142,7 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 // for the purpose of hashing, so that an incomplete configuration can still
 // be hashed. Other errors, such as extraneous attributes, have no such special
 // case.
-func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *configschema.Block) (int, tfdiags.Diagnostics) {
+func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *configschema.Block, stateStoreProviderVersion *version.Version) (int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// 1. Prepare the state_store hash
@@ -204,9 +205,10 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 		cty.StringVal(b.Type), // state store type
 		ssVal,                 // state store config
 
-		cty.StringVal(b.Provider.Name),         // provider name - this reflects the config, whereas provider source is influenced by config but separate
-		cty.StringVal(b.ProviderAddr.String()), // provider source
-		pVal,                                   // provider config
+		cty.StringVal(b.ProviderAddr.String()),            // provider source
+		cty.StringVal(stateStoreProviderVersion.String()), // provider version
+		cty.StringVal(b.Provider.Name),                    // provider name - this is directly parsed from the config, whereas provider source is added separately later after config is parsed.
+		pVal,                                              // provider config
 	})
 	return toHash.Hash(), diags
 }

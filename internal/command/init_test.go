@@ -3304,7 +3304,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		expectedState := &workdir.StateStoreConfigState{
 			Type:      "test_store",
 			ConfigRaw: []byte("{\n      \"value\": \"foobar\"\n    }"),
-			Hash:      uint64(2116468040), // Hash affected by config
+			Hash:      uint64(4158988729),
 			Provider: &workdir.ProviderConfigState{
 				Version: v1_2_3,
 				Source: &tfaddr.Provider{
@@ -3565,7 +3565,7 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 	expectedState := &workdir.StateStoreConfigState{
 		Type:      "test_store",
 		ConfigRaw: []byte("{\n            \"value\": \"foobar\"\n        }"),
-		Hash:      uint64(2116468040), // Hash affected by config
+		Hash:      uint64(4158988729),
 		Provider: &workdir.ProviderConfigState{
 			Version: v1_2_3,
 			Source: &tfaddr.Provider{
@@ -3736,7 +3736,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		expectedState := &workdir.StateStoreConfigState{
 			Type:      "test_store",
 			ConfigRaw: []byte("{\n      \"value\": \"changed-value\"\n    }"),
-			Hash:      uint64(1417640992), // Hash affected by config
+			Hash:      uint64(1157855489), // The new hash after reconfiguring; this doesn't match the backend state test fixture
 			Provider: &workdir.ProviderConfigState{
 				Version: v1_2_3,
 				Source: &tfaddr.Provider{
