@@ -1584,7 +1584,7 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 // This method should be used in NON-init operations only; it's incapable of processing new init command CLI flags used
 // for partial configuration, however it will use the backend state file to use partial configuration from a previous
 // init command.
-func (m *Meta) prepareBackend(root *configs.Module, locks *depsfile.Locks) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+func (m *Meta) prepareBackend(root *configs.Module) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	var opts *BackendOpts
@@ -1601,16 +1601,15 @@ func (m *Meta) prepareBackend(root *configs.Module, locks *depsfile.Locks) (back
 	case root.StateStore != nil:
 		// In addition to config, use of a state_store requires
 		// provider factory and provider locks data
-		factory, fDiags := m.GetStateStoreProviderFactory(root.StateStore, locks)
-		diags = diags.Append(fDiags)
-		if fDiags.HasErrors() {
+		locks, lDiags := m.lockedDependencies()
+		diags = diags.Append(lDiags)
+		if lDiags.HasErrors() {
 			return nil, diags
 		}
 
-		// TODO(SarahFrench/radeksimko): Use locks from here in opts below
-		_, lDiags := m.lockedDependencies()
-		diags = diags.Append(lDiags)
-		if lDiags.HasErrors() {
+		factory, fDiags := m.GetStateStoreProviderFactory(root.StateStore, locks)
+		diags = diags.Append(fDiags)
+		if fDiags.HasErrors() {
 			return nil, diags
 		}
 
