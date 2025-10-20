@@ -811,6 +811,21 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 			})
 		}
 
+		// We don't allow depends_on on actions because their ordering is depending on the resource
+		// that triggers them, therefore users should use a depends_on on the resource instead.
+
+		if ref != nil {
+			switch ref.Subject.(type) {
+			case addrs.Action, addrs.ActionInstance:
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on reference",
+					Detail:   "Actions can not be referenced in depends_on. Use depends_on on the resource that triggers the action instead.",
+					Subject:  traversal.SourceRange().Ptr(),
+				})
+			}
+		}
+
 		// The ref must also refer to something that exists. To test that,
 		// we'll just eval it and count on the fact that our evaluator will
 		// detect references to non-existent objects.
