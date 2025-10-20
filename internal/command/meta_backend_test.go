@@ -3113,6 +3113,21 @@ func testStateStoreMock(t *testing.T) *testing_provider.MockProvider {
 	}
 }
 
+// testStateStoreMockWithChunkNegotiation is just like testStateStoreMock but the returned mock is set up so it'll be configured
+// without this error: `Failed to negotiate acceptable chunk size`
+//
+// This is meant to be a convenience method when a test is definitely not testing anything related to state store configuration.
+func testStateStoreMockWithChunkNegotiation(t *testing.T, chunkSize int64) *testing_provider.MockProvider {
+	t.Helper()
+	mock := testStateStoreMock(t)
+	mock.ConfigureStateStoreResponse = &providers.ConfigureStateStoreResponse{
+		Capabilities: providers.StateStoreServerCapabilities{
+			ChunkSize: chunkSize,
+		},
+	}
+	return mock
+}
+
 func configBodyForTest(t *testing.T, config string) hcl.Body {
 	t.Helper()
 	f, diags := hclsyntax.ParseConfig([]byte(config), "", hcl.Pos{Line: 1, Column: 1})
