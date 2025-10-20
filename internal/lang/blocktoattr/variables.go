@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/dynblock"
 	"github.com/hashicorp/hcl/v2/hcldec"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
@@ -24,6 +25,13 @@ import (
 // which is itself a drop-in replacement for hcldec.Variables.
 func ExpandedVariables(body hcl.Body, schema *configschema.Block) []hcl.Traversal {
 	rootNode := dynblock.WalkVariables(body)
+	return walkVariables(rootNode, body, schema)
+}
+
+// ExpandedVariablesHCLDec matches the logic behind creating ExpandedVariables
+// but is intended as a drop-in replacement for dynblock.ExpandVariablesHCLDec.
+func ExpandedVariablesHCLDec(body hcl.Body, schema *configschema.Block) []hcl.Traversal {
+	rootNode := dynblock.WalkExpandVariables(body)
 	return walkVariables(rootNode, body, schema)
 }
 

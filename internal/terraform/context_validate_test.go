@@ -3846,3 +3846,53 @@ func TestContext2Validate_noListValidated(t *testing.T) {
 		})
 	}
 }
+
+func TestContext2Validate_attrsAsBlockExpanded(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "input" {
+  type = set(string)
+}
+
+resource "test_resource" "resource" {
+  test_block {
+    dynamic "nested_block" {
+      for_each = var.input
+      content {
+        value = nested_block.value
+      }
+    }
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_resource": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"test_block": {
+							Type: cty.List(cty.Object(map[string]cty.Type{
+								"nested_block": cty.List(cty.Object(map[string]cty.Type{
+									"value": cty.String,
+								})),
+							})),
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	tfdiags.AssertNoDiagnostics(t, diags)
+}
