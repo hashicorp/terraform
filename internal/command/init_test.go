@@ -3242,7 +3242,9 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
 		})
 		defer close()
 
@@ -3298,20 +3300,19 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		if s == nil {
 			t.Fatal("expected backend state file to be created, but there isn't one")
 		}
-		v1_0_0, _ := version.NewVersion("1.0.0")
+		v1_2_3, _ := version.NewVersion("1.2.3")
 		expectedState := &workdir.StateStoreConfigState{
 			Type:      "test_store",
 			ConfigRaw: []byte("{\n      \"value\": \"foobar\"\n    }"),
-			Hash:      uint64(2116468040), // Hash affected by config
+			Hash:      uint64(4158988729),
 			Provider: &workdir.ProviderConfigState{
-				Version: v1_0_0,
+				Version: v1_2_3,
 				Source: &tfaddr.Provider{
 					Hostname:  tfaddr.DefaultProviderRegistryHost,
 					Namespace: "hashicorp",
 					Type:      "test",
 				},
 				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
-				Hash:      uint64(3976463117), // Hash of empty config
 			},
 		}
 		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
@@ -3558,18 +3559,127 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in a working directory where the configuration
 // doesn't match the backend state file.
+func TestInit_stateStore_configUnchanged(t *testing.T) {
+	// This matches the backend state test fixture in "state-store-unchanged"
+	v1_2_3, _ := version.NewVersion("1.2.3")
+	expectedState := &workdir.StateStoreConfigState{
+		Type:      "test_store",
+		ConfigRaw: []byte("{\n            \"value\": \"foobar\"\n        }"),
+		Hash:      uint64(4158988729),
+		Provider: &workdir.ProviderConfigState{
+			Version: v1_2_3,
+			Source: &tfaddr.Provider{
+				Hostname:  tfaddr.DefaultProviderRegistryHost,
+				Namespace: "hashicorp",
+				Type:      "test",
+			},
+			ConfigRaw: []byte("{\n                \"region\": null\n            }"),
+		},
+	}
+
+	t.Run("init is successful when the configuration and backend state match", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that matches the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		// If the working directory was previously initialized successfully then at least
+		// one workspace is guaranteed to exist when a user is re-running init with no config
+		// changes since last init. So this test says `default` exists.
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
+			States: []string{"default"},
+		}
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Before running init, confirm the contents of the backend state file before
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be present, but there isn't one")
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+
+		// Run init command
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Confirm init was a no-op and backend state is unchanged afterwards
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s = sMgr.State()
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+	})
+}
+
+// Testing init's behaviors with `state_store` when run in a working directory where the configuration
+// doesn't match the backend state file.
 func TestInit_stateStore_configChanges(t *testing.T) {
 	t.Run("the -reconfigure flag makes Terraform ignore the backend state file during initialization", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-reconfigure"), td)
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
+
+		// The previous init implied by this test scenario would have created this.
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}}
+		mockProvider.MockStates = map[string]interface{}{"default": true}
+
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 		defer close()
 
@@ -3612,11 +3722,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			}
 		}
 
-		// Assert the default workspace was created
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
-			t.Fatal("expected the default workspace to be created during init, but it is missing")
-		}
-
 		// Assert contents of the backend state file
 		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
 		sMgr := &clistate.LocalState{Path: statePath}
@@ -3627,20 +3732,19 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		if s == nil {
 			t.Fatal("expected backend state file to be created, but there isn't one")
 		}
-		v1_0_0, _ := version.NewVersion("1.0.0")
+		v1_2_3, _ := version.NewVersion("1.2.3")
 		expectedState := &workdir.StateStoreConfigState{
 			Type:      "test_store",
 			ConfigRaw: []byte("{\n      \"value\": \"changed-value\"\n    }"),
-			Hash:      uint64(1417640992), // Hash affected by config
+			Hash:      uint64(1157855489), // The new hash after reconfiguring; this doesn't match the backend state test fixture
 			Provider: &workdir.ProviderConfigState{
-				Version: v1_0_0,
+				Version: v1_2_3,
 				Source: &tfaddr.Provider{
 					Hostname:  tfaddr.DefaultProviderRegistryHost,
 					Namespace: "hashicorp",
 					Type:      "test",
 				},
 				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
-				Hash:      uint64(3976463117), // Hash of empty config
 			},
 		}
 		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
@@ -3648,12 +3752,270 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 	})
 
-	// TODO(SarahFrench/radeksimko): Add more test cases related to changing the
-	// configuration and the forced need for state migration.
-	// More complicated situations might benefit from being separate tests altogether.
-	// Simpler scenarios that make sense to keep here are:
-	// 1) Changing config of the same state_store type
-	// 2) Changing config of the same provider (and version) used for PSS
+	t.Run("handling changed state store config is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+
+	})
+
+	t.Run("handling changed state store provider config is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-config"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
+
+	t.Run("handling changed state store type in the same provider is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/state-store-type"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		storeName := "test_store"
+		otherStoreName := "test_otherstore"
+		// Make the provider report that it contains a 2nd storage implementation with the above name
+		mockProvider.GetProviderSchemaResponse.StateStores[otherStoreName] = mockProvider.GetProviderSchemaResponse.StateStores[storeName]
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
+
+	t.Run("handling changing the provider used for state storage is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-used"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
+
+		// Make a mock that implies its name is test2 based on returned schemas
+		mockProvider2 := mockPluggableStateStorageProvider()
+		mockProvider2.GetProviderSchemaResponse.StateStores["test2_store"] = mockProvider.GetProviderSchemaResponse.StateStores["test_store"]
+		delete(mockProvider2.GetProviderSchemaResponse.StateStores, "test_store")
+
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		mockProviderAddress2 := addrs.NewDefaultProvider("test2")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test":  {"1.2.3"}, // Provider in backend state file fixture
+			"hashicorp/test2": {"1.2.3"}, // Provider now used in config
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress:  providers.FactoryFixed(mockProvider),  // test provider
+					mockProviderAddress2: providers.FactoryFixed(mockProvider2), // test2 provider
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
+}
+
+// Testing init's behaviors with `state_store` when the provider used for state storage in a previous init
+// command is updated.
+//
+// TODO: Add a test case showing that downgrading provider version is ok as long as the schema version hasn't
+// changed. We should also have a test demonstrating that downgrades when the schema version HAS changed will fail.
+func TestInit_stateStore_providerUpgrade(t *testing.T) {
+	t.Run("handling upgrading the provider used for state storage is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-upgraded"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3", "9.9.9"}, // 1.2.3 is the version used in the backend state file, 9.9.9 is the version being upgraded to
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-upgrade",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
 }
 
 // newMockProviderSource is a helper to succinctly construct a mock provider

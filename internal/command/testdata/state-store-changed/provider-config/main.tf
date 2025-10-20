@@ -6,9 +6,9 @@ terraform {
   }
   state_store "test_store" {
     provider "test" {
-      region = "changed-value" # changed versus backend state file
+      region = "new-value" # changed versus backend state file
     }
 
-    value = "changed-value" # changed versus backend state file
+    value = "foobar"
   }
 }

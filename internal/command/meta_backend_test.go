@@ -16,6 +16,7 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/cli"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
@@ -2124,47 +2125,6 @@ func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
 	}
 }
 
-// Changing a configured state store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-// ALSO, this test will need to be split into multiple scenarios in future.
-func TestMetaBackend_changeConfiguredStateStore(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-changed"), td)
-	t.Chdir(td)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get mock provider to be used during init
-	//
-	// This imagines a provider called "test" that contains
-	// a pluggable state store implementation called "store".
-	mock := testStateStoreMock(t)
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		ProviderFactory:  providers.FactoryFixed(mock),
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Changing a state store configuration is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
 // Changing from using backend to state_store
 //
 // TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
@@ -2191,10 +2151,23 @@ func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 	mock := testStateStoreMock(t)
 
 	// Get the operations backend
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	locks.SetProvider(
+		providerAddr,
+		versions.MustParseVersion("9.9.9"),
+		constraint,
+		[]providerreqs.Hash{""},
+	)
 	_, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		ProviderFactory:  providers.FactoryFixed(mock),
+		Locks:            locks,
 	})
 	if !beDiags.HasErrors() {
 		t.Fatal("expected an error to be returned during partial implementation of PSS")
@@ -2247,6 +2220,19 @@ func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
 func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	wantErr := "Variables not allowed"
 
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	locks.SetProvider(
+		providerAddr,
+		versions.MustParseVersion("9.9.9"),
+		constraint,
+		[]providerreqs.Hash{""},
+	)
+
 	cases := map[string]struct {
 		fixture string
 		wantErr string
@@ -2289,6 +2275,7 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 				Init:             true,
 				StateStoreConfig: mod.StateStore,
 				ProviderFactory:  providers.FactoryFixed(mock),
+				Locks:            locks,
 			})
 			if err == nil {
 				t.Fatal("should error")
@@ -2339,7 +2326,7 @@ func TestSavedStateStore(t *testing.T) {
 		// Create a temporary working directory
 		chunkSize := 42
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td) // Fixtures with config that differs from backend state file
 		t.Chdir(td)
 
 		// Make a state manager for accessing the backend state file,
@@ -2360,8 +2347,9 @@ func TestSavedStateStore(t *testing.T) {
 		mock.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 			// Assert that the state store is configured using backend state file values from the fixtures
 			config := req.Config.AsValueMap()
-			if config["region"].AsString() != "old-value" {
-				t.Fatalf("expected the provider to be configured with values from the backend state file (the string \"old-value\"), not the config. Got: %#v", config)
+			if v, ok := config["region"]; ok && (v.Equals(cty.NullVal(cty.String)) != cty.True) {
+				// The backend state file has a null value for region, so if we're here we've somehow got a non-null value
+				t.Fatalf("expected the provider to be configured with values from the backend state file (where region is unset/null), not the config. Got value: %#v", v)
 			}
 			return providers.ConfigureProviderResponse{}
 		}
@@ -2429,7 +2417,7 @@ func TestSavedStateStore(t *testing.T) {
 	t.Run("error - when there's no state stores in provider", func(t *testing.T) {
 		// Create a temporary working directory
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td) // Fixtures with config that differs from backend state file
 		t.Chdir(td)
 
 		// Make a state manager for accessing the backend state file,
@@ -2461,7 +2449,7 @@ func TestSavedStateStore(t *testing.T) {
 	t.Run("error - when there's no matching state store in provider Terraform suggests different identifier", func(t *testing.T) {
 		// Create a temporary working directory
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed"), td) // Fixtures with config that differs from backend state file
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td) // Fixtures with config that differs from backend state file
 		t.Chdir(td)
 
 		// Make a state manager for accessing the backend state file,
@@ -2723,6 +2711,19 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		ProviderAddr: addrs.NewDefaultProvider("test"),
 	}
 
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	locks.SetProvider(
+		providerAddr,
+		versions.MustParseVersion("9.9.9"),
+		constraint,
+		[]providerreqs.Hash{""},
+	)
+
 	t.Run("override config can change values of custom attributes in the state_store block", func(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
@@ -2732,10 +2733,11 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			ConfigOverride:   configOverride,
 			ProviderFactory:  providers.FactoryFixed(mock),
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
-		finalConfig, _, _, diags := m.stateStoreConfig(opts)
+		finalConfig, _, diags := m.stateStoreConfig(opts)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
@@ -2759,10 +2761,11 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		opts := &BackendOpts{
 			StateStoreConfig: nil, //unset
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
-		_, _, _, diags := m.stateStoreConfig(opts)
+		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2780,10 +2783,11 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			StateStoreConfig: config,
 			ProviderFactory:  nil, // unset
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
-		_, _, _, diags := m.stateStoreConfig(opts)
+		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2804,10 +2808,11 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			StateStoreConfig: config,
 			ProviderFactory:  providers.FactoryFixed(mock),
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
-		_, _, _, diags := m.stateStoreConfig(opts)
+		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2831,10 +2836,11 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			StateStoreConfig: config,
 			ProviderFactory:  providers.FactoryFixed(mock),
 			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
-		_, _, _, diags := m.stateStoreConfig(opts)
+		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2849,6 +2855,107 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		if !strings.Contains(diags.Err().Error(), expectedSuggestion) {
 			t.Fatalf("expected the returned error to include a suggestion for fixing a typo %q, got: %s",
 				expectedSuggestion,
+				diags.Err(),
+			)
+		}
+	})
+}
+
+func Test_getStateStorageProviderVersion(t *testing.T) {
+	// Locks only contain hashicorp/test provider
+	locks := depsfile.NewLocks()
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+	if err != nil {
+		t.Fatalf("test setup failed when making constraint: %s", err)
+	}
+	setVersion := versions.MustParseVersion("9.9.9")
+	locks.SetProvider(
+		providerAddr,
+		setVersion,
+		constraint,
+		[]providerreqs.Hash{""},
+	)
+
+	t.Run("returns the version of the provider represented in the locks", func(t *testing.T) {
+		c := &configs.StateStore{
+			Provider:     &configs.Provider{},
+			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+		}
+		v, diags := getStateStorageProviderVersion(c, locks)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+
+		expectedVersion, err := providerreqs.GoVersionFromVersion(setVersion)
+		if err != nil {
+			t.Fatalf("test setup failed when making expected version: %s", err)
+		}
+		if !v.Equal(expectedVersion) {
+			t.Fatalf("expected version to be %#v, got %#v", expectedVersion, v)
+		}
+	})
+
+	t.Run("returns a nil version when using a builtin provider", func(t *testing.T) {
+		c := &configs.StateStore{
+			Provider:     &configs.Provider{},
+			ProviderAddr: tfaddr.NewProvider(addrs.BuiltInProviderHost, addrs.BuiltInProviderNamespace, "test"),
+		}
+		v, diags := getStateStorageProviderVersion(c, locks)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+
+		var expectedVersion *version.Version = nil
+		if !v.Equal(expectedVersion) {
+			t.Fatalf("expected version to be %#v, got %#v", expectedVersion, v)
+		}
+	})
+
+	t.Run("returns a nil version when using a re-attached provider", func(t *testing.T) {
+		t.Setenv("TF_REATTACH_PROVIDERS", `{
+			"test": {
+				"Protocol": "grpc",
+				"ProtocolVersion": 6,
+				"Pid": 12345,
+				"Test": true,
+				"Addr": {
+					"Network": "unix",
+					"String":"/var/folders/xx/abcde12345/T/plugin12345"
+				}
+			}
+		}`)
+		c := &configs.StateStore{
+			Provider:     &configs.Provider{},
+			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+		}
+		v, diags := getStateStorageProviderVersion(c, locks)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+
+		var expectedVersion *version.Version = nil
+		if !v.Equal(expectedVersion) {
+			t.Fatalf("expected version to be %#v, got %#v", expectedVersion, v)
+		}
+	})
+
+	t.Run("returns an error diagnostic when version info cannot be obtained from locks", func(t *testing.T) {
+		c := &configs.StateStore{
+			Type: "missing-provider_foobar",
+			Provider: &configs.Provider{
+				Name: "missing-provider",
+			},
+			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "missing-provider"),
+		}
+		_, diags := getStateStorageProviderVersion(c, locks)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectMsg := "not present in the lockfile"
+		if !strings.Contains(diags.Err().Error(), expectMsg) {
+			t.Fatalf("expected error to include %q but got: %s",
+				expectMsg,
 				diags.Err(),
 			)
 		}
