@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +12,9 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 // Provider is an implementation of providers.Interface
@@ -28,6 +31,33 @@ func NewProvider() providers.Interface {
 	return &Provider{
 		stores: map[string]providers.Interface{
 			"terraform_inmem": &InMemStoreSingle{},
+		},
+	}
+}
+
+// NewProvider returns a new terraform provider where the internal
+// state store(s) all have the default workspace already existing
+func NewProviderWithDefaultState() providers.Interface {
+	// Get the empty state file as bytes
+	f := statefile.New(nil, "", 0)
+
+	var buf bytes.Buffer
+	err := statefile.Write(f, &buf)
+	if err != nil {
+		panic(err)
+	}
+	emptyStateBytes := buf.Bytes()
+
+	// Return a provider where all state stores have existing default workspaces
+	return &Provider{
+		stores: map[string]providers.Interface{
+			"terraform_inmem": &InMemStoreSingle{
+				states: stateMap{
+					m: map[string][]byte{
+						backend.DefaultStateName: emptyStateBytes,
+					},
+				},
+			},
 		},
 	}
 }
