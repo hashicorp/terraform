@@ -14,7 +14,13 @@ import (
 )
 
 // Provider is an implementation of providers.Interface
-type Provider struct{}
+type Provider struct {
+
+	// State storage implementations
+	stores map[string]providers.Interface
+}
+
+var _ providers.Interface = &Provider{}
 
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
@@ -284,48 +290,80 @@ func (p *Provider) ListResource(req providers.ListResourceRequest) providers.Lis
 }
 
 func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	if s, ok := p.stores[req.TypeName]; ok {
+		return s.ValidateStateStoreConfig(req)
+	}
+
 	var resp providers.ValidateStateStoreConfigResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	if s, ok := p.stores[req.TypeName]; ok {
+		return s.ConfigureStateStore(req)
+	}
+
 	var resp providers.ConfigureStateStoreResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	if s, ok := p.stores[req.TypeName]; ok {
+		return s.ReadStateBytes(req)
+	}
+
 	var resp providers.ReadStateBytesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	if s, ok := p.stores[req.TypeName]; ok {
+		return s.WriteStateBytes(req)
+	}
+
 	var resp providers.WriteStateBytesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	if s, ok := p.stores[req.TypeName]; ok {
+		return s.LockState(req)
+	}
+
 	var resp providers.LockStateResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	if s, ok := p.stores[req.TypeName]; ok {
+		return s.UnlockState(req)
+	}
+
 	var resp providers.UnlockStateResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	if s, ok := p.stores[req.TypeName]; ok {
+		return s.GetStates(req)
+	}
+
 	var resp providers.GetStatesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	if s, ok := p.stores[req.TypeName]; ok {
+		return s.DeleteState(req)
+	}
+
 	var resp providers.DeleteStateResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
