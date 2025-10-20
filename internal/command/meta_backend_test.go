@@ -2963,7 +2963,6 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 }
 
 func TestMetaBackend_prepareBackend(t *testing.T) {
-	locks := depsfile.NewLocks()
 
 	t.Run("it returns a cloud backend from cloud backend config", func(t *testing.T) {
 		// Create a temporary working directory with cloud configuration in
@@ -2981,7 +2980,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 
 		// We cannot initialize a cloud backend so we instead check
 		// the init error is referencing HCP Terraform
-		_, bDiags := m.prepareBackend(mod, locks)
+		_, bDiags := m.prepareBackend(mod)
 		if !bDiags.HasErrors() {
 			t.Fatal("expected error but got none")
 		}
@@ -2992,6 +2991,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 				bDiags.Err())
 		}
 	})
+
 	t.Run("it returns a backend from backend config", func(t *testing.T) {
 		// Create a temporary working directory with backend configuration in
 		td := t.TempDir()
@@ -3006,13 +3006,21 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 		}
 
-		b, bDiags := m.prepareBackend(mod, locks)
+		b, bDiags := m.prepareBackend(mod)
 		if bDiags.HasErrors() {
 			t.Fatal("unexpected error: ", bDiags.Err())
 		}
 
 		if _, ok := b.(*local.Local); !ok {
 			t.Fatal("expected returned operations backend to be a Local backend")
+		}
+		// Check the type of backend inside the Local via schema
+		// In this case a `local` backend should have been returned by default.
+		//
+		// Look for the path attribute.
+		schema := b.ConfigSchema()
+		if _, ok := schema.Attributes["path"]; !ok {
+			t.Fatalf("expected the operations backend to report the schema of a local backend, but got something unexpected: %#v", schema)
 		}
 	})
 
@@ -3020,13 +3028,21 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 		m := testMetaBackend(t, nil)
 		emptyConfig := configs.NewEmptyConfig()
 
-		b, bDiags := m.prepareBackend(emptyConfig.Module, locks)
+		b, bDiags := m.prepareBackend(emptyConfig.Module)
 		if bDiags.HasErrors() {
 			t.Fatal("unexpected error: ", bDiags.Err())
 		}
 
 		if _, ok := b.(*local.Local); !ok {
 			t.Fatal("expected returned operations backend to be a Local backend")
+		}
+		// Check the type of backend inside the Local via schema
+		// In this case a `local` backend should have been returned by default.
+		//
+		// Look for the path attribute.
+		schema := b.ConfigSchema()
+		if _, ok := schema.Attributes["path"]; !ok {
+			t.Fatalf("expected the operations backend to report the schema of a local backend, but got something unexpected: %#v", schema)
 		}
 	})
 
@@ -3038,7 +3054,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 
 		m := testMetaBackend(t, nil)
 		m.AllowExperimentalFeatures = true
-		mock := testStateStoreMock(t)
+		mock := testStateStoreMockWithChunkNegotiation(t, 12345) // chunk size needs to be set, value is arbitrary
 		m.testingOverrides = &testingOverrides{
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
@@ -3051,16 +3067,34 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 		}
 
-		_, bDiags := m.prepareBackend(mod, locks)
-		if !bDiags.HasErrors() {
-			// TODO(SarahFrench/radeksimko): In future, we don't expect an error here!
-			t.Fatal("expected errors while state_store, due to incomplete implementation")
+		// Prepare appropriate locks; config uses a hashicorp/test provider @ v1.2.3
+		locks := depsfile.NewLocks()
+		providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+		constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+		if err != nil {
+			t.Fatalf("test setup failed when making constraint: %s", err)
 		}
-		if !strings.Contains(bDiags.Err().Error(), "Changing a state store configuration is not implemented yet") {
-			t.Fatal("unexpected error: ", bDiags.Err())
+		locks.SetProvider(
+			providerAddr,
+			versions.MustParseVersion("1.2.3"),
+			constraint,
+			[]providerreqs.Hash{""},
+		)
+
+		b, bDiags := m.prepareBackend(mod)
+		if bDiags.HasErrors() {
+			t.Fatalf("unexpected error: %s", bDiags.Err())
 		}
 
-		// TODO(SarahFrench/radeksimko): Make assertion about returned operations backend.
+		if _, ok := b.(*local.Local); !ok {
+			t.Fatal("expected returned operations backend to be a Local backend")
+		}
+		// Check the state_store inside the Local via schema
+		// Look for the mock state_store's attribute called `value`.
+		schema := b.ConfigSchema()
+		if _, ok := schema.Attributes["value"]; !ok {
+			t.Fatalf("expected the operations backend to report the schema of the state_store, but got something unexpected: %#v", schema)
+		}
 	})
 }
 
