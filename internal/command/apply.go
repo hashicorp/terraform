@@ -219,6 +219,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 			))
 			return nil, diags
 		}
+		// TODO: Update BackendForLocalPlan to use state storage, and plan to be able to contain State Store config details
 		be, beDiags = c.BackendForLocalPlan(plan.Backend)
 	} else {
 		// Both new plans and saved cloud plans load their backend from config.
