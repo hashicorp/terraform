@@ -1622,7 +1622,10 @@ func (m *Meta) prepareBackend(root *configs.Module) (backendrun.OperationsBacken
 		// there is no config; defaults to local state storage
 		opts = &BackendOpts{}
 	}
-	opts.Init = false // To be explicit- this method should not be used in init commands!
+
+	// This method should not be used for init commands,
+	// so we always set this value as false.
+	opts.Init = false
 
 	// Load the backend
 	be, beDiags := m.Backend(opts)
