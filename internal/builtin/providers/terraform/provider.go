@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"os"
 
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
@@ -24,7 +25,11 @@ var _ providers.Interface = &Provider{}
 
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
-	return &Provider{}
+	return &Provider{
+		stores: map[string]providers.Interface{
+			"terraform_inmem": &InMemStoreSingle{},
+		},
+	}
 }
 
 // GetSchema returns the complete schema for the provider.
@@ -83,6 +88,13 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		Actions:     map[string]providers.ActionSchema{},
 	}
 	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
+
+	// Only include the inmem state store in the provider when `TF_ACC` is set in the environment
+	// Excluding this from the schemas is sufficient to block usage.
+	if v := os.Getenv("TF_ACC"); v != "" {
+		resp.StateStores["terraform_inmem"] = stateStoreInMemGetSchema()
+	}
+
 	return resp
 }
 
