@@ -4001,6 +4001,7 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			"-upgrade",
 		}
 		code := c.Run(args)
 		testOutput := done(t)
