@@ -165,6 +165,20 @@ func (n *nodeActionInvokeInstance) Execute(ctx EvalContext, _ walkOperation) tfd
 	}
 
 	unmarkedConfig, _ := actionInstance.ConfigValue.UnmarkDeepWithPaths()
+
+	if !unmarkedConfig.IsWhollyKnown() {
+		// we're not actually planning or applying changes from the
+		// configuration. if the configuration of the action has unknown values
+		// it means one of the resources that are referenced hasn't actually
+		// been created.
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Partially applied configuration",
+			Detail:   fmt.Sprintf("The action %s contains unknown values while planning. This means it is referencing resources that have not yet been created, please run a complete plan/apply cycle to ensure the state matches the configuration before using the -invoke argument.", n.Target.String()),
+			Subject:  n.Config.DeclRange.Ptr(),
+		})
+	}
+
 	resp := provider.PlanAction(providers.PlanActionRequest{
 		ActionType:         n.Target.Action.Action.Type,
 		ProposedActionData: unmarkedConfig,

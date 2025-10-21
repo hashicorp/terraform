@@ -2726,6 +2726,43 @@ action "test_action" "one" {
 				},
 			},
 
+			"invoke action with partially applied configuration": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "a" {
+  name = "hello"
+}
+
+action "test_action" "one" {
+  config {
+    attr = test_object.a.name
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsAction{
+							Action: addrs.Action{
+								Type: "test_action",
+								Name: "one",
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diagnostics tfdiags.Diagnostics) {
+					if len(diagnostics) != 1 {
+						t.Errorf("expected exactly one diagnostic but got %d", len(diagnostics))
+					}
+
+					if diagnostics[0].Description().Summary != "Partially applied configuration" {
+						t.Errorf("wrong diagnostic: %s", diagnostics[0].Description().Summary)
+					}
+				},
+			},
+
 			"non-referenced resource isn't refreshed during invoke": {
 				module: map[string]string{
 					"main.tf": `
