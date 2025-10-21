@@ -20,8 +20,8 @@ import (
 // Provider is an implementation of providers.Interface
 type Provider struct {
 
-	// State storage implementations
-	stores map[string]providers.Interface
+	// State storage implementation(s)
+	inMem *InMemStoreSingle // terraform_inmem
 }
 
 var _ providers.Interface = &Provider{}
@@ -29,9 +29,7 @@ var _ providers.Interface = &Provider{}
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
 	return &Provider{
-		stores: map[string]providers.Interface{
-			"terraform_inmem": &InMemStoreSingle{},
-		},
+		inMem: &InMemStoreSingle{},
 	}
 }
 
@@ -50,12 +48,10 @@ func NewProviderWithDefaultState() providers.Interface {
 
 	// Return a provider where all state stores have existing default workspaces
 	return &Provider{
-		stores: map[string]providers.Interface{
-			"terraform_inmem": &InMemStoreSingle{
-				states: stateMap{
-					m: map[string][]byte{
-						backend.DefaultStateName: emptyStateBytes,
-					},
+		inMem: &InMemStoreSingle{
+			states: stateMap{
+				m: map[string][]byte{
+					backend.DefaultStateName: emptyStateBytes,
 				},
 			},
 		},
@@ -122,7 +118,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	// Only include the inmem state store in the provider when `TF_ACC` is set in the environment
 	// Excluding this from the schemas is sufficient to block usage.
 	if v := os.Getenv("TF_ACC"); v != "" {
-		resp.StateStores["terraform_inmem"] = stateStoreInMemGetSchema()
+		resp.StateStores[inMemStoreName] = stateStoreInMemGetSchema()
 	}
 
 	return resp
@@ -332,8 +328,8 @@ func (p *Provider) ListResource(req providers.ListResourceRequest) providers.Lis
 }
 
 func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
-	if s, ok := p.stores[req.TypeName]; ok {
-		return s.ValidateStateStoreConfig(req)
+	if req.TypeName == inMemStoreName {
+		return p.inMem.ValidateStateStoreConfig(req)
 	}
 
 	var resp providers.ValidateStateStoreConfigResponse
@@ -342,8 +338,8 @@ func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConf
 }
 
 func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	if s, ok := p.stores[req.TypeName]; ok {
-		return s.ConfigureStateStore(req)
+	if req.TypeName == inMemStoreName {
+		return p.inMem.ConfigureStateStore(req)
 	}
 
 	var resp providers.ConfigureStateStoreResponse
@@ -352,8 +348,8 @@ func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest)
 }
 
 func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	if s, ok := p.stores[req.TypeName]; ok {
-		return s.ReadStateBytes(req)
+	if req.TypeName == inMemStoreName {
+		return p.inMem.ReadStateBytes(req)
 	}
 
 	var resp providers.ReadStateBytesResponse
@@ -362,8 +358,8 @@ func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers
 }
 
 func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	if s, ok := p.stores[req.TypeName]; ok {
-		return s.WriteStateBytes(req)
+	if req.TypeName == inMemStoreName {
+		return p.inMem.WriteStateBytes(req)
 	}
 
 	var resp providers.WriteStateBytesResponse
@@ -372,8 +368,8 @@ func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) provide
 }
 
 func (p *Provider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
-	if s, ok := p.stores[req.TypeName]; ok {
-		return s.LockState(req)
+	if req.TypeName == inMemStoreName {
+		return p.inMem.LockState(req)
 	}
 
 	var resp providers.LockStateResponse
@@ -382,8 +378,8 @@ func (p *Provider) LockState(req providers.LockStateRequest) providers.LockState
 }
 
 func (p *Provider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
-	if s, ok := p.stores[req.TypeName]; ok {
-		return s.UnlockState(req)
+	if req.TypeName == inMemStoreName {
+		return p.inMem.UnlockState(req)
 	}
 
 	var resp providers.UnlockStateResponse
@@ -392,8 +388,8 @@ func (p *Provider) UnlockState(req providers.UnlockStateRequest) providers.Unloc
 }
 
 func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
-	if s, ok := p.stores[req.TypeName]; ok {
-		return s.GetStates(req)
+	if req.TypeName == inMemStoreName {
+		return p.inMem.GetStates(req)
 	}
 
 	var resp providers.GetStatesResponse
@@ -402,8 +398,8 @@ func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStates
 }
 
 func (p *Provider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
-	if s, ok := p.stores[req.TypeName]; ok {
-		return s.DeleteState(req)
+	if req.TypeName == inMemStoreName {
+		return p.inMem.DeleteState(req)
 	}
 
 	var resp providers.DeleteStateResponse

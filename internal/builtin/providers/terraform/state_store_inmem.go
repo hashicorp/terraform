@@ -17,6 +17,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+const inMemStoreName = "terraform_inmem"
+
 // Matches default in command package.
 const defaultStateStoreChunkSize int64 = 8 << 20 // 8 MB
 
@@ -29,11 +31,7 @@ const defaultStateStoreChunkSize int64 = 8 << 20 // 8 MB
 type InMemStoreSingle struct {
 	states stateMap
 	locks  lockMap
-
-	unimplementedProviderInterface
 }
-
-var _ providers.Interface = &InMemStoreSingle{}
 
 func stateStoreInMemGetSchema() providers.Schema {
 	return providers.Schema{

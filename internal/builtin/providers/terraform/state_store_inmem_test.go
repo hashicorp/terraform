@@ -17,16 +17,15 @@ import (
 func TestBackendLocked(t *testing.T) {
 	t.Setenv("TF_ACC", "1") // enable using the inmem state store
 
-	storeName := "terraform_inmem"
 	// Use NewProviderWithDefaultState so default workspace exists already,
 	// because backend.TestBackendStateLocks assumes they exist by default.
 	provider := NewProviderWithDefaultState()
 
-	plug1, err := pluggable.NewPluggable(provider, storeName)
+	plug1, err := pluggable.NewPluggable(provider, inMemStoreName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	plug2, err := pluggable.NewPluggable(provider, storeName)
+	plug2, err := pluggable.NewPluggable(provider, inMemStoreName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,10 +39,9 @@ func TestBackendLocked(t *testing.T) {
 func TestRemoteState(t *testing.T) {
 	t.Setenv("TF_ACC", "1") // enable using the inmem state store
 
-	storeName := "terraform_inmem"
 	provider := NewProvider()
 
-	plug, err := pluggable.NewPluggable(provider, storeName)
+	plug, err := pluggable.NewPluggable(provider, inMemStoreName)
 	if err != nil {
 		t.Fatal(err)
 	}
