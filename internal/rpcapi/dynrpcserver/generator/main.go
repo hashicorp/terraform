@@ -29,6 +29,11 @@ var protobufPkgs = map[string]string{
 	"packages":     "github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages",
 }
 
+var additionalImportsByName = map[string]string{
+	"dependencies": `"google.golang.org/grpc"`,
+	"stacks":       `"google.golang.org/grpc"`,
+}
+
 func main() {
 	for shortName, pkgName := range protobufPkgs {
 		cfg := &packages.Config{
@@ -118,10 +123,12 @@ func main() {
 				"context"
 				"sync"
 
+				%s
+
 				%s %q
 			)
 
-		`, shortName, pkg)
+		`, additionalImportsByName[shortName], shortName, pkg)
 			fmt.Fprintf(&buf, "type %s struct {\n", baseName)
 			fmt.Fprintf(&buf, "impl %s.%s\n", shortName, ifaceName)
 			fmt.Fprintln(&buf, "mu sync.RWMutex")
@@ -249,6 +256,10 @@ func typeRef(fullType, name, pkg string) string {
 	// we typically expect to see in a server interface. This
 	// might need extra rules if we step outside the design idiom
 	// we've used for these services so far.
+
+	// Identifies generic types from google.golang.org/grpc module with 1+ type arguments.
+	grpcGenericRe := regexp.MustCompile(`^google\.golang\.org\/grpc\.\w+\[[\w\.\/,\s]+\]`)
+
 	switch {
 	case fullType == "context.Context" || fullType == "error":
 		return fullType
@@ -258,6 +269,32 @@ func typeRef(fullType, name, pkg string) string {
 		return "*" + name + "." + fullType[len(pkg)+2:]
 	case strings.HasPrefix(fullType, pkg+"."):
 		return name + "." + fullType[len(pkg)+1:]
+	case grpcGenericRe.MatchString(fullType):
+		// Handling use of google.golang.org/grpc.Foobar[T...] generic types.
+		// Example 1: google.golang.org/grpc.ServerStreamingServer[github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies.BuildProviderPluginCache_Event]
+		// Example 2: google.golang.org/grpc.ClientStreamingServer[github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks.OpenStackPlan_RequestItem, github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks.OpenStackPlan_Response]
+
+		// Pull grpc.Foobar out of fullType string
+		grpcGenericRe := regexp.MustCompile(`^google\.golang\.org\/(?P<GrpcType>grpc\.\w+)\[github.com`)
+		i := grpcGenericRe.SubexpIndex("GrpcType")
+		grpcGeneric := grpcGenericRe.FindStringSubmatch(fullType)[i]
+
+		// Get type argument(s)
+		typeRe := regexp.MustCompile(fmt.Sprintf(`%s\.\w+`, name))
+		typeArgs := typeRe.FindAllString(fullType, -1)
+
+		// Build string, with potential need for comma separation
+		// e.g. grpc.Foobar[pkg1.A, pkg2.B]
+		var buf strings.Builder
+		buf.WriteString(grpcGeneric + "[")
+		for i, arg := range typeArgs {
+			buf.WriteString(arg)
+			if i+1 != len(typeArgs) {
+				buf.WriteString(", ")
+			}
+		}
+		buf.WriteString("]")
+		return buf.String()
 	default:
 		log.Fatalf("don't know what to do with parameter type %s", fullType)
 		return ""
