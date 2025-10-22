@@ -4518,6 +4518,7 @@ type PlannedChange_ChangeDescription struct {
 	//	*PlannedChange_ChangeDescription_ResourceInstanceDeferred
 	//	*PlannedChange_ChangeDescription_InputVariablePlanned
 	//	*PlannedChange_ChangeDescription_ActionInvocationPlanned
+	//	*PlannedChange_ChangeDescription_ActionInvocationDeferred
 	Description   isPlannedChange_ChangeDescription_Description `protobuf_oneof:"description"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4623,6 +4624,15 @@ func (x *PlannedChange_ChangeDescription) GetActionInvocationPlanned() *PlannedC
 	return nil
 }
 
+func (x *PlannedChange_ChangeDescription) GetActionInvocationDeferred() *PlannedChange_ActionInvocationDeferred {
+	if x != nil {
+		if x, ok := x.Description.(*PlannedChange_ChangeDescription_ActionInvocationDeferred); ok {
+			return x.ActionInvocationDeferred
+		}
+	}
+	return nil
+}
+
 type isPlannedChange_ChangeDescription_Description interface {
 	isPlannedChange_ChangeDescription_Description()
 }
@@ -4655,6 +4665,10 @@ type PlannedChange_ChangeDescription_ActionInvocationPlanned struct {
 	ActionInvocationPlanned *PlannedChange_ActionInvocationInstance `protobuf:"bytes,7,opt,name=action_invocation_planned,json=actionInvocationPlanned,proto3,oneof"`
 }
 
+type PlannedChange_ChangeDescription_ActionInvocationDeferred struct {
+	ActionInvocationDeferred *PlannedChange_ActionInvocationDeferred `protobuf:"bytes,8,opt,name=action_invocation_deferred,json=actionInvocationDeferred,proto3,oneof"`
+}
+
 func (*PlannedChange_ChangeDescription_ComponentInstancePlanned) isPlannedChange_ChangeDescription_Description() {
 }
 
@@ -4674,6 +4688,9 @@ func (*PlannedChange_ChangeDescription_InputVariablePlanned) isPlannedChange_Cha
 }
 
 func (*PlannedChange_ChangeDescription_ActionInvocationPlanned) isPlannedChange_ChangeDescription_Description() {
+}
+
+func (*PlannedChange_ChangeDescription_ActionInvocationDeferred) isPlannedChange_ChangeDescription_Description() {
 }
 
 // Reports the existence of a particular instance of a component,
@@ -4875,6 +4892,64 @@ func (*PlannedChange_ActionInvocationInstance_LifecycleActionTrigger) isPlannedC
 func (*PlannedChange_ActionInvocationInstance_InvokeActionTrigger) isPlannedChange_ActionInvocationInstance_ActionTrigger() {
 }
 
+// DeferredActionInvocation represents an action invocation that
+// was deferred for some reason.
+// It contains the original action invocation that was deferred, along with the reason
+// why it was deferred.
+type PlannedChange_ActionInvocationDeferred struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The reason why it was deferred
+	Deferred *Deferred `protobuf:"bytes,1,opt,name=deferred,proto3" json:"deferred,omitempty"`
+	// The original action invocation that was deferred
+	ActionInvocation *PlannedChange_ActionInvocationInstance `protobuf:"bytes,2,opt,name=action_invocation,json=actionInvocation,proto3" json:"action_invocation,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PlannedChange_ActionInvocationDeferred) Reset() {
+	*x = PlannedChange_ActionInvocationDeferred{}
+	mi := &file_stacks_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlannedChange_ActionInvocationDeferred) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlannedChange_ActionInvocationDeferred) ProtoMessage() {}
+
+func (x *PlannedChange_ActionInvocationDeferred) ProtoReflect() protoreflect.Message {
+	mi := &file_stacks_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlannedChange_ActionInvocationDeferred.ProtoReflect.Descriptor instead.
+func (*PlannedChange_ActionInvocationDeferred) Descriptor() ([]byte, []int) {
+	return file_stacks_proto_rawDescGZIP(), []int{23, 3}
+}
+
+func (x *PlannedChange_ActionInvocationDeferred) GetDeferred() *Deferred {
+	if x != nil {
+		return x.Deferred
+	}
+	return nil
+}
+
+func (x *PlannedChange_ActionInvocationDeferred) GetActionInvocation() *PlannedChange_ActionInvocationInstance {
+	if x != nil {
+		return x.ActionInvocation
+	}
+	return nil
+}
+
 // LifecycleActionTrigger contains details on the conditions that led to the
 // triggering of an action.
 type PlannedChange_LifecycleActionTrigger struct {
@@ -4889,7 +4964,7 @@ type PlannedChange_LifecycleActionTrigger struct {
 
 func (x *PlannedChange_LifecycleActionTrigger) Reset() {
 	*x = PlannedChange_LifecycleActionTrigger{}
-	mi := &file_stacks_proto_msgTypes[82]
+	mi := &file_stacks_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4901,7 +4976,7 @@ func (x *PlannedChange_LifecycleActionTrigger) String() string {
 func (*PlannedChange_LifecycleActionTrigger) ProtoMessage() {}
 
 func (x *PlannedChange_LifecycleActionTrigger) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[82]
+	mi := &file_stacks_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4914,7 +4989,7 @@ func (x *PlannedChange_LifecycleActionTrigger) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use PlannedChange_LifecycleActionTrigger.ProtoReflect.Descriptor instead.
 func (*PlannedChange_LifecycleActionTrigger) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 3}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 4}
 }
 
 func (x *PlannedChange_LifecycleActionTrigger) GetTriggeringResourceAddress() *ResourceInstanceInStackAddr {
@@ -4955,7 +5030,7 @@ type PlannedChange_InvokeActionTrigger struct {
 
 func (x *PlannedChange_InvokeActionTrigger) Reset() {
 	*x = PlannedChange_InvokeActionTrigger{}
-	mi := &file_stacks_proto_msgTypes[83]
+	mi := &file_stacks_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4967,7 +5042,7 @@ func (x *PlannedChange_InvokeActionTrigger) String() string {
 func (*PlannedChange_InvokeActionTrigger) ProtoMessage() {}
 
 func (x *PlannedChange_InvokeActionTrigger) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[83]
+	mi := &file_stacks_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4980,7 +5055,7 @@ func (x *PlannedChange_InvokeActionTrigger) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use PlannedChange_InvokeActionTrigger.ProtoReflect.Descriptor instead.
 func (*PlannedChange_InvokeActionTrigger) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 4}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 5}
 }
 
 type PlannedChange_ResourceInstance struct {
@@ -5024,7 +5099,7 @@ type PlannedChange_ResourceInstance struct {
 
 func (x *PlannedChange_ResourceInstance) Reset() {
 	*x = PlannedChange_ResourceInstance{}
-	mi := &file_stacks_proto_msgTypes[84]
+	mi := &file_stacks_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5036,7 +5111,7 @@ func (x *PlannedChange_ResourceInstance) String() string {
 func (*PlannedChange_ResourceInstance) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[84]
+	mi := &file_stacks_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5049,7 +5124,7 @@ func (x *PlannedChange_ResourceInstance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlannedChange_ResourceInstance.ProtoReflect.Descriptor instead.
 func (*PlannedChange_ResourceInstance) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 5}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 6}
 }
 
 func (x *PlannedChange_ResourceInstance) GetAddr() *ResourceInstanceObjectInStackAddr {
@@ -5171,7 +5246,7 @@ type PlannedChange_OutputValue struct {
 
 func (x *PlannedChange_OutputValue) Reset() {
 	*x = PlannedChange_OutputValue{}
-	mi := &file_stacks_proto_msgTypes[85]
+	mi := &file_stacks_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5183,7 +5258,7 @@ func (x *PlannedChange_OutputValue) String() string {
 func (*PlannedChange_OutputValue) ProtoMessage() {}
 
 func (x *PlannedChange_OutputValue) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[85]
+	mi := &file_stacks_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5196,7 +5271,7 @@ func (x *PlannedChange_OutputValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlannedChange_OutputValue.ProtoReflect.Descriptor instead.
 func (*PlannedChange_OutputValue) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 6}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 7}
 }
 
 func (x *PlannedChange_OutputValue) GetName() string {
@@ -5230,7 +5305,7 @@ type PlannedChange_ResourceInstanceDeferred struct {
 
 func (x *PlannedChange_ResourceInstanceDeferred) Reset() {
 	*x = PlannedChange_ResourceInstanceDeferred{}
-	mi := &file_stacks_proto_msgTypes[86]
+	mi := &file_stacks_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5242,7 +5317,7 @@ func (x *PlannedChange_ResourceInstanceDeferred) String() string {
 func (*PlannedChange_ResourceInstanceDeferred) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstanceDeferred) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[86]
+	mi := &file_stacks_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5255,7 +5330,7 @@ func (x *PlannedChange_ResourceInstanceDeferred) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use PlannedChange_ResourceInstanceDeferred.ProtoReflect.Descriptor instead.
 func (*PlannedChange_ResourceInstanceDeferred) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 7}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 8}
 }
 
 func (x *PlannedChange_ResourceInstanceDeferred) GetResourceInstance() *PlannedChange_ResourceInstance {
@@ -5287,7 +5362,7 @@ type PlannedChange_InputVariable struct {
 
 func (x *PlannedChange_InputVariable) Reset() {
 	*x = PlannedChange_InputVariable{}
-	mi := &file_stacks_proto_msgTypes[87]
+	mi := &file_stacks_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5299,7 +5374,7 @@ func (x *PlannedChange_InputVariable) String() string {
 func (*PlannedChange_InputVariable) ProtoMessage() {}
 
 func (x *PlannedChange_InputVariable) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[87]
+	mi := &file_stacks_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5312,7 +5387,7 @@ func (x *PlannedChange_InputVariable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlannedChange_InputVariable.ProtoReflect.Descriptor instead.
 func (*PlannedChange_InputVariable) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 8}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 9}
 }
 
 func (x *PlannedChange_InputVariable) GetName() string {
@@ -5353,7 +5428,7 @@ type PlannedChange_ResourceInstance_Index struct {
 
 func (x *PlannedChange_ResourceInstance_Index) Reset() {
 	*x = PlannedChange_ResourceInstance_Index{}
-	mi := &file_stacks_proto_msgTypes[88]
+	mi := &file_stacks_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5365,7 +5440,7 @@ func (x *PlannedChange_ResourceInstance_Index) String() string {
 func (*PlannedChange_ResourceInstance_Index) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance_Index) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[88]
+	mi := &file_stacks_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5378,7 +5453,7 @@ func (x *PlannedChange_ResourceInstance_Index) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use PlannedChange_ResourceInstance_Index.ProtoReflect.Descriptor instead.
 func (*PlannedChange_ResourceInstance_Index) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 5, 0}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 6, 0}
 }
 
 func (x *PlannedChange_ResourceInstance_Index) GetValue() *DynamicValue {
@@ -5404,7 +5479,7 @@ type PlannedChange_ResourceInstance_Moved struct {
 
 func (x *PlannedChange_ResourceInstance_Moved) Reset() {
 	*x = PlannedChange_ResourceInstance_Moved{}
-	mi := &file_stacks_proto_msgTypes[89]
+	mi := &file_stacks_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5416,7 +5491,7 @@ func (x *PlannedChange_ResourceInstance_Moved) String() string {
 func (*PlannedChange_ResourceInstance_Moved) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance_Moved) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[89]
+	mi := &file_stacks_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5429,7 +5504,7 @@ func (x *PlannedChange_ResourceInstance_Moved) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use PlannedChange_ResourceInstance_Moved.ProtoReflect.Descriptor instead.
 func (*PlannedChange_ResourceInstance_Moved) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 5, 1}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 6, 1}
 }
 
 func (x *PlannedChange_ResourceInstance_Moved) GetPrevAddr() *ResourceInstanceInStackAddr {
@@ -5450,7 +5525,7 @@ type PlannedChange_ResourceInstance_Imported struct {
 
 func (x *PlannedChange_ResourceInstance_Imported) Reset() {
 	*x = PlannedChange_ResourceInstance_Imported{}
-	mi := &file_stacks_proto_msgTypes[90]
+	mi := &file_stacks_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5462,7 +5537,7 @@ func (x *PlannedChange_ResourceInstance_Imported) String() string {
 func (*PlannedChange_ResourceInstance_Imported) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance_Imported) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[90]
+	mi := &file_stacks_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5475,7 +5550,7 @@ func (x *PlannedChange_ResourceInstance_Imported) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use PlannedChange_ResourceInstance_Imported.ProtoReflect.Descriptor instead.
 func (*PlannedChange_ResourceInstance_Imported) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{23, 5, 2}
+	return file_stacks_proto_rawDescGZIP(), []int{23, 6, 2}
 }
 
 func (x *PlannedChange_ResourceInstance_Imported) GetImportId() string {
@@ -5509,7 +5584,7 @@ type AppliedChange_RawChange struct {
 
 func (x *AppliedChange_RawChange) Reset() {
 	*x = AppliedChange_RawChange{}
-	mi := &file_stacks_proto_msgTypes[91]
+	mi := &file_stacks_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5521,7 +5596,7 @@ func (x *AppliedChange_RawChange) String() string {
 func (*AppliedChange_RawChange) ProtoMessage() {}
 
 func (x *AppliedChange_RawChange) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[91]
+	mi := &file_stacks_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5569,7 +5644,7 @@ type AppliedChange_ChangeDescription struct {
 
 func (x *AppliedChange_ChangeDescription) Reset() {
 	*x = AppliedChange_ChangeDescription{}
-	mi := &file_stacks_proto_msgTypes[92]
+	mi := &file_stacks_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5581,7 +5656,7 @@ func (x *AppliedChange_ChangeDescription) String() string {
 func (*AppliedChange_ChangeDescription) ProtoMessage() {}
 
 func (x *AppliedChange_ChangeDescription) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[92]
+	mi := &file_stacks_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5743,7 +5818,7 @@ type AppliedChange_ResourceInstance struct {
 
 func (x *AppliedChange_ResourceInstance) Reset() {
 	*x = AppliedChange_ResourceInstance{}
-	mi := &file_stacks_proto_msgTypes[93]
+	mi := &file_stacks_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5755,7 +5830,7 @@ func (x *AppliedChange_ResourceInstance) String() string {
 func (*AppliedChange_ResourceInstance) ProtoMessage() {}
 
 func (x *AppliedChange_ResourceInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[93]
+	mi := &file_stacks_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5824,7 +5899,7 @@ type AppliedChange_ComponentInstance struct {
 
 func (x *AppliedChange_ComponentInstance) Reset() {
 	*x = AppliedChange_ComponentInstance{}
-	mi := &file_stacks_proto_msgTypes[94]
+	mi := &file_stacks_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5836,7 +5911,7 @@ func (x *AppliedChange_ComponentInstance) String() string {
 func (*AppliedChange_ComponentInstance) ProtoMessage() {}
 
 func (x *AppliedChange_ComponentInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[94]
+	mi := &file_stacks_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5883,7 +5958,7 @@ type AppliedChange_OutputValue struct {
 
 func (x *AppliedChange_OutputValue) Reset() {
 	*x = AppliedChange_OutputValue{}
-	mi := &file_stacks_proto_msgTypes[95]
+	mi := &file_stacks_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5895,7 +5970,7 @@ func (x *AppliedChange_OutputValue) String() string {
 func (*AppliedChange_OutputValue) ProtoMessage() {}
 
 func (x *AppliedChange_OutputValue) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[95]
+	mi := &file_stacks_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5935,7 +6010,7 @@ type AppliedChange_InputVariable struct {
 
 func (x *AppliedChange_InputVariable) Reset() {
 	*x = AppliedChange_InputVariable{}
-	mi := &file_stacks_proto_msgTypes[96]
+	mi := &file_stacks_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5947,7 +6022,7 @@ func (x *AppliedChange_InputVariable) String() string {
 func (*AppliedChange_InputVariable) ProtoMessage() {}
 
 func (x *AppliedChange_InputVariable) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[96]
+	mi := &file_stacks_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5985,7 +6060,7 @@ type AppliedChange_Nothing struct {
 
 func (x *AppliedChange_Nothing) Reset() {
 	*x = AppliedChange_Nothing{}
-	mi := &file_stacks_proto_msgTypes[97]
+	mi := &file_stacks_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5997,7 +6072,7 @@ func (x *AppliedChange_Nothing) String() string {
 func (*AppliedChange_Nothing) ProtoMessage() {}
 
 func (x *AppliedChange_Nothing) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[97]
+	mi := &file_stacks_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6025,7 +6100,7 @@ type StackChangeProgress_ComponentInstanceStatus struct {
 
 func (x *StackChangeProgress_ComponentInstanceStatus) Reset() {
 	*x = StackChangeProgress_ComponentInstanceStatus{}
-	mi := &file_stacks_proto_msgTypes[99]
+	mi := &file_stacks_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6037,7 +6112,7 @@ func (x *StackChangeProgress_ComponentInstanceStatus) String() string {
 func (*StackChangeProgress_ComponentInstanceStatus) ProtoMessage() {}
 
 func (x *StackChangeProgress_ComponentInstanceStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[99]
+	mi := &file_stacks_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6080,7 +6155,7 @@ type StackChangeProgress_ResourceInstanceStatus struct {
 
 func (x *StackChangeProgress_ResourceInstanceStatus) Reset() {
 	*x = StackChangeProgress_ResourceInstanceStatus{}
-	mi := &file_stacks_proto_msgTypes[100]
+	mi := &file_stacks_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6092,7 +6167,7 @@ func (x *StackChangeProgress_ResourceInstanceStatus) String() string {
 func (*StackChangeProgress_ResourceInstanceStatus) ProtoMessage() {}
 
 func (x *StackChangeProgress_ResourceInstanceStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[100]
+	mi := &file_stacks_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6147,7 +6222,7 @@ type StackChangeProgress_ResourceInstancePlannedChange struct {
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange) Reset() {
 	*x = StackChangeProgress_ResourceInstancePlannedChange{}
-	mi := &file_stacks_proto_msgTypes[101]
+	mi := &file_stacks_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6159,7 +6234,7 @@ func (x *StackChangeProgress_ResourceInstancePlannedChange) String() string {
 func (*StackChangeProgress_ResourceInstancePlannedChange) ProtoMessage() {}
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[101]
+	mi := &file_stacks_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6225,7 +6300,7 @@ type StackChangeProgress_ActionInvocationPlanned struct {
 
 func (x *StackChangeProgress_ActionInvocationPlanned) Reset() {
 	*x = StackChangeProgress_ActionInvocationPlanned{}
-	mi := &file_stacks_proto_msgTypes[102]
+	mi := &file_stacks_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6237,7 +6312,7 @@ func (x *StackChangeProgress_ActionInvocationPlanned) String() string {
 func (*StackChangeProgress_ActionInvocationPlanned) ProtoMessage() {}
 
 func (x *StackChangeProgress_ActionInvocationPlanned) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[102]
+	mi := &file_stacks_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6324,7 +6399,7 @@ type StackChangeProgress_LifecycleActionTrigger struct {
 
 func (x *StackChangeProgress_LifecycleActionTrigger) Reset() {
 	*x = StackChangeProgress_LifecycleActionTrigger{}
-	mi := &file_stacks_proto_msgTypes[103]
+	mi := &file_stacks_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6336,7 +6411,7 @@ func (x *StackChangeProgress_LifecycleActionTrigger) String() string {
 func (*StackChangeProgress_LifecycleActionTrigger) ProtoMessage() {}
 
 func (x *StackChangeProgress_LifecycleActionTrigger) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[103]
+	mi := &file_stacks_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6390,7 +6465,7 @@ type StackChangeProgress_InvokeActionTrigger struct {
 
 func (x *StackChangeProgress_InvokeActionTrigger) Reset() {
 	*x = StackChangeProgress_InvokeActionTrigger{}
-	mi := &file_stacks_proto_msgTypes[104]
+	mi := &file_stacks_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6402,7 +6477,7 @@ func (x *StackChangeProgress_InvokeActionTrigger) String() string {
 func (*StackChangeProgress_InvokeActionTrigger) ProtoMessage() {}
 
 func (x *StackChangeProgress_InvokeActionTrigger) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[104]
+	mi := &file_stacks_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6430,7 +6505,7 @@ type StackChangeProgress_DeferredResourceInstancePlannedChange struct {
 
 func (x *StackChangeProgress_DeferredResourceInstancePlannedChange) Reset() {
 	*x = StackChangeProgress_DeferredResourceInstancePlannedChange{}
-	mi := &file_stacks_proto_msgTypes[105]
+	mi := &file_stacks_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6442,7 +6517,7 @@ func (x *StackChangeProgress_DeferredResourceInstancePlannedChange) String() str
 func (*StackChangeProgress_DeferredResourceInstancePlannedChange) ProtoMessage() {}
 
 func (x *StackChangeProgress_DeferredResourceInstancePlannedChange) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[105]
+	mi := &file_stacks_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6485,7 +6560,7 @@ type StackChangeProgress_ProvisionerStatus struct {
 
 func (x *StackChangeProgress_ProvisionerStatus) Reset() {
 	*x = StackChangeProgress_ProvisionerStatus{}
-	mi := &file_stacks_proto_msgTypes[106]
+	mi := &file_stacks_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6497,7 +6572,7 @@ func (x *StackChangeProgress_ProvisionerStatus) String() string {
 func (*StackChangeProgress_ProvisionerStatus) ProtoMessage() {}
 
 func (x *StackChangeProgress_ProvisionerStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[106]
+	mi := &file_stacks_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6547,7 +6622,7 @@ type StackChangeProgress_ProvisionerOutput struct {
 
 func (x *StackChangeProgress_ProvisionerOutput) Reset() {
 	*x = StackChangeProgress_ProvisionerOutput{}
-	mi := &file_stacks_proto_msgTypes[107]
+	mi := &file_stacks_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6559,7 +6634,7 @@ func (x *StackChangeProgress_ProvisionerOutput) String() string {
 func (*StackChangeProgress_ProvisionerOutput) ProtoMessage() {}
 
 func (x *StackChangeProgress_ProvisionerOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[107]
+	mi := &file_stacks_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6622,7 +6697,7 @@ type StackChangeProgress_ComponentInstanceChanges struct {
 
 func (x *StackChangeProgress_ComponentInstanceChanges) Reset() {
 	*x = StackChangeProgress_ComponentInstanceChanges{}
-	mi := &file_stacks_proto_msgTypes[108]
+	mi := &file_stacks_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6634,7 +6709,7 @@ func (x *StackChangeProgress_ComponentInstanceChanges) String() string {
 func (*StackChangeProgress_ComponentInstanceChanges) ProtoMessage() {}
 
 func (x *StackChangeProgress_ComponentInstanceChanges) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[108]
+	mi := &file_stacks_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6725,7 +6800,7 @@ type StackChangeProgress_ComponentInstances struct {
 
 func (x *StackChangeProgress_ComponentInstances) Reset() {
 	*x = StackChangeProgress_ComponentInstances{}
-	mi := &file_stacks_proto_msgTypes[109]
+	mi := &file_stacks_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6737,7 +6812,7 @@ func (x *StackChangeProgress_ComponentInstances) String() string {
 func (*StackChangeProgress_ComponentInstances) ProtoMessage() {}
 
 func (x *StackChangeProgress_ComponentInstances) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[109]
+	mi := &file_stacks_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6776,7 +6851,7 @@ type StackChangeProgress_ResourceInstancePlannedChange_Moved struct {
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange_Moved) Reset() {
 	*x = StackChangeProgress_ResourceInstancePlannedChange_Moved{}
-	mi := &file_stacks_proto_msgTypes[110]
+	mi := &file_stacks_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6788,7 +6863,7 @@ func (x *StackChangeProgress_ResourceInstancePlannedChange_Moved) String() strin
 func (*StackChangeProgress_ResourceInstancePlannedChange_Moved) ProtoMessage() {}
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange_Moved) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[110]
+	mi := &file_stacks_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6821,7 +6896,7 @@ type StackChangeProgress_ResourceInstancePlannedChange_Imported struct {
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange_Imported) Reset() {
 	*x = StackChangeProgress_ResourceInstancePlannedChange_Imported{}
-	mi := &file_stacks_proto_msgTypes[111]
+	mi := &file_stacks_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6833,7 +6908,7 @@ func (x *StackChangeProgress_ResourceInstancePlannedChange_Imported) String() st
 func (*StackChangeProgress_ResourceInstancePlannedChange_Imported) ProtoMessage() {}
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange_Imported) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[111]
+	mi := &file_stacks_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6874,7 +6949,7 @@ type ListResourceIdentities_Request struct {
 
 func (x *ListResourceIdentities_Request) Reset() {
 	*x = ListResourceIdentities_Request{}
-	mi := &file_stacks_proto_msgTypes[112]
+	mi := &file_stacks_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6886,7 +6961,7 @@ func (x *ListResourceIdentities_Request) String() string {
 func (*ListResourceIdentities_Request) ProtoMessage() {}
 
 func (x *ListResourceIdentities_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[112]
+	mi := &file_stacks_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6932,7 +7007,7 @@ type ListResourceIdentities_Response struct {
 
 func (x *ListResourceIdentities_Response) Reset() {
 	*x = ListResourceIdentities_Response{}
-	mi := &file_stacks_proto_msgTypes[113]
+	mi := &file_stacks_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6944,7 +7019,7 @@ func (x *ListResourceIdentities_Response) String() string {
 func (*ListResourceIdentities_Response) ProtoMessage() {}
 
 func (x *ListResourceIdentities_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[113]
+	mi := &file_stacks_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6983,7 +7058,7 @@ type ListResourceIdentities_Resource struct {
 
 func (x *ListResourceIdentities_Resource) Reset() {
 	*x = ListResourceIdentities_Resource{}
-	mi := &file_stacks_proto_msgTypes[114]
+	mi := &file_stacks_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6995,7 +7070,7 @@ func (x *ListResourceIdentities_Resource) String() string {
 func (*ListResourceIdentities_Resource) ProtoMessage() {}
 
 func (x *ListResourceIdentities_Resource) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[114]
+	mi := &file_stacks_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7285,10 +7360,10 @@ const file_stacks_proto_rawDesc = "" +
 	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\x124\n" +
 	"\x16resource_instance_addr\x18\x02 \x01(\tR\x14resourceInstanceAddr\x12\x1f\n" +
 	"\vdeposed_key\x18\x03 \x01(\tR\n" +
-	"deposedKey\"\x89\x1e\n" +
+	"deposedKey\"\xc2 \n" +
 	"\rPlannedChange\x12&\n" +
 	"\x03raw\x18\x01 \x03(\v2\x14.google.protobuf.AnyR\x03raw\x12V\n" +
-	"\fdescriptions\x18\x02 \x03(\v22.terraform1.stacks.PlannedChange.ChangeDescriptionR\fdescriptions\x1a\xee\x05\n" +
+	"\fdescriptions\x18\x02 \x03(\v22.terraform1.stacks.PlannedChange.ChangeDescriptionR\fdescriptions\x1a\xe9\x06\n" +
 	"\x11ChangeDescription\x12r\n" +
 	"\x1acomponent_instance_planned\x18\x01 \x01(\v22.terraform1.stacks.PlannedChange.ComponentInstanceH\x00R\x18componentInstancePlanned\x12o\n" +
 	"\x19resource_instance_planned\x18\x02 \x01(\v21.terraform1.stacks.PlannedChange.ResourceInstanceH\x00R\x17resourceInstancePlanned\x12`\n" +
@@ -7296,7 +7371,8 @@ const file_stacks_proto_rawDesc = "" +
 	"\x0eplan_applyable\x18\x04 \x01(\bH\x00R\rplanApplyable\x12y\n" +
 	"\x1aresource_instance_deferred\x18\x05 \x01(\v29.terraform1.stacks.PlannedChange.ResourceInstanceDeferredH\x00R\x18resourceInstanceDeferred\x12f\n" +
 	"\x16input_variable_planned\x18\x06 \x01(\v2..terraform1.stacks.PlannedChange.InputVariableH\x00R\x14inputVariablePlanned\x12w\n" +
-	"\x19action_invocation_planned\x18\a \x01(\v29.terraform1.stacks.PlannedChange.ActionInvocationInstanceH\x00R\x17actionInvocationPlannedB\r\n" +
+	"\x19action_invocation_planned\x18\a \x01(\v29.terraform1.stacks.PlannedChange.ActionInvocationInstanceH\x00R\x17actionInvocationPlanned\x12y\n" +
+	"\x1aaction_invocation_deferred\x18\b \x01(\v29.terraform1.stacks.PlannedChange.ActionInvocationDeferredH\x00R\x18actionInvocationDeferredB\r\n" +
 	"\vdescription\x1a\xb6\x01\n" +
 	"\x11ComponentInstance\x12C\n" +
 	"\x04addr\x18\x01 \x01(\v2/.terraform1.stacks.ComponentInstanceInStackAddrR\x04addr\x127\n" +
@@ -7310,7 +7386,10 @@ const file_stacks_proto_rawDesc = "" +
 	"\fconfig_value\x18\x04 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\vconfigValue\x12s\n" +
 	"\x18lifecycle_action_trigger\x18\x06 \x01(\v27.terraform1.stacks.PlannedChange.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12j\n" +
 	"\x15invoke_action_trigger\x18\a \x01(\v24.terraform1.stacks.PlannedChange.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
-	"\x0eaction_trigger\x1a\xcd\x02\n" +
+	"\x0eaction_trigger\x1a\xbb\x01\n" +
+	"\x18ActionInvocationDeferred\x127\n" +
+	"\bdeferred\x18\x01 \x01(\v2\x1b.terraform1.stacks.DeferredR\bdeferred\x12f\n" +
+	"\x11action_invocation\x18\x02 \x01(\v29.terraform1.stacks.PlannedChange.ActionInvocationInstanceR\x10actionInvocation\x1a\xcd\x02\n" +
 	"\x16LifecycleActionTrigger\x12n\n" +
 	"\x1btriggering_resource_address\x18\x01 \x01(\v2..terraform1.stacks.ResourceInstanceInStackAddrR\x19triggeringResourceAddress\x12X\n" +
 	"\rtrigger_event\x18\x02 \x01(\x0e23.terraform1.stacks.PlannedChange.ActionTriggerEventR\ftriggerEvent\x12;\n" +
@@ -7576,7 +7655,7 @@ func file_stacks_proto_rawDescGZIP() []byte {
 }
 
 var file_stacks_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
-var file_stacks_proto_msgTypes = make([]protoimpl.MessageInfo, 115)
+var file_stacks_proto_msgTypes = make([]protoimpl.MessageInfo, 116)
 var file_stacks_proto_goTypes = []any{
 	(ResourceMode)(0), // 0: terraform1.stacks.ResourceMode
 	(PlanMode)(0),     // 1: terraform1.stacks.PlanMode
@@ -7670,74 +7749,75 @@ var file_stacks_proto_goTypes = []any{
 	(*PlannedChange_ChangeDescription)(nil),                            // 89: terraform1.stacks.PlannedChange.ChangeDescription
 	(*PlannedChange_ComponentInstance)(nil),                            // 90: terraform1.stacks.PlannedChange.ComponentInstance
 	(*PlannedChange_ActionInvocationInstance)(nil),                     // 91: terraform1.stacks.PlannedChange.ActionInvocationInstance
-	(*PlannedChange_LifecycleActionTrigger)(nil),                       // 92: terraform1.stacks.PlannedChange.LifecycleActionTrigger
-	(*PlannedChange_InvokeActionTrigger)(nil),                          // 93: terraform1.stacks.PlannedChange.InvokeActionTrigger
-	(*PlannedChange_ResourceInstance)(nil),                             // 94: terraform1.stacks.PlannedChange.ResourceInstance
-	(*PlannedChange_OutputValue)(nil),                                  // 95: terraform1.stacks.PlannedChange.OutputValue
-	(*PlannedChange_ResourceInstanceDeferred)(nil),                     // 96: terraform1.stacks.PlannedChange.ResourceInstanceDeferred
-	(*PlannedChange_InputVariable)(nil),                                // 97: terraform1.stacks.PlannedChange.InputVariable
-	(*PlannedChange_ResourceInstance_Index)(nil),                       // 98: terraform1.stacks.PlannedChange.ResourceInstance.Index
-	(*PlannedChange_ResourceInstance_Moved)(nil),                       // 99: terraform1.stacks.PlannedChange.ResourceInstance.Moved
-	(*PlannedChange_ResourceInstance_Imported)(nil),                    // 100: terraform1.stacks.PlannedChange.ResourceInstance.Imported
-	(*AppliedChange_RawChange)(nil),                                    // 101: terraform1.stacks.AppliedChange.RawChange
-	(*AppliedChange_ChangeDescription)(nil),                            // 102: terraform1.stacks.AppliedChange.ChangeDescription
-	(*AppliedChange_ResourceInstance)(nil),                             // 103: terraform1.stacks.AppliedChange.ResourceInstance
-	(*AppliedChange_ComponentInstance)(nil),                            // 104: terraform1.stacks.AppliedChange.ComponentInstance
-	(*AppliedChange_OutputValue)(nil),                                  // 105: terraform1.stacks.AppliedChange.OutputValue
-	(*AppliedChange_InputVariable)(nil),                                // 106: terraform1.stacks.AppliedChange.InputVariable
-	(*AppliedChange_Nothing)(nil),                                      // 107: terraform1.stacks.AppliedChange.Nothing
-	nil,                                                                // 108: terraform1.stacks.AppliedChange.ComponentInstance.OutputValuesEntry
-	(*StackChangeProgress_ComponentInstanceStatus)(nil),                // 109: terraform1.stacks.StackChangeProgress.ComponentInstanceStatus
-	(*StackChangeProgress_ResourceInstanceStatus)(nil),                 // 110: terraform1.stacks.StackChangeProgress.ResourceInstanceStatus
-	(*StackChangeProgress_ResourceInstancePlannedChange)(nil),          // 111: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange
-	(*StackChangeProgress_ActionInvocationPlanned)(nil),                // 112: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned
-	(*StackChangeProgress_LifecycleActionTrigger)(nil),                 // 113: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
-	(*StackChangeProgress_InvokeActionTrigger)(nil),                    // 114: terraform1.stacks.StackChangeProgress.InvokeActionTrigger
-	(*StackChangeProgress_DeferredResourceInstancePlannedChange)(nil),  // 115: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange
-	(*StackChangeProgress_ProvisionerStatus)(nil),                      // 116: terraform1.stacks.StackChangeProgress.ProvisionerStatus
-	(*StackChangeProgress_ProvisionerOutput)(nil),                      // 117: terraform1.stacks.StackChangeProgress.ProvisionerOutput
-	(*StackChangeProgress_ComponentInstanceChanges)(nil),               // 118: terraform1.stacks.StackChangeProgress.ComponentInstanceChanges
-	(*StackChangeProgress_ComponentInstances)(nil),                     // 119: terraform1.stacks.StackChangeProgress.ComponentInstances
-	(*StackChangeProgress_ResourceInstancePlannedChange_Moved)(nil),    // 120: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved
-	(*StackChangeProgress_ResourceInstancePlannedChange_Imported)(nil), // 121: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Imported
-	(*ListResourceIdentities_Request)(nil),                             // 122: terraform1.stacks.ListResourceIdentities.Request
-	(*ListResourceIdentities_Response)(nil),                            // 123: terraform1.stacks.ListResourceIdentities.Response
-	(*ListResourceIdentities_Resource)(nil),                            // 124: terraform1.stacks.ListResourceIdentities.Resource
-	(*terraform1.SourceRange)(nil),                                     // 125: terraform1.SourceRange
-	(*anypb.Any)(nil),                                                  // 126: google.protobuf.Any
-	(*terraform1.Diagnostic)(nil),                                      // 127: terraform1.Diagnostic
-	(*terraform1.SourceAddress)(nil),                                   // 128: terraform1.SourceAddress
+	(*PlannedChange_ActionInvocationDeferred)(nil),                     // 92: terraform1.stacks.PlannedChange.ActionInvocationDeferred
+	(*PlannedChange_LifecycleActionTrigger)(nil),                       // 93: terraform1.stacks.PlannedChange.LifecycleActionTrigger
+	(*PlannedChange_InvokeActionTrigger)(nil),                          // 94: terraform1.stacks.PlannedChange.InvokeActionTrigger
+	(*PlannedChange_ResourceInstance)(nil),                             // 95: terraform1.stacks.PlannedChange.ResourceInstance
+	(*PlannedChange_OutputValue)(nil),                                  // 96: terraform1.stacks.PlannedChange.OutputValue
+	(*PlannedChange_ResourceInstanceDeferred)(nil),                     // 97: terraform1.stacks.PlannedChange.ResourceInstanceDeferred
+	(*PlannedChange_InputVariable)(nil),                                // 98: terraform1.stacks.PlannedChange.InputVariable
+	(*PlannedChange_ResourceInstance_Index)(nil),                       // 99: terraform1.stacks.PlannedChange.ResourceInstance.Index
+	(*PlannedChange_ResourceInstance_Moved)(nil),                       // 100: terraform1.stacks.PlannedChange.ResourceInstance.Moved
+	(*PlannedChange_ResourceInstance_Imported)(nil),                    // 101: terraform1.stacks.PlannedChange.ResourceInstance.Imported
+	(*AppliedChange_RawChange)(nil),                                    // 102: terraform1.stacks.AppliedChange.RawChange
+	(*AppliedChange_ChangeDescription)(nil),                            // 103: terraform1.stacks.AppliedChange.ChangeDescription
+	(*AppliedChange_ResourceInstance)(nil),                             // 104: terraform1.stacks.AppliedChange.ResourceInstance
+	(*AppliedChange_ComponentInstance)(nil),                            // 105: terraform1.stacks.AppliedChange.ComponentInstance
+	(*AppliedChange_OutputValue)(nil),                                  // 106: terraform1.stacks.AppliedChange.OutputValue
+	(*AppliedChange_InputVariable)(nil),                                // 107: terraform1.stacks.AppliedChange.InputVariable
+	(*AppliedChange_Nothing)(nil),                                      // 108: terraform1.stacks.AppliedChange.Nothing
+	nil,                                                                // 109: terraform1.stacks.AppliedChange.ComponentInstance.OutputValuesEntry
+	(*StackChangeProgress_ComponentInstanceStatus)(nil),                // 110: terraform1.stacks.StackChangeProgress.ComponentInstanceStatus
+	(*StackChangeProgress_ResourceInstanceStatus)(nil),                 // 111: terraform1.stacks.StackChangeProgress.ResourceInstanceStatus
+	(*StackChangeProgress_ResourceInstancePlannedChange)(nil),          // 112: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange
+	(*StackChangeProgress_ActionInvocationPlanned)(nil),                // 113: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned
+	(*StackChangeProgress_LifecycleActionTrigger)(nil),                 // 114: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
+	(*StackChangeProgress_InvokeActionTrigger)(nil),                    // 115: terraform1.stacks.StackChangeProgress.InvokeActionTrigger
+	(*StackChangeProgress_DeferredResourceInstancePlannedChange)(nil),  // 116: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange
+	(*StackChangeProgress_ProvisionerStatus)(nil),                      // 117: terraform1.stacks.StackChangeProgress.ProvisionerStatus
+	(*StackChangeProgress_ProvisionerOutput)(nil),                      // 118: terraform1.stacks.StackChangeProgress.ProvisionerOutput
+	(*StackChangeProgress_ComponentInstanceChanges)(nil),               // 119: terraform1.stacks.StackChangeProgress.ComponentInstanceChanges
+	(*StackChangeProgress_ComponentInstances)(nil),                     // 120: terraform1.stacks.StackChangeProgress.ComponentInstances
+	(*StackChangeProgress_ResourceInstancePlannedChange_Moved)(nil),    // 121: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved
+	(*StackChangeProgress_ResourceInstancePlannedChange_Imported)(nil), // 122: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Imported
+	(*ListResourceIdentities_Request)(nil),                             // 123: terraform1.stacks.ListResourceIdentities.Request
+	(*ListResourceIdentities_Response)(nil),                            // 124: terraform1.stacks.ListResourceIdentities.Response
+	(*ListResourceIdentities_Resource)(nil),                            // 125: terraform1.stacks.ListResourceIdentities.Resource
+	(*terraform1.SourceRange)(nil),                                     // 126: terraform1.SourceRange
+	(*anypb.Any)(nil),                                                  // 127: google.protobuf.Any
+	(*terraform1.Diagnostic)(nil),                                      // 128: terraform1.Diagnostic
+	(*terraform1.SourceAddress)(nil),                                   // 129: terraform1.SourceAddress
 }
 var file_stacks_proto_depIdxs = []int32{
 	28,  // 0: terraform1.stacks.DynamicValue.sensitive:type_name -> terraform1.stacks.AttributePath
 	25,  // 1: terraform1.stacks.DynamicValueChange.old:type_name -> terraform1.stacks.DynamicValue
 	25,  // 2: terraform1.stacks.DynamicValueChange.new:type_name -> terraform1.stacks.DynamicValue
 	25,  // 3: terraform1.stacks.DynamicValueWithSource.value:type_name -> terraform1.stacks.DynamicValue
-	125, // 4: terraform1.stacks.DynamicValueWithSource.source_range:type_name -> terraform1.SourceRange
+	126, // 4: terraform1.stacks.DynamicValueWithSource.source_range:type_name -> terraform1.SourceRange
 	88,  // 5: terraform1.stacks.AttributePath.steps:type_name -> terraform1.stacks.AttributePath.Step
-	126, // 6: terraform1.stacks.PlannedChange.raw:type_name -> google.protobuf.Any
+	127, // 6: terraform1.stacks.PlannedChange.raw:type_name -> google.protobuf.Any
 	89,  // 7: terraform1.stacks.PlannedChange.descriptions:type_name -> terraform1.stacks.PlannedChange.ChangeDescription
 	5,   // 8: terraform1.stacks.Deferred.reason:type_name -> terraform1.stacks.Deferred.Reason
-	101, // 9: terraform1.stacks.AppliedChange.raw:type_name -> terraform1.stacks.AppliedChange.RawChange
-	102, // 10: terraform1.stacks.AppliedChange.descriptions:type_name -> terraform1.stacks.AppliedChange.ChangeDescription
-	109, // 11: terraform1.stacks.StackChangeProgress.component_instance_status:type_name -> terraform1.stacks.StackChangeProgress.ComponentInstanceStatus
-	110, // 12: terraform1.stacks.StackChangeProgress.resource_instance_status:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstanceStatus
-	111, // 13: terraform1.stacks.StackChangeProgress.resource_instance_planned_change:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange
-	116, // 14: terraform1.stacks.StackChangeProgress.provisioner_status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus
-	117, // 15: terraform1.stacks.StackChangeProgress.provisioner_output:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerOutput
-	118, // 16: terraform1.stacks.StackChangeProgress.component_instance_changes:type_name -> terraform1.stacks.StackChangeProgress.ComponentInstanceChanges
-	119, // 17: terraform1.stacks.StackChangeProgress.component_instances:type_name -> terraform1.stacks.StackChangeProgress.ComponentInstances
-	115, // 18: terraform1.stacks.StackChangeProgress.deferred_resource_instance_planned_change:type_name -> terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange
-	112, // 19: terraform1.stacks.StackChangeProgress.action_invocation_planned:type_name -> terraform1.stacks.StackChangeProgress.ActionInvocationPlanned
-	127, // 20: terraform1.stacks.OpenTerraformState.Response.diagnostics:type_name -> terraform1.Diagnostic
+	102, // 9: terraform1.stacks.AppliedChange.raw:type_name -> terraform1.stacks.AppliedChange.RawChange
+	103, // 10: terraform1.stacks.AppliedChange.descriptions:type_name -> terraform1.stacks.AppliedChange.ChangeDescription
+	110, // 11: terraform1.stacks.StackChangeProgress.component_instance_status:type_name -> terraform1.stacks.StackChangeProgress.ComponentInstanceStatus
+	111, // 12: terraform1.stacks.StackChangeProgress.resource_instance_status:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstanceStatus
+	112, // 13: terraform1.stacks.StackChangeProgress.resource_instance_planned_change:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange
+	117, // 14: terraform1.stacks.StackChangeProgress.provisioner_status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus
+	118, // 15: terraform1.stacks.StackChangeProgress.provisioner_output:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerOutput
+	119, // 16: terraform1.stacks.StackChangeProgress.component_instance_changes:type_name -> terraform1.stacks.StackChangeProgress.ComponentInstanceChanges
+	120, // 17: terraform1.stacks.StackChangeProgress.component_instances:type_name -> terraform1.stacks.StackChangeProgress.ComponentInstances
+	116, // 18: terraform1.stacks.StackChangeProgress.deferred_resource_instance_planned_change:type_name -> terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange
+	113, // 19: terraform1.stacks.StackChangeProgress.action_invocation_planned:type_name -> terraform1.stacks.StackChangeProgress.ActionInvocationPlanned
+	128, // 20: terraform1.stacks.OpenTerraformState.Response.diagnostics:type_name -> terraform1.Diagnostic
 	44,  // 21: terraform1.stacks.MigrateTerraformState.Request.simple:type_name -> terraform1.stacks.MigrateTerraformState.Request.Mapping
-	127, // 22: terraform1.stacks.MigrateTerraformState.Event.diagnostic:type_name -> terraform1.Diagnostic
+	128, // 22: terraform1.stacks.MigrateTerraformState.Event.diagnostic:type_name -> terraform1.Diagnostic
 	35,  // 23: terraform1.stacks.MigrateTerraformState.Event.applied_change:type_name -> terraform1.stacks.AppliedChange
 	45,  // 24: terraform1.stacks.MigrateTerraformState.Request.Mapping.resource_address_map:type_name -> terraform1.stacks.MigrateTerraformState.Request.Mapping.ResourceAddressMapEntry
 	46,  // 25: terraform1.stacks.MigrateTerraformState.Request.Mapping.module_address_map:type_name -> terraform1.stacks.MigrateTerraformState.Request.Mapping.ModuleAddressMapEntry
-	128, // 26: terraform1.stacks.OpenStackConfiguration.Request.source_address:type_name -> terraform1.SourceAddress
-	127, // 27: terraform1.stacks.OpenStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
-	127, // 28: terraform1.stacks.ValidateStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
+	129, // 26: terraform1.stacks.OpenStackConfiguration.Request.source_address:type_name -> terraform1.SourceAddress
+	128, // 27: terraform1.stacks.OpenStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
+	128, // 28: terraform1.stacks.ValidateStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
 	55,  // 29: terraform1.stacks.FindStackConfigurationComponents.Response.config:type_name -> terraform1.stacks.FindStackConfigurationComponents.StackConfig
 	61,  // 30: terraform1.stacks.FindStackConfigurationComponents.StackConfig.components:type_name -> terraform1.stacks.FindStackConfigurationComponents.StackConfig.ComponentsEntry
 	62,  // 31: terraform1.stacks.FindStackConfigurationComponents.StackConfig.embedded_stacks:type_name -> terraform1.stacks.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
@@ -7755,133 +7835,136 @@ var file_stacks_proto_depIdxs = []int32{
 	60,  // 43: terraform1.stacks.FindStackConfigurationComponents.StackConfig.OutputValuesEntry.value:type_name -> terraform1.stacks.FindStackConfigurationComponents.OutputValue
 	58,  // 44: terraform1.stacks.FindStackConfigurationComponents.StackConfig.RemovedEntry.value:type_name -> terraform1.stacks.FindStackConfigurationComponents.Removed
 	3,   // 45: terraform1.stacks.FindStackConfigurationComponents.Removed.Block.instances:type_name -> terraform1.stacks.FindStackConfigurationComponents.Instances
-	101, // 46: terraform1.stacks.OpenStackState.RequestItem.raw:type_name -> terraform1.stacks.AppliedChange.RawChange
+	102, // 46: terraform1.stacks.OpenStackState.RequestItem.raw:type_name -> terraform1.stacks.AppliedChange.RawChange
 	1,   // 47: terraform1.stacks.PlanStackChanges.Request.plan_mode:type_name -> terraform1.stacks.PlanMode
 	73,  // 48: terraform1.stacks.PlanStackChanges.Request.previous_state:type_name -> terraform1.stacks.PlanStackChanges.Request.PreviousStateEntry
 	74,  // 49: terraform1.stacks.PlanStackChanges.Request.input_values:type_name -> terraform1.stacks.PlanStackChanges.Request.InputValuesEntry
 	33,  // 50: terraform1.stacks.PlanStackChanges.Event.planned_change:type_name -> terraform1.stacks.PlannedChange
-	127, // 51: terraform1.stacks.PlanStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
+	128, // 51: terraform1.stacks.PlanStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
 	36,  // 52: terraform1.stacks.PlanStackChanges.Event.progress:type_name -> terraform1.stacks.StackChangeProgress
-	126, // 53: terraform1.stacks.PlanStackChanges.Request.PreviousStateEntry.value:type_name -> google.protobuf.Any
+	127, // 53: terraform1.stacks.PlanStackChanges.Request.PreviousStateEntry.value:type_name -> google.protobuf.Any
 	27,  // 54: terraform1.stacks.PlanStackChanges.Request.InputValuesEntry.value:type_name -> terraform1.stacks.DynamicValueWithSource
-	126, // 55: terraform1.stacks.OpenStackPlan.RequestItem.raw:type_name -> google.protobuf.Any
-	126, // 56: terraform1.stacks.ApplyStackChanges.Request.planned_changes:type_name -> google.protobuf.Any
+	127, // 55: terraform1.stacks.OpenStackPlan.RequestItem.raw:type_name -> google.protobuf.Any
+	127, // 56: terraform1.stacks.ApplyStackChanges.Request.planned_changes:type_name -> google.protobuf.Any
 	81,  // 57: terraform1.stacks.ApplyStackChanges.Request.input_values:type_name -> terraform1.stacks.ApplyStackChanges.Request.InputValuesEntry
 	35,  // 58: terraform1.stacks.ApplyStackChanges.Event.applied_change:type_name -> terraform1.stacks.AppliedChange
-	127, // 59: terraform1.stacks.ApplyStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
+	128, // 59: terraform1.stacks.ApplyStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
 	36,  // 60: terraform1.stacks.ApplyStackChanges.Event.progress:type_name -> terraform1.stacks.StackChangeProgress
 	27,  // 61: terraform1.stacks.ApplyStackChanges.Request.InputValuesEntry.value:type_name -> terraform1.stacks.DynamicValueWithSource
 	84,  // 62: terraform1.stacks.OpenStackInspector.Request.state:type_name -> terraform1.stacks.OpenStackInspector.Request.StateEntry
 	85,  // 63: terraform1.stacks.OpenStackInspector.Request.input_values:type_name -> terraform1.stacks.OpenStackInspector.Request.InputValuesEntry
-	127, // 64: terraform1.stacks.OpenStackInspector.Response.diagnostics:type_name -> terraform1.Diagnostic
-	126, // 65: terraform1.stacks.OpenStackInspector.Request.StateEntry.value:type_name -> google.protobuf.Any
+	128, // 64: terraform1.stacks.OpenStackInspector.Response.diagnostics:type_name -> terraform1.Diagnostic
+	127, // 65: terraform1.stacks.OpenStackInspector.Request.StateEntry.value:type_name -> google.protobuf.Any
 	27,  // 66: terraform1.stacks.OpenStackInspector.Request.InputValuesEntry.value:type_name -> terraform1.stacks.DynamicValueWithSource
 	25,  // 67: terraform1.stacks.InspectExpressionResult.Response.result:type_name -> terraform1.stacks.DynamicValue
-	127, // 68: terraform1.stacks.InspectExpressionResult.Response.diagnostics:type_name -> terraform1.Diagnostic
+	128, // 68: terraform1.stacks.InspectExpressionResult.Response.diagnostics:type_name -> terraform1.Diagnostic
 	90,  // 69: terraform1.stacks.PlannedChange.ChangeDescription.component_instance_planned:type_name -> terraform1.stacks.PlannedChange.ComponentInstance
-	94,  // 70: terraform1.stacks.PlannedChange.ChangeDescription.resource_instance_planned:type_name -> terraform1.stacks.PlannedChange.ResourceInstance
-	95,  // 71: terraform1.stacks.PlannedChange.ChangeDescription.output_value_planned:type_name -> terraform1.stacks.PlannedChange.OutputValue
-	96,  // 72: terraform1.stacks.PlannedChange.ChangeDescription.resource_instance_deferred:type_name -> terraform1.stacks.PlannedChange.ResourceInstanceDeferred
-	97,  // 73: terraform1.stacks.PlannedChange.ChangeDescription.input_variable_planned:type_name -> terraform1.stacks.PlannedChange.InputVariable
+	95,  // 70: terraform1.stacks.PlannedChange.ChangeDescription.resource_instance_planned:type_name -> terraform1.stacks.PlannedChange.ResourceInstance
+	96,  // 71: terraform1.stacks.PlannedChange.ChangeDescription.output_value_planned:type_name -> terraform1.stacks.PlannedChange.OutputValue
+	97,  // 72: terraform1.stacks.PlannedChange.ChangeDescription.resource_instance_deferred:type_name -> terraform1.stacks.PlannedChange.ResourceInstanceDeferred
+	98,  // 73: terraform1.stacks.PlannedChange.ChangeDescription.input_variable_planned:type_name -> terraform1.stacks.PlannedChange.InputVariable
 	91,  // 74: terraform1.stacks.PlannedChange.ChangeDescription.action_invocation_planned:type_name -> terraform1.stacks.PlannedChange.ActionInvocationInstance
-	29,  // 75: terraform1.stacks.PlannedChange.ComponentInstance.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
-	2,   // 76: terraform1.stacks.PlannedChange.ComponentInstance.actions:type_name -> terraform1.stacks.ChangeType
-	30,  // 77: terraform1.stacks.PlannedChange.ActionInvocationInstance.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
-	25,  // 78: terraform1.stacks.PlannedChange.ActionInvocationInstance.config_value:type_name -> terraform1.stacks.DynamicValue
-	92,  // 79: terraform1.stacks.PlannedChange.ActionInvocationInstance.lifecycle_action_trigger:type_name -> terraform1.stacks.PlannedChange.LifecycleActionTrigger
-	93,  // 80: terraform1.stacks.PlannedChange.ActionInvocationInstance.invoke_action_trigger:type_name -> terraform1.stacks.PlannedChange.InvokeActionTrigger
-	31,  // 81: terraform1.stacks.PlannedChange.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
-	4,   // 82: terraform1.stacks.PlannedChange.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.PlannedChange.ActionTriggerEvent
-	32,  // 83: terraform1.stacks.PlannedChange.ResourceInstance.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	2,   // 84: terraform1.stacks.PlannedChange.ResourceInstance.actions:type_name -> terraform1.stacks.ChangeType
-	26,  // 85: terraform1.stacks.PlannedChange.ResourceInstance.values:type_name -> terraform1.stacks.DynamicValueChange
-	99,  // 86: terraform1.stacks.PlannedChange.ResourceInstance.moved:type_name -> terraform1.stacks.PlannedChange.ResourceInstance.Moved
-	100, // 87: terraform1.stacks.PlannedChange.ResourceInstance.imported:type_name -> terraform1.stacks.PlannedChange.ResourceInstance.Imported
-	0,   // 88: terraform1.stacks.PlannedChange.ResourceInstance.resource_mode:type_name -> terraform1.stacks.ResourceMode
-	25,  // 89: terraform1.stacks.PlannedChange.ResourceInstance.previous_run_value:type_name -> terraform1.stacks.DynamicValue
-	28,  // 90: terraform1.stacks.PlannedChange.ResourceInstance.replace_paths:type_name -> terraform1.stacks.AttributePath
-	98,  // 91: terraform1.stacks.PlannedChange.ResourceInstance.index:type_name -> terraform1.stacks.PlannedChange.ResourceInstance.Index
-	2,   // 92: terraform1.stacks.PlannedChange.OutputValue.actions:type_name -> terraform1.stacks.ChangeType
-	26,  // 93: terraform1.stacks.PlannedChange.OutputValue.values:type_name -> terraform1.stacks.DynamicValueChange
-	94,  // 94: terraform1.stacks.PlannedChange.ResourceInstanceDeferred.resource_instance:type_name -> terraform1.stacks.PlannedChange.ResourceInstance
-	34,  // 95: terraform1.stacks.PlannedChange.ResourceInstanceDeferred.deferred:type_name -> terraform1.stacks.Deferred
-	2,   // 96: terraform1.stacks.PlannedChange.InputVariable.actions:type_name -> terraform1.stacks.ChangeType
-	26,  // 97: terraform1.stacks.PlannedChange.InputVariable.values:type_name -> terraform1.stacks.DynamicValueChange
-	25,  // 98: terraform1.stacks.PlannedChange.ResourceInstance.Index.value:type_name -> terraform1.stacks.DynamicValue
-	31,  // 99: terraform1.stacks.PlannedChange.ResourceInstance.Moved.prev_addr:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
-	126, // 100: terraform1.stacks.AppliedChange.RawChange.value:type_name -> google.protobuf.Any
-	107, // 101: terraform1.stacks.AppliedChange.ChangeDescription.deleted:type_name -> terraform1.stacks.AppliedChange.Nothing
-	107, // 102: terraform1.stacks.AppliedChange.ChangeDescription.moved:type_name -> terraform1.stacks.AppliedChange.Nothing
-	103, // 103: terraform1.stacks.AppliedChange.ChangeDescription.resource_instance:type_name -> terraform1.stacks.AppliedChange.ResourceInstance
-	105, // 104: terraform1.stacks.AppliedChange.ChangeDescription.output_value:type_name -> terraform1.stacks.AppliedChange.OutputValue
-	106, // 105: terraform1.stacks.AppliedChange.ChangeDescription.input_variable:type_name -> terraform1.stacks.AppliedChange.InputVariable
-	104, // 106: terraform1.stacks.AppliedChange.ChangeDescription.component_instance:type_name -> terraform1.stacks.AppliedChange.ComponentInstance
-	32,  // 107: terraform1.stacks.AppliedChange.ResourceInstance.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	25,  // 108: terraform1.stacks.AppliedChange.ResourceInstance.new_value:type_name -> terraform1.stacks.DynamicValue
-	0,   // 109: terraform1.stacks.AppliedChange.ResourceInstance.resource_mode:type_name -> terraform1.stacks.ResourceMode
-	108, // 110: terraform1.stacks.AppliedChange.ComponentInstance.output_values:type_name -> terraform1.stacks.AppliedChange.ComponentInstance.OutputValuesEntry
-	25,  // 111: terraform1.stacks.AppliedChange.OutputValue.new_value:type_name -> terraform1.stacks.DynamicValue
-	25,  // 112: terraform1.stacks.AppliedChange.InputVariable.new_value:type_name -> terraform1.stacks.DynamicValue
-	25,  // 113: terraform1.stacks.AppliedChange.ComponentInstance.OutputValuesEntry.value:type_name -> terraform1.stacks.DynamicValue
-	29,  // 114: terraform1.stacks.StackChangeProgress.ComponentInstanceStatus.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
-	7,   // 115: terraform1.stacks.StackChangeProgress.ComponentInstanceStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ComponentInstanceStatus.Status
-	32,  // 116: terraform1.stacks.StackChangeProgress.ResourceInstanceStatus.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	8,   // 117: terraform1.stacks.StackChangeProgress.ResourceInstanceStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstanceStatus.Status
-	32,  // 118: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	2,   // 119: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.actions:type_name -> terraform1.stacks.ChangeType
-	120, // 120: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.moved:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved
-	121, // 121: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.imported:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Imported
-	30,  // 122: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
-	113, // 123: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.lifecycle_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
-	114, // 124: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.invoke_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.InvokeActionTrigger
-	31,  // 125: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
-	6,   // 126: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.StackChangeProgress.ActionTriggerEvent
-	34,  // 127: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange.deferred:type_name -> terraform1.stacks.Deferred
-	111, // 128: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange.change:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange
-	32,  // 129: terraform1.stacks.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	116, // 130: terraform1.stacks.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus
-	32,  // 131: terraform1.stacks.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	29,  // 132: terraform1.stacks.StackChangeProgress.ComponentInstanceChanges.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
-	31,  // 133: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved.prev_addr:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
-	124, // 134: terraform1.stacks.ListResourceIdentities.Response.resource:type_name -> terraform1.stacks.ListResourceIdentities.Resource
-	25,  // 135: terraform1.stacks.ListResourceIdentities.Resource.resource_identity:type_name -> terraform1.stacks.DynamicValue
-	47,  // 136: terraform1.stacks.Stacks.OpenStackConfiguration:input_type -> terraform1.stacks.OpenStackConfiguration.Request
-	49,  // 137: terraform1.stacks.Stacks.CloseStackConfiguration:input_type -> terraform1.stacks.CloseStackConfiguration.Request
-	51,  // 138: terraform1.stacks.Stacks.ValidateStackConfiguration:input_type -> terraform1.stacks.ValidateStackConfiguration.Request
-	53,  // 139: terraform1.stacks.Stacks.FindStackConfigurationComponents:input_type -> terraform1.stacks.FindStackConfigurationComponents.Request
-	67,  // 140: terraform1.stacks.Stacks.OpenState:input_type -> terraform1.stacks.OpenStackState.RequestItem
-	69,  // 141: terraform1.stacks.Stacks.CloseState:input_type -> terraform1.stacks.CloseStackState.Request
-	71,  // 142: terraform1.stacks.Stacks.PlanStackChanges:input_type -> terraform1.stacks.PlanStackChanges.Request
-	75,  // 143: terraform1.stacks.Stacks.OpenPlan:input_type -> terraform1.stacks.OpenStackPlan.RequestItem
-	77,  // 144: terraform1.stacks.Stacks.ClosePlan:input_type -> terraform1.stacks.CloseStackPlan.Request
-	79,  // 145: terraform1.stacks.Stacks.ApplyStackChanges:input_type -> terraform1.stacks.ApplyStackChanges.Request
-	82,  // 146: terraform1.stacks.Stacks.OpenStackInspector:input_type -> terraform1.stacks.OpenStackInspector.Request
-	86,  // 147: terraform1.stacks.Stacks.InspectExpressionResult:input_type -> terraform1.stacks.InspectExpressionResult.Request
-	38,  // 148: terraform1.stacks.Stacks.OpenTerraformState:input_type -> terraform1.stacks.OpenTerraformState.Request
-	40,  // 149: terraform1.stacks.Stacks.CloseTerraformState:input_type -> terraform1.stacks.CloseTerraformState.Request
-	42,  // 150: terraform1.stacks.Stacks.MigrateTerraformState:input_type -> terraform1.stacks.MigrateTerraformState.Request
-	122, // 151: terraform1.stacks.Stacks.ListResourceIdentities:input_type -> terraform1.stacks.ListResourceIdentities.Request
-	48,  // 152: terraform1.stacks.Stacks.OpenStackConfiguration:output_type -> terraform1.stacks.OpenStackConfiguration.Response
-	50,  // 153: terraform1.stacks.Stacks.CloseStackConfiguration:output_type -> terraform1.stacks.CloseStackConfiguration.Response
-	52,  // 154: terraform1.stacks.Stacks.ValidateStackConfiguration:output_type -> terraform1.stacks.ValidateStackConfiguration.Response
-	54,  // 155: terraform1.stacks.Stacks.FindStackConfigurationComponents:output_type -> terraform1.stacks.FindStackConfigurationComponents.Response
-	68,  // 156: terraform1.stacks.Stacks.OpenState:output_type -> terraform1.stacks.OpenStackState.Response
-	70,  // 157: terraform1.stacks.Stacks.CloseState:output_type -> terraform1.stacks.CloseStackState.Response
-	72,  // 158: terraform1.stacks.Stacks.PlanStackChanges:output_type -> terraform1.stacks.PlanStackChanges.Event
-	76,  // 159: terraform1.stacks.Stacks.OpenPlan:output_type -> terraform1.stacks.OpenStackPlan.Response
-	78,  // 160: terraform1.stacks.Stacks.ClosePlan:output_type -> terraform1.stacks.CloseStackPlan.Response
-	80,  // 161: terraform1.stacks.Stacks.ApplyStackChanges:output_type -> terraform1.stacks.ApplyStackChanges.Event
-	83,  // 162: terraform1.stacks.Stacks.OpenStackInspector:output_type -> terraform1.stacks.OpenStackInspector.Response
-	87,  // 163: terraform1.stacks.Stacks.InspectExpressionResult:output_type -> terraform1.stacks.InspectExpressionResult.Response
-	39,  // 164: terraform1.stacks.Stacks.OpenTerraformState:output_type -> terraform1.stacks.OpenTerraformState.Response
-	41,  // 165: terraform1.stacks.Stacks.CloseTerraformState:output_type -> terraform1.stacks.CloseTerraformState.Response
-	43,  // 166: terraform1.stacks.Stacks.MigrateTerraformState:output_type -> terraform1.stacks.MigrateTerraformState.Event
-	123, // 167: terraform1.stacks.Stacks.ListResourceIdentities:output_type -> terraform1.stacks.ListResourceIdentities.Response
-	152, // [152:168] is the sub-list for method output_type
-	136, // [136:152] is the sub-list for method input_type
-	136, // [136:136] is the sub-list for extension type_name
-	136, // [136:136] is the sub-list for extension extendee
-	0,   // [0:136] is the sub-list for field type_name
+	92,  // 75: terraform1.stacks.PlannedChange.ChangeDescription.action_invocation_deferred:type_name -> terraform1.stacks.PlannedChange.ActionInvocationDeferred
+	29,  // 76: terraform1.stacks.PlannedChange.ComponentInstance.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
+	2,   // 77: terraform1.stacks.PlannedChange.ComponentInstance.actions:type_name -> terraform1.stacks.ChangeType
+	30,  // 78: terraform1.stacks.PlannedChange.ActionInvocationInstance.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
+	25,  // 79: terraform1.stacks.PlannedChange.ActionInvocationInstance.config_value:type_name -> terraform1.stacks.DynamicValue
+	93,  // 80: terraform1.stacks.PlannedChange.ActionInvocationInstance.lifecycle_action_trigger:type_name -> terraform1.stacks.PlannedChange.LifecycleActionTrigger
+	94,  // 81: terraform1.stacks.PlannedChange.ActionInvocationInstance.invoke_action_trigger:type_name -> terraform1.stacks.PlannedChange.InvokeActionTrigger
+	34,  // 82: terraform1.stacks.PlannedChange.ActionInvocationDeferred.deferred:type_name -> terraform1.stacks.Deferred
+	91,  // 83: terraform1.stacks.PlannedChange.ActionInvocationDeferred.action_invocation:type_name -> terraform1.stacks.PlannedChange.ActionInvocationInstance
+	31,  // 84: terraform1.stacks.PlannedChange.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
+	4,   // 85: terraform1.stacks.PlannedChange.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.PlannedChange.ActionTriggerEvent
+	32,  // 86: terraform1.stacks.PlannedChange.ResourceInstance.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	2,   // 87: terraform1.stacks.PlannedChange.ResourceInstance.actions:type_name -> terraform1.stacks.ChangeType
+	26,  // 88: terraform1.stacks.PlannedChange.ResourceInstance.values:type_name -> terraform1.stacks.DynamicValueChange
+	100, // 89: terraform1.stacks.PlannedChange.ResourceInstance.moved:type_name -> terraform1.stacks.PlannedChange.ResourceInstance.Moved
+	101, // 90: terraform1.stacks.PlannedChange.ResourceInstance.imported:type_name -> terraform1.stacks.PlannedChange.ResourceInstance.Imported
+	0,   // 91: terraform1.stacks.PlannedChange.ResourceInstance.resource_mode:type_name -> terraform1.stacks.ResourceMode
+	25,  // 92: terraform1.stacks.PlannedChange.ResourceInstance.previous_run_value:type_name -> terraform1.stacks.DynamicValue
+	28,  // 93: terraform1.stacks.PlannedChange.ResourceInstance.replace_paths:type_name -> terraform1.stacks.AttributePath
+	99,  // 94: terraform1.stacks.PlannedChange.ResourceInstance.index:type_name -> terraform1.stacks.PlannedChange.ResourceInstance.Index
+	2,   // 95: terraform1.stacks.PlannedChange.OutputValue.actions:type_name -> terraform1.stacks.ChangeType
+	26,  // 96: terraform1.stacks.PlannedChange.OutputValue.values:type_name -> terraform1.stacks.DynamicValueChange
+	95,  // 97: terraform1.stacks.PlannedChange.ResourceInstanceDeferred.resource_instance:type_name -> terraform1.stacks.PlannedChange.ResourceInstance
+	34,  // 98: terraform1.stacks.PlannedChange.ResourceInstanceDeferred.deferred:type_name -> terraform1.stacks.Deferred
+	2,   // 99: terraform1.stacks.PlannedChange.InputVariable.actions:type_name -> terraform1.stacks.ChangeType
+	26,  // 100: terraform1.stacks.PlannedChange.InputVariable.values:type_name -> terraform1.stacks.DynamicValueChange
+	25,  // 101: terraform1.stacks.PlannedChange.ResourceInstance.Index.value:type_name -> terraform1.stacks.DynamicValue
+	31,  // 102: terraform1.stacks.PlannedChange.ResourceInstance.Moved.prev_addr:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
+	127, // 103: terraform1.stacks.AppliedChange.RawChange.value:type_name -> google.protobuf.Any
+	108, // 104: terraform1.stacks.AppliedChange.ChangeDescription.deleted:type_name -> terraform1.stacks.AppliedChange.Nothing
+	108, // 105: terraform1.stacks.AppliedChange.ChangeDescription.moved:type_name -> terraform1.stacks.AppliedChange.Nothing
+	104, // 106: terraform1.stacks.AppliedChange.ChangeDescription.resource_instance:type_name -> terraform1.stacks.AppliedChange.ResourceInstance
+	106, // 107: terraform1.stacks.AppliedChange.ChangeDescription.output_value:type_name -> terraform1.stacks.AppliedChange.OutputValue
+	107, // 108: terraform1.stacks.AppliedChange.ChangeDescription.input_variable:type_name -> terraform1.stacks.AppliedChange.InputVariable
+	105, // 109: terraform1.stacks.AppliedChange.ChangeDescription.component_instance:type_name -> terraform1.stacks.AppliedChange.ComponentInstance
+	32,  // 110: terraform1.stacks.AppliedChange.ResourceInstance.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	25,  // 111: terraform1.stacks.AppliedChange.ResourceInstance.new_value:type_name -> terraform1.stacks.DynamicValue
+	0,   // 112: terraform1.stacks.AppliedChange.ResourceInstance.resource_mode:type_name -> terraform1.stacks.ResourceMode
+	109, // 113: terraform1.stacks.AppliedChange.ComponentInstance.output_values:type_name -> terraform1.stacks.AppliedChange.ComponentInstance.OutputValuesEntry
+	25,  // 114: terraform1.stacks.AppliedChange.OutputValue.new_value:type_name -> terraform1.stacks.DynamicValue
+	25,  // 115: terraform1.stacks.AppliedChange.InputVariable.new_value:type_name -> terraform1.stacks.DynamicValue
+	25,  // 116: terraform1.stacks.AppliedChange.ComponentInstance.OutputValuesEntry.value:type_name -> terraform1.stacks.DynamicValue
+	29,  // 117: terraform1.stacks.StackChangeProgress.ComponentInstanceStatus.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
+	7,   // 118: terraform1.stacks.StackChangeProgress.ComponentInstanceStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ComponentInstanceStatus.Status
+	32,  // 119: terraform1.stacks.StackChangeProgress.ResourceInstanceStatus.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	8,   // 120: terraform1.stacks.StackChangeProgress.ResourceInstanceStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstanceStatus.Status
+	32,  // 121: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	2,   // 122: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.actions:type_name -> terraform1.stacks.ChangeType
+	121, // 123: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.moved:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved
+	122, // 124: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.imported:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Imported
+	30,  // 125: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
+	114, // 126: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.lifecycle_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
+	115, // 127: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.invoke_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.InvokeActionTrigger
+	31,  // 128: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
+	6,   // 129: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.StackChangeProgress.ActionTriggerEvent
+	34,  // 130: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange.deferred:type_name -> terraform1.stacks.Deferred
+	112, // 131: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange.change:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange
+	32,  // 132: terraform1.stacks.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	117, // 133: terraform1.stacks.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus
+	32,  // 134: terraform1.stacks.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	29,  // 135: terraform1.stacks.StackChangeProgress.ComponentInstanceChanges.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
+	31,  // 136: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved.prev_addr:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
+	125, // 137: terraform1.stacks.ListResourceIdentities.Response.resource:type_name -> terraform1.stacks.ListResourceIdentities.Resource
+	25,  // 138: terraform1.stacks.ListResourceIdentities.Resource.resource_identity:type_name -> terraform1.stacks.DynamicValue
+	47,  // 139: terraform1.stacks.Stacks.OpenStackConfiguration:input_type -> terraform1.stacks.OpenStackConfiguration.Request
+	49,  // 140: terraform1.stacks.Stacks.CloseStackConfiguration:input_type -> terraform1.stacks.CloseStackConfiguration.Request
+	51,  // 141: terraform1.stacks.Stacks.ValidateStackConfiguration:input_type -> terraform1.stacks.ValidateStackConfiguration.Request
+	53,  // 142: terraform1.stacks.Stacks.FindStackConfigurationComponents:input_type -> terraform1.stacks.FindStackConfigurationComponents.Request
+	67,  // 143: terraform1.stacks.Stacks.OpenState:input_type -> terraform1.stacks.OpenStackState.RequestItem
+	69,  // 144: terraform1.stacks.Stacks.CloseState:input_type -> terraform1.stacks.CloseStackState.Request
+	71,  // 145: terraform1.stacks.Stacks.PlanStackChanges:input_type -> terraform1.stacks.PlanStackChanges.Request
+	75,  // 146: terraform1.stacks.Stacks.OpenPlan:input_type -> terraform1.stacks.OpenStackPlan.RequestItem
+	77,  // 147: terraform1.stacks.Stacks.ClosePlan:input_type -> terraform1.stacks.CloseStackPlan.Request
+	79,  // 148: terraform1.stacks.Stacks.ApplyStackChanges:input_type -> terraform1.stacks.ApplyStackChanges.Request
+	82,  // 149: terraform1.stacks.Stacks.OpenStackInspector:input_type -> terraform1.stacks.OpenStackInspector.Request
+	86,  // 150: terraform1.stacks.Stacks.InspectExpressionResult:input_type -> terraform1.stacks.InspectExpressionResult.Request
+	38,  // 151: terraform1.stacks.Stacks.OpenTerraformState:input_type -> terraform1.stacks.OpenTerraformState.Request
+	40,  // 152: terraform1.stacks.Stacks.CloseTerraformState:input_type -> terraform1.stacks.CloseTerraformState.Request
+	42,  // 153: terraform1.stacks.Stacks.MigrateTerraformState:input_type -> terraform1.stacks.MigrateTerraformState.Request
+	123, // 154: terraform1.stacks.Stacks.ListResourceIdentities:input_type -> terraform1.stacks.ListResourceIdentities.Request
+	48,  // 155: terraform1.stacks.Stacks.OpenStackConfiguration:output_type -> terraform1.stacks.OpenStackConfiguration.Response
+	50,  // 156: terraform1.stacks.Stacks.CloseStackConfiguration:output_type -> terraform1.stacks.CloseStackConfiguration.Response
+	52,  // 157: terraform1.stacks.Stacks.ValidateStackConfiguration:output_type -> terraform1.stacks.ValidateStackConfiguration.Response
+	54,  // 158: terraform1.stacks.Stacks.FindStackConfigurationComponents:output_type -> terraform1.stacks.FindStackConfigurationComponents.Response
+	68,  // 159: terraform1.stacks.Stacks.OpenState:output_type -> terraform1.stacks.OpenStackState.Response
+	70,  // 160: terraform1.stacks.Stacks.CloseState:output_type -> terraform1.stacks.CloseStackState.Response
+	72,  // 161: terraform1.stacks.Stacks.PlanStackChanges:output_type -> terraform1.stacks.PlanStackChanges.Event
+	76,  // 162: terraform1.stacks.Stacks.OpenPlan:output_type -> terraform1.stacks.OpenStackPlan.Response
+	78,  // 163: terraform1.stacks.Stacks.ClosePlan:output_type -> terraform1.stacks.CloseStackPlan.Response
+	80,  // 164: terraform1.stacks.Stacks.ApplyStackChanges:output_type -> terraform1.stacks.ApplyStackChanges.Event
+	83,  // 165: terraform1.stacks.Stacks.OpenStackInspector:output_type -> terraform1.stacks.OpenStackInspector.Response
+	87,  // 166: terraform1.stacks.Stacks.InspectExpressionResult:output_type -> terraform1.stacks.InspectExpressionResult.Response
+	39,  // 167: terraform1.stacks.Stacks.OpenTerraformState:output_type -> terraform1.stacks.OpenTerraformState.Response
+	41,  // 168: terraform1.stacks.Stacks.CloseTerraformState:output_type -> terraform1.stacks.CloseTerraformState.Response
+	43,  // 169: terraform1.stacks.Stacks.MigrateTerraformState:output_type -> terraform1.stacks.MigrateTerraformState.Event
+	124, // 170: terraform1.stacks.Stacks.ListResourceIdentities:output_type -> terraform1.stacks.ListResourceIdentities.Response
+	155, // [155:171] is the sub-list for method output_type
+	139, // [139:155] is the sub-list for method input_type
+	139, // [139:139] is the sub-list for extension type_name
+	139, // [139:139] is the sub-list for extension extendee
+	0,   // [0:139] is the sub-list for field type_name
 }
 
 func init() { file_stacks_proto_init() }
@@ -7934,12 +8017,13 @@ func file_stacks_proto_init() {
 		(*PlannedChange_ChangeDescription_ResourceInstanceDeferred)(nil),
 		(*PlannedChange_ChangeDescription_InputVariablePlanned)(nil),
 		(*PlannedChange_ChangeDescription_ActionInvocationPlanned)(nil),
+		(*PlannedChange_ChangeDescription_ActionInvocationDeferred)(nil),
 	}
 	file_stacks_proto_msgTypes[81].OneofWrappers = []any{
 		(*PlannedChange_ActionInvocationInstance_LifecycleActionTrigger)(nil),
 		(*PlannedChange_ActionInvocationInstance_InvokeActionTrigger)(nil),
 	}
-	file_stacks_proto_msgTypes[92].OneofWrappers = []any{
+	file_stacks_proto_msgTypes[93].OneofWrappers = []any{
 		(*AppliedChange_ChangeDescription_Deleted)(nil),
 		(*AppliedChange_ChangeDescription_Moved)(nil),
 		(*AppliedChange_ChangeDescription_ResourceInstance)(nil),
@@ -7947,7 +8031,7 @@ func file_stacks_proto_init() {
 		(*AppliedChange_ChangeDescription_InputVariable)(nil),
 		(*AppliedChange_ChangeDescription_ComponentInstance)(nil),
 	}
-	file_stacks_proto_msgTypes[102].OneofWrappers = []any{
+	file_stacks_proto_msgTypes[103].OneofWrappers = []any{
 		(*StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger)(nil),
 		(*StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger)(nil),
 	}
@@ -7957,7 +8041,7 @@ func file_stacks_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stacks_proto_rawDesc), len(file_stacks_proto_rawDesc)),
 			NumEnums:      10,
-			NumMessages:   115,
+			NumMessages:   116,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
