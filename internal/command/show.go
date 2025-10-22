@@ -155,7 +155,7 @@ func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Di
 	}
 
 	// Load the backend
-	b, backendDiags := c.Meta.prepareBackend(mod)
+	b, backendDiags := c.prepareBackend(mod)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		return nil, diags
@@ -288,7 +288,7 @@ func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, re
 	}
 
 	// Set up the backend
-	b, diags := c.Meta.prepareBackend(mod)
+	b, diags := c.prepareBackend(mod)
 	if diags.HasErrors() {
 		return nil, errUnusable(diags.Err(), "cloud plan")
 	}

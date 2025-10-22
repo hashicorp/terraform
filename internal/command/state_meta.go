@@ -40,7 +40,7 @@ func (c *StateMeta) State() (statemgr.Full, error) {
 		}
 
 		// Load the backend
-		b, backendDiags := c.Meta.prepareBackend(mod)
+		b, backendDiags := c.prepareBackend(mod)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
 			return nil, diags.Err()

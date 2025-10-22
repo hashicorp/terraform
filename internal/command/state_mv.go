@@ -398,7 +398,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.Meta.prepareBackend(mod)
+	b, backendDiags := c.prepareBackend(mod)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

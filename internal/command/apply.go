@@ -230,7 +230,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 		}
 
 		// Load the backend
-		be, beDiags = c.Meta.prepareBackend(mod)
+		be, beDiags = c.prepareBackend(mod)
 	}
 
 	diags = diags.Append(beDiags)

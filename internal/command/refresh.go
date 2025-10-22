@@ -123,7 +123,7 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType argument
 	}
 
 	// Load the backend
-	be, beDiags := c.Meta.prepareBackend(mod)
+	be, beDiags := c.prepareBackend(mod)
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
 		return nil, diags

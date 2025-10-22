@@ -68,7 +68,7 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 	}
 
 	// Load the backend
-	b, backendDiags := c.Meta.prepareBackend(mod)
+	b, backendDiags := c.prepareBackend(mod)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		return nil, diags

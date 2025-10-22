@@ -160,7 +160,7 @@ func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.
 	}
 
 	// Load the backend
-	be, beDiags := c.Meta.prepareBackend(mod)
+	be, beDiags := c.prepareBackend(mod)
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
 		return nil, diags
