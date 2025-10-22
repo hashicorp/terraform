@@ -540,6 +540,7 @@ message PlannedChange {
       ResourceInstanceDeferred resource_instance_deferred = 5;
       InputVariable input_variable_planned = 6;
       ActionInvocationInstance action_invocation_planned = 7;
+      ActionInvocationDeferred action_invocation_deferred = 8;
     }
   }
 
@@ -597,6 +598,18 @@ message PlannedChange {
           LifecycleActionTrigger lifecycle_action_trigger = 6;
           InvokeActionTrigger invoke_action_trigger = 7;
       }
+  }
+
+  // DeferredActionInvocation represents an action invocation that
+  // was deferred for some reason.
+  // It contains the original action invocation that was deferred, along with the reason
+  // why it was deferred.
+  message ActionInvocationDeferred {
+    // The reason why it was deferred
+    Deferred deferred = 1;
+
+    // The original action invocation that was deferred
+    ActionInvocationInstance action_invocation = 2;
   }
 
   // LifecycleActionTrigger contains details on the conditions that led to the
