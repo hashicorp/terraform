@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -19,6 +20,8 @@ import (
 
 type simple struct {
 	schema providers.GetProviderSchemaResponse
+
+	inMem *InMemStoreSingle
 }
 
 func Provider() providers.Interface {
@@ -46,7 +49,7 @@ func Provider() providers.Interface {
 		},
 	}
 
-	return simple{
+	provider := simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Body: &configschema.Block{
@@ -97,7 +100,17 @@ func Provider() providers.Interface {
 				},
 			},
 		},
+
+		inMem: &InMemStoreSingle{}, // default workspace doesn't exist by default here; needs explicit creation via init command
 	}
+
+	// Only include the inmem state store in the provider when `TF_ACC` is set in the environment
+	// Excluding this from the schemas is sufficient to block usage.
+	if v := os.Getenv("TF_ACC"); v != "" {
+		provider.schema.StateStores[inMemStoreName] = stateStoreInMemGetSchema()
+	}
+
+	return provider
 }
 
 func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {

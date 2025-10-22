@@ -4,6 +4,7 @@
 package e2etest
 
 import (
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -230,3 +232,142 @@ func TestPrimaryChdirOption(t *testing.T) {
 		t.Errorf("incorrect destroy tally; want 0 destroyed:\n%s", stdout)
 	}
 }
+
+// Requires TF_TEST_EXPERIMENT and TF_ACC to be set in the environment
+func TestPrimary_stateStore(t *testing.T) {
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+	t.Parallel()
+
+	tf := e2e.NewBinary(t, terraformBin, "testdata/full-workflow-null-with-state-store")
+
+	// In order to do a decent end-to-end test for this case we will need a real
+	// enough provider plugin to try to run and make sure we are able to
+	// actually run it. Here will build the simple and simple6 (built with
+	// protocol v6) providers.
+	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+
+	// Move the provider binaries into a directory that we will point terraform
+	// to using the -plugin-dir cli flag.
+	platform := getproviders.CurrentPlatform.String()
+	hashiDir := "cache/registry.terraform.io/hashicorp/"
+	if err := os.MkdirAll(tf.Path(hashiDir, "simple6/0.0.1/", platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+
+	//// INIT
+	_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	//// PLAN
+	_, stderr, err = tf.Run("plan", "-out=tfplan")
+	if err != nil {
+		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	//// APPLY
+	stdout, stderr, err := tf.Run("apply", "tfplan")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Apply complete! Resources: 2 added, 0 changed, 0 destroyed.") {
+		t.Fatalf("wrong output:\nstdout:%s\nstderr%s", stdout, stderr)
+	}
+
+	/// DESTROY
+	stdout, stderr, err = tf.Run("destroy", "-auto-approve")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 2 destroyed") {
+		t.Fatalf("wrong destroy output\nstdout:%s\nstderr:%s", stdout, stderr)
+	}
+
+	// //// INIT
+	// stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache")
+	// if err != nil {
+	// 	t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	// }
+
+	// // Make sure we actually downloaded the plugins, rather than picking up
+	// // copies that might be already installed globally on the system.
+	// if !strings.Contains(stdout, "Installing hashicorp/template v") {
+	// 	t.Errorf("template provider download message is missing from init output:\n%s", stdout)
+	// 	t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
+	// }
+	// if !strings.Contains(stdout, "Installing hashicorp/null v") {
+	// 	t.Errorf("null provider download message is missing from init output:\n%s", stdout)
+	// 	t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
+	// }
+
+	// //// PLAN
+	// // No separate plan step; this test lets the apply make a plan.
+
+	// //// APPLY
+	// stdout, stderr, err = tf.Run("apply")
+	// if err != nil {
+	// 	t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	// }
+
+	// if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
+	// 	t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
+	// }
+
+	// state, err := tf.LocalState()
+	// if err != nil {
+	// 	t.Fatalf("failed to read state file: %s", err)
+	// }
+
+	// stateResources := state.RootModule().Resources
+	// var gotResources []string
+	// for n := range stateResources {
+	// 	gotResources = append(gotResources, n)
+	// }
+	// sort.Strings(gotResources)
+
+	// wantResources := []string{
+	// 	"data.template_file.test",
+	// 	"null_resource.test",
+	// }
+
+	// if !reflect.DeepEqual(gotResources, wantResources) {
+	// 	t.Errorf("wrong resources in state\ngot: %#v\nwant: %#v", gotResources, wantResources)
+	// }
+
+	// //// DESTROY
+	// stdout, stderr, err = tf.Run("destroy", "-auto-approve")
+	// if err != nil {
+	// 	t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
+	// }
+
+	// if !strings.Contains(stdout, "Resources: 1 destroyed") {
+	// 	t.Errorf("incorrect destroy tally; want 1 destroyed:\n%s", stdout)
+	// }
+
+	// state, err = tf.LocalState()
+	// if err != nil {
+	// 	t.Fatalf("failed to read state file after destroy: %s", err)
+	// }
+
+	// stateResources = state.RootModule().Resources
+	// if len(stateResources) != 0 {
+	// 	t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
+	// }
+
+}
+
+// TODO: TestPrimarySeparatePlan_stateStore
