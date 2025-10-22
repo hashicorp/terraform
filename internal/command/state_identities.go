@@ -45,7 +45,7 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 		c.Meta.statePath = statePath
 	}
 
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1

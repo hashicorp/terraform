@@ -68,7 +68,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	mod, diags := c.Meta.loadSingleModule(configPath)
+	mod, diags := c.loadSingleModule(configPath)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1

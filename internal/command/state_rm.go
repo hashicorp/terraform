@@ -115,7 +115,7 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1

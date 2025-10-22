@@ -164,7 +164,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		resource.ProviderConfig.Provider = to
 	}
 
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1

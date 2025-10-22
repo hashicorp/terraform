@@ -223,7 +223,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 		be, beDiags = c.BackendForLocalPlan(plan.Backend)
 	} else {
 		// Both new plans and saved cloud plans load their backend from config.
-		mod, mDiags := c.Meta.loadSingleModule(".")
+		mod, mDiags := c.loadSingleModule(".")
 		if mDiags.HasErrors() {
 			diags = diags.Append(mDiags)
 			return nil, diags

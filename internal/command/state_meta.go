@@ -34,7 +34,7 @@ func (c *StateMeta) State() (statemgr.Full, error) {
 	if c.statePath != "" {
 		realState = statemgr.NewFilesystem(c.statePath)
 	} else {
-		mod, diags := c.Meta.loadSingleModule(".")
+		mod, diags := c.loadSingleModule(".")
 		if diags.HasErrors() {
 			return nil, diags.Err()
 		}

@@ -55,7 +55,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1

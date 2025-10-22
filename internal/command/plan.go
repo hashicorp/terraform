@@ -124,7 +124,7 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.V
 	// difficult but would make their use easier to understand.
 	c.Meta.applyStateArguments(args)
 
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		return nil, diags
 	}

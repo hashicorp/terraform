@@ -149,7 +149,7 @@ func (c *ShowCommand) show(path string) (*plans.Plan, *cloudplan.RemotePlanJSON,
 func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -282,7 +282,7 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Remo
 }
 
 func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, redacted bool) (*cloudplan.RemotePlanJSON, error) {
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		return nil, diags.Err()
 	}

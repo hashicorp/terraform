@@ -154,7 +154,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 }
 
 func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		return nil, diags
 	}

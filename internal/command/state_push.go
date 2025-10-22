@@ -75,7 +75,7 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1

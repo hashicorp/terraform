@@ -62,7 +62,7 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 		c.Meta.statePath = statePath
 	}
 
-	mod, diags := c.Meta.loadSingleModule(".")
+	mod, diags := c.loadSingleModule(".")
 	if diags.HasErrors() {
 		return nil, diags
 	}
