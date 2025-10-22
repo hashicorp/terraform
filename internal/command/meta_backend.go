@@ -1580,11 +1580,13 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 	return diags
 }
 
-// prepareBackend returns an operations backend that may use a backend, cloud, or state_store block for state storage.
+// backend returns an operations backend that may use a backend, cloud, or state_store block for state storage.
+// Based on the supplied config, it prepares arguments to pass into (Meta).Backend, which returns the operations backend.
+//
 // This method should be used in NON-init operations only; it's incapable of processing new init command CLI flags used
 // for partial configuration, however it will use the backend state file to use partial configuration from a previous
 // init command.
-func (m *Meta) prepareBackend(root *configs.Module) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+func (m *Meta) backend(root *configs.Module) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	var opts *BackendOpts

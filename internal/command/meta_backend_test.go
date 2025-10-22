@@ -2980,7 +2980,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 
 		// We cannot initialize a cloud backend so we instead check
 		// the init error is referencing HCP Terraform
-		_, bDiags := m.prepareBackend(mod)
+		_, bDiags := m.backend(mod)
 		if !bDiags.HasErrors() {
 			t.Fatal("expected error but got none")
 		}
@@ -3006,7 +3006,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 		}
 
-		b, bDiags := m.prepareBackend(mod)
+		b, bDiags := m.backend(mod)
 		if bDiags.HasErrors() {
 			t.Fatal("unexpected error: ", bDiags.Err())
 		}
@@ -3028,7 +3028,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 		m := testMetaBackend(t, nil)
 		emptyConfig := configs.NewEmptyConfig()
 
-		b, bDiags := m.prepareBackend(emptyConfig.Module)
+		b, bDiags := m.backend(emptyConfig.Module)
 		if bDiags.HasErrors() {
 			t.Fatal("unexpected error: ", bDiags.Err())
 		}
@@ -3081,7 +3081,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 			[]providerreqs.Hash{""},
 		)
 
-		b, bDiags := m.prepareBackend(mod)
+		b, bDiags := m.backend(mod)
 		if bDiags.HasErrors() {
 			t.Fatalf("unexpected error: %s", bDiags.Err())
 		}
