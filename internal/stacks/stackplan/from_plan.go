@@ -207,6 +207,38 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 		})
 	}
 
+	// And the Deferred Action Invocations
+	for _, deferredAction := range plan.DeferredActionInvocations {
+		action := deferredAction.ActionInvocationInstanceSrc
+
+		schema, err := producer.ActionSchema(ctx,
+			action.ProviderAddr.Provider, action.Addr.Action.Action.Type)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Can't fetch provider schema to save plan",
+				fmt.Sprintf(
+					"Failed to retrieve schema for %s from provider %s: %s. This is a bug in Terraform.",
+					action.Addr, action.ProviderAddr.Provider, err)))
+			continue
+		}
+
+		plannedActionInvocation := PlannedChangeActionInvocationInstancePlanned{
+			ActionInvocationAddr: stackaddrs.AbsActionInvocationInstance{
+				Component: producer.Addr(),
+				Item:      action.Addr,
+			},
+			Invocation:         deferredAction.ActionInvocationInstanceSrc,
+			ProviderConfigAddr: action.ProviderAddr,
+			Schema:             schema,
+		}
+
+		changes = append(changes, &PlannedChangeDeferredActionInvocationPlanned{
+			DeferredReason:          deferredAction.DeferredReason,
+			ActionInvocationPlanned: plannedActionInvocation,
+		})
+	}
+
 	// We also need to catch any objects that exist in the "prior state"
 	// but don't have any actions planned, since we still need to capture
 	// the prior state part in case it was updated by refreshing during

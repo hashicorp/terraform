@@ -1000,3 +1000,61 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) PlannedChangeProto() (*s
 		Descriptions: descs,
 	}, nil
 }
+
+// PlannedChangeDeferredActionInvocationPlanned announces that an invocation that Terraform
+// is proposing to take if this plan is applied is being deferred.
+type PlannedChangeDeferredActionInvocationPlanned struct {
+	// ActionInvocationPlanned is the planned invocation that is being deferred.
+	ActionInvocationPlanned PlannedChangeActionInvocationInstancePlanned
+
+	// DeferredReason is the reason why the change is being deferred.
+	DeferredReason providers.DeferredReason
+}
+
+var _ PlannedChange = (*PlannedChangeDeferredActionInvocationPlanned)(nil)
+
+// PlannedChangeProto implements PlannedChange.
+func (dai *PlannedChangeDeferredActionInvocationPlanned) PlannedChangeProto() (*stacks.PlannedChange, error) {
+	invocation, err := dai.ActionInvocationPlanned.PlanActionInvocationProto()
+	if err != nil {
+		return nil, err
+	}
+
+	// We'll ignore the error here. We certainly should not have got this far
+	// if we have a deferred reason that the Terraform Core runtime doesn't
+	// recognise. There will be diagnostics elsewhere to reflect this, as we
+	// can just use INVALID to capture this. This also makes us forwards and
+	// backwards compatible, as we'll return INVALID for any new deferred
+	// reasons that are added in the future without erroring.
+	deferredReason, _ := planfile.DeferredReasonToProto(dai.DeferredReason)
+
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanDeferredActionInvocation{
+		Invocation: invocation,
+		Deferred: &planproto.Deferred{
+			Reason: deferredReason,
+		},
+	}, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+	desc, err := dai.ActionInvocationPlanned.ChangeDescription()
+	if err != nil {
+		return nil, err
+	}
+
+	var descs []*stacks.PlannedChange_ChangeDescription
+	descs = append(descs, &stacks.PlannedChange_ChangeDescription{
+		Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationDeferred{
+			ActionInvocationDeferred: &stacks.PlannedChange_ActionInvocationDeferred{
+				ActionInvocation: desc.GetActionInvocationPlanned(),
+				Deferred:         EncodeDeferred(dai.DeferredReason),
+			},
+		},
+	})
+
+	return &stacks.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
+	}, nil
+}
