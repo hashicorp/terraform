@@ -269,6 +269,13 @@ message PlanActionInvocationPlanned {
     tfplan.ActionInvocationInstance invocation = 2;
 }
 
+// Represents a deferred change to a particular action invocation within a
+// particular component instance.
+message PlanDeferredActionInvocation {
+    tfplan.Deferred deferred = 1;
+    PlanActionInvocationPlanned invocation = 2;
+}
+
 // Represents that we need to emit "delete" requests for one or more raw
 // state and/or state description objects during the apply phase.
 //
