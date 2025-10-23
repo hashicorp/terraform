@@ -50,20 +50,6 @@ import (
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
-const (
-	// defaultStateStoreChunkSize is the default chunk size proposed
-	// to the provider.
-	// This can be tweaked but should provide reasonable performance
-	// trade-offs for average network conditions and state file sizes.
-	defaultStateStoreChunkSize int64 = 8 << 20 // 8 MB
-
-	// maxStateStoreChunkSize is the highest chunk size provider may choose
-	// which we still consider reasonable/safe.
-	// This reflects terraform-plugin-go's max. RPC message size of 256MB
-	// and leaves plenty of space for other variable data like diagnostics.
-	maxStateStoreChunkSize int64 = 128 << 20 // 128 MB
-)
-
 // BackendOpts are the options used to initialize a backendrun.OperationsBackend.
 type BackendOpts struct {
 	// BackendConfig is a representation of the backend configuration block given in
@@ -2085,7 +2071,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Fact
 		TypeName: s.StateStore.Type,
 		Config:   stateStoreConfigVal,
 		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: defaultStateStoreChunkSize,
+			ChunkSize: backendPluggable.DefaultStateStoreChunkSize,
 		},
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
@@ -2094,10 +2080,10 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Fact
 	}
 
 	chunkSize := cfgStoreResp.Capabilities.ChunkSize
-	if chunkSize == 0 || chunkSize > maxStateStoreChunkSize {
+	if chunkSize == 0 || chunkSize > backendPluggable.MaxStateStoreChunkSize {
 		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
 			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
-			maxStateStoreChunkSize, chunkSize,
+			backendPluggable.MaxStateStoreChunkSize, chunkSize,
 		))
 		return nil, diags
 	}
@@ -2362,7 +2348,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, factory providers
 		TypeName: c.Type,
 		Config:   stateStoreConfigVal,
 		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: defaultStateStoreChunkSize,
+			ChunkSize: backendPluggable.DefaultStateStoreChunkSize,
 		},
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
@@ -2371,10 +2357,10 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, factory providers
 	}
 
 	chunkSize := cfgStoreResp.Capabilities.ChunkSize
-	if chunkSize == 0 || chunkSize > maxStateStoreChunkSize {
+	if chunkSize == 0 || chunkSize > backendPluggable.MaxStateStoreChunkSize {
 		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
 			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
-			maxStateStoreChunkSize, chunkSize,
+			backendPluggable.MaxStateStoreChunkSize, chunkSize,
 		))
 		return nil, cty.NilVal, cty.NilVal, diags
 	}
