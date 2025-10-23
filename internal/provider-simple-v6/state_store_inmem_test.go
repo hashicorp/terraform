@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package simple
 
 import (
 	"testing"
@@ -17,9 +17,9 @@ import (
 func TestBackendLocked(t *testing.T) {
 	t.Setenv("TF_ACC", "1") // enable using the inmem state store
 
-	// Use NewProviderWithDefaultState so default workspace exists already,
-	// because backend.TestBackendStateLocks assumes they exist by default.
-	provider := NewProviderWithDefaultState()
+	// backend.TestBackendStateLocks assumes the default workspace exists
+	// by default, so we need to make it exist using the method below.
+	provider := ProviderWithDefaultWorkspace()
 
 	plug1, err := pluggable.NewPluggable(provider, inMemStoreName)
 	if err != nil {
@@ -39,7 +39,7 @@ func TestBackendLocked(t *testing.T) {
 func TestRemoteState(t *testing.T) {
 	t.Setenv("TF_ACC", "1") // enable using the inmem state store
 
-	provider := NewProvider()
+	provider := Provider()
 
 	plug, err := pluggable.NewPluggable(provider, inMemStoreName)
 	if err != nil {

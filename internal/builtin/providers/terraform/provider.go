@@ -4,58 +4,23 @@
 package terraform
 
 import (
-	"bytes"
 	"fmt"
 	"log"
-	"os"
 
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 // Provider is an implementation of providers.Interface
-type Provider struct {
-
-	// State storage implementation(s)
-	inMem *InMemStoreSingle // terraform_inmem
-}
+type Provider struct{}
 
 var _ providers.Interface = &Provider{}
 
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
-	return &Provider{
-		inMem: &InMemStoreSingle{},
-	}
-}
-
-// NewProvider returns a new terraform provider where the internal
-// state store(s) all have the default workspace already existing
-func NewProviderWithDefaultState() providers.Interface {
-	// Get the empty state file as bytes
-	f := statefile.New(nil, "", 0)
-
-	var buf bytes.Buffer
-	err := statefile.Write(f, &buf)
-	if err != nil {
-		panic(err)
-	}
-	emptyStateBytes := buf.Bytes()
-
-	// Return a provider where all state stores have existing default workspaces
-	return &Provider{
-		inMem: &InMemStoreSingle{
-			states: stateMap{
-				m: map[string][]byte{
-					backend.DefaultStateName: emptyStateBytes,
-				},
-			},
-		},
-	}
+	return &Provider{}
 }
 
 // GetSchema returns the complete schema for the provider.
@@ -114,13 +79,6 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		Actions:     map[string]providers.ActionSchema{},
 	}
 	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
-
-	// Only include the inmem state store in the provider when `TF_ACC` is set in the environment
-	// Excluding this from the schemas is sufficient to block usage.
-	if v := os.Getenv("TF_ACC"); v != "" {
-		resp.StateStores[inMemStoreName] = stateStoreInMemGetSchema()
-	}
-
 	return resp
 }
 
@@ -328,80 +286,48 @@ func (p *Provider) ListResource(req providers.ListResourceRequest) providers.Lis
 }
 
 func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
-	if req.TypeName == inMemStoreName {
-		return p.inMem.ValidateStateStoreConfig(req)
-	}
-
 	var resp providers.ValidateStateStoreConfigResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	if req.TypeName == inMemStoreName {
-		return p.inMem.ConfigureStateStore(req)
-	}
-
 	var resp providers.ConfigureStateStoreResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	if req.TypeName == inMemStoreName {
-		return p.inMem.ReadStateBytes(req)
-	}
-
 	var resp providers.ReadStateBytesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	if req.TypeName == inMemStoreName {
-		return p.inMem.WriteStateBytes(req)
-	}
-
 	var resp providers.WriteStateBytesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
-	if req.TypeName == inMemStoreName {
-		return p.inMem.LockState(req)
-	}
-
 	var resp providers.LockStateResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
-	if req.TypeName == inMemStoreName {
-		return p.inMem.UnlockState(req)
-	}
-
 	var resp providers.UnlockStateResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
-	if req.TypeName == inMemStoreName {
-		return p.inMem.GetStates(req)
-	}
-
 	var resp providers.GetStatesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
-	if req.TypeName == inMemStoreName {
-		return p.inMem.DeleteState(req)
-	}
-
 	var resp providers.DeleteStateResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp

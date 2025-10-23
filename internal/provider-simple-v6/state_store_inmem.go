@@ -19,9 +19,6 @@ import (
 
 const inMemStoreName = "simple6_inmem"
 
-// Matches default in command package.
-const defaultStateStoreChunkSize int64 = 8 << 20 // 8 MB
-
 // InMemStoreSingle allows 'storing' state in memory for the purpose of testing.
 //
 // "Single" reflects the fact that this implementation does not use any global scope vars
@@ -76,8 +73,8 @@ func (m *InMemStoreSingle) ConfigureStateStore(req providers.ConfigureStateStore
 		m.locks.lock(backend.DefaultStateName, v.AsString())
 	}
 
-	// We need to return a suggested chunk size; use default value
-	resp.Capabilities.ChunkSize = defaultStateStoreChunkSize
+	// We need to return a suggested chunk size; use the value suggested by Core
+	resp.Capabilities.ChunkSize = req.Capabilities.ChunkSize
 	return resp
 }
 
