@@ -25,7 +25,7 @@ type GraphNodeAttachResourceConfig interface {
 
 // AttachResourceConfigTransformer goes through the graph and attaches
 // resource configuration structures to nodes that implement
-// GraphNodeAttachManagedResourceConfig or GraphNodeAttachDataResourceConfig.
+// GraphNodeAttachResourceConfig.
 //
 // The attached configuration structures are directly from the configuration.
 // If they're going to be modified, a copy should be made.
@@ -53,7 +53,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 	// Go through and find GraphNodeAttachResource
 	for _, v := range g.Vertices() {
-		// Only care about GraphNodeAttachResource implementations
+		// Only care about GraphNodeAttachResourceConfig implementations
 		arn, ok := v.(GraphNodeAttachResourceConfig)
 		if !ok {
 			continue
