@@ -1586,19 +1586,33 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 // This method should be used in NON-init operations only; it's incapable of processing new init command CLI flags used
 // for partial configuration, however it will use the backend state file to use partial configuration from a previous
 // init command.
-func (m *Meta) backend(root *configs.Module) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	if configPath == "" {
+		configPath = "."
+	}
+
+	// Only return error diagnostics at this point. Any warnings will be caught
+	// again later and duplicated in the output.
+	root, mDiags := m.loadSingleModule(configPath)
+	if mDiags.HasErrors() {
+		diags = diags.Append(mDiags)
+		return nil, diags
+	}
 
 	var opts *BackendOpts
 	switch {
 	case root.Backend != nil:
 		opts = &BackendOpts{
 			BackendConfig: root.Backend,
+			ViewType:      viewType,
 		}
 	case root.CloudConfig != nil:
 		backendConfig := root.CloudConfig.ToBackendConfig()
 		opts = &BackendOpts{
 			BackendConfig: &backendConfig,
+			ViewType:      viewType,
 		}
 	case root.StateStore != nil:
 		// In addition to config, use of a state_store requires
@@ -1619,10 +1633,13 @@ func (m *Meta) backend(root *configs.Module) (backendrun.OperationsBackend, tfdi
 			StateStoreConfig: root.StateStore,
 			ProviderFactory:  factory,
 			Locks:            locks,
+			ViewType:         viewType,
 		}
 	default:
 		// there is no config; defaults to local state storage
-		opts = &BackendOpts{}
+		opts = &BackendOpts{
+			ViewType: viewType,
+		}
 	}
 
 	// This method should not be used for init commands,
