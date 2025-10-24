@@ -209,7 +209,7 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 			// Depending on run status, add either of: "skipped", "failure", or "error" elements
 			switch run.Status {
 			case moduletest.Skip:
-				testCase.Skipped = skipDetails(i, file, suiteRunnerStopped)
+				testCase.Skipped = skipDetails(i, file, suiteRunnerStopped, sources)
 
 			case moduletest.Fail:
 				// When the test fails we only use error diags that originate from failing assertions
@@ -300,8 +300,9 @@ func failureMessage(failedAssertions tfdiags.Diagnostics, checkCount int) string
 // Test can be skipped due to:
 // 1. terraform test recieving an interrupt from users; all unstarted tests will be skipped
 // 2. A previous run in a file has failed, causing subsequent run blocks to be skipped
+// 3. File-level errors (e.g., invalid variable references) causing all tests to be skipped
 // The returned value is used to set content in the "skipped" element
-func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool) *withMessage {
+func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool, sources map[string][]byte) *withMessage {
 	if suiteStopped {
 		// Test suite experienced an interrupt
 		// This block only handles graceful Stop interrupts, as Cancel interrupts will prevent a JUnit file being produced at all
@@ -321,6 +322,14 @@ func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool) *withMe
 					Message: "Testcase skipped due to a previous testcase error",
 					Body:    fmt.Sprintf("Previous testcase %q ended in error, which caused the remaining tests in the file to be skipped", file.Runs[i].Name),
 				}
+			}
+		}
+
+		// Check for file-level error diagnostics that caused tests to be skipped
+		if file.Diagnostics.HasErrors() {
+			return &withMessage{
+				Message: "Testcase skipped due to file-level errors",
+				Body:    getDiagString(file.Diagnostics, sources),
 			}
 		}
 	}
