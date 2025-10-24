@@ -266,108 +266,50 @@ func TestPrimary_stateStore(t *testing.T) {
 	}
 
 	//// INIT
-	_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache")
+	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	//// PLAN
-	_, stderr, err = tf.Run("plan", "-out=tfplan")
-	if err != nil {
-		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+	if !strings.Contains(stdout, "Terraform created an empty state file for the default workspace") {
+		t.Errorf("notice about creating the default workspace is missing from init output:\n%s", stdout)
 	}
+
+	//// PLAN
+	// No separate plan step; this test lets the apply make a plan.
 
 	//// APPLY
-	stdout, stderr, err := tf.Run("apply", "tfplan")
+	stdout, stderr, err = tf.Run("apply", "-auto-approve", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Apply complete! Resources: 2 added, 0 changed, 0 destroyed.") {
-		t.Fatalf("wrong output:\nstdout:%s\nstderr%s", stdout, stderr)
+	if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
 	}
 
-	/// DESTROY
+	// INSPECT STATE
+	stdout, stderr, err = tf.Run("state", "list")
+
+	//// DESTROY
 	stdout, stderr, err = tf.Run("destroy", "-auto-approve")
 	if err != nil {
-		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 2 destroyed") {
-		t.Fatalf("wrong destroy output\nstdout:%s\nstderr:%s", stdout, stderr)
+	if !strings.Contains(stdout, "Resources: 1 destroyed") {
+		t.Errorf("incorrect destroy tally; want 1 destroyed:\n%s", stdout)
 	}
 
-	// //// INIT
-	// stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache")
-	// if err != nil {
-	// 	t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
-	// }
+	state, err := tf.LocalState()
+	if err != nil {
+		t.Fatalf("failed to read state file after destroy: %s", err)
+	}
 
-	// // Make sure we actually downloaded the plugins, rather than picking up
-	// // copies that might be already installed globally on the system.
-	// if !strings.Contains(stdout, "Installing hashicorp/template v") {
-	// 	t.Errorf("template provider download message is missing from init output:\n%s", stdout)
-	// 	t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
-	// }
-	// if !strings.Contains(stdout, "Installing hashicorp/null v") {
-	// 	t.Errorf("null provider download message is missing from init output:\n%s", stdout)
-	// 	t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
-	// }
-
-	// //// PLAN
-	// // No separate plan step; this test lets the apply make a plan.
-
-	// //// APPLY
-	// stdout, stderr, err = tf.Run("apply")
-	// if err != nil {
-	// 	t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
-	// }
-
-	// if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
-	// 	t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
-	// }
-
-	// state, err := tf.LocalState()
-	// if err != nil {
-	// 	t.Fatalf("failed to read state file: %s", err)
-	// }
-
-	// stateResources := state.RootModule().Resources
-	// var gotResources []string
-	// for n := range stateResources {
-	// 	gotResources = append(gotResources, n)
-	// }
-	// sort.Strings(gotResources)
-
-	// wantResources := []string{
-	// 	"data.template_file.test",
-	// 	"null_resource.test",
-	// }
-
-	// if !reflect.DeepEqual(gotResources, wantResources) {
-	// 	t.Errorf("wrong resources in state\ngot: %#v\nwant: %#v", gotResources, wantResources)
-	// }
-
-	// //// DESTROY
-	// stdout, stderr, err = tf.Run("destroy", "-auto-approve")
-	// if err != nil {
-	// 	t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
-	// }
-
-	// if !strings.Contains(stdout, "Resources: 1 destroyed") {
-	// 	t.Errorf("incorrect destroy tally; want 1 destroyed:\n%s", stdout)
-	// }
-
-	// state, err = tf.LocalState()
-	// if err != nil {
-	// 	t.Fatalf("failed to read state file after destroy: %s", err)
-	// }
-
-	// stateResources = state.RootModule().Resources
-	// if len(stateResources) != 0 {
-	// 	t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
-	// }
-
+	stateResources := state.RootModule().Resources
+	if len(stateResources) != 0 {
+		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
+	}
 }
 
-// TODO: TestPrimarySeparatePlan_stateStore
+// TODO: TestPrimarySeparatePlan_stateStore - once support for PSS in plan files is implemented
