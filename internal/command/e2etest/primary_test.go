@@ -247,10 +247,8 @@ func TestPrimary_stateStore(t *testing.T) {
 
 	tf := e2e.NewBinary(t, terraformBin, "testdata/full-workflow-with-state-store")
 
-	// In order to do a decent end-to-end test for this case we will need a real
-	// enough provider plugin to try to run and make sure we are able to
-	// actually run it. Here will build the simple and simple6 (built with
-	// protocol v6) providers.
+	// In order to test integration with PSS we need a provider plugin implementing a state store.
+	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
 	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
 	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
 
@@ -288,28 +286,8 @@ func TestPrimary_stateStore(t *testing.T) {
 		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
 	}
 
-	// INSPECT STATE
-	stdout, stderr, err = tf.Run("state", "list")
-
-	//// DESTROY
-	stdout, stderr, err = tf.Run("destroy", "-auto-approve")
-	if err != nil {
-		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
-	}
-
-	if !strings.Contains(stdout, "Resources: 1 destroyed") {
-		t.Errorf("incorrect destroy tally; want 1 destroyed:\n%s", stdout)
-	}
-
-	state, err := tf.LocalState()
-	if err != nil {
-		t.Fatalf("failed to read state file after destroy: %s", err)
-	}
-
-	stateResources := state.RootModule().Resources
-	if len(stateResources) != 0 {
-		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
-	}
+	// We cannot inspect state or perform a destroy here, as the state isn't persisted between steps
+	// when we use the simple6_inmem state store.
 }
 
 // TODO: TestPrimarySeparatePlan_stateStore - once support for PSS in plan files is implemented
