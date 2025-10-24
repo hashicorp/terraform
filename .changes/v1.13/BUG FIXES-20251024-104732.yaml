@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: impure functions could cause templatefile to incorrectly fail consistency checks
+time: 2025-10-24T10:47:32.255706-04:00
+custom:
+    Issue: "37807"
