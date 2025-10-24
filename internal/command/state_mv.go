@@ -391,7 +391,14 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	b, backendDiags := c.Backend(nil)
+	mod, diags := c.loadSingleModule(".")
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Load the backend
+	b, backendDiags := c.backend(mod)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

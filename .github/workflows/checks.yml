@@ -108,7 +108,7 @@ jobs:
 
       - name: "End-to-end tests"
         run: |
-          TF_ACC=1 go test -v ./internal/command/e2etest
+          TF_TEST_EXPERIMENT=1 TF_ACC=1 go test -v ./internal/command/e2etest
 
   consistency-checks:
     name: "Code Consistency Checks"

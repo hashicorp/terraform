@@ -2962,6 +2962,142 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 	})
 }
 
+func TestMetaBackend_prepareBackend(t *testing.T) {
+
+	t.Run("it returns a cloud backend from cloud backend config", func(t *testing.T) {
+		// Create a temporary working directory with cloud configuration in
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("cloud-config"), td)
+		t.Chdir(td)
+
+		m := testMetaBackend(t, nil)
+
+		// Get the cloud config
+		mod, loadDiags := m.loadSingleModule(td)
+		if loadDiags.HasErrors() {
+			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+		}
+
+		// We cannot initialize a cloud backend so we instead check
+		// the init error is referencing HCP Terraform
+		_, bDiags := m.backend(mod)
+		if !bDiags.HasErrors() {
+			t.Fatal("expected error but got none")
+		}
+		wantErr := "HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\""
+		if !strings.Contains(bDiags.Err().Error(), wantErr) {
+			t.Fatalf("expected error to contain %q, but got: %q",
+				wantErr,
+				bDiags.Err())
+		}
+	})
+
+	t.Run("it returns a backend from backend config", func(t *testing.T) {
+		// Create a temporary working directory with backend configuration in
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("backend-unchanged"), td)
+		t.Chdir(td)
+
+		m := testMetaBackend(t, nil)
+
+		// Get the backend config
+		mod, loadDiags := m.loadSingleModule(td)
+		if loadDiags.HasErrors() {
+			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+		}
+
+		b, bDiags := m.backend(mod)
+		if bDiags.HasErrors() {
+			t.Fatal("unexpected error: ", bDiags.Err())
+		}
+
+		if _, ok := b.(*local.Local); !ok {
+			t.Fatal("expected returned operations backend to be a Local backend")
+		}
+		// Check the type of backend inside the Local via schema
+		// In this case a `local` backend should have been returned by default.
+		//
+		// Look for the path attribute.
+		schema := b.ConfigSchema()
+		if _, ok := schema.Attributes["path"]; !ok {
+			t.Fatalf("expected the operations backend to report the schema of a local backend, but got something unexpected: %#v", schema)
+		}
+	})
+
+	t.Run("it returns a local backend when there is empty configuration", func(t *testing.T) {
+		m := testMetaBackend(t, nil)
+		emptyConfig := configs.NewEmptyConfig()
+
+		b, bDiags := m.backend(emptyConfig.Module)
+		if bDiags.HasErrors() {
+			t.Fatal("unexpected error: ", bDiags.Err())
+		}
+
+		if _, ok := b.(*local.Local); !ok {
+			t.Fatal("expected returned operations backend to be a Local backend")
+		}
+		// Check the type of backend inside the Local via schema
+		// In this case a `local` backend should have been returned by default.
+		//
+		// Look for the path attribute.
+		schema := b.ConfigSchema()
+		if _, ok := schema.Attributes["path"]; !ok {
+			t.Fatalf("expected the operations backend to report the schema of a local backend, but got something unexpected: %#v", schema)
+		}
+	})
+
+	t.Run("it returns a state_store from state_store config", func(t *testing.T) {
+		// Create a temporary working directory with backend configuration in
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		t.Chdir(td)
+
+		m := testMetaBackend(t, nil)
+		m.AllowExperimentalFeatures = true
+		mock := testStateStoreMockWithChunkNegotiation(t, 12345) // chunk size needs to be set, value is arbitrary
+		m.testingOverrides = &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+			},
+		}
+
+		// Get the backend config
+		mod, loadDiags := m.loadSingleModule(td)
+		if loadDiags.HasErrors() {
+			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
+		}
+
+		// Prepare appropriate locks; config uses a hashicorp/test provider @ v1.2.3
+		locks := depsfile.NewLocks()
+		providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+		constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
+		if err != nil {
+			t.Fatalf("test setup failed when making constraint: %s", err)
+		}
+		locks.SetProvider(
+			providerAddr,
+			versions.MustParseVersion("1.2.3"),
+			constraint,
+			[]providerreqs.Hash{""},
+		)
+
+		b, bDiags := m.backend(mod)
+		if bDiags.HasErrors() {
+			t.Fatalf("unexpected error: %s", bDiags.Err())
+		}
+
+		if _, ok := b.(*local.Local); !ok {
+			t.Fatal("expected returned operations backend to be a Local backend")
+		}
+		// Check the state_store inside the Local via schema
+		// Look for the mock state_store's attribute called `value`.
+		schema := b.ConfigSchema()
+		if _, ok := schema.Attributes["value"]; !ok {
+			t.Fatalf("expected the operations backend to report the schema of the state_store, but got something unexpected: %#v", schema)
+		}
+	})
+}
+
 func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
 	m.Ui = new(cli.MockUi)
@@ -3009,6 +3145,21 @@ func testStateStoreMock(t *testing.T) *testing_provider.MockProvider {
 			},
 		},
 	}
+}
+
+// testStateStoreMockWithChunkNegotiation is just like testStateStoreMock but the returned mock is set up so it'll be configured
+// without this error: `Failed to negotiate acceptable chunk size`
+//
+// This is meant to be a convenience method when a test is definitely not testing anything related to state store configuration.
+func testStateStoreMockWithChunkNegotiation(t *testing.T, chunkSize int64) *testing_provider.MockProvider {
+	t.Helper()
+	mock := testStateStoreMock(t)
+	mock.ConfigureStateStoreResponse = &providers.ConfigureStateStoreResponse{
+		Capabilities: providers.StateStoreServerCapabilities{
+			ChunkSize: chunkSize,
+		},
+	}
+	return mock
 }
 
 func configBodyForTest(t *testing.T, config string) hcl.Body {
