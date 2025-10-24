@@ -19,6 +19,7 @@ import (
 
 var impureFunctions = []string{
 	"bcrypt",
+	"templatefile",
 	"timestamp",
 	"uuid",
 }

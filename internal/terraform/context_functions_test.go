@@ -292,6 +292,68 @@ func TestContext2Plan_filesystemFunctionImpureApply(t *testing.T) {
 	}
 }
 
+// TestContext2Plan_templatefileWithImpureFunctions verifies that templatefile
+// works correctly when templates contain impure function calls like timestamp()
+// by marking templatefile as impure to defer evaluation until apply
+func TestContext2Plan_templatefileWithImpureFunctions(t *testing.T) {
+	m, snap := testModuleWithSnapshot(t, "templatefile-timestamp")
+
+	p := testProvider("test")
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// Plan should succeed with templatefile result showing as unknown
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	tfdiags.AssertNoErrors(t, diags)
+
+	// The output should be unknown during plan since templatefile is now marked as impure
+	outChangeSrc := plan.Changes.OutputValue(addrs.RootModuleInstance.OutputValue("result"))
+	if outChangeSrc == nil {
+		t.Fatal("expected output change to exist")
+	}
+	outChange, err := outChangeSrc.Decode()
+	if err != nil {
+		t.Fatalf("failed to decode output change: %s", err)
+	}
+	if outChange.After.IsKnown() {
+		t.Fatalf("expected templatefile result to be unknown during plan, got: %#v", outChange.After)
+	}
+
+	// Write / Read plan to simulate running it through a Plan file
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
+	if err != nil {
+		t.Fatalf("failed to round-trip through planfile: %s", err)
+	}
+
+	ctxOpts.Providers = map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+	}
+	ctx = testContext2(t, ctxOpts)
+
+	// Apply should succeed - no "inconsistent result" error even though
+	// timestamp() will return different values
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	// The output should now be known and contain a timestamp
+	outputVal := state.OutputValue(addrs.RootModuleInstance.OutputValue("result"))
+	if outputVal == nil {
+		t.Fatal("expected output to exist")
+	}
+	if !outputVal.Value.IsKnown() {
+		t.Fatal("expected output to be known after apply")
+	}
+
+	result := outputVal.Value.AsString()
+	if !strings.Contains(result, "Generated at:") {
+		t.Fatalf("expected output to contain timestamp, got: %s", result)
+	}
+}
+
 func TestContext2Validate_providerFunctionDiagnostics(t *testing.T) {
 	provider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{

@@ -1,0 +1,6 @@
+kind: BUG FIXES
+body: |-
+  core: Fixed `templatefile` function returning "inconsistent result" error when templates contain impure function calls like `timestamp()`
+time: 2025-10-24T13:18:00.000000-07:00
+custom:
+    Issue: "37807"
