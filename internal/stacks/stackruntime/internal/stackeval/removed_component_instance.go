@@ -135,6 +135,7 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 			DeferralAllowed:            true,
 			ExternalDependencyDeferred: deferred,
 			Forget:                     forget,
+			AllowRootEphemeralOutputs:  true,
 
 			// We want the same plantimestamp between all components and the stacks language
 			ForcePlanTimestamp: &plantimestamp,

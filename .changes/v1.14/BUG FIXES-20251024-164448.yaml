@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'stacks: allow ephemeral outputs in root modules'
+time: 2025-10-24T16:44:48.264142+02:00
+custom:
+    Issue: "37813"

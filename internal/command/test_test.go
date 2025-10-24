@@ -409,6 +409,9 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"3 passed, 0 failed."},
 			code:        0,
 		},
+		"ephemeral_output": {
+			code: 0,
+		},
 		"no-tests": {
 			code: 0,
 		},
