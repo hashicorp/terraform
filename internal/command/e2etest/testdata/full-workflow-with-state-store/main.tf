@@ -14,10 +14,10 @@ variable "name" {
   default = "world"
 }
 
-data "terraform_data" "my-data" {
+resource "terraform_data" "my-data" {
   input = "hello ${var.name}"
 }
 
 output "greeting" {
-  value = data.terraform_data.output
+  value = resource.terraform_data.my-data.output
 }
