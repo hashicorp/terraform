@@ -15,8 +15,6 @@ import (
 )
 
 func TestBackendLocked(t *testing.T) {
-	t.Setenv("TF_ACC", "1") // enable using the inmem state store
-
 	// backend.TestBackendStateLocks assumes the default workspace exists
 	// by default, so we need to make it exist using the method below.
 	provider := ProviderWithDefaultWorkspace()
@@ -37,8 +35,6 @@ func TestBackendLocked(t *testing.T) {
 }
 
 func TestRemoteState(t *testing.T) {
-	t.Setenv("TF_ACC", "1") // enable using the inmem state store
-
 	provider := Provider()
 
 	plug, err := pluggable.NewPluggable(provider, inMemStoreName)

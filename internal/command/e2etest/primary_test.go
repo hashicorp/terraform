@@ -233,7 +233,7 @@ func TestPrimaryChdirOption(t *testing.T) {
 	}
 }
 
-// Requires TF_TEST_EXPERIMENT and TF_ACC to be set in the environment
+// Requires TF_TEST_EXPERIMENT to be set in the environment
 func TestPrimary_stateStore(t *testing.T) {
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -108,8 +107,10 @@ func provider() simple {
 					},
 				},
 			},
-			Actions:     map[string]providers.ActionSchema{},
-			StateStores: map[string]providers.Schema{},
+			Actions: map[string]providers.ActionSchema{},
+			StateStores: map[string]providers.Schema{
+				inMemStoreName: stateStoreInMemGetSchema(),
+			},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy:               true,
 				GetProviderSchemaOptional: true,
@@ -134,12 +135,6 @@ func provider() simple {
 		},
 
 		inMem: &InMemStoreSingle{}, // default workspace doesn't exist by default here; needs explicit creation via init command
-	}
-
-	// Only include the inmem state store in the provider when `TF_ACC` is set in the environment
-	// Excluding this from the schemas is sufficient to block usage.
-	if v := os.Getenv("TF_ACC"); v != "" {
-		provider.schema.StateStores[inMemStoreName] = stateStoreInMemGetSchema()
 	}
 
 	return provider
