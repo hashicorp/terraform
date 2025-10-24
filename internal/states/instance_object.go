@@ -205,6 +205,7 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
 	val, pvms := v.UnmarkDeepWithPaths()
 	sensitivePaths, withOtherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	_, withOtherMarks = marks.PathsWithMark(withOtherMarks, marks.Deprecation)
 	if len(withOtherMarks) != 0 {
 		return cty.NilVal, nil, fmt.Errorf(
 			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
