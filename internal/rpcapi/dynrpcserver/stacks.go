@@ -8,15 +8,12 @@ import (
 	"context"
 	"sync"
 
-	"google.golang.org/grpc"
-
 	stacks "github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 )
 
 type Stacks struct {
 	impl stacks.StacksServer
 	mu   sync.RWMutex
-	stacks.UnimplementedStacksServer
 }
 
 var _ stacks.StacksServer = (*Stacks)(nil)
@@ -25,7 +22,7 @@ func NewStacksStub() *Stacks {
 	return &Stacks{}
 }
 
-func (s *Stacks) ApplyStackChanges(a0 *stacks.ApplyStackChanges_Request, a1 grpc.ServerStreamingServer[stacks.ApplyStackChanges_Event]) error {
+func (s *Stacks) ApplyStackChanges(a0 *stacks.ApplyStackChanges_Request, a1 stacks.Stacks_ApplyStackChangesServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err
@@ -89,7 +86,7 @@ func (s *Stacks) ListResourceIdentities(a0 context.Context, a1 *stacks.ListResou
 	return impl.ListResourceIdentities(a0, a1)
 }
 
-func (s *Stacks) MigrateTerraformState(a0 *stacks.MigrateTerraformState_Request, a1 grpc.ServerStreamingServer[stacks.MigrateTerraformState_Event]) error {
+func (s *Stacks) MigrateTerraformState(a0 *stacks.MigrateTerraformState_Request, a1 stacks.Stacks_MigrateTerraformStateServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err
@@ -97,7 +94,7 @@ func (s *Stacks) MigrateTerraformState(a0 *stacks.MigrateTerraformState_Request,
 	return impl.MigrateTerraformState(a0, a1)
 }
 
-func (s *Stacks) OpenPlan(a0 grpc.ClientStreamingServer[stacks.OpenStackPlan_RequestItem, stacks.OpenStackPlan_Response]) error {
+func (s *Stacks) OpenPlan(a0 stacks.Stacks_OpenPlanServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err
@@ -121,7 +118,7 @@ func (s *Stacks) OpenStackInspector(a0 context.Context, a1 *stacks.OpenStackInsp
 	return impl.OpenStackInspector(a0, a1)
 }
 
-func (s *Stacks) OpenState(a0 grpc.ClientStreamingServer[stacks.OpenStackState_RequestItem, stacks.OpenStackState_Response]) error {
+func (s *Stacks) OpenState(a0 stacks.Stacks_OpenStateServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err
@@ -137,7 +134,7 @@ func (s *Stacks) OpenTerraformState(a0 context.Context, a1 *stacks.OpenTerraform
 	return impl.OpenTerraformState(a0, a1)
 }
 
-func (s *Stacks) PlanStackChanges(a0 *stacks.PlanStackChanges_Request, a1 grpc.ServerStreamingServer[stacks.PlanStackChanges_Event]) error {
+func (s *Stacks) PlanStackChanges(a0 *stacks.PlanStackChanges_Request, a1 stacks.Stacks_PlanStackChangesServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err

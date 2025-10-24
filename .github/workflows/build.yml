@@ -121,7 +121,6 @@ jobs:
           - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "windows", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "windows", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "darwin", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "darwin", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
       fail-fast: false
@@ -191,7 +190,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Install Go toolchain
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
@@ -208,7 +207,7 @@ jobs:
           bash ./internal/command/e2etest/make-archive.sh
 
       - name: Save test harness to cache
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
           key: ${{ steps.set-cache-values.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
@@ -248,7 +247,7 @@ jobs:
         if: ${{ (matrix.goos == 'linux') || (matrix.goos == 'darwin') }}
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: "Restore cache"
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         id: e2etestpkg
         with:
           path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
@@ -301,7 +300,7 @@ jobs:
 
     steps:
       - name: Install Go toolchain
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - name: Download Terraform CLI package

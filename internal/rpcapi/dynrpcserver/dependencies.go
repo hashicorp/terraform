@@ -8,15 +8,12 @@ import (
 	"context"
 	"sync"
 
-	"google.golang.org/grpc"
-
 	dependencies "github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 )
 
 type Dependencies struct {
 	impl dependencies.DependenciesServer
 	mu   sync.RWMutex
-	dependencies.UnimplementedDependenciesServer
 }
 
 var _ dependencies.DependenciesServer = (*Dependencies)(nil)
@@ -25,7 +22,7 @@ func NewDependenciesStub() *Dependencies {
 	return &Dependencies{}
 }
 
-func (s *Dependencies) BuildProviderPluginCache(a0 *dependencies.BuildProviderPluginCache_Request, a1 grpc.ServerStreamingServer[dependencies.BuildProviderPluginCache_Event]) error {
+func (s *Dependencies) BuildProviderPluginCache(a0 *dependencies.BuildProviderPluginCache_Request, a1 dependencies.Dependencies_BuildProviderPluginCacheServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err

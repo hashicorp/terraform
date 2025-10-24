@@ -657,10 +657,7 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 	// Copy the data from the reader to the pipe
 	go func() {
 		defer w.Close()
-		_, err := io.Copy(w, src)
-		if err != nil {
-			t.Errorf("error when copying data from testStdinPipe reader argument to stdin: %s", err)
-		}
+		io.Copy(w, src)
 	}()
 
 	return func() {

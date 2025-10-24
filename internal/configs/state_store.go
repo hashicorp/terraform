@@ -6,7 +6,6 @@ package configs
 import (
 	"fmt"
 
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
@@ -117,27 +116,20 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Missing entry in required_providers",
-			Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %s",
-				stateStore.Provider.Name,
-			),
+			Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %q",
+				stateStore.Provider.Name),
 			Subject: &stateStore.DeclRange,
 		})
 		return tfaddr.Provider{}, diags
 	default:
 		// We've got a required_providers entry to use
-		// This code path is used for both re-attached providers
-		// providers that are fully managed by Terraform.
 		return addr.Type, nil
 	}
 }
 
-// Hash produces a hash value for the receiver that covers:
-// 1) the portions of the config that conform to the state_store schema.
-// 2) the portions of the config that conform to the provider schema.
-// 3) the state store type
-// 4) the provider source
-// 5) the provider name
-// 6) the provider version
+// Hash produces a hash value for the receiver that covers the type and the
+// portions of the config that conform to the state_store schema. The provider
+// block that is nested inside state_store is ignored.
 //
 // If the config does not conform to the schema then the result is not
 // meaningful for comparison since it will be based on an incomplete result.
@@ -146,14 +138,13 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 // for the purpose of hashing, so that an incomplete configuration can still
 // be hashed. Other errors, such as extraneous attributes, have no such special
 // case.
-func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *configschema.Block, stateStoreProviderVersion *version.Version) (int, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
+func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *configschema.Block) (stateStoreHash, providerHash int, diags tfdiags.Diagnostics) {
 
 	// 1. Prepare the state_store hash
 
 	// The state store schema should not include a provider block or attr
 	if _, exists := stateStoreSchema.Attributes["provider"]; exists {
-		return 0, diags.Append(&hcl.Diagnostic{
+		return 0, 0, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Protected argument name \"provider\" in state store schema",
 			Detail:   "Schemas for state stores cannot contain attributes or blocks called \"provider\", to avoid confusion with the provider block nested inside the state_store block. This is a bug in the provider used for state storage, which should be reported in the provider's own issue tracker.",
@@ -161,7 +152,7 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 		})
 	}
 	if _, exists := stateStoreSchema.BlockTypes["provider"]; exists {
-		return 0, diags.Append(&hcl.Diagnostic{
+		return 0, 0, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Protected block name \"provider\" in state store schema",
 			Detail:   "Schemas for state stores cannot contain attributes or blocks called \"provider\", to avoid confusion with the provider block nested inside the state_store block. This is a bug in the provider used for state storage, which should be reported in the provider's own issue tracker.",
@@ -184,14 +175,18 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 			diags = diags.Append(diag)
 		}
 		if diags.HasErrors() {
-			return 0, diags
+			return 0, 0, diags
 		}
 	}
 
-	// We're on the happy path, but handle if we got a nil value above
+	// We're on the happy path, so continue to get the hash
 	if ssVal == cty.NilVal {
 		ssVal = cty.UnknownVal(schema.ImpliedType())
 	}
+	ssToHash := cty.TupleVal([]cty.Value{
+		cty.StringVal(b.Type),
+		ssVal,
+	})
 
 	// 2. Prepare the provider hash
 	schema = providerSchema.NoneRequired()
@@ -199,20 +194,15 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 	pVal, decodeDiags := hcldec.Decode(b.Provider.Config, spec, nil)
 	if decodeDiags.HasErrors() {
 		diags = diags.Append(decodeDiags)
-		return 0, diags
+		return 0, 0, diags
 	}
 	if pVal == cty.NilVal {
 		pVal = cty.UnknownVal(schema.ImpliedType())
 	}
-
-	toHash := cty.TupleVal([]cty.Value{
-		cty.StringVal(b.Type), // state store type
-		ssVal,                 // state store config
-
-		cty.StringVal(b.ProviderAddr.String()),            // provider source
-		cty.StringVal(stateStoreProviderVersion.String()), // provider version
-		cty.StringVal(b.Provider.Name),                    // provider name - this is directly parsed from the config, whereas provider source is added separately later after config is parsed.
-		pVal,                                              // provider config
+	pToHash := cty.TupleVal([]cty.Value{
+		cty.StringVal(b.Type),
+		pVal,
 	})
-	return toHash.Hash(), diags
+
+	return ssToHash.Hash(), pToHash.Hash(), diags
 }

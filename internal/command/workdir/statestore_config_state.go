@@ -7,12 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -27,7 +25,7 @@ type StateStoreConfigState struct {
 	Type      string               `json:"type"`     // State store type name
 	Provider  *ProviderConfigState `json:"provider"` // Details about the state-storage provider
 	ConfigRaw json.RawMessage      `json:"config"`   // state_store block raw config, barring provider details
-	Hash      uint64               `json:"hash"`     // Hash of the state_store block's configuration, including the nested provider block
+	Hash      uint64               `json:"hash"`     // Hash of the state_store block's configuration, excluding the provider block and any values supplied via methods other than config
 }
 
 // Empty returns true if there is no active state store.
@@ -42,13 +40,13 @@ func (s *StateStoreConfigState) Validate() error {
 
 	// Are any bits of data totally missing?
 	if s.Empty() {
-		return fmt.Errorf("attempted to encode a malformed backend state file; data is empty")
-	}
-	if s.Type == "" {
-		return fmt.Errorf("attempted to encode a malformed backend state file; state store type is missing")
+		return fmt.Errorf("state store is not valid: data is empty")
 	}
 	if s.Provider == nil {
-		return fmt.Errorf("attempted to encode a malformed backend state file; provider data is missing")
+		return fmt.Errorf("state store is not valid: provider data is missing")
+	}
+	if s.Provider.Version == nil {
+		return fmt.Errorf("state store is not valid: version data is missing")
 	}
 	if s.ConfigRaw == nil {
 		return fmt.Errorf("attempted to encode a malformed backend state file; state_store configuration data is missing")
@@ -58,18 +56,6 @@ func (s *StateStoreConfigState) Validate() error {
 	err := s.Provider.Source.Validate()
 	if err != nil {
 		return fmt.Errorf("state store is not valid: %w", err)
-	}
-
-	// Version information is required if the provider isn't builtin or unmanaged by Terraform
-	isReattached, err := reattach.IsProviderReattached(*s.Provider.Source, os.Getenv("TF_REATTACH_PROVIDERS"))
-	if err != nil {
-		return fmt.Errorf("error determining if state storage provider is reattached: %w", err)
-	}
-	if (s.Provider.Source.Hostname != tfaddr.BuiltInProviderHost) &&
-		!isReattached {
-		if s.Provider.Version == nil {
-			return fmt.Errorf("state store is not valid: provider version data is missing")
-		}
 	}
 
 	return nil
@@ -139,6 +125,7 @@ func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
 	provider := &ProviderConfigState{
 		Version: s.Provider.Version,
 		Source:  s.Provider.Source,
+		Hash:    s.Provider.Hash,
 	}
 	if s.Provider.ConfigRaw != nil {
 		provider.ConfigRaw = make([]byte, len(s.Provider.ConfigRaw))
@@ -167,6 +154,7 @@ type ProviderConfigState struct {
 	Version   *version.Version `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
 	Source    *tfaddr.Provider `json:"source"`  // The FQN/fully-qualified name of the provider.
 	ConfigRaw json.RawMessage  `json:"config"`  // state_store block raw config, barring provider details
+	Hash      uint64           `json:"hash"`    // Hash of the nested provider block's configuration, excluding any values supplied via methods other than config
 }
 
 // Empty returns true if there is no provider config state data.

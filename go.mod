@@ -82,7 +82,7 @@ require (
 	golang.org/x/tools v0.36.0
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
 	google.golang.org/grpc v1.69.4
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0
 	google.golang.org/protobuf v1.36.6
 	honnef.co/go/tools v0.6.0
 )
@@ -102,7 +102,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1501 // indirect
-	github.com/aliyun/aliyun-oss-go-sdk v2.1.1+incompatible // indirect
+	github.com/aliyun/aliyun-oss-go-sdk v0.0.0-20190103054945-8205d1f41e70 // indirect
 	github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible // indirect
 	github.com/antchfx/xmlquery v1.3.5 // indirect
 	github.com/antchfx/xpath v1.1.10 // indirect

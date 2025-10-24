@@ -57,7 +57,7 @@ func mockDisco() *disco.Disco {
 	return d
 }
 
-func mockGRPStacksClient(t *testing.T, ctrl *gomock.Controller, client *mock_stacksproto1.MockCommandService_ExecuteClient[stacksproto1.CommandResponse], executeError error) *GRPCStacksClient {
+func mockGRPStacksClient(t *testing.T, ctrl *gomock.Controller, client *mock_stacksproto1.MockCommandService_ExecuteClient, executeError error) *GRPCStacksClient {
 	t.Helper()
 
 	if client != nil && executeError != nil {
@@ -100,7 +100,7 @@ func Test_GRPCStacksClient_ExecuteError(t *testing.T) {
 
 func Test_GRPCStacksClient_Execute_RecvError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient[stacksproto1.CommandResponse](ctrl)
+	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient(ctrl)
 	executeClient.EXPECT().Recv().Return(nil, errors.New(mockError))
 
 	gRPCClient := mockGRPStacksClient(t, ctrl, executeClient, nil)
@@ -123,7 +123,7 @@ func Test_GRPCStacksClient_Execute_RecvError(t *testing.T) {
 
 func Test_GRPCStacksClient_Execute_HandleEOFError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient[stacksproto1.CommandResponse](ctrl)
+	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient(ctrl)
 	executeClient.EXPECT().Recv().Return(&stacksproto1.CommandResponse{
 		Data: &stacksproto1.CommandResponse_ExitCode{
 			ExitCode: 0,
@@ -152,7 +152,7 @@ func Test_GRPCStacksClient_Execute_HandleEOFError(t *testing.T) {
 
 func Test_GRPCStacksClient_Execute_Invalid_Exit(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient[stacksproto1.CommandResponse](ctrl)
+	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient(ctrl)
 
 	executeClient.EXPECT().Recv().Return(
 		&stacksproto1.CommandResponse{
@@ -183,7 +183,7 @@ func Test_GRPCStacksClient_Execute_Invalid_Exit(t *testing.T) {
 
 func Test_GRPCStacksClient_Execute(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient[stacksproto1.CommandResponse](ctrl)
+	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient(ctrl)
 
 	gomock.InOrder(
 		executeClient.EXPECT().Recv().Return(
