@@ -48,7 +48,8 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	stateMgr, err := c.State()
+	view := arguments.ViewHuman
+	stateMgr, err := c.State(view)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -115,14 +116,8 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.backend(mod)
+	b, backendDiags := c.backend(".", view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

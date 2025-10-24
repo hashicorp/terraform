@@ -62,13 +62,8 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 		c.Meta.statePath = statePath
 	}
 
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
 	// Load the backend
-	b, backendDiags := c.backend(mod)
+	b, backendDiags := c.backend(".", arguments.ViewHuman)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		return nil, diags

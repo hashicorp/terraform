@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -2972,15 +2973,9 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 
 		m := testMetaBackend(t, nil)
 
-		// Get the cloud config
-		mod, loadDiags := m.loadSingleModule(td)
-		if loadDiags.HasErrors() {
-			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-		}
-
 		// We cannot initialize a cloud backend so we instead check
 		// the init error is referencing HCP Terraform
-		_, bDiags := m.backend(mod)
+		_, bDiags := m.backend(td, arguments.ViewHuman)
 		if !bDiags.HasErrors() {
 			t.Fatal("expected error but got none")
 		}
@@ -3000,13 +2995,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 
 		m := testMetaBackend(t, nil)
 
-		// Get the backend config
-		mod, loadDiags := m.loadSingleModule(td)
-		if loadDiags.HasErrors() {
-			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-		}
-
-		b, bDiags := m.backend(mod)
+		b, bDiags := m.backend(td, arguments.ViewHuman)
 		if bDiags.HasErrors() {
 			t.Fatal("unexpected error: ", bDiags.Err())
 		}
@@ -3025,10 +3014,12 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 	})
 
 	t.Run("it returns a local backend when there is empty configuration", func(t *testing.T) {
-		m := testMetaBackend(t, nil)
-		emptyConfig := configs.NewEmptyConfig()
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("empty"), td)
+		t.Chdir(td)
 
-		b, bDiags := m.backend(emptyConfig.Module)
+		m := testMetaBackend(t, nil)
+		b, bDiags := m.backend(td, arguments.ViewHuman)
 		if bDiags.HasErrors() {
 			t.Fatal("unexpected error: ", bDiags.Err())
 		}
@@ -3061,12 +3052,6 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 			},
 		}
 
-		// Get the backend config
-		mod, loadDiags := m.loadSingleModule(td)
-		if loadDiags.HasErrors() {
-			t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-		}
-
 		// Prepare appropriate locks; config uses a hashicorp/test provider @ v1.2.3
 		locks := depsfile.NewLocks()
 		providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
@@ -3081,7 +3066,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 			[]providerreqs.Hash{""},
 		)
 
-		b, bDiags := m.backend(mod)
+		b, bDiags := m.backend(td, arguments.ViewHuman)
 		if bDiags.HasErrors() {
 			t.Fatalf("unexpected error: %s", bDiags.Err())
 		}

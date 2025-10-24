@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/posener/complete"
 )
 
@@ -42,13 +42,6 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
-	mod, diags := c.loadSingleModule(configPath)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	current, isOverridden := c.WorkspaceOverridden()
 	if isOverridden {
 		c.Ui.Error(envIsOverriddenSelectError)
@@ -56,9 +49,9 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(mod)
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
+	view := arguments.ViewHuman
+	b, diags := c.backend(configPath, view)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}

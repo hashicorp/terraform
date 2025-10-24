@@ -10,6 +10,7 @@ import (
 
 	"github.com/xlab/treeprint"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -81,7 +82,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(config.Module)
+	b, backendDiags := c.backend(".", arguments.ViewHuman)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

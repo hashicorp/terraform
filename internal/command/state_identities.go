@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -40,21 +41,15 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 		cmdFlags.Usage()
 		return 1
 	}
+	view := arguments.ViewJSON // See above
 
 	if statePath != "" {
 		c.Meta.statePath = statePath
 	}
 
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.backend(mod)
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
+	b, diags := c.backend(".", view)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}

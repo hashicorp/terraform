@@ -149,13 +149,8 @@ func (c *ShowCommand) show(path string) (*plans.Plan, *cloudplan.RemotePlanJSON,
 func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
 	// Load the backend
-	b, backendDiags := c.backend(mod)
+	b, backendDiags := c.backend(".", c.viewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		return nil, diags
@@ -282,13 +277,8 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Remo
 }
 
 func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, redacted bool) (*cloudplan.RemotePlanJSON, error) {
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		return nil, diags.Err()
-	}
-
 	// Set up the backend
-	b, diags := c.backend(mod)
+	b, diags := c.backend(".", c.viewType)
 	if diags.HasErrors() {
 		return nil, errUnusable(diags.Err(), "cloud plan")
 	}

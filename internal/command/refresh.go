@@ -117,15 +117,9 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType argument
 	// difficult but would make their use easier to understand.
 	c.Meta.applyStateArguments(args)
 
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
 	// Load the backend
-	be, beDiags := c.backend(mod)
-	diags = diags.Append(beDiags)
-	if beDiags.HasErrors() {
+	be, diags := c.backend(".", viewType)
+	if diags.HasErrors() {
 		return nil, diags
 	}
 

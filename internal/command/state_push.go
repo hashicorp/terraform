@@ -75,16 +75,10 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.backend(mod)
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
+	view := arguments.ViewHuman
+	b, diags := c.backend(".", view)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}

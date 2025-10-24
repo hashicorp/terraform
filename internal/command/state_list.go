@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -35,16 +36,9 @@ func (c *StateListCommand) Run(args []string) int {
 		c.Meta.statePath = statePath
 	}
 
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.backend(mod)
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
+	b, diags := c.backend(".", arguments.ViewHuman)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}

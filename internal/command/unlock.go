@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 
 	"github.com/hashicorp/cli"
@@ -51,14 +52,9 @@ func (c *UnlockCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	mod, diags := c.loadSingleModule(configPath)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.backend(mod)
+	view := arguments.ViewHuman
+	b, backendDiags := c.backend(configPath, view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

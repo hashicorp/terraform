@@ -76,7 +76,8 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Initialize the state manager as configured
-	stateMgr, err := c.State()
+	view := arguments.ViewHuman
+	stateMgr, err := c.State(view)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -164,14 +165,8 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		resource.ProviderConfig.Provider = to
 	}
 
-	mod, diags := c.loadSingleModule(".")
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.backend(mod)
+	b, backendDiags := c.backend(".", view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
