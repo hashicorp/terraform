@@ -117,7 +117,7 @@ func Test_TestJUnitXMLFile_Save(t *testing.T) {
   </testsuite>
 </testsuites>`),
 		},
-		"<skipped> element includes file-level error diagnostics when tests are skipped due to file errors": {
+		"suite-level <system-err> includes file-level error diagnostics when tests are skipped": {
 			filename: "output.xml",
 			runner:   &local.TestSuiteRunner{},
 			suite: func() moduletest.Suite {
@@ -149,12 +149,13 @@ func Test_TestJUnitXMLFile_Save(t *testing.T) {
 			expectedOuput: []byte(`<?xml version="1.0" encoding="UTF-8"?><testsuites>
   <testsuite name="file1.tftest.hcl" tests="1" skipped="1" failures="0" errors="0">
     <testcase name="my_test" classname="file1.tftest.hcl">
-      <skipped message="Testcase skipped due to file-level errors"><![CDATA[
+      <skipped message="Testcase skipped due to file-level errors"></skipped>
+    </testcase>
+    <system-err><![CDATA[
 Error: Invalid reference
 
 You can only reference global variables within the test file variables block.
-]]></skipped>
-    </testcase>
+]]></system-err>
   </testsuite>
 </testsuites>`),
 		},
