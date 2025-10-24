@@ -63,9 +63,9 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
+	b, backendDiags := c.backend(".", arguments.ViewHuman)
 	diags = diags.Append(backendDiags)
-	if diags.HasErrors() {
+	if backendDiags.HasErrors() {
 		return nil, diags
 	}
 

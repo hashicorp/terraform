@@ -56,7 +56,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
+	b, backendDiags := c.backend(".", arguments.ViewHuman)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
