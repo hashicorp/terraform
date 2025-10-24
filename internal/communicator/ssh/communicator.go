@@ -436,7 +436,7 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 		return scpUploadFile(targetFile, input, w, stdoutR, size)
 	}
 
-	cmd, err := quoteShell([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
+	cmd, err := quoteScpCommand([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
 	if err != nil {
 		return err
 	}
@@ -509,7 +509,7 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 		return uploadEntries()
 	}
 
-	cmd, err := quoteShell([]string{"scp", "-rvt", dst}, c.connInfo.TargetPlatform)
+	cmd, err := quoteScpCommand([]string{"scp", "-rvt", dst}, c.connInfo.TargetPlatform)
 	if err != nil {
 		return err
 	}
@@ -886,14 +886,15 @@ func (c *bastionConn) Close() error {
 	return c.Bastion.Close()
 }
 
-func quoteShell(args []string, targetPlatform string) (string, error) {
+func quoteScpCommand(args []string, targetPlatform string) (string, error) {
 	if targetPlatform == TargetPlatformUnix {
 		return shquot.POSIXShell(args), nil
 	}
 	if targetPlatform == TargetPlatformWindows {
-		return shquot.WindowsArgv(args), nil
+		cmd, args := shquot.WindowsArgvSplit(args)
+		return fmt.Sprintf("%s %s", cmd, args), nil
 	}
 
-	return "", fmt.Errorf("Cannot quote shell command, target platform unknown: %s", targetPlatform)
+	return "", fmt.Errorf("Cannot quote scp command, target platform unknown: %s", targetPlatform)
 
 }
