@@ -235,6 +235,10 @@ func TestPrimaryChdirOption(t *testing.T) {
 
 // Requires TF_TEST_EXPERIMENT to be set in the environment
 func TestPrimary_stateStore(t *testing.T) {
+	if v := os.Getenv("TF_TEST_EXPERIMENT"); v == "" {
+		t.Skip("can't run without enabling experiments in the executable terraform binary, enable with TF_TEST_EXPERIMENT=1")
+	}
+
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
