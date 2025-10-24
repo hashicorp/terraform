@@ -193,7 +193,8 @@ func (n *NodeTestRun) testValidate(providers map[addrs.RootProviderConfig]provid
 	}
 	waiter.update(tfCtx, moduletest.Running, nil)
 	validateDiags := tfCtx.Validate(config, &terraform.ValidateOpts{
-		ExternalProviders: providers,
+		ExternalProviders:         providers,
+		AllowRootEphemeralOutputs: true,
 	})
 	run.Diagnostics = run.Diagnostics.Append(validateDiags)
 	if validateDiags.HasErrors() {

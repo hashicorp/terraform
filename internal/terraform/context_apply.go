@@ -39,6 +39,13 @@ type ApplyOpts struct {
 	// values that were declared as ephemeral, because all other input
 	// values must retain the values that were specified during planning.
 	SetVariables InputValues
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that
