@@ -72,7 +72,7 @@ func TestFunctionCache(t *testing.T) {
 				result:   cty.False,
 			},
 			// result changed from unknown => false
-			expectErr: true,
+			expectErr: false,
 		},
 		{
 			first: testCall{
@@ -171,6 +171,9 @@ func TestFunctionCache(t *testing.T) {
 
 			if err != nil && !test.expectErr {
 				t.Fatal(err)
+			}
+			if err == nil && test.expectErr {
+				t.Fatal("expected error")
 			}
 
 			// reload the data to ensure we validate identically
