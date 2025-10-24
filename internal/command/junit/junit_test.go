@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // This test cannot access sources when contructing output for XML files. Due to this, the majority of testing
@@ -112,6 +113,47 @@ func Test_TestJUnitXMLFile_Save(t *testing.T) {
   <testsuite name="file1.tftest.hcl" tests="1" skipped="1" failures="0" errors="0">
     <testcase name="my_test" classname="file1.tftest.hcl">
       <skipped></skipped>
+    </testcase>
+  </testsuite>
+</testsuites>`),
+		},
+		"<skipped> element includes file-level error diagnostics when tests are skipped due to file errors": {
+			filename: "output.xml",
+			runner:   &local.TestSuiteRunner{},
+			suite: func() moduletest.Suite {
+				file := &moduletest.File{
+					Name:   "file1.tftest.hcl",
+					Status: moduletest.Error,
+					Runs: []*moduletest.Run{
+						{
+							Name:   "my_test",
+							Status: moduletest.Skip,
+						},
+					},
+				}
+				// Simulate file-level error diagnostic (e.g., invalid variable reference)
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid reference",
+					"You can only reference global variables within the test file variables block.",
+				))
+				file.AppendDiagnostics(diags)
+				return moduletest.Suite{
+					Status: moduletest.Error,
+					Files: map[string]*moduletest.File{
+						"file1.tftest.hcl": file,
+					},
+				}
+			}(),
+			expectedOuput: []byte(`<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="file1.tftest.hcl" tests="1" skipped="1" failures="0" errors="0">
+    <testcase name="my_test" classname="file1.tftest.hcl">
+      <skipped message="Testcase skipped due to file-level errors"><![CDATA[
+Error: Invalid reference
+
+You can only reference global variables within the test file variables block.
+]]></skipped>
     </testcase>
   </testsuite>
 </testsuites>`),
