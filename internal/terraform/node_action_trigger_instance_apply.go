@@ -45,7 +45,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		at := actionInvocation.ActionTrigger.(*plans.LifecycleActionTrigger)
 		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
 			// For applying the triggering event is sufficient, if the condition could not have
-			// been evaluated due to in invalid mix of events we would have caught it durin planning.
+			// been evaluated due to in invalid mix of events we would have caught it during planning.
 			events:          []configs.ActionTriggerEvent{at.ActionTriggerEvent},
 			conditionExpr:   n.ConditionExpr,
 			resourceAddress: at.TriggeringResourceAddr,

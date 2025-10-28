@@ -25,7 +25,6 @@ import (
 
 func TestContextApply_actions(t *testing.T) {
 	for name, tc := range map[string]struct {
-		toBeImplemented                 bool
 		module                          map[string]string
 		mode                            plans.Mode
 		prevRunState                    *states.State
@@ -2459,10 +2458,6 @@ lifecycle {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if tc.toBeImplemented {
-				t.Skip("This test is not implemented yet")
-			}
-
 			m := testModuleInline(t, tc.module)
 
 			invokeActionCalls := []providers.InvokeActionRequest{}

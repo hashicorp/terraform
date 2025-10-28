@@ -115,6 +115,22 @@ data "test" "c" {
 	name = test.b.output
 }
 
+# Instance deferred due to transitive dependency on deferred data source
+resource "test" "d" {
+	name = "d"
+	lifecycle {
+		action_trigger {
+			condition = data.test.c.name != "something"
+			events = [before_create]
+			actions = [action.test_action.foo]
+		}
+	}
+}
+
+action "test_action" "foo" {
+	provider = "other" // we use the simple mock provider which has hard-coded resource type names
+}
+
 output "from_data" {
 	value = [for v in data.test.a : v.output]
 }

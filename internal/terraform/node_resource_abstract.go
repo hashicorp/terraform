@@ -220,6 +220,13 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, p.Config, schema)
 				result = append(result, refs...)
 			}
+
+			if c.Managed.ActionTriggers != nil {
+				for _, at := range c.Managed.ActionTriggers {
+					conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, at.Condition)
+					result = append(result, conditionRefs...)
+				}
+			}
 		}
 
 		if c.List != nil {
