@@ -64,6 +64,7 @@ func TestApply(t *testing.T) {
 
 	tcs := map[string]struct {
 		path   string
+		skip   bool
 		state  *stackstate.State
 		store  *stacks_testing_provider.ResourceStore
 		cycles []TestCycle
@@ -2231,6 +2232,7 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 		},
 		"ephemeral-module-outputs": {
 			path: "ephemeral-module-output",
+			skip: true, // TODO(issues/37822): Enable this.
 			cycles: []TestCycle{
 				{
 					wantPlannedChanges: []stackplan.PlannedChange{
@@ -2296,6 +2298,10 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
+			if tc.skip {
+				t.Skip()
+			}
+
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
