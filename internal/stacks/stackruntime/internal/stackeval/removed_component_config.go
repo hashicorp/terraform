@@ -197,7 +197,7 @@ func (r *RemovedComponentConfig) CheckValid(ctx context.Context, phase EvalPhase
 
 		diags = diags.Append(tfCtx.Validate(moduleTree, &terraform.ValidateOpts{
 			ExternalProviders:         providerClients,
-			AllowRootEphemeralOutputs: true,
+			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		}))
 		return diags, nil
 	})
