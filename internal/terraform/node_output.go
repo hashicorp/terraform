@@ -757,15 +757,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		changes.RemoveOutputChange(n.Addr)
 	}
 
-	// Null outputs must be saved for modules so that they can still be
-	// evaluated. Null root outputs are removed entirely, which is always fine
-	// because they can't be referenced by anything else in the configuration.
-	if n.Addr.Module.IsRoot() && val.IsNull() {
-		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
-		state.RemoveOutputValue(n.Addr)
-		return
-	}
-
 	// caller leaves namedVals nil if they've already called this function
 	// with a different state, since we only have one namedVals regardless
 	// of how many states are involved in an operation.
@@ -777,6 +768,15 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			saveVal = saveVal.Mark(marks.Ephemeral)
 		}
 		namedVals.SetOutputValue(n.Addr, saveVal)
+	}
+
+	// Null outputs must be saved for modules so that they can still be
+	// evaluated. Null root outputs are removed entirely, which is always fine
+	// because they can't be referenced by anything else in the configuration.
+	if n.Addr.Module.IsRoot() && val.IsNull() {
+		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
+		state.RemoveOutputValue(n.Addr)
+		return
 	}
 
 	// Non-ephemeral output values get saved in the state too
@@ -798,6 +798,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 				val = cty.UnknownAsNull(val)
 			}
 		}
+		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 	}
-	state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 }
