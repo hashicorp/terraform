@@ -2229,6 +2229,69 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
+		"ephemeral-module-outputs": {
+			path: "ephemeral-module-output",
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                mustAbsComponentInstance("component.ephemeral_in"),
+							PlanApplyable:       false,
+							PlanComplete:        true,
+							Action:              plans.Create,
+							RequiredComponents:  collections.NewSet(mustAbsComponent("component.ephemeral_out")),
+							PlannedInputValues:  make(map[string]plans.DynamicValue),
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: new(states.CheckResults),
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:               mustAbsComponentInstance("component.ephemeral_out"),
+							PlanApplyable:      false,
+							PlanComplete:       true,
+							Action:             plans.Create,
+							PlannedInputValues: make(map[string]plans.DynamicValue),
+							PlannedOutputValues: map[string]cty.Value{
+								"value": cty.DynamicVal, // ephemeral
+							},
+							PlannedCheckResults: new(states.CheckResults),
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.ephemeral_in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.ephemeral_in"),
+							Dependencies: collections.NewSet[stackaddrs.AbsComponent](
+								mustAbsComponent("component.ephemeral_out"),
+							),
+							OutputValues: make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("input"): cty.UnknownVal(cty.String), // ephemeral
+							},
+						},
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.ephemeral_out"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.ephemeral_out"),
+							Dependents: collections.NewSet[stackaddrs.AbsComponent](
+								mustAbsComponent("component.ephemeral_in"),
+							),
+							OutputValues:   make(map[addrs.OutputValue]cty.Value),
+							InputVariables: make(map[addrs.InputVariable]cty.Value),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {

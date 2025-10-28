@@ -32,6 +32,13 @@ type OutputTransformer struct {
 	// so we need to record that we wish to remove them.
 	Destroying bool
 
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
+
 	// Overrides supplies the values for any output variables that should be
 	// overridden by the testing framework.
 	Overrides *mocking.Overrides
@@ -60,13 +67,14 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 		addr := addrs.OutputValue{Name: o.Name}
 
 		node := &nodeExpandOutput{
-			Addr:        addr,
-			Module:      c.Path,
-			Config:      o,
-			Destroying:  t.Destroying,
-			RefreshOnly: t.RefreshOnly,
-			Planning:    t.Planning,
-			Overrides:   t.Overrides,
+			Addr:                      addr,
+			Module:                    c.Path,
+			Config:                    o,
+			Destroying:                t.Destroying,
+			RefreshOnly:               t.RefreshOnly,
+			Planning:                  t.Planning,
+			Overrides:                 t.Overrides,
+			AllowRootEphemeralOutputs: t.AllowRootEphemeralOutputs,
 		}
 
 		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)
