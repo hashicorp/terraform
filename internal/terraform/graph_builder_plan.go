@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -344,7 +345,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipRefresh:          b.skipRefresh,
 			skipPlanChanges:      b.skipPlanChanges,
 			preDestroyRefresh:    b.preDestroyRefresh,
-			forceReplace:         b.ForceReplace,
+			forceReplace:         slices.Clone(b.ForceReplace),
 		}
 	}
 
