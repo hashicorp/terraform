@@ -3938,7 +3938,7 @@ data "test" "c" {
 
 # Instance deferred due to transitive dependency on deferred data source
 resource "test" "d" {
-	name = "data.test.c.name"
+	name = data.test.c.name
 	lifecycle {
 		action_trigger {
 			condition = data.test.c.name != "something"
@@ -3984,6 +3984,7 @@ output "from_resource" {
 					"data.test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Read},
 					"test.b":         {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 					"data.test.c":    {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Read},
+					"test.d":         {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				wantApplied: map[string]cty.Value{},
 				wantOutputs: map[string]cty.Value{
