@@ -4,10 +4,8 @@
 package views
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -97,18 +95,11 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 		return
 	}
 
-	current_timestamp := time.Now().UTC().Format(time.RFC3339)
-	json_data := map[string]string{
-		"@level":       "info",
-		"@message":     preppedMessage,
-		"@module":      "terraform.ui",
-		"@timestamp":   current_timestamp,
-		"type":         "init_output",
-		"message_code": string(messageCode),
-	}
-
-	init_output, _ := json.Marshal(json_data)
-	v.view.view.streams.Println(string(init_output))
+	v.view.log.Info(
+		preppedMessage,
+		"type", "init_output", // Add "type":"init_output"
+		"message_code", string(messageCode), // Add "message_code":"<value>"
+	)
 }
 
 func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
