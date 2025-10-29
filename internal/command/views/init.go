@@ -100,9 +100,11 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	// @module as "terraform.ui" (See NewJSONView)
 	// @timestamp formatted in the default way
 	//
-	// In the function below we annotate with extra data:
-	// "type":"init_output"
-	// "message_code":"<value>"
+	// In the method below we:
+	// * Set @message as the first argument value
+	// * Annotate with extra data:
+	//     "type":"init_output"
+	//     "message_code":"<value>"
 	v.view.log.Info(
 		preppedMessage,
 		"type", "init_output",
