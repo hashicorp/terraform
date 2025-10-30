@@ -55,6 +55,12 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 		}
 
 		names, _ := b.Workspaces()
+		if len(names) == 0 {
+			// Presence of the "default" isn't always guaranteed
+			// Backends will report it as always existing, pluggable
+			// state stores will only do so if it _actually_ exists.
+			return nil
+		}
 		return names
 	})
 }
