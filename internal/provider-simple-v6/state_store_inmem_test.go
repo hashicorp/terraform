@@ -14,7 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestBackendLocked(t *testing.T) {
+func TestInMemStoreLocked(t *testing.T) {
 	// backend.TestBackendStateLocks assumes the default workspace exists
 	// by default, so we need to make it exist using the method below.
 	provider := ProviderWithDefaultWorkspace()
@@ -34,7 +34,7 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateLocks(t, b1, b2)
 }
 
-func TestRemoteState(t *testing.T) {
+func TestInMemStoreRemoteState(t *testing.T) {
 	provider := Provider()
 
 	plug, err := pluggable.NewPluggable(provider, inMemStoreName)

@@ -249,7 +249,7 @@ func TestPrimary_stateStore(t *testing.T) {
 	}
 	t.Parallel()
 
-	tf := e2e.NewBinary(t, terraformBin, "testdata/full-workflow-with-state-store")
+	tf := e2e.NewBinary(t, terraformBin, "testdata/full-workflow-with-state-store-inmem")
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
 	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
@@ -293,5 +293,3 @@ func TestPrimary_stateStore(t *testing.T) {
 	// We cannot inspect state or perform a destroy here, as the state isn't persisted between steps
 	// when we use the simple6_inmem state store.
 }
-
-// TODO: TestPrimarySeparatePlan_stateStore - once support for PSS in plan files is implemented
