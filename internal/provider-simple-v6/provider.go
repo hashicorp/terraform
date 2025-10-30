@@ -24,6 +24,7 @@ type simple struct {
 	schema providers.GetProviderSchemaResponse
 
 	inMem *InMemStoreSingle
+	fs    *FsStore
 }
 
 // Provider returns an instance of providers.Interface
@@ -109,7 +110,8 @@ func provider() simple {
 			},
 			Actions: map[string]providers.ActionSchema{},
 			StateStores: map[string]providers.Schema{
-				inMemStoreName: stateStoreInMemGetSchema(),
+				inMemStoreName: stateStoreInMemGetSchema(), // simple6_inmem
+				fsStoreName:    stateStoreFsGetSchema(),    // simple6_fs
 			},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy:               true,
@@ -134,7 +136,9 @@ func provider() simple {
 			},
 		},
 
-		inMem: &InMemStoreSingle{}, // default workspace doesn't exist by default here; needs explicit creation via init command
+		// default workspaces doesn't exist by default here; needs explicit creation via init command
+		inMem: &InMemStoreSingle{},
+		fs:    &FsStore{},
 	}
 
 	return provider
@@ -353,6 +357,9 @@ func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigR
 	if req.TypeName == inMemStoreName {
 		return s.inMem.ValidateStateStoreConfig(req)
 	}
+	if req.TypeName == fsStoreName {
+		return s.fs.ValidateStateStoreConfig(req)
+	}
 
 	var resp providers.ValidateStateStoreConfigResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
@@ -362,6 +369,9 @@ func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigR
 func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	if req.TypeName == inMemStoreName {
 		return s.inMem.ConfigureStateStore(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.ConfigureStateStore(req)
 	}
 
 	var resp providers.ConfigureStateStoreResponse
@@ -373,6 +383,9 @@ func (s simple) ReadStateBytes(req providers.ReadStateBytesRequest) providers.Re
 	if req.TypeName == inMemStoreName {
 		return s.inMem.ReadStateBytes(req)
 	}
+	if req.TypeName == fsStoreName {
+		return s.fs.ReadStateBytes(req)
+	}
 
 	var resp providers.ReadStateBytesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
@@ -382,6 +395,9 @@ func (s simple) ReadStateBytes(req providers.ReadStateBytesRequest) providers.Re
 func (s simple) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
 	if req.TypeName == inMemStoreName {
 		return s.inMem.WriteStateBytes(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.WriteStateBytes(req)
 	}
 
 	var resp providers.WriteStateBytesResponse
@@ -393,6 +409,9 @@ func (s simple) LockState(req providers.LockStateRequest) providers.LockStateRes
 	if req.TypeName == inMemStoreName {
 		return s.inMem.LockState(req)
 	}
+	if req.TypeName == fsStoreName {
+		return s.fs.LockState(req)
+	}
 
 	var resp providers.LockStateResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
@@ -402,6 +421,9 @@ func (s simple) LockState(req providers.LockStateRequest) providers.LockStateRes
 func (s simple) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
 	if req.TypeName == inMemStoreName {
 		return s.inMem.UnlockState(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.UnlockState(req)
 	}
 
 	var resp providers.UnlockStateResponse
@@ -413,6 +435,9 @@ func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesRes
 	if req.TypeName == inMemStoreName {
 		return s.inMem.GetStates(req)
 	}
+	if req.TypeName == fsStoreName {
+		return s.fs.GetStates(req)
+	}
 
 	var resp providers.GetStatesResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
@@ -422,6 +447,9 @@ func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesRes
 func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
 	if req.TypeName == inMemStoreName {
 		return s.inMem.DeleteState(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.DeleteState(req)
 	}
 
 	var resp providers.DeleteStateResponse
