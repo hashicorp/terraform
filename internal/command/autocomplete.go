@@ -4,6 +4,7 @@
 package command
 
 import (
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/posener/complete"
 )
 
@@ -48,14 +49,7 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 			return nil
 		}
 
-		backendConfig, diags := m.loadBackendConfig(configPath)
-		if diags.HasErrors() {
-			return nil
-		}
-
-		b, diags := m.Backend(&BackendOpts{
-			BackendConfig: backendConfig,
-		})
+		b, diags := m.backend(configPath, arguments.ViewHuman)
 		if diags.HasErrors() {
 			return nil
 		}
