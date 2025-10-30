@@ -878,10 +878,7 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) PlanActionInvocationProt
 	addr := pc.ActionInvocationAddr
 
 	if pc.Invocation == nil {
-		// This is just a stubby placeholder to remind us to drop the
-		// apparently-deleted-outside-of-Terraform object from the state
-		// if this plan later gets applied.
-
+		// TODO: This shouldn't happen, should we throw an error instead?
 		return &tfstackdata1.PlanActionInvocationPlanned{
 			ComponentInstanceAddr: addr.Component.String(),
 			ActionInvocationAddr:  addr.Item.String(),
