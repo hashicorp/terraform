@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"slices"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -117,7 +119,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 	concreteResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodeApplyableResourceInstance{
 			NodeAbstractResourceInstance: a,
-			forceReplace:                 b.ForceReplace,
+			forceReplace:                 slices.ContainsFunc(b.ForceReplace, a.Addr.Equal),
 		}
 	}
 
