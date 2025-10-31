@@ -44,10 +44,12 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	var optPlatforms arguments.FlagStringSlice
 	var fsMirrorDir string
 	var netMirrorURL string
+	var testDirectory string
 
 	cmdFlags.Var(&optPlatforms, "platform", "target platform")
 	cmdFlags.StringVar(&fsMirrorDir, "fs-mirror", "", "filesystem mirror directory")
 	cmdFlags.StringVar(&netMirrorURL, "net-mirror", "", "network mirror base URL")
+	cmdFlags.StringVar(&testDirectory, "test-directory", "tests", "test-directory")
 	pluginCache := cmdFlags.Bool("enable-plugin-cache", false, "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -123,7 +125,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		source = getproviders.NewRegistrySource(c.Services)
 	}
 
-	config, confDiags := c.loadConfig(".")
+	config, confDiags := c.loadConfigWithTests(".", testDirectory)
 	diags = diags.Append(confDiags)
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
@@ -415,7 +417,9 @@ Options:
 
   -enable-plugin-cache   Enable the usage of the globally configured plugin cache.
                          This will speed up the locking process, but the providers
-                         wont be loaded from an authoritative source.
+                         won't be loaded from an authoritative source.
+
+  -test-directory=path	 Set the Terraform test directory, defaults to "tests".
 `
 }
 
