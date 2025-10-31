@@ -412,6 +412,9 @@ func TestTest_Runs(t *testing.T) {
 		"ephemeral_output": {
 			code: 0,
 		},
+		"ephemeral_output_referenced": {
+			code: 0,
+		},
 		"no-tests": {
 			code: 0,
 		},
@@ -4001,7 +4004,6 @@ Error: Test assertion failed
   on main.tftest.hcl line 8, in run "first":
    8:     condition     = test_resource.resource.value == output.null_output
     ├────────────────
-    │ Warning: LHS and RHS values are of different types
     │ Diff:
     │ --- actual
     │ +++ expected
@@ -4054,6 +4056,7 @@ Error: Unknown condition value
    8:     condition = output.destroy_fail == run.one.destroy_fail
     ├────────────────
     │ output.destroy_fail is false
+    │ run.one.destroy_fail is a bool
 
 Condition expression could not be evaluated at this time. This means you have
 executed a %s block with %s and one of the values your
