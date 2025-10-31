@@ -107,26 +107,6 @@ func TestStateStore_Hash(t *testing.T) {
 		"changing the provider version affects the hash value": {
 			providerVersion: version.Must(version.NewSemver("9.9.9")),
 		},
-		"tolerates empty config block for the provider even when schema has Required field(s)": {
-			config: configBodyForTest(t, `state_store "foobar_fs" {
-					provider "foobar" {
-						# required field "foobar" is missing
-					}
-					path          = "mystate.tfstate"
-					workspace_dir = "foobar"
-			}`),
-		},
-		"tolerates missing Required field(s) in state_store config": {
-			stateStoreSchema: exampleStateStoreSchema,
-			config: configBodyForTest(t, `state_store "foobar_fs" {
-					provider "foobar" {
-					  foobar = "foobar"
-					}
-
-					# required field "path" is missing
-					workspace_dir = "foobar"
-			}`),
-		},
 	}
 
 	for tn, tc := range cases {
@@ -177,6 +157,91 @@ func TestStateStore_Hash(t *testing.T) {
 			}
 			if gotHash == exampleHash {
 				t.Fatal("expected hash for state_store to be different from the example due to a changed input, but it matched.")
+			}
+		})
+	}
+}
+
+func TestStateStore_Hash_edgeCases(t *testing.T) {
+	// Normally these schemas would come from a provider's GetProviderSchema data
+	stateStoreSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"path": {
+				Type:     cty.String,
+				Required: true,
+			},
+			"workspace_dir": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+	providerSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foobar": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	providerVersion := version.Must(version.NewSemver("1.2.3"))
+	config := configBodyForTest(t, `state_store "foobar_fs" {
+					provider "foobar" {
+						foobar = "foobar"
+					}
+					path          = "mystate.tfstate"
+					workspace_dir = "foobar"
+			}`)
+
+	cases := map[string]struct {
+		config          hcl.Body
+		providerVersion *version.Version
+	}{
+		"tolerates empty config block for the provider even when schema has Required field(s)": {
+			config: configBodyForTest(t, `state_store "foobar_fs" {
+					provider "foobar" {
+						# required field "foobar" is missing
+					}
+					path          = "mystate.tfstate"
+					workspace_dir = "foobar"
+			}`),
+			providerVersion: providerVersion,
+		},
+		"tolerates missing Required field(s) in state_store config": {
+			config: configBodyForTest(t, `state_store "foobar_fs" {
+					provider "foobar" {
+					  foobar = "foobar"
+					}
+
+					# required field "path" is missing
+					workspace_dir = "foobar"
+			}`),
+			providerVersion: providerVersion,
+		},
+		"tolerates missing provider version data (occurs when builtin or unattached provider)": {
+			config:          config,
+			providerVersion: nil,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			// Construct a configs.StateStore for the test.
+			content, _, cfgDiags := config.PartialContent(terraformBlockSchema)
+			if len(cfgDiags) > 0 {
+				t.Fatalf("unexpected diagnostics: %s", cfgDiags)
+			}
+			var ssDiags hcl.Diagnostics
+			s, ssDiags := decodeStateStoreBlock(content.Blocks.OfType("state_store")[0])
+			if len(ssDiags) > 0 {
+				t.Fatalf("unexpected diagnostics: %s", ssDiags)
+			}
+			s.ProviderAddr = tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "foobar")
+
+			// Test Hash method.
+			_, diags := s.Hash(stateStoreSchema, providerSchema, tc.providerVersion)
+			if diags.HasErrors() {
+				t.Fatalf("unexpected error: %s", diags.Err())
 			}
 		})
 	}
