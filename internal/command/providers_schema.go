@@ -45,6 +45,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		cmdFlags.Usage()
 		return 1
 	}
+	viewType := arguments.ViewJSON // See above; enforced use of JSON output
 
 	// Check for user-supplied plugin path
 	var err error
@@ -56,7 +57,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 
 	// Load the backend
-	b, backendDiags := c.backend(".", arguments.ViewHuman)
+	b, backendDiags := c.backend(".", viewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
