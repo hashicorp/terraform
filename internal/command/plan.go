@@ -125,7 +125,7 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.V
 	c.Meta.applyStateArguments(args)
 
 	// Load the backend
-	be, diags := c.backend(".", arguments.ViewHuman)
+	be, diags := c.backend(".", viewType)
 	if diags.HasErrors() {
 		return nil, diags
 	}
