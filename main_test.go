@@ -345,6 +345,82 @@ func TestMain_autoComplete(t *testing.T) {
 	}
 }
 
+// Test the autocompleting the workspace name during `terraform workspace select`
+func TestMain_autoComplete_workspaceName(t *testing.T) {
+	// Restore original CLI args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Restore stdout
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() { os.Stdout = old }()
+
+	t.Run("can autocomplete from 'd' to 'default'", func(t *testing.T) {
+		// Auto complete in a working directory with no config;
+		// an implied local backend is used, which will report the default backend exists.
+		td := t.TempDir()
+		t.Chdir(td)
+
+		// Set up trigger for command-line autocompletion feature
+		// We expect "d" to autocomplete to "default"
+		expectedAutocomplete := "default"
+		os.Setenv("COMP_LINE", "terraform workspace select d")
+		defer os.Unsetenv("COMP_LINE")
+
+		// Run it!
+		os.Args = []string{"terraform", "terraform", "workspace", "select", "d"}
+		exit := realMain()
+		if exit != 0 {
+			t.Fatalf("unexpected exit status %d; want 0", exit)
+		}
+
+		b := make([]byte, 25)
+		n, err := r.Read(b)
+		if err != nil {
+			t.Fatal(err)
+		}
+		output := string(b[0:n])
+		output = strings.ReplaceAll(output, "\n", "")
+
+		if string(output) != expectedAutocomplete {
+			t.Fatalf("expected autocompletion to return %q, but got %q", expectedAutocomplete, output)
+		}
+	})
+
+	t.Run("can handle autocomplete returning no results", func(t *testing.T) {
+		// Auto complete in a working directory with no config;
+		// an implied local backend is used, which will report the default backend exists.
+		td := t.TempDir()
+		t.Chdir(td)
+
+		// Set up trigger for command-line autocompletion feature
+		// We expect "z" to not autocomplete to anything, as only 'default' exists.
+		os.Setenv("COMP_LINE", "terraform workspace select z")
+		defer os.Unsetenv("COMP_LINE")
+
+		// Run it!
+		os.Args = []string{"terraform", "terraform", "workspace", "select", "z"}
+		exit := realMain()
+		if exit != 0 {
+			t.Fatalf("unexpected exit status %d; want 0", exit)
+		}
+
+		// Avoid infinite blocking in this test case, where no autocomplete suggestions are returned
+		r.SetReadDeadline(time.Now().Add(time.Duration(1 * time.Second)))
+
+		b := make([]byte, 25)
+		n, err := r.Read(b)
+		if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
+			t.Fatal(err)
+		}
+		if n != 0 {
+			t.Fatalf("expected autocompletion to return 0 bytes, but got %d: %q", n, b[0:n])
+		}
+	})
+}
+
 type testCommandCLI struct {
 	Args []string
 }
