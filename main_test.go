@@ -4,10 +4,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/cli"
 )
@@ -279,25 +282,66 @@ func TestMain_autoComplete(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 
+	// Restore stdout
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() { os.Stdout = old }()
+
 	// Set up test command and restore that
 	Commands = make(map[string]cli.CommandFactory)
 	defer func() {
 		Commands = nil
 	}()
-
-	// Set up test command and restore that
-	Commands["foo"] = func() (cli.Command, error) {
+	Commands["version"] = func() (cli.Command, error) {
 		return &testCommandCLI{}, nil
 	}
 
+	// Run command that should get autocomplete suggestion "version"
 	os.Setenv("COMP_LINE", "terraform versio")
 	defer os.Unsetenv("COMP_LINE")
-
-	// Run it!
 	os.Args = []string{"terraform", "terraform", "versio"}
 	exit := realMain()
 	if exit != 0 {
 		t.Fatalf("unexpected exit status %d; want 0", exit)
+	}
+
+	// Check autocomplete suggestion
+	expectedAutocomplete := "version"
+	b := make([]byte, 25)
+	n, err := r.Read(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := string(b[0:n])
+	output = strings.ReplaceAll(output, "\n", "")
+	if output != expectedAutocomplete {
+		t.Fatalf("expected autocompletion to return %q, but got %q", expectedAutocomplete, output)
+	}
+
+	// Run command that should NOT get an autocomplete suggestion
+	r, w, _ = os.Pipe()
+	os.Stdout = w
+
+	os.Setenv("COMP_LINE", "terraform zzz")
+	defer os.Unsetenv("COMP_LINE")
+	os.Args = []string{"terraform", "terraform", "zzz"}
+	exit = realMain()
+	if exit != 0 {
+		t.Fatalf("unexpected exit status %d; want 0", exit)
+	}
+
+	// Avoid infinite blocking in this case, where no autocomplete suggestions are returned
+	r.SetReadDeadline(time.Now().Add(time.Duration(1 * time.Second)))
+
+	// Check autocomplete suggestion
+	b = make([]byte, 25)
+	n, err = r.Read(b)
+	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		t.Fatalf("expected autocompletion to return 0 bytes, but got %d: %q", n, b[0:n])
 	}
 }
 
