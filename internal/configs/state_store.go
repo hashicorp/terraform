@@ -205,14 +205,21 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 		pVal = cty.UnknownVal(schema.ImpliedType())
 	}
 
+	var providerVersionString string
+	if stateStoreProviderVersion != nil {
+		providerVersionString = stateStoreProviderVersion.String()
+	} else {
+		providerVersionString = "" // It's valid for no version to be present if the provider is builtin or reattached
+	}
+
 	toHash := cty.TupleVal([]cty.Value{
 		cty.StringVal(b.Type), // state store type
 		ssVal,                 // state store config
 
-		cty.StringVal(b.ProviderAddr.String()),            // provider source
-		cty.StringVal(stateStoreProviderVersion.String()), // provider version
-		cty.StringVal(b.Provider.Name),                    // provider name - this is directly parsed from the config, whereas provider source is added separately later after config is parsed.
-		pVal,                                              // provider config
+		cty.StringVal(b.ProviderAddr.String()), // provider source
+		cty.StringVal(providerVersionString),   // provider version
+		cty.StringVal(b.Provider.Name),         // provider name - this is directly parsed from the config, whereas provider source is added separately later after config is parsed.
+		pVal,                                   // provider config
 	})
 	return toHash.Hash(), diags
 }
