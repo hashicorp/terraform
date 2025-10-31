@@ -52,6 +52,17 @@ var templateFunctions = collections.NewSetCmp[string](
 // Functions returns the set of functions that should be used to when evaluating
 // expressions in the receiving scope.
 func (s *Scope) Functions() map[string]function.Function {
+	// For backwards compatibility, filesystem functions are allowed to return
+	// inconsistent results when called from within a provider configuration, so
+	// here we override the checks with a noop wrapper. This misbehavior was
+	// found to be used by a number of configurations, which took advantage of
+	// it to create the equivalent of ephemeral values before they formally
+	// existed in the language.
+	immutableResults := immutableResults
+	if s.ForProvider {
+		immutableResults = filesystemNoopWrapper
+	}
+
 	s.funcsLock.Lock()
 	if s.funcs == nil {
 		s.funcs = baseFunctions(s.BaseDir)
@@ -466,6 +477,10 @@ func immutableResults(name string, priorResults *FunctionResults) func(fn functi
 			return res, err
 		}
 	}
+}
+
+func filesystemNoopWrapper(name string, priorResults *FunctionResults) func(fn function.ImplFunc) function.ImplFunc {
+	return noopWrapper
 }
 
 func noopWrapper(fn function.ImplFunc) function.ImplFunc {
