@@ -35,7 +35,7 @@ func (c *OutputCommand) Run(rawArgs []string) int {
 	view := views.NewOutput(args.ViewType, c.View)
 
 	// Fetch data from state
-	outputs, diags := c.Outputs(args.StatePath)
+	outputs, diags := c.Outputs(args.StatePath, args.ViewType)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
@@ -54,7 +54,7 @@ func (c *OutputCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValue, tfdiags.Diagnostics) {
+func (c *OutputCommand) Outputs(statePath string, view arguments.ViewType) (map[string]*states.OutputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Allow state path override
@@ -63,7 +63,7 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", arguments.ViewHuman)
+	b, backendDiags := c.backend(".", view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		return nil, diags
