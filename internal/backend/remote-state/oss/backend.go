@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -585,7 +584,7 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 		providerConfig = make(map[string]interface{})
 		_, err := os.Stat(profilePath)
 		if !os.IsNotExist(err) {
-			data, err := ioutil.ReadFile(profilePath)
+			data, err := os.ReadFile(profilePath)
 			if err != nil {
 				return nil, err
 			}

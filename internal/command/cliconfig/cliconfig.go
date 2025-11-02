@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"maps"
 	"os"
@@ -155,7 +154,7 @@ func loadConfigFile(path string) (*Config, tfdiags.Diagnostics) {
 	log.Printf("Loading CLI configuration from %s", path)
 
 	// Read the HCL file and prepare for parsing
-	d, err := ioutil.ReadFile(path)
+	d, err := os.ReadFile(path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error reading %s: %s", path, err))
 		return result, diags
@@ -200,7 +199,7 @@ func loadConfigDir(path string) (*Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	result := &Config{}
 
-	entries, err := ioutil.ReadDir(path)
+	entries, err := os.ReadDir(path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error reading %s: %s", path, err))
 		return result, diags

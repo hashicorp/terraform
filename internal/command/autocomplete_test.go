@@ -4,7 +4,6 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -20,7 +19,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 	t.Chdir(td)
 
 	// make sure a vars file doesn't interfere
-	err := ioutil.WriteFile(DefaultVarsFilename, nil, 0644)
+	err := os.WriteFile(DefaultVarsFilename, nil, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

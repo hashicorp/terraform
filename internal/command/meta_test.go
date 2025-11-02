@@ -5,7 +5,6 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -329,7 +328,7 @@ func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -361,7 +360,7 @@ func TestMeta_process(t *testing.T) {
 	// they _aren't_ being interpreted by process, since that could otherwise
 	// cause them to be added more than once and mess up the precedence order.
 	defaultVarsfile := "terraform.tfvars"
-	err := ioutil.WriteFile(
+	err := os.WriteFile(
 		filepath.Join(d, defaultVarsfile),
 		[]byte(""),
 		0644)
@@ -369,7 +368,7 @@ func TestMeta_process(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	fileFirstAlphabetical := "a-file.auto.tfvars"
-	err = ioutil.WriteFile(
+	err = os.WriteFile(
 		filepath.Join(d, fileFirstAlphabetical),
 		[]byte(""),
 		0644)
@@ -377,7 +376,7 @@ func TestMeta_process(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	fileLastAlphabetical := "z-file.auto.tfvars"
-	err = ioutil.WriteFile(
+	err = os.WriteFile(
 		filepath.Join(d, fileLastAlphabetical),
 		[]byte(""),
 		0644)
@@ -386,7 +385,7 @@ func TestMeta_process(t *testing.T) {
 	}
 	// Regular tfvars files will not be autoloaded
 	fileIgnored := "ignored.tfvars"
-	err = ioutil.WriteFile(
+	err = os.WriteFile(
 		filepath.Join(d, fileIgnored),
 		[]byte(""),
 		0644)

@@ -6,7 +6,7 @@ package json
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -910,7 +910,7 @@ func TestNewDiagnostic(t *testing.T) {
 				t.Fatalf("failed to open golden file: %s", err)
 			}
 			defer wantFile.Close()
-			wantBytes, err := ioutil.ReadAll(wantFile)
+			wantBytes, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("failed to read output file: %s", err)
 			}

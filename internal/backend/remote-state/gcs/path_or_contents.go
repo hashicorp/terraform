@@ -4,7 +4,6 @@
 package gcs
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/mitchellh/go-homedir"
@@ -28,7 +27,7 @@ func readPathOrContents(poc string) (string, error) {
 	}
 
 	if _, err := os.Stat(path); err == nil {
-		contents, err := ioutil.ReadFile(path)
+		contents, err := os.ReadFile(path)
 		if err != nil {
 			return string(contents), err
 		}

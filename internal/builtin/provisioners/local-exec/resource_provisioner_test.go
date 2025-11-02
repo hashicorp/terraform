@@ -5,7 +5,6 @@ package localexec
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -38,7 +37,7 @@ func TestResourceProvider_Apply(t *testing.T) {
 	}
 
 	// Check the file
-	raw, err := ioutil.ReadFile("test_out")
+	raw, err := os.ReadFile("test_out")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

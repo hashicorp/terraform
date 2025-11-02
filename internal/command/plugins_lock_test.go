@@ -4,14 +4,13 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 )
 
 func TestPluginSHA256LockFile_Read(t *testing.T) {
-	f, err := ioutil.TempFile(t.TempDir(), "tf-pluginsha1lockfile-test-")
+	f, err := os.CreateTemp(t.TempDir(), "tf-pluginsha1lockfile-test-")
 	if err != nil {
 		t.Fatalf("failed to create temporary file: %s", err)
 	}

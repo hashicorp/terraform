@@ -5,7 +5,7 @@ package providercache
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -104,7 +104,7 @@ func (cp *CachedProvider) HashV1() (getproviders.Hash, error) {
 // slashes and backslashes as long as the separators are consistent within a
 // particular path string.
 func (cp *CachedProvider) ExecutableFile() (string, error) {
-	infos, err := ioutil.ReadDir(cp.PackageDir)
+	infos, err := os.ReadDir(cp.PackageDir)
 	if err != nil {
 		// If the directory itself doesn't exist or isn't readable then we
 		// can't access an executable in it.

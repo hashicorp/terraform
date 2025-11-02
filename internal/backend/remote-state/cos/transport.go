@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -48,7 +48,7 @@ func (me *LogRoundTripper) RoundTrip(request *http.Request) (response *http.Resp
 
 	request.Header.Set("X-TC-RequestClient", ReqClient)
 	inBytes = []byte(fmt.Sprintf("%s, request: ", request.Header[headName]))
-	requestBody, errRet := ioutil.ReadAll(bodyReader)
+	requestBody, errRet := io.ReadAll(bodyReader)
 	if errRet != nil {
 		return
 	}
@@ -67,11 +67,11 @@ func (me *LogRoundTripper) RoundTrip(request *http.Request) (response *http.Resp
 	if errRet != nil {
 		return
 	}
-	outBytes, errRet = ioutil.ReadAll(response.Body)
+	outBytes, errRet = io.ReadAll(response.Body)
 	if errRet != nil {
 		return
 	}
-	response.Body = ioutil.NopCloser(bytes.NewBuffer(outBytes))
+	response.Body = io.NopCloser(bytes.NewBuffer(outBytes))
 	return
 }
 

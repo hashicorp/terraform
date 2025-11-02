@@ -5,7 +5,6 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 
@@ -193,7 +192,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	updatedLocks := map[getproviders.Platform]*depsfile.Locks{}
 	selectedVersions := map[addrs.Provider]getproviders.Version{}
 	for _, platform := range platforms {
-		tempDir, err := ioutil.TempDir("", "terraform-providers-lock")
+		tempDir, err := os.MkdirTemp("", "terraform-providers-lock")
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

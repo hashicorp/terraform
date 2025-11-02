@@ -5,13 +5,12 @@ package replacefile
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 // AtomicWriteFile uses a temporary file along with this package's AtomicRename
-// function in order to provide a replacement for ioutil.WriteFile that
+// function in order to provide a replacement for os.WriteFile that
 // writes the given file into place as atomically as the underlying operating
 // system can support.
 //
@@ -36,7 +35,7 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 		// treats an empty dir as meaning "use the TMPDIR environment variable".
 		dir = "."
 	}
-	f, err := ioutil.TempFile(dir, file) // alongside target file and with a similar name
+	f, err := os.CreateTemp(dir, file) // alongside target file and with a similar name
 	if err != nil {
 		return fmt.Errorf("cannot create temporary file to update %s: %s", filename, err)
 	}

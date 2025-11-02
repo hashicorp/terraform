@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -228,7 +228,7 @@ func (c *Client) ModuleLocation(ctx context.Context, module *regsrc.Module, vers
 	defer resp.Body.Close()
 
 	// there should be no body, but save it for logging
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("error reading response body from registry: %s", err)
 	}

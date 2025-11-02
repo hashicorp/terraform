@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	version "github.com/hashicorp/go-version"
@@ -60,7 +59,7 @@ func Read(r io.Reader) (*File, error) {
 	// We actually just buffer the whole thing in memory, because states are
 	// generally not huge and we need to do be able to sniff for a version
 	// number before full parsing.
-	src, err := ioutil.ReadAll(r)
+	src, err := io.ReadAll(r)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

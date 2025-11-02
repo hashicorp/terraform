@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -132,7 +131,7 @@ func testRunner(t *testing.T, cases testCases, orgCount int, tfEnvFlags ...strin
 					lenInput := len(tfCmd.userInput)
 					lenInputOutput := len(tfCmd.postInputOutput)
 					if lenInput > 0 {
-						for i := 0; i < lenInput; i++ {
+						for i := range lenInput {
 							input := tfCmd.userInput[i]
 							exp.SendLine(input)
 							// use the index to find the corresponding
@@ -183,7 +182,7 @@ func setTfeClient() {
 
 func setupBinary() func() {
 	log.Println("Setting up terraform binary")
-	tmpTerraformBinaryDir, err := ioutil.TempDir("", "terraform-test")
+	tmpTerraformBinaryDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		fmt.Printf("Could not create temp directory: %v\n", err)
 		os.Exit(1)

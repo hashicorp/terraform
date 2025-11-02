@@ -5,7 +5,7 @@ package command
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -62,7 +62,7 @@ func TestConsole_tfvars(t *testing.T) {
 
 	// Write a terraform.tvars
 	varFilePath := filepath.Join(td, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

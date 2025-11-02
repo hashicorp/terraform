@@ -5,7 +5,6 @@ package gcs
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"strings"
@@ -121,7 +120,7 @@ func testTempFile(t *testing.T, baseDir ...string) (*os.File, func()) {
 	if len(baseDir) == 1 {
 		base = baseDir[0]
 	}
-	f, err := ioutil.TempFile(base, "tf")
+	f, err := os.CreateTemp(base, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

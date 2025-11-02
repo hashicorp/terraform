@@ -6,8 +6,8 @@ package command
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 )
 
 type pluginSHA256LockFile struct {
@@ -28,7 +28,7 @@ func (pf *pluginSHA256LockFile) Read() map[string][]byte {
 	// constraint verification fails during context creation.
 	digests := make(map[string][]byte)
 
-	buf, err := ioutil.ReadFile(pf.Filename)
+	buf, err := os.ReadFile(pf.Filename)
 	if err != nil {
 		// This is expected if the user runs any context-using command before
 		// running "terraform init".

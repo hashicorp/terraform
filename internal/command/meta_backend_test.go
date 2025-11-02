@@ -6,7 +6,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -388,7 +387,7 @@ func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 
 	// Verify the default paths don't exist
 	if !isEmptyState(DefaultStateFilename) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
+		data, _ := os.ReadFile(DefaultStateFilename)
 
 		t.Fatal("state should not exist, but contains:\n", string(data))
 	}
@@ -438,7 +437,7 @@ func TestMetaBackend_configureNewBackendWithoutCopy(t *testing.T) {
 
 	// Verify the default paths don't exist
 	if !isEmptyState(DefaultStateFilename) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
+		data, _ := os.ReadFile(DefaultStateFilename)
 
 		t.Fatal("state should not exist, but contains:\n", string(data))
 	}
@@ -483,7 +482,7 @@ func TestMetaBackend_configureNewBackendWithStateNoMigrate(t *testing.T) {
 
 	// Verify the default paths don't exist
 	if !isEmptyState(DefaultStateFilename) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
+		data, _ := os.ReadFile(DefaultStateFilename)
 
 		t.Fatal("state should not exist, but contains:\n", string(data))
 	}
@@ -554,7 +553,7 @@ func TestMetaBackend_configureNewBackendWithStateExisting(t *testing.T) {
 
 	// Verify the default paths don't exist
 	if !isEmptyState(DefaultStateFilename) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
+		data, _ := os.ReadFile(DefaultStateFilename)
 
 		t.Fatal("state should not exist, but contains:\n", string(data))
 	}
@@ -625,7 +624,7 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 
 	// Verify the default paths don't exist
 	if !isEmptyState(DefaultStateFilename) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
+		data, _ := os.ReadFile(DefaultStateFilename)
 
 		t.Fatal("state should not exist, but contains:\n", string(data))
 	}
@@ -1475,13 +1474,13 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 
 	// Verify the default paths don't exist
 	if !isEmptyState(DefaultStateFilename) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
+		data, _ := os.ReadFile(DefaultStateFilename)
 		t.Fatal("state should not exist, but contains:\n", string(data))
 	}
 
 	// Verify a backup doesn't exist
 	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename + DefaultBackupExtension)
+		data, _ := os.ReadFile(DefaultStateFilename + DefaultBackupExtension)
 		t.Fatal("backup should not exist, but contains:\n", string(data))
 	}
 
@@ -1498,7 +1497,7 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 
 	// Verify no backup since it was empty to start
 	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename + DefaultBackupExtension)
+		data, _ := os.ReadFile(DefaultStateFilename + DefaultBackupExtension)
 		t.Fatal("backup state should be empty, but contains:\n", string(data))
 	}
 }
@@ -1940,7 +1939,7 @@ func TestMetaBackend_backendConfigToExtra(t *testing.T) {
 
 	// init again but remove the path option from the config
 	cfg := "terraform {\n  backend \"local\" {}\n}\n"
-	if err := ioutil.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+	if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
 		t.Fatal(err)
 	}
 

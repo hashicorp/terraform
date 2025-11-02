@@ -6,7 +6,7 @@ package command
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -37,7 +37,7 @@ func TestProvidersSchema_error(t *testing.T) {
 
 func TestProvidersSchema_output(t *testing.T) {
 	fixtureDir := "testdata/providers-schema"
-	testDirs, err := ioutil.ReadDir(fixtureDir)
+	testDirs, err := os.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestProvidersSchema_output(t *testing.T) {
 				t.Fatalf("err: %s", err)
 			}
 			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
+			byteValue, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("err: %s", err)
 			}

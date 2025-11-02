@@ -23,7 +23,7 @@ type Cmd struct {
 	// Stdout and Stderr represent the process's standard output and
 	// error.
 	//
-	// If either is nil, it will be set to ioutil.Discard.
+	// If either is nil, it will be set to io.Discard.
 	Stdout io.Writer
 	Stderr io.Writer
 

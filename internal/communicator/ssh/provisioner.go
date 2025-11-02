@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -334,7 +333,7 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 		// generally wants to handle config data in-memory. Rather than making
 		// the known_hosts file an exception, write out the data to a temporary
 		// file to create the HostKeyCallback.
-		tf, err := ioutil.TempFile("", "tf-known_hosts")
+		tf, err := os.CreateTemp("", "tf-known_hosts")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temp known_hosts file: %s", err)
 		}
@@ -525,7 +524,7 @@ func idKeyData(id string) [][]byte {
 	}
 
 	for _, p := range paths {
-		d, err := ioutil.ReadFile(p)
+		d, err := os.ReadFile(p)
 		if err != nil {
 			log.Printf("[DEBUG] error reading %q: %s", p, err)
 			continue

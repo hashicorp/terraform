@@ -6,7 +6,6 @@ package command
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -321,7 +320,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		// when running on Windows as of Go 1.13. We should revisit this once
 		// we're supporting network mirrors, to avoid having them briefly
 		// become corrupted during updates.
-		err = ioutil.WriteFile(filepath.Join(indexDir, "index.json"), mainIndexJSON, 0644)
+		err = os.WriteFile(filepath.Join(indexDir, "index.json"), mainIndexJSON, 0644)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -339,7 +338,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 				// our control.
 				panic(fmt.Sprintf("failed to encode version index: %s", err))
 			}
-			err = ioutil.WriteFile(filepath.Join(indexDir, version.String()+".json"), versionIndexJSON, 0644)
+			err = os.WriteFile(filepath.Join(indexDir, version.String()+".json"), versionIndexJSON, 0644)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,

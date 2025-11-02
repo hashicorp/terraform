@@ -6,7 +6,7 @@ package consul
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -32,8 +32,8 @@ func newConsulTestServer(t *testing.T) *testutil.TestServer {
 		}
 
 		if !testing.Verbose() {
-			c.Stdout = ioutil.Discard
-			c.Stderr = ioutil.Discard
+			c.Stdout = io.Discard
+			c.Stderr = io.Discard
 		}
 	})
 

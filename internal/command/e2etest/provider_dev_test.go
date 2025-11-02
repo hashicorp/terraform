@@ -5,7 +5,6 @@ package e2etest
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,7 +45,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	providerExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple/main", providerExePrefix)
 	t.Logf("temporary provider executable is %s", providerExe)
 
-	err := ioutil.WriteFile(filepath.Join(tf.WorkDir(), "dev.tfrc"), []byte(fmt.Sprintf(`
+	err := os.WriteFile(filepath.Join(tf.WorkDir(), "dev.tfrc"), []byte(fmt.Sprintf(`
 		provider_installation {
 			dev_overrides {
 				"example.com/test/test" = %q

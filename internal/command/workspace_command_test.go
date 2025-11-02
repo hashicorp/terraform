@@ -4,7 +4,6 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -114,7 +113,7 @@ func TestWorkspace_createAndList(t *testing.T) {
 	t.Chdir(td)
 
 	// make sure a vars file doesn't interfere
-	err := ioutil.WriteFile(
+	err := os.WriteFile(
 		DefaultVarsFilename,
 		[]byte(`foo = "bar"`),
 		0644,
@@ -162,7 +161,7 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	t.Chdir(td)
 
 	// make sure a vars file doesn't interfere
-	err := ioutil.WriteFile(
+	err := os.WriteFile(
 		DefaultVarsFilename,
 		[]byte(`foo = "bar"`),
 		0644,
@@ -345,7 +344,7 @@ func TestWorkspace_delete(t *testing.T) {
 	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte("test"), 0644); err != nil {
 		t.Fatal(err)
 	}
 

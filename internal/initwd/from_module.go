@@ -6,7 +6,6 @@ package initwd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -59,7 +58,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 
 	// The target directory must exist but be empty.
 	{
-		entries, err := ioutil.ReadDir(rootDir)
+		entries, err := os.ReadDir(rootDir)
 		if err != nil {
 			if os.IsNotExist(err) {
 				diags = diags.Append(tfdiags.Sourceless(

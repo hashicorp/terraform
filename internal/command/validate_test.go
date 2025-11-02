@@ -5,7 +5,7 @@ package command
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -415,7 +415,7 @@ func TestValidate_json(t *testing.T) {
 				t.Fatalf("failed to open output file: %s", err)
 			}
 			defer wantFile.Close()
-			wantBytes, err := ioutil.ReadAll(wantFile)
+			wantBytes, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("failed to read output file: %s", err)
 			}

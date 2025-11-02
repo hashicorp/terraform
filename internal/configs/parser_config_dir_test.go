@@ -5,7 +5,6 @@ package configs
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +25,7 @@ import (
 // module element contents. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigDirSuccess(t *testing.T) {
-	dirs, err := ioutil.ReadDir("testdata/valid-modules")
+	dirs, err := os.ReadDir("testdata/valid-modules")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +93,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 
 	// The individual files in testdata/valid-files should also work
 	// when loaded as modules.
-	files, err := ioutil.ReadDir("testdata/valid-files")
+	files, err := os.ReadDir("testdata/valid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +101,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(fmt.Sprintf("%s as module", name), func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/valid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/valid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -381,7 +380,7 @@ func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 // diagnostics in particular. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigDirFailure(t *testing.T) {
-	dirs, err := ioutil.ReadDir("testdata/invalid-modules")
+	dirs, err := os.ReadDir("testdata/invalid-modules")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,7 +403,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 
 	// The individual files in testdata/valid-files should also work
 	// when loaded as modules.
-	files, err := ioutil.ReadDir("testdata/invalid-files")
+	files, err := os.ReadDir("testdata/invalid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,7 +411,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(fmt.Sprintf("%s as module", name), func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/invalid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/invalid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
