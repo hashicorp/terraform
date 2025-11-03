@@ -98,9 +98,11 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 
 	// Create the new workspace
 	//
-	// In remote-state backends, obtaining a state manager
-	// creates an empty state file for the new workspace as a
-	// side-effect.
+	// In local, remote and remote-state backends obtaining a state manager
+	// creates an empty state file for the new workspace as a side-effect.
+	//
+	// The cloud backend also has logic in StateMgr for creating projects and
+	// workspaces if they don't already exist.
 	sMgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
 		c.Ui.Error(sDiags.Err().Error())
