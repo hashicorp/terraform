@@ -184,6 +184,7 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 			},
 		},
 	}
+	providerAddr := tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "foobar")
 	providerVersion := version.Must(version.NewSemver("1.2.3"))
 	config := configBodyForTest(t, `state_store "foobar_fs" {
 					provider "foobar" {
@@ -195,7 +196,9 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 
 	cases := map[string]struct {
 		config          hcl.Body
+		providerAddr    tfaddr.Provider
 		providerVersion *version.Version
+		reattachConfig  string
 	}{
 		"tolerates empty config block for the provider even when schema has Required field(s)": {
 			config: configBodyForTest(t, `state_store "foobar_fs" {
@@ -205,6 +208,7 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 					path          = "mystate.tfstate"
 					workspace_dir = "foobar"
 			}`),
+			providerAddr:    providerAddr,
 			providerVersion: providerVersion,
 		},
 		"tolerates missing Required field(s) in state_store config": {
@@ -216,16 +220,40 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 					# required field "path" is missing
 					workspace_dir = "foobar"
 			}`),
+			providerAddr:    providerAddr,
 			providerVersion: providerVersion,
 		},
-		"tolerates missing provider version data (occurs when builtin or unattached provider)": {
+		"tolerates missing provider version data when using a builtin provider": {
 			config:          config,
-			providerVersion: nil,
+			providerAddr:    tfaddr.NewProvider(tfaddr.BuiltInProviderHost, "hashicorp", "foobar"), // Builtin
+			providerVersion: nil,                                                                   // No version
+		},
+		"tolerates missing provider version data when using a reattached provider": {
+			config:          config,
+			providerAddr:    providerAddr,
+			providerVersion: nil, // No version
+			reattachConfig: `{
+				"foobar": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 6,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`,
 		},
 	}
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
+
+			if tc.reattachConfig != "" {
+				t.Setenv("TF_REATTACH_PROVIDERS", tc.reattachConfig)
+			}
+
 			// Construct a configs.StateStore for the test.
 			content, _, cfgDiags := config.PartialContent(terraformBlockSchema)
 			if len(cfgDiags) > 0 {
@@ -236,7 +264,7 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 			if len(ssDiags) > 0 {
 				t.Fatalf("unexpected diagnostics: %s", ssDiags)
 			}
-			s.ProviderAddr = tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "foobar")
+			s.ProviderAddr = tc.providerAddr
 
 			// Test Hash method.
 			_, diags := s.Hash(stateStoreSchema, providerSchema, tc.providerVersion)
