@@ -10,8 +10,8 @@ import (
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StateIdentitiesCommand is a Command implementation that lists the resource identities
@@ -41,15 +41,16 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 		cmdFlags.Usage()
 		return 1
 	}
+	view := arguments.ViewJSON // See above
 
 	if statePath != "" {
 		c.Meta.statePath = statePath
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(backendDiags)
+	b, diags := c.backend(".", view)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -79,7 +80,6 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 	}
 
 	var addrs []addrs.AbsResourceInstance
-	var diags tfdiags.Diagnostics
 	if len(args) == 0 {
 		addrs, diags = c.lookupAllResourceInstanceAddrs(state)
 	} else {
