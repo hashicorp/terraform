@@ -5,6 +5,7 @@ package configs
 
 import (
 	"fmt"
+	"os"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -12,6 +13,7 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -206,10 +208,25 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 	}
 
 	var providerVersionString string
-	if stateStoreProviderVersion != nil {
-		providerVersionString = stateStoreProviderVersion.String()
+	if stateStoreProviderVersion == nil {
+		isReattached, err := reattach.IsProviderReattached(b.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+		if err != nil {
+			return 0, diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while hashing state store configuration. This is a bug in Terraform and should be reported: %w", err))
+		}
+
+		if (b.ProviderAddr.Hostname != tfaddr.BuiltInProviderHost) &&
+			!isReattached {
+			return 0, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unable to calculate hash of state store configuration",
+				Detail:   "Provider version data was missing during hash generation. This is a bug in Terraform and should be reported.",
+			})
+		}
+
+		// Version information can be empty but only if the provider is builtin or unmanaged by Terraform
+		providerVersionString = ""
 	} else {
-		providerVersionString = "" // It's valid for no version to be present if the provider is builtin or reattached
+		providerVersionString = stateStoreProviderVersion.String()
 	}
 
 	toHash := cty.TupleVal([]cty.Value{
