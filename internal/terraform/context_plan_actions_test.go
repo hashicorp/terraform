@@ -4088,7 +4088,39 @@ resource "test_object" "a" {
 	if !diags.HasErrors() {
 		t.Fatal("expected errors, got success!")
 	}
-	expectedErr := "action_trigger actions references non-existent action: The lifecycle action_trigger actions list contains a reference to the action \"action.test_action.hello\" that does not exist in the configuration of this module. This can likely be a typo."
+	expectedErr := "action_trigger actions references non-existent action: The lifecycle action_trigger actions list contains a reference to the action \"action.test_action.hello\" that does not exist in the configuration of this module."
+	if diags.Err().Error() != expectedErr {
+		t.Fatalf("wrong error!, got %q, expected %q", diags.Err().Error(), expectedErr)
+	}
+}
+
+func TestContextPlan_validateActionInTriggerExistsWithSimilarAction(t *testing.T) {
+	// this validation occurs during TransformConfig
+	module := `
+action "test_action" "hello_word" {}
+	
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.hello_world]
+    }
+  }
+}
+`
+	m := testModuleInline(t, map[string]string{"main.tf": module})
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected errors, got success!")
+	}
+	expectedErr := "action_trigger actions references non-existent action: The lifecycle action_trigger actions list contains a reference to the action \"action.test_action.hello_world\" that does not exist in the configuration of this module. Did you mean \"action.test_action.hello_word\"?"
 	if diags.Err().Error() != expectedErr {
 		t.Fatalf("wrong error!, got %q, expected %q", diags.Err().Error(), expectedErr)
 	}

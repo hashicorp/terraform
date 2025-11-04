@@ -6,12 +6,15 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"maps"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -190,10 +193,15 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 
 					_, ok := allConfigActions[configAction.String()]
 					if !ok {
+						suggestion := didyoumean.NameSuggestion(configAction.String(), slices.Collect(maps.Keys(allConfigActions)))
+						if suggestion != "" {
+							suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+						}
+
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "action_trigger actions references non-existent action",
-							Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module. This can likely be a typo.", configAction.String()),
+							Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module.%s", configAction.String(), suggestion),
 							Subject:  action.Expr.Range().Ptr(),
 							Context:  r.DeclRange.Ptr(),
 						})
