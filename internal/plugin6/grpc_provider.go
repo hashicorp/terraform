@@ -1328,7 +1328,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 
 	resourceSchema, ok := schema.ResourceTypes[r.TypeName]
 	if !ok || resourceSchema.Identity == nil {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity schema not found for resource type %s", r.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Identity schema not found for resource type %s; this is a bug in the provider - please report it there", r.TypeName))
 		return resp
 	}
 
