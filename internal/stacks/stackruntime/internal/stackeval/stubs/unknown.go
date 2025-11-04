@@ -341,60 +341,6 @@ func (u *unknownProvider) ConfigureStateStore(providers.ConfigureStateStoreReque
 	}
 }
 
-// ReadStateBytes implements providers.Interface.
-func (u *unknownProvider) ReadStateBytes(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is unknown",
-		"Cannot read from this state store because its associated provider configuration is unknown.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.ReadStateBytesResponse{
-		Diagnostics: diags,
-	}
-}
-
-// WriteStateBytes implements providers.Interface.
-func (u *unknownProvider) WriteStateBytes(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is unknown",
-		"Cannot write to this state store because its associated provider configuration is unknown.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.WriteStateBytesResponse{
-		Diagnostics: diags,
-	}
-}
-
-func (u *unknownProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is unknown",
-		"Cannot lock to this state store because its associated provider configuration is unknown.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.LockStateResponse{
-		Diagnostics: diags,
-	}
-}
-
-func (u *unknownProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is unknown",
-		"Cannot unlock to this state store because its associated provider configuration is unknown.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.UnlockStateResponse{
-		Diagnostics: diags,
-	}
-}
-
 // GetStates implements providers.Interface.
 func (u *unknownProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
 	var diags tfdiags.Diagnostics

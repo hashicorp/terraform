@@ -28,17 +28,6 @@ var (
 		},
 	}
 
-	TestingEphemeralResourceSchema = providers.Schema{
-		Body: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"value": {
-					Type:     cty.String,
-					Computed: true,
-				},
-			},
-		},
-	}
-
 	DeferredResourceSchema = providers.Schema{
 		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
@@ -210,11 +199,6 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 						Body: WriteOnlyDataSourceSchema.Body,
 					},
 				},
-				EphemeralResourceTypes: map[string]providers.Schema{
-					"testing_resource": {
-						Body: TestingEphemeralResourceSchema.Body,
-					},
-				},
 				Functions: map[string]providers.FunctionDecl{
 					"echo": {
 						Parameters: []providers.FunctionParam{
@@ -313,13 +297,6 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 				// Just echo the first argument back as the result.
 				return providers.CallFunctionResponse{
 					Result: request.Arguments[0],
-				}
-			},
-			OpenEphemeralResourceFn: func(request providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
-				return providers.OpenEphemeralResourceResponse{
-					Result: cty.ObjectVal(map[string]cty.Value{
-						"value": cty.StringVal("secret"),
-					}),
 				}
 			},
 		},

@@ -37,13 +37,6 @@ type ValidateOpts struct {
 
 	// When true, query files will also be validated.
 	Query bool
-
-	// AllowRootEphemeralOutputs overrides a specific check made within the
-	// output nodes that they cannot be ephemeral at within root modules. This
-	// should be set to true for plans executing from within either the stacks
-	// or test runtimes, where the root modules as Terraform sees them aren't
-	// the actual root modules.
-	AllowRootEphemeralOutputs bool
 }
 
 // Validate performs semantic validation of a configuration, and returns
@@ -108,15 +101,14 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 	}
 
 	graph, moreDiags := (&PlanGraphBuilder{
-		Config:                    config,
-		Plugins:                   c.plugins,
-		State:                     states.NewState(),
-		RootVariableValues:        varValues,
-		Operation:                 walkValidate,
-		ExternalProviderConfigs:   opts.ExternalProviders,
-		ImportTargets:             c.findImportTargets(config),
-		queryPlan:                 opts.Query,
-		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+		Config:                  config,
+		Plugins:                 c.plugins,
+		State:                   states.NewState(),
+		RootVariableValues:      varValues,
+		Operation:               walkValidate,
+		ExternalProviderConfigs: opts.ExternalProviders,
+		ImportTargets:           c.findImportTargets(config),
+		queryPlan:               opts.Query,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

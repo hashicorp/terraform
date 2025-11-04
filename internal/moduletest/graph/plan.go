@@ -127,15 +127,14 @@ func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, ru
 				return plans.NormalMode
 			}
 		}(),
-		Targets:                   targets,
-		ForceReplace:              replaces,
-		SkipRefresh:               !run.Options.Refresh,
-		SetVariables:              variables,
-		ExternalReferences:        references,
-		ExternalProviders:         providers,
-		Overrides:                 mocking.PackageOverrides(run, file, mocks),
-		DeferralAllowed:           ctx.deferralAllowed,
-		AllowRootEphemeralOutputs: true,
+		Targets:            targets,
+		ForceReplace:       replaces,
+		SkipRefresh:        !run.Options.Refresh,
+		SetVariables:       variables,
+		ExternalReferences: references,
+		ExternalProviders:  providers,
+		Overrides:          mocking.PackageOverrides(run, file, mocks),
+		DeferralAllowed:    ctx.deferralAllowed,
 	}
 
 	waiter.update(tfCtx, moduletest.Running, nil)

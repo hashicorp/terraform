@@ -40,9 +40,11 @@ type NodePlannableResourceInstance struct {
 	// for any instances.
 	skipPlanChanges bool
 
-	// forceReplace indicates that this resource is being replaced for external
-	// reasons, like a -replace flag or via replace_triggered_by.
-	forceReplace bool
+	// forceReplace are resource instance addresses where the user wants to
+	// force generating a replace action. This set isn't pre-filtered, so
+	// it might contain addresses that have nothing to do with the resource
+	// that this node represents, which the node itself must therefore ignore.
+	forceReplace []addrs.AbsResourceInstance
 
 	// replaceTriggeredBy stores references from replace_triggered_by which
 	// triggered this instance to be replaced.
@@ -566,7 +568,7 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 			// triggered the replacement in the plan.
 			// Rather than further complicating the plan method with more
 			// options, we can refactor both of these features later.
-			n.forceReplace = true
+			n.forceReplace = append(n.forceReplace, n.Addr)
 			log.Printf("[DEBUG] ReplaceTriggeredBy forcing replacement of %s due to change in %s", n.Addr, ref.DisplayString())
 
 			n.replaceTriggeredBy = append(n.replaceTriggeredBy, ref)

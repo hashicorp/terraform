@@ -51,16 +51,6 @@ func (f *FunctionResults) CheckPrior(name string, args []cty.Value, result cty.V
 // CheckPriorProvider compares the provider function call against any cached
 // results, and returns an error if the result does not match a prior call.
 func (f *FunctionResults) CheckPriorProvider(provider addrs.Provider, name string, args []cty.Value, result cty.Value) error {
-	// Don't cache unknown values. We could technically store types and
-	// refinements for validation, but we don't currently have a way to
-	// serialize those in the plan. Unknowns are also handled much more
-	// gracefully throughout the evaluation system, whereas invalid data is
-	// harder to trace back to the source since it's usually only visible due to
-	// unexpected side-effects.
-	if !result.IsKnown() {
-		return nil
-	}
-
 	argSum := sha256.New()
 
 	if !provider.IsZero() {

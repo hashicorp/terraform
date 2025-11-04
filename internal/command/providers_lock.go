@@ -415,7 +415,7 @@ Options:
 
   -enable-plugin-cache   Enable the usage of the globally configured plugin cache.
                          This will speed up the locking process, but the providers
-                         won't be loaded from an authoritative source.
+                         wont be loaded from an authoritative source.
 `
 }
 

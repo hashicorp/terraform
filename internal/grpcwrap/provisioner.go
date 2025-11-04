@@ -29,8 +29,6 @@ func Provisioner(p provisioners.Interface) tfplugin5.ProvisionerServer {
 type provisioner struct {
 	provisioner provisioners.Interface
 	schema      *configschema.Block
-
-	tfplugin5.UnimplementedProvisionerServer
 }
 
 func (p *provisioner) GetSchema(_ context.Context, req *tfplugin5.GetProvisionerSchema_Request) (*tfplugin5.GetProvisionerSchema_Response, error) {

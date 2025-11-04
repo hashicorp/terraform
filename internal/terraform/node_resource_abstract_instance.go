@@ -261,6 +261,10 @@ const (
 // writeResourceInstanceState saves the given object as the current object for
 // the selected resource instance.
 //
+// dependencies is a parameter, instead of those directly attacted to the
+// NodeAbstractResourceInstance, because we don't write dependencies for
+// datasources.
+//
 // targetState determines which context state we're writing to during plan. The
 // default is the global working state.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, targetState phaseState) error {
@@ -276,7 +280,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx Eva
 	return n.writeResourceInstanceStateImpl(ctx, deposedKey, obj, targetState)
 }
 
-// this is the private common body of both writeResourceInstanceState and
+// (this is the private common body of both writeResourceInstanceState and
 // writeResourceInstanceStateDeposed. Don't call it directly; instead, use
 // one of the two wrappers to be explicit about which of the instance's
 // objects you are intending to write.
@@ -286,11 +290,11 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 	if err != nil {
 		return err
 	}
-	logFuncName := "NodeAbstractResourceInstance.writeResourceInstanceState"
+	logFuncName := "NodeAbstractResouceInstance.writeResourceInstanceState"
 	if deposedKey == states.NotDeposed {
 		log.Printf("[TRACE] %s to %s for %s", logFuncName, targetState, absAddr)
 	} else {
-		logFuncName = "NodeAbstractResourceInstance.writeResourceInstanceStateDeposed"
+		logFuncName = "NodeAbstractResouceInstance.writeResourceInstanceStateDeposed"
 		log.Printf("[TRACE] %s to %s for %s (deposed key %s)", logFuncName, targetState, absAddr, deposedKey)
 	}
 
@@ -791,7 +795,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	plannedChange *plans.ResourceInstanceChange,
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
-	forceReplace bool,
+	forceReplace []addrs.AbsResourceInstance,
 ) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
@@ -1314,7 +1318,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			Before:         priorVal,
 			BeforeIdentity: priorIdentity,
 			// Pass the marked planned value through in our change
-			// to propagate through evaluation.
+			// to propogate through evaluation.
 			// Marks will be removed when encoding.
 			After:           plannedNewVal,
 			AfterIdentity:   plannedIdentity,
@@ -2971,7 +2975,26 @@ func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceI
 	return table.OldAddr(currentAddr)
 }
 
-func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, writeOnly cty.PathSet, forceReplace bool, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
+func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, writeOnly cty.PathSet, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
+	// The user might also ask us to force replacing a particular resource
+	// instance, regardless of whether the provider thinks it needs replacing.
+	// For example, users typically do this if they learn a particular object
+	// has become degraded in an immutable infrastructure scenario and so
+	// replacing it with a new object is a viable repair path.
+	matchedForceReplace := false
+	for _, candidateAddr := range forceReplace {
+		if candidateAddr.Equal(addr) {
+			matchedForceReplace = true
+			break
+		}
+
+		// For "force replace" purposes we require an exact resource instance
+		// address to match. If a user forgets to include the instance key
+		// for a multi-instance resource then it won't match here, but we
+		// have an earlier check in NodePlannableResource.Execute that should
+		// prevent us from getting here in that case.
+	}
+
 	// Unmark for this test for value equality.
 	eqV := plannedNewVal.Equals(priorVal)
 	eq := eqV.IsKnown() && eqV.True()
@@ -2979,7 +3002,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 	switch {
 	case priorVal.IsNull():
 		action = plans.Create
-	case forceReplace || !reqRep.Empty() || !writeOnly.Intersection(reqRep).Empty():
+	case matchedForceReplace || !reqRep.Empty() || !writeOnly.Intersection(reqRep).Empty():
 		// If the user "forced replace" of this instance of if there are any
 		// "requires replace" paths left _after our filtering above_ then this
 		// is a replace action.
@@ -2989,12 +3012,12 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 			action = plans.DeleteThenCreate
 		}
 		switch {
-		case forceReplace:
+		case matchedForceReplace:
 			actionReason = plans.ResourceInstanceReplaceByRequest
 		case !reqRep.Empty():
 			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
 		}
-	case eq && !forceReplace:
+	case eq && !matchedForceReplace:
 		action = plans.NoOp
 	default:
 		action = plans.Update

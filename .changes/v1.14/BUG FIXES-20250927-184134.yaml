@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: The CLI now summarizes the number of actions invoked during `terraform apply`, matching the plan output.
+time: 2025-09-27T18:41:34.771437+02:00
+custom:
+    Issue: "37689"

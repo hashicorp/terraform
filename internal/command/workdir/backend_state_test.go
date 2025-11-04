@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -161,12 +160,9 @@ func TestParseBackendStateFile(t *testing.T) {
 }
 
 func TestEncodeBackendStateFile(t *testing.T) {
-	noVersionData := ""
-
 	tfVersion := version.Version
 	tests := map[string]struct {
 		Input   *BackendStateFile
-		Envs    map[string]string
 		Want    []byte
 		WantErr string
 	}{
@@ -179,60 +175,13 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Hash:      123,
 				},
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      },\n      \"hash\": 12345\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
 		},
-		"it's valid to record no version data when a builtin provider used for state store": {
-			Input: &BackendStateFile{
-				StateStore: &StateStoreConfigState{
-					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, noVersionData, string(tfaddr.BuiltInProviderHost), string(tfaddr.BuiltInProviderNamespace), "foobar", `{"foo": "bar"}`),
-					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
-					Hash:      123,
-				},
-			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": null,\n      \"source\": \"terraform.io/builtin/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
-		},
-		"it's valid to record no version data when a re-attached provider used for state store": {
-			Input: &BackendStateFile{
-				StateStore: &StateStoreConfigState{
-					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, noVersionData, "registry.terraform.io", "hashicorp", "foobar", `{"foo": "bar"}`),
-					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
-					Hash:      123,
-				},
-			},
-			Envs: map[string]string{
-				"TF_REATTACH_PROVIDERS": `{
-				"foobar": {
-					"Protocol": "grpc",
-					"ProtocolVersion": 6,
-					"Pid": 12345,
-					"Test": true,
-					"Addr": {
-						"Network": "unix",
-						"String":"/var/folders/xx/abcde12345/T/plugin12345"
-					}
-				}
-			}`,
-			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": null,\n      \"source\": \"registry.terraform.io/hashicorp/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
-		},
-		"error when neither backend nor state_store config state are present": {
+		"it returns an error when neither backend nor state_store config state are present": {
 			Input: &BackendStateFile{},
 			Want:  []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\"\n}"),
 		},
-		"error when the provider is neither builtin nor reattached and the provider version is missing": {
-			Input: &BackendStateFile{
-				StateStore: &StateStoreConfigState{
-					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, noVersionData, "registry.terraform.io", "my-org", "foobar", ""),
-					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
-					Hash:      123,
-				},
-			},
-			WantErr: `state store is not valid: provider version data is missing`,
-		},
-		"error when the provider source's hostname is missing": {
+		"it returns an error when the provider source's hostname is missing": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
 					Type:      "foobar_baz",
@@ -243,7 +192,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 			},
 			WantErr: `state store is not valid: Unknown hostname: Expected hostname in the provider address to be set`,
 		},
-		"error when the provider source's hostname and namespace are missing ": {
+		"it returns an error when the provider source's hostname and namespace are missing ": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
 					Type:      "foobar_baz",
@@ -254,7 +203,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 			},
 			WantErr: `state store is not valid: Unknown hostname: Expected hostname in the provider address to be set`,
 		},
-		"error when the provider source is completely missing ": {
+		"it returns an error when the provider source is completely missing ": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
 					Type:      "foobar_baz",
@@ -265,7 +214,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 			},
 			WantErr: `state store is not valid: Empty provider address: Expected address composed of hostname, provider namespace and name`,
 		},
-		"error when both backend and state_store config state are present": {
+		"it returns an error when both backend and state_store config state are present": {
 			Input: &BackendStateFile{
 				Backend: &BackendConfigState{
 					Type:      "foobar",
@@ -285,11 +234,6 @@ func TestEncodeBackendStateFile(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			// Some test cases depend on ENVs, not all
-			for k, v := range test.Envs {
-				t.Setenv(k, v)
-			}
-
 			got, err := EncodeBackendStateFile(test.Input)
 
 			if test.WantErr != "" {

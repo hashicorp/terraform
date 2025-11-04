@@ -6,7 +6,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -587,7 +586,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          skipPlanChanges,
-			forceReplace:             slices.ContainsFunc(n.forceReplace, a.Addr.Equal),
+			forceReplace:             n.forceReplace,
 		}
 
 		if importID, ok := knownImports.GetOk(a.Addr); ok {

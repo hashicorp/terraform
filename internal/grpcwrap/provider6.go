@@ -35,8 +35,6 @@ type provider6 struct {
 	provider        providers.Interface
 	schema          providers.GetProviderSchemaResponse
 	identitySchemas providers.GetResourceIdentitySchemasResponse
-
-	tfplugin6.UnimplementedProviderServer
 }
 
 func (p *provider6) GetMetadata(_ context.Context, req *tfplugin6.GetMetadata_Request) (*tfplugin6.GetMetadata_Response, error) {
@@ -906,22 +904,6 @@ func (p *provider6) ValidateStateStoreConfig(ctx context.Context, req *tfplugin6
 }
 
 func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.ConfigureStateStore_Request) (*tfplugin6.ConfigureStateStore_Response, error) {
-	panic("not implemented")
-}
-
-func (p *provider6) ReadStateBytes(req *tfplugin6.ReadStateBytes_Request, srv tfplugin6.Provider_ReadStateBytesServer) error {
-	panic("not implemented")
-}
-
-func (p *provider6) WriteStateBytes(srv tfplugin6.Provider_WriteStateBytesServer) error {
-	panic("not implemented")
-}
-
-func (p *provider6) LockState(ctx context.Context, req *tfplugin6.LockState_Request) (*tfplugin6.LockState_Response, error) {
-	panic("not implemented")
-}
-
-func (p *provider6) UnlockState(ctx context.Context, req *tfplugin6.UnlockState_Request) (*tfplugin6.UnlockState_Response, error) {
 	panic("not implemented")
 }
 

@@ -1039,9 +1039,6 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProvider
 	for _, rc := range c.Module.Actions {
 		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
-	for _, rc := range c.Module.EphemeralResources {
-		maybePutLocal(rc.ProviderConfigAddr(), false)
-	}
 	for _, ic := range c.Module.Import {
 		if ic.ProviderConfigRef != nil {
 			maybePutLocal(addrs.LocalProviderConfig{

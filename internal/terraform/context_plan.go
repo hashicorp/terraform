@@ -153,13 +153,6 @@ type PlanOpts struct {
 	// attribute is set. This can only be set during a destroy plan, and should
 	// only be set during the test command.
 	OverridePreventDestroy bool
-
-	// AllowRootEphemeralOutputs overrides a specific check made within the
-	// output nodes that they cannot be ephemeral at within root modules. This
-	// should be set to true for plans executing from within either the stacks
-	// or test runtimes, where the root modules as Terraform sees them aren't
-	// the actual root modules.
-	AllowRootEphemeralOutputs bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -999,60 +992,57 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			return nil, walkPlan, diags
 		}
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
-			ForceReplace:              opts.ForceReplace,
-			skipRefresh:               opts.SkipRefresh,
-			preDestroyRefresh:         opts.PreDestroyRefresh,
-			Operation:                 walkPlan,
-			ExternalReferences:        opts.ExternalReferences,
-			Overrides:                 opts.Overrides,
-			ImportTargets:             c.findImportTargets(config),
-			forgetResources:           forgetResources,
-			forgetModules:             forgetModules,
-			GenerateConfigPath:        opts.GenerateConfigPath,
-			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
-			queryPlan:                 opts.Query,
-			overridePreventDestroy:    opts.OverridePreventDestroy,
-			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 opts.Targets,
+			ForceReplace:            opts.ForceReplace,
+			skipRefresh:             opts.SkipRefresh,
+			preDestroyRefresh:       opts.PreDestroyRefresh,
+			Operation:               walkPlan,
+			ExternalReferences:      opts.ExternalReferences,
+			Overrides:               opts.Overrides,
+			ImportTargets:           c.findImportTargets(config),
+			forgetResources:         forgetResources,
+			forgetModules:           forgetModules,
+			GenerateConfigPath:      opts.GenerateConfigPath,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			queryPlan:               opts.Query,
+			overridePreventDestroy:  opts.OverridePreventDestroy,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   append(opts.Targets, opts.ActionTargets...),
-			ActionTargets:             opts.ActionTargets,
-			skipRefresh:               opts.SkipRefresh,
-			skipPlanChanges:           true, // this activates "refresh only" mode.
-			Operation:                 walkPlan,
-			ExternalReferences:        opts.ExternalReferences,
-			Overrides:                 opts.Overrides,
-			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
-			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 append(opts.Targets, opts.ActionTargets...),
+			ActionTargets:           opts.ActionTargets,
+			skipRefresh:             opts.SkipRefresh,
+			skipPlanChanges:         true, // this activates "refresh only" mode.
+			Operation:               walkPlan,
+			ExternalReferences:      opts.ExternalReferences,
+			Overrides:               opts.Overrides,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
-			skipRefresh:               opts.SkipRefresh,
-			Operation:                 walkPlanDestroy,
-			Overrides:                 opts.Overrides,
-			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
-			overridePreventDestroy:    opts.OverridePreventDestroy,
-			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 opts.Targets,
+			skipRefresh:             opts.SkipRefresh,
+			Operation:               walkPlanDestroy,
+			Overrides:               opts.Overrides,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			overridePreventDestroy:  opts.OverridePreventDestroy,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:

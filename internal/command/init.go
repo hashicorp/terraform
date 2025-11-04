@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"os"
 	"reflect"
 	"slices"
 	"sort"
@@ -48,7 +49,7 @@ type InitCommand struct {
 func (c *InitCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 	args = c.Meta.process(args)
-	initArgs, initDiags := arguments.ParseInit(args, c.Meta.AllowExperimentalFeatures)
+	initArgs, initDiags := arguments.ParseInit(args)
 
 	view := views.NewInit(initArgs.ViewType, c.View)
 
@@ -63,6 +64,9 @@ func (c *InitCommand) Run(args []string) int {
 	// 	> The user uses an experimental version of TF (alpha or built from source)
 	//  > Either the flag -enable-pluggable-state-storage-experiment is passed to the init command.
 	//  > Or, the environment variable TF_ENABLE_PLUGGABLE_STATE_STORAGE is set to any value.
+	if v := os.Getenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE"); v != "" {
+		initArgs.EnablePssExperiment = true
+	}
 	if c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
 		return c.runPssInit(initArgs, view)
@@ -155,7 +159,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -183,15 +187,40 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		return nil, true, diags
 	case root.StateStore != nil:
 		// state_store config present
-		factory, fDiags := c.Meta.GetStateStoreProviderFactory(root.StateStore, configLocks)
-		diags = diags.Append(fDiags)
-		if fDiags.HasErrors() {
+		// Access provider factories
+		ctxOpts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, true, diags
+		}
+
+		if root.StateStore.ProviderAddr.IsZero() {
+			// This should not happen; this data is populated when parsing config,
+			// even for builtin providers
+			panic(fmt.Sprintf("unknown provider while beginning to initialize state store %q from provider %q",
+				root.StateStore.Type,
+				root.StateStore.Provider.Name))
+		}
+
+		var exists bool
+		factory, exists := ctxOpts.Providers[root.StateStore.ProviderAddr]
+		if !exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider unavailable",
+				Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+					root.StateStore.Provider.Name,
+					root.StateStore.ProviderAddr,
+					root.StateStore.Type,
+				),
+				Subject: &root.StateStore.TypeRange,
+			})
 			return nil, true, diags
 		}
 
 		// If overrides supplied by -backend-config CLI flag, process them
 		var configOverride hcl.Body
-		if !initArgs.BackendConfig.Empty() {
+		if !extraConfig.Empty() {
 			// We need to launch an instance of the provider to get the config of the state store for processing any overrides.
 			provider, err := factory()
 			defer provider.Close() // Stop the child process once we're done with it here.
@@ -234,7 +263,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 			// Handle any overrides supplied via -backend-config CLI flags
 			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body)
+			configOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, stateStoreSchema.Body)
 			diags = diags.Append(overrideDiags)
 			if overrideDiags.HasErrors() {
 				return nil, true, diags
@@ -242,13 +271,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		opts = &BackendOpts{
-			StateStoreConfig:       root.StateStore,
-			Locks:                  configLocks,
-			ProviderFactory:        factory,
-			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
-			ConfigOverride:         configOverride,
-			Init:                   true,
-			ViewType:               initArgs.ViewType,
+			StateStoreConfig: root.StateStore,
+			ProviderFactory:  factory,
+			ConfigOverride:   configOverride,
+			Init:             true,
+			ViewType:         viewType,
 		}
 
 	case root.Backend != nil:
@@ -284,22 +311,17 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		backendSchema := b.ConfigSchema()
 		backendConfig := root.Backend
 
-		// If overrides supplied by -backend-config CLI flag, process them
-		var configOverride hcl.Body
-		if !initArgs.BackendConfig.Empty() {
-			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema)
-			diags = diags.Append(overrideDiags)
-			if overrideDiags.HasErrors() {
-				return nil, true, diags
-			}
+		backendConfigOverride, overrideDiags := c.backendConfigOverrideBody(extraConfig, backendSchema)
+		diags = diags.Append(overrideDiags)
+		if overrideDiags.HasErrors() {
+			return nil, true, diags
 		}
 
 		opts = &BackendOpts{
 			BackendConfig:  backendConfig,
-			ConfigOverride: configOverride,
+			ConfigOverride: backendConfigOverride,
 			Init:           true,
-			ViewType:       initArgs.ViewType,
+			ViewType:       viewType,
 		}
 
 	default:
@@ -308,7 +330,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		// If the user supplied a -backend-config on the CLI but no backend
 		// block was found in the configuration, it's likely - but not
 		// necessarily - a mistake. Return a warning.
-		if !initArgs.BackendConfig.Empty() {
+		if !extraConfig.Empty() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Missing backend configuration",
@@ -331,7 +353,7 @@ the backend configuration is present and valid.
 
 		opts = &BackendOpts{
 			Init:     true,
-			ViewType: initArgs.ViewType,
+			ViewType: viewType,
 		}
 	}
 
@@ -1578,16 +1600,6 @@ Options:
                           HCP Terraform or Terraform Enterprise for more information.
 
   -test-directory=path    Set the Terraform test directory, defaults to "tests".
-
-  -enable-pluggable-state-storage-experiment [EXPERIMENTAL]
-                          A flag to enable an alternative init command that allows use of
-                          pluggable state storage. Only usable with experiments enabled.
-
-  -create-default-workspace [EXPERIMENTAL]
-                          This flag must be used alongside the -enable-pluggable-state-storage-
-                          experiment flag with experiments enabled. This flag's value defaults
-                          to true, which allows the default workspace to be created if it does
-                          not exist. Use -create-default-workspace=false to disable this behavior.
 
 `
 	return strings.TrimSpace(helpText)

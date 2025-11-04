@@ -1321,7 +1321,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 
 	resourceSchema, ok := schema.ResourceTypes[r.TypeName]
 	if !ok || resourceSchema.Identity == nil {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Identity schema not found for resource type %s; this is a bug in the provider - please report it there", r.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity schema not found for resource type %s", r.TypeName))
 		return resp
 	}
 
@@ -1441,22 +1441,6 @@ func (p *GRPCProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreCo
 }
 
 func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	panic("not implemented")
-}
-
-func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	panic("not implemented")
-}
-
-func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	panic("not implemented")
-}
-
-func (p *GRPCProvider) LockState(r providers.LockStateRequest) providers.LockStateResponse {
-	panic("not implemented")
-}
-
-func (p *GRPCProvider) UnlockState(r providers.UnlockStateRequest) providers.UnlockStateResponse {
 	panic("not implemented")
 }
 
