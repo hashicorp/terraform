@@ -113,6 +113,10 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		Limit:                 limit,
 		IncludeResourceObject: includeRsc,
 	})
+	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
+	}
 	results := plans.QueryResults{
 		Value: resp.Result,
 	}
@@ -132,10 +136,6 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostListQuery(rId, results, identityVersion)
 	})
-	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return diags
-	}
 
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
