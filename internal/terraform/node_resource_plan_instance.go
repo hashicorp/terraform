@@ -642,8 +642,13 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 		// Let's pretend we're reading the value as a data source so we
 		// pre-compute values now as if the resource has already been created.
+		values, diags := ctx.EvaluateExpr(n.override.RawValue, cty.DynamicPseudoType, nil)
+		if diags.HasErrors() {
+			return nil, deferred, diags
+		}
+
 		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, &mocking.MockedData{
-			Value:             n.override.Values,
+			Value:             values,
 			Range:             n.override.Range,
 			ComputedAsUnknown: false,
 		}, schema.Body)

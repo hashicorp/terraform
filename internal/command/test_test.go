@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -52,6 +53,7 @@ func TestTest_Runs(t *testing.T) {
 		initCode              int
 		skip                  bool
 		description           string
+		selectFiles           []string
 	}{
 		"simple_pass": {
 			expectedOut: []string{"1 passed, 0 failed."},
@@ -297,7 +299,6 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"mocking-invalid": {
 			expectedErr: []string{
-				"Invalid outputs attribute",
 				"The override_during attribute must be a value of plan or apply.",
 			},
 			initCode: 1,
@@ -418,6 +419,18 @@ func TestTest_Runs(t *testing.T) {
 		"no-tests": {
 			code: 0,
 		},
+		"simple_pass_function": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"mocking-invalid-outputs": {
+			override: "mocking-invalid",
+			expectedErr: []string{
+				"Invalid outputs attribute",
+			},
+			selectFiles: []string{"module_mocked_invalid_type.tftest.hcl"},
+			code:        1,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -441,6 +454,28 @@ func TestTest_Runs(t *testing.T) {
 
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
+			if len(tc.selectFiles) > 0 {
+				dirs, _ := os.ReadDir(td)
+				dirs2, _ := os.ReadDir(filepath.Join(td, "tests"))
+				for _, dir := range dirs {
+					dirName := dir.Name()
+					if !slices.Contains(tc.selectFiles, dirName) && strings.HasSuffix(dirName, "tftest.hcl") {
+						err := os.Remove(filepath.Join(td, dirName))
+						if err != nil {
+							t.Errorf("failed to remove file %s: %v", dirName, err)
+						}
+					}
+				}
+				for _, dir := range dirs2 {
+					dirName := dir.Name()
+					if !slices.Contains(tc.selectFiles, dirName) && strings.HasSuffix(dirName, "tftest.hcl") {
+						err := os.Remove(filepath.Join(td, "tests", dirName))
+						if err != nil {
+							t.Errorf("failed to remove file %s: %v", dirName, err)
+						}
+					}
+				}
+			}
 			t.Chdir(td)
 
 			store := &testing_command.ResourceStore{

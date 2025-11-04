@@ -208,6 +208,11 @@ type Override struct {
 	Target *addrs.Target
 	Values cty.Value
 
+	BlockName string
+
+	// The raw expression of the values/outputs block
+	RawValue hcl.Expression
+
 	// UseForPlan is true if the values should be computed during the planning
 	// phase.
 	UseForPlan bool
@@ -453,6 +458,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		Source:    source,
 		Range:     block.DefRange,
 		TypeRange: block.TypeRange,
+		BlockName: blockName,
 	}
 
 	if target, exists := content.Attributes["target"]; exists {
@@ -474,10 +480,9 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	}
 
 	if attribute, exists := content.Attributes[attributeName]; exists {
-		var valueDiags hcl.Diagnostics
 		override.ValuesRange = attribute.Range
-		override.Values, valueDiags = attribute.Expr.Value(nil)
-		diags = append(diags, valueDiags...)
+		override.Values = cty.EmptyObjectVal
+		override.RawValue = attribute.Expr
 	} else {
 		// It's fine if we don't have any values, just means we'll generate
 		// values for everything ourselves. We set this to an empty object so

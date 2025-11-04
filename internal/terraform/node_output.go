@@ -138,7 +138,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					RefreshOnly:               n.RefreshOnly,
 					DestroyApply:              n.Destroying,
 					Planning:                  n.Planning,
-					Override:                  n.getOverrideValue(absAddr.Module),
+					Overrides:                 n.Overrides,
 					Dependencies:              n.Dependencies,
 					AllowRootEphemeralOutputs: n.AllowRootEphemeralOutputs,
 				}
@@ -228,41 +228,6 @@ func (n *nodeExpandOutput) References() []*addrs.Reference {
 	return referencesForOutput(n.Config)
 }
 
-func (n *nodeExpandOutput) getOverrideValue(inst addrs.ModuleInstance) cty.Value {
-	// First check if we have any overrides at all, this is a shorthand for
-	// "are we running terraform test".
-	if n.Overrides.Empty() {
-		// cty.NilVal means no override
-		return cty.NilVal
-	}
-
-	// We have overrides, let's see if we have one for this module instance.
-	if override, ok := n.Overrides.GetModuleOverride(inst); ok {
-
-		output := n.Addr.Name
-		values := override.Values
-
-		// The values.Type() should be an object type, but it might have
-		// been set to nil by a test or something. We can handle it in the
-		// same way as the attribute just not being specified. It's
-		// functionally the same for us and not something we need to raise
-		// alarms about.
-		if values.Type().IsObjectType() && values.Type().HasAttribute(output) {
-			return values.GetAttr(output)
-		}
-
-		// If we don't have a value provided for an output, then we'll
-		// just set it to be null.
-		//
-		// TODO(liamcervante): Can we generate a value here? Probably
-		//   not as we don't know the type.
-		return cty.NullVal(cty.DynamicPseudoType)
-	}
-
-	// cty.NilVal indicates no override.
-	return cty.NilVal
-}
-
 // NodeApplyableOutput represents an output that is "applyable":
 // it is ready to be applied.
 type NodeApplyableOutput struct {
@@ -281,9 +246,10 @@ type NodeApplyableOutput struct {
 
 	Planning bool
 
-	// Override provides the value to use for this output, if any. This can be
-	// set by testing framework when a module is overridden.
-	Override cty.Value
+	// Overrides is the set of overrides applied by the testing framework. We
+	// may need to override the value for this output and if we do the value
+	// comes from here.
+	Overrides *mocking.Overrides
 
 	// Dependencies is the full set of resources that are referenced by this
 	// output.
@@ -324,6 +290,60 @@ func (n *NodeApplyableOutput) Path() addrs.ModuleInstance {
 // GraphNodeModulePath
 func (n *NodeApplyableOutput) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
+}
+
+func (n *NodeApplyableOutput) getOverrideValue(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+	// First check if we have any overrides at all, this is a shorthand for
+	// "are we running terraform test".
+	if n.Overrides.Empty() {
+		// cty.NilVal means no override
+		return cty.NilVal, nil
+	}
+
+	// We have overrides, let's see if we have one for this module instance.
+	if override, ok := n.Overrides.GetModuleOverride(n.Addr.Module); ok {
+
+		// If there is an override block with no specified outputs block,
+		// we set the value to null.
+		if override.RawValue == nil {
+			return cty.NullVal(cty.DynamicPseudoType), nil
+		}
+
+		output := n.Addr.OutputValue.Name
+		values, diags := ctx.EvaluateExpr(override.RawValue, cty.DynamicPseudoType, nil)
+		if diags.HasErrors() {
+			return cty.NilVal, diags
+		}
+
+		if !values.Type().IsObjectType() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid outputs attribute",
+				Detail:   fmt.Sprintf("%s blocks must specify an outputs attribute that is an object.", override.BlockName),
+				Subject:  override.ValuesRange.Ptr(),
+			})
+			return cty.NilVal, diags
+		}
+
+		// The values.Type() should be an object type, but it might have
+		// been set to nil by a test or something. We can handle it in the
+		// same way as the attribute just not being specified. It's
+		// functionally the same for us and not something we need to raise
+		// alarms about.
+		if values.Type().IsObjectType() && values.Type().HasAttribute(output) {
+			return values.GetAttr(output), nil
+		}
+
+		// If we don't have a value provided for an output, then we'll
+		// just set it to be null.
+		//
+		// TODO(liamcervante): Can we generate a value here? Probably
+		//   not as we don't know the type.
+		return cty.NullVal(cty.DynamicPseudoType), nil
+	}
+
+	// cty.NilVal indicates no override.
+	return cty.NilVal, nil
 }
 
 func referenceOutsideForOutput(addr addrs.AbsOutputValue) (selfPath, referencePath addrs.Module) {
@@ -420,7 +440,13 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	// be valid, or may not have been registered at all.
 	// We also don't evaluate checks for overridden outputs. This is because
 	// any references within the checks will likely not have been created.
-	if !n.DestroyApply && n.Override == cty.NilVal {
+	override, overrideDiags := n.getOverrideValue(ctx)
+	if overrideDiags.HasErrors() {
+		diags = diags.Append(overrideDiags)
+		return
+	}
+
+	if !n.DestroyApply && override == cty.NilVal {
 		checkRuleSeverity := tfdiags.Error
 		if n.RefreshOnly {
 			checkRuleSeverity = tfdiags.Warning
@@ -443,7 +469,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 
 		// First, we check if we have an overridden value. If we do, then we
 		// use that and we don't try and evaluate the underlying expression.
-		val = n.Override
+		val = override
 		if val == cty.NilVal {
 			// This has to run before we have a state lock, since evaluation also
 			// reads the state

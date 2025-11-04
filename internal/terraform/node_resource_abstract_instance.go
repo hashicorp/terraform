@@ -955,19 +955,10 @@ func (n *NodeAbstractResourceInstance) plan(
 	if n.override != nil {
 		// Then we have an override to apply for this change. But, overrides
 		// only matter when we are creating a resource for the first time as we
-		// only apply computed values.
 		if priorVal.IsNull() {
 			// Then we are actually creating something, so let's populate the
 			// computed values from our override value.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
-				Value:             n.override.Values,
-				Range:             n.override.Range,
-				ComputedAsUnknown: !n.override.UseForPlan,
-			}, schema.Body)
-			resp = providers.PlanResourceChangeResponse{
-				PlannedState: ephemeral.StripWriteOnlyAttributes(override, schema.Body),
-				Diagnostics:  overrideDiags,
-			}
+			resp = n.planOverride(ctx, proposedNewVal, schema.Body)
 		} else {
 			// This is an update operation, and we don't actually have any
 			// computed values that need to be applied.
@@ -1168,15 +1159,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		if n.override != nil {
 			// In this case, we are always creating the resource so we don't
 			// do any validation, and just call out to the mocking library.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
-				Value:             n.override.Values,
-				Range:             n.override.Range,
-				ComputedAsUnknown: !n.override.UseForPlan,
-			}, schema.Body)
-			resp = providers.PlanResourceChangeResponse{
-				PlannedState: ephemeral.StripWriteOnlyAttributes(override, schema.Body),
-				Diagnostics:  overrideDiags,
-			}
+			resp = n.planOverride(ctx, proposedNewVal, schema.Body)
 		} else {
 			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 				TypeName:           n.Addr.Resource.Resource.Type,
@@ -1339,6 +1322,29 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	return plan, state, deferred, keyData, diags
+}
+
+func (n *NodeAbstractResourceInstance) planOverride(ctx EvalContext, original cty.Value, schema *configschema.Block) providers.PlanResourceChangeResponse {
+	values, diags := ctx.EvaluateExpr(n.override.RawValue, cty.DynamicPseudoType, nil)
+	if diags.HasErrors() {
+		return providers.PlanResourceChangeResponse{
+			Diagnostics: diags,
+		}
+	}
+
+	// In this case, we are always creating the resource so we don't
+	// do any validation, and just call out to the mocking library.
+	override, overrideDiags := mocking.PlanComputedValuesForResource(original, &mocking.MockedData{
+		Value:             values,
+		Range:             n.override.Range,
+		ComputedAsUnknown: !n.override.UseForPlan,
+	}, schema)
+	resp := providers.PlanResourceChangeResponse{
+		PlannedState: ephemeral.StripWriteOnlyAttributes(override, schema),
+		Diagnostics:  overrideDiags,
+	}
+
+	return resp
 }
 
 func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
@@ -1653,8 +1659,12 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 
 	var resp providers.ReadDataSourceResponse
 	if n.override != nil {
+		values, diags := ctx.EvaluateExpr(n.override.RawValue, cty.DynamicPseudoType, nil)
+		if diags.HasErrors() {
+			return newVal, deferred, diags
+		}
 		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, &mocking.MockedData{
-			Value:             n.override.Values,
+			Value:             values,
 			Range:             n.override.Range,
 			ComputedAsUnknown: false,
 		}, schema.Body)
@@ -2628,8 +2638,12 @@ func (n *NodeAbstractResourceInstance) apply(
 		// values the first time the object is created. Otherwise, we're happy
 		// to just apply whatever the user asked for.
 		if change.Action == plans.Create {
+			values, diags := ctx.EvaluateExpr(n.override.RawValue, cty.DynamicPseudoType, nil)
+			if diags.HasErrors() {
+				return nil, diags
+			}
 			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, &mocking.MockedData{
-				Value:             n.override.Values,
+				Value:             values,
 				Range:             n.override.Range,
 				ComputedAsUnknown: false,
 			}, schema.Body)
