@@ -2089,9 +2089,6 @@ func Test_determineInitReason(t *testing.T) {
 }
 
 // Unsetting a saved state store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
 func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-store-unset"), td)
@@ -2101,6 +2098,7 @@ func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.forceInitCopy = true // to avoid UI prompt
 	m.testingOverrides = metaOverridesForProvider(mock)
 	m.AllowExperimentalFeatures = true
 
@@ -2124,17 +2122,55 @@ func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
 	)
 
 	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
+	b, beDiags := m.Backend(&BackendOpts{
 		Init:             true,
 		StateStoreConfig: mod.StateStore,
 		Locks:            locks,
 	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
+	if beDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", beDiags.Err())
 	}
-	wantErr := "Unsetting a state store is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
+
+	// Check the state
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
+	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	state := s.State()
+	if state != nil {
+		t.Fatal("state should be nil")
+	}
+
+	// Verify the default paths don't exist
+	if !isEmptyState(DefaultStateFilename) {
+		data, _ := os.ReadFile(DefaultStateFilename)
+		t.Fatal("state should not exist, but contains:\n", string(data))
+	}
+
+	// Verify a backup doesn't exist
+	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		data, _ := os.ReadFile(DefaultStateFilename + DefaultBackupExtension)
+		t.Fatal("backup should not exist, but contains:\n", string(data))
+	}
+
+	// Write some state
+	s.WriteState(testState())
+	if err := s.PersistState(nil); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// Verify it exists where we expect it to
+	if isEmptyState(DefaultStateFilename) {
+		t.Fatal(DefaultStateFilename, "is empty")
+	}
+
+	// Verify no backup since it was empty to start
+	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		data, _ := ioutil.ReadFile(DefaultStateFilename + DefaultBackupExtension)
+		t.Fatal("backup state should be empty, but contains:\n", string(data))
 	}
 }
 
@@ -3134,6 +3170,13 @@ func testStateStoreMock(t *testing.T) *testing_provider.MockProvider {
 					},
 				},
 			},
+		},
+		ConfigureStateStoreFn: func(cssr providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+			return providers.ConfigureStateStoreResponse{
+				Capabilities: providers.StateStoreServerCapabilities{
+					ChunkSize: cssr.Capabilities.ChunkSize,
+				},
+			}
 		},
 	}
 }
