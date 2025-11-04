@@ -164,7 +164,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
 		var diags tfdiags.Diagnostics
 		if r.Managed != nil && r.Managed.ActionTriggers != nil {
-			for i, at := range r.Managed.ActionTriggers {
+			for _, at := range r.Managed.ActionTriggers {
 				for _, action := range at.Actions {
 
 					refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
@@ -192,9 +192,10 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 					if !ok {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
-							Summary:  "Configuration for triggered action does not exist",
-							Detail:   fmt.Sprintf("The configuration for the given action %s does not exist. All triggered actions must have an associated configuration.", configAction.String()),
-							Subject:  &r.Managed.ActionTriggers[i].DeclRange,
+							Summary:  "action_trigger actions references non-existent action",
+							Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module. This can likely be a typo.", configAction.String()),
+							Subject:  action.Expr.Range().Ptr(),
+							Context:  r.DeclRange.Ptr(),
 						})
 					}
 				}

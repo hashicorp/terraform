@@ -4088,8 +4088,9 @@ resource "test_object" "a" {
 	if !diags.HasErrors() {
 		t.Fatal("expected errors, got success!")
 	}
-	if diags.Err().Error() != "Configuration for triggered action does not exist: The configuration for the given action action.test_action.hello does not exist. All triggered actions must have an associated configuration." {
-		t.Fatal("wrong error!")
+	expectedErr := "action_trigger actions references non-existent action: The lifecycle action_trigger actions list contains a reference to the action \"action.test_action.hello\" that does not exist in the configuration of this module. This can likely be a typo."
+	if diags.Err().Error() != expectedErr {
+		t.Fatalf("wrong error!, got %q, expected %q", diags.Err().Error(), expectedErr)
 	}
 }
 
