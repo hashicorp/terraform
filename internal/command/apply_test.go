@@ -2901,3 +2901,72 @@ func mustNewDynamicValue(val string, ty cty.Type) plans.DynamicValue {
 	}
 	return ret
 }
+
+func TestProviderInconsistentFileFunc(t *testing.T) {
+	// Verify that providers can still accept inconsistent results from
+	// filesystem functions. We allow this for backwards compatibility, but
+	// ephemeral values should be used in the long-term to allow for controlled
+	// changes in values between plan and apply.
+	td := t.TempDir()
+	planDir := filepath.Join(td, "plan")
+	applyDir := filepath.Join(td, "apply")
+	testCopyDir(t, testFixturePath("changed-file-func-plan"), planDir)
+	testCopyDir(t, testFixturePath("changed-file-func-apply"), applyDir)
+	t.Chdir(planDir)
+
+	p := planVarsFixtureProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+			},
+		},
+	}
+
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-out", filepath.Join(applyDir, "planfile"),
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("non-zero exit %d\n\n%s", code, output.Stderr())
+	}
+
+	t.Chdir(applyDir)
+
+	view, done = testView(t)
+	apply := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               new(cli.MockUi),
+			View:             view,
+		},
+	}
+	args = []string{
+		"planfile",
+	}
+	code = apply.Run(args)
+	output = done(t)
+	if code != 0 {
+		t.Fatalf("non-zero exit %d\n\n%s", code, output.Stderr())
+	}
+}
