@@ -4,15 +4,22 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -205,7 +212,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, configLocks, view)
+		back, backendOutput, backDiags = c.initPssBackend(ctx, rootModEarly, initArgs, configLocks, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
@@ -341,4 +348,189 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		view.Output(output)
 	}
 	return 0
+}
+
+func (c *InitCommand) initPssBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "initialize backend")
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
+	defer span.End()
+
+	if root.StateStore != nil {
+		view.Output(views.InitializingStateStoreMessage)
+	} else {
+		view.Output(views.InitializingBackendMessage)
+	}
+
+	var opts *BackendOpts
+	switch {
+	case root.StateStore != nil && root.Backend != nil:
+		// We expect validation during config parsing to prevent mutually exclusive backend and state_store blocks,
+		// but checking here just in case.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Conflicting backend and state_store configurations present during init",
+			Detail: fmt.Sprintf("When initializing the backend there was configuration data present for both backend %q and state store %q. This is a bug in Terraform and should be reported.",
+				root.Backend.Type,
+				root.StateStore.Type,
+			),
+			Subject: &root.Backend.TypeRange,
+		})
+		return nil, true, diags
+	case root.StateStore != nil:
+		// state_store config present
+		factory, fDiags := c.Meta.GetStateStoreProviderFactory(root.StateStore, configLocks)
+		diags = diags.Append(fDiags)
+		if fDiags.HasErrors() {
+			return nil, true, diags
+		}
+
+		// If overrides supplied by -backend-config CLI flag, process them
+		var configOverride hcl.Body
+		if !initArgs.BackendConfig.Empty() {
+			// We need to launch an instance of the provider to get the config of the state store for processing any overrides.
+			provider, err := factory()
+			defer provider.Close() // Stop the child process once we're done with it here.
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
+				return nil, true, diags
+			}
+
+			resp := provider.GetProviderSchema()
+
+			if len(resp.StateStores) == 0 {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provider does not support pluggable state storage",
+					Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+						root.StateStore.Provider.Name,
+						root.StateStore.ProviderAddr),
+					Subject: &root.StateStore.DeclRange,
+				})
+				return nil, true, diags
+			}
+
+			stateStoreSchema, exists := resp.StateStores[root.StateStore.Type]
+			if !exists {
+				suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+				suggestion := didyoumean.NameSuggestion(root.StateStore.Type, suggestions)
+				if suggestion != "" {
+					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+				}
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "State store not implemented by the provider",
+					Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+						root.StateStore.Type, root.StateStore.Provider.Name,
+						root.StateStore.ProviderAddr, suggestion),
+					Subject: &root.StateStore.DeclRange,
+				})
+				return nil, true, diags
+			}
+
+			// Handle any overrides supplied via -backend-config CLI flags
+			var overrideDiags tfdiags.Diagnostics
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body)
+			diags = diags.Append(overrideDiags)
+			if overrideDiags.HasErrors() {
+				return nil, true, diags
+			}
+		}
+
+		opts = &BackendOpts{
+			StateStoreConfig:       root.StateStore,
+			Locks:                  configLocks,
+			ProviderFactory:        factory,
+			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
+			ConfigOverride:         configOverride,
+			Init:                   true,
+			ViewType:               initArgs.ViewType,
+		}
+
+	case root.Backend != nil:
+		// backend config present
+		backendType := root.Backend.Type
+		if backendType == "cloud" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure HCP Terraform, declare a 'cloud' block instead.", backendType),
+				Subject:  &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
+		bf := backendInit.Backend(backendType)
+		if bf == nil {
+			detail := fmt.Sprintf("There is no backend type named %q.", backendType)
+			if msg, removed := backendInit.RemovedBackends[backendType]; removed {
+				detail = msg
+			}
+
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   detail,
+				Subject:  &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
+		b := bf()
+		backendSchema := b.ConfigSchema()
+		backendConfig := root.Backend
+
+		// If overrides supplied by -backend-config CLI flag, process them
+		var configOverride hcl.Body
+		if !initArgs.BackendConfig.Empty() {
+			var overrideDiags tfdiags.Diagnostics
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema)
+			diags = diags.Append(overrideDiags)
+			if overrideDiags.HasErrors() {
+				return nil, true, diags
+			}
+		}
+
+		opts = &BackendOpts{
+			BackendConfig:  backendConfig,
+			ConfigOverride: configOverride,
+			Init:           true,
+			ViewType:       initArgs.ViewType,
+		}
+
+	default:
+		// No config; defaults to local state storage
+
+		// If the user supplied a -backend-config on the CLI but no backend
+		// block was found in the configuration, it's likely - but not
+		// necessarily - a mistake. Return a warning.
+		if !initArgs.BackendConfig.Empty() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Missing backend configuration",
+				`-backend-config was used without a "backend" block in the configuration.
+
+If you intended to override the default local backend configuration,
+no action is required, but you may add an explicit backend block to your
+configuration to clear this warning:
+
+terraform {
+  backend "local" {}
+}
+
+However, if you intended to override a defined backend, please verify that
+the backend configuration is present and valid.
+`,
+			))
+
+		}
+
+		opts = &BackendOpts{
+			Init:     true,
+			ViewType: initArgs.ViewType,
+		}
+	}
+
+	back, backDiags := c.Backend(opts)
+	diags = diags.Append(backDiags)
+	return back, true, diags
 }
