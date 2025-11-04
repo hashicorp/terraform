@@ -769,11 +769,19 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			s.StateStore.Provider.Source.Type,
 			s.StateStore.Provider.Source,
 		)
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Not implemented yet",
-			Detail:   "Unsetting a state store is not implemented yet",
-		})
+
+		initReason := fmt.Sprintf("Unsetting the previously set state store %q", s.StateStore.Type)
+		if !opts.Init {
+			diags = diags.Append(errStateStoreInitDiag(initReason))
+			return nil, diags
+		}
+
+		if !m.migrateState {
+			diags = diags.Append(migrateOrReconfigStateStoreDiag)
+			return nil, diags
+		}
+
+		return m.stateStore_c_S(sMgr, opts.ViewType)
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -1851,6 +1859,66 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	return b, diags
 }
 
+// Unconfiguring a state store (moving from state store => local).
+func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	s := ssSMgr.State()
+	stateStoreType := s.StateStore.Type
+
+	m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputStateStoreMigrateLocal), stateStoreType))
+
+	// Grab a purely local backend to get the local state if it exists
+	localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Initialize the configured state store
+	ss, moreDiags := m.savedStateStore(ssSMgr)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Perform the migration
+	err := m.backendMigrateState(&backendMigrateOpts{
+		SourceType:      stateStoreType,
+		DestinationType: "local",
+		Source:          ss,
+		Destination:     localB,
+		ViewType:        viewType,
+	})
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	// Remove the stored metadata
+	s.StateStore = nil
+	if err := ssSMgr.WriteState(s); err != nil {
+		diags = diags.Append(errStateStoreClearSaved{err})
+		return nil, diags
+	}
+	if err := ssSMgr.PersistState(); err != nil {
+		diags = diags.Append(errStateStoreClearSaved{err})
+		return nil, diags
+	}
+
+	switch viewType {
+	case arguments.ViewHuman:
+		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+			"[reset][green]\n\n"+
+				strings.TrimSpace(successStateStoreUnset), stateStoreType)))
+	case arguments.ViewJSON:
+		// TODO: Implement JSON output for ViewJSON
+	}
+
+	// Return no state store
+	return nil, diags
+}
+
 // getStateStorageProviderVersion gets the current version of the state store provider that's in use. This is achieved
 // by inspecting the current locks.
 //
@@ -2580,6 +2648,10 @@ const outputBackendMigrateLocal = `
 Terraform has detected you're unconfiguring your previously set %q backend.
 `
 
+const outputStateStoreMigrateLocal = `
+Terraform has detected you're unconfiguring your previously set %q state store.
+`
+
 const outputBackendReconfigure = `
 [reset][bold]Backend configuration changed![reset]
 
@@ -2598,6 +2670,10 @@ name to create a new HCP Terraform workspace.
 
 const successBackendUnset = `
 Successfully unset the backend %q. Terraform will now operate locally.
+`
+
+const successStateStoreUnset = `
+Successfully unset the state store %q. Terraform will now operate locally.
 `
 
 const successBackendSet = `
