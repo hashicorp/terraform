@@ -42,6 +42,54 @@ func TestBackendConfig(t *testing.T) {
 	}
 }
 
+func TestBackendConfig_emptyStrings(t *testing.T) {
+	// This test just instantiates the client. Shouldn't make any actual
+	// requests nor incur any costs.
+
+	envValue := "foobar"
+	t.Setenv("ARM_SUBSCRIPTION_ID", envValue)
+
+	config := map[string]interface{}{
+		"storage_account_name": "tfaccount",
+		"container_name":       "tfcontainer",
+		"key":                  "state",
+		"snapshot":             false,
+		// Access Key must be Base64
+		"access_key": "QUNDRVNTX0tFWQ0K",
+
+		// No config for subscription_id, and the value should be added from the ENV above.
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if b.containerName != "tfcontainer" {
+		t.Fatalf("Incorrect bucketName was populated")
+	}
+	if b.testSubscriptionId != envValue {
+		t.Fatalf("Incorrect value for storage_account_name was populated - is should come from the ARM_SUBSCRIPTION_ID environment variable")
+	}
+
+	config = map[string]interface{}{
+		"storage_account_name": "tfaccount",
+		"container_name":       "tfcontainer",
+		"key":                  "state",
+		"snapshot":             false,
+		// Access Key must be Base64
+		"access_key": "QUNDRVNTX0tFWQ0K",
+
+		"subscription_id": "", // Empty string should be used.
+	}
+
+	b = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if b.containerName != "tfcontainer" {
+		t.Fatalf("Incorrect bucketName was populated")
+	}
+	if b.testSubscriptionId != "" {
+		t.Fatalf("Incorrect value for storage_account_name was populated - is should be the empty string from config")
+	}
+}
+
 func TestAccBackendAccessKeyBasic(t *testing.T) {
 	t.Parallel()
 

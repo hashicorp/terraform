@@ -326,10 +326,13 @@ type Backend struct {
 
 	// The fields below are set from configure
 	apiClient     *Client
-	containerName string
-	keyName       string
-	accountName   string
-	snapshot      bool
+	containerName string // container_name
+	keyName       string // key
+	accountName   string // storage_account_name
+	snapshot      bool   // snapshot
+
+	// This field is set in configure to help with testing only
+	testSubscriptionId string
 }
 
 type BackendConfig struct {
@@ -358,6 +361,9 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	b.accountName = data.String("storage_account_name")
 	b.keyName = data.String("key")
 	b.snapshot = data.Bool("snapshot")
+
+	// Set for the purposes of testing; not user facing
+	b.testSubscriptionId = data.String("subscription_id")
 
 	var clientCertificateData []byte
 	if encodedCert := data.String("client_certificate"); encodedCert != "" {
