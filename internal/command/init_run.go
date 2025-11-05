@@ -162,7 +162,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		diags = diags.Append(earlyConfDiags)
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Pluggble state store experiment not supported",
+			Summary:  "Pluggable state store experiment not supported",
 			Detail:   detail,
 			Subject:  &rootModEarly.StateStore.TypeRange,
 		})
