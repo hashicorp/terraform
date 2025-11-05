@@ -683,12 +683,10 @@ func TestContext2Plan_queryList(t *testing.T) {
 			if tc.transformSchema != nil {
 				tc.transformSchema(provider.GetProviderSchemaResponse)
 			}
-			var requestConfigs = make(map[string]cty.Value)
 			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
 				if request.Config.IsNull() || request.Config.GetAttr("config").IsNull() {
 					t.Fatalf("config should never be null, got null for %s", request.TypeName)
 				}
-				requestConfigs[request.TypeName] = request.Config
 				return listResourceFn(request)
 			}
 
@@ -945,6 +943,55 @@ func TestContext2Plan_queryListArgs(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestContext2Plan_queryListDiags(t *testing.T) {
+	configFiles := map[string]string{}
+	configFiles["main.tf"] = `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+	}`
+	configFiles["main.tfquery.hcl"] = `
+	list "test_resource" "test1" {
+		provider = test
+	}`
+	mod := testModuleInline(t, configFiles, configs.MatchQueryFiles())
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+	provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		if request.Config.IsNull() || request.Config.GetAttr("config").IsNull() {
+			t.Fatalf("config should never be null, got null for %s", request.TypeName)
+		}
+
+		resp := providers.ListResourceResponse{}
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Identity schema not found for resource type %s; this is a bug in the provider - please report it there", request.TypeName))
+
+		return resp
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		Query:        true,
+	})
+	if len(diags) != 1 {
+		t.Fatalf("expected 1 diagnostics, got %d \n - diags: %s", len(diags), diags)
 	}
 }
 

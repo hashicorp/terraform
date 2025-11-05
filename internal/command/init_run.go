@@ -142,16 +142,28 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		return 1
 	}
-	if !c.Meta.AllowExperimentalFeatures && rootModEarly.StateStore != nil {
+	if !(c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment) && rootModEarly.StateStore != nil {
 		// TODO(SarahFrench/radeksimko) - remove when this feature isn't experimental.
 		// This approach for making the feature experimental is required
 		// to let us assert the feature is gated behind an experiment in tests.
 		// See https://github.com/hashicorp/terraform/pull/37350#issuecomment-3168555619
+
+		detail := "Pluggable state store is an experiment which requires"
+		if !c.Meta.AllowExperimentalFeatures {
+			detail += " an experimental build of terraform"
+		}
+		if !initArgs.EnablePssExperiment {
+			if !c.Meta.AllowExperimentalFeatures {
+				detail += " and"
+			}
+			detail += " -enable-pluggable-state-storage-experiment flag"
+		}
+
 		diags = diags.Append(earlyConfDiags)
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Unsupported block type",
-			Detail:   "Blocks of type \"state_store\" are not expected here.",
+			Summary:  "Pluggable state store experiment not supported",
+			Detail:   detail,
 			Subject:  &rootModEarly.StateStore.TypeRange,
 		})
 		view.Diagnostics(diags)
