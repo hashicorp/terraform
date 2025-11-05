@@ -256,11 +256,16 @@ func TestBase_emptyStringsUsed(t *testing.T) {
 		SDKLikeDefaults: SDKLikeDefaults{
 			"foo": {
 				Fallback: "fallback",
+				EnvVars:  []string{"FOO"},
 			},
 		},
 	}
 
-	t.Run("empty string is used", func(t *testing.T) {
+	t.Run("empty string from config is used despite fallback default value and environment variable value set", func(t *testing.T) {
+		// There is a fallback value supplied by the environment
+		envValue := "value from ENV"
+		t.Setenv("FOO", envValue)
+
 		// We pass an explicit empty string as the value of foo
 		val, gotDiags := b.PrepareConfig(cty.ObjectVal(map[string]cty.Value{
 			"foo": cty.StringVal(""),
@@ -275,7 +280,9 @@ func TestBase_emptyStringsUsed(t *testing.T) {
 			}
 			if v.AsString() != "" {
 				// If the empty string from config is ignored, the value here
-				// will be the "fallback" string defined in SDKLikeDefaults above.
+				// will be either thing defined in SDKLikeDefaults above:
+				// 1) the "fallback" string.
+				// 2) the value of FOO environment variable.
 				t.Fatalf("value should be an empty string, but got: %q", v.AsString())
 			}
 		} else {
