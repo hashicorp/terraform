@@ -4015,7 +4015,7 @@ output "test_output" {
 	value = module.mod.old # WARNING
 }
 output "test_output_conditional" {
-	value = false ? module.mod.old : module.mod.new # Not detectable during validate
+	value = false ? module.mod.old : module.mod.new # WARNING
 }
 module "mod2" {
 	source = "./mod2"
@@ -4072,6 +4072,15 @@ module "mod2" {
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start:    hcl.Pos{Line: 15, Column: 10, Byte: 284},
 			End:      hcl.Pos{Line: 15, Column: 24, Byte: 298},
+		},
+	}).Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "Please stop using this",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 18, Column: 10, Byte: 355},
+			End:      hcl.Pos{Line: 18, Column: 49, Byte: 394},
 		},
 	}).Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,

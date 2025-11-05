@@ -7146,11 +7146,11 @@ output "test_output" {
 	value = module.mod.old # WARNING
 }
 output "test_output_conditional" {
-	value = false ? module.mod.old : module.mod.new # WARNING (detectable during plan and not validate)
+	value = false ? module.mod.old : module.mod.new # WARNING
 }
 module "mod2" {
 	source = "./mod2"
-	input = module.mod.old # OK
+	input = module.mod.old # WARNING
 }
 `,
 	})
@@ -7221,6 +7221,28 @@ module "mod2" {
 				End:      hcl.Pos{Line: 18, Column: 49, Byte: 394},
 			},
 		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 18, Column: 10, Byte: 355},
+				End:      hcl.Pos{Line: 18, Column: 49, Byte: 394},
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 18, Column: 10, Byte: 355},
+				End:      hcl.Pos{Line: 18, Column: 49, Byte: 394},
+			},
+		},
 	))
 }
 
@@ -7241,9 +7263,9 @@ module "modnested" {
     source = "./nested"
 }
 
-output "new" {
+output "old_forwarded" {
     deprecated = "mod: The dependency is deprecated, please stop using this"
-    value = module.modnested.old
+    value = module.modnested.old # DEPRECATION FORWARDED / OK
 }
 `,
 		"mod2/main.tf": `
@@ -7257,7 +7279,7 @@ output "new" {
 `,
 		"mod3/main.tf": `
 output "old" {
-  deprecated = "mod2: Please stop using this"
+  deprecated = "mod3: Please stop using this"
   value = "old"
 }
 output "new" {
@@ -7283,12 +7305,12 @@ resource "test_resource" "foo" {
   attr = module.mod.old # WARNING
 }
 
-resource "test_resource" "bar" {
-  attr = module.mod2[0].old # WARNING
+resource "test_resource" "baz" {
+  attr = module.mod.old_forwarded # WARNING
 }
 
-resource "test_resource" "baz" {
-  attr = module.mod.new # WARNING
+resource "test_resource" "bar" {
+  attr = module.mod2[0].old # WARNING
 }
 
 output "test_output_no_warning" {
@@ -7338,6 +7360,26 @@ output "test_output_no_warning" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 21, Column: 10, Byte: 250},
 				End:      hcl.Pos{Line: 21, Column: 28, Byte: 268},
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "mod: The dependency is deprecated, please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 25, Column: 10, Byte: 324},
+				End:      hcl.Pos{Line: 25, Column: 24, Byte: 338},
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "mod: The dependency is deprecated, please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 25, Column: 10, Byte: 324},
+				End:      hcl.Pos{Line: 25, Column: 24, Byte: 338},
 			},
 		},
 		&hcl.Diagnostic{
