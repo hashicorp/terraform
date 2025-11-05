@@ -1,4 +1,12 @@
-## 1.13.5 (Unreleased)
+## 1.13.5 (November 5, 2025)
+
+
+BUG FIXES:
+
+* impure functions could cause templatefile to incorrectly fail consistency checks ([#37807](https://github.com/hashicorp/terraform/issues/37807))
+
+* Allow filesystem functions to return inconsistent results when evaluated within provider configuration ([#37854](https://github.com/hashicorp/terraform/issues/37854))
+
 
 ## 1.13.4 (October 15, 2025)
 
@@ -90,11 +98,7 @@ NOTES:
 UPGRADE NOTES:
 
 * `terraform test`: External variables referenced within test files should now be accompanied by a `variable` definition block within the test file. This is optional, but users with complex external variables may see error diagnostics without the additional variable definition. ([#37195](https://github.com/hashicorp/terraform/issues/37195))
-EXPERIMENTS:
 
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
 
 ## Previous Releases
 
