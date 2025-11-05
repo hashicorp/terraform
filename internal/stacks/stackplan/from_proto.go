@@ -302,7 +302,8 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		})
 
 	case *tfstackdata1.PlanActionInvocationPlanned:
-		// TODO: Implemented in a future apply-related PR.
+		// TODO: everything
+		// for now just accept and ignore
 
 	default:
 		// Should not get here, because a stack plan can only be loaded by
