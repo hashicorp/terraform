@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/plans/deprecation"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -35,15 +36,16 @@ type ContextGraphWalker struct {
 
 	// Configurable values
 	Context                 *Context
-	State                   *states.SyncState    // Used for safe concurrent access to state
-	RefreshState            *states.SyncState    // Used for safe concurrent access to state
-	PrevRunState            *states.SyncState    // Used for safe concurrent access to state
-	Changes                 *plans.ChangesSync   // Used for safe concurrent writes to changes
-	Checks                  *checks.State        // Used for safe concurrent writes of checkable objects and their check results
-	NamedValues             *namedvals.State     // Tracks evaluation of input variables, local values, and output values
-	InstanceExpander        *instances.Expander  // Tracks our gradual expansion of module and resource instances
-	Deferrals               *deferring.Deferred  // Tracks any deferred actions
-	EphemeralResources      *ephemeral.Resources // Tracks active instances of ephemeral resources
+	State                   *states.SyncState       // Used for safe concurrent access to state
+	RefreshState            *states.SyncState       // Used for safe concurrent access to state
+	PrevRunState            *states.SyncState       // Used for safe concurrent access to state
+	Changes                 *plans.ChangesSync      // Used for safe concurrent writes to changes
+	Checks                  *checks.State           // Used for safe concurrent writes of checkable objects and their check results
+	NamedValues             *namedvals.State        // Tracks evaluation of input variables, local values, and output values
+	InstanceExpander        *instances.Expander     // Tracks our gradual expansion of module and resource instances
+	Deferrals               *deferring.Deferred     // Tracks any deferred actions
+	Deprecations            *deprecation.Deprecated // Tracks any deprecations
+	EphemeralResources      *ephemeral.Resources    // Tracks active instances of ephemeral resources
 	Imports                 []configs.Import
 	MoveResults             refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation               walkOperation
@@ -113,6 +115,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Instances:          w.InstanceExpander,
 		NamedValues:        w.NamedValues,
 		Deferrals:          w.Deferrals,
+		Deprecations:       w.Deprecations,
 		PlanTimestamp:      w.PlanTimestamp,
 		FunctionResults:    w.functionResults,
 	}
@@ -137,6 +140,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		ChecksValue:             w.Checks,
 		NamedValuesValue:        w.NamedValues,
 		DeferralsValue:          w.Deferrals,
+		DeprecationsValue:       w.Deprecations,
 		StateValue:              w.State,
 		RefreshStateValue:       w.RefreshState,
 		PrevRunStateValue:       w.PrevRunState,

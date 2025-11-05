@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/plans/deprecation"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
@@ -58,7 +59,8 @@ type Evaluator struct {
 	// Deferrals tracks resources and modules that have had either their
 	// expansion or their specific planned actions deferred to a future
 	// plan/apply round.
-	Deferrals *deferring.Deferred
+	Deferrals    *deferring.Deferred
+	Deprecations *deprecation.Deprecated
 
 	// Plugins is the library of available plugin components (providers and
 	// provisioners) that we have available to help us evaluate expressions
@@ -417,12 +419,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		// since we don't want false positives. The plan walk will give definitive warnings.
 		atys := make(map[string]cty.Type, len(outputConfigs))
 		as := make(map[string]cty.Value, len(outputConfigs))
-		for name, c := range outputConfigs {
+		for name, _ := range outputConfigs {
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
 			val := cty.UnknownVal(cty.DynamicPseudoType)
-			if c.DeprecatedSet {
-				val = val.Mark(marks.NewDeprecation(c.Deprecated, nil))
-			}
 			as[name] = val
 		}
 		instTy := cty.Object(atys)
@@ -479,24 +478,6 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			outputVal := namedVals.GetOutputValue(outputAddr)
 			if cfg.Sensitive {
 				outputVal = outputVal.Mark(marks.Sensitive)
-			}
-
-			outputValIsDeprecated := marks.Has(outputVal, marks.Deprecation)
-			if cfg.DeprecatedSet && outputValIsDeprecated {
-				outputVal = marks.RemoveDeprecationMarks(outputVal)
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, nil))
-			} else if cfg.DeprecatedSet && !outputValIsDeprecated {
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, nil))
-			} else if !cfg.DeprecatedSet && outputValIsDeprecated {
-				for _, depMark := range marks.GetDeprecationMarks(outputVal) {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagWarning,
-						Summary:  "Deprecated Value used in output",
-						Detail:   depMark.Message,
-						Subject:  rng.ToHCL().Ptr(),
-					})
-				}
-				outputVal = marks.RemoveDeprecationMarks(outputVal)
 			}
 			attrs[name] = outputVal
 		}
@@ -1156,9 +1137,6 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	}
 	if config.Ephemeral {
 		value = value.Mark(marks.Ephemeral)
-	}
-	if config.DeprecatedSet {
-		val = val.Mark(marks.NewDeprecation(config.Deprecated, config.DeclRange.Ptr()))
 	}
 
 	return value, diags

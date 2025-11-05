@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/plans/deprecation"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/resources/ephemeral"
@@ -180,6 +181,8 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		deferred.SetExternalDependencyDeferred()
 	}
 
+	deprecated := deprecation.NewDeprecated()
+
 	return &ContextGraphWalker{
 		Context:                 c,
 		State:                   state,
@@ -191,6 +194,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		NamedValues:             namedvals.NewState(),
 		EphemeralResources:      ephemeral.NewResources(),
 		Deferrals:               deferred,
+		Deprecations:            deprecated,
 		Checks:                  checkState,
 		InstanceExpander:        instances.NewExpander(opts.Overrides),
 		ExternalProviderConfigs: opts.ExternalProviderConfigs,

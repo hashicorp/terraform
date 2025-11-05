@@ -40,14 +40,6 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 					pathHasOtherMarks = true
 				}
 
-			// For data marks we check if a mark of the type exists
-			case DeprecationMark:
-				if _, ok := mark.(DeprecationMark); ok {
-					pathHasMark = true
-				} else {
-					pathHasOtherMarks = true
-				}
-
 			default:
 				panic(fmt.Sprintf("unexpected mark type %T", wantMark))
 			}
@@ -81,14 +73,6 @@ func RemoveAll(pvms []cty.PathValueMarks, remove any) []cty.PathValueMarks {
 		switch remove.(type) {
 		case valueMark, string:
 			delete(pvm.Marks, remove)
-
-		case DeprecationMark:
-			// We want to delete all marks of this type
-			for mark := range pvm.Marks {
-				if _, ok := mark.(DeprecationMark); ok {
-					delete(pvm.Marks, mark)
-				}
-			}
 
 		default:
 			panic(fmt.Sprintf("unexpected mark type %T", remove))

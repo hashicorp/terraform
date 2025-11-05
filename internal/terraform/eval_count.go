@@ -102,16 +102,17 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		})
 	}
 
-	if marks.Has(countVal, marks.Deprecation) {
-		for _, depmark := range marks.GetDeprecationMarks(countVal) {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Deprecated value used as count argument",
-				Detail:   depmark.Message,
-				Subject:  expr.Range().Ptr(),
-			})
-		}
-	}
+	// TODO: Deprecation
+	// if marks.Has(countVal, marks.Deprecation) {
+	// 	for _, depmark := range marks.GetDeprecationMarks(countVal) {
+	// 		diags = diags.Append(&hcl.Diagnostic{
+	// 			Severity: hcl.DiagWarning,
+	// 			Summary:  "Deprecated value used as count argument",
+	// 			Detail:   depmark.Message,
+	// 			Subject:  expr.Range().Ptr(),
+	// 		})
+	// 	}
+	// }
 
 	// Sensitive values are allowed in count but not for_each. This is a
 	// somewhat-dubious decision because the number of instances planned

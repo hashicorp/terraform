@@ -753,9 +753,6 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
 	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
 
-	_, unsupportedMarksesBefore = marks.PathsWithMark(unsupportedMarksesBefore, marks.Deprecation)
-	_, unsupportedMarksesAfter = marks.PathsWithMark(unsupportedMarksesAfter, marks.Deprecation)
-
 	if len(unsupportedMarksesBefore) != 0 {
 		return nil, fmt.Errorf(
 			"prior value %s: can't serialize value marked with %#v (this is a bug in Terraform)",

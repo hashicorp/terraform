@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/plans/deprecation"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -69,6 +70,8 @@ type BuiltinEvalContext struct {
 
 	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
 	DeferralsValue *deferring.Deferred
+
+	DeprecationsValue *deprecation.Deprecated
 
 	// forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
@@ -591,6 +594,10 @@ func (ctx *BuiltinEvalContext) NamedValues() *namedvals.State {
 
 func (ctx *BuiltinEvalContext) Deferrals() *deferring.Deferred {
 	return ctx.DeferralsValue
+}
+
+func (ctx *BuiltinEvalContext) Deprecations() *deprecation.Deprecated {
+	return ctx.DeprecationsValue
 }
 
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {

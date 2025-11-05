@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -894,20 +893,6 @@ func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, 
 }
 
 func validateConfigUsingDeprecatedValues(config cty.Value) (diags tfdiags.Diagnostics) {
-	_, pvms := config.UnmarkDeepWithPaths()
-	for _, pvm := range pvms {
-		for m := range pvm.Marks {
-			if depMark, ok := m.(marks.DeprecationMark); ok {
-				diags = diags.Append(
-					tfdiags.AttributeValue(
-						tfdiags.Warning,
-						"Deprecated value used",
-						depMark.Message,
-						pvm.Path,
-					),
-				)
-			}
-		}
-	}
+	// TODO: Implement
 	return diags
 }
