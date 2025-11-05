@@ -1780,8 +1780,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	} else {
 		isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
 		if err != nil {
-			diags = diags.Append(fmt.Errorf("Error determining if the state storage provider is reattached or not. This is a bug in Terraform and should be reported: %w",
-				err))
+			diags = diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while initializing state store for the first time. This is a bug in Terraform and should be reported: %w", err))
 			return nil, diags
 		}
 		if isReattached {
@@ -1896,7 +1895,7 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 	isBuiltin := c.ProviderAddr.Hostname == addrs.BuiltInProviderHost
 	isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
 	if err != nil {
-		diags = diags.Append(err)
+		diags = diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while determining the version in use. This is a bug in Terraform and should be reported: %w", err))
 		return nil, diags
 	}
 	if isBuiltin || isReattached {

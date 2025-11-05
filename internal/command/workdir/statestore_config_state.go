@@ -63,7 +63,7 @@ func (s *StateStoreConfigState) Validate() error {
 	// Version information is required if the provider isn't builtin or unmanaged by Terraform
 	isReattached, err := reattach.IsProviderReattached(*s.Provider.Source, os.Getenv("TF_REATTACH_PROVIDERS"))
 	if err != nil {
-		return fmt.Errorf("error determining if state storage provider is reattached: %w", err)
+		return fmt.Errorf("Unable to determine if state storage provider is reattached while validating backend state file contents. This is a bug in Terraform and should be reported: %w", err)
 	}
 	if (s.Provider.Source.Hostname != tfaddr.BuiltInProviderHost) &&
 		!isReattached {
