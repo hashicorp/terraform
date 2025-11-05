@@ -261,10 +261,6 @@ const (
 // writeResourceInstanceState saves the given object as the current object for
 // the selected resource instance.
 //
-// dependencies is a parameter, instead of those directly attacted to the
-// NodeAbstractResourceInstance, because we don't write dependencies for
-// datasources.
-//
 // targetState determines which context state we're writing to during plan. The
 // default is the global working state.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, targetState phaseState) error {
@@ -280,7 +276,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx Eva
 	return n.writeResourceInstanceStateImpl(ctx, deposedKey, obj, targetState)
 }
 
-// (this is the private common body of both writeResourceInstanceState and
+// this is the private common body of both writeResourceInstanceState and
 // writeResourceInstanceStateDeposed. Don't call it directly; instead, use
 // one of the two wrappers to be explicit about which of the instance's
 // objects you are intending to write.
@@ -290,11 +286,11 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 	if err != nil {
 		return err
 	}
-	logFuncName := "NodeAbstractResouceInstance.writeResourceInstanceState"
+	logFuncName := "NodeAbstractResourceInstance.writeResourceInstanceState"
 	if deposedKey == states.NotDeposed {
 		log.Printf("[TRACE] %s to %s for %s", logFuncName, targetState, absAddr)
 	} else {
-		logFuncName = "NodeAbstractResouceInstance.writeResourceInstanceStateDeposed"
+		logFuncName = "NodeAbstractResourceInstance.writeResourceInstanceStateDeposed"
 		log.Printf("[TRACE] %s to %s for %s (deposed key %s)", logFuncName, targetState, absAddr, deposedKey)
 	}
 
@@ -1318,7 +1314,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			Before:         priorVal,
 			BeforeIdentity: priorIdentity,
 			// Pass the marked planned value through in our change
-			// to propogate through evaluation.
+			// to propagate through evaluation.
 			// Marks will be removed when encoding.
 			After:           plannedNewVal,
 			AfterIdentity:   plannedIdentity,
