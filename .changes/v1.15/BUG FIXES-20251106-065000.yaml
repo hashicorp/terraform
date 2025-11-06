@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'command: terraform providers lock now includes providers required by test files'
+time: 2025-11-06T06:50:00.000000Z
+custom:
+    Issue: "37841"

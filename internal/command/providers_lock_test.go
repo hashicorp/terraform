@@ -69,6 +69,23 @@ provider "registry.terraform.io/hashicorp/test" {
 `
 		runProviderLockGenericTest(t, testDirectory, expected)
 	})
+
+	// This test ensures that providers required by test modules are included
+	// in the lock file. This is a regression test for issue #37841.
+	t.Run("with-tests", func(t *testing.T) {
+		testDirectory := "providers-lock/with-tests"
+		expected := `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/test" {
+  version = "1.0.0"
+  hashes = [
+    "h1:7MjN4eFisdTv4tlhXH5hL4QQd39Jy4baPhFxwAd/EFE=",
+  ]
+}
+`
+		runProviderLockGenericTest(t, testDirectory, expected)
+	})
 }
 
 func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
