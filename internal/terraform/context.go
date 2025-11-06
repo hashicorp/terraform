@@ -12,8 +12,10 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -183,6 +185,110 @@ func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas
 		return nil, diags
 	}
 	return ret, diags
+}
+
+type Deprecation struct {
+	Message string
+	Range   hcl.Range
+}
+
+func (c *Context) ValidateDeprecation(config *configs.Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// This will be inefficient since we
+	// a) could be walking the module tree in a way that also continiously validates
+	// b) build the same deprecated output map multiple times
+	// I am ok with inefficiency since this is a POC
+
+	// Depth-first search for all deprecated outputs (build abs addrs)
+
+	deprecatedOutputs := addrs.MakeMap[addrs.ConfigOutputValue, Deprecation]()
+	// We walk through all module calls to find deprecated outputs that can potentially be referenced in this module
+	for _, child := range config.Children {
+		childDiags := c.ValidateDeprecation(child)
+		diags = diags.Append(childDiags)
+
+		for _, output := range child.Module.Outputs {
+			if output.DeprecatedSet {
+				deprecatedOutputs.Put(addrs.ConfigOutputValue{
+					Module: child.Path,
+					OutputValue: addrs.OutputValue{
+						Name: output.Name,
+					},
+				}, Deprecation{
+					Message: output.Deprecated,
+					Range:   output.DeclRange, // TODO: Maybe make this a range for the deprecation?
+				})
+			}
+		}
+	}
+
+	// Check if any deprecated outputs are used in the config
+	// TODO: Loop over every top-level block
+	for _, resource := range config.Module.ManagedResources {
+		// TODO: This would need to take provider fields into account
+		schema, err := c.plugins.ResourceTypeSchema(addrs.ImpliedProviderForUnqualifiedType(resource.Addr().ImpliedProvider()), addrs.ManagedResourceMode, resource.Type)
+		if err != nil {
+			panic(err.Error())
+		}
+		// TODO: Ignoring diags for now
+		bodyRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, resource.Config, schema.Body)
+		forEachRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, resource.ForEach)
+		countRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, resource.Count)
+		refs := append(bodyRefs, forEachRefs...)
+		refs = append(refs, countRefs...)
+		diags = diags.Append(diagsForDeprecatedRefs(deprecatedOutputs, config.Path, refs))
+	}
+
+	for _, output := range config.Module.Outputs {
+		if !output.DeprecatedSet {
+			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, output.Expr)
+			diags = diags.Append(diagsForDeprecatedRefs(deprecatedOutputs, config.Path, refs))
+		}
+	}
+
+	return diags
+}
+
+func diagsForDeprecatedRefs(deprecatedOutputs addrs.Map[addrs.ConfigOutputValue, Deprecation], modulePath addrs.Module, refs []*addrs.Reference) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	for _, ref := range refs {
+		switch r := ref.Subject.(type) {
+		case addrs.ModuleCallInstanceOutput:
+			// Check if this references a deprecated output
+			searchConfigOutputValue := r.ModuleCallOutput().ConfigOutputValue(modulePath)
+			if deprecation, ok := deprecatedOutputs.GetOk(searchConfigOutputValue); ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   deprecation.Message,
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+
+		// This case is used when e.g. a splat expression is encountered
+		// We then need to parse the remainder, we know it needs to be an output name
+		case addrs.ModuleCall:
+			var outputName string
+			fmt.Printf("\n\t ref --> %#v\n", ref)
+			fmt.Printf("\n\t ref.Remaining --> %#v\n", ref.Remaining)
+
+			searchConfigOutputValue := r.Output(outputName).ConfigOutputValue(modulePath)
+			if deprecation, ok := deprecatedOutputs.GetOk(searchConfigOutputValue); ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   deprecation.Message,
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+
+		default:
+			fmt.Printf("\n\t r --> %#v\n", r)
+			continue
+		}
+	}
+	return diags
 }
 
 type ContextGraphOpts struct {

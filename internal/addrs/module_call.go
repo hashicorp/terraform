@@ -44,6 +44,13 @@ func (c ModuleCall) Equal(other ModuleCall) bool {
 	return c.Name == other.Name
 }
 
+func (c ModuleCall) Output(name string) ModuleCallOutput {
+	return ModuleCallOutput{
+		Call: c,
+		Name: name,
+	}
+}
+
 // AbsModuleCall is the address of a "module" block relative to the root
 // of the configuration.
 //
@@ -175,6 +182,15 @@ func (m ModuleCallOutput) UniqueKey() UniqueKey {
 }
 
 func (m ModuleCallOutput) uniqueKeySigil() {}
+
+func (m ModuleCallOutput) ConfigOutputValue(baseModule Module) ConfigOutputValue {
+	return ConfigOutputValue{
+		Module: baseModule.Child(m.Call.Name),
+		OutputValue: OutputValue{
+			Name: m.Name,
+		},
+	}
+}
 
 // ModuleCallInstanceOutput is the address of a particular named output produced by
 // an instance of a module call.
