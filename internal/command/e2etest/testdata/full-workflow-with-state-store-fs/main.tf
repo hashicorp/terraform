@@ -7,6 +7,8 @@ terraform {
 
   state_store "simple6_fs" {
     provider "simple6" {}
+
+    workspace_dir = "states"
   }
 }
 

@@ -6,6 +6,7 @@ package e2etest
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -30,6 +31,7 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	t.Parallel()
 
 	tf := e2e.NewBinary(t, terraformBin, "testdata/full-workflow-with-state-store-fs")
+	workspaceDirName := "states" // see test fixture value for workspace_dir
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
 	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
@@ -52,6 +54,13 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
+	fi, err := os.Stat(path.Join(tf.WorkDir(), workspaceDirName, "default", "terraform.tfstate"))
+	if err != nil {
+		t.Fatalf("failed to open default workspace's state file: %s", err)
+	}
+	if fi.Size() == 0 {
+		t.Fatal("default workspace's state file should not have size 0 bytes")
+	}
 
 	//// Create Workspace
 	newWorkspace := "foobar"
@@ -59,10 +68,16 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
-
 	expectedMsg := fmt.Sprintf("Created and switched to workspace %q!", newWorkspace)
 	if !strings.Contains(stdout, expectedMsg) {
 		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
+	}
+	fi, err = os.Stat(path.Join(tf.WorkDir(), workspaceDirName, newWorkspace, "terraform.tfstate"))
+	if err != nil {
+		t.Fatalf("failed to open %s workspace's state file: %s", newWorkspace, err)
+	}
+	if fi.Size() == 0 {
+		t.Fatalf("%s workspace's state file should not have size 0 bytes", newWorkspace)
 	}
 
 	//// List Workspaces
@@ -70,7 +85,6 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
-
 	if !strings.Contains(stdout, newWorkspace) {
 		t.Errorf("unexpected output, expected the new %q workspace to be listed present, but it's missing. Got:\n%s", newWorkspace, stdout)
 	}
@@ -81,7 +95,6 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
-
 	expectedMsg = fmt.Sprintf("Switched to workspace %q.", selectedWorkspace)
 	if !strings.Contains(stdout, expectedMsg) {
 		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
