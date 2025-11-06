@@ -478,39 +478,15 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 			Subject:  override.Range.Ptr(),
 		})
 	}
-
 	if attribute, exists := content.Attributes[attributeName]; exists {
 		override.ValuesRange = attribute.Range
 		override.Values = cty.EmptyObjectVal
 		override.RawValue = attribute.Expr
-	} else {
-		// It's fine if we don't have any values, just means we'll generate
-		// values for everything ourselves. We set this to an empty object so
-		// it's equivalent to `values = {}` which makes later processing easier.
-		override.Values = cty.EmptyObjectVal
 	}
 
 	useForPlan, useForPlanDiags := useForPlan(content, useForPlanDefault)
 	diags = append(diags, useForPlanDiags...)
 	override.UseForPlan = useForPlan
-
-	if !override.Values.Type().IsObjectType() {
-
-		var attributePreposition string
-		switch attributeName {
-		case "outputs":
-			attributePreposition = "an"
-		default:
-			attributePreposition = "a"
-		}
-
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Invalid %s attribute", attributeName),
-			Detail:   fmt.Sprintf("%s blocks must specify %s %s attribute that is an object.", blockName, attributePreposition, attributeName),
-			Subject:  override.ValuesRange.Ptr(),
-		})
-	}
 
 	return override, diags
 }
