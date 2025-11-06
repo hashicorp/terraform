@@ -1161,6 +1161,7 @@ func (p *provider6) GetStates(ctx context.Context, req *tfplugin6.GetStates_Requ
 func (p *provider6) DeleteState(ctx context.Context, req *tfplugin6.DeleteState_Request) (*tfplugin6.DeleteState_Response, error) {
 	deleteStatesResp := p.provider.DeleteState(providers.DeleteStateRequest{
 		TypeName: req.TypeName,
+		StateId:  req.StateId,
 	})
 
 	resp := &tfplugin6.DeleteState_Response{
