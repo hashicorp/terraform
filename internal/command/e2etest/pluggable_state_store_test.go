@@ -62,7 +62,7 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 		t.Fatal("default workspace's state file should not have size 0 bytes")
 	}
 
-	//// Create Workspace
+	//// Create Workspace: terraform workspace new
 	newWorkspace := "foobar"
 	stdout, stderr, err := tf.Run("workspace", "new", newWorkspace, "-no-color")
 	if err != nil {
@@ -80,7 +80,7 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 		t.Fatalf("%s workspace's state file should not have size 0 bytes", newWorkspace)
 	}
 
-	//// List Workspaces
+	//// List Workspaces: : terraform workspace list
 	stdout, stderr, err = tf.Run("workspace", "list", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
@@ -89,7 +89,7 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 		t.Errorf("unexpected output, expected the new %q workspace to be listed present, but it's missing. Got:\n%s", newWorkspace, stdout)
 	}
 
-	//// Select Workspace
+	//// Select Workspace: terraform workspace select
 	selectedWorkspace := "default"
 	stdout, stderr, err = tf.Run("workspace", "select", selectedWorkspace, "-no-color")
 	if err != nil {
@@ -97,6 +97,16 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	}
 	expectedMsg = fmt.Sprintf("Switched to workspace %q.", selectedWorkspace)
 	if !strings.Contains(stdout, expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
+	}
+
+	//// Show Workspace: terraform workspace show
+	stdout, stderr, err = tf.Run("workspace", "show", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	expectedMsg = fmt.Sprintf("%s\n", selectedWorkspace)
+	if stdout != expectedMsg {
 		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
 	}
 }
