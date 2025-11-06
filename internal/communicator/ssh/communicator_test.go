@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
 	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
@@ -660,7 +661,7 @@ func TestAccHugeUploadFile(t *testing.T) {
 		return scpUploadFile(targetFile, source, w, stdoutR, size)
 	}
 
-	cmd, err := quoteShell([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
+	cmd, err := quoteScpCommand([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -677,6 +678,146 @@ func TestAccHugeUploadFile(t *testing.T) {
 
 	if fs.Size() != size {
 		t.Fatalf("expected file size of %d, got %d", size, fs.Size())
+	}
+}
+
+func TestQuoteScpCommand(t *testing.T) {
+	testCases := []struct {
+		inputArgs   []string
+		platform    string
+		expectedCmd string
+	}{
+		// valid Unix command
+		{
+			[]string{"scp", "-vt", "/var/path"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path",
+		},
+
+		// command injection attempt in Unix
+		{
+			[]string{"scp", "-vt", "/var/path;rm"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\;rm",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path&&rm"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\&\\&rm",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path|rm"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\|rm",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path||rm"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\|\\|rm",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path; rm"},
+			TargetPlatformUnix,
+			"'scp' -vt '/var/path; rm'",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path`rm`"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\`rm\\`",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path$(rm)"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\$\\(rm\\)",
+		},
+
+		// valid Windows commands
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp With Space"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp With Space\"",
+		},
+
+		// command injection attempt in Windows
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp ;rmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp ;rmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\";rmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp\\\";rmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\nrmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp\nrmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\trmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp\trmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\vrmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp\vrmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\u0020rmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp rmdir\"",
+		},
+
+		// There is no special handling of the injection attempts below
+		// but we include them anyway to demonstrate this
+		// and to avoid any regressions due to upstream changes.
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp;rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp;rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp&rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp&rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp&&rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp&&rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp|rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp|rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp||rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp||rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp$(rmdir)"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp$(rmdir)",
+		},
+	}
+
+	for _, tc := range testCases {
+		cmd, err := quoteScpCommand(tc.inputArgs, tc.platform)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(tc.expectedCmd, cmd); diff != "" {
+			t.Fatalf("unexpected command for %q: %s", tc.inputArgs, diff)
+		}
 	}
 }
 
