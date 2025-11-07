@@ -86,12 +86,16 @@ func TestProviderDevOverrides(t *testing.T) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
 	}
 
-	stdout, stderr, err = tf.Run("init")
+	stdout, _, _ = tf.Run("init")
 	if err != nil {
 		t.Fatalf("unexpected error: %e", err)
 	}
 	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
+	}
+
+	if got, want := stdout, "These providers are not installed as part of init since they"; !strings.Contains(got, want) {
+		t.Errorf("stdout doesn't include init specific warning about consequences of overrides \nwant: %s\n%s", want, got)
 	}
 }
 
@@ -139,7 +143,7 @@ func TestProviderDevOverridesWithProviderToDownload(t *testing.T) {
 
 	tf.AddEnv("TF_CLI_CONFIG_FILE=dev.tfrc")
 
-	stdout, stderr, err := tf.Run("providers")
+	stdout, stderr, _ := tf.Run("providers")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n%s", err, stderr)
 	}
@@ -147,12 +151,15 @@ func TestProviderDevOverridesWithProviderToDownload(t *testing.T) {
 		t.Errorf("configuration should depend on %s, but doesn't\n%s", want, got)
 	}
 
-	stdout, stderr, err = tf.Run("init")
+	stdout, _, err = tf.Run("init")
 	if err != nil {
 		t.Fatalf("unexpected error: %e", err)
 	}
 	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
+	}
+	if got, want := stdout, "These providers are not installed as part of init since they were"; !strings.Contains(got, want) {
+		t.Errorf("stdout doesn't include init specific warning about consequences of overrides \nwant: %s\n got: %s", want, got)
 	}
 
 	// Check if the null provider has been installed
