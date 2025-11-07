@@ -4,6 +4,8 @@
 package mocking
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -33,6 +35,15 @@ func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.
 		values := cty.EmptyObjectVal
 		if override.RawValue != nil {
 			values, hclDiags = override.RawValue.Value(ctx)
+			if values != cty.NilVal && !values.Type().IsObjectType() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid outputs attribute",
+					Detail:   fmt.Sprintf("%s blocks must specify an outputs attribute that is an object.", override.BlockName),
+					Subject:  override.ValuesRange.Ptr(),
+				})
+				return diags
+			}
 		}
 		override.Values = values
 		container.Put(target, override)

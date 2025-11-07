@@ -26,11 +26,12 @@ var (
 type NodeProviderConfigure struct {
 	name, alias string
 
-	Addr     addrs.RootProviderConfig
-	File     *moduletest.File
-	Config   *configs.Provider
-	Provider providers.Interface
-	Schema   providers.GetProviderSchemaResponse
+	Addr         addrs.RootProviderConfig
+	File         *moduletest.File
+	Config       *configs.Provider
+	Provider     providers.Interface
+	Schema       providers.GetProviderSchemaResponse
+	MockProvider *providers.Mock
 }
 
 func (n *NodeProviderConfigure) Name() string {
@@ -76,6 +77,19 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 	if moreDiags.HasErrors() {
 		ctx.SetProviderStatus(n.Addr, moduletest.Error)
 		return
+	}
+
+	if n.MockProvider != nil {
+		for _, res := range n.MockProvider.Data.MockResources {
+			values, hclDiags := res.RawValue.Value(hclContext)
+			n.File.Diagnostics.Append(hclDiags)
+			res.Defaults = values
+		}
+		for _, res := range n.MockProvider.Data.MockDataSources {
+			values, hclDiags := res.RawValue.Value(hclContext)
+			n.File.Diagnostics.Append(hclDiags)
+			res.Defaults = values
+		}
 	}
 
 	body, hclDiags := hcldec.Decode(n.Config.Config, spec, hclContext)

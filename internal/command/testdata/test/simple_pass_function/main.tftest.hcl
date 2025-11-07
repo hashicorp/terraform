@@ -1,7 +1,8 @@
-override_resource {
-  target = test_resource.foo
-  values = {
-    id = format("f-%s", "foo")
+mock_provider "test" {
+  mock_resource "test_resource" {
+    defaults = {
+      id = format("f-%s", "foo")
+    }
   }
 }
 
