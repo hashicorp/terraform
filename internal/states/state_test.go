@@ -203,6 +203,13 @@ func TestStateDeepCopy(t *testing.T) {
 			Private:             []byte("private data"),
 			Dependencies:        []addrs.ConfigResource{},
 			CreateBeforeDestroy: true,
+
+			// these may or may not be copied, but should not affect equality of
+			// the resources.
+			decodeValueCache: cty.ObjectVal(map[string]cty.Value{
+				"woozles": cty.StringVal("confuzles"),
+			}),
+			decodeIdentityCache: cty.DynamicVal,
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -242,10 +249,33 @@ func TestStateDeepCopy(t *testing.T) {
 	)
 
 	state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
-
 	stateCopy := state.DeepCopy()
 	if !state.Equal(stateCopy) {
 		t.Fatalf("\nexpected:\n%q\ngot:\n%q\n", state, stateCopy)
+	}
+
+	// this is implied by the above, but has previously used a different
+	// codepath for comparison.
+	if !state.ManagedResourcesEqual(stateCopy) {
+		t.Fatalf("\nexpected managed resources to be equal:\n%q\ngot:\n%q\n", state, stateCopy)
+	}
+
+	// remove the cached values and ensure equality still holds
+	for _, mod := range stateCopy.Modules {
+		for _, res := range mod.Resources {
+			for _, inst := range res.Instances {
+				inst.Current.decodeValueCache = cty.NilVal
+				inst.Current.decodeIdentityCache = cty.NilVal
+			}
+		}
+	}
+
+	if !state.Equal(stateCopy) {
+		t.Fatalf("\nexpected:\n%q\ngot:\n%q\n", state, stateCopy)
+	}
+
+	if !state.ManagedResourcesEqual(stateCopy) {
+		t.Fatalf("\nexpected managed resources to be equal:\n%q\ngot:\n%q\n", state, stateCopy)
 	}
 }
 
