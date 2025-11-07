@@ -4,6 +4,7 @@
 package e2etest
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -250,6 +251,7 @@ func TestPrimary_stateStore(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	workspaceDirName := "states" // See workspace_dir value in the configuration
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
 	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
@@ -291,7 +293,7 @@ func TestPrimary_stateStore(t *testing.T) {
 	}
 
 	// Check the statefile saved by the fs state store.
-	path := "terraform.tfstate.d/default/terraform.tfstate"
+	path := fmt.Sprintf("%s/default/terraform.tfstate", workspaceDirName)
 	f, err := tf.OpenFile(path)
 	if err != nil {
 		t.Fatalf("unexpected error opening state file %s: %s\nstderr:\n%s", path, err, stderr)
