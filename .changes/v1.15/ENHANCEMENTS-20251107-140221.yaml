@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: "init: skip dependencies declared in development override. This allows you to use `terraform init` with developer overrides and install dependencies that are not declared in the override file."
+time: 2025-11-07T14:02:21.847382+01:00
+custom:
+    Issue: "27459"

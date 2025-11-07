@@ -258,11 +258,12 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	if hclDiags.HasErrors() {
 		return false, true, diags
 	}
+
+	reqs = c.removeDevOverrides(reqs)
 	if state != nil {
 		stateReqs := state.ProviderRequirements()
 		reqs = reqs.Merge(stateReqs)
 	}
-
 	for providerAddr := range reqs {
 		if providerAddr.IsLegacy() {
 			diags = diags.Append(tfdiags.Sourceless(
