@@ -109,4 +109,14 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if stdout != expectedMsg {
 		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
 	}
+
+	//// Delete Workspace: terraform workspace delete
+	stdout, stderr, err = tf.Run("workspace", "delete", newWorkspace, "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	expectedMsg = fmt.Sprintf("Deleted workspace %q!\n", newWorkspace)
+	if stdout != expectedMsg {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
+	}
 }
