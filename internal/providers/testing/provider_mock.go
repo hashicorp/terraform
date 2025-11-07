@@ -361,6 +361,9 @@ func (p *MockProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 
 	// If we haven't already, record in the mock that
 	// the matching workspace exists
+	if p.MockStates == nil {
+		p.MockStates = make(map[string]interface{})
+	}
 	p.MockStates[r.StateId] = true
 
 	return p.WriteStateBytesResponse
