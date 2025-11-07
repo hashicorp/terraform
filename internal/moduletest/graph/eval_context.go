@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -89,6 +90,8 @@ type EvalContext struct {
 	// repair is true if the test suite is being run in cleanup repair mode.
 	// It is only set when in test cleanup mode.
 	repair bool
+
+	overrides map[string]*mocking.Overrides
 }
 
 type EvalContextOpts struct {
@@ -135,6 +138,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		mode:              opts.Mode,
 		deferralAllowed:   opts.DeferralAllowed,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
+		overrides:         make(map[string]*mocking.Overrides),
 	}
 }
 
@@ -718,6 +722,14 @@ func (ec *EvalContext) PriorRunsCompleted(runs map[string]*moduletest.Run) bool 
 		}
 	}
 	return true
+}
+
+func (ec *EvalContext) SetOverrides(run *moduletest.Run, overrides *mocking.Overrides) {
+	ec.overrides[run.Name] = overrides
+}
+
+func (ec *EvalContext) GetOverrides(runName string) *mocking.Overrides {
+	return ec.overrides[runName]
 }
 
 // evaluationData augments an underlying lang.Data -- presumably resulting

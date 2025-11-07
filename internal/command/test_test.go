@@ -420,8 +420,9 @@ func TestTest_Runs(t *testing.T) {
 			code: 0,
 		},
 		"simple_pass_function": {
-			expectedOut: []string{"1 passed, 0 failed."},
-			code:        0,
+			expectedOut:           []string{"2 passed, 0 failed."},
+			code:                  0,
+			expectedResourceCount: 0,
 		},
 		"mocking-invalid-outputs": {
 			override: "mocking-invalid",

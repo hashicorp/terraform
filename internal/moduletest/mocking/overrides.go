@@ -4,8 +4,11 @@
 package mocking
 
 import (
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Overrides contains a summary of all the overrides that should apply for a
@@ -18,16 +21,30 @@ type Overrides struct {
 	localOverrides    addrs.Map[addrs.Targetable, *configs.Override]
 }
 
-func PackageOverrides(run *configs.TestRun, file *configs.TestFile, mocks map[addrs.RootProviderConfig]*configs.MockData) *Overrides {
+func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.TestFile, mocks map[addrs.RootProviderConfig]*configs.MockData) (*Overrides, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	overrides := &Overrides{
 		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]),
 		localOverrides:    addrs.MakeMap[addrs.Targetable, *configs.Override](),
 	}
 
+	evalAndPut := func(container addrs.Map[addrs.Targetable, *configs.Override], target addrs.Targetable, override *configs.Override) tfdiags.Diagnostics {
+		var hclDiags hcl.Diagnostics
+		values := cty.EmptyObjectVal
+		if override.RawValue != nil {
+			values, hclDiags = override.RawValue.Value(ctx)
+		}
+		override.Values = values
+		container.Put(target, override)
+		return diags.Append(hclDiags)
+	}
+
 	// The run block overrides have the highest priority, we always include all
 	// of them.
 	for _, elem := range run.Overrides.Elems {
-		overrides.localOverrides.PutElement(elem)
+		if diags := evalAndPut(overrides.localOverrides, elem.Key, elem.Value); diags.HasErrors() {
+			return overrides, diags
+		}
 	}
 
 	// The file overrides are second, we include these as long as there isn't
@@ -41,7 +58,9 @@ func PackageOverrides(run *configs.TestRun, file *configs.TestFile, mocks map[ad
 			continue
 		}
 
-		overrides.localOverrides.PutElement(elem)
+		if diags := evalAndPut(overrides.localOverrides, elem.Key, elem.Value); diags.HasErrors() {
+			return overrides, diags
+		}
 	}
 
 	// Finally, we want to include the overrides for any mock providers we have.
@@ -58,11 +77,14 @@ func PackageOverrides(run *configs.TestRun, file *configs.TestFile, mocks map[ad
 			if _, exists := overrides.providerOverrides[key]; !exists {
 				overrides.providerOverrides[key] = addrs.MakeMap[addrs.Targetable, *configs.Override]()
 			}
-			overrides.providerOverrides[key].PutElement(elem)
+
+			if diags := evalAndPut(overrides.providerOverrides[key], elem.Key, elem.Value); diags.HasErrors() {
+				return overrides, diags
+			}
 		}
 	}
 
-	return overrides
+	return overrides, diags
 }
 
 // IsOverridden returns true if the module is either overridden directly or

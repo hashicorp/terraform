@@ -117,7 +117,7 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	// we ignore the diagnostics from here, because we will have reported them
 	// during the initial execution of the run block and we would not have
 	// executed the run block if there were any errors.
-	providers, mocks, _ := getProviders(ctx, file, run, module)
+	providers, _, _ := getProviders(ctx, file, run, module)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
@@ -128,7 +128,7 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	planOpts := &terraform.PlanOpts{
 		Mode:                      plans.NormalMode,
 		SetVariables:              setVariables,
-		Overrides:                 mocking.PackageOverrides(run, file, mocks),
+		Overrides:                 ctx.GetOverrides(run.Name),
 		ExternalProviders:         providers,
 		SkipRefresh:               true,
 		OverridePreventDestroy:    true,
@@ -177,10 +177,20 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	// we care about.
 	setVariables, _, _ := FilterVariablesToModule(module, variables)
 
+	// TODO: Do we need the exact same overrides used in the plan?
+	hclctx, diags := ctx.HclContext(nil)
+	if diags != nil {
+		return state, diags
+	}
+	overrides, diags := mocking.PackageOverrides(hclctx, run, file, mocks)
+	if diags != nil {
+		return state, diags
+	}
+
 	planOpts := &terraform.PlanOpts{
 		Mode:                      plans.DestroyMode,
 		SetVariables:              setVariables,
-		Overrides:                 mocking.PackageOverrides(run, file, mocks),
+		Overrides:                 overrides,
 		ExternalProviders:         providers,
 		SkipRefresh:               true,
 		OverridePreventDestroy:    true,
