@@ -177,3 +177,64 @@ func NewDeposedKey() DeposedKey {
 func ParseDeposedKey(raw string) (DeposedKey, error) {
 	return addrs.ParseDeposedKey(raw)
 }
+
+// Equal compares Resource objects for equality, comparing all the current and
+// deposed instances.
+func (rs *Resource) Equal(other *Resource) bool {
+	if rs == other {
+		return true
+	}
+	if rs == nil || other == nil {
+		return false
+	}
+
+	if !rs.Addr.Equal(other.Addr) {
+		return false
+	}
+	if !rs.ProviderConfig.Equal(other.ProviderConfig) {
+		return false
+	}
+
+	if len(rs.Instances) != len(other.Instances) {
+		return false
+	}
+	for k, inst := range rs.Instances {
+		otherInst, ok := other.Instances[k]
+		if !ok {
+			return false
+		}
+		if !inst.Equal(otherInst) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (i *ResourceInstance) Equal(other *ResourceInstance) bool {
+	if i == other {
+		return true
+	}
+	if i == nil || other == nil {
+		return false
+	}
+
+	if !i.Current.Equal(other.Current) {
+		return false
+	}
+
+	if len(i.Deposed) != len(other.Deposed) {
+		return false
+	}
+	for k, dep := range i.Deposed {
+		otherObj, ok := other.Deposed[k]
+		if !ok {
+			return false
+		}
+		if !dep.Equal(otherObj) {
+			return false
+		}
+	}
+
+	return true
+}
