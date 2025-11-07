@@ -177,6 +177,7 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 	for addr, path := range m.ProviderDevOverrides {
 		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
 	}
+	detailMsg.WriteString("\nThese providers are not installed as part of init since they were overwritten. If this is unintentional please re-run without the development overrides set.")
 	return tfdiags.Diagnostics{
 		tfdiags.Sourceless(
 			tfdiags.Warning,
