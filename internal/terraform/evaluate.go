@@ -1115,27 +1115,21 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 		return cty.DynamicVal, diags
 	}
 
-	output := d.Evaluator.State.OutputValue(addr.Absolute(d.ModulePath))
-	if output == nil {
-		// Then the output itself returned null, so we'll package that up and
-		// pass it on.
-		output = &states.OutputValue{
-			Addr:      addr.Absolute(d.ModulePath),
-			Value:     cty.NilVal,
-			Sensitive: config.Sensitive,
-		}
-	} else if output.Value == cty.NilVal || output.Value.IsNull() {
-		// Then we did get a value but Terraform itself thought it was NilVal
-		// so we treat this as if the value isn't yet known.
-		output.Value = cty.DynamicVal
+	var value cty.Value
+	if !d.Evaluator.NamedValues.HasOutputValue(addr.Absolute(d.ModulePath)) {
+		value = cty.DynamicVal
+	} else {
+		value = d.Evaluator.NamedValues.GetOutputValue(addr.Absolute(d.ModulePath))
 	}
 
-	val := output.Value
-	if output.Sensitive {
-		val = val.Mark(marks.Sensitive)
+	if config.Sensitive {
+		value = value.Mark(marks.Sensitive)
+	}
+	if config.Ephemeral {
+		value = value.Mark(marks.Ephemeral)
 	}
 
-	return val, diags
+	return value, diags
 }
 
 // moduleDisplayAddr returns a string describing the given module instance

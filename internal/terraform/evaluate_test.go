@@ -99,6 +99,11 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 }
 
 func TestEvaluatorGetOutputValue(t *testing.T) {
+	nvs := namedvals.NewState()
+	nvs.SetOutputValue(mustAbsOutputValue("output.some_output"), cty.StringVal("first"))
+	nvs.SetOutputValue(mustAbsOutputValue("output.some_other_output"), cty.StringVal("second"))
+	nvs.SetOutputValue(mustAbsOutputValue("output.some_third_output"), cty.StringVal("third").Mark(marks.Sensitive))
+
 	evaluator := &Evaluator{
 		Meta: &ContextMeta{
 			Env: "foo",
@@ -113,23 +118,13 @@ func TestEvaluatorGetOutputValue(t *testing.T) {
 					"some_other_output": {
 						Name: "some_other_output",
 					},
+					"some_third_output": {
+						Name: "some_third_output",
+					},
 				},
 			},
 		},
-		State: states.BuildState(func(state *states.SyncState) {
-			state.SetOutputValue(addrs.AbsOutputValue{
-				Module: addrs.RootModuleInstance,
-				OutputValue: addrs.OutputValue{
-					Name: "some_output",
-				},
-			}, cty.StringVal("first"), true)
-			state.SetOutputValue(addrs.AbsOutputValue{
-				Module: addrs.RootModuleInstance,
-				OutputValue: addrs.OutputValue{
-					Name: "some_other_output",
-				},
-			}, cty.StringVal("second"), false)
-		}).SyncWrapper(),
+		NamedValues: nvs,
 	}
 
 	data := &evaluationStateData{
@@ -154,6 +149,18 @@ func TestEvaluatorGetOutputValue(t *testing.T) {
 	want = cty.StringVal("second")
 	got, diags = scope.Data.GetOutput(addrs.OutputValue{
 		Name: "some_other_output",
+	}, tfdiags.SourceRange{})
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result %#v; want %#v", got, want)
+	}
+
+	want = cty.StringVal("third").Mark(marks.Sensitive)
+	got, diags = scope.Data.GetOutput(addrs.OutputValue{
+		Name: "some_third_output",
 	}, tfdiags.SourceRange{})
 
 	if len(diags) != 0 {
