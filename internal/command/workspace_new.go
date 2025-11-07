@@ -111,7 +111,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 
 	if l, ok := b.(*local.Local); ok {
 		if _, ok := l.Backend.(*backendPluggable.Pluggable); ok {
-			// Obtaining the state manager will not have created the state file as a side effect
+			// Obtaining the state manager would have not created the state file as a side effect
 			// if a pluggable state store is in use.
 			//
 			// Instead, explicitly create the new workspace by saving an empty state file.
