@@ -391,6 +391,17 @@ func resolveFinalSourceAddr(base sourceaddrs.FinalSource, rel sourceaddrs.Source
 		}
 		finalRel := rel.Versioned(selectedVersion)
 		return sourceaddrs.ResolveRelativeFinalSource(base, finalRel)
+
+	case sourceaddrs.ComponentSource:
+		// Component registry sources work similar to module registry sources
+		allowedVersions := versions.MeetingConstraints(versionConstraints)
+		availableVersions := sources.ComponentPackageVersions(rel.Package())
+		selectedVersion := availableVersions.NewestInSet(allowedVersions)
+		if selectedVersion == versions.Unspecified {
+			return nil, fmt.Errorf("no cached versions of %s match the given version constraints", rel.Package())
+		}
+		finalRel := rel.Versioned(selectedVersion)
+		return sourceaddrs.ResolveRelativeFinalSource(base, finalRel)
 	default:
 		// Should not get here because the above cases should be exhaustive
 		// for all implementations of sourceaddrs.Source.
