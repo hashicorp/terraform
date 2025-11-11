@@ -60,18 +60,9 @@ type BackendOpts struct {
 	// the root module, or nil if no such block is present.
 	StateStoreConfig *configs.StateStore
 
-	// ProvidersFactory contains a factory for creating instances of the
-	// provider used for pluggable state storage. Each call created a new instance,
-	// so be conscious of when the provider needs to be configured, etc.
-	//
-	// This will only be set if the configuration contains a state_store block.
-	ProviderFactory providers.Factory
-
 	// Locks allows state-migration logic to detect when the provider used for pluggable state storage
 	// during the last init (i.e. what's in the backend state file) is mismatched with the provider
 	// version in use currently.
-	//
-	// This will only be set if the configuration contains a state_store block.
 	Locks *depsfile.Locks
 
 	// ConfigOverride is an hcl.Body that, if non-nil, will be used with
@@ -577,16 +568,13 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 		return nil, 0, diags
 	}
 
-	// Check - is the state store type in the config supported by the provider?
-	if opts.ProviderFactory == nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing provider details when configuring state store",
-			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
-		})
+	pFactory, pDiags := m.GetStateStoreProviderFactory(opts.StateStoreConfig, opts.Locks)
+	diags = diags.Append(pDiags)
+	if pDiags.HasErrors() {
 		return nil, 0, diags
 	}
-	provider, err := opts.ProviderFactory()
+
+	provider, err := pFactory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
 		return nil, 0, diags
@@ -941,7 +929,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// AND we're not providing any overrides. An override can mean a change overriding an unchanged backend block (indicated by the hash value).
 		if (uint64(cHash) == s.StateStore.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q state_store configuration", stateStoreConfig.Type)
-			savedStateStore, sssDiags := m.savedStateStore(sMgr, opts.ProviderFactory)
+			savedStateStore, sssDiags := m.savedStateStore(sMgr)
 			diags = diags.Append(sssDiags)
 			// Verify that selected workspace exist. Otherwise prompt user to create one
 			if opts.Init && savedStateStore != nil {
@@ -1587,43 +1575,37 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 		return nil, diags
 	}
 
+	locks, lDiags := m.lockedDependencies()
+	diags = diags.Append(lDiags)
+	if lDiags.HasErrors() {
+		return nil, diags
+	}
+
 	var opts *BackendOpts
 	switch {
 	case root.Backend != nil:
 		opts = &BackendOpts{
 			BackendConfig: root.Backend,
+			Locks:         locks,
 			ViewType:      viewType,
 		}
 	case root.CloudConfig != nil:
 		backendConfig := root.CloudConfig.ToBackendConfig()
 		opts = &BackendOpts{
 			BackendConfig: &backendConfig,
+			Locks:         locks,
 			ViewType:      viewType,
 		}
 	case root.StateStore != nil:
-		// In addition to config, use of a state_store requires
-		// provider factory and provider locks data
-		locks, lDiags := m.lockedDependencies()
-		diags = diags.Append(lDiags)
-		if lDiags.HasErrors() {
-			return nil, diags
-		}
-
-		factory, fDiags := m.GetStateStoreProviderFactory(root.StateStore, locks)
-		diags = diags.Append(fDiags)
-		if fDiags.HasErrors() {
-			return nil, diags
-		}
-
 		opts = &BackendOpts{
 			StateStoreConfig: root.StateStore,
-			ProviderFactory:  factory,
 			Locks:            locks,
 			ViewType:         viewType,
 		}
 	default:
 		// there is no config; defaults to local state storage
 		opts = &BackendOpts{
+			Locks:    locks,
 			ViewType: viewType,
 		}
 	}
@@ -1702,7 +1684,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	}
 
 	// Get the state store as an instance of backend.Backend
-	b, storeConfigVal, providerConfigVal, moreDiags := m.stateStoreInitFromConfig(c, opts.ProviderFactory)
+	b, storeConfigVal, providerConfigVal, moreDiags := m.stateStoreInitFromConfig(c, opts.Locks)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -1939,7 +1921,7 @@ func (m *Meta) createDefaultWorkspace(c *configs.StateStore, b backend.Backend) 
 }
 
 // Initializing a saved state store from the backend state file (aka 'cache file', aka 'legacy state file')
-func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Factory) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	// We're preparing a state_store version of backend.Backend.
 	//
 	// The provider and state store will be configured using the backend state file.
@@ -1947,14 +1929,20 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Fact
 	var diags tfdiags.Diagnostics
 	var b backend.Backend
 
-	if factory == nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing provider details when configuring state store",
-			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
-		})
+	s := sMgr.State()
+
+	locks, lDiags := m.lockedDependencies()
+	diags = diags.Append(lDiags)
+	if lDiags.HasErrors() {
 		return nil, diags
 	}
+
+	factory, pDiags := m.StateStoreProviderFactoryFromConfigState(s.StateStore, locks)
+	diags = diags.Append(pDiags)
+	if pDiags.HasErrors() {
+		return nil, diags
+	}
+
 	provider, err := factory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
@@ -1964,7 +1952,6 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Fact
 	// running provider instance inside the returned backend.Backend instance.
 	// Stopping the provider process is the responsibility of the calling code.
 
-	s := sMgr.State()
 	resp := provider.GetProviderSchema()
 
 	if len(resp.StateStores) == 0 {
@@ -2242,17 +2229,15 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 //
 // NOTE: the backend version of this method, `backendInitFromConfig`, prompts users for input if any required fields
 // are missing from the backend config. In `stateStoreInitFromConfig` we don't do this, and instead users will see an error.
-func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, factory providers.Factory) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
+func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, locks *depsfile.Locks) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if factory == nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing provider details when configuring state store",
-			Detail:   "Terraform attempted to configure a state store and no provider factory was available to launch it. This is a bug in Terraform and should be reported.",
-		})
+	factory, pDiags := m.GetStateStoreProviderFactory(c, locks)
+	diags = diags.Append(pDiags)
+	if pDiags.HasErrors() {
 		return nil, cty.NilVal, cty.NilVal, diags
 	}
+
 	provider, err := factory()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
@@ -2527,6 +2512,56 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 				config.Type,
 			),
 			Subject: &config.TypeRange,
+		})
+	}
+
+	return factory, diags
+}
+
+func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateStoreConfigState, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if cfgState == nil || locks == nil {
+		panic(fmt.Sprintf("nil config or nil locks passed to GetStateStoreProviderFactory: config %#v, locks %#v", cfgState, locks))
+	}
+
+	if cfgState.Provider == nil || cfgState.Provider.Source.IsZero() {
+		// This should not happen; this data is populated when storing config state
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown provider used for state storage",
+			Detail:   "Terraform could not find the provider used with the state_store. This is a bug in Terraform and should be reported.",
+			// Subject:  &cfgState.TypeRange,
+		})
+	}
+
+	factories, err := m.ProviderFactoriesFromLocks(locks)
+	if err != nil {
+		// This may happen if the provider isn't present in the provider cache.
+		// This should be caught earlier by logic that diffs the config against the backend state file.
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider unavailable",
+			Detail: fmt.Sprintf("Terraform experienced an error when trying to use provider %s (%q) to initialize the %q state store: %s",
+				cfgState.Type,
+				cfgState.Provider.Source,
+				cfgState.Type,
+				err),
+			// Subject: &cfgState.TypeRange,
+		})
+	}
+
+	factory, exists := factories[*cfgState.Provider.Source]
+	if !exists {
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider unavailable",
+			Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+				cfgState.Type,
+				cfgState.Provider.Source,
+				cfgState.Type,
+			),
+			// Subject: &cfgState.TypeRange,
 		})
 	}
 
