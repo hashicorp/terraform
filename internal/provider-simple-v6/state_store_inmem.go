@@ -6,6 +6,7 @@ package simple
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 
@@ -45,15 +46,16 @@ func stateStoreInMemGetSchema() providers.Schema {
 }
 
 func (m *InMemStoreSingle) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
-	// Not implemented in original inmem backend.
-	// The inmem used default logic in the backendbase package that cannot be replicated here easily.
-	// Instead, here is a rough implementation of validation:
 	var resp providers.ValidateStateStoreConfigResponse
 
 	attrs := req.Config.AsValueMap()
-	if v, ok := attrs["lock_id"]; ok {
-		if !v.IsKnown() {
-			resp.Diagnostics = resp.Diagnostics.Append(errors.New("the attribute \"lock_id\" cannot be an unknown value"))
+
+	// This is completely arbitrary validation included here to avoid this method being empty. It is not here for a purpose,
+	// but could be used if an E2E test wants to trigger a validation error.
+	if v, ok := attrs["lock_id"]; ok && !v.IsNull() {
+		cutoff := cty.NumberVal(big.NewFloat(3))
+		if v.Length().LessThan(cutoff) == cty.True {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("when set, the attribute \"lock_id\" must have a length equal or greater than %s", cutoff.AsString()))
 			return resp
 		}
 	}
