@@ -91,7 +91,8 @@ type EvalContext struct {
 	// It is only set when in test cleanup mode.
 	repair bool
 
-	overrides map[string]*mocking.Overrides
+	overrides    map[string]*mocking.Overrides
+	overrideLock sync.Mutex
 }
 
 type EvalContextOpts struct {
@@ -725,10 +726,14 @@ func (ec *EvalContext) PriorRunsCompleted(runs map[string]*moduletest.Run) bool 
 }
 
 func (ec *EvalContext) SetOverrides(run *moduletest.Run, overrides *mocking.Overrides) {
+	ec.overrideLock.Lock()
+	defer ec.overrideLock.Unlock()
 	ec.overrides[run.Name] = overrides
 }
 
 func (ec *EvalContext) GetOverrides(runName string) *mocking.Overrides {
+	ec.overrideLock.Lock()
+	defer ec.overrideLock.Unlock()
 	return ec.overrides[runName]
 }
 
