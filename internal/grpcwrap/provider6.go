@@ -1010,7 +1010,8 @@ func (p *provider6) ReadStateBytes(req *tfplugin6.ReadStateBytes_Request, srv tf
 				{
 					Severity: proto6.Diagnostic_ERROR,
 					Summary:  "Error reading from state file",
-					Detail: fmt.Sprintf("PSS experienced an error when reading from the state file for workspace %s: %s",
+					Detail: fmt.Sprintf("State store %s experienced an error when reading from the state file for workspace %s: %s",
+						req.TypeName,
 						req.StateId,
 						err,
 					),
