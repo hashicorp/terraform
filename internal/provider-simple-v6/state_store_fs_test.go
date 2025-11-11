@@ -29,21 +29,21 @@ func TestFsStoreRemoteState(t *testing.T) {
 
 	b := backend.TestBackendConfig(t, plug, hcl.EmptyBody())
 
-	// The default workspace doesn't exist by default
+	// The "default" state doesn't exist by default
 	// (Note that this depends on the factory method used to get the provider above)
-	workspaces, wDiags := b.Workspaces()
+	stateIds, wDiags := b.Workspaces()
 	if wDiags.HasErrors() {
 		t.Fatal(wDiags.Err())
 	}
-	if len(workspaces) != 0 {
-		t.Fatalf("unexpected response from Workspaces method: %#v", workspaces)
+	if len(stateIds) != 0 {
+		t.Fatalf("unexpected response from Workspaces method: %#v", stateIds)
 	}
 
-	// create a new workspace in this backend
-	workspace := "workspace"
+	// create a new state using this backend
+	newStateId := "foobar"
 	emptyState := states.NewState()
 
-	sMgr, sDiags := b.StateMgr(workspace)
+	sMgr, sDiags := b.StateMgr(newStateId)
 	if sDiags.HasErrors() {
 		t.Fatal(sDiags.Err())
 	}

@@ -23,17 +23,17 @@ import (
 )
 
 const fsStoreName = "simple6_fs"
-const defaultWorkspaceDir = "terraform.tfstate.d"
+const defaultStatesDir = "terraform.tfstate.d"
 
 // FsStore allows storing state in the local filesystem.
 //
 // This state storage implementation differs from the old "local" backend in core,
-// by storing all states in the custom, or default, workspace directory. In the "local"
-// backend the default state was a special case and was handled differently to custom workspaces.
+// by storing all states in the custom, or default, states directory. In the "local"
+// backend the default state was a special case and was handled differently to custom states.
 type FsStore struct {
 	// Configured values
-	workspaceDir string
-	chunkSize    int64
+	statesDir string
+	chunkSize int64
 
 	states map[string]*statemgr.Filesystem
 }
@@ -42,6 +42,7 @@ func stateStoreFsGetSchema() providers.Schema {
 	return providers.Schema{
 		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
+				// Named workspace_dir to match what's present in the local backend
 				"workspace_dir": {
 					Type:        cty.String,
 					Optional:    true,
@@ -71,9 +72,9 @@ func (f *FsStore) ConfigureStateStore(req providers.ConfigureStateStoreRequest) 
 
 	configVal := req.Config
 	if v := configVal.GetAttr("workspace_dir"); !v.IsNull() {
-		f.workspaceDir = v.AsString()
+		f.statesDir = v.AsString()
 	} else {
-		f.workspaceDir = defaultWorkspaceDir
+		f.statesDir = defaultStatesDir
 	}
 
 	if f.states == nil {
@@ -110,7 +111,7 @@ func (f *FsStore) UnlockState(req providers.UnlockStateRequest) providers.Unlock
 func (f *FsStore) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
 	resp := providers.GetStatesResponse{}
 
-	entries, err := os.ReadDir(f.workspaceDir)
+	entries, err := os.ReadDir(f.statesDir)
 	// no error if there's no envs configured
 	if os.IsNotExist(err) {
 		return resp
@@ -146,9 +147,9 @@ func (f *FsStore) DeleteState(req providers.DeleteStateRequest) providers.Delete
 	}
 
 	delete(f.states, req.StateId)
-	err := os.RemoveAll(filepath.Join(f.workspaceDir, req.StateId))
+	err := os.RemoveAll(filepath.Join(f.statesDir, req.StateId))
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("error deleting workspace %s: %w", req.StateId, err))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("error deleting state %q: %w", req.StateId, err))
 		return resp
 	}
 
@@ -156,15 +157,15 @@ func (f *FsStore) DeleteState(req providers.DeleteStateRequest) providers.Delete
 }
 
 func (f *FsStore) getStatePath(stateId string) string {
-	return path.Join(f.workspaceDir, stateId, "terraform.tfstate")
+	return path.Join(f.statesDir, stateId, "terraform.tfstate")
 }
 
 func (f *FsStore) getStateDir(stateId string) string {
-	return path.Join(f.workspaceDir, stateId)
+	return path.Join(f.statesDir, stateId)
 }
 
 func (f *FsStore) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	log.Printf("[DEBUG] ReadStateBytes: reading state from workspace %q", req.StateId)
+	log.Printf("[DEBUG] ReadStateBytes: reading data from the %q state", req.StateId)
 	resp := providers.ReadStateBytesResponse{}
 
 	// E.g. terraform.tfstate.d/foobar/terraform.tfstate
@@ -202,8 +203,8 @@ func (f *FsStore) ReadStateBytes(req providers.ReadStateBytesRequest) providers.
 		// Does not exist, so return no bytes
 		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
-			"State doesn't exist, yet",
-			fmt.Sprintf("There's no state for workspace %q yet", req.StateId),
+			"State doesn't exist",
+			fmt.Sprintf("The %q state does not exist", req.StateId),
 		))
 	}
 
@@ -212,7 +213,7 @@ func (f *FsStore) ReadStateBytes(req providers.ReadStateBytesRequest) providers.
 }
 
 func (f *FsStore) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	log.Printf("[DEBUG] WriteStateBytes: writing state to workspace %q", req.StateId)
+	log.Printf("[DEBUG] WriteStateBytes: writing data to the %q state", req.StateId)
 	resp := providers.WriteStateBytesResponse{}
 
 	// E.g. terraform.tfstate.d/foobar/terraform.tfstate

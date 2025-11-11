@@ -89,8 +89,8 @@ func (m *InMemStoreSingle) ReadStateBytes(req providers.ReadStateBytesRequest) p
 
 		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
-			"State doesn't exist, yet",
-			fmt.Sprintf("There's no state for workspace %q yet", req.StateId),
+			"State doesn't exist",
+			fmt.Sprintf("The %q state does not exist", req.StateId),
 		))
 		return resp
 	}
@@ -148,14 +148,14 @@ func (m *InMemStoreSingle) GetStates(req providers.GetStatesRequest) providers.G
 
 	resp := providers.GetStatesResponse{}
 
-	var workspaces []string
+	var stateIds []string
 
 	for s := range m.states.m {
-		workspaces = append(workspaces, s)
+		stateIds = append(stateIds, s)
 	}
 
-	sort.Strings(workspaces)
-	resp.States = workspaces
+	sort.Strings(stateIds)
+	resp.States = stateIds
 	return resp
 }
 
@@ -176,12 +176,12 @@ func (m *InMemStoreSingle) DeleteState(req providers.DeleteStateRequest) provide
 
 type stateMap struct {
 	sync.Mutex
-	m map[string][]byte // key=state name/workspace, value=state
+	m map[string][]byte // key=state id, value=state
 }
 
 type lockMap struct {
 	sync.Mutex
-	m map[string]string // key=state name/workspace, value=lock_id
+	m map[string]string // key=state id, value=lock_id
 }
 
 func (l *lockMap) lock(name string, lockId string) (string, error) {
@@ -190,7 +190,7 @@ func (l *lockMap) lock(name string, lockId string) (string, error) {
 
 	lock, ok := l.m[name]
 	if ok {
-		// Error; lock already exists for that state/workspace
+		// Error; lock already exists for that state id
 		return "", fmt.Errorf("state %q is already locked with lock id %q", name, lock)
 	}
 
@@ -214,7 +214,7 @@ func (l *lockMap) unlock(name, id string) error {
 	}
 
 	if id != lockId {
-		return fmt.Errorf("invalid lock id: %q was locked with lock id %q, but tried to unlock with lock id %q",
+		return fmt.Errorf("invalid lock id: state %q was locked with lock id %q, but tried to unlock with lock id %q",
 			name,
 			lockId,
 			id,

@@ -32,10 +32,10 @@ func Provider() providers.Interface {
 	return provider()
 }
 
-// ProviderWithDefaultWorkspace returns an instance of providers.Interface,
+// ProviderWithDefaultState returns an instance of providers.Interface,
 // where the underlying simple struct has been changed to indicate that the
-// default workspace has already been created as an empty state file.
-func ProviderWithDefaultWorkspace() providers.Interface {
+// 'default' state has already been created as an empty state file.
+func ProviderWithDefaultState() providers.Interface {
 	// Get the empty state file as bytes
 	f := statefile.New(nil, "", 0)
 
@@ -136,7 +136,7 @@ func provider() simple {
 			},
 		},
 
-		// default workspaces doesn't exist by default here; needs explicit creation via init command
+		// the "default" state doesn't exist by default here; needs explicit creation via init command
 		inMem: &InMemStoreSingle{},
 		fs:    &FsStore{},
 	}
