@@ -11,10 +11,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
+// Tests using `terraform workspace` commands in combination with pluggable state storage.
 func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
@@ -117,5 +119,81 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	expectedMsg = fmt.Sprintf("Deleted workspace %q!\n", newWorkspace)
 	if stdout != expectedMsg {
 		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
+	}
+}
+
+// Tests using `terraform state` subcommands in combination with pluggable state storage:
+// > `terraform state show`
+// > `terraform state list`
+func TestPrimary_stateStore_stateCmds(t *testing.T) {
+
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	t.Setenv(e2e.TestExperimentFlag, "true")
+	tfBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+
+	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-fs")
+	tf := e2e.NewBinary(t, tfBin, fixturePath)
+
+	workspaceDirName := "states" // see test fixture value for workspace_dir
+
+	// In order to test integration with PSS we need a provider plugin implementing a state store.
+	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
+	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+
+	// Move the provider binaries into the correct directory .terraform/providers/ directory
+	// that will contain provider binaries in an initialized working directory.
+	platform := getproviders.CurrentPlatform.String()
+	if err := os.MkdirAll(tf.Path(".terraform/providers/registry.terraform.io/hashicorp/simple6/0.0.1/", platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simple6ProviderExe, tf.Path(".terraform/providers/registry.terraform.io/hashicorp/simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Assert that the test starts with the default state present from test fixtures
+	defaultStateId := "default"
+	fi, err := os.Stat(path.Join(tf.WorkDir(), workspaceDirName, defaultStateId, "terraform.tfstate"))
+	if err != nil {
+		t.Fatalf("failed to open default workspace's state file: %s", err)
+	}
+	if fi.Size() == 0 {
+		t.Fatal("default workspace's state file should not have size 0 bytes")
+	}
+
+	//// List State: terraform state list
+	expectedResourceAddr := "terraform_data.my-data"
+	stdout, stderr, err := tf.Run("state", "list", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	expectedMsg := expectedResourceAddr + "\n" // This is the only resource instance in the test fixture state
+	if stdout != expectedMsg {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
+	}
+
+	//// Show State: terraform state show
+	stdout, stderr, err = tf.Run("state", "show", expectedResourceAddr, "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	// show displays the state for the specified resource
+	expectedMsg = `# terraform_data.my-data:
+resource "terraform_data" "my-data" {
+    id     = "d71fb368-2ba1-fb4c-5bd9-6a2b7f05d60c"
+    input  = "hello world"
+    output = "hello world"
+}
+`
+	if diff := cmp.Diff(stdout, expectedMsg); diff != "" {
+		t.Errorf("wrong result, diff:\n%s", diff)
 	}
 }
