@@ -439,7 +439,6 @@ func (c *InitCommand) initPssBackend(ctx context.Context, root *configs.Module, 
 		opts = &BackendOpts{
 			StateStoreConfig:       root.StateStore,
 			Locks:                  configLocks,
-			ProviderFactory:        factory,
 			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
 			ConfigOverride:         configOverride,
 			Init:                   true,
@@ -492,6 +491,7 @@ func (c *InitCommand) initPssBackend(ctx context.Context, root *configs.Module, 
 
 		opts = &BackendOpts{
 			BackendConfig:  backendConfig,
+			Locks:          configLocks,
 			ConfigOverride: configOverride,
 			Init:           true,
 			ViewType:       initArgs.ViewType,
@@ -526,6 +526,7 @@ the backend configuration is present and valid.
 
 		opts = &BackendOpts{
 			Init:     true,
+			Locks:    configLocks,
 			ViewType: initArgs.ViewType,
 		}
 	}
