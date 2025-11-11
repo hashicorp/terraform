@@ -4,6 +4,7 @@
 package e2etest
 
 import (
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -12,7 +13,9 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -229,4 +232,147 @@ func TestPrimaryChdirOption(t *testing.T) {
 	if !strings.Contains(stdout, "Resources: 0 destroyed") {
 		t.Errorf("incorrect destroy tally; want 0 destroyed:\n%s", stdout)
 	}
+}
+
+func TestPrimary_stateStore(t *testing.T) {
+
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	t.Setenv(e2e.TestExperimentFlag, "true")
+	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+
+	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	// In order to test integration with PSS we need a provider plugin implementing a state store.
+	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
+	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+
+	// Move the provider binaries into a directory that we will point terraform
+	// to using the -plugin-dir cli flag.
+	platform := getproviders.CurrentPlatform.String()
+	hashiDir := "cache/registry.terraform.io/hashicorp/"
+	if err := os.MkdirAll(tf.Path(hashiDir, "simple6/0.0.1/", platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+
+	//// INIT
+	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Terraform created an empty state file for the default workspace") {
+		t.Errorf("notice about creating the default workspace is missing from init output:\n%s", stdout)
+	}
+
+	//// PLAN
+	// No separate plan step; this test lets the apply make a plan.
+
+	//// APPLY
+	stdout, stderr, err = tf.Run("apply", "-auto-approve", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
+	}
+
+	// Check the statefile saved by the fs state store.
+	path := "terraform.tfstate.d/default/terraform.tfstate"
+	f, err := tf.OpenFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error opening state file %s: %s\nstderr:\n%s", path, err, stderr)
+	}
+	defer f.Close()
+
+	stateFile, err := statefile.Read(f)
+	if err != nil {
+		t.Fatalf("unexpected error reading statefile %s: %s\nstderr:\n%s", path, err, stderr)
+	}
+
+	r := stateFile.State.RootModule().Resources
+	if len(r) != 1 {
+		t.Fatalf("expected state to include one resource, but got %d", len(r))
+	}
+	if _, ok := r["terraform_data.my-data"]; !ok {
+		t.Fatalf("expected state to include terraform_data.my-data but it's missing")
+	}
+}
+
+func TestPrimary_stateStore_inMem(t *testing.T) {
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	t.Setenv(e2e.TestExperimentFlag, "true")
+	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+
+	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-inmem")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	// In order to test integration with PSS we need a provider plugin implementing a state store.
+	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
+	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+
+	// Move the provider binaries into a directory that we will point terraform
+	// to using the -plugin-dir cli flag.
+	platform := getproviders.CurrentPlatform.String()
+	hashiDir := "cache/registry.terraform.io/hashicorp/"
+	if err := os.MkdirAll(tf.Path(hashiDir, "simple6/0.0.1/", platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+
+	//// INIT
+	//
+	// Note - the inmem PSS implementation means that the default workspace state created during init
+	// is lost as soon as the command completes.
+	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Terraform created an empty state file for the default workspace") {
+		t.Errorf("notice about creating the default workspace is missing from init output:\n%s", stdout)
+	}
+
+	//// PLAN
+	// No separate plan step; this test lets the apply make a plan.
+
+	//// APPLY
+	//
+	// Note - the inmem PSS implementation means that writing to the default workspace during apply
+	// is creating the default state file for the first time.
+	stdout, stderr, err = tf.Run("apply", "-auto-approve", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
+	}
+
+	// We cannot inspect state or perform a destroy here, as the state isn't persisted between steps
+	// when we use the simple6_inmem state store.
 }

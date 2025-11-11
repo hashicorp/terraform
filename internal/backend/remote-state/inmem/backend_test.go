@@ -65,7 +65,7 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateLocks(t, b1, b2)
 }
 
-// use the this backen to test the remote.State implementation
+// use this backend to test the remote.State implementation
 func TestRemoteState(t *testing.T) {
 	defer Reset()
 	b := backend.TestBackendConfig(t, New(), hcl.EmptyBody())

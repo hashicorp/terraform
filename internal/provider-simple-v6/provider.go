@@ -5,6 +5,7 @@
 package simple
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -13,15 +14,48 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 type simple struct {
 	schema providers.GetProviderSchemaResponse
+
+	inMem *InMemStoreSingle
+	fs    *FsStore
 }
 
+// Provider returns an instance of providers.Interface
 func Provider() providers.Interface {
+	return provider()
+}
+
+// ProviderWithDefaultState returns an instance of providers.Interface,
+// where the underlying simple struct has been changed to indicate that the
+// 'default' state has already been created as an empty state file.
+func ProviderWithDefaultState() providers.Interface {
+	// Get the empty state file as bytes
+	f := statefile.New(nil, "", 0)
+
+	var buf bytes.Buffer
+	err := statefile.Write(f, &buf)
+	if err != nil {
+		panic(err)
+	}
+	emptyStateBytes := buf.Bytes()
+
+	p := provider()
+
+	p.inMem.states.m = make(map[string][]byte, 1)
+	p.inMem.states.m[backend.DefaultStateName] = emptyStateBytes
+
+	return p
+}
+
+// provider returns an instance of simple
+func provider() simple {
 	simpleResource := providers.Schema{
 		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
@@ -46,7 +80,7 @@ func Provider() providers.Interface {
 		},
 	}
 
-	return simple{
+	provider := simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Body: &configschema.Block{
@@ -75,6 +109,10 @@ func Provider() providers.Interface {
 				},
 			},
 			Actions: map[string]providers.ActionSchema{},
+			StateStores: map[string]providers.Schema{
+				inMemStoreName: stateStoreInMemGetSchema(), // simple6_inmem
+				fsStoreName:    stateStoreFsGetSchema(),    // simple6_fs
+			},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy:               true,
 				GetProviderSchemaOptional: true,
@@ -97,7 +135,13 @@ func Provider() providers.Interface {
 				},
 			},
 		},
+
+		// the "default" state doesn't exist by default here; needs explicit creation via init command
+		inMem: &InMemStoreSingle{},
+		fs:    &FsStore{},
 	}
+
+	return provider
 }
 
 func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
@@ -310,35 +354,107 @@ func (s simple) ListResource(req providers.ListResourceRequest) (resp providers.
 }
 
 func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
-	panic("not implemented")
+	if req.TypeName == inMemStoreName {
+		return s.inMem.ValidateStateStoreConfig(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.ValidateStateStoreConfig(req)
+	}
+
+	var resp providers.ValidateStateStoreConfigResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	panic("not implemented")
+	if req.TypeName == inMemStoreName {
+		return s.inMem.ConfigureStateStore(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.ConfigureStateStore(req)
+	}
+
+	var resp providers.ConfigureStateStoreResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 func (s simple) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	panic("not implemented")
+	if req.TypeName == inMemStoreName {
+		return s.inMem.ReadStateBytes(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.ReadStateBytes(req)
+	}
+
+	var resp providers.ReadStateBytesResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 func (s simple) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	panic("not implemented")
+	if req.TypeName == inMemStoreName {
+		return s.inMem.WriteStateBytes(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.WriteStateBytes(req)
+	}
+
+	var resp providers.WriteStateBytesResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 func (s simple) LockState(req providers.LockStateRequest) providers.LockStateResponse {
-	panic("not implemented")
+	if req.TypeName == inMemStoreName {
+		return s.inMem.LockState(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.LockState(req)
+	}
+
+	var resp providers.LockStateResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 func (s simple) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
-	panic("not implemented")
+	if req.TypeName == inMemStoreName {
+		return s.inMem.UnlockState(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.UnlockState(req)
+	}
+
+	var resp providers.UnlockStateResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
-	panic("not implemented")
+	if req.TypeName == inMemStoreName {
+		return s.inMem.GetStates(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.GetStates(req)
+	}
+
+	var resp providers.GetStatesResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
-	panic("not implemented")
+	if req.TypeName == inMemStoreName {
+		return s.inMem.DeleteState(req)
+	}
+	if req.TypeName == fsStoreName {
+		return s.fs.DeleteState(req)
+	}
+
+	var resp providers.DeleteStateResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	return resp
 }
 
 func (s simple) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {

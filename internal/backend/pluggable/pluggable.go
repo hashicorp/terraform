@@ -105,6 +105,9 @@ func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
 	req := providers.ConfigureStateStoreRequest{
 		TypeName: p.typeName,
 		Config:   config,
+		Capabilities: providers.StateStoreClientCapabilities{
+			ChunkSize: DefaultStateStoreChunkSize,
+		},
 	}
 	resp := p.provider.ConfigureStateStore(req)
 	return resp.Diagnostics
