@@ -234,11 +234,7 @@ func TestPrimaryChdirOption(t *testing.T) {
 	}
 }
 
-// Requires TF_TEST_EXPERIMENTS to be set in the environment
 func TestPrimary_stateStore(t *testing.T) {
-	if v := os.Getenv("TF_TEST_EXPERIMENTS"); v == "" {
-		t.Skip("can't run without enabling experiments in the executable terraform binary, enable with TF_TEST_EXPERIMENTS=1")
-	}
 
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
@@ -248,9 +244,12 @@ func TestPrimary_stateStore(t *testing.T) {
 		// (See the comment on canRunGoBuild's declaration for more information.)
 		t.Skip("can't run without building a new provider executable")
 	}
-	t.Parallel()
 
-	tf := e2e.NewBinary(t, terraformBin, "testdata/full-workflow-with-state-store-fs")
+	t.Setenv(e2e.TestExperimentFlag, "true")
+	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+
+	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
 	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
@@ -313,12 +312,7 @@ func TestPrimary_stateStore(t *testing.T) {
 	}
 }
 
-// Requires TF_TEST_EXPERIMENTS to be set in the environment
 func TestPrimary_stateStore_inMem(t *testing.T) {
-	if v := os.Getenv("TF_TEST_EXPERIMENTS"); v == "" {
-		t.Skip("can't run without enabling experiments in the executable terraform binary, enable with TF_TEST_EXPERIMENTS=1")
-	}
-
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -327,9 +321,12 @@ func TestPrimary_stateStore_inMem(t *testing.T) {
 		// (See the comment on canRunGoBuild's declaration for more information.)
 		t.Skip("can't run without building a new provider executable")
 	}
-	t.Parallel()
 
-	tf := e2e.NewBinary(t, terraformBin, "testdata/full-workflow-with-state-store-inmem")
+	t.Setenv(e2e.TestExperimentFlag, "true")
+	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+
+	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-inmem")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
 	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
