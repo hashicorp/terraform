@@ -170,12 +170,9 @@ func (f *FsStore) ReadStateBytes(req providers.ReadStateBytesRequest) providers.
 	// E.g. terraform.tfstate.d/foobar/terraform.tfstate
 	path := f.getStatePath(req.StateId)
 	file, err := os.Open(path)
-	fileExists := true
 
 	if err != nil {
-		if _, ok := err.(*os.PathError); ok {
-			fileExists = false
-		} else {
+		if _, ok := err.(*os.PathError); !ok {
 			// Error other than the file not existing
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("error opening state file %q: %w", path, err))
 			return resp
@@ -185,20 +182,19 @@ func (f *FsStore) ReadStateBytes(req providers.ReadStateBytesRequest) providers.
 
 	buf := bytes.Buffer{}
 	var processedBytes int
-	if fileExists {
-		for {
-			b := make([]byte, f.chunkSize)
-			n, err := file.Read(b)
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("error reading from state file %q: %w", path, err))
-				return resp
-			}
-			buf.Write(b[0:n])
-			processedBytes += n
+
+	for {
+		b := make([]byte, f.chunkSize)
+		n, err := file.Read(b)
+		if err == io.EOF {
+			break
 		}
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("error reading from state file %q: %w", path, err))
+			return resp
+		}
+		buf.Write(b[0:n])
+		processedBytes += n
 	}
 	log.Printf("[DEBUG] ReadStateBytes: read %d bytes of data from state file %q", processedBytes, path)
 
