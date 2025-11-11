@@ -14,7 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// No testing of locking with 2 clients, as locking isn't fully implemented.
+// TODO: Testing of locking with 2 clients once locking is fully implemented.
 
 func TestFsStoreRemoteState(t *testing.T) {
 	td := t.TempDir()
