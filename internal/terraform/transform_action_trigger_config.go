@@ -141,7 +141,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					},
 				}
 
-				// If CreateNodesAsAfter is set we want all nodes to run after the resource
+				// If we are in plan mode, all actions run after the resource is planned.
 				// If not we want expansion nodes only to exist if they are being used
 				if !createNodesAsAfter && containsBeforeEvent {
 					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingBefore)

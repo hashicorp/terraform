@@ -6,12 +6,14 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -222,6 +224,10 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
+	// find actions for this resource
+	actions := ctx.Changes().GetActionsByResourceInstance(n.Addr)
+	beforeActions, afterActions := sortAndOrderActions(actions)
+
 	// We don't want to do any destroys
 	// (these are handled by NodeDestroyResourceInstance instead)
 	if diffApply == nil || diffApply.Action == plans.Delete {
@@ -308,6 +314,14 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
 	}
 
+	// Re-evaluate the condition and trigger any before_* actions
+	actionDiags := n.applyActions(ctx, beforeActions)
+	diags = diags.Append(actionDiags)
+	if diags.HasErrors() {
+		// quit if any before action failed
+		return diags
+	}
+
 	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
 
 	diags = diags.Append(applyDiags)
@@ -379,6 +393,14 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 	diags = diags.Append(updateStateHook(ctx))
+
+	// now run the after actions
+	actionDiags = n.applyActions(ctx, afterActions)
+	diags = diags.Append(actionDiags)
+	if diags.HasErrors() {
+		// quit if any before action failed
+		return diags
+	}
 
 	// Post-conditions might block further progress. We intentionally do this
 	// _after_ writing the state because we want to check against
@@ -490,4 +512,237 @@ func maybeTainted(addr addrs.AbsResourceInstance, state *states.ResourceInstance
 		return state.AsTainted()
 	}
 	return state
+}
+
+func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions map[int]actionInvocationInstances) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	// for each action_trigger block
+	for i := 0; i < len(actions); i++ {
+		// for each action
+		for j := 0; j < len(actions[i]); j++ {
+			// evaluate condition again
+			triggerConfig := n.Config.Managed.ActionTriggers[i]
+			if triggerConfig == nil {
+				panic("well at least you didn't expect that to work")
+			}
+			ai := actions[i][j]
+			at := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+			if triggerConfig.Condition != nil {
+				condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
+					// For applying the triggering event is sufficient, if the condition could not have
+					// been evaluated due to in invalid mix of events we would have caught it during planning.
+					events:          []configs.ActionTriggerEvent{at.ActionTriggerEvent},
+					conditionExpr:   triggerConfig.Condition,
+					resourceAddress: at.TriggeringResourceAddr,
+				})
+				diags = diags.Append(conditionDiags)
+				if diags.HasErrors() {
+					return diags
+				}
+
+				if !condition {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Condition changed evaluation during apply",
+						Detail:   "The condition evaluated to false during apply, but was true during planning. This may lead to unexpected behavior.",
+						Subject:  triggerConfig.Condition.Range().Ptr(),
+					})
+				}
+			}
+
+			actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Action instance not found",
+					Detail:   "Could not find action instance for address " + ai.Addr.String(),
+					//Subject:
+				})
+				return diags
+			}
+			provider, schema, err := getProvider(ctx, actionData.ProviderAddr)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Failed to get provider for %s", ai.Addr),
+					Detail:   fmt.Sprintf("Failed to get provider: %s", err),
+					//Subject:  n.ActionTriggerRange,
+				})
+				return diags
+			}
+
+			actionSchema, ok := schema.Actions[ai.Addr.Action.Action.Type]
+			if !ok {
+				// This should have been caught earlier
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Action %s not found in provider schema", ai.Addr),
+					Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", ai.Addr.Action.Action.Type, actionData.ProviderAddr),
+					//Subject:  n.ActionTriggerRange,
+				})
+				return diags
+			}
+
+			configValue := actionData.ConfigValue
+
+			// Validate that what we planned matches the action data we have.
+			errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configValue))
+			for _, err := range errs {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provider produced inconsistent final plan",
+					Detail: fmt.Sprintf("When expanding the plan for %s to include new values learned so far during apply, Terraform produced an invalid new value for %s.\n\nThis is a bug in Terraform, which should be reported.",
+						ai.Addr, tfdiags.FormatError(err)),
+					//Subject: n.ActionTriggerRange,
+				})
+			}
+
+			if !configValue.IsWhollyKnown() {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Action configuration unknown during apply",
+					Detail:   fmt.Sprintf("The action %s was not fully known during apply.\n\nThis is a bug in Terraform, please report it.", ai.Addr.Action.String()),
+					//Subject:  n.ActionTriggerRange,
+				})
+			}
+
+			hookIdentity := HookActionIdentity{
+				Addr:          ai.Addr,
+				ActionTrigger: ai.ActionTrigger,
+			}
+
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.StartAction(hookIdentity)
+			}))
+			if diags.HasErrors() {
+				return diags
+			}
+
+			// We don't want to send the marks, but all marks are okay in the context
+			// of an action invocation. We can't reuse our ephemeral free value from
+			// above because we want the ephemeral values to be included.
+			unmarkedConfigValue, _ := configValue.UnmarkDeep()
+			resp := provider.InvokeAction(providers.InvokeActionRequest{
+				ActionType:         ai.Addr.Action.Action.Type,
+				PlannedActionData:  unmarkedConfigValue,
+				ClientCapabilities: ctx.ClientCapabilities(),
+			})
+
+			//respDiags := n.AddSubjectToDiagnostics(resp.Diagnostics)
+			respDiags := resp.Diagnostics
+			diags = diags.Append(respDiags)
+			if respDiags.HasErrors() {
+				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.CompleteAction(hookIdentity, respDiags.Err())
+				}))
+				return diags
+			}
+
+			if resp.Events != nil { // should only occur in misconfigured tests
+				for event := range resp.Events {
+					switch ev := event.(type) {
+					case providers.InvokeActionEvent_Progress:
+						diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+							return h.ProgressAction(hookIdentity, ev.Message)
+						}))
+						if diags.HasErrors() {
+							return diags
+						}
+					case providers.InvokeActionEvent_Completed:
+						// Enhance the diagnostics
+						//diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
+						diags = diags.Append(ev.Diagnostics)
+						diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+							return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
+						}))
+						if ev.Diagnostics.HasErrors() {
+							return diags
+						}
+						if diags.HasErrors() {
+							return diags
+						}
+					default:
+						panic(fmt.Sprintf("unexpected action event type %T", ev))
+					}
+				}
+			} else {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provider return invalid response",
+					Detail:   "Provider response did not include any events",
+					//Subject:  n.ActionTriggerRange,
+				})
+			}
+		}
+	}
+	return diags
+}
+
+// sortAndOrderActions iterates through actions planned for this resource and returns two slices, with before and after actions.
+func sortAndOrderActions(actions []*plans.ActionInvocationInstance) (map[int]actionInvocationInstances, map[int]actionInvocationInstances) {
+	var before, after []*plans.ActionInvocationInstance
+	// sort into before and after actions
+	for _, a := range actions {
+		trigger, ok := a.ActionTrigger.(*plans.LifecycleActionTrigger)
+		if !ok {
+			panic("this action does not belong here") // this should not be possible
+		}
+
+		if isBeforeAction(trigger) {
+			before = append(before, a)
+		} else {
+			after = append(after, a)
+		}
+	}
+	return orderActions(before), orderActions(after)
+}
+
+// I'm sure there's a cleaner way to write this; the type switch is throwing me off.
+// we can't just use the action index, because there could be multiple action_trigger blocks
+// which also need to be in order
+func orderActions(actions []*plans.ActionInvocationInstance) map[int]actionInvocationInstances {
+	sorted := make(map[int]actionInvocationInstances)
+	seenTriggers := make([]int, 0) // for sorting the map by keys
+
+	for _, actionInstance := range actions {
+		trigger, ok := actionInstance.ActionTrigger.(*plans.LifecycleActionTrigger)
+		if !ok {
+			panic("this action does not belong here") // this should not be possible
+		}
+		if _, ok := sorted[trigger.ActionTriggerBlockIndex]; !ok {
+			seenTriggers = append(seenTriggers, trigger.ActionTriggerBlockIndex)
+			sorted[trigger.ActionTriggerBlockIndex] = make(actionInvocationInstances, 0)
+		}
+		sorted[trigger.ActionTriggerBlockIndex] = append(sorted[trigger.ActionTriggerBlockIndex], actionInstance)
+	}
+
+	sort.Ints(seenTriggers)
+
+	for _, k := range seenTriggers {
+		// sort the actions by actionListIndex
+		sort.Sort(sorted[k])
+	}
+
+	return sorted
+}
+
+func isBeforeAction(a *plans.LifecycleActionTrigger) bool {
+	switch a.ActionTriggerEvent {
+	case configs.BeforeCreate, configs.BeforeUpdate:
+		return true
+	case configs.AfterCreate, configs.AfterUpdate:
+		return false
+	default: // this should be impossible: did you implement destroy and forget me?
+		panic("unknown action event")
+	}
+}
+
+type actionInvocationInstances []*plans.ActionInvocationInstance
+
+func (o actionInvocationInstances) Len() int      { return len(o) }
+func (o actionInvocationInstances) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
+func (o actionInvocationInstances) Less(i, j int) bool {
+	itrigger, _ := o[i].ActionTrigger.(*plans.LifecycleActionTrigger)
+	jtrigger, _ := o[j].ActionTrigger.(*plans.LifecycleActionTrigger)
+	return itrigger.ActionsListIndex < jtrigger.ActionsListIndex
 }

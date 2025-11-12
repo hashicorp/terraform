@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -103,13 +104,13 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	var diags tfdiags.Diagnostics
 
 	// To start, we'll collect the _requested_ provider addresses for each
-	// node, which we'll then resolve (handling provider inheritence, etc) in
+	// node, which we'll then resolve (handling provider inheritance, etc) in
 	// the next step.
 	// Our "requested" map is from graph vertices to string representations of
 	// provider config addresses (for deduping) to requests.
 	type ProviderRequest struct {
 		Addr  addrs.AbsProviderConfig
-		Exact bool // If true, inheritence from parent modules is not attempted
+		Exact bool // If true, inheritance from parent modules is not attempted
 	}
 	requested := map[dag.Vertex]map[string]ProviderRequest{}
 	needConfigured := map[string]addrs.AbsProviderConfig{}

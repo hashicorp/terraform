@@ -123,6 +123,13 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	concreteAction := func(node *nodeAbstractActionTriggerExpand, timing RelativeActionTiming) dag.Vertex {
+		return &nodeActionTriggerApplyExpand{
+			nodeAbstractActionTriggerExpand: node,
+			relativeTiming:                  timing,
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config. During apply,
 		// we use this just to ensure that the whole-resource metadata is
@@ -163,17 +170,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		&ActionTriggerConfigTransformer{
-			Config:        b.Config,
-			Operation:     b.Operation,
-			ActionTargets: b.ActionTargets,
-
-			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, timing RelativeActionTiming) dag.Vertex {
-				return &nodeActionTriggerApplyExpand{
-					nodeAbstractActionTriggerExpand: node,
-
-					relativeTiming: timing,
-				}
-			},
+			Config:                        b.Config,
+			Operation:                     b.Operation,
+			ActionTargets:                 b.ActionTargets,
+			ConcreteActionTriggerNodeFunc: concreteAction,
 		},
 
 		&ActionInvokeApplyTransformer{
@@ -181,11 +181,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Operation:     b.Operation,
 			ActionTargets: b.ActionTargets,
 			Changes:       b.Changes,
-		},
-
-		&ActionDiffTransformer{
-			Changes: b.Changes,
-			Config:  b.Config,
 		},
 
 		// Creates nodes for all the deferred changes.

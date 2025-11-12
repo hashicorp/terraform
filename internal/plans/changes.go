@@ -263,8 +263,8 @@ func (c *Changes) SyncWrapper() *ChangesSync {
 	}
 }
 
-// ActionInvocations returns planned action invocations for all module instances
-// that reside in the parent path.  Returns nil if no changes are planned.
+// ActionInstances returns planned action invocations for all module instances
+// that reside in the parent path.  Returns nil if no actions are planned.
 func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.ModuleCall) []*ActionInvocationInstance {
 	var ret []*ActionInvocationInstance
 
@@ -281,6 +281,23 @@ func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.Modu
 		}
 
 		ret = append(ret, a)
+	}
+
+	return ret
+}
+
+// ActionsByResourceInstance returns planned action invocation for the given
+// AbsResourceInstance. Returns an empty list if no actions are planned.
+func (c *Changes) ActionsByResourceInstance(addr addrs.AbsResourceInstance) []*ActionInvocationInstance {
+	var ret []*ActionInvocationInstance
+
+	for _, a := range c.ActionInvocations {
+		switch a.ActionTrigger.(type) {
+		case *LifecycleActionTrigger: // only check the resource lifecycle actions, not invoked actions
+			if a.ActionTrigger.(*LifecycleActionTrigger).TriggeringResourceAddr.Equal(addr) {
+				ret = append(ret, a)
+			}
+		}
 	}
 
 	return ret
