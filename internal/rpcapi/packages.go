@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/apparentlymart/go-versions/versions"
+	regaddrs "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform-svchost/disco"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -248,6 +249,92 @@ func (p *packagesServer) FetchModulePackage(ctx context.Context, request *packag
 		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
 			Severity: terraform1.Diagnostic_ERROR,
 			Summary:  "Failed to download module package",
+			Detail:   fmt.Sprintf("Could not download provider from %s: %s.", request.Url, err),
+		})
+		return response, nil
+	}
+
+	return response, nil
+}
+
+// TODO: finish impl
+func (p *packagesServer) ComponentPackageVersions(ctx context.Context, request *packages.ComponentPackageVersions_Request) (*packages.ComponentPackageVersions_Response, error) {
+	response := new(packages.ComponentPackageVersions_Response)
+	compAddrs, err := regaddrs.ParseComponentSource(request.SourceAddr)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
+			Severity: terraform1.Diagnostic_ERROR,
+			Summary:  "Invalid component source",
+			Detail:   fmt.Sprintf("Component source %s is invalid: %s.", request.SourceAddr, err),
+		})
+		return response, nil
+	}
+
+	client := registry.NewClient(p.services, nil)
+	pkgVersionsRes, err := client.ComponentPackageVersions(ctx, compAddrs.Package)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
+			Severity: terraform1.Diagnostic_ERROR,
+			Summary:  "Failed to query available component packages",
+			Detail:   fmt.Sprintf("Could not retrieve the list of available modules for module %s: %s.", compAddrs.ForDisplay(), err),
+		})
+	}
+
+	for _, comp := range pkgVersionsRes.Versions {
+		response.Versions = append(response.Versions, comp.Version.String())
+	}
+
+	return response, nil
+}
+
+// TODO: finish impl
+func (p *packagesServer) ComponentPackageSourceAddr(ctx context.Context, request *packages.ComponentPackageSourceAddr_Request) (*packages.ComponentPackageSourceAddr_Response, error) {
+	response := new(packages.ComponentPackageSourceAddr_Response)
+
+	comp, err := regaddrs.ParseComponentSource(request.SourceAddr)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
+			Severity: terraform1.Diagnostic_ERROR,
+			Summary:  "Invalid Component Sources",
+			Detail:   fmt.Sprintf("Component source %s is invalid: %s", request.SourceAddr, err),
+		})
+		return response, err
+	}
+
+	version, err := versions.ParseVersion(request.Version)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
+			Severity: terraform1.Diagnostic_ERROR,
+			Summary:  "Invalid Component Version",
+			Detail:   fmt.Sprintf("Component version %s is invalid: %s", request.Version, err),
+		})
+	}
+
+	client := registry.NewClient(p.services, nil)
+	compPkgRes, err := client.ComponentPackageSourceAddr(ctx, comp.Package, version)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
+			Severity: terraform1.Diagnostic_ERROR,
+			Summary:  "Failed to query component package metadata",
+			Detail:   fmt.Sprintf("Could not retrieve package metadata for provider %s at %s: %s", comp.ForDisplay(), request.Version, err),
+		})
+		return response, nil
+	}
+
+	response.Url = compPkgRes.SourceAddr.String()
+
+	return response, nil
+}
+
+// TODO: finish impl
+func (p *packagesServer) FetchComponentPackage(ctx context.Context, request *packages.FetchComponentPackage_Request) (*packages.FetchComponentPackage_Response, error) {
+	response := new(packages.FetchComponentPackage_Response)
+
+	fetcher := getmodules.NewPackageFetcher()
+	if err := fetcher.FetchPackage(ctx, request.CacheDir, request.Url); err != nil {
+		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
+			Severity: terraform1.Diagnostic_ERROR,
+			Summary:  "Failed to download component package",
 			Detail:   fmt.Sprintf("Could not download provider from %s: %s.", request.Url, err),
 		})
 		return response, nil
