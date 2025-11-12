@@ -348,5 +348,5 @@ greeting = "hello world"
 		t.Errorf("wrong result, diff:\n%s", diff)
 	}
 
-	// TODO: Show plan file: terraform show <path to plan file>
+	// TODO(SarahFrench/radeksimko): Show plan file: terraform show <path to plan file>
 }
