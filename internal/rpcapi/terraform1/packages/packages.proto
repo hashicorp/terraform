@@ -16,18 +16,28 @@ import "terraform1.proto";
 //  currently experimental. It can be changed and removed without warning, even
 // in patch releases.
 service Packages {
-  rpc ProviderPackageVersions(ProviderPackageVersions.Request) returns (ProviderPackageVersions.Response);
-  rpc FetchProviderPackage(FetchProviderPackage.Request) returns (FetchProviderPackage.Response);
+  rpc ProviderPackageVersions(ProviderPackageVersions.Request)
+      returns (ProviderPackageVersions.Response);
+  rpc FetchProviderPackage(FetchProviderPackage.Request)
+      returns (FetchProviderPackage.Response);
 
-  rpc ModulePackageVersions(ModulePackageVersions.Request) returns (ModulePackageVersions.Response);
-  rpc ModulePackageSourceAddr(ModulePackageSourceAddr.Request) returns (ModulePackageSourceAddr.Response);
-  rpc FetchModulePackage(FetchModulePackage.Request) returns (FetchModulePackage.Response);
+  rpc ModulePackageVersions(ModulePackageVersions.Request)
+      returns (ModulePackageVersions.Response);
+  rpc ModulePackageSourceAddr(ModulePackageSourceAddr.Request)
+      returns (ModulePackageSourceAddr.Response);
+  rpc FetchModulePackage(FetchModulePackage.Request)
+      returns (FetchModulePackage.Response);
+
+  rpc ComponentPackageVersions(ComponentPackageVersions.Request)
+      returns (ComponentPackageVersions.Response);
+  rpc ComponentPackageSourceAddr(ComponentPackageSourceAddr.Request)
+      returns (ComponentPackageSourceAddr.Response);
+  rpc FetchComponentPackage(FetchComponentPackage.Request)
+      returns (FetchComponentPackage.Response);
 }
 
 message ProviderPackageVersions {
-  message Request {
-    string source_addr = 1;
-  }
+  message Request { string source_addr = 1; }
   message Response {
     repeated string versions = 1;
     repeated terraform1.Diagnostic diagnostics = 2;
@@ -59,9 +69,7 @@ message FetchProviderPackage {
 }
 
 message ModulePackageVersions {
-  message Request {
-    string source_addr = 2;
-  }
+  message Request { string source_addr = 2; }
   message Response {
     repeated string versions = 1;
     repeated terraform1.Diagnostic diagnostics = 2;
@@ -85,7 +93,32 @@ message FetchModulePackage {
 
     string url = 2;
   }
+  message Response { repeated terraform1.Diagnostic diagnostics = 1; }
+}
+
+message ComponentPackageVersions {
+  message Request { string source_addr = 2; }
   message Response {
-    repeated terraform1.Diagnostic diagnostics = 1;
+    repeated string versions = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
   }
+}
+
+message ComponentPackageSourceAddr {
+  message Request {
+    string source_addr = 1;
+    string version = 2;
+  }
+  message Response {
+    string url = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+message FetchComponentPackage {
+  message Request {
+    string cache_dir = 1;
+    string url = 2;
+  }
+  message Response { repeated terraform1.Diagnostic diagnostics = 1; }
 }
