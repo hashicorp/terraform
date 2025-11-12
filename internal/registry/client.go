@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,7 +18,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-retryablehttp"
+	sourceaddrs "github.com/hashicorp/go-slug/sourceaddrs"
+	sourcebundle "github.com/hashicorp/go-slug/sourcebundle"
+	regaddr "github.com/hashicorp/terraform-registry-address"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -32,6 +37,7 @@ const (
 	xTerraformVersion  = "X-Terraform-Version"
 	modulesServiceID   = "modules.v1"
 	providersServiceID = "providers.v1"
+	componentServiceID = "components.v3"
 
 	// registryDiscoveryRetryEnvName is the name of the environment variable that
 	// can be configured to customize number of retries for module and provider
@@ -270,6 +276,176 @@ func (c *Client) ModuleLocation(ctx context.Context, module *regsrc.Module, vers
 	}
 
 	return location, nil
+}
+
+// ComponentPackageVersions fetches all of the known exact versions
+// available for the given package in its component registry.
+func (c *Client) ComponentPackageVersions(ctx context.Context, pkgAddr regaddr.ComponentPackage) (sourcebundle.ComponentPackageVersionsResponse, error) {
+	var ret sourcebundle.ComponentPackageVersionsResponse
+	baseURL, err := c.registryComponentsBaseUrl(pkgAddr.Host)
+	if err != nil {
+		return ret, err
+	}
+
+	// Query: GET /v1/components/{namespace}/{name}/versions
+	reqURL := baseURL.JoinPath(
+		url.PathEscape(pkgAddr.Namespace),
+		url.PathEscape(pkgAddr.Name),
+		"versions",
+	)
+
+	req, err := retryablehttp.NewRequest("GET", reqURL.String(), nil)
+	if err != nil {
+		return ret, err
+	}
+
+	log.Print("[DEBUG] regURL=", reqURL.String())
+
+	c.addRequestCreds(pkgAddr.Host, req.Request)
+	req.Header.Set(xTerraformVersion, tfVersion)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return ret, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// OK
+	case http.StatusNotFound:
+		return ret, fmt.Errorf("component not found: %s", resp.Status)
+	default:
+		return ret, fmt.Errorf("error looking up component versions: %s", resp.Status)
+	}
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ret, fmt.Errorf("error reading registry response: %w", err)
+	}
+
+	type respVersion struct {
+		Version string `json:"version"`
+	}
+	type respComp struct {
+		Versions []respVersion `json:"versions"`
+	}
+	type respBody struct {
+		Components []respComp `json:"components"`
+	}
+	var body respBody
+	err = json.Unmarshal(raw, &body)
+	if err != nil {
+		return ret, fmt.Errorf("invalid registry response: %w", err)
+	}
+	if len(body.Components) < 1 {
+		return ret, fmt.Errorf("invalid registry response: no conmponent package")
+	}
+
+	vs := body.Components[0].Versions
+	if len(vs) == 0 {
+		return ret, nil
+	}
+
+	vvs := make([]sourcebundle.ComponentPackageInfo, len(vs))
+	for i, v := range vs {
+		version, err := versions.ParseVersion(v.Version)
+		if err != nil {
+			return ret, fmt.Errorf("PENIS invalid registry response: invalid version %q: %w", v.Version, err)
+		}
+		vvs[i] = sourcebundle.ComponentPackageInfo{
+			Version: version,
+		}
+	}
+	ret.Versions = vvs
+
+	return ret, nil
+}
+
+// ComponentPackageSourceAddr fetches the real remote source address for the
+// given version of the given component registry package.
+func (c *Client) ComponentPackageSourceAddr(ctx context.Context, pkgAddr regaddr.ComponentPackage, version versions.Version) (sourcebundle.ComponentPackageSourceAddrResponse, error) {
+	var ret sourcebundle.ComponentPackageSourceAddrResponse
+
+	baseURL, err := c.registryComponentsBaseUrl(pkgAddr.Host)
+	if err != nil {
+		return ret, err
+	}
+
+	reqURL := baseURL.JoinPath(
+		url.PathEscape(pkgAddr.Namespace),
+		url.PathEscape(pkgAddr.Name),
+		url.PathEscape(version.String()),
+		"download",
+	)
+
+	log.Print("[DEBUG] regURL=", reqURL.String())
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
+	if err != nil {
+		return ret, fmt.Errorf("invalid request: %w", err)
+	}
+
+	c.addRequestCreds(pkgAddr.Host, req.Request)
+	req.Header.Set(xTerraformVersion, tfVersion)
+
+	// req = req.WithContext(ctx)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return ret, err
+	}
+	defer resp.Body.Close()
+
+	// there should be no body, but save it for logging
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return ret, fmt.Errorf("error reading response body from registry: %s", err)
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusNoContent:
+		// OK
+	case http.StatusNotFound:
+		return ret, fmt.Errorf("module %q version %q not found", pkgAddr, version)
+	default:
+		// anything else is an error:
+		return ret, fmt.Errorf("error getting download location for %q: %s resp:%s", pkgAddr, resp.Status, body)
+	}
+
+	location := resp.Header.Get("x-terraform-get")
+	if location == "" {
+		return ret, fmt.Errorf("failed to get download URL for %s %s", pkgAddr, version)
+	}
+
+	if strings.HasPrefix(location, "/") || strings.HasPrefix(location, "./") || strings.HasPrefix(location, "../") {
+		locationURL, err := url.Parse(location)
+		if err != nil {
+			return ret, fmt.Errorf("invalid relative URL for %s: %s", pkgAddr, err)
+		}
+		locationURL = resp.Request.URL.ResolveReference(locationURL)
+		location = locationURL.String()
+	}
+
+	srcAddr, err := sourceaddrs.ParseRemoteSource(location)
+	if err != nil {
+		return ret, fmt.Errorf("invalid source address %q for %s: %s", location, pkgAddr, err)
+	}
+	ret.SourceAddr = srcAddr
+
+	return ret, nil
+}
+
+func (c *Client) registryComponentsBaseUrl(hostname svchost.Hostname) (*url.URL, error) {
+	services, err := c.services.Discover(hostname)
+	if err != nil {
+		return nil, fmt.Errorf("service discovery failed for %s: %w", hostname.ForDisplay(), err)
+	}
+	base, err := services.ServiceURL("components.v3")
+	if err != nil {
+		return nil, fmt.Errorf("service discovery failed for %s: %w", hostname.ForDisplay(), err)
+	}
+	return base, nil
 }
 
 // configureDiscoveryRetry configures the number of retries the registry client

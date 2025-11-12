@@ -345,6 +345,23 @@ func resolveFinalSourceAddr(base sourceaddrs.FinalSource, rel sourceaddrs.Source
 	switch rel := rel.(type) {
 	case sourceaddrs.FinalSource:
 		switch base := base.(type) {
+		case sourceaddrs.ComponentSourceFinal:
+			ret, err := sourceaddrs.ResolveRelativeFinalSource(base, rel)
+			if err == nil {
+				return ret, nil
+			}
+
+			// If we can't resolve relative to the registry source then
+			// we need to resolve relative to its underlying remote source
+			// instead.
+			underlyingSource, ok := sources.ComponentPackageSourceAddr(base.Package(), base.SelectedVersion())
+			if !ok {
+				// If we also can't find the underlying source for some reason
+				// then we're stuck.
+				return nil, fmt.Errorf("can't find underlying source address for %s", base.Package())
+			}
+			underlyingSource = base.FinalSourceAddr(underlyingSource)
+			return sourceaddrs.ResolveRelativeFinalSource(underlyingSource, rel)
 		case sourceaddrs.RegistrySourceFinal:
 			// This case is awkward because we'd ideally like to return
 			// another registry source address in the same registry package
@@ -382,6 +399,18 @@ func resolveFinalSourceAddr(base sourceaddrs.FinalSource, rel sourceaddrs.Source
 		// that meets the given constraints.
 		allowedVersions := versions.MeetingConstraints(versionConstraints)
 		availableVersions := sources.RegistryPackageVersions(rel.Package())
+		selectedVersion := availableVersions.NewestInSet(allowedVersions)
+		if selectedVersion == versions.Unspecified {
+			// We should get here only if the source bundle was built
+			// incorrectly. A valid source bundle should always contain
+			// at least one entry that matches each version constraint.
+			return nil, fmt.Errorf("no cached versions of %s match the given version constraints", rel.Package())
+		}
+		finalRel := rel.Versioned(selectedVersion)
+		return sourceaddrs.ResolveRelativeFinalSource(base, finalRel)
+	case sourceaddrs.ComponentSource:
+		allowedVersions := versions.MeetingConstraints(versionConstraints)
+		availableVersions := sources.ComponentPackageVersions(rel.Package())
 		selectedVersion := availableVersions.NewestInSet(allowedVersions)
 		if selectedVersion == versions.Unspecified {
 			// We should get here only if the source bundle was built
