@@ -52,6 +52,10 @@ type Component struct {
 	// that have changes that are deferred to a later plan and apply cycle.
 	DeferredResourceInstanceChanges addrs.Map[addrs.AbsResourceInstanceObject, *plans.DeferredResourceInstanceChangeSrc]
 
+	// ActionInvocations is a set of planned action invocations for this
+	// component.
+	ActionInvocations addrs.Map[addrs.AbsActionInstance, *plans.ActionInvocationInstanceSrc]
+
 	// PlanTimestamp is the time Terraform Core recorded as the single "plan
 	// timestamp", which is used only for the result of the "plantimestamp"
 	// function during apply and must not be used for any other purpose.
