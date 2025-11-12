@@ -257,7 +257,7 @@ func (p *packagesServer) FetchModulePackage(ctx context.Context, request *packag
 	return response, nil
 }
 
-// TODO: finish impl
+// NOTE: Might need to remove this as components.v3 does not have a /versions endpoint
 func (p *packagesServer) ComponentPackageVersions(ctx context.Context, request *packages.ComponentPackageVersions_Request) (*packages.ComponentPackageVersions_Response, error) {
 	response := new(packages.ComponentPackageVersions_Response)
 	compAddrs, err := regaddrs.ParseComponentSource(request.SourceAddr)
@@ -287,7 +287,6 @@ func (p *packagesServer) ComponentPackageVersions(ctx context.Context, request *
 	return response, nil
 }
 
-// TODO: finish impl
 func (p *packagesServer) ComponentPackageSourceAddr(ctx context.Context, request *packages.ComponentPackageSourceAddr_Request) (*packages.ComponentPackageSourceAddr_Response, error) {
 	response := new(packages.ComponentPackageSourceAddr_Response)
 
@@ -326,7 +325,6 @@ func (p *packagesServer) ComponentPackageSourceAddr(ctx context.Context, request
 	return response, nil
 }
 
-// TODO: finish impl
 func (p *packagesServer) FetchComponentPackage(ctx context.Context, request *packages.FetchComponentPackage_Request) (*packages.FetchComponentPackage_Response, error) {
 	response := new(packages.FetchComponentPackage_Response)
 
