@@ -73,7 +73,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.42.0
-	golang.org/x/mod v0.27.0
+	golang.org/x/mod v0.28.0
 	golang.org/x/net v0.44.0
 	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sys v0.36.0
@@ -330,3 +330,5 @@ tool (
 	golang.org/x/tools/cmd/stringer
 	honnef.co/go/tools/cmd/staticcheck
 )
+
+replace github.com/hashicorp/go-slug => github.com/hashicorp/go-slug v0.17.2-0.20251112070849-b0735d70afe1
