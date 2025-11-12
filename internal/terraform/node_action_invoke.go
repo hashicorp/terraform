@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -197,4 +198,200 @@ func (n *nodeActionInvokeInstance) Execute(ctx EvalContext, _ walkOperation) tfd
 
 	ctx.Changes().AppendActionInvocation(&ai)
 	return diags
+}
+
+type nodeActionInvokeApplyInstance struct {
+	ActionInvocation *plans.ActionInvocationInstanceSrc
+	resolvedProvider addrs.AbsProviderConfig
+}
+
+var (
+	_ GraphNodeExecutable       = (*nodeActionInvokeApplyInstance)(nil)
+	_ GraphNodeReferencer       = (*nodeActionInvokeApplyInstance)(nil)
+	_ GraphNodeProviderConsumer = (*nodeActionInvokeApplyInstance)(nil)
+	_ GraphNodeModulePath       = (*nodeActionInvokeApplyInstance)(nil)
+)
+
+func (n *nodeActionInvokeApplyInstance) Name() string {
+	return n.ActionInvocation.Addr.String() + " (instance)"
+}
+
+func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	actionInvocation := n.ActionInvocation
+
+	ai := ctx.Changes().GetActionInvocation(actionInvocation.Addr, actionInvocation.ActionTrigger)
+	if ai == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action invocation not found in plan",
+			Detail:   "Could not find action invocation for address " + actionInvocation.Addr.String(),
+		})
+		return diags
+	}
+	actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
+	if !ok {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action instance not found",
+			Detail:   "Could not find action instance for address " + ai.Addr.String(),
+		})
+		return diags
+	}
+	provider, schema, err := getProvider(ctx, actionData.ProviderAddr)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Failed to get provider for %s", ai.Addr),
+			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
+		})
+		return diags
+	}
+
+	actionSchema, ok := schema.Actions[ai.Addr.Action.Action.Type]
+	if !ok {
+		// This should have been caught earlier
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Action %s not found in provider schema", ai.Addr),
+			Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", ai.Addr.Action.Action.Type, actionData.ProviderAddr),
+		})
+		return diags
+	}
+
+	configValue := actionData.ConfigValue
+
+	// Validate that what we planned matches the action data we have.
+	errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configValue))
+	for _, err := range errs {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider produced inconsistent final plan",
+			Detail: fmt.Sprintf("When expanding the plan for %s to include new values learned so far during apply, Terraform produced an invalid new value for %s.\n\nThis is a bug in Terraform, which should be reported.",
+				ai.Addr, tfdiags.FormatError(err)),
+		})
+	}
+
+	if !configValue.IsWhollyKnown() {
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action configuration unknown during apply",
+			Detail:   fmt.Sprintf("The action %s was not fully known during apply.\n\nThis is a bug in Terraform, please report it.", ai.Addr.Action.String()),
+		})
+	}
+
+	hookIdentity := HookActionIdentity{
+		Addr:          ai.Addr,
+		ActionTrigger: ai.ActionTrigger,
+	}
+
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.StartAction(hookIdentity)
+	}))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// We don't want to send the marks, but all marks are okay in the context
+	// of an action invocation. We can't reuse our ephemeral free value from
+	// above because we want the ephemeral values to be included.
+	unmarkedConfigValue, _ := configValue.UnmarkDeep()
+	resp := provider.InvokeAction(providers.InvokeActionRequest{
+		ActionType:         ai.Addr.Action.Action.Type,
+		PlannedActionData:  unmarkedConfigValue,
+		ClientCapabilities: ctx.ClientCapabilities(),
+	})
+
+	respDiags := n.AddSubjectToDiagnostics(resp.Diagnostics)
+	diags = diags.Append(respDiags)
+	if respDiags.HasErrors() {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.CompleteAction(hookIdentity, respDiags.Err())
+		}))
+		return diags
+	}
+
+	if resp.Events != nil { // should only occur in misconfigured tests
+		for event := range resp.Events {
+			switch ev := event.(type) {
+			case providers.InvokeActionEvent_Progress:
+				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.ProgressAction(hookIdentity, ev.Message)
+				}))
+				if diags.HasErrors() {
+					return diags
+				}
+			case providers.InvokeActionEvent_Completed:
+				// Enhance the diagnostics
+				diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
+				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
+				}))
+				if ev.Diagnostics.HasErrors() {
+					return diags
+				}
+				if diags.HasErrors() {
+					return diags
+				}
+			default:
+				panic(fmt.Sprintf("unexpected action event type %T", ev))
+			}
+		}
+	} else {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider return invalid response",
+			Detail:   "Provider response did not include any events",
+		})
+	}
+
+	return diags
+}
+
+// mildwonkey: how did this work for invoke/target?? just leave the range blank?
+// not sure if I should drop this or not.
+func (n *nodeActionInvokeApplyInstance) AddSubjectToDiagnostics(input tfdiags.Diagnostics) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if len(input) > 0 {
+		severity := hcl.DiagWarning
+		message := "Warning when invoking action"
+		err := input.Warnings().ErrWithWarnings()
+		if input.HasErrors() {
+			severity = hcl.DiagError
+			message = "Error when invoking action"
+			err = input.ErrWithWarnings()
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: severity,
+			Summary:  message,
+			Detail:   err.Error(),
+		})
+	}
+	return diags
+}
+
+func (n *nodeActionInvokeApplyInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+	return n.ActionInvocation.ProviderAddr, true
+
+}
+
+func (n *nodeActionInvokeApplyInstance) Provider() (provider addrs.Provider) {
+	return n.ActionInvocation.ProviderAddr.Provider
+}
+
+func (n *nodeActionInvokeApplyInstance) SetProvider(config addrs.AbsProviderConfig) {
+	n.resolvedProvider = config
+}
+
+func (n *nodeActionInvokeApplyInstance) References() []*addrs.Reference {
+	return []*addrs.Reference{{Subject: n.ActionInvocation.Addr.Action}}
+}
+
+func (n *nodeActionInvokeApplyInstance) ModulePath() addrs.Module {
+	return n.ActionInvocation.Addr.Module.Module()
+}
+
+func (n *nodeActionInvokeApplyInstance) Path() addrs.ModuleInstance {
+	return n.ActionInvocation.Addr.Module
 }

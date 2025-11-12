@@ -183,6 +183,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Changes:       b.Changes,
 		},
 
+		// action provider transformer?
+
 		// Creates nodes for all the deferred changes.
 		&DeferredTransformer{
 			DeferredChanges: b.DeferredChanges,

@@ -293,7 +293,7 @@ func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInstance) {
 // AbsResourceInstance. Returns an empty list if no actions are planned.
 func (cs *ChangesSync) GetActionsByResourceInstance(addr addrs.AbsResourceInstance) []*ActionInvocationInstance {
 	if cs == nil {
-		panic("RemoveActionInvocation on nil ChangesSync")
+		panic("GetActionsByResourceInstance on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
