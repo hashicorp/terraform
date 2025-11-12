@@ -23,6 +23,30 @@ func NewPackagesStub() *Packages {
 	return &Packages{}
 }
 
+func (s *Packages) ComponentPackageSourceAddr(a0 context.Context, a1 *packages.ComponentPackageSourceAddr_Request) (*packages.ComponentPackageSourceAddr_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.ComponentPackageSourceAddr(a0, a1)
+}
+
+func (s *Packages) ComponentPackageVersions(a0 context.Context, a1 *packages.ComponentPackageVersions_Request) (*packages.ComponentPackageVersions_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.ComponentPackageVersions(a0, a1)
+}
+
+func (s *Packages) FetchComponentPackage(a0 context.Context, a1 *packages.FetchComponentPackage_Request) (*packages.FetchComponentPackage_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.FetchComponentPackage(a0, a1)
+}
+
 func (s *Packages) FetchModulePackage(a0 context.Context, a1 *packages.FetchModulePackage_Request) (*packages.FetchModulePackage_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
