@@ -205,42 +205,6 @@ func (*FetchModulePackage) Descriptor() ([]byte, []int) {
 	return file_packages_proto_rawDescGZIP(), []int{4}
 }
 
-type ComponentPackageVersions struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ComponentPackageVersions) Reset() {
-	*x = ComponentPackageVersions{}
-	mi := &file_packages_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ComponentPackageVersions) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ComponentPackageVersions) ProtoMessage() {}
-
-func (x *ComponentPackageVersions) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ComponentPackageVersions.ProtoReflect.Descriptor instead.
-func (*ComponentPackageVersions) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{5}
-}
-
 type ComponentPackageSourceAddr struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -249,7 +213,7 @@ type ComponentPackageSourceAddr struct {
 
 func (x *ComponentPackageSourceAddr) Reset() {
 	*x = ComponentPackageSourceAddr{}
-	mi := &file_packages_proto_msgTypes[6]
+	mi := &file_packages_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -261,7 +225,7 @@ func (x *ComponentPackageSourceAddr) String() string {
 func (*ComponentPackageSourceAddr) ProtoMessage() {}
 
 func (x *ComponentPackageSourceAddr) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[6]
+	mi := &file_packages_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -274,43 +238,7 @@ func (x *ComponentPackageSourceAddr) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComponentPackageSourceAddr.ProtoReflect.Descriptor instead.
 func (*ComponentPackageSourceAddr) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{6}
-}
-
-type FetchComponentPackage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FetchComponentPackage) Reset() {
-	*x = FetchComponentPackage{}
-	mi := &file_packages_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FetchComponentPackage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FetchComponentPackage) ProtoMessage() {}
-
-func (x *FetchComponentPackage) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FetchComponentPackage.ProtoReflect.Descriptor instead.
-func (*FetchComponentPackage) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{7}
+	return file_packages_proto_rawDescGZIP(), []int{5}
 }
 
 type ProviderPackageVersions_Request struct {
@@ -322,7 +250,7 @@ type ProviderPackageVersions_Request struct {
 
 func (x *ProviderPackageVersions_Request) Reset() {
 	*x = ProviderPackageVersions_Request{}
-	mi := &file_packages_proto_msgTypes[8]
+	mi := &file_packages_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -334,7 +262,7 @@ func (x *ProviderPackageVersions_Request) String() string {
 func (*ProviderPackageVersions_Request) ProtoMessage() {}
 
 func (x *ProviderPackageVersions_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[8]
+	mi := &file_packages_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -367,7 +295,7 @@ type ProviderPackageVersions_Response struct {
 
 func (x *ProviderPackageVersions_Response) Reset() {
 	*x = ProviderPackageVersions_Response{}
-	mi := &file_packages_proto_msgTypes[9]
+	mi := &file_packages_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -379,7 +307,7 @@ func (x *ProviderPackageVersions_Response) String() string {
 func (*ProviderPackageVersions_Response) ProtoMessage() {}
 
 func (x *ProviderPackageVersions_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[9]
+	mi := &file_packages_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -422,7 +350,7 @@ type FetchProviderPackage_Request struct {
 
 func (x *FetchProviderPackage_Request) Reset() {
 	*x = FetchProviderPackage_Request{}
-	mi := &file_packages_proto_msgTypes[10]
+	mi := &file_packages_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -434,7 +362,7 @@ func (x *FetchProviderPackage_Request) String() string {
 func (*FetchProviderPackage_Request) ProtoMessage() {}
 
 func (x *FetchProviderPackage_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[10]
+	mi := &file_packages_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -500,7 +428,7 @@ type FetchProviderPackage_Response struct {
 
 func (x *FetchProviderPackage_Response) Reset() {
 	*x = FetchProviderPackage_Response{}
-	mi := &file_packages_proto_msgTypes[11]
+	mi := &file_packages_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -512,7 +440,7 @@ func (x *FetchProviderPackage_Response) String() string {
 func (*FetchProviderPackage_Response) ProtoMessage() {}
 
 func (x *FetchProviderPackage_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[11]
+	mi := &file_packages_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -552,7 +480,7 @@ type FetchProviderPackage_PlatformResult struct {
 
 func (x *FetchProviderPackage_PlatformResult) Reset() {
 	*x = FetchProviderPackage_PlatformResult{}
-	mi := &file_packages_proto_msgTypes[12]
+	mi := &file_packages_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -564,7 +492,7 @@ func (x *FetchProviderPackage_PlatformResult) String() string {
 func (*FetchProviderPackage_PlatformResult) ProtoMessage() {}
 
 func (x *FetchProviderPackage_PlatformResult) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[12]
+	mi := &file_packages_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -603,7 +531,7 @@ type ModulePackageVersions_Request struct {
 
 func (x *ModulePackageVersions_Request) Reset() {
 	*x = ModulePackageVersions_Request{}
-	mi := &file_packages_proto_msgTypes[13]
+	mi := &file_packages_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -615,7 +543,7 @@ func (x *ModulePackageVersions_Request) String() string {
 func (*ModulePackageVersions_Request) ProtoMessage() {}
 
 func (x *ModulePackageVersions_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[13]
+	mi := &file_packages_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -648,7 +576,7 @@ type ModulePackageVersions_Response struct {
 
 func (x *ModulePackageVersions_Response) Reset() {
 	*x = ModulePackageVersions_Response{}
-	mi := &file_packages_proto_msgTypes[14]
+	mi := &file_packages_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -660,7 +588,7 @@ func (x *ModulePackageVersions_Response) String() string {
 func (*ModulePackageVersions_Response) ProtoMessage() {}
 
 func (x *ModulePackageVersions_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[14]
+	mi := &file_packages_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -700,7 +628,7 @@ type ModulePackageSourceAddr_Request struct {
 
 func (x *ModulePackageSourceAddr_Request) Reset() {
 	*x = ModulePackageSourceAddr_Request{}
-	mi := &file_packages_proto_msgTypes[15]
+	mi := &file_packages_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -712,7 +640,7 @@ func (x *ModulePackageSourceAddr_Request) String() string {
 func (*ModulePackageSourceAddr_Request) ProtoMessage() {}
 
 func (x *ModulePackageSourceAddr_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[15]
+	mi := &file_packages_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -752,7 +680,7 @@ type ModulePackageSourceAddr_Response struct {
 
 func (x *ModulePackageSourceAddr_Response) Reset() {
 	*x = ModulePackageSourceAddr_Response{}
-	mi := &file_packages_proto_msgTypes[16]
+	mi := &file_packages_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -764,7 +692,7 @@ func (x *ModulePackageSourceAddr_Response) String() string {
 func (*ModulePackageSourceAddr_Response) ProtoMessage() {}
 
 func (x *ModulePackageSourceAddr_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[16]
+	mi := &file_packages_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -804,7 +732,7 @@ type FetchModulePackage_Request struct {
 
 func (x *FetchModulePackage_Request) Reset() {
 	*x = FetchModulePackage_Request{}
-	mi := &file_packages_proto_msgTypes[17]
+	mi := &file_packages_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -816,7 +744,7 @@ func (x *FetchModulePackage_Request) String() string {
 func (*FetchModulePackage_Request) ProtoMessage() {}
 
 func (x *FetchModulePackage_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[17]
+	mi := &file_packages_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -855,7 +783,7 @@ type FetchModulePackage_Response struct {
 
 func (x *FetchModulePackage_Response) Reset() {
 	*x = FetchModulePackage_Response{}
-	mi := &file_packages_proto_msgTypes[18]
+	mi := &file_packages_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -867,7 +795,7 @@ func (x *FetchModulePackage_Response) String() string {
 func (*FetchModulePackage_Response) ProtoMessage() {}
 
 func (x *FetchModulePackage_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[18]
+	mi := &file_packages_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -890,102 +818,6 @@ func (x *FetchModulePackage_Response) GetDiagnostics() []*terraform1.Diagnostic 
 	return nil
 }
 
-type ComponentPackageVersions_Request struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SourceAddr    string                 `protobuf:"bytes,2,opt,name=source_addr,json=sourceAddr,proto3" json:"source_addr,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ComponentPackageVersions_Request) Reset() {
-	*x = ComponentPackageVersions_Request{}
-	mi := &file_packages_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ComponentPackageVersions_Request) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ComponentPackageVersions_Request) ProtoMessage() {}
-
-func (x *ComponentPackageVersions_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ComponentPackageVersions_Request.ProtoReflect.Descriptor instead.
-func (*ComponentPackageVersions_Request) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{5, 0}
-}
-
-func (x *ComponentPackageVersions_Request) GetSourceAddr() string {
-	if x != nil {
-		return x.SourceAddr
-	}
-	return ""
-}
-
-type ComponentPackageVersions_Response struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Versions      []string                 `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
-	Diagnostics   []*terraform1.Diagnostic `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ComponentPackageVersions_Response) Reset() {
-	*x = ComponentPackageVersions_Response{}
-	mi := &file_packages_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ComponentPackageVersions_Response) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ComponentPackageVersions_Response) ProtoMessage() {}
-
-func (x *ComponentPackageVersions_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ComponentPackageVersions_Response.ProtoReflect.Descriptor instead.
-func (*ComponentPackageVersions_Response) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{5, 1}
-}
-
-func (x *ComponentPackageVersions_Response) GetVersions() []string {
-	if x != nil {
-		return x.Versions
-	}
-	return nil
-}
-
-func (x *ComponentPackageVersions_Response) GetDiagnostics() []*terraform1.Diagnostic {
-	if x != nil {
-		return x.Diagnostics
-	}
-	return nil
-}
-
 type ComponentPackageSourceAddr_Request struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SourceAddr    string                 `protobuf:"bytes,1,opt,name=source_addr,json=sourceAddr,proto3" json:"source_addr,omitempty"`
@@ -996,7 +828,7 @@ type ComponentPackageSourceAddr_Request struct {
 
 func (x *ComponentPackageSourceAddr_Request) Reset() {
 	*x = ComponentPackageSourceAddr_Request{}
-	mi := &file_packages_proto_msgTypes[21]
+	mi := &file_packages_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1008,7 +840,7 @@ func (x *ComponentPackageSourceAddr_Request) String() string {
 func (*ComponentPackageSourceAddr_Request) ProtoMessage() {}
 
 func (x *ComponentPackageSourceAddr_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[21]
+	mi := &file_packages_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1021,7 +853,7 @@ func (x *ComponentPackageSourceAddr_Request) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ComponentPackageSourceAddr_Request.ProtoReflect.Descriptor instead.
 func (*ComponentPackageSourceAddr_Request) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{6, 0}
+	return file_packages_proto_rawDescGZIP(), []int{5, 0}
 }
 
 func (x *ComponentPackageSourceAddr_Request) GetSourceAddr() string {
@@ -1048,7 +880,7 @@ type ComponentPackageSourceAddr_Response struct {
 
 func (x *ComponentPackageSourceAddr_Response) Reset() {
 	*x = ComponentPackageSourceAddr_Response{}
-	mi := &file_packages_proto_msgTypes[22]
+	mi := &file_packages_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1060,7 +892,7 @@ func (x *ComponentPackageSourceAddr_Response) String() string {
 func (*ComponentPackageSourceAddr_Response) ProtoMessage() {}
 
 func (x *ComponentPackageSourceAddr_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[22]
+	mi := &file_packages_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1073,7 +905,7 @@ func (x *ComponentPackageSourceAddr_Response) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ComponentPackageSourceAddr_Response.ProtoReflect.Descriptor instead.
 func (*ComponentPackageSourceAddr_Response) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{6, 1}
+	return file_packages_proto_rawDescGZIP(), []int{5, 1}
 }
 
 func (x *ComponentPackageSourceAddr_Response) GetUrl() string {
@@ -1084,102 +916,6 @@ func (x *ComponentPackageSourceAddr_Response) GetUrl() string {
 }
 
 func (x *ComponentPackageSourceAddr_Response) GetDiagnostics() []*terraform1.Diagnostic {
-	if x != nil {
-		return x.Diagnostics
-	}
-	return nil
-}
-
-type FetchComponentPackage_Request struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CacheDir      string                 `protobuf:"bytes,1,opt,name=cache_dir,json=cacheDir,proto3" json:"cache_dir,omitempty"`
-	Url           string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FetchComponentPackage_Request) Reset() {
-	*x = FetchComponentPackage_Request{}
-	mi := &file_packages_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FetchComponentPackage_Request) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FetchComponentPackage_Request) ProtoMessage() {}
-
-func (x *FetchComponentPackage_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FetchComponentPackage_Request.ProtoReflect.Descriptor instead.
-func (*FetchComponentPackage_Request) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{7, 0}
-}
-
-func (x *FetchComponentPackage_Request) GetCacheDir() string {
-	if x != nil {
-		return x.CacheDir
-	}
-	return ""
-}
-
-func (x *FetchComponentPackage_Request) GetUrl() string {
-	if x != nil {
-		return x.Url
-	}
-	return ""
-}
-
-type FetchComponentPackage_Response struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Diagnostics   []*terraform1.Diagnostic `protobuf:"bytes,1,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FetchComponentPackage_Response) Reset() {
-	*x = FetchComponentPackage_Response{}
-	mi := &file_packages_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FetchComponentPackage_Response) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FetchComponentPackage_Response) ProtoMessage() {}
-
-func (x *FetchComponentPackage_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_packages_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FetchComponentPackage_Response.ProtoReflect.Descriptor instead.
-func (*FetchComponentPackage_Response) Descriptor() ([]byte, []int) {
-	return file_packages_proto_rawDescGZIP(), []int{7, 1}
-}
-
-func (x *FetchComponentPackage_Response) GetDiagnostics() []*terraform1.Diagnostic {
 	if x != nil {
 		return x.Diagnostics
 	}
@@ -1232,14 +968,7 @@ const file_packages_proto_rawDesc = "" +
 	"\tcache_dir\x18\x01 \x01(\tR\bcacheDir\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x1aD\n" +
 	"\bResponse\x128\n" +
-	"\vdiagnostics\x18\x01 \x03(\v2\x16.terraform1.DiagnosticR\vdiagnostics\"\xa8\x01\n" +
-	"\x18ComponentPackageVersions\x1a*\n" +
-	"\aRequest\x12\x1f\n" +
-	"\vsource_addr\x18\x02 \x01(\tR\n" +
-	"sourceAddr\x1a`\n" +
-	"\bResponse\x12\x1a\n" +
-	"\bversions\x18\x01 \x03(\tR\bversions\x128\n" +
-	"\vdiagnostics\x18\x02 \x03(\v2\x16.terraform1.DiagnosticR\vdiagnostics\"\xba\x01\n" +
+	"\vdiagnostics\x18\x01 \x03(\v2\x16.terraform1.DiagnosticR\vdiagnostics\"\xba\x01\n" +
 	"\x1aComponentPackageSourceAddr\x1aD\n" +
 	"\aRequest\x12\x1f\n" +
 	"\vsource_addr\x18\x01 \x01(\tR\n" +
@@ -1247,22 +976,14 @@ const file_packages_proto_rawDesc = "" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x1aV\n" +
 	"\bResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x128\n" +
-	"\vdiagnostics\x18\x02 \x03(\v2\x16.terraform1.DiagnosticR\vdiagnostics\"\x97\x01\n" +
-	"\x15FetchComponentPackage\x1a8\n" +
-	"\aRequest\x12\x1b\n" +
-	"\tcache_dir\x18\x01 \x01(\tR\bcacheDir\x12\x10\n" +
-	"\x03url\x18\x02 \x01(\tR\x03url\x1aD\n" +
-	"\bResponse\x128\n" +
-	"\vdiagnostics\x18\x01 \x03(\v2\x16.terraform1.DiagnosticR\vdiagnostics2\xb8\b\n" +
+	"\vdiagnostics\x18\x02 \x03(\v2\x16.terraform1.DiagnosticR\vdiagnostics2\xa9\x06\n" +
 	"\bPackages\x12\x86\x01\n" +
 	"\x17ProviderPackageVersions\x124.terraform1.packages.ProviderPackageVersions.Request\x1a5.terraform1.packages.ProviderPackageVersions.Response\x12}\n" +
 	"\x14FetchProviderPackage\x121.terraform1.packages.FetchProviderPackage.Request\x1a2.terraform1.packages.FetchProviderPackage.Response\x12\x80\x01\n" +
 	"\x15ModulePackageVersions\x122.terraform1.packages.ModulePackageVersions.Request\x1a3.terraform1.packages.ModulePackageVersions.Response\x12\x86\x01\n" +
 	"\x17ModulePackageSourceAddr\x124.terraform1.packages.ModulePackageSourceAddr.Request\x1a5.terraform1.packages.ModulePackageSourceAddr.Response\x12w\n" +
-	"\x12FetchModulePackage\x12/.terraform1.packages.FetchModulePackage.Request\x1a0.terraform1.packages.FetchModulePackage.Response\x12\x89\x01\n" +
-	"\x18ComponentPackageVersions\x125.terraform1.packages.ComponentPackageVersions.Request\x1a6.terraform1.packages.ComponentPackageVersions.Response\x12\x8f\x01\n" +
-	"\x1aComponentPackageSourceAddr\x127.terraform1.packages.ComponentPackageSourceAddr.Request\x1a8.terraform1.packages.ComponentPackageSourceAddr.Response\x12\x80\x01\n" +
-	"\x15FetchComponentPackage\x122.terraform1.packages.FetchComponentPackage.Request\x1a3.terraform1.packages.FetchComponentPackage.Responseb\x06proto3"
+	"\x12FetchModulePackage\x12/.terraform1.packages.FetchModulePackage.Request\x1a0.terraform1.packages.FetchModulePackage.Response\x12\x8f\x01\n" +
+	"\x1aComponentPackageSourceAddr\x127.terraform1.packages.ComponentPackageSourceAddr.Request\x1a8.terraform1.packages.ComponentPackageSourceAddr.Responseb\x06proto3"
 
 var (
 	file_packages_proto_rawDescOnce sync.Once
@@ -1276,69 +997,57 @@ func file_packages_proto_rawDescGZIP() []byte {
 	return file_packages_proto_rawDescData
 }
 
-var file_packages_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_packages_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_packages_proto_goTypes = []any{
 	(*ProviderPackageVersions)(nil),             // 0: terraform1.packages.ProviderPackageVersions
 	(*FetchProviderPackage)(nil),                // 1: terraform1.packages.FetchProviderPackage
 	(*ModulePackageVersions)(nil),               // 2: terraform1.packages.ModulePackageVersions
 	(*ModulePackageSourceAddr)(nil),             // 3: terraform1.packages.ModulePackageSourceAddr
 	(*FetchModulePackage)(nil),                  // 4: terraform1.packages.FetchModulePackage
-	(*ComponentPackageVersions)(nil),            // 5: terraform1.packages.ComponentPackageVersions
-	(*ComponentPackageSourceAddr)(nil),          // 6: terraform1.packages.ComponentPackageSourceAddr
-	(*FetchComponentPackage)(nil),               // 7: terraform1.packages.FetchComponentPackage
-	(*ProviderPackageVersions_Request)(nil),     // 8: terraform1.packages.ProviderPackageVersions.Request
-	(*ProviderPackageVersions_Response)(nil),    // 9: terraform1.packages.ProviderPackageVersions.Response
-	(*FetchProviderPackage_Request)(nil),        // 10: terraform1.packages.FetchProviderPackage.Request
-	(*FetchProviderPackage_Response)(nil),       // 11: terraform1.packages.FetchProviderPackage.Response
-	(*FetchProviderPackage_PlatformResult)(nil), // 12: terraform1.packages.FetchProviderPackage.PlatformResult
-	(*ModulePackageVersions_Request)(nil),       // 13: terraform1.packages.ModulePackageVersions.Request
-	(*ModulePackageVersions_Response)(nil),      // 14: terraform1.packages.ModulePackageVersions.Response
-	(*ModulePackageSourceAddr_Request)(nil),     // 15: terraform1.packages.ModulePackageSourceAddr.Request
-	(*ModulePackageSourceAddr_Response)(nil),    // 16: terraform1.packages.ModulePackageSourceAddr.Response
-	(*FetchModulePackage_Request)(nil),          // 17: terraform1.packages.FetchModulePackage.Request
-	(*FetchModulePackage_Response)(nil),         // 18: terraform1.packages.FetchModulePackage.Response
-	(*ComponentPackageVersions_Request)(nil),    // 19: terraform1.packages.ComponentPackageVersions.Request
-	(*ComponentPackageVersions_Response)(nil),   // 20: terraform1.packages.ComponentPackageVersions.Response
-	(*ComponentPackageSourceAddr_Request)(nil),  // 21: terraform1.packages.ComponentPackageSourceAddr.Request
-	(*ComponentPackageSourceAddr_Response)(nil), // 22: terraform1.packages.ComponentPackageSourceAddr.Response
-	(*FetchComponentPackage_Request)(nil),       // 23: terraform1.packages.FetchComponentPackage.Request
-	(*FetchComponentPackage_Response)(nil),      // 24: terraform1.packages.FetchComponentPackage.Response
-	(*terraform1.Diagnostic)(nil),               // 25: terraform1.Diagnostic
-	(*terraform1.ProviderPackage)(nil),          // 26: terraform1.ProviderPackage
+	(*ComponentPackageSourceAddr)(nil),          // 5: terraform1.packages.ComponentPackageSourceAddr
+	(*ProviderPackageVersions_Request)(nil),     // 6: terraform1.packages.ProviderPackageVersions.Request
+	(*ProviderPackageVersions_Response)(nil),    // 7: terraform1.packages.ProviderPackageVersions.Response
+	(*FetchProviderPackage_Request)(nil),        // 8: terraform1.packages.FetchProviderPackage.Request
+	(*FetchProviderPackage_Response)(nil),       // 9: terraform1.packages.FetchProviderPackage.Response
+	(*FetchProviderPackage_PlatformResult)(nil), // 10: terraform1.packages.FetchProviderPackage.PlatformResult
+	(*ModulePackageVersions_Request)(nil),       // 11: terraform1.packages.ModulePackageVersions.Request
+	(*ModulePackageVersions_Response)(nil),      // 12: terraform1.packages.ModulePackageVersions.Response
+	(*ModulePackageSourceAddr_Request)(nil),     // 13: terraform1.packages.ModulePackageSourceAddr.Request
+	(*ModulePackageSourceAddr_Response)(nil),    // 14: terraform1.packages.ModulePackageSourceAddr.Response
+	(*FetchModulePackage_Request)(nil),          // 15: terraform1.packages.FetchModulePackage.Request
+	(*FetchModulePackage_Response)(nil),         // 16: terraform1.packages.FetchModulePackage.Response
+	(*ComponentPackageSourceAddr_Request)(nil),  // 17: terraform1.packages.ComponentPackageSourceAddr.Request
+	(*ComponentPackageSourceAddr_Response)(nil), // 18: terraform1.packages.ComponentPackageSourceAddr.Response
+	(*terraform1.Diagnostic)(nil),               // 19: terraform1.Diagnostic
+	(*terraform1.ProviderPackage)(nil),          // 20: terraform1.ProviderPackage
 }
 var file_packages_proto_depIdxs = []int32{
-	25, // 0: terraform1.packages.ProviderPackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
-	12, // 1: terraform1.packages.FetchProviderPackage.Response.results:type_name -> terraform1.packages.FetchProviderPackage.PlatformResult
-	25, // 2: terraform1.packages.FetchProviderPackage.Response.diagnostics:type_name -> terraform1.Diagnostic
-	26, // 3: terraform1.packages.FetchProviderPackage.PlatformResult.provider:type_name -> terraform1.ProviderPackage
-	25, // 4: terraform1.packages.FetchProviderPackage.PlatformResult.diagnostics:type_name -> terraform1.Diagnostic
-	25, // 5: terraform1.packages.ModulePackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
-	25, // 6: terraform1.packages.ModulePackageSourceAddr.Response.diagnostics:type_name -> terraform1.Diagnostic
-	25, // 7: terraform1.packages.FetchModulePackage.Response.diagnostics:type_name -> terraform1.Diagnostic
-	25, // 8: terraform1.packages.ComponentPackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
-	25, // 9: terraform1.packages.ComponentPackageSourceAddr.Response.diagnostics:type_name -> terraform1.Diagnostic
-	25, // 10: terraform1.packages.FetchComponentPackage.Response.diagnostics:type_name -> terraform1.Diagnostic
-	8,  // 11: terraform1.packages.Packages.ProviderPackageVersions:input_type -> terraform1.packages.ProviderPackageVersions.Request
-	10, // 12: terraform1.packages.Packages.FetchProviderPackage:input_type -> terraform1.packages.FetchProviderPackage.Request
-	13, // 13: terraform1.packages.Packages.ModulePackageVersions:input_type -> terraform1.packages.ModulePackageVersions.Request
-	15, // 14: terraform1.packages.Packages.ModulePackageSourceAddr:input_type -> terraform1.packages.ModulePackageSourceAddr.Request
-	17, // 15: terraform1.packages.Packages.FetchModulePackage:input_type -> terraform1.packages.FetchModulePackage.Request
-	19, // 16: terraform1.packages.Packages.ComponentPackageVersions:input_type -> terraform1.packages.ComponentPackageVersions.Request
-	21, // 17: terraform1.packages.Packages.ComponentPackageSourceAddr:input_type -> terraform1.packages.ComponentPackageSourceAddr.Request
-	23, // 18: terraform1.packages.Packages.FetchComponentPackage:input_type -> terraform1.packages.FetchComponentPackage.Request
-	9,  // 19: terraform1.packages.Packages.ProviderPackageVersions:output_type -> terraform1.packages.ProviderPackageVersions.Response
-	11, // 20: terraform1.packages.Packages.FetchProviderPackage:output_type -> terraform1.packages.FetchProviderPackage.Response
-	14, // 21: terraform1.packages.Packages.ModulePackageVersions:output_type -> terraform1.packages.ModulePackageVersions.Response
-	16, // 22: terraform1.packages.Packages.ModulePackageSourceAddr:output_type -> terraform1.packages.ModulePackageSourceAddr.Response
-	18, // 23: terraform1.packages.Packages.FetchModulePackage:output_type -> terraform1.packages.FetchModulePackage.Response
-	20, // 24: terraform1.packages.Packages.ComponentPackageVersions:output_type -> terraform1.packages.ComponentPackageVersions.Response
-	22, // 25: terraform1.packages.Packages.ComponentPackageSourceAddr:output_type -> terraform1.packages.ComponentPackageSourceAddr.Response
-	24, // 26: terraform1.packages.Packages.FetchComponentPackage:output_type -> terraform1.packages.FetchComponentPackage.Response
-	19, // [19:27] is the sub-list for method output_type
-	11, // [11:19] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	19, // 0: terraform1.packages.ProviderPackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
+	10, // 1: terraform1.packages.FetchProviderPackage.Response.results:type_name -> terraform1.packages.FetchProviderPackage.PlatformResult
+	19, // 2: terraform1.packages.FetchProviderPackage.Response.diagnostics:type_name -> terraform1.Diagnostic
+	20, // 3: terraform1.packages.FetchProviderPackage.PlatformResult.provider:type_name -> terraform1.ProviderPackage
+	19, // 4: terraform1.packages.FetchProviderPackage.PlatformResult.diagnostics:type_name -> terraform1.Diagnostic
+	19, // 5: terraform1.packages.ModulePackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
+	19, // 6: terraform1.packages.ModulePackageSourceAddr.Response.diagnostics:type_name -> terraform1.Diagnostic
+	19, // 7: terraform1.packages.FetchModulePackage.Response.diagnostics:type_name -> terraform1.Diagnostic
+	19, // 8: terraform1.packages.ComponentPackageSourceAddr.Response.diagnostics:type_name -> terraform1.Diagnostic
+	6,  // 9: terraform1.packages.Packages.ProviderPackageVersions:input_type -> terraform1.packages.ProviderPackageVersions.Request
+	8,  // 10: terraform1.packages.Packages.FetchProviderPackage:input_type -> terraform1.packages.FetchProviderPackage.Request
+	11, // 11: terraform1.packages.Packages.ModulePackageVersions:input_type -> terraform1.packages.ModulePackageVersions.Request
+	13, // 12: terraform1.packages.Packages.ModulePackageSourceAddr:input_type -> terraform1.packages.ModulePackageSourceAddr.Request
+	15, // 13: terraform1.packages.Packages.FetchModulePackage:input_type -> terraform1.packages.FetchModulePackage.Request
+	17, // 14: terraform1.packages.Packages.ComponentPackageSourceAddr:input_type -> terraform1.packages.ComponentPackageSourceAddr.Request
+	7,  // 15: terraform1.packages.Packages.ProviderPackageVersions:output_type -> terraform1.packages.ProviderPackageVersions.Response
+	9,  // 16: terraform1.packages.Packages.FetchProviderPackage:output_type -> terraform1.packages.FetchProviderPackage.Response
+	12, // 17: terraform1.packages.Packages.ModulePackageVersions:output_type -> terraform1.packages.ModulePackageVersions.Response
+	14, // 18: terraform1.packages.Packages.ModulePackageSourceAddr:output_type -> terraform1.packages.ModulePackageSourceAddr.Response
+	16, // 19: terraform1.packages.Packages.FetchModulePackage:output_type -> terraform1.packages.FetchModulePackage.Response
+	18, // 20: terraform1.packages.Packages.ComponentPackageSourceAddr:output_type -> terraform1.packages.ComponentPackageSourceAddr.Response
+	15, // [15:21] is the sub-list for method output_type
+	9,  // [9:15] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_packages_proto_init() }
@@ -1352,7 +1061,7 @@ func file_packages_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_packages_proto_rawDesc), len(file_packages_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   25,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

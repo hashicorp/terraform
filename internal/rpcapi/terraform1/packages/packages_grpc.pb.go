@@ -27,9 +27,7 @@ const (
 	Packages_ModulePackageVersions_FullMethodName      = "/terraform1.packages.Packages/ModulePackageVersions"
 	Packages_ModulePackageSourceAddr_FullMethodName    = "/terraform1.packages.Packages/ModulePackageSourceAddr"
 	Packages_FetchModulePackage_FullMethodName         = "/terraform1.packages.Packages/FetchModulePackage"
-	Packages_ComponentPackageVersions_FullMethodName   = "/terraform1.packages.Packages/ComponentPackageVersions"
 	Packages_ComponentPackageSourceAddr_FullMethodName = "/terraform1.packages.Packages/ComponentPackageSourceAddr"
-	Packages_FetchComponentPackage_FullMethodName      = "/terraform1.packages.Packages/FetchComponentPackage"
 )
 
 // PackagesClient is the client API for Packages service.
@@ -53,9 +51,7 @@ type PackagesClient interface {
 	ModulePackageVersions(ctx context.Context, in *ModulePackageVersions_Request, opts ...grpc.CallOption) (*ModulePackageVersions_Response, error)
 	ModulePackageSourceAddr(ctx context.Context, in *ModulePackageSourceAddr_Request, opts ...grpc.CallOption) (*ModulePackageSourceAddr_Response, error)
 	FetchModulePackage(ctx context.Context, in *FetchModulePackage_Request, opts ...grpc.CallOption) (*FetchModulePackage_Response, error)
-	ComponentPackageVersions(ctx context.Context, in *ComponentPackageVersions_Request, opts ...grpc.CallOption) (*ComponentPackageVersions_Response, error)
 	ComponentPackageSourceAddr(ctx context.Context, in *ComponentPackageSourceAddr_Request, opts ...grpc.CallOption) (*ComponentPackageSourceAddr_Response, error)
-	FetchComponentPackage(ctx context.Context, in *FetchComponentPackage_Request, opts ...grpc.CallOption) (*FetchComponentPackage_Response, error)
 }
 
 type packagesClient struct {
@@ -116,30 +112,10 @@ func (c *packagesClient) FetchModulePackage(ctx context.Context, in *FetchModule
 	return out, nil
 }
 
-func (c *packagesClient) ComponentPackageVersions(ctx context.Context, in *ComponentPackageVersions_Request, opts ...grpc.CallOption) (*ComponentPackageVersions_Response, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ComponentPackageVersions_Response)
-	err := c.cc.Invoke(ctx, Packages_ComponentPackageVersions_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *packagesClient) ComponentPackageSourceAddr(ctx context.Context, in *ComponentPackageSourceAddr_Request, opts ...grpc.CallOption) (*ComponentPackageSourceAddr_Response, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ComponentPackageSourceAddr_Response)
 	err := c.cc.Invoke(ctx, Packages_ComponentPackageSourceAddr_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *packagesClient) FetchComponentPackage(ctx context.Context, in *FetchComponentPackage_Request, opts ...grpc.CallOption) (*FetchComponentPackage_Response, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FetchComponentPackage_Response)
-	err := c.cc.Invoke(ctx, Packages_FetchComponentPackage_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,9 +143,7 @@ type PackagesServer interface {
 	ModulePackageVersions(context.Context, *ModulePackageVersions_Request) (*ModulePackageVersions_Response, error)
 	ModulePackageSourceAddr(context.Context, *ModulePackageSourceAddr_Request) (*ModulePackageSourceAddr_Response, error)
 	FetchModulePackage(context.Context, *FetchModulePackage_Request) (*FetchModulePackage_Response, error)
-	ComponentPackageVersions(context.Context, *ComponentPackageVersions_Request) (*ComponentPackageVersions_Response, error)
 	ComponentPackageSourceAddr(context.Context, *ComponentPackageSourceAddr_Request) (*ComponentPackageSourceAddr_Response, error)
-	FetchComponentPackage(context.Context, *FetchComponentPackage_Request) (*FetchComponentPackage_Response, error)
 	mustEmbedUnimplementedPackagesServer()
 }
 
@@ -195,14 +169,8 @@ func (UnimplementedPackagesServer) ModulePackageSourceAddr(context.Context, *Mod
 func (UnimplementedPackagesServer) FetchModulePackage(context.Context, *FetchModulePackage_Request) (*FetchModulePackage_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchModulePackage not implemented")
 }
-func (UnimplementedPackagesServer) ComponentPackageVersions(context.Context, *ComponentPackageVersions_Request) (*ComponentPackageVersions_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ComponentPackageVersions not implemented")
-}
 func (UnimplementedPackagesServer) ComponentPackageSourceAddr(context.Context, *ComponentPackageSourceAddr_Request) (*ComponentPackageSourceAddr_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ComponentPackageSourceAddr not implemented")
-}
-func (UnimplementedPackagesServer) FetchComponentPackage(context.Context, *FetchComponentPackage_Request) (*FetchComponentPackage_Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FetchComponentPackage not implemented")
 }
 func (UnimplementedPackagesServer) mustEmbedUnimplementedPackagesServer() {}
 func (UnimplementedPackagesServer) testEmbeddedByValue()                  {}
@@ -315,24 +283,6 @@ func _Packages_FetchModulePackage_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Packages_ComponentPackageVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ComponentPackageVersions_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PackagesServer).ComponentPackageVersions(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Packages_ComponentPackageVersions_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PackagesServer).ComponentPackageVersions(ctx, req.(*ComponentPackageVersions_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Packages_ComponentPackageSourceAddr_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ComponentPackageSourceAddr_Request)
 	if err := dec(in); err != nil {
@@ -347,24 +297,6 @@ func _Packages_ComponentPackageSourceAddr_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PackagesServer).ComponentPackageSourceAddr(ctx, req.(*ComponentPackageSourceAddr_Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Packages_FetchComponentPackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FetchComponentPackage_Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PackagesServer).FetchComponentPackage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Packages_FetchComponentPackage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PackagesServer).FetchComponentPackage(ctx, req.(*FetchComponentPackage_Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -397,16 +329,8 @@ var Packages_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Packages_FetchModulePackage_Handler,
 		},
 		{
-			MethodName: "ComponentPackageVersions",
-			Handler:    _Packages_ComponentPackageVersions_Handler,
-		},
-		{
 			MethodName: "ComponentPackageSourceAddr",
 			Handler:    _Packages_ComponentPackageSourceAddr_Handler,
-		},
-		{
-			MethodName: "FetchComponentPackage",
-			Handler:    _Packages_FetchComponentPackage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
