@@ -280,7 +280,7 @@ func (p *packagesServer) ComponentPackageSourceAddr(ctx context.Context, request
 	}
 
 	client := registry.NewClient(p.services, nil)
-	compPkgRes, err := client.ComponentPackageSourceAddr(ctx, comp.Package, version)
+	location, err := client.ComponentLocation(ctx, comp.Package, version)
 	if err != nil {
 		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
 			Severity: terraform1.Diagnostic_ERROR,
@@ -290,7 +290,7 @@ func (p *packagesServer) ComponentPackageSourceAddr(ctx context.Context, request
 		return response, nil
 	}
 
-	response.Url = compPkgRes.SourceAddr.String()
+	response.Url = location
 
 	return response, nil
 }

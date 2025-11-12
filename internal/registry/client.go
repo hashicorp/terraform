@@ -20,7 +20,6 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-retryablehttp"
 	sourceaddrs "github.com/hashicorp/go-slug/sourceaddrs"
-	sourcebundle "github.com/hashicorp/go-slug/sourcebundle"
 	regaddr "github.com/hashicorp/terraform-registry-address"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -277,19 +276,17 @@ func (c *Client) ModuleLocation(ctx context.Context, module *regsrc.Module, vers
 	return location, nil
 }
 
-// ComponentPackageSourceAddr fetches the real remote source address for the
+// ComponentLocation fetches the real remote source address for the
 // given version of the given component registry package.
-func (c *Client) ComponentPackageSourceAddr(ctx context.Context, pkgAddr regaddr.ComponentPackage, version versions.Version) (sourcebundle.ComponentPackageSourceAddrResponse, error) {
-	var ret sourcebundle.ComponentPackageSourceAddrResponse
-
+func (c *Client) ComponentLocation(ctx context.Context, pkgAddr regaddr.ComponentPackage, version versions.Version) (string, error) {
 	services, err := c.services.Discover(pkgAddr.Host)
 	if err != nil {
-		return ret, fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
+		return "", fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
 	}
 
 	baseURL, err := services.ServiceURL("components.v3")
 	if err != nil {
-		return ret, fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
+		return "", fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
 	}
 
 	reqURL := baseURL.JoinPath(
@@ -303,7 +300,7 @@ func (c *Client) ComponentPackageSourceAddr(ctx context.Context, pkgAddr regaddr
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
 	if err != nil {
-		return ret, fmt.Errorf("invalid request: %w", err)
+		return "", fmt.Errorf("invalid request: %w", err)
 	}
 
 	c.addRequestCreds(pkgAddr.Host, req.Request)
@@ -313,35 +310,35 @@ func (c *Client) ComponentPackageSourceAddr(ctx context.Context, pkgAddr regaddr
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return ret, err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	// there should be no body, but save it for logging
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return ret, fmt.Errorf("error reading response body from registry: %s", err)
+		return "", fmt.Errorf("error reading response body from registry: %s", err)
 	}
 
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusNoContent:
 		// OK
 	case http.StatusNotFound:
-		return ret, fmt.Errorf("component %q version %q not found", pkgAddr, version)
+		return "", fmt.Errorf("component %q version %q not found", pkgAddr, version)
 	default:
 		// anything else is an error:
-		return ret, fmt.Errorf("error getting download location for %q: %s resp:%s", pkgAddr, resp.Status, body)
+		return "", fmt.Errorf("error getting download location for %q: %s resp:%s", pkgAddr, resp.Status, body)
 	}
 
 	location := resp.Header.Get("x-terraform-get")
 	if location == "" {
-		return ret, fmt.Errorf("failed to get download URL for %s %s", pkgAddr, version)
+		return "", fmt.Errorf("failed to get download URL for %s %s", pkgAddr, version)
 	}
 
 	if strings.HasPrefix(location, "/") || strings.HasPrefix(location, "./") || strings.HasPrefix(location, "../") {
 		locationURL, err := url.Parse(location)
 		if err != nil {
-			return ret, fmt.Errorf("invalid relative URL for %s: %s", pkgAddr, err)
+			return "", fmt.Errorf("invalid relative URL for %s: %s", pkgAddr, err)
 		}
 		locationURL = resp.Request.URL.ResolveReference(locationURL)
 		location = locationURL.String()
@@ -349,11 +346,10 @@ func (c *Client) ComponentPackageSourceAddr(ctx context.Context, pkgAddr regaddr
 
 	srcAddr, err := sourceaddrs.ParseRemoteSource(location)
 	if err != nil {
-		return ret, fmt.Errorf("invalid source address %q for %s: %s", location, pkgAddr, err)
+		return "", fmt.Errorf("invalid source address %q for %s: %s", location, pkgAddr, err)
 	}
-	ret.SourceAddr = srcAddr
 
-	return ret, nil
+	return srcAddr.String(), nil
 }
 
 // configureDiscoveryRetry configures the number of retries the registry client
