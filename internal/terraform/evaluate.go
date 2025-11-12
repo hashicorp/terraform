@@ -416,26 +416,40 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		// This means deprecation can only for non-expanded modules be detected during validate
 		// since we don't want false positives. The plan walk will give definitive warnings.
 		atys := make(map[string]cty.Type, len(outputConfigs))
-		as := make(map[string]cty.Value, len(outputConfigs))
+		pvms := []cty.PathValueMarks{}
 		for name, c := range outputConfigs {
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
-			val := cty.UnknownVal(cty.DynamicPseudoType)
 			if c.DeprecatedSet {
-				val = val.Mark(marks.NewDeprecation(c.Deprecated, nil))
+				var path cty.Path
+				switch {
+				case callConfig.Count != nil:
+					path = cty.IndexIntPath(0).GetAttr(name)
+				case callConfig.ForEach != nil:
+					path = cty.IndexStringPath("*").GetAttr(name)
+				default:
+					path = cty.GetAttrPath(name)
+				}
+				pvms = append(pvms, cty.PathValueMarks{
+					Path:  path,
+					Marks: cty.NewValueMarks(marks.NewDeprecation(c.Deprecated, nil)),
+				})
 			}
-			as[name] = val
 		}
 		instTy := cty.Object(atys)
 
+		var val cty.Value
 		switch {
 		case callConfig.Count != nil:
-			return cty.UnknownVal(cty.List(instTy)), diags
+			val = cty.UnknownVal(cty.List(instTy))
 		case callConfig.ForEach != nil:
-			return cty.UnknownVal(cty.Map(instTy)), diags
+			val = cty.UnknownVal(cty.Map(instTy))
 		default:
-			val := cty.ObjectVal(as)
-			return val, diags
+			val = cty.UnknownVal(instTy)
 		}
+		// apply all marks
+		val = val.MarkWithPaths(pvms)
+
+		return val, diags
 	}
 
 	// For all other walk types, we proceed to dynamic evaluation of individual
@@ -1158,7 +1172,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 		value = value.Mark(marks.Ephemeral)
 	}
 	if config.DeprecatedSet {
-		val = val.Mark(marks.NewDeprecation(config.Deprecated, config.DeclRange.Ptr()))
+		value = value.Mark(marks.NewDeprecation(config.Deprecated, config.DeclRange.Ptr()))
 	}
 
 	return value, diags
