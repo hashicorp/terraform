@@ -200,7 +200,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	}
 
 	for _, rawAction := range rawPlan.ActionInvocations {
-		action, err := actionInvocationFromTfplan(rawAction)
+		action, err := ActionInvocationFromTfplan(rawAction)
 		if err != nil {
 			// errors from actionInvocationFromTfplan already include context
 			return nil, err
@@ -564,7 +564,7 @@ func deferredActionInvocationFromTfplan(dai *planproto.DeferredActionInvocation)
 		return nil, fmt.Errorf("deferred action invocation object is absent")
 	}
 
-	actionInvocation, err := actionInvocationFromTfplan(dai.ActionInvocation)
+	actionInvocation, err := ActionInvocationFromTfplan(dai.ActionInvocation)
 	if err != nil {
 		return nil, err
 	}
@@ -1315,7 +1315,7 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	}
 }
 
-func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
+func ActionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
 	if rawAction == nil {
 		// Should never happen in practice, since protobuf can't represent
 		// a nil value in a list.

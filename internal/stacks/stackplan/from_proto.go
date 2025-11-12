@@ -237,6 +237,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			ResourceInstancePriorState:      addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
 			ResourceInstanceProviderConfig:  addrs.MakeMap[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig](),
 			DeferredResourceInstanceChanges: addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.DeferredResourceInstanceChangeSrc](),
+			ActionInvocations:               addrs.MakeMap[addrs.AbsActionInstance, *plans.ActionInvocationInstanceSrc](),
 		})
 		err = c.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
 		if err != nil {
@@ -302,8 +303,32 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		})
 
 	case *tfstackdata1.PlanActionInvocationPlanned:
-		// TODO: everything
-		// for now just accept and ignore
+		cAddr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
+		}
+
+		_, diags = addrs.ParseAbsProviderConfigStr(msg.ProviderConfigAddr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid provider configuration address syntax in %q", msg.ProviderConfigAddr)
+		}
+
+		actionAddr, diags := addrs.ParseAbsActionInstanceStr(msg.ActionInvocationAddr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid action invocation address syntax in %q", msg.ActionInvocationAddr)
+		}
+
+		c, ok := l.ret.Root.GetOk(cAddr)
+		if !ok {
+			return fmt.Errorf("action invocation for unannounced component instance %s", cAddr)
+		}
+
+		// Convert the proto invocation to the plans.ActionInvocationInstanceSrc type
+		src, err := planfile.ActionInvocationFromTfplan(msg.Invocation)
+		if err != nil {
+			return fmt.Errorf("invalid action invocation for %s: %w", actionAddr, err)
+		}
+		c.ActionInvocations.Put(actionAddr, src)
 
 	default:
 		// Should not get here, because a stack plan can only be loaded by
