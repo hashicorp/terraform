@@ -149,7 +149,7 @@ func TestPrimary_stateStore_stateCmds(t *testing.T) {
 	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
 	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
 
-	// Move the provider binaries into the correct directory .terraform/providers/ directory
+	// Move the provider binaries into the correct .terraform/providers/ directory
 	// that will contain provider binaries in an initialized working directory.
 	platform := getproviders.CurrentPlatform.String()
 	if err := os.MkdirAll(tf.Path(".terraform/providers/registry.terraform.io/hashicorp/simple6/0.0.1/", platform), os.ModePerm); err != nil {
