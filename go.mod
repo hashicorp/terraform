@@ -331,3 +331,5 @@ tool (
 	golang.org/x/tools/cmd/stringer
 	honnef.co/go/tools/cmd/staticcheck
 )
+
+replace github.com/hashicorp/go-slug => github.com/hashicorp/go-slug v0.17.2-0.20251112070849-b0735d70afe1
