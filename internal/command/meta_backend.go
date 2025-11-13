@@ -221,7 +221,8 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 	// the user, since the local backend should only be used when learning or
 	// in exceptional cases and so it's better to help the user learn that
 	// by introducing it as a concept.
-	if m.backendConfigState == nil {
+	backendInUse := opts.StateStoreConfig == nil
+	if backendInUse && m.backendConfigState == nil {
 		// NOTE: This synthetic object is intentionally _not_ retained in the
 		// on-disk record of the backend configuration, which was already dealt
 		// with inside backendFromConfig, because we still need that codepath
