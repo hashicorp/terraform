@@ -221,13 +221,13 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 	// the user, since the local backend should only be used when learning or
 	// in exceptional cases and so it's better to help the user learn that
 	// by introducing it as a concept.
-	if m.backendState == nil {
+	if m.backendConfigState == nil {
 		// NOTE: This synthetic object is intentionally _not_ retained in the
 		// on-disk record of the backend configuration, which was already dealt
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &workdir.BackendConfigState{
+		m.backendConfigState = &workdir.BackendConfigState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -727,10 +727,10 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Upon return, we want to set the state we're using in-memory so that
 	// we can access it for commands.
-	m.backendState = nil
+	m.backendConfigState = nil
 	defer func() {
 		if s := sMgr.State(); s != nil && !s.Backend.Empty() {
-			m.backendState = s.Backend
+			m.backendConfigState = s.Backend
 		}
 	}()
 
