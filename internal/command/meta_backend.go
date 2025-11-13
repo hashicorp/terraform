@@ -568,7 +568,7 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 		return nil, 0, diags
 	}
 
-	pFactory, pDiags := m.GetStateStoreProviderFactory(opts.StateStoreConfig, opts.Locks)
+	pFactory, pDiags := m.StateStoreProviderFactoryFromConfig(opts.StateStoreConfig, opts.Locks)
 	diags = diags.Append(pDiags)
 	if pDiags.HasErrors() {
 		return nil, 0, diags
@@ -1999,13 +1999,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdi
 
 	s := sMgr.State()
 
-	locks, lDiags := m.lockedDependencies()
-	diags = diags.Append(lDiags)
-	if lDiags.HasErrors() {
-		return nil, diags
-	}
-
-	factory, pDiags := m.StateStoreProviderFactoryFromConfigState(s.StateStore, locks)
+	factory, pDiags := m.StateStoreProviderFactoryFromConfigState(s.StateStore)
 	diags = diags.Append(pDiags)
 	if pDiags.HasErrors() {
 		return nil, diags
@@ -2300,7 +2294,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, locks *depsfile.Locks) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	factory, pDiags := m.GetStateStoreProviderFactory(c, locks)
+	factory, pDiags := m.StateStoreProviderFactoryFromConfig(c, locks)
 	diags = diags.Append(pDiags)
 	if pDiags.HasErrors() {
 		return nil, cty.NilVal, cty.NilVal, diags
@@ -2535,7 +2529,7 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 	return diags
 }
 
-func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
+func (m *Meta) StateStoreProviderFactoryFromConfig(config *configs.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if config == nil || locks == nil {
@@ -2586,11 +2580,11 @@ func (m *Meta) GetStateStoreProviderFactory(config *configs.StateStore, locks *d
 	return factory, diags
 }
 
-func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateStoreConfigState, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
+func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateStoreConfigState) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if cfgState == nil || locks == nil {
-		panic(fmt.Sprintf("nil config or nil locks passed to GetStateStoreProviderFactory: config %#v, locks %#v", cfgState, locks))
+	if cfgState == nil {
+		panic("nil config passed to StateStoreProviderFactoryFromConfigState")
 	}
 
 	if cfgState.Provider == nil || cfgState.Provider.Source.IsZero() {
@@ -2599,11 +2593,10 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 			Severity: hcl.DiagError,
 			Summary:  "Unknown provider used for state storage",
 			Detail:   "Terraform could not find the provider used with the state_store. This is a bug in Terraform and should be reported.",
-			// Subject:  &cfgState.TypeRange,
 		})
 	}
 
-	factories, err := m.ProviderFactoriesFromLocks(locks)
+	factories, err := m.ProviderFactories()
 	if err != nil {
 		// This may happen if the provider isn't present in the provider cache.
 		// This should be caught earlier by logic that diffs the config against the backend state file.
@@ -2615,7 +2608,6 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 				cfgState.Provider.Source,
 				cfgState.Type,
 				err),
-			// Subject: &cfgState.TypeRange,
 		})
 	}
 
@@ -2629,7 +2621,6 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 				cfgState.Provider.Source,
 				cfgState.Type,
 			),
-			// Subject: &cfgState.TypeRange,
 		})
 	}
 
