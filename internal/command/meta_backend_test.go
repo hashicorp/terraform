@@ -2088,92 +2088,6 @@ func Test_determineInitReason(t *testing.T) {
 	}
 }
 
-// Unsetting a saved state store
-func TestMetaBackend_configuredStateStoreUnset(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unset"), td)
-	t.Chdir(td)
-
-	mock := testStateStoreMock(t)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.forceInitCopy = true // to avoid UI prompt
-	m.testingOverrides = metaOverridesForProvider(mock)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	providerAddr := tfaddr.MustParseProviderSource("hashicorp/test")
-	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
-	if err != nil {
-		t.Fatalf("test setup failed when making constraint: %s", err)
-	}
-	locks := depsfile.NewLocks()
-	locks.SetProvider(
-		providerAddr,
-		versions.MustParseVersion("1.2.3"),
-		constraint,
-		[]providerreqs.Hash{""},
-	)
-
-	// Get the operations backend
-	b, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		Locks:            locks,
-	})
-	if beDiags.HasErrors() {
-		t.Fatalf("unexpected error: %s", beDiags.Err())
-	}
-
-	// Check the state
-	s, sDiags := b.StateMgr(backend.DefaultStateName)
-	if sDiags.HasErrors() {
-		t.Fatalf("unexpected error: %s", sDiags.Err())
-	}
-	if err := s.RefreshState(); err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	state := s.State()
-	if state != nil {
-		t.Fatal("state should be nil")
-	}
-
-	// Verify the default paths don't exist
-	if !isEmptyState(DefaultStateFilename) {
-		data, _ := os.ReadFile(DefaultStateFilename)
-		t.Fatal("state should not exist, but contains:\n", string(data))
-	}
-
-	// Verify a backup doesn't exist
-	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
-		data, _ := os.ReadFile(DefaultStateFilename + DefaultBackupExtension)
-		t.Fatal("backup should not exist, but contains:\n", string(data))
-	}
-
-	// Write some state
-	s.WriteState(testState())
-	if err := s.PersistState(nil); err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-
-	// Verify it exists where we expect it to
-	if isEmptyState(DefaultStateFilename) {
-		t.Fatal(DefaultStateFilename, "is empty")
-	}
-
-	// Verify no backup since it was empty to start
-	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename + DefaultBackupExtension)
-		t.Fatal("backup state should be empty, but contains:\n", string(data))
-	}
-}
-
 // Changing from using backend to state_store
 //
 // TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
@@ -2555,7 +2469,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 
 		// Setup the meta and test providerFactoriesDuringInit
 		m := testMetaBackend(t, nil)
-		_, diags := m.GetStateStoreProviderFactory(config, locks)
+		_, diags := m.StateStoreProviderFactoryFromConfig(config, locks)
 		if !diags.HasErrors() {
 			t.Fatalf("expected error but got none")
 		}
@@ -2585,7 +2499,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 
 		// Setup the meta and test providerFactoriesDuringInit
 		m := testMetaBackend(t, nil)
-		_, diags := m.GetStateStoreProviderFactory(config, locks)
+		_, diags := m.StateStoreProviderFactoryFromConfig(config, locks)
 		if !diags.HasErrors() {
 			t.Fatal("expected and error but got none")
 		}
