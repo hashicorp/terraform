@@ -4,7 +4,7 @@ go 1.25
 
 godebug winsymlink=0
 
-replace github.com/zclconf/go-cty v1.16.3 => github.com/danielmschmidt/go-cty v1.17.1-0.20251112140103-795c2f9dbacb
+replace github.com/zclconf/go-cty v1.16.3 => /Users/dschmidt/work/hashicorp/go-cty
 
 require (
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2

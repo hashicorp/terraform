@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -3888,29 +3887,17 @@ resource "test_resource" "test" {
 	})
 
 	diags := ctx.Validate(m, &ValidateOpts{})
-	subjects := []string{}
 
-	// tfdiags.AssertDiagnosticsMatch didn't work
-	for _, d := range diags {
-		if d.Description().Summary != "Deprecated value used as for_each argument" {
-			t.Errorf("unexpected diagnostic: %s", d.Description().Summary)
-		}
-
-		if d.Description().Detail != "Please stop using this" {
-			t.Errorf("unexpected diagnostic detail: %s", d.Description().Detail)
-		}
-
-		subjects = append(subjects, fmt.Sprintf("%d:%d", d.Source().Subject.Start.Line, d.Source().Subject.Start.Column))
-	}
-
-	slices.Sort(subjects)
-	expectedSubjects := []string{
-		"6:16",
-	}
-	slices.Sort(expectedSubjects)
-	if diff := cmp.Diff(subjects, expectedSubjects); diff != "" {
-		t.Errorf("unexpected diagnostic subjects: %s", diff)
-	}
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used as for_each argument",
+		Detail:   "Please stop using this",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 6, Column: 16, Byte: 88},
+			End:      hcl.Pos{Line: 6, Column: 30, Byte: 102},
+		},
+	}))
 }
 
 func TestContext2Validate_deprecated_output_used_in_count(t *testing.T) {
@@ -3953,29 +3940,17 @@ resource "test_resource" "test" {
 	})
 
 	diags := ctx.Validate(m, &ValidateOpts{})
-	subjects := []string{}
 
-	// tfdiags.AssertDiagnosticsMatch didn't work
-	for _, d := range diags {
-		if d.Description().Summary != "Deprecated value used as count argument" {
-			t.Errorf("unexpected diagnostic: %s", d.Description().Summary)
-		}
-
-		if d.Description().Detail != "Please stop using this" {
-			t.Errorf("unexpected diagnostic detail: %s", d.Description().Detail)
-		}
-
-		subjects = append(subjects, fmt.Sprintf("%d:%d", d.Source().Subject.Start.Line, d.Source().Subject.Start.Column))
-	}
-
-	slices.Sort(subjects)
-	expectedSubjects := []string{
-		"6:16",
-	}
-	slices.Sort(expectedSubjects)
-	if diff := cmp.Diff(subjects, expectedSubjects); diff != "" {
-		t.Errorf("unexpected diagnostic subjects: %s", diff)
-	}
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used as count argument",
+		Detail:   "Please stop using this",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 6, Column: 16, Byte: 88},
+			End:      hcl.Pos{Line: 6, Column: 30, Byte: 102},
+		},
+	}))
 }
 
 func TestContext2Validate_deprecated_output_used_in_resource_config(t *testing.T) {
@@ -4015,15 +3990,10 @@ output "test_output" {
 	value = module.mod.old # WARNING
 }
 output "test_output_conditional" {
-	value = false ? module.mod.old : module.mod.new # Not detectable during validate
-}
-module "mod2" {
-	source = "./mod2"
-	input = module.mod.old # WARNING
+	value = false ? module.mod.old : module.mod.new # WARNING
 }
 `,
 	})
-
 	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -4097,7 +4067,6 @@ output "old" {
 module "nested" {
     source = "../nested"
 }
-
 # This is an acceptable use of a deprecated value, so no warning
 output "redeprecated" {
     deprecated = "This should not be in use, dependency is deprecated"
@@ -4109,12 +4078,11 @@ output "redeprecated" {
 module "nested" {
   source = "../nested"
 }
-
 # This is an unacceptable use of a deprecated value, so warning
 # but the value of this is not deprecated, we want the warning to exit where it is used
 # not multiple times for the same value
 output "undeprecated_use_of_deprecated_value" {
-  value = module.nested.old
+  value = module.nested.old # WARNING
 }
 `,
 		"main.tf": `
@@ -4172,8 +4140,8 @@ output "test_output_deprecated_use_with_deprecation" {
 				Detail:   "This should not be in use, dependency is deprecated",
 				Subject: &hcl.Range{
 					Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-					Start:    hcl.Pos{Line: 9, Column: 12, Byte: 124},
-					End:      hcl.Pos{Line: 9, Column: 35, Byte: 147},
+					Start:    hcl.Pos{Line: 9, Column: 11, Byte: 124},
+					End:      hcl.Pos{Line: 9, Column: 28, Byte: 147},
 				},
 			},
 		).Append(
@@ -4194,10 +4162,343 @@ output "test_output_deprecated_use_with_deprecation" {
 				Detail:   "Please stop using this",
 				Subject: &hcl.Range{
 					Filename: filepath.Join(m.Module.SourceDir, "mod2", "main.tf"),
-					Start:    hcl.Pos{Line: 10, Column: 11, Byte: 295},
-					End:      hcl.Pos{Line: 10, Column: 28, Byte: 312},
+					Start:    hcl.Pos{Line: 9, Column: 11, Byte: 294},
+					End:      hcl.Pos{Line: 9, Column: 28, Byte: 311},
 				},
 			},
 		),
 	)
+}
+
+func TestContext2Validate_deprecated_output_expansion(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/nested/main.tf": `
+output "old" {
+    deprecated = "mod/nested: Please stop using this"
+    value = "old"
+}
+`,
+		"mod/main.tf": `
+output "old" {
+    deprecated = "mod: Please stop using this"
+    value = "old"
+}
+module "modnested" {
+    source = "./nested"
+}
+output "new" {
+    deprecated = "mod: The dependency is deprecated, please stop using this"
+    value = module.modnested.old
+}
+`,
+		"mod2/main.tf": `
+output "old" {
+    deprecated = "mod2: Please stop using this"
+    value = "old"
+}
+output "new" {
+    value = "new"
+}
+`,
+		"mod3/main.tf": `
+output "old" {
+  deprecated = "mod2: Please stop using this"
+  value = "old"
+}
+output "new" {
+  value = "new"
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+module "mod2" {
+	count = 2
+	source = "./mod2"
+}
+module "mod3" {
+	count = 2
+	source = "./mod3"
+}
+resource "test_resource" "foo" {
+  attr = module.mod.old # WARNING
+}
+resource "test_resource" "bar" {
+  attr = module.mod2[0].old # WARNING
+}
+resource "test_resource" "baz" {
+  attr = module.mod.new # WARNING
+}
+output "test_output_no_warning" {
+	value = module.mod3[0].new # OK
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	var expectedDiags tfdiags.Diagnostics
+	expectedDiags = expectedDiags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "mod: Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 14, Column: 10, Byte: 177},
+				End:      hcl.Pos{Line: 14, Column: 24, Byte: 191},
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "mod2: Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 17, Column: 10, Byte: 246},
+				End:      hcl.Pos{Line: 17, Column: 28, Byte: 264},
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "mod: The dependency is deprecated, please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 20, Column: 10, Byte: 319},
+				End:      hcl.Pos{Line: 20, Column: 24, Byte: 333},
+			},
+		},
+	)
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
+}
+
+func TestContext2Validate_deprecated_output_expansion_with_splat(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+`,
+		"main.tf": `
+module "mod" {
+	count = 2
+	source = "./mod"
+}
+output "test_output2" {
+	value = module.mod[*].old # WARNING
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 10, Byte: 80},
+				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
+			},
+		},
+	))
+}
+
+func TestContext2Validate_deprecated_output_used_in_check_block(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+output "old-and-unused" {
+    deprecated = "This should not show up in the errors, we are not using it"
+    value = "old"
+}
+output "new" {
+    value = "foo"
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+check "deprecated_check" {
+  assert {
+    condition     = !strcontains(module.mod.old, "hello-world")
+    error_message = "Neither condition nor error_message should contain ${module.mod.old} deprecated value"
+  }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 21, Byte: 97},
+				End:      hcl.Pos{Line: 7, Column: 64, Byte: 140},
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 8, Column: 21, Byte: 161},
+				End:      hcl.Pos{Line: 8, Column: 108, Byte: 248},
+			},
+		},
+	))
+}
+
+func TestContext2Validate_deprecated_output_in_lifecycle_conditions(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+locals {
+    a = "a"
+    b = "b"
+}
+resource "test_resource" "test" {
+    attr = "not-the-problem"
+    lifecycle {
+        precondition {
+            condition     = module.mod.old == "old"
+            error_message = "This is okay."
+        }
+    
+        postcondition {
+            condition     = local.a != local.b
+            error_message = "This should error with deprecated usage: ${module.mod.old}"
+        }
+    }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 16, Column: 29, Byte: 207},
+				End:      hcl.Pos{Line: 16, Column: 52, Byte: 230},
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 22, Column: 29, Byte: 389},
+				End:      hcl.Pos{Line: 22, Column: 89, Byte: 449},
+			},
+		},
+	))
 }
