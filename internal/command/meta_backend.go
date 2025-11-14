@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/backend/local"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	backendPluggable "github.com/hashicorp/terraform/internal/backend/pluggable"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -37,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -441,13 +443,44 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		// here first is a bug, so panic.
 		panic(fmt.Sprintf("invalid workspace: %s", err))
 	}
-	planOutBackend, err := m.backendState.PlanData(schema, nil, workspace)
-	if err != nil {
-		// Always indicates an implementation error in practice, because
-		// errors here indicate invalid encoding of the backend configuration
-		// in memory, and we should always have validated that by the time
-		// we get here.
-		panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
+
+	var planOutBackend *plans.Backend
+	var planOutStateStore *plans.StateStore
+	switch {
+	case m.backendConfigState == nil && m.stateStoreConfigState == nil:
+		// Neither set
+		panic("failed to encode backend configuration for plan: neither backend nor state_store data present")
+	case m.backendConfigState != nil && m.stateStoreConfigState != nil:
+		// Both set
+		panic("failed to encode backend configuration for plan: both backend and state_store data present but they are mutually exclusive")
+	case m.backendConfigState != nil:
+		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace)
+		if err != nil {
+			// Always indicates an implementation error in practice, because
+			// errors here indicate invalid encoding of the backend configuration
+			// in memory, and we should always have validated that by the time
+			// we get here.
+			panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
+		}
+	case m.stateStoreConfigState != nil:
+		// To access the provider schema, we need to access the underlying backends
+		var providerSchema *configschema.Block
+		if lb, ok := b.(*local.Local); ok {
+			if p, ok := lb.Backend.(*backendPluggable.Pluggable); ok {
+				providerSchema = p.ProviderSchema()
+			}
+		}
+
+		// TODO: do we need to protect against a nil provider schema? When a provider has an empty schema does that present as nil?
+
+		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace)
+		if err != nil {
+			// Always indicates an implementation error in practice, because
+			// errors here indicate invalid encoding of the state_store configuration
+			// in memory, and we should always have validated that by the time
+			// we get here.
+			panic(fmt.Sprintf("failed to encode state_store configuration for plan: %s", err))
+		}
 	}
 
 	stateLocker := clistate.NewNoopLocker()
@@ -466,8 +499,11 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		log.Printf("[WARN] Failed to load dependency locks while preparing backend operation (ignored): %s", diags.Err().Error())
 	}
 
-	return &backendrun.Operation{
-		PlanOutBackend:  planOutBackend,
+	op := &backendrun.Operation{
+		// These two fields are mutually exclusive; one is being assigned a nil value below.
+		PlanOutBackend:    planOutBackend,
+		PlanOutStateStore: planOutStateStore,
+
 		Targets:         m.targets,
 		UIIn:            m.UIInput(),
 		UIOut:           m.Ui,
@@ -475,6 +511,12 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		StateLocker:     stateLocker,
 		DependencyLocks: depLocks,
 	}
+
+	if op.PlanOutBackend != nil && op.PlanOutStateStore != nil {
+		panic("failed to prepare operation: both backend and state_store configurations are present")
+	}
+
+	return op
 }
 
 // backendConfig returns the local configuration for the backend
@@ -729,9 +771,20 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Upon return, we want to set the state we're using in-memory so that
 	// we can access it for commands.
 	m.backendConfigState = nil
+	m.stateStoreConfigState = nil
 	defer func() {
-		if s := sMgr.State(); s != nil && !s.Backend.Empty() {
+		s := sMgr.State()
+		switch {
+		case s == nil:
+			// Do nothing
+
+			// TODO: Should we add a synthetic object here,
+			// as part of addressing actions described in this FIXME?
+			// https://github.com/hashicorp/terraform/blob/053738fbf08d50261eccb463580525b88f461d8e/internal/command/meta_backend.go#L222-L243
+		case !s.Backend.Empty():
 			m.backendConfigState = s.Backend
+		case !s.StateStore.Empty():
+			m.stateStoreConfigState = s.StateStore
 		}
 	}()
 
