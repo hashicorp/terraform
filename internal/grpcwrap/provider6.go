@@ -981,7 +981,6 @@ func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.Conf
 		resp.Diagnostics = append(resp.Diagnostics, diag)
 		return resp, nil
 	}
-	p.chunkSize = configureResp.Capabilities.ChunkSize
 
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, configureResp.Diagnostics)
 	resp.Capabilities = &tfplugin6.StateStoreServerCapabilities{
