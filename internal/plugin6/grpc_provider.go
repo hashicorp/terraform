@@ -1841,6 +1841,7 @@ func (p *GRPCProvider) DeleteState(r providers.DeleteStateRequest) (resp provide
 
 	protoReq := &proto6.DeleteState_Request{
 		TypeName: r.TypeName,
+		StateId:  r.StateId,
 	}
 
 	schema := p.GetProviderSchema()
