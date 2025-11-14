@@ -31,6 +31,7 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	backendPluggable "github.com/hashicorp/terraform/internal/backend/pluggable"
+	"github.com/hashicorp/terraform/internal/backend/pluggable/chunks"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -2071,7 +2072,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Fact
 		TypeName: s.StateStore.Type,
 		Config:   stateStoreConfigVal,
 		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: backendPluggable.DefaultStateStoreChunkSize,
+			ChunkSize: chunks.DefaultStateStoreChunkSize,
 		},
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
@@ -2080,10 +2081,10 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Fact
 	}
 
 	chunkSize := cfgStoreResp.Capabilities.ChunkSize
-	if chunkSize == 0 || chunkSize > backendPluggable.MaxStateStoreChunkSize {
+	if chunkSize == 0 || chunkSize > chunks.MaxStateStoreChunkSize {
 		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
 			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
-			backendPluggable.MaxStateStoreChunkSize, chunkSize,
+			chunks.MaxStateStoreChunkSize, chunkSize,
 		))
 		return nil, diags
 	}
@@ -2348,7 +2349,7 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, factory providers
 		TypeName: c.Type,
 		Config:   stateStoreConfigVal,
 		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: backendPluggable.DefaultStateStoreChunkSize,
+			ChunkSize: chunks.DefaultStateStoreChunkSize,
 		},
 	})
 	diags = diags.Append(cfgStoreResp.Diagnostics)
@@ -2357,10 +2358,10 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, factory providers
 	}
 
 	chunkSize := cfgStoreResp.Capabilities.ChunkSize
-	if chunkSize == 0 || chunkSize > backendPluggable.MaxStateStoreChunkSize {
+	if chunkSize == 0 || chunkSize > chunks.MaxStateStoreChunkSize {
 		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
 			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
-			backendPluggable.MaxStateStoreChunkSize, chunkSize,
+			chunks.MaxStateStoreChunkSize, chunkSize,
 		))
 		return nil, cty.NilVal, cty.NilVal, diags
 	}

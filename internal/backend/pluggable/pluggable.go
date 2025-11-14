@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/pluggable/chunks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -106,7 +107,8 @@ func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
 		TypeName: p.typeName,
 		Config:   config,
 		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: DefaultStateStoreChunkSize,
+			// The core binary will always request the default chunk size from the provider to start
+			ChunkSize: chunks.DefaultStateStoreChunkSize,
 		},
 	}
 	resp := p.provider.ConfigureStateStore(req)
