@@ -1946,7 +1946,6 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Fact
 	// The provider and state store will be configured using the backend state file.
 
 	var diags tfdiags.Diagnostics
-	var b backend.Backend
 
 	if factory == nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -2099,7 +2098,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState, factory providers.Fact
 
 	// Now we have a fully configured state store, ready to be used.
 	// To make it usable we need to return it in a backend.Backend interface.
-	b, err = backendPluggable.NewPluggable(provider, s.StateStore.Type)
+	b, err := backendPluggable.NewPluggable(provider, s.StateStore.Type)
 	if err != nil {
 		diags = diags.Append(err)
 	}

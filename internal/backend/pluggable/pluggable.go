@@ -28,7 +28,7 @@ import (
 //
 // By wrapping a configured provider in a Pluggable we allow calling code
 // to use the provider's gRPC methods when interacting with state.
-func NewPluggable(p providers.Interface, typeName string) (backend.Backend, error) {
+func NewPluggable(p providers.Interface, typeName string) (*Pluggable, error) {
 	if p == nil {
 		return nil, errors.New("Attempted to initialize pluggable state with a nil provider interface. This is a bug in Terraform and should be reported")
 	}
