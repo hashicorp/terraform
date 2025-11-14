@@ -1449,6 +1449,101 @@ action "action_example" "two" {
 			},
 		},
 
+		"action invoke in module": {
+			module: map[string]string{
+				"mod/main.tf": `
+action "action_example" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "action_example" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+
+				"main.tf": `
+module "mod" {
+  source = "./mod"
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Module: addrs.RootModuleInstance.Child("mod", addrs.NoKey),
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "action_example",
+								Name: "one",
+							},
+							Key: addrs.NoKey,
+						},
+					},
+				},
+			},
+		},
+
+		"action invoke in expanded module": {
+			module: map[string]string{
+				"mod/main.tf": `
+action "action_example" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "action_example" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+
+				"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{
+					addrs.AbsActionInstance{
+						Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
+						Action: addrs.ActionInstance{
+							Action: addrs.Action{
+								Type: "action_example",
+								Name: "one",
+							},
+							Key: addrs.NoKey,
+						},
+					},
+				},
+			},
+		},
+
 		"action invoke with count (all)": {
 			module: map[string]string{
 				"main.tf": `
