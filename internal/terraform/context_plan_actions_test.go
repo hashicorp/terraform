@@ -2385,6 +2385,135 @@ action "test_action" "two" {
 				},
 			},
 
+			"action invoke in module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "test_action" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.NoKey),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.NoKey,
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+					}
+
+					ais := plan.Changes.ActionInvocations[0]
+					ai, err := ais.Decode(&testActionSchema)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+						t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+					}
+
+					expected := cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					})
+					if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+						t.Fatalf("wrong value in plan: %s", diff)
+					}
+
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "module.mod.action.test_action.one")) {
+						t.Fatalf("wrong address in plan: %s", ai.Addr)
+					}
+				},
+			},
+
+			"action invoke in expanded module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "test_action" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.NoKey,
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+					}
+
+					ais := plan.Changes.ActionInvocations[0]
+					ai, err := ais.Decode(&testActionSchema)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+						t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+					}
+
+					expected := cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					})
+					if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+						t.Fatalf("wrong value in plan: %s", diff)
+					}
+
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "module.mod[1].action.test_action.one")) {
+						t.Fatalf("wrong address in plan: %s", ai.Addr)
+					}
+				},
+			},
+
 			"action invoke with count (all)": {
 				module: map[string]string{
 					"main.tf": `
