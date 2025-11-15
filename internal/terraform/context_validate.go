@@ -87,6 +87,12 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 		return diags
 	}
 
+	moreDiags = c.ValidateDeprecation(config)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags
+	}
+
 	log.Printf("[DEBUG] Building and walking validate graph")
 
 	// Validate is to check if the given module is valid regardless of
