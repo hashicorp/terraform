@@ -411,20 +411,45 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// structural type of similar kind, so that it can be considered as
 	// valid during both the validate and plan walks.
 	if d.Operation == walkValidate {
+		// In case of non-expanded module calls we return a known object with unknonwn values
+		// In case of an expanded module call we return unknown list/map
+		// This means deprecation can only for non-expanded modules be detected during validate
+		// since we don't want false positives. The plan walk will give definitive warnings.
 		atys := make(map[string]cty.Type, len(outputConfigs))
-		for name := range outputConfigs {
+		pvms := []cty.PathValueMarks{}
+		for name, c := range outputConfigs {
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
+			if c.DeprecatedSet {
+				var path cty.Path
+				switch {
+				case callConfig.Count != nil:
+					path = cty.IndexIntPath(0).GetAttr(name)
+				case callConfig.ForEach != nil:
+					path = cty.IndexStringPath("*").GetAttr(name)
+				default:
+					path = cty.GetAttrPath(name)
+				}
+				pvms = append(pvms, cty.PathValueMarks{
+					Path:  path,
+					Marks: cty.NewValueMarks(marks.NewDeprecation(c.Deprecated, nil)),
+				})
+			}
 		}
 		instTy := cty.Object(atys)
 
+		var val cty.Value
 		switch {
 		case callConfig.Count != nil:
-			return cty.UnknownVal(cty.List(instTy)), diags
+			val = cty.UnknownVal(cty.List(instTy))
 		case callConfig.ForEach != nil:
-			return cty.UnknownVal(cty.Map(instTy)), diags
+			val = cty.UnknownVal(cty.Map(instTy))
 		default:
-			return cty.UnknownVal(instTy), diags
+			val = cty.UnknownVal(instTy)
 		}
+		// apply all marks
+		val = val.MarkWithPaths(pvms)
+
+		return val, diags
 	}
 
 	// For all other walk types, we proceed to dynamic evaluation of individual
@@ -468,6 +493,24 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			outputVal := namedVals.GetOutputValue(outputAddr)
 			if cfg.Sensitive {
 				outputVal = outputVal.Mark(marks.Sensitive)
+			}
+
+			outputValIsDeprecated := marks.Has(outputVal, marks.Deprecation)
+			if cfg.DeprecatedSet && outputValIsDeprecated {
+				outputVal = marks.RemoveDeprecationMarks(outputVal)
+				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, nil))
+			} else if cfg.DeprecatedSet && !outputValIsDeprecated {
+				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, nil))
+			} else if !cfg.DeprecatedSet && outputValIsDeprecated {
+				for _, depMark := range marks.GetDeprecationMarks(outputVal) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Deprecated Value used in output",
+						Detail:   depMark.Message,
+						Subject:  rng.ToHCL().Ptr(),
+					})
+				}
+				outputVal = marks.RemoveDeprecationMarks(outputVal)
 			}
 			attrs[name] = outputVal
 		}
@@ -1127,6 +1170,9 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	}
 	if config.Ephemeral {
 		value = value.Mark(marks.Ephemeral)
+	}
+	if config.DeprecatedSet {
+		value = value.Mark(marks.NewDeprecation(config.Deprecated, config.DeclRange.Ptr()))
 	}
 
 	return value, diags

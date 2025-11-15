@@ -4,6 +4,8 @@ go 1.25
 
 godebug winsymlink=0
 
+replace github.com/zclconf/go-cty v1.16.3 => /Users/dschmidt/work/hashicorp/go-cty
+
 require (
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/ProtonMail/go-crypto v1.1.3
