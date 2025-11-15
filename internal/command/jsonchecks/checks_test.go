@@ -41,6 +41,16 @@ func TestMarshalCheckStates(t *testing.T) {
 	outputBInstAddr := addrs.Checkable(addrs.OutputValue{Name: "b"}.Absolute(moduleChildAddr))
 	checkBlockAAddr := addrs.ConfigCheckable(addrs.Check{Name: "a"}.InModule(addrs.RootModule))
 	checkBlockAInstAddr := addrs.Checkable(addrs.Check{Name: "a"}.Absolute(addrs.RootModuleInstance))
+	ephemeralResourceAddr := addrs.ConfigCheckable(addrs.Resource{
+		Mode: addrs.EphemeralResourceMode,
+		Type: "test",
+		Name: "ephemeral",
+	}.InModule(addrs.RootModule))
+	ephemeralResourceInstAddr := addrs.Checkable(addrs.Resource{
+		Mode: addrs.EphemeralResourceMode,
+		Type: "test",
+		Name: "ephemeral",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
 
 	tests := map[string]struct {
 		Input *states.CheckResults
@@ -214,6 +224,48 @@ func TestMarshalCheckStates(t *testing.T) {
 								},
 								map[string]any{
 									"message": "Too many beeps.",
+								},
+							},
+							"status": "fail",
+						},
+					},
+					"status": "fail",
+				},
+			},
+		},
+		"ephemeral_resource": {
+			&states.CheckResults{
+				ConfigResults: addrs.MakeMap(
+					addrs.MakeMapElem(ephemeralResourceAddr, &states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem(ephemeralResourceInstAddr, &states.CheckResultObject{
+								Status: checks.StatusFail,
+								FailureMessages: []string{
+									"Ephemeral resource check failed.",
+								},
+							}),
+						),
+					}),
+				),
+			},
+			[]any{
+				map[string]any{
+					"address": map[string]any{
+						"kind":       "resource",
+						"mode":       "ephemeral",
+						"name":       "ephemeral",
+						"to_display": "ephemeral.test.ephemeral",
+						"type":       "test",
+					},
+					"instances": []any{
+						map[string]any{
+							"address": map[string]any{
+								"to_display": "ephemeral.test.ephemeral",
+							},
+							"problems": []any{
+								map[string]any{
+									"message": "Ephemeral resource check failed.",
 								},
 							},
 							"status": "fail",
