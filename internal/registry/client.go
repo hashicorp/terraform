@@ -276,29 +276,100 @@ func (c *Client) ModuleLocation(ctx context.Context, module *regsrc.Module, vers
 	return location, nil
 }
 
+// ComponentVersions fetches all of the known exact versions
+// available for the given package in its component registry.
+func (c *Client) ComponentVersions(ctx context.Context, pkgAddr regaddr.ComponentPackage) (*response.ComponentVersions, error) {
+	host, err := c.services.Discover(pkgAddr.Host)
+	if err != nil {
+		return nil, fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
+	}
+
+	service, err := host.ServiceURL(componentServiceID)
+	if err != nil {
+		return nil, fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
+	}
+
+	serviceUrl := service.JoinPath(
+		url.PathEscape(pkgAddr.Namespace),
+		url.PathEscape(pkgAddr.Name),
+		"versions",
+	)
+
+	log.Printf("[DEBUG] fetching component versions from %q", serviceUrl)
+
+	req, err := retryablehttp.NewRequest("GET", serviceUrl.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	c.addRequestCreds(pkgAddr.Host, req.Request)
+	req.Header.Set(xTerraformVersion, tfVersion)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// OK
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("component not found: %s", resp.Status)
+	default:
+		return nil, fmt.Errorf("error looking up component versions: %s", resp.Status)
+	}
+
+	var versions response.ComponentVersions
+
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(&versions); err != nil {
+		return nil, err
+	}
+
+	for _, comp := range versions.Components {
+		for _, v := range comp.Versions {
+			log.Printf("[DEBUG] found available version %q for %s", v.Version, comp.Source)
+		}
+	}
+
+	return &versions, nil
+}
+
 // ComponentLocation fetches the real remote source address for the
 // given version of the given component registry package.
 func (c *Client) ComponentLocation(ctx context.Context, pkgAddr regaddr.ComponentPackage, version versions.Version) (string, error) {
-	services, err := c.services.Discover(pkgAddr.Host)
+	host, err := c.services.Discover(pkgAddr.Host)
 	if err != nil {
 		return "", fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
 	}
 
-	baseURL, err := services.ServiceURL("components.v3")
+	service, err := host.ServiceURL(componentServiceID)
 	if err != nil {
 		return "", fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
 	}
 
-	reqURL := baseURL.JoinPath(
-		url.PathEscape(pkgAddr.Namespace),
-		url.PathEscape(pkgAddr.Name),
-		url.PathEscape(version.String()),
-		"download",
-	)
+	var download *url.URL
 
-	log.Print("[DEBUG] regURL=", reqURL.String())
+	// TODO: Verify if we can rely on unspecified in the request download url path
+	if version == versions.Unspecified {
+		download = service.JoinPath(
+			url.PathEscape(pkgAddr.Namespace),
+			url.PathEscape(pkgAddr.Name),
+			"download",
+		)
+	} else {
+		download = service.JoinPath(
+			url.PathEscape(pkgAddr.Namespace),
+			url.PathEscape(pkgAddr.Name),
+			url.PathEscape(version.String()),
+			"download",
+		)
+	}
 
-	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
+	log.Printf("[DEBUG] looking up module location from %q", download.String())
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", download.String(), nil)
 	if err != nil {
 		return "", fmt.Errorf("invalid request: %w", err)
 	}

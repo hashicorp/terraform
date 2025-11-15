@@ -257,6 +257,38 @@ func (p *packagesServer) FetchModulePackage(ctx context.Context, request *packag
 	return response, nil
 }
 
+func (p *packagesServer) ComponentPackageVersions(ctx context.Context, request *packages.ComponentPackageVersions_Request) (*packages.ComponentPackageVersions_Response, error) {
+	response := new(packages.ComponentPackageVersions_Response)
+
+	compAddrs, err := regaddrs.ParseComponentSource(request.SourceAddr)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
+			Severity: terraform1.Diagnostic_ERROR,
+			Summary:  "Invalid component source",
+			Detail:   fmt.Sprintf("Component source %s is invalid: %s.", request.SourceAddr, err),
+		})
+		return response, nil
+	}
+
+	client := registry.NewClient(p.services, nil)
+	pkgVersions, err := client.ComponentVersions(ctx, compAddrs.Package)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
+			Severity: terraform1.Diagnostic_ERROR,
+			Summary:  "Failed to query available component packages",
+			Detail:   fmt.Sprintf("Could not retrieve the list of available modules for module %s: %s.", compAddrs.ForDisplay(), err),
+		})
+	}
+
+	for _, comp := range pkgVersions.Components {
+		for _, version := range comp.Versions {
+			response.Versions = append(response.Versions, version.Version)
+		}
+	}
+
+	return response, nil
+}
+
 func (p *packagesServer) ComponentPackageSourceAddr(ctx context.Context, request *packages.ComponentPackageSourceAddr_Request) (*packages.ComponentPackageSourceAddr_Response, error) {
 	response := new(packages.ComponentPackageSourceAddr_Response)
 
