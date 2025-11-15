@@ -28,6 +28,8 @@ service Packages {
   rpc FetchModulePackage(FetchModulePackage.Request)
       returns (FetchModulePackage.Response);
 
+  rpc ComponentPackageVersions(ComponentPackageVersions.Request)
+      returns (ComponentPackageVersions.Response);
   rpc ComponentPackageSourceAddr(ComponentPackageSourceAddr.Request)
       returns (ComponentPackageSourceAddr.Response);
 }
@@ -90,6 +92,14 @@ message FetchModulePackage {
     string url = 2;
   }
   message Response { repeated terraform1.Diagnostic diagnostics = 1; }
+}
+
+message ComponentPackageVersions {
+  message Request { string source_addr = 2; }
+  message Response {
+    repeated string versions = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
 }
 
 message ComponentPackageSourceAddr {
