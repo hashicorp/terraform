@@ -1,4 +1,23 @@
-## 1.15.0 (Unreleased)
+## 1.15.0-alpha20251117 (November 17, 2025)
+
+
+NEW FEATURES:
+
+* We now produce builds for Windows ARM64 ([#32719](https://github.com/hashicorp/terraform/issues/32719))
+
+
+ENHANCEMENTS:
+
+* ssh-based provisioner (file + remote-exec): Re-enable support for PowerShell ([#37794](https://github.com/hashicorp/terraform/issues/37794))
+
+* init: skip dependencies declared in development override. This allows you to use `terraform init` with developer overrides and install dependencies that are not declared in the override file. ([#27459](https://github.com/hashicorp/terraform/issues/27459))
+
+
+BUG FIXES:
+
+* testing: File-level error diagnostics are now included in JUnit XML skipped test elements, ensuring CI/CD pipelines can detect validation failures ([#37801](https://github.com/hashicorp/terraform/issues/37801))
+
+* A refresh-only plan could result in a non-zero exit code with no changes ([#37406](https://github.com/hashicorp/terraform/issues/37406))
 
 
 EXPERIMENTS:
