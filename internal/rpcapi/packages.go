@@ -276,7 +276,7 @@ func (p *packagesServer) ComponentPackageVersions(ctx context.Context, request *
 		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
 			Severity: terraform1.Diagnostic_ERROR,
 			Summary:  "Failed to query available component packages",
-			Detail:   fmt.Sprintf("Could not retrieve the list of available modules for module %s: %s.", compAddrs.ForDisplay(), err),
+			Detail:   fmt.Sprintf("Could not retrieve the list of available components for component %s: %s.", compAddrs.ForDisplay(), err),
 		})
 	}
 
@@ -302,17 +302,8 @@ func (p *packagesServer) ComponentPackageSourceAddr(ctx context.Context, request
 		return response, err
 	}
 
-	version, err := versions.ParseVersion(request.Version)
-	if err != nil {
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_ERROR,
-			Summary:  "Invalid Component Version",
-			Detail:   fmt.Sprintf("Component version %s is invalid: %s", request.Version, err),
-		})
-	}
-
 	client := registry.NewClient(p.services, nil)
-	location, err := client.ComponentLocation(ctx, comp.Package, version)
+	location, err := client.ComponentLocation(ctx, comp.Package, request.Version)
 	if err != nil {
 		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
 			Severity: terraform1.Diagnostic_ERROR,
