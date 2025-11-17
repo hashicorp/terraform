@@ -28,7 +28,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.7.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
-	github.com/hashicorp/go-slug v0.17.2-0.20251111194019-4b058a3792ea
+	github.com/hashicorp/go-slug v0.18.0
 	github.com/hashicorp/go-tfe v1.94.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.7.0
