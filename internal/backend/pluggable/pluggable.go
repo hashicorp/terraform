@@ -18,15 +18,18 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// NewPluggable returns an instance of the backend.Backend interface that
-// contains a provider interface. These are the assumptions about that
-// provider:
+// NewPluggable returns a Pluggable. A Pluggable fulfils the
+// backend.Backend interface and allows management of state via
+// a state store implemented in the provider that's within the Pluggable.
 //
+// These are the assumptions about that
+// provider:
 // * The provider implements at least one state store.
-// * The provider has already been configured before using NewPluggable.
+// * The provider has already been fully configured before using NewPluggable.
 //
 // The state store could also be configured prior to using NewPluggable,
-// or it could be configured using the relevant backend.Backend methods.
+// but preferably it will be configured via the Pluggable,
+// using the relevant backend.Backend methods.
 //
 // By wrapping a configured provider in a Pluggable we allow calling code
 // to use the provider's gRPC methods when interacting with state.
