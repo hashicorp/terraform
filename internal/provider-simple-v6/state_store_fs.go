@@ -38,6 +38,8 @@ type FsStore struct {
 	states map[string]*statemgr.Filesystem
 }
 
+var _ providers.StateStoreChunkSizeSetter = &FsStore{}
+
 func stateStoreFsGetSchema() providers.Schema {
 	return providers.Schema{
 		Body: &configschema.Block{
@@ -260,4 +262,16 @@ func (f *FsStore) WriteStateBytes(req providers.WriteStateBytesRequest) provider
 	}
 
 	return resp
+}
+
+func (f *FsStore) SetStateStoreChunkSize(typeName string, size int) {
+	if typeName != fsStoreName {
+		// If we hit this code it suggests someone's refactoring the PSS implementations used for testing
+		panic(fmt.Sprintf("calling code tried to set the state store size on %s state store but the request reached the %s store implementation.",
+			typeName,
+			fsStoreName,
+		))
+	}
+
+	f.chunkSize = int64(size)
 }

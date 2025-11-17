@@ -29,7 +29,11 @@ const inMemStoreName = "simple6_inmem"
 type InMemStoreSingle struct {
 	states stateMap
 	locks  lockMap
+
+	chunkSize int
 }
+
+var _ providers.StateStoreChunkSizeSetter = &InMemStoreSingle{}
 
 func stateStoreInMemGetSchema() providers.Schema {
 	return providers.Schema{
@@ -172,6 +176,18 @@ func (m *InMemStoreSingle) DeleteState(req providers.DeleteStateRequest) provide
 
 	delete(m.states.m, req.StateId)
 	return resp
+}
+
+func (m *InMemStoreSingle) SetStateStoreChunkSize(typeName string, size int) {
+	if typeName != inMemStoreName {
+		// If we hit this code it suggests someone's refactoring the PSS implementations used for testing
+		panic(fmt.Sprintf("calling code tried to set the state store size on %s state store but the request reached the %s store implementation.",
+			typeName,
+			inMemStoreName,
+		))
+	}
+
+	m.chunkSize = size
 }
 
 type stateMap struct {
