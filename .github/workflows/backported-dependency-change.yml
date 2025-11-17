@@ -77,7 +77,7 @@ jobs:
                         body,
                     });
                 }
-                if (resp.status != 200){
+                if (resp.status >= 300){
                   console.error("creating/updating comment failed, here's the response:", resp )
                   core.setFailed("creating/updating comment failed with status code " + resp.status)
                 }
