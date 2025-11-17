@@ -17,7 +17,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-retryablehttp"
 	sourceaddrs "github.com/hashicorp/go-slug/sourceaddrs"
 	regaddr "github.com/hashicorp/terraform-registry-address"
@@ -338,7 +337,7 @@ func (c *Client) ComponentVersions(ctx context.Context, pkgAddr regaddr.Componen
 
 // ComponentLocation fetches the real remote source address for the
 // given version of the given component registry package.
-func (c *Client) ComponentLocation(ctx context.Context, pkgAddr regaddr.ComponentPackage, version versions.Version) (string, error) {
+func (c *Client) ComponentLocation(ctx context.Context, pkgAddr regaddr.ComponentPackage, version string) (string, error) {
 	host, err := c.services.Discover(pkgAddr.Host)
 	if err != nil {
 		return "", fmt.Errorf("service discovery failed for %s: %w", pkgAddr.Host.ForDisplay(), err)
@@ -351,8 +350,7 @@ func (c *Client) ComponentLocation(ctx context.Context, pkgAddr regaddr.Componen
 
 	var download *url.URL
 
-	// TODO: Verify if we can rely on unspecified in the request download url path
-	if version == versions.Unspecified {
+	if version == "" {
 		download = service.JoinPath(
 			url.PathEscape(pkgAddr.Namespace),
 			url.PathEscape(pkgAddr.Name),
@@ -362,7 +360,7 @@ func (c *Client) ComponentLocation(ctx context.Context, pkgAddr regaddr.Componen
 		download = service.JoinPath(
 			url.PathEscape(pkgAddr.Namespace),
 			url.PathEscape(pkgAddr.Name),
-			url.PathEscape(version.String()),
+			url.PathEscape(version),
 			"download",
 		)
 	}
