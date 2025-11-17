@@ -365,7 +365,7 @@ func (c *Client) ComponentLocation(ctx context.Context, pkgAddr regaddr.Componen
 		)
 	}
 
-	log.Printf("[DEBUG] looking up module location from %q", download.String())
+	log.Printf("[DEBUG] looking up component location from %q", download.String())
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", download.String(), nil)
 	if err != nil {
@@ -399,20 +399,13 @@ func (c *Client) ComponentLocation(ctx context.Context, pkgAddr regaddr.Componen
 		return "", fmt.Errorf("error getting download location for %q: %s resp:%s", pkgAddr, resp.Status, body)
 	}
 
+	// the download location is in the X-Terraform-Get header
 	location := resp.Header.Get("x-terraform-get")
 	if location == "" {
 		return "", fmt.Errorf("failed to get download URL for %s %s", pkgAddr, version)
 	}
 
-	if strings.HasPrefix(location, "/") || strings.HasPrefix(location, "./") || strings.HasPrefix(location, "../") {
-		locationURL, err := url.Parse(location)
-		if err != nil {
-			return "", fmt.Errorf("invalid relative URL for %s: %s", pkgAddr, err)
-		}
-		locationURL = resp.Request.URL.ResolveReference(locationURL)
-		location = locationURL.String()
-	}
-
+	// only remote sources are valid
 	srcAddr, err := sourceaddrs.ParseRemoteSource(location)
 	if err != nil {
 		return "", fmt.Errorf("invalid source address %q for %s: %s", location, pkgAddr, err)
