@@ -5,6 +5,7 @@ package registry
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	version "github.com/hashicorp/go-version"
+	regaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
@@ -368,5 +370,124 @@ func TestLookupModuleNetworkError(t *testing.T) {
 	// verify maxRetryErrorHandler handler returned the correct error
 	if !strings.Contains(err.Error(), "the request failed after 2 attempts, please try again later") {
 		t.Fatal("unexpected error, got:", err)
+	}
+}
+
+func TestLookupComponentVersions(t *testing.T) {
+	server := test.ComponentRegistry()
+	defer server.Close()
+
+	client := NewClient(test.DiscoForComponents(server), nil)
+
+	compName := `component-namespace/name`
+	host := `example.com`
+	compSrc, err := regaddr.ParseComponentSource(strings.Join([]string{host, compName}, "/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.ComponentVersions(context.Background(), compSrc.Package)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(resp.Components) != 1 {
+		t.Fatal("expected 1 component, got", len(resp.Components))
+	}
+
+	comp := resp.Components[0]
+	if comp.Source != compName {
+		t.Fatalf("expected component name %q, got %q", compName, comp.Source)
+	}
+
+	if len(comp.Versions) != 2 {
+		t.Fatal("expected 2 versions, got", len(comp.Versions))
+	}
+
+	for _, v := range comp.Versions {
+		_, err := version.NewVersion(v.Version)
+		if err != nil {
+			t.Fatalf("invalid version %q: %s", v.Version, err)
+		}
+	}
+}
+
+func TestLookupComponentLocation(t *testing.T) {
+	server := test.ComponentRegistry()
+	defer server.Close()
+
+	client := NewClient(test.DiscoForComponents(server), nil)
+
+	src := "example.com/component-namespace/name"
+
+	compSrc, err := regaddr.ParseComponentSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := client.ComponentLocation(context.Background(), compSrc.Package, "0.1.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := strings.Join([]string{
+		"https://example.com",
+		"component-namespace",
+		"name",
+		"download",
+		"0.1.0/name.tgz",
+	}, "/")
+
+	if got != want {
+		t.Errorf("expected %s, received: %s", want, got)
+	}
+}
+
+func TestLookupComponentRetryError(t *testing.T) {
+	server := test.ComponentRegistryRetryableErrorServer()
+	defer server.Close()
+
+	client := NewClient(test.DiscoForComponents(server), nil)
+
+	src := "example.com/component-namespace/name"
+	cmpSrc, err := regaddr.ParseComponentSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.ComponentVersions(context.Background(), cmpSrc.Package)
+	if err == nil {
+		t.Fatal("expected requests to exceed retry", err)
+	}
+	if resp != nil {
+		t.Fatal("unexpected response", *resp)
+	}
+
+	// verify maxRetryErrorHandler handler returned the error
+	if !strings.Contains(err.Error(), "the request failed after 2 attempts, please try again later") {
+		t.Fatal("unexpected error, got:", err)
+	}
+}
+
+func TestComponentServiceDiscoError(t *testing.T) {
+	server := test.ComponentRegistry()
+	defer server.Close()
+
+	client := NewClient(test.DiscoForComponents(server), nil)
+
+	unsupportedHost := "unsupported-host.com"
+	src := unsupportedHost + "/component-namespace/name"
+
+	compSrc, err := regaddr.ParseComponentSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = client.ComponentLocation(context.Background(), compSrc.Package, "0.1.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	if !strings.Contains(err.Error(), fmt.Sprintf("service discovery failed for %s:", unsupportedHost)) {
+		t.Fatalf("unexpected error message, got: %s", err)
 	}
 }
