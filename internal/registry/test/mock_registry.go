@@ -38,6 +38,18 @@ func Disco(s *httptest.Server) *disco.Disco {
 	return d
 }
 
+func DiscoForComponents(s *httptest.Server) *disco.Disco {
+	services := map[string]interface{}{
+		"components.v3": fmt.Sprintf("%s/v3/components", s.URL),
+	}
+
+	d := disco.NewWithCredentialsSource(credsSrc)
+	d.SetUserAgent(httpclient.TerraformUserAgent(tfversion.String()))
+	d.ForceHostServices(svchost.Hostname("example.com"), services)
+
+	return d
+}
+
 // Map of module names and location of test modules.
 // Only one version for now, as we only lookup latest from the registry.
 type testMod struct {
@@ -95,6 +107,14 @@ var testMods = map[string][]testMod{
 	},
 	"private/name/provider": {
 		{version: "1.0.0"},
+	},
+	// components
+	"component-namespace/name": {
+		{
+			location: "https://example.com/component-namespace/name/download/0.1.0/name.tgz",
+			version:  "0.1.0",
+		},
+		{version: "0.1.1"},
 	},
 }
 
@@ -257,6 +277,124 @@ func RegistryRetryableErrorsServer() *httptest.Server {
 		http.Error(w, "mocked server error", http.StatusBadGateway)
 	})
 	mux.HandleFunc("/v1/providers/", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "mocked server error", http.StatusBadGateway)
+	})
+	return httptest.NewServer(mux)
+}
+
+// mockCompRegHandler returns a http handler for components.v3 services
+func mockCompRegHandler() http.Handler {
+	mux := http.NewServeMux()
+
+	mux.Handle("/v3/components/",
+		http.StripPrefix("/v3/components/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// handle for /download request
+			if strings.HasSuffix(r.URL.Path, "/download") {
+				func(w http.ResponseWriter, r *http.Request) {
+					p := strings.TrimLeft(r.URL.Path, "/")
+					// handle download request
+					re := regexp.MustCompile(`^([-a-z]+/\w+).*/download$`)
+					// download lookup
+					matches := re.FindStringSubmatch(p)
+
+					if len(matches) != 2 {
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+
+					// check for auth
+					if strings.Contains(matches[0], "private/") {
+						if !strings.Contains(r.Header.Get("Authorization"), testCred) {
+							http.Error(w, "", http.StatusForbidden)
+							return
+						}
+					}
+
+					versions, ok := testMods[matches[1]]
+					if !ok {
+						http.NotFound(w, r)
+						return
+					}
+					cmp := versions[0]
+
+					location := cmp.location
+
+					w.Header().Set("X-Terraform-Get", location)
+					w.WriteHeader(http.StatusNoContent)
+				}(w, r)
+				return
+			}
+
+			if strings.HasSuffix(r.URL.Path, "/versions") {
+				func(w http.ResponseWriter, r *http.Request) {
+					p := strings.TrimLeft(r.URL.Path, "/")
+					re := regexp.MustCompile(`^([a-z-]+/\w+)/versions$`)
+					matches := re.FindStringSubmatch(p)
+					if len(matches) != 2 {
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+
+					// check for auth
+					if strings.Contains(matches[1], "private/") {
+						if !strings.Contains(r.Header.Get("Authorization"), testCred) {
+							http.Error(w, "", http.StatusForbidden)
+						}
+					}
+
+					name := matches[1]
+					versions, ok := testMods[name]
+					if !ok {
+						http.NotFound(w, r)
+						return
+					}
+
+					// only adding the single requested module for now
+					// this is the minimal that any regisry is epected to support
+					cmpvs := &response.ComponentProviderVersions{
+						Source: name,
+					}
+
+					for _, v := range versions {
+						cv := &response.ComponentVersion{
+							Version: v.version,
+						}
+						cmpvs.Versions = append(cmpvs.Versions, cv)
+					}
+
+					resp := response.ComponentVersions{
+						Components: []*response.ComponentProviderVersions{cmpvs},
+					}
+
+					js, err := json.Marshal(resp)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					w.Header().Set("Content-Type", "application/json")
+					w.Write(js)
+				}(w, r)
+				return
+			}
+			http.NotFound(w, r)
+		})),
+	)
+
+	mux.HandleFunc("/.well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"components.v3":"http://localhost/v3/components/", "providers.v1":"http://localhost/v1/providers/"}`)
+	})
+	return mux
+}
+
+// ComponentRegistry returns http server that mocks registry components.v3 functionality only.
+func ComponentRegistry() *httptest.Server {
+	return httptest.NewServer(mockCompRegHandler())
+}
+
+func ComponentRegistryRetryableErrorServer() *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v3/components/", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "mocked server error", http.StatusBadGateway)
 	})
 	return httptest.NewServer(mux)
