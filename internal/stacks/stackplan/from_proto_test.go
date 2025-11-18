@@ -172,3 +172,29 @@ func TestAddRawActionInvocation(t *testing.T) {
 		t.Errorf("expected to find action address %s in component action invocations", expectedActionAddr)
 	}
 }
+func TestAddRawActionInvocation_InvalidAddr(t *testing.T) {
+	loader := NewLoader()
+
+	// Valid component
+	loader.AddRaw(mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
+		ComponentInstanceAddr: "stack.root.component.foo",
+	}))
+
+	// Invalid action invocation (empty address)
+	loader.AddRaw(mustMarshalAnyPb(&tfstackdata1.PlanActionInvocationPlanned{
+		ComponentInstanceAddr: "stack.root.component.foo",
+		ActionInvocationAddr:  "",
+	}))
+
+	componentAddr, err := stackaddrs.ParseAbsComponentInstanceStr("stack.root.component.foo")
+	if err != nil {
+		t.Fatalf("failed to parse component address: %v", err)
+	}
+	component, ok := loader.ret.Root.GetOk(componentAddr)
+	if !ok {
+		t.Fatalf("component not found")
+	}
+	if component.ActionInvocations.Len() != 0 {
+		t.Errorf("expected no action invocations for invalid address")
+	}
+}
