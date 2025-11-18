@@ -1560,7 +1560,7 @@ func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	}
 }
 
-// A plan that has uses the local backend
+// A plan that has uses the local backend and local state storage
 func TestMetaBackend_planLocal(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -1575,17 +1575,19 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	backendConfig := plans.Backend{
-		Type:      "local",
-		Config:    backendConfigRaw,
-		Workspace: "default",
+	plan := &plans.Plan{
+		Backend: &plans.Backend{
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
+		},
 	}
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForLocalPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(plan)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1649,6 +1651,71 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	}
 }
 
+// A plan that has uses the local backend and pluggable state storage
+func TestMetaBackend_planLocal_stateStore(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	stateStoreConfigBlock := cty.ObjectVal(map[string]cty.Value{
+		"value": cty.StringVal("foobar"),
+	})
+	stateStoreConfigRaw, err := plans.NewDynamicValue(stateStoreConfigBlock, stateStoreConfigBlock.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+
+	plan := &plans.Plan{
+		StateStore: &plans.StateStore{
+			Type:      "test_store",
+			Config:    stateStoreConfigRaw,
+			Workspace: backend.DefaultStateName,
+			Provider: &plans.Provider{
+				Version: version.Must(version.NewVersion("1.2.3")), // Matches lock file in the test fixtures
+				Source:  &providerAddr,
+				Config:  nil,
+			},
+		},
+	}
+
+	// Setup the meta, including a mock provider set up to mock PSS
+	m := testMetaBackend(t, nil)
+	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+	m.testingOverrides = &testingOverrides{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+		},
+	}
+
+	// Get the backend
+	b, diags := m.BackendForLocalPlan(plan)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	// Check the state
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
+	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	state := s.State()
+	if state != nil {
+		t.Fatalf("state should be nil: %#v", state)
+	}
+
+	// Write some state
+	state = states.NewState()
+	s.WriteState(state)
+	if err := s.PersistState(nil); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+}
+
 // A plan with a custom state save path
 func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	td := t.TempDir()
@@ -1666,10 +1733,12 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	plannedBackend := plans.Backend{
-		Type:      "local",
-		Config:    backendConfigRaw,
-		Workspace: "default",
+	plan := &plans.Plan{
+		Backend: &plans.Backend{
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
+		},
 	}
 
 	// Create an alternate output path
@@ -1686,7 +1755,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	m.stateOutPath = statePath
 
 	// Get the backend
-	b, diags := m.BackendForLocalPlan(plannedBackend)
+	b, diags := m.BackendForLocalPlan(plan)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1765,17 +1834,19 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	backendConfig := plans.Backend{
-		Type:      "local",
-		Config:    backendConfigRaw,
-		Workspace: "default",
+	plan := &plans.Plan{
+		Backend: &plans.Backend{
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
+		},
 	}
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForLocalPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(plan)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
