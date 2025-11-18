@@ -1906,14 +1906,8 @@ func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, viewType arguments.Vi
 		return nil, diags
 	}
 
-	switch viewType {
-	case arguments.ViewHuman:
-		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset][green]\n\n"+
-				strings.TrimSpace(successStateStoreUnset), stateStoreType)))
-	case arguments.ViewJSON:
-		// TODO: Implement JSON output for ViewJSON
-	}
+	v := views.NewInit(viewType, m.View)
+	v.Output(views.InitMessageCode("state_store_unset"), stateStoreType)
 
 	// Return no state store
 	return nil, diags
@@ -2661,10 +2655,6 @@ name to create a new HCP Terraform workspace.
 
 const successBackendUnset = `
 Successfully unset the backend %q. Terraform will now operate locally.
-`
-
-const successStateStoreUnset = `
-Successfully unset the state store %q. Terraform will now operate locally.
 `
 
 const successBackendSet = `

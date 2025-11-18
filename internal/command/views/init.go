@@ -258,6 +258,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: errInitConfigError,
 		JSONValue:  errInitConfigErrorJSON,
 	},
+	"state_store_unset": {
+		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
+		JSONValue:  "Successfully unset the state store %q. Terraform will now operate locally.",
+	},
 	"empty_message": {
 		HumanValue: "",
 		JSONValue:  "",
