@@ -103,7 +103,6 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 		}
 
 		childSpec := blockS.Block.DecoderSpec()
-
 		switch blockS.Nesting {
 		case NestingSingle, NestingGroup:
 			ret[name] = &hcldec.BlockSpec{
@@ -178,7 +177,6 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 			continue
 		}
 	}
-
 	decoderSpecCache.set(b, ret)
 	return ret
 }

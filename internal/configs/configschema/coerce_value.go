@@ -31,6 +31,7 @@ func (b *Block) CoerceValue(in cty.Value) (cty.Value, error) {
 
 func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 	convType := b.specType()
+
 	impliedType := convType.WithoutOptionalAttributesDeep()
 
 	switch {
@@ -85,6 +86,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 		if err != nil {
 			return cty.UnknownVal(impliedType), append(path, cty.GetAttrStep{Name: name}).NewError(err)
 		}
+
 		attrs[name] = val
 	}
 
