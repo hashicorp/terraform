@@ -139,7 +139,7 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 
 	if a.NestedType != nil {
 		switch a.NestedType.Nesting {
-		case NestingSingle, NestingMap:
+		case NestingSingle, NestingMap, NestingGroup:
 			// no validations to perform
 		case NestingList, NestingSet:
 			if a.NestedType.Nesting == NestingSet {
