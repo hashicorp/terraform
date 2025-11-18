@@ -29,31 +29,28 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	t.Chdir(td)
 
 	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
-	newMeta := func(provider providers.Interface) (meta Meta, ui *cli.MockUi, close func()) {
-		// Assumes the mocked provider is hashicorp/test
-		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.2.3"},
-		})
 
-		ui = new(cli.MockUi)
-		view, _ := testView(t)
-		meta = Meta{
-			AllowExperimentalFeatures: true,
-			Ui:                        ui,
-			View:                      view,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
-				},
+	// Assumes the mocked provider is hashicorp/test
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	meta := Meta{
+		AllowExperimentalFeatures: true,
+		Ui:                        ui,
+		View:                      view,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 			},
-			ProviderSource: providerSource,
-		}
-		return meta, ui, close
+		},
+		ProviderSource: providerSource,
 	}
 
 	//// Init
-	meta, ui, close := newMeta(mock)
-	defer close()
 	intCmd := &InitCommand{
 		Meta: meta,
 	}
@@ -69,9 +66,8 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 
 	//// Create Workspace
 	newWorkspace := "foobar"
-
-	meta, ui, close = newMeta(mock)
-	defer close()
+	ui = new(cli.MockUi)
+	meta.Ui = ui
 	newCmd := &WorkspaceNewCommand{
 		Meta: meta,
 	}
@@ -100,8 +96,8 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	}
 
 	//// List Workspaces
-	meta, ui, close = newMeta(mock)
-	defer close()
+	ui = new(cli.MockUi)
+	meta.Ui = ui
 	listCmd := &WorkspaceListCommand{
 		Meta: meta,
 	}
@@ -115,8 +111,8 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	}
 
 	//// Select Workspace
-	meta, ui, close = newMeta(mock)
-	defer close()
+	ui = new(cli.MockUi)
+	meta.Ui = ui
 	selCmd := &WorkspaceSelectCommand{
 		Meta: meta,
 	}
@@ -132,8 +128,8 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	}
 
 	//// Show Workspace
-	meta, ui, close = newMeta(mock)
-	defer close()
+	ui = new(cli.MockUi)
+	meta.Ui = ui
 	showCmd := &WorkspaceShowCommand{
 		Meta: meta,
 	}
@@ -153,8 +149,8 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	}
 
 	//// Delete Workspace
-	meta, ui, close = newMeta(mock)
-	defer close()
+	ui = new(cli.MockUi)
+	meta.Ui = ui
 	deleteCmd := &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
