@@ -278,6 +278,7 @@ func (p *packagesServer) ComponentPackageVersions(ctx context.Context, request *
 			Summary:  "Failed to query available component packages",
 			Detail:   fmt.Sprintf("Could not retrieve the list of available components for component %s: %s.", compAddrs.ForDisplay(), err),
 		})
+		return response, err
 	}
 
 	for _, comp := range pkgVersions.Components {
