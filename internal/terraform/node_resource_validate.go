@@ -69,6 +69,16 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 			}
 		}
 	}
+
+	if n.Schema != nil && n.Schema.Body != nil && n.Schema.Body.Deprecated {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  fmt.Sprintf("Usage of deprecated resource %q", n.Addr.Resource.Type),
+			Detail:   fmt.Sprintf("The resource %q has been marked as deprecated by its provider. Please check the provider documentation for more information.", n.Addr.Resource.Type),
+			Subject:  &n.Config.DeclRange,
+		})
+	}
+
 	return diags
 }
 

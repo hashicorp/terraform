@@ -89,6 +89,9 @@ func (b *Block) StaticValidateTraversal(traversal hcl.Traversal) tfdiags.Diagnos
 		// traversal alone. More precise detection of deprecated attributes
 		// would require adding metadata like marks to the cty value itself, to
 		// be caught during evaluation.
+		//
+		// For all other kinds of deprecations we have marks.Deprecation, but since
+		// we return an unknown value here, we can not attach marks to it.
 		if attrS.Deprecated {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
