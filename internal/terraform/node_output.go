@@ -530,7 +530,16 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	}
 
 	if n.Config.DeprecatedSet {
-		val = val.Mark(marks.NewDeprecation(n.Config.Deprecated, &n.Config.DeclRange))
+		if n.Addr.Module.IsRoot() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Root module output deprecated",
+				Detail:   "Root module outputs cannot be deprecated, as there is no higher-level module to inform of the deprecation.",
+				Subject:  n.Config.DeprecatedRange.Ptr(),
+			})
+		} else {
+			val = val.Mark(marks.NewDeprecation(n.Config.Deprecated, &n.Config.DeclRange))
+		}
 	}
 
 	n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), val)
