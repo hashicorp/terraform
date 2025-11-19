@@ -365,7 +365,8 @@ type Output struct {
 	EphemeralSet   bool
 	DeprecatedSet  bool
 
-	DeclRange hcl.Range
+	DeclRange       hcl.Range
+	DeprecatedRange hcl.Range
 }
 
 func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostics) {
@@ -419,6 +420,7 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &o.Deprecated)
 		diags = append(diags, valDiags...)
 		o.DeprecatedSet = true
+		o.DeprecatedRange = attr.Range
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {

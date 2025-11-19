@@ -4151,10 +4151,6 @@ resource "test_resource" "test2" {
 output "test_output_deprecated_use" {
 	value = module.mod.redeprecated # WARNING
 }
-output "test_output_deprecated_use_with_deprecation" {
-    deprecated = "This is displayed in the UI, but does not produce an additional warning"
-	value = module.mod.redeprecated # OK
-}
 `,
 	})
 
@@ -4426,11 +4422,6 @@ resource "test_resource" "test" { # WARNING
 output "a" {
     value = test_resource.test.attr # WARNING
 }
-
-output "b" {
-    value = test_resource.test.attr # OK
-    deprecated = "redeprecated output"
-}
 `,
 	})
 
@@ -4474,6 +4465,60 @@ output "b" {
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start:    hcl.Pos{Line: 7, Column: 13, Byte: 92},
 			End:      hcl.Pos{Line: 7, Column: 36, Byte: 115},
+		},
+	}))
+}
+
+func TestContext2Validate_deprecated_root_output(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+output "test_output" {
+    deprecated = "Deprecating the root output is not ok" # ERROR
+	value = module.mod.old 
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Root module output deprecated",
+		Detail:   "Root module outputs cannot be deprecated, as there is no higher-level module to inform of the deprecation.",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 7, Column: 5, Byte: 67},
+			End:      hcl.Pos{Line: 7, Column: 57, Byte: 119},
 		},
 	}))
 }
