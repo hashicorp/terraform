@@ -180,6 +180,13 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		deferred.SetExternalDependencyDeferred()
 	}
 
+	c.l.Lock()
+	stopCtx := c.stopContext
+	c.l.Unlock()
+	if stopCtx == nil {
+		stopCtx = c.runContext
+	}
+
 	return &ContextGraphWalker{
 		Context:                 c,
 		State:                   state,
@@ -196,7 +203,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		ExternalProviderConfigs: opts.ExternalProviderConfigs,
 		MoveResults:             opts.MoveResults,
 		Operation:               operation,
-		StopContext:             c.runContext,
+		StopContext:             stopCtx,
 		PlanTimestamp:           opts.PlanTimeTimestamp,
 		functionResults:         opts.FunctionResults,
 		Forget:                  opts.Forget,

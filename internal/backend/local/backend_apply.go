@@ -63,6 +63,20 @@ func (b *Local) opApply(
 		op.ReportResult(runningOp, diags)
 		return
 	}
+
+	// Set the stop context so that the core context can check for early
+	// cancellation.
+	lr.Core.SetStopContext(stopCtx)
+
+	// Watch for stop signals and stop the core context.
+	// We do this in a goroutine because Core.Stop blocks until the operation
+	// completes, and we want to be able to return from opApply if necessary
+	// (though usually we'll wait for the operation to complete).
+	go func() {
+		<-cancelCtx.Done()
+		lr.Core.Stop()
+	}()
+
 	// the state was locked during successful context creation; unlock the state
 	// when the operation completes
 	defer func() {
@@ -109,6 +123,17 @@ func (b *Local) opApply(
 			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
 				op.View.Plan(plan, schemas)
 			}
+			op.ReportResult(runningOp, diags)
+			return
+		}
+
+		// If we were stopped during the plan, we should return immediately.
+		if stopCtx.Err() != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Operation cancelled",
+				"The operation was cancelled.",
+			))
 			op.ReportResult(runningOp, diags)
 			return
 		}

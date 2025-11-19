@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'core: Fixed an issue where early SIGINT (Ctrl+C) was ignored during the graph walk phase'
+time: 2025-11-19T23:08:13.02625091+02:00
+custom:
+    Issue: "31371"

@@ -159,9 +159,20 @@ func (w *ContextGraphWalker) init() {
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {
+	// Check if we've been stopped.
+	if w.StopContext.Err() != nil {
+		return tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Operation cancelled", "The operation was cancelled.")}
+	}
+
 	// Acquire a lock on the semaphore
 	w.Context.parallelSem.Acquire()
 	defer w.Context.parallelSem.Release()
+
+	// Check again after acquiring the semaphore, in case we were stopped
+	// while waiting.
+	if w.StopContext.Err() != nil {
+		return tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Operation cancelled", "The operation was cancelled.")}
+	}
 
 	return n.Execute(ctx, w.Operation)
 }

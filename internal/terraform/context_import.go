@@ -49,6 +49,13 @@ type ImportTarget struct {
 // an import there is a failure, all previously imported resources remain
 // imported.
 func (c *Context) Import(config *configs.Config, prevRunState *states.State, opts *ImportOpts) (*states.State, tfdiags.Diagnostics) {
+	c.l.Lock()
+	if c.stopContext != nil && c.stopContext.Err() != nil {
+		c.l.Unlock()
+		return nil, nil
+	}
+	c.l.Unlock()
+
 	var diags tfdiags.Diagnostics
 
 	// Hold a lock since we can modify our own state here
