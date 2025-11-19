@@ -1,4 +1,4 @@
-## 1.15.0-alpha20251119 (November 19, 2025)
+## 1.15.0 (Unreleased)
 
 
 NEW FEATURES:
@@ -10,7 +10,7 @@ ENHANCEMENTS:
 
 * ssh-based provisioner (file + remote-exec): Re-enable support for PowerShell ([#37794](https://github.com/hashicorp/terraform/issues/37794))
 
-* init: skip dependencies declared in development override. This allows you to use `terraform init` with developer overrides and install dependencies that are not declared in the override file. ([#37884](https://github.com/hashicorp/terraform/issues/37884))
+* init: skip dependencies declared in development override. This allows you to use `terraform init` with developer overrides and install dependencies that are not declared in the override file. ([#27459](https://github.com/hashicorp/terraform/issues/27459))
 
 
 BUG FIXES:
