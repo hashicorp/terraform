@@ -2621,25 +2621,6 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 // Output constants and initialization code
 //-------------------------------------------------------------------
 
-const outputBackendMigrateChange = `
-Terraform detected that the backend type changed from %q to %q.
-`
-
-const outputBackendMigrateLocal = `
-Terraform has detected you're unconfiguring your previously set %q backend.
-`
-
-const outputStateStoreMigrateLocal = `
-Terraform has detected you're unconfiguring your previously set %q state store.
-`
-
-const outputBackendReconfigure = `
-[reset][bold]Backend configuration changed![reset]
-
-Terraform has detected that the configuration specified for the backend
-has changed. Terraform will now check for existing state in the backends.
-`
-
 const inputCloudInitCreateWorkspace = `
 There are no workspaces with the configured tags (%s)
 in your HCP Terraform organization. To finish initializing, Terraform needs at
@@ -2647,13 +2628,4 @@ least one workspace available.
 
 Terraform can create a properly tagged workspace for you now. Please enter a
 name to create a new HCP Terraform workspace.
-`
-
-const successBackendUnset = `
-Successfully unset the backend %q. Terraform will now operate locally.
-`
-
-const successBackendSet = `
-Successfully configured the backend %q! Terraform will automatically
-use this backend unless the backend configuration changes.
 `
