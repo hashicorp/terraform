@@ -4,7 +4,7 @@
 package command
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,10 +16,154 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
+
+func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
+	// Create a temporary working directory with pluggable state storage in the config
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-new"), td)
+	t.Chdir(td)
+
+	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+
+	// Assumes the mocked provider is hashicorp/test
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	meta := Meta{
+		AllowExperimentalFeatures: true,
+		Ui:                        ui,
+		View:                      view,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+			},
+		},
+		ProviderSource: providerSource,
+	}
+
+	//// Init
+	intCmd := &InitCommand{
+		Meta: meta,
+	}
+	args := []string{"-enable-pluggable-state-storage-experiment"} // Needed to test init changes for PSS project
+	code := intCmd.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+	}
+	// We expect a state to have been created for the default workspace
+	if _, ok := mock.MockStates["default"]; !ok {
+		t.Fatal("expected the default workspace to exist, but it didn't")
+	}
+
+	//// Create Workspace
+	newWorkspace := "foobar"
+	ui = new(cli.MockUi)
+	meta.Ui = ui
+	newCmd := &WorkspaceNewCommand{
+		Meta: meta,
+	}
+
+	current, _ := newCmd.Workspace()
+	if current != backend.DefaultStateName {
+		t.Fatal("before creating any custom workspaces, the current workspace should be 'default'")
+	}
+
+	args = []string{newWorkspace}
+	code = newCmd.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+	}
+	expectedMsg := fmt.Sprintf("Created and switched to workspace %q!", newWorkspace)
+	if !strings.Contains(ui.OutputWriter.String(), expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, ui.OutputWriter)
+	}
+	// We expect a state to have been created for the new custom workspace
+	if _, ok := mock.MockStates[newWorkspace]; !ok {
+		t.Fatalf("expected the %s workspace to exist, but it didn't", newWorkspace)
+	}
+	current, _ = newCmd.Workspace()
+	if current != newWorkspace {
+		t.Fatalf("current workspace should be %q, got %q", newWorkspace, current)
+	}
+
+	//// List Workspaces
+	ui = new(cli.MockUi)
+	meta.Ui = ui
+	listCmd := &WorkspaceListCommand{
+		Meta: meta,
+	}
+	args = []string{}
+	code = listCmd.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+	}
+	if !strings.Contains(ui.OutputWriter.String(), newWorkspace) {
+		t.Errorf("unexpected output, expected the new %q workspace to be listed present, but it's missing. Got:\n%s", newWorkspace, ui.OutputWriter)
+	}
+
+	//// Select Workspace
+	ui = new(cli.MockUi)
+	meta.Ui = ui
+	selCmd := &WorkspaceSelectCommand{
+		Meta: meta,
+	}
+	selectedWorkspace := backend.DefaultStateName
+	args = []string{selectedWorkspace}
+	code = selCmd.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+	}
+	expectedMsg = fmt.Sprintf("Switched to workspace %q.", selectedWorkspace)
+	if !strings.Contains(ui.OutputWriter.String(), expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, ui.OutputWriter)
+	}
+
+	//// Show Workspace
+	ui = new(cli.MockUi)
+	meta.Ui = ui
+	showCmd := &WorkspaceShowCommand{
+		Meta: meta,
+	}
+	args = []string{}
+	code = showCmd.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+	}
+	expectedMsg = fmt.Sprintf("%s\n", selectedWorkspace)
+	if !strings.Contains(ui.OutputWriter.String(), expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, ui.OutputWriter)
+	}
+
+	current, _ = newCmd.Workspace()
+	if current != backend.DefaultStateName {
+		t.Fatal("current workspace should be 'default'")
+	}
+
+	//// Delete Workspace
+	ui = new(cli.MockUi)
+	meta.Ui = ui
+	deleteCmd := &WorkspaceDeleteCommand{
+		Meta: meta,
+	}
+	args = []string{newWorkspace}
+	code = deleteCmd.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+	}
+	expectedMsg = fmt.Sprintf("Deleted workspace %q!\n", newWorkspace)
+	if !strings.Contains(ui.OutputWriter.String(), expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, ui.OutputWriter)
+	}
+}
 
 func TestWorkspace_createAndChange(t *testing.T) {
 	// Create a temporary working directory that is empty
@@ -114,7 +258,7 @@ func TestWorkspace_createAndList(t *testing.T) {
 	t.Chdir(td)
 
 	// make sure a vars file doesn't interfere
-	err := ioutil.WriteFile(
+	err := os.WriteFile(
 		DefaultVarsFilename,
 		[]byte(`foo = "bar"`),
 		0644,
@@ -162,7 +306,7 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	t.Chdir(td)
 
 	// make sure a vars file doesn't interfere
-	err := ioutil.WriteFile(
+	err := os.WriteFile(
 		DefaultVarsFilename,
 		[]byte(`foo = "bar"`),
 		0644,
@@ -345,7 +489,7 @@ func TestWorkspace_delete(t *testing.T) {
 	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte("test"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
