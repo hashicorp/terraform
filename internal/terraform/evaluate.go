@@ -803,7 +803,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// We should only end up here during the validate walk (or
 			// console/eval), since later walks should have at least partial
 			// states populated for all resources in the configuration.
-			return cty.DynamicVal, diags
+			ret := cty.DynamicVal
+			if schema.Body.Deprecated {
+				ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type), nil))
+			}
+			return ret, diags
 		}
 	}
 
@@ -876,6 +880,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		ret = val
+	}
+
+	if schema.Body.Deprecated {
+		ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type), nil))
 	}
 
 	return ret, diags

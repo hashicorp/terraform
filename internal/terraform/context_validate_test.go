@@ -4415,3 +4415,65 @@ module "sink" {
 		},
 	}))
 }
+
+func TestContext2Validate_deprecated_resource(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "test" { # WARNING
+    attr = "value"
+}
+
+output "a" {
+    value = test_resource.test.attr # WARNING
+}
+
+output "b" {
+    value = test_resource.test.attr # OK
+    deprecated = "redeprecated output"
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Deprecated: true,
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  `Usage of deprecated resource "test_resource"`,
+		Detail:   `The resource "test_resource" has been marked as deprecated by its provider. Please check the provider documentation for more information.`,
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+			End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
+		},
+	}).Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   `Resource "test_resource" is deprecated`,
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 7, Column: 13, Byte: 92},
+			End:      hcl.Pos{Line: 7, Column: 36, Byte: 115},
+		},
+	}))
+}
