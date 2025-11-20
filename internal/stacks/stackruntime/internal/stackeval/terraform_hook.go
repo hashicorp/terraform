@@ -203,3 +203,44 @@ func (h *componentInstanceTerraformHook) ResourceInstanceObjectAppliedAction(add
 func (h *componentInstanceTerraformHook) ResourceInstanceObjectsSuccessfullyApplied() addrs.Set[addrs.AbsResourceInstanceObject] {
 	return h.resourceInstanceObjectApplySuccess
 }
+
+// StartAction forwards core action start events into the stacks hooks
+// as a planned/status notification. We keep the payload minimal here; the
+// full address/trigger information can be populated when available.
+func (h *componentInstanceTerraformHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	ai := h.actionInvocationFromHookActionIdentity(id)
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationPlanned, ai)
+	return terraform.HookActionContinue, nil
+}
+
+// ProgressAction forwards action progress to the stacks hooks as a status
+// update.
+func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	ai := h.actionInvocationFromHookActionIdentity(id)
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, ai)
+	return terraform.HookActionContinue, nil
+}
+
+// CompleteAction forwards action completion to the stacks hooks as a status
+// update. The error is not forwarded in detail here; extend as needed.
+func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+	ai := h.actionInvocationFromHookActionIdentity(id)
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, ai)
+	return terraform.HookActionContinue, nil
+}
+
+// actionInvocationFromHookActionIdentity attempts to build a *hooks.ActionInvocation
+// from a core terraform.HookActionIdentity.
+func (h *componentInstanceTerraformHook) actionInvocationFromHookActionIdentity(id terraform.HookActionIdentity) *hooks.ActionInvocation {
+	ai := &hooks.ActionInvocation{
+		Addr: stackaddrs.AbsActionInvocationInstance{
+			Component: h.addr,
+			Item:      id.Addr,
+		},
+		Trigger: id.ActionTrigger,
+	}
+	// ProviderAddr is not available directly on HookActionIdentity; leave
+	// it zero-valued. Consumers that need it should enrich it later when a
+	// reliable mapping is available.
+	return ai
+}
