@@ -17,8 +17,9 @@ const _Quality_name = "ErroredNoChanges"
 var _Quality_index = [...]uint8{0, 7, 16}
 
 func (i Quality) String() string {
-	if i < 0 || i >= Quality(len(_Quality_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Quality_index)-1 {
 		return "Quality(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Quality_name[_Quality_index[i]:_Quality_index[i+1]]
+	return _Quality_name[_Quality_index[idx]:_Quality_index[idx+1]]
 }

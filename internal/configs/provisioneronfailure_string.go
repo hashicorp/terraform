@@ -18,8 +18,9 @@ const _ProvisionerOnFailure_name = "ProvisionerOnFailureInvalidProvisionerOnFail
 var _ProvisionerOnFailure_index = [...]uint8{0, 27, 55, 79}
 
 func (i ProvisionerOnFailure) String() string {
-	if i < 0 || i >= ProvisionerOnFailure(len(_ProvisionerOnFailure_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_ProvisionerOnFailure_index)-1 {
 		return "ProvisionerOnFailure(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _ProvisionerOnFailure_name[_ProvisionerOnFailure_index[i]:_ProvisionerOnFailure_index[i+1]]
+	return _ProvisionerOnFailure_name[_ProvisionerOnFailure_index[idx]:_ProvisionerOnFailure_index[idx+1]]
 }

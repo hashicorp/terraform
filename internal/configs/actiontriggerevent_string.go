@@ -23,8 +23,9 @@ const _ActionTriggerEvent_name = "UnknownBeforeCreateAfterCreateBeforeUpdateAfte
 var _ActionTriggerEvent_index = [...]uint8{0, 7, 19, 30, 42, 53, 66, 78, 84}
 
 func (i ActionTriggerEvent) String() string {
-	if i < 0 || i >= ActionTriggerEvent(len(_ActionTriggerEvent_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_ActionTriggerEvent_index)-1 {
 		return "ActionTriggerEvent(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _ActionTriggerEvent_name[_ActionTriggerEvent_index[i]:_ActionTriggerEvent_index[i+1]]
+	return _ActionTriggerEvent_name[_ActionTriggerEvent_index[idx]:_ActionTriggerEvent_index[idx+1]]
 }

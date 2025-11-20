@@ -19,8 +19,9 @@ const _OperationType_name = "OperationTypeInvalidOperationTypeRefreshOperationTy
 var _OperationType_index = [...]uint8{0, 20, 40, 57, 75}
 
 func (i OperationType) String() string {
-	if i >= OperationType(len(_OperationType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_OperationType_index)-1 {
 		return "OperationType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _OperationType_name[_OperationType_index[i]:_OperationType_index[i+1]]
+	return _OperationType_name[_OperationType_index[idx]:_OperationType_index[idx+1]]
 }

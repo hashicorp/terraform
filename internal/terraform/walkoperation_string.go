@@ -23,8 +23,9 @@ const _walkOperation_name = "walkInvalidwalkApplywalkPlanwalkPlanDestroywalkVali
 var _walkOperation_index = [...]uint8{0, 11, 20, 28, 43, 55, 66, 76, 84}
 
 func (i walkOperation) String() string {
-	if i >= walkOperation(len(_walkOperation_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_walkOperation_index)-1 {
 		return "walkOperation(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _walkOperation_name[_walkOperation_index[i]:_walkOperation_index[i+1]]
+	return _walkOperation_name[_walkOperation_index[idx]:_walkOperation_index[idx+1]]
 }

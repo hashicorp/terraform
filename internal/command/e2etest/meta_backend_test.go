@@ -67,7 +67,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 
 		// Setup the meta and test GetStateStoreProviderFactory
 		m := command.Meta{}
-		factory, diags := m.GetStateStoreProviderFactory(config, locks)
+		factory, diags := m.StateStoreProviderFactoryFromConfig(config, locks)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected error : %s", err)
 		}
