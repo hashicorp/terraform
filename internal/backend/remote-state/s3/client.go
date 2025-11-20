@@ -793,7 +793,7 @@ func (err badChecksumError) resolutionMsg() string {
 			`If this problem persists, and neither S3 nor DynamoDB are experiencing an
 outage, you may need to manually verify the remote state and update the Digest
 value stored in the DynamoDB table to the following value: %x`,
-			err.digest,
+			err.expected,
 		)
 	} else {
 		return `If this problem persists, and neither S3 nor DynamoDB are experiencing an
