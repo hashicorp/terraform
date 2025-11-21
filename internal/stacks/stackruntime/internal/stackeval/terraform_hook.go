@@ -213,19 +213,36 @@ func (h *componentInstanceTerraformHook) StartAction(id terraform.HookActionIden
 	return terraform.HookActionContinue, nil
 }
 
-// ProgressAction forwards action progress to the stacks hooks as a status
-// update.
 func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
 	ai := h.actionInvocationFromHookActionIdentity(id)
-	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, ai)
+
+	// Map progress string to appropriate status
+	status := "RUNNING"
+	if progress == "pending" {
+		status = "PENDING"
+	}
+
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: ai.ProviderAddr,
+		Status:       status,
+	})
 	return terraform.HookActionContinue, nil
 }
 
-// CompleteAction forwards action completion to the stacks hooks as a status
-// update. The error is not forwarded in detail here; extend as needed.
 func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
 	ai := h.actionInvocationFromHookActionIdentity(id)
-	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, ai)
+
+	status := "COMPLETED"
+	if err != nil {
+		status = "ERRORED"
+	}
+
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: ai.ProviderAddr,
+		Status:       status,
+	})
 	return terraform.HookActionContinue, nil
 }
 
