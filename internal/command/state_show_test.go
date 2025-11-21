@@ -4,13 +4,16 @@
 package command
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -329,6 +332,85 @@ func TestStateShow_configured_provider(t *testing.T) {
 	actual := output.Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
+	}
+}
+
+// Tests using `terraform state show` subcommand in combination with pluggable state storage
+//
+// Note: Whereas other tests in this file use the local backend and require a state file in the test fixures,
+// with pluggable state storage we can define the state via the mocked provider.
+func TestStateShow_stateStore(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-list-state-store"), td)
+	t.Chdir(td)
+
+	// Get bytes describing a state containing a resource
+	state := states.NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"input": "foobar"
+			}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(state, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(t)
+	mockProvider.MockStates = map[string]interface{}{
+		"default": stateBuf.Bytes(),
+	}
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := cli.NewMockUi()
+	streams, done := terminal.StreamsForTesting(t)
+	c := &StateShowCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+			Ui:             ui,
+			Streams:        streams,
+		},
+	}
+
+	// `terraform show` command specifying a given resource addr
+	expectedResourceAddr := "test_instance.foo"
+	args := []string{expectedResourceAddr}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	// Test that outputs were displayed
+	expected := "# test_instance.foo:\nresource \"test_instance\" \"foo\" {\n    input = \"foobar\"\n}\n"
+	actual := output.Stdout()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 	}
 }
 
