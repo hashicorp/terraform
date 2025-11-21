@@ -76,6 +76,69 @@ func TestStateShow(t *testing.T) {
 	}
 }
 
+func TestStateShow_errorMarshallingState(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo_invalid",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				// The error is caused by the state containing attributes that don't
+				// match the schema for the resource.
+				AttrsJSON: []byte(`{"non_existent_attr":"I'm gonna cause an error!"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"foo": {Type: cty.String, Optional: true},
+						"bar": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	streams, done := terminal.StreamsForTesting(t)
+	c := &StateShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Streams:          streams,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo_invalid",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("unexpected code: %d\n\n%s", code, output.Stdout())
+	}
+
+	// Test that error outputs were displayed
+	expected := "unsupported attribute \"non_existent_attr\""
+	actual := output.Stderr()
+	if !strings.Contains(actual, expected) {
+		t.Fatalf("Expected stderr output to include:\n%q\n\n Instead got:\n%q", expected, actual)
+	}
+}
+
 func TestStateShow_multi(t *testing.T) {
 	submod, _ := addrs.ParseModuleInstanceStr("module.sub")
 	state := states.BuildState(func(s *states.SyncState) {
