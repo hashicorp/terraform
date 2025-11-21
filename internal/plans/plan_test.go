@@ -7,14 +7,39 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestProviderAddrs(t *testing.T) {
+	// Inputs for plan
+	provider := &Provider{}
+	err := provider.SetSource("registry.terraform.io/hashicorp/pluggable")
+	if err != nil {
+		panic(err)
+	}
+	err = provider.SetVersion("9.9.9")
+	if err != nil {
+		panic(err)
+	}
+	config, err := NewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+		"foo": cty.StringVal("bar"),
+	}), cty.Object(map[string]cty.Type{
+		"foo": cty.String,
+	}))
+	if err != nil {
+		panic(err)
+	}
 
 	// Prepare plan
 	plan := &Plan{
+		StateStore: StateStore{
+			Type:      "pluggable_foobar",
+			Provider:  provider,
+			Config:    config,
+			Workspace: "default",
+		},
 		VariableValues: map[string]DynamicValue{},
 		Changes: &ChangesSrc{
 			Resources: []*ResourceInstanceChangeSrc{
@@ -66,6 +91,11 @@ func TestProviderAddrs(t *testing.T) {
 		{
 			Module:   addrs.RootModule,
 			Provider: addrs.NewDefaultProvider("test"),
+		},
+		// Provider used for pluggable state storage
+		{
+			Module:   addrs.RootModule,
+			Provider: addrs.NewDefaultProvider("pluggable"),
 		},
 	}
 
