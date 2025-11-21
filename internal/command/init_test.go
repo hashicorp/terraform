@@ -4371,8 +4371,17 @@ func mockPluggableStateStorageProvider(t *testing.T) *testing_provider.MockProvi
 					},
 				},
 			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
+			DataSources: map[string]providers.Schema{},
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"input": {Type: cty.String, Optional: true},
+							"id":    {Type: cty.String, Computed: true},
+						},
+					},
+				},
+			},
 			ListResourceTypes: map[string]providers.Schema{},
 			StateStores: map[string]providers.Schema{
 				pssName: {
