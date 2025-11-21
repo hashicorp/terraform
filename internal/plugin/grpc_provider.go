@@ -940,9 +940,15 @@ func (p *GRPCProvider) GenerateResourceConfig(r providers.GenerateResourceConfig
 		return resp
 	}
 
+	mp, err := msgpack.Marshal(r.State, resSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
 	protoReq := &proto.GenerateResourceConfig_Request{
 		TypeName: r.TypeName,
-		State:    nil,
+		State:    &proto.DynamicValue{Msgpack: mp},
 	}
 
 	protoResp, err := p.client.GenerateResourceConfig(p.ctx, protoReq)
