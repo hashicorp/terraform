@@ -512,6 +512,14 @@ func mustAbsResourceInstanceObject(addr string) stackaddrs.AbsResourceInstanceOb
 	return ret
 }
 
+func mustAbsActionInvocationInstance(addr string) stackaddrs.AbsActionInvocationInstance {
+	ret, diags := stackaddrs.ParseAbsActionInvocationInstanceStr(addr)
+	if len(diags) > 0 {
+		panic(fmt.Sprintf("failed to parse action invocation instance address %q: %s", addr, diags))
+	}
+	return ret
+}
+
 func mustAbsResourceInstanceObjectPtr(addr string) *stackaddrs.AbsResourceInstanceObject {
 	ret := mustAbsResourceInstanceObject(addr)
 	return &ret
