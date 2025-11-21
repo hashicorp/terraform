@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -97,7 +98,7 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 		return
 	}
 
-	current_timestamp := time.Now().UTC().Format(time.RFC3339)
+	current_timestamp := time.Now().UTC().Format(hclog.TimeFormat)
 	json_data := map[string]string{
 		"@level":       "info",
 		"@message":     preppedMessage,
