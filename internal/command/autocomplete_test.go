@@ -42,7 +42,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 		t.Chdir(td)
 
 		// Set up pluggable state store provider mock
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(t)
 		// Mock the existence of workspaces
 		mockProvider.MockStates = map[string]interface{}{
 			"default": true,
@@ -89,7 +89,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 		t.Chdir(td)
 
 		// Set up pluggable state store provider mock
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(t)
 		// No workspaces exist in the mock
 		mockProvider.MockStates = map[string]interface{}{}
 		mockProviderAddress := addrs.NewDefaultProvider("test")
