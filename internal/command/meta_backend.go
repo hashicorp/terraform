@@ -1132,10 +1132,11 @@ func (m *Meta) backend_c_r_S(
 	// Get the backend type for output
 	backendType := s.Backend.Type
 
+	view := views.NewInit(vt, m.View)
 	if cloudMode == cloud.ConfigMigrationOut {
-		m.Ui.Output("Migrating from HCP Terraform or Terraform Enterprise to local state.")
+		view.Output(views.BackendCloudMigrateLocalMessage)
 	} else {
-		m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
+		view.Output(views.BackendMigrateLocalMessage, s.Backend.Type)
 	}
 
 	// Grab a purely local backend to get the local state if it exists
@@ -1177,9 +1178,7 @@ func (m *Meta) backend_c_r_S(
 	}
 
 	if output {
-		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset][green]\n\n"+
-				strings.TrimSpace(successBackendUnset), backendType)))
+		view.Output(views.BackendConfiguredUnsetMessage, backendType)
 	}
 
 	// Return no backend
@@ -1348,8 +1347,8 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// By now the backend is successfully configured.  If using HCP Terraform, the success
 	// message is handled as part of the final init message
 	if _, ok := b.(*cloud.Cloud); !ok {
-		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		view := views.NewInit(vt, m.View)
+		view.Output(views.BackendConfiguredSuccessMessage, s.Backend.Type)
 	}
 
 	return b, diags
@@ -1377,23 +1376,19 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 
 	if output {
 		// Notify the user
+		view := views.NewInit(vt, m.View)
 		switch cloudMode {
 		case cloud.ConfigChangeInPlace:
-			m.Ui.Output("HCP Terraform configuration has changed.")
+			view.Output(views.BackendCloudChangeInPlaceMessage)
 		case cloud.ConfigMigrationIn:
-			m.Ui.Output(fmt.Sprintf("Migrating from backend %q to HCP Terraform.", s.Backend.Type))
+			view.Output(views.BackendMigrateToCloudMessage, s.Backend.Type)
 		case cloud.ConfigMigrationOut:
-			m.Ui.Output(fmt.Sprintf("Migrating from HCP Terraform to backend %q.", c.Type))
+			view.Output(views.BackendMigrateFromCloudMessage, c.Type)
 		default:
 			if s.Backend.Type != c.Type {
-				output := fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)
-				m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-					"[reset]%s\n",
-					strings.TrimSpace(output))))
+				view.Output(views.BackendMigrateTypeChangeMessage, s.Backend.Type, c.Type)
 			} else {
-				m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-					"[reset]%s\n",
-					strings.TrimSpace(outputBackendReconfigure))))
+				view.Output(views.BackendReconfigureMessage)
 			}
 		}
 	}
@@ -1479,8 +1474,8 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		// By now the backend is successfully configured.  If using HCP Terraform, the success
 		// message is handled as part of the final init message
 		if _, ok := b.(*cloud.Cloud); !ok {
-			m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-				"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+			view := views.NewInit(vt, m.View)
+			view.Output(views.BackendConfiguredSuccessMessage, s.Backend.Type)
 		}
 	}
 
@@ -1866,7 +1861,8 @@ func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, viewType arguments.Vi
 	s := ssSMgr.State()
 	stateStoreType := s.StateStore.Type
 
-	m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputStateStoreMigrateLocal), stateStoreType))
+	view := views.NewInit(viewType, m.View)
+	view.Output(views.StateMigrateLocalMessage, stateStoreType)
 
 	// Grab a purely local backend to get the local state if it exists
 	localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
@@ -2625,25 +2621,6 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 // Output constants and initialization code
 //-------------------------------------------------------------------
 
-const outputBackendMigrateChange = `
-Terraform detected that the backend type changed from %q to %q.
-`
-
-const outputBackendMigrateLocal = `
-Terraform has detected you're unconfiguring your previously set %q backend.
-`
-
-const outputStateStoreMigrateLocal = `
-Terraform has detected you're unconfiguring your previously set %q state store.
-`
-
-const outputBackendReconfigure = `
-[reset][bold]Backend configuration changed![reset]
-
-Terraform has detected that the configuration specified for the backend
-has changed. Terraform will now check for existing state in the backends.
-`
-
 const inputCloudInitCreateWorkspace = `
 There are no workspaces with the configured tags (%s)
 in your HCP Terraform organization. To finish initializing, Terraform needs at
@@ -2651,13 +2628,4 @@ least one workspace available.
 
 Terraform can create a properly tagged workspace for you now. Please enter a
 name to create a new HCP Terraform workspace.
-`
-
-const successBackendUnset = `
-Successfully unset the backend %q. Terraform will now operate locally.
-`
-
-const successBackendSet = `
-Successfully configured the backend %q! Terraform will automatically
-use this backend unless the backend configuration changes.
 `
