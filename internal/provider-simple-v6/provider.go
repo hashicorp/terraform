@@ -27,6 +27,8 @@ type simple struct {
 	fs    *FsStore
 }
 
+var _ providers.StateStoreChunkSizeSetter = &simple{}
+
 // Provider returns an instance of providers.Interface
 func Provider() providers.Interface {
 	return provider()
@@ -477,4 +479,15 @@ func (s simple) ValidateActionConfig(providers.ValidateActionConfigRequest) prov
 
 func (s simple) Close() error {
 	return nil
+}
+
+func (s simple) SetStateStoreChunkSize(typeName string, size int) {
+	switch typeName {
+	case inMemStoreName:
+		s.inMem.SetStateStoreChunkSize(typeName, size)
+	case fsStoreName:
+		s.fs.SetStateStoreChunkSize(typeName, size)
+	default:
+		panic("SetStateStoreChunkSize called with unrecognized state store type name.")
+	}
 }

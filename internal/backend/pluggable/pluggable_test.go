@@ -417,12 +417,7 @@ func TestPluggable_ProviderSchema(t *testing.T) {
 			t.Fatalf("unexpected error: %s", err)
 		}
 
-		// Calling code will need to case to Pluggable after using NewPluggable,
-		// so we do something similar in this test
-		var providerSchema *configschema.Block
-		if pluggable, ok := p.(*Pluggable); ok {
-			providerSchema = pluggable.ProviderSchema()
-		}
+		providerSchema := p.ProviderSchema()
 
 		if !mock.GetProviderSchemaCalled {
 			t.Fatal("expected ProviderSchema to call the GetProviderSchema RPC")
@@ -450,12 +445,7 @@ func TestPluggable_ProviderSchema(t *testing.T) {
 			t.Fatalf("unexpected error: %s", err)
 		}
 
-		// Calling code will need to case to Pluggable after using NewPluggable,
-		// so we do something similar in this test
-		var providerSchema *configschema.Block
-		if pluggable, ok := p.(*Pluggable); ok {
-			providerSchema = pluggable.ProviderSchema()
-		}
+		providerSchema := p.ProviderSchema()
 
 		if !mock.GetProviderSchemaCalled {
 			t.Fatal("expected ProviderSchema to call the GetProviderSchema RPC")
