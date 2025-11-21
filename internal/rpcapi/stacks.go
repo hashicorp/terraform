@@ -1215,6 +1215,39 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			return span
 		},
 
+		ReportActionInvocationStatus: func(ctx context.Context, span any, status *hooks.ActionInvocationStatusHookData) any {
+			span.(trace.Span).AddEvent("action invocation status", trace.WithAttributes(
+				attribute.String("component_instance", status.Addr.Component.String()),
+				attribute.String("action_instance", status.Addr.Item.String()),
+				attribute.String("status", status.Status),
+			))
+
+			// Map string status to protobuf enum
+			protoStatus := stacks.StackChangeProgress_ActionInvocationStatus_INVALID
+			switch status.Status {
+			case "PENDING":
+				protoStatus = stacks.StackChangeProgress_ActionInvocationStatus_PENDING
+			case "RUNNING":
+				protoStatus = stacks.StackChangeProgress_ActionInvocationStatus_RUNNING
+			case "COMPLETED":
+				protoStatus = stacks.StackChangeProgress_ActionInvocationStatus_COMPLETED
+			case "ERRORED":
+				protoStatus = stacks.StackChangeProgress_ActionInvocationStatus_ERRORED
+			}
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationStatus_{
+					ActionInvocationStatus: &stacks.StackChangeProgress_ActionInvocationStatus{
+						Addr:         stackAddressFromActionInvocationInstance(status.Addr),
+						Status:       protoStatus,
+						ProviderAddr: status.ProviderAddr.String(),
+					},
+				},
+			})
+
+			return span
+		},
+
 		ReportResourceInstanceDeferred: func(ctx context.Context, span any, change *hooks.DeferredResourceInstanceChange) any {
 			span.(trace.Span).AddEvent("deferred resource instance", trace.WithAttributes(
 				attribute.String("component_instance", change.Change.Addr.Component.String()),
