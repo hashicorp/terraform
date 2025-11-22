@@ -93,6 +93,13 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpt
 // to be nil even when the state isn't, if the apply didn't complete enough for
 // the evaluation scope to produce consistent results.
 func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, *lang.Scope, tfdiags.Diagnostics) {
+	c.l.Lock()
+	if c.stopContext != nil && c.stopContext.Err() != nil {
+		c.l.Unlock()
+		return nil, nil, nil
+	}
+	c.l.Unlock()
+
 	defer c.acquireRun("apply")()
 	var diags tfdiags.Diagnostics
 

@@ -55,6 +55,10 @@ func (b *Local) opRefresh(
 		return
 	}
 
+	// Set the stop context so that the core context can check for early
+	// cancellation.
+	lr.Core.SetStopContext(stopCtx)
+
 	// the state was locked during successful context creation; unlock the state
 	// when the operation completes
 	defer func() {

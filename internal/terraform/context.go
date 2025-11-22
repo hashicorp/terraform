@@ -106,9 +106,21 @@ type Context struct {
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
+	stopContext         context.Context
 }
 
 // (additional methods on Context can be found in context_*.go files.)
+
+// SetStopContext sets a context that, when cancelled, will cause any
+// currently-running or future operation on this Context to be cancelled.
+//
+// This is an alternative to calling Stop(), for cases where the caller
+// already has a context representing the lifecycle of the operation.
+func (c *Context) SetStopContext(ctx context.Context) {
+	c.l.Lock()
+	defer c.l.Unlock()
+	c.stopContext = ctx
+}
 
 // NewContext creates a new Context structure.
 //

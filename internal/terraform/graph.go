@@ -199,7 +199,20 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		return
 	}
 
-	return g.AcyclicGraph.Walk(walkFn)
+	diags := g.AcyclicGraph.Walk(walkFn)
+
+	// If the operation was cancelled, we'll get a lot of "Operation cancelled"
+	// errors from the graph walk. We want to filter these out so that we don't
+	// spam the user with them. The backend will add a single "Operation cancelled"
+	// error if the context was cancelled.
+	var filtered tfdiags.Diagnostics
+	for _, d := range diags {
+		if d.Description().Summary == "Operation cancelled" {
+			continue
+		}
+		filtered = filtered.Append(d)
+	}
+	return filtered
 }
 
 // ResourceGraph derives a graph containing addresses of only the nodes in the

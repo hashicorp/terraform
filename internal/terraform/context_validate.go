@@ -60,6 +60,13 @@ type ValidateOpts struct {
 //
 // The opts can be nil, and the ExternalProviders field of the opts can be nil.
 func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.Diagnostics {
+	c.l.Lock()
+	if c.stopContext != nil && c.stopContext.Err() != nil {
+		c.l.Unlock()
+		return nil
+	}
+	c.l.Unlock()
+
 	defer c.acquireRun("validate")()
 
 	var diags tfdiags.Diagnostics
