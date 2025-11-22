@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -140,6 +141,8 @@ func (n *NodeLocal) References() []*addrs.Reference {
 func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	namedVals := ctx.NamedValues()
 	val, diags := evaluateLocalValue(n.Config, n.Addr.LocalValue, n.Addr.String(), ctx)
+	diags = diags.Append(validateExprUsingDeprecatedValues(val, n.Config.Expr))
+	val = marks.RemoveDeprecationMarks(val)
 	namedVals.SetLocalValue(n.Addr, val)
 	return diags
 }
@@ -235,4 +238,23 @@ func evaluateLocalValue(config *configs.Local, localAddr addrs.LocalValue, addrS
 		val = cty.DynamicVal
 	}
 	return val, diags
+}
+
+func validateExprUsingDeprecatedValues(val cty.Value, expr hcl.Expression) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	_, pvms := val.UnmarkDeepWithPaths()
+	for _, pvm := range pvms {
+		for m := range pvm.Marks {
+			if depMark, ok := m.(marks.DeprecationMark); ok {
+				diags = diags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Deprecated value used",
+						Detail:   depMark.Message,
+						Subject:  expr.Range().Ptr(),
+					})
+			}
+		}
+	}
+	return diags
 }

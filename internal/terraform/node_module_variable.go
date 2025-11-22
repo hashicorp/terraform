@@ -230,6 +230,7 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	if diags.HasErrors() {
 		return diags
 	}
+	diags = diags.Append(validateExprUsingDeprecatedValues(val, n.Expr))
 
 	// Set values for arguments of a child module call, for later retrieval
 	// during expression evaluation.
@@ -305,6 +306,15 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 
 	finalVal, moreDiags := PrepareFinalInputVariableValue(n.Addr, rawVal, n.Config)
 	diags = diags.Append(moreDiags)
+
+	if n.Config.DeprecatedSet && !givenVal.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated variable got a value",
+			Detail:   n.Config.Deprecated,
+			Subject:  n.Expr.Range().Ptr(),
+		})
+	}
 
 	return finalVal, diags.ErrWithWarnings()
 }
