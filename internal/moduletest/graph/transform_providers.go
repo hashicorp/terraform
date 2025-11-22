@@ -44,12 +44,14 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 		if err != nil {
 			return fmt.Errorf("could not create provider instance: %w", err)
 		}
+		var mock *providers.Mock
 
 		if config.Mock {
-			impl = &providers.Mock{
+			mock = &providers.Mock{
 				Provider: impl,
 				Data:     config.MockData,
 			}
+			impl = mock
 		}
 
 		addr := addrs.RootProviderConfig{
@@ -58,13 +60,14 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 		}
 
 		configure := &NodeProviderConfigure{
-			name:     config.Name,
-			alias:    config.Alias,
-			Addr:     addr,
-			File:     t.File,
-			Config:   config,
-			Provider: impl,
-			Schema:   impl.GetProviderSchema(),
+			name:         config.Name,
+			alias:        config.Alias,
+			Addr:         addr,
+			File:         t.File,
+			Config:       config,
+			Provider:     impl,
+			Schema:       impl.GetProviderSchema(),
+			MockProvider: mock,
 		}
 		g.Add(configure)
 
