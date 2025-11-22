@@ -40,6 +40,13 @@ type nodeExpandOutput struct {
 	// details.
 	Planning bool
 
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
+
 	// Overrides is the set of overrides applied by the testing framework. We
 	// may need to override the value for this output and if we do the value
 	// comes from here.
@@ -125,14 +132,15 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 
 			default:
 				node = &NodeApplyableOutput{
-					Addr:         absAddr,
-					Config:       n.Config,
-					Change:       change,
-					RefreshOnly:  n.RefreshOnly,
-					DestroyApply: n.Destroying,
-					Planning:     n.Planning,
-					Override:     n.getOverrideValue(absAddr.Module),
-					Dependencies: n.Dependencies,
+					Addr:                      absAddr,
+					Config:                    n.Config,
+					Change:                    change,
+					RefreshOnly:               n.RefreshOnly,
+					DestroyApply:              n.Destroying,
+					Planning:                  n.Planning,
+					Override:                  n.getOverrideValue(absAddr.Module),
+					Dependencies:              n.Dependencies,
+					AllowRootEphemeralOutputs: n.AllowRootEphemeralOutputs,
 				}
 			}
 
@@ -280,6 +288,13 @@ type NodeApplyableOutput struct {
 	// Dependencies is the full set of resources that are referenced by this
 	// output.
 	Dependencies []addrs.ConfigResource
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 var (
@@ -391,7 +406,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		val = n.Change.After
 	}
 
-	if n.Addr.Module.IsRoot() && n.Config.Ephemeral {
+	if (n.Addr.Module.IsRoot() && n.Config.Ephemeral) && !n.AllowRootEphemeralOutputs {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Ephemeral output not allowed",
@@ -742,15 +757,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		changes.RemoveOutputChange(n.Addr)
 	}
 
-	// Null outputs must be saved for modules so that they can still be
-	// evaluated. Null root outputs are removed entirely, which is always fine
-	// because they can't be referenced by anything else in the configuration.
-	if n.Addr.Module.IsRoot() && val.IsNull() {
-		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
-		state.RemoveOutputValue(n.Addr)
-		return
-	}
-
 	// caller leaves namedVals nil if they've already called this function
 	// with a different state, since we only have one namedVals regardless
 	// of how many states are involved in an operation.
@@ -762,6 +768,15 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			saveVal = saveVal.Mark(marks.Ephemeral)
 		}
 		namedVals.SetOutputValue(n.Addr, saveVal)
+	}
+
+	// Null outputs must be saved for modules so that they can still be
+	// evaluated. Null root outputs are removed entirely, which is always fine
+	// because they can't be referenced by anything else in the configuration.
+	if n.Addr.Module.IsRoot() && val.IsNull() {
+		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
+		state.RemoveOutputValue(n.Addr)
+		return
 	}
 
 	// Non-ephemeral output values get saved in the state too
@@ -783,6 +798,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 				val = cty.UnknownAsNull(val)
 			}
 		}
+		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 	}
-	state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 }

@@ -83,6 +83,13 @@ type ApplyGraphBuilder struct {
 	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
 	SkipGraphValidation bool
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 // See GraphBuilder
@@ -139,9 +146,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&variableValidationTransformer{},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:     b.Config,
-			Destroying: b.Operation == walkDestroy,
-			Overrides:  b.Overrides,
+			Config:                    b.Config,
+			Destroying:                b.Operation == walkDestroy,
+			Overrides:                 b.Overrides,
+			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
 		},
 
 		// Creates all the resource instances represented in the diff, along

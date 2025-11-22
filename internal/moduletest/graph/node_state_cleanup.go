@@ -126,13 +126,14 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	setVariables, _, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:                   plans.NormalMode,
-		SetVariables:           setVariables,
-		Overrides:              mocking.PackageOverrides(run, file, mocks),
-		ExternalProviders:      providers,
-		SkipRefresh:            true,
-		OverridePreventDestroy: true,
-		DeferralAllowed:        ctx.deferralAllowed,
+		Mode:                      plans.NormalMode,
+		SetVariables:              setVariables,
+		Overrides:                 mocking.PackageOverrides(run, file, mocks),
+		ExternalProviders:         providers,
+		SkipRefresh:               true,
+		OverridePreventDestroy:    true,
+		DeferralAllowed:           ctx.deferralAllowed,
+		AllowRootEphemeralOutputs: true,
 	}
 
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
@@ -177,13 +178,14 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	setVariables, _, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:                   plans.DestroyMode,
-		SetVariables:           setVariables,
-		Overrides:              mocking.PackageOverrides(run, file, mocks),
-		ExternalProviders:      providers,
-		SkipRefresh:            true,
-		OverridePreventDestroy: true,
-		DeferralAllowed:        ctx.deferralAllowed,
+		Mode:                      plans.DestroyMode,
+		SetVariables:              setVariables,
+		Overrides:                 mocking.PackageOverrides(run, file, mocks),
+		ExternalProviders:         providers,
+		SkipRefresh:               true,
+		OverridePreventDestroy:    true,
+		DeferralAllowed:           ctx.deferralAllowed,
+		AllowRootEphemeralOutputs: true,
 	}
 
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
