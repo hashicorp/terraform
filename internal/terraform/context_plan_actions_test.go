@@ -967,7 +967,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "Action instance was not found in the current context.",
+						Detail:   "The referenced action could not be found. If the action uses 'count' or 'for_each', ensure you reference a specific instance, such as action.example[0] or action.example[\"key\"].",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 224},
@@ -1002,7 +1002,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "Action instance was not found in the current context.",
+						Detail:   "The referenced action could not be found. If the action uses 'count' or 'for_each', ensure you reference a specific instance, such as action.example[0] or action.example[\"key\"].",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
