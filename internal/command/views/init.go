@@ -4,12 +4,9 @@
 package views
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -98,18 +95,21 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 		return
 	}
 
-	current_timestamp := time.Now().UTC().Format(hclog.TimeFormat)
-	json_data := map[string]string{
-		"@level":       "info",
-		"@message":     preppedMessage,
-		"@module":      "terraform.ui",
-		"@timestamp":   current_timestamp,
-		"type":         "init_output",
-		"message_code": string(messageCode),
-	}
-
-	init_output, _ := json.Marshal(json_data)
-	v.view.view.streams.Println(string(init_output))
+	// Logged data includes by default:
+	// @level as "info"
+	// @module as "terraform.ui" (See NewJSONView)
+	// @timestamp formatted in the default way
+	//
+	// In the method below we:
+	// * Set @message as the first argument value
+	// * Annotate with extra data:
+	//     "type":"init_output"
+	//     "message_code":"<value>"
+	v.view.log.Info(
+		preppedMessage,
+		"type", "init_output",
+		"message_code", string(messageCode),
+	)
 }
 
 func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
