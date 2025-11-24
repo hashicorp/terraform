@@ -176,10 +176,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 					nodeAbstractActionTriggerExpand: node,
 				}
 			},
-
-			// We plan all actions after the resource is handled
-			CreateNodesAsAfter:             true,
-			ConnectToResourceInstanceNodes: false,
 		},
 
 		&ActionInvokePlanTransformer{
