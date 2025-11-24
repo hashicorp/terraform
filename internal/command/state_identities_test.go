@@ -431,7 +431,7 @@ func TestStateIdentities_modules(t *testing.T) {
 func TestStateIdentities_stateStore(t *testing.T) {
 	// We need configuration present to force pluggable state storage to be used
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-identities-state-store"), td)
+	testCopyDir(t, testFixturePath("state-commands-state-store"), td)
 	t.Chdir(td)
 
 	// Get a state file, that contains identity information,as bytes
