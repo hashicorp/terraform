@@ -185,7 +185,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			},
 
 			// We plan all actions after the resource is handled
-			CreateNodesAsAfter: true,
+			CreateNodesAsAfter:             true,
+			ConnectToResourceInstanceNodes: false,
 		},
 
 		&ActionInvokePlanTransformer{

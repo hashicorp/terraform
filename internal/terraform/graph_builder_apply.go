@@ -175,7 +175,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 				}
 			},
 			// we want before_* actions to run before and after_* actions to run after the resource
-			CreateNodesAsAfter: false,
+			CreateNodesAsAfter:             false,
+			ConnectToResourceInstanceNodes: true,
 		},
 
 		&ActionInvokeApplyTransformer{
