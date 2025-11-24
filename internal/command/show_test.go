@@ -4,6 +4,7 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/version"
 )
@@ -1102,6 +1104,82 @@ func TestShow_corruptStatefile(t *testing.T) {
 	want := `Unsupported state file format`
 	if !strings.Contains(got, want) {
 		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want)
+	}
+}
+
+// TestShow_stateStore tests the `show` command with no arguments, which uses the state that
+// matches the selected workspace. In this test the default workspace is in use.
+func TestShow_stateStore(t *testing.T) {
+	originalState := testState()
+	originalState.SetOutputValue(
+		addrs.OutputValue{Name: "test"}.Absolute(addrs.RootModuleInstance),
+		cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.NullVal(cty.DynamicPseudoType),
+			"null": cty.NullVal(cty.String),
+			"list": cty.ListVal([]cty.Value{cty.NullVal(cty.Number)}),
+		}),
+		false,
+	)
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	// Get bytes describing the state
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(originalState, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider.MockStates = map[string]interface{}{
+		"default": stateBuf.Bytes(),
+	}
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	view, done := testView(t)
+	c := &ShowCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			View: view,
+		},
+	}
+
+	args := []string{
+		"-no-color",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, output.Stderr())
+	}
+
+	expected := `# test_instance.foo:
+resource "test_instance" "foo" {
+    id = "bar"
+}
+
+
+Outputs:
+
+test = {
+    list = [
+        null,
+    ]
+}`
+	actual := strings.TrimSpace(output.Stdout())
+	if actual != expected {
+		t.Fatalf("expected = %s'\ngot = %s",
+			expected,
+			actual,
+		)
 	}
 }
 
