@@ -19,8 +19,9 @@ type ActionTriggerConfigTransformer struct {
 
 	queryPlanMode bool
 
-	ConcreteActionTriggerNodeFunc ConcreteActionTriggerNodeFunc
-	CreateNodesAsAfter            bool
+	ConcreteActionTriggerNodeFunc  ConcreteActionTriggerNodeFunc
+	CreateNodesAsAfter             bool
+	ConnectToResourceInstanceNodes bool // if false it connects to resource nodes instead of resource instance nodes
 }
 
 func (t *ActionTriggerConfigTransformer) Transform(g *Graph) error {
@@ -55,7 +56,11 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 	}
 
 	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
+	resourceInstanceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeResourceInstance]()
 	for _, node := range g.Vertices() {
+		if rin, ok := node.(GraphNodeResourceInstance); ok {
+			resourceInstanceNodes.Put(rin.ResourceInstanceAddr().ConfigResource(), append(resourceInstanceNodes.Get(rin.ResourceInstanceAddr().ConfigResource()), rin))
+		}
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
 			continue
@@ -141,8 +146,14 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					g.Add(nat)
 
 					// We want to run before the resource nodes
-					for _, node := range resourceNode {
-						g.Connect(dag.BasicEdge(node, nat))
+					if t.ConnectToResourceInstanceNodes {
+						for _, node := range resourceInstanceNodes.Get(resourceAddr) {
+							g.Connect(dag.BasicEdge(node, nat))
+						}
+					} else {
+						for _, node := range resourceNode {
+							g.Connect(dag.BasicEdge(node, nat))
+						}
 					}
 
 					// We want to run after all prior nodes
@@ -157,8 +168,14 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					g.Add(nat)
 
 					// We want to run after the resource nodes
-					for _, node := range resourceNode {
-						g.Connect(dag.BasicEdge(nat, node))
+					if t.ConnectToResourceInstanceNodes {
+						for _, node := range resourceInstanceNodes.Get(resourceAddr) {
+							g.Connect(dag.BasicEdge(nat, node))
+						}
+					} else {
+						for _, node := range resourceNode {
+							g.Connect(dag.BasicEdge(nat, node))
+						}
 					}
 
 					// We want to run after all prior nodes

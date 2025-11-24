@@ -4,9 +4,11 @@
 package terraform
 
 import (
+	"fmt"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
@@ -2810,4 +2812,118 @@ func (a *actionHookCapture) Stopping() {}
 
 func (a *actionHookCapture) PostStateUpdate(*states.State) (HookAction, error) {
 	return HookActionContinue, nil
+}
+
+func TestContextApply_actions_after_trigger_runs_after_expanded_resource(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  each = toset(["one"])
+}
+action "action_example" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "a" {
+  for_each = local.each
+  name = each.value
+  lifecycle {
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+	})
+
+	orderedCalls := []string{}
+
+	testProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			time.Sleep(100 * time.Millisecond)
+			orderedCalls = append(orderedCalls, fmt.Sprintf("ApplyResourceChangeFn %s", arcr.TypeName))
+			return providers.ApplyResourceChangeResponse{
+				NewState:    arcr.PlannedState,
+				NewIdentity: arcr.PlannedIdentity,
+			}
+		},
+	}
+
+	actionProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Actions: map[string]providers.ActionSchema{
+				"action_example": {
+					ConfigSchema: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"attr": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+			ResourceTypes: map[string]providers.Schema{},
+		},
+		InvokeActionFn: func(iar providers.InvokeActionRequest) providers.InvokeActionResponse {
+			orderedCalls = append(orderedCalls, fmt.Sprintf("InvokeAction %s", iar.ActionType))
+			return providers.InvokeActionResponse{
+				Events: func(yield func(providers.InvokeActionEvent) bool) {
+					yield(providers.InvokeActionEvent_Completed{})
+				},
+			}
+		},
+	}
+
+	hookCapture := newActionHookCapture()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
+			addrs.NewDefaultProvider("action"): testProviderFuncFixed(actionProvider),
+		},
+		Hooks: []Hook{
+			&hookCapture,
+		},
+	})
+
+	// Just a sanity check that the module is valid
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	planOpts := SimplePlanOpts(plans.NormalMode, InputValues{})
+
+	plan, diags := ctx.Plan(m, nil, planOpts)
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if !plan.Applyable {
+		t.Fatalf("plan is not applyable but should be")
+	}
+
+	_, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	expectedOrder := []string{
+		"ApplyResourceChangeFn test_object",
+		"InvokeAction action_example",
+	}
+
+	if diff := cmp.Diff(expectedOrder, orderedCalls); diff != "" {
+		t.Fatalf("expected calls in order did not match actual calls (-expected +actual):\n%s", diff)
+	}
 }

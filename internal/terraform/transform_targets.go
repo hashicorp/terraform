@@ -231,4 +231,11 @@ func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v da
 			}
 		}
 	}
+	if _, ok := v.(*NodeApplyableResourceInstance); ok {
+		for _, f := range g.UpEdges(v) {
+			if _, ok := f.(*nodeActionTriggerApplyExpand); ok {
+				t.addVertexDependenciesToTargetedNodes(g, f, targetedNodes, addrs)
+			}
+		}
+	}
 }
