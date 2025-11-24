@@ -342,7 +342,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 func TestStateShow_stateStore(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-commands-state-store"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
 	t.Chdir(td)
 
 	// Get bytes describing a state containing a resource

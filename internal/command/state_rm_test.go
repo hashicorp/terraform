@@ -88,7 +88,7 @@ func TestStateRm(t *testing.T) {
 func TestStateRm_stateStore(t *testing.T) {
 	// Create a temporary working directory
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-commands-state-store"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
 	t.Chdir(td)
 
 	// Get bytes describing a state containing resources
