@@ -9,9 +9,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestStatePush_empty(t *testing.T) {
@@ -40,6 +43,55 @@ func TestStatePush_empty(t *testing.T) {
 
 	actual := testStateRead(t, "local-state.tfstate")
 	if !actual.Equal(expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestStatePush_stateStore(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-push-state-store-good"), td)
+	t.Chdir(td)
+
+	expected := testStateRead(t, "replace.tfstate")
+
+	// Create a mock that doesn't have any internal states.
+	mockProvider := mockPluggableStateStorageProvider(t)
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &StatePushCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+			Ui:             ui,
+			View:           view,
+		},
+	}
+
+	args := []string{"replace.tfstate"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Access the pushed state from the mock's internal store
+	r := bytes.NewReader(mockProvider.MockStates["default"].([]byte))
+	actual, err := statefile.Read(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !actual.State.Equal(expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
