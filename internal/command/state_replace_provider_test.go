@@ -290,7 +290,7 @@ func TestStateReplaceProvider(t *testing.T) {
 func TestStateReplaceProvider_stateStore(t *testing.T) {
 	// Create a temporary working directory
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-list-state-store"), td)
+	testCopyDir(t, testFixturePath("state-commands-state-store"), td)
 	t.Chdir(td)
 
 	// Get bytes describing a state containing resources
