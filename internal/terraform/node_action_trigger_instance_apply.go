@@ -169,21 +169,12 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.ProgressAction(hookIdentity, ev.Message)
 				}))
-				if diags.HasErrors() {
-					return diags
-				}
 			case providers.InvokeActionEvent_Completed:
 				// Enhance the diagnostics
 				diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
 				}))
-				if ev.Diagnostics.HasErrors() {
-					return diags
-				}
-				if diags.HasErrors() {
-					return diags
-				}
 			default:
 				panic(fmt.Sprintf("unexpected action event type %T", ev))
 			}
@@ -197,6 +188,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		})
 	}
 
+	if ai.ActionTrigger.
 	return diags
 }
 

@@ -38,6 +38,8 @@ type ActionTrigger interface {
 
 	TriggerEvent() configs.ActionTriggerEvent
 
+	TriggerOnFailure() configs.ActionTriggerOnFailure
+
 	String() string
 
 	Equals(to ActionTrigger) bool
@@ -55,10 +57,16 @@ type LifecycleActionTrigger struct {
 	// Information about the trigger
 	// The event that triggered this action invocation.
 	ActionTriggerEvent configs.ActionTriggerEvent
+
+	ActionTriggerOnFailure configs.ActionTriggerOnFailure
 	// The index of the action_trigger block that triggered this invocation.
 	ActionTriggerBlockIndex int
 	// The index of the action in the events list of the action_trigger block
 	ActionsListIndex int
+}
+
+func (t *LifecycleActionTrigger) TriggerOnFailure() configs.ActionTriggerOnFailure {
+	return t.ActionTriggerOnFailure
 }
 
 func (t *LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
