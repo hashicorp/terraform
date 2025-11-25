@@ -125,6 +125,13 @@ type PlanGraphBuilder struct {
 	// allows Terraform to ignore the configuration attribute prevent_destroy
 	// to destroy resources regardless.
 	overridePreventDestroy bool
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 // See GraphBuilder
@@ -202,10 +209,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:      b.Config,
-			RefreshOnly: b.skipPlanChanges || b.preDestroyRefresh,
-			Destroying:  b.Operation == walkPlanDestroy,
-			Overrides:   b.Overrides,
+			Config:                    b.Config,
+			RefreshOnly:               b.skipPlanChanges || b.preDestroyRefresh,
+			Destroying:                b.Operation == walkPlanDestroy,
+			Overrides:                 b.Overrides,
+			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
 
 			// NOTE: We currently treat anything built with the plan graph
 			// builder as "planning" for our purposes here, because we share
