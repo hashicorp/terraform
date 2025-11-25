@@ -57,7 +57,13 @@ func TestTFPlanRoundTrip(t *testing.T) {
 							Namespace: "foobar",
 							Type:      "foo",
 						},
+						// Imagining a provider that has nothing in its schema
+						Config: mustNewDynamicValue(
+							cty.EmptyObjectVal,
+							cty.Object(nil),
+						),
 					},
+					// Imagining a state store with a field called `foo` in its schema
 					Config: mustNewDynamicValue(
 						cty.ObjectVal(map[string]cty.Value{
 							"foo": cty.StringVal("bar"),
@@ -136,6 +142,14 @@ func Test_writeTfplan_validation(t *testing.T) {
 							Namespace: "foobar",
 							Type:      "foo",
 						},
+						Config: mustNewDynamicValue(
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("bar"),
+							}),
+							cty.Object(map[string]cty.Type{
+								"foo": cty.String,
+							}),
+						),
 					},
 					Config: mustNewDynamicValue(
 						cty.ObjectVal(map[string]cty.Value{

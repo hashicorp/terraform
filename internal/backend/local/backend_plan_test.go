@@ -940,20 +940,25 @@ func TestLocal_plan_withStateStore(t *testing.T) {
 	op.PlanMode = plans.NormalMode
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
-	cfg := cty.ObjectVal(map[string]cty.Value{
+	storeCfg := cty.ObjectVal(map[string]cty.Value{
 		"path": cty.StringVal(b.StatePath),
 	})
-	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	storeCfgRaw, err := plans.NewDynamicValue(storeCfg, storeCfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerCfg := cty.ObjectVal(map[string]cty.Value{}) // Empty as the mock provider has no schema for the provider
+	providerCfgRaw, err := plans.NewDynamicValue(providerCfg, providerCfg.Type())
 	if err != nil {
 		t.Fatal(err)
 	}
 	op.PlanOutStateStore = &plans.StateStore{
 		Type:   storeType,
-		Config: cfgRaw,
+		Config: storeCfgRaw,
 		Provider: &plans.Provider{
 			Source:  &mockAddr,
 			Version: providerVersion,
-			// No config as the mock provider has no schema for the provider
+			Config:  providerCfgRaw,
 		},
 		Workspace: defaultWorkspace,
 	}
