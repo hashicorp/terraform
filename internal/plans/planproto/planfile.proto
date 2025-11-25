@@ -169,6 +169,7 @@ message StateStore {
 message Provider {
     string source = 1;
     string version = 2;
+    DynamicValue config = 3;
 }
 
 // Action describes the type of action planned for an object.
