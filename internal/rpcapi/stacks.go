@@ -1238,7 +1238,7 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			send(&stacks.StackChangeProgress{
 				Event: &stacks.StackChangeProgress_ActionInvocationStatus_{
 					ActionInvocationStatus: &stacks.StackChangeProgress_ActionInvocationStatus{
-						Addr:         stackAddressFromActionInvocationInstance(status.Addr),
+						Addr:         stacks.NewActionInvocationInStackAddr(status.Addr),
 						Status:       protoStatus,
 						ProviderAddr: status.ProviderAddr.String(),
 					},
