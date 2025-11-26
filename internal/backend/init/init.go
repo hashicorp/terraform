@@ -19,6 +19,7 @@ import (
 	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
 	backendConsul "github.com/hashicorp/terraform/internal/backend/remote-state/consul"
 	backendCos "github.com/hashicorp/terraform/internal/backend/remote-state/cos"
+	backendElasticsearch "github.com/hashicorp/terraform/internal/backend/remote-state/elasticsearch"
 	backendGCS "github.com/hashicorp/terraform/internal/backend/remote-state/gcs"
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
@@ -58,17 +59,18 @@ func Init(services *disco.Disco) {
 		"remote": func() backend.Backend { return backendRemote.New(services) },
 
 		// Remote State backends.
-		"azurerm":    func() backend.Backend { return backendAzure.New() },
-		"consul":     func() backend.Backend { return backendConsul.New() },
-		"cos":        func() backend.Backend { return backendCos.New() },
-		"gcs":        func() backend.Backend { return backendGCS.New() },
-		"http":       func() backend.Backend { return backendHTTP.New() },
-		"inmem":      func() backend.Backend { return backendInmem.New() },
-		"kubernetes": func() backend.Backend { return backendKubernetes.New() },
-		"oss":        func() backend.Backend { return backendOSS.New() },
-		"pg":         func() backend.Backend { return backendPg.New() },
-		"s3":         func() backend.Backend { return backendS3.New() },
-		"oci":        func() backend.Backend { return backendOCI.New() },
+		"azurerm":       func() backend.Backend { return backendAzure.New() },
+		"consul":        func() backend.Backend { return backendConsul.New() },
+		"cos":           func() backend.Backend { return backendCos.New() },
+		"elasticsearch": func() backend.Backend { return backendElasticsearch.New() },
+		"gcs":           func() backend.Backend { return backendGCS.New() },
+		"http":          func() backend.Backend { return backendHTTP.New() },
+		"inmem":         func() backend.Backend { return backendInmem.New() },
+		"kubernetes":    func() backend.Backend { return backendKubernetes.New() },
+		"oss":           func() backend.Backend { return backendOSS.New() },
+		"pg":            func() backend.Backend { return backendPg.New() },
+		"s3":            func() backend.Backend { return backendS3.New() },
+		"oci":           func() backend.Backend { return backendOCI.New() },
 
 		// HCP Terraform 'backend'
 		// This is an implementation detail only, used for the cloud package
