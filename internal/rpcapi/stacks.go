@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -1216,6 +1217,9 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 		},
 
 		ReportActionInvocationStatus: func(ctx context.Context, span any, status *hooks.ActionInvocationStatusHookData) any {
+			log.Printf("[DEBUG] ReportActionInvocationStatus: %s -> %s (provider: %s)",
+				status.Addr.Item.String(), status.Status, status.ProviderAddr.String())
+
 			span.(trace.Span).AddEvent("action invocation status", trace.WithAttributes(
 				attribute.String("component_instance", status.Addr.Component.String()),
 				attribute.String("action_instance", status.Addr.Item.String()),

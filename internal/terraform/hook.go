@@ -38,6 +38,7 @@ type HookResourceIdentity struct {
 type HookActionIdentity struct {
 	Addr addrs.AbsActionInstance
 
+	ProviderAddr  addrs.AbsProviderConfig
 	ActionTrigger plans.ActionTrigger
 }
 

@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -205,15 +206,20 @@ func (h *componentInstanceTerraformHook) ResourceInstanceObjectsSuccessfullyAppl
 }
 
 // StartAction forwards core action start events into the stacks hooks
-// as a planned/status notification. We keep the payload minimal here; the
-// full address/trigger information can be populated when available.
+// as a status notification reporting that the action is now pending.
 func (h *componentInstanceTerraformHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	log.Printf("[DEBUG] terraform_hook.StartAction: %s", id.Addr.String())
 	ai := h.actionInvocationFromHookActionIdentity(id)
-	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationPlanned, ai)
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: ai.ProviderAddr,
+		Status:       "PENDING",
+	})
 	return terraform.HookActionContinue, nil
 }
 
 func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	log.Printf("[DEBUG] terraform_hook.ProgressAction: %s, progress=%s", id.Addr.String(), progress)
 	ai := h.actionInvocationFromHookActionIdentity(id)
 
 	// Map progress string to appropriate status
@@ -231,6 +237,7 @@ func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionI
 }
 
 func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+	log.Printf("[DEBUG] terraform_hook.CompleteAction: %s, err=%v", id.Addr.String(), err)
 	ai := h.actionInvocationFromHookActionIdentity(id)
 
 	status := "COMPLETED"
@@ -254,10 +261,8 @@ func (h *componentInstanceTerraformHook) actionInvocationFromHookActionIdentity(
 			Component: h.addr,
 			Item:      id.Addr,
 		},
-		Trigger: id.ActionTrigger,
+		ProviderAddr: id.ProviderAddr.Provider,
+		Trigger:      id.ActionTrigger,
 	}
-	// ProviderAddr is not available directly on HookActionIdentity; leave
-	// it zero-valued. Consumers that need it should enrich it later when a
-	// reliable mapping is available.
 	return ai
 }
