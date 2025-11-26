@@ -59,9 +59,8 @@ type ActionTriggerEvent int
 type ActionTriggerOnFailure int
 
 const (
-	ActionTriggerOnFailureInvalid ActionTriggerOnFailure = iota
+	ActionTriggerOnFailureFail ActionTriggerOnFailure = iota
 	ActionTriggerOnFailureContinue
-	ActionTriggerOnFailureFail
 )
 
 //go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerEvent

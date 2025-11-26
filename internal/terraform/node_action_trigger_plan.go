@@ -128,6 +128,7 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 				lifecycleActionTrigger: &lifecycleActionTriggerInstance{
 					resourceAddress:         absResourceInstanceAddr,
 					events:                  n.lifecycleActionTrigger.events,
+					onFailure:               n.lifecycleActionTrigger.onFailure,
 					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
 					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
 					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,

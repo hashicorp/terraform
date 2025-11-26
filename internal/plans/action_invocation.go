@@ -114,6 +114,10 @@ func (t *InvokeActionTrigger) String() string {
 	return "CLI"
 }
 
+func (t *InvokeActionTrigger) TriggerOnFailure() configs.ActionTriggerOnFailure {
+	return configs.ActionTriggerOnFailureContinue
+}
+
 func (t *InvokeActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 	return configs.Invoke
 }

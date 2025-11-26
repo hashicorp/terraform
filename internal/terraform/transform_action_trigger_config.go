@@ -138,6 +138,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 						actionListIndex:         j,
 						invokingSubject:         action.Expr.Range().Ptr(),
 						conditionExpr:           at.Condition,
+						onFailure:               at.OnFailure,
 					},
 				}
 

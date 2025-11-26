@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/emicklei/go-restful/v3/log"
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -188,7 +189,17 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		})
 	}
 
-	if ai.ActionTrigger.
+	switch ai.ActionTrigger.TriggerOnFailure() {
+	case configs.ActionTriggerOnFailureContinue:
+		if diags.HasErrors() {
+			log.Printf("[WARN] Errors while running action %s, "+
+				"but continuing as request in configuration.", ai.Addr)
+		}
+		return nil
+	default:
+		// Nothing to do for now - here to make it exhaustive and to denote the
+		// place to put potential new `on failure` cases.
+	}
 	return diags
 }
 
