@@ -5,6 +5,7 @@ package stackplan
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -67,6 +68,10 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 	// the protobuf descriptors for these types are included in the
 	// compiled program, and thus available in the global protobuf
 	// registry that anypb.UnmarshalNew relies on above.
+
+	// Debug: log all incoming proto messages
+	log.Printf("[DEBUG] AddRaw: Processing proto message type: %T", msg)
+
 	switch msg := msg.(type) {
 
 	case *tfstackdata1.PlanHeader:
@@ -303,6 +308,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		})
 
 	case *tfstackdata1.PlanActionInvocationPlanned:
+		log.Printf("[DEBUG] AddRaw: Processing action invocation: %s", msg.ActionInvocationAddr)
 		cAddr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
 		if diags.HasErrors() {
 			return fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
@@ -328,6 +334,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		if err != nil {
 			return fmt.Errorf("invalid action invocation for %s: %w", actionAddr, err)
 		}
+		log.Printf("[DEBUG] AddRaw: Added action invocation %s to component %s", actionAddr, cAddr)
 		c.ActionInvocations.Put(actionAddr, src)
 
 	default:

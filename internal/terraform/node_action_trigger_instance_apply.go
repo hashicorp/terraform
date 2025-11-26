@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -37,6 +38,7 @@ func (n *nodeActionTriggerApplyInstance) Name() string {
 }
 
 func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {
+	log.Printf("[DEBUG] nodeActionTriggerApplyInstance.Execute() called for %s", n.ActionInvocation.Addr.String())
 	var diags tfdiags.Diagnostics
 	actionInvocation := n.ActionInvocation
 
@@ -134,6 +136,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 	hookIdentity := HookActionIdentity{
 		Addr:          ai.Addr,
 		ActionTrigger: ai.ActionTrigger,
+		ProviderAddr:  actionData.ProviderAddr,
 	}
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
