@@ -114,7 +114,7 @@ func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Bl
 // encode the state store-specific configuration settings.
 func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, providerSchema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
 	if s == nil {
-		return nil, nil
+		panic("PlanData called on a nil *StateStoreConfigState receiver. This is a bug in Terraform and should be reported.")
 	}
 
 	if err := s.Validate(); err != nil {

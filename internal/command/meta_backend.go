@@ -618,21 +618,9 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 	var planOutBackend *plans.Backend
 	var planOutStateStore *plans.StateStore
 	switch {
-	case m.backendConfigState == nil && m.stateStoreConfigState == nil:
-		// Neither set
-		panic("failed to encode backend configuration for plan: neither backend nor state_store data present")
 	case m.backendConfigState != nil && m.stateStoreConfigState != nil:
 		// Both set
 		panic("failed to encode backend configuration for plan: both backend and state_store data present but they are mutually exclusive")
-	case m.backendConfigState != nil:
-		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace)
-		if err != nil {
-			// Always indicates an implementation error in practice, because
-			// errors here indicate invalid encoding of the backend configuration
-			// in memory, and we should always have validated that by the time
-			// we get here.
-			panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
-		}
 	case m.stateStoreConfigState != nil:
 		// To access the provider schema, we need to access the underlying backends
 		var providerSchema *configschema.Block
@@ -651,6 +639,16 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 			// in memory, and we should always have validated that by the time
 			// we get here.
 			panic(fmt.Sprintf("failed to encode state_store configuration for plan: %s", err))
+		}
+	default:
+		// Either backendConfigState is set, or it's nil; PlanData method can handle either.
+		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace)
+		if err != nil {
+			// Always indicates an implementation error in practice, because
+			// errors here indicate invalid encoding of the backend configuration
+			// in memory, and we should always have validated that by the time
+			// we get here.
+			panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
 		}
 	}
 
