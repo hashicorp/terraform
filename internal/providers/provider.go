@@ -151,6 +151,15 @@ type Interface interface {
 	Close() error
 }
 
+// StateStoreChunkSizeSetter interface indicates that a struct wants to record
+// the negotiated chunk size (from the ConfigureStateStore RPC) internally for
+// future use. The future use is likely to be ReadStateBytes/WriteStateBytes RPCs.
+//
+// We let calling code set the chunk size on that struct from outside, to ensure that
+// the value is persisted. The alternative is relying on anything that might fulfil the
+// providers.Interface interface (mock providers used in integration tests, grpcwrap
+// logic used in E2E tests, GRPCProvider logic) to know it needs to implement
+// stateful-ness when processing chunk size negotiation in the ConfigureStateStore RPC.
 type StateStoreChunkSizeSetter interface {
 	SetStateStoreChunkSize(typeName string, size int)
 }
