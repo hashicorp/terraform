@@ -2580,6 +2580,516 @@ lifecycle {
 				},
 			},
 		},
+		"replace - after_destroy triggers before before_create": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+action "test_action" "world" {
+  config {
+    attr = "world"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+   action_trigger {
+      events = [before_create]
+      actions = [action.test_action.world]
+    }
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectTainted,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("world"),
+					}),
+				},
+			},
+		},
+		"replace - before_destroy triggers before before_create and before after_destroy": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hi" {
+  config {
+    attr = "hi"
+  }
+}
+action "test_action" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+action "test_action" "world" {
+  config {
+    attr = "world"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.world]
+    }
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.hello]
+    }
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action.hi]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectTainted,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hi"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("world"),
+					}),
+				},
+			},
+		},
+
+		"replace with create_before_destroy - before_create and after_create trigger before before_destroy triggers": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hi" {
+  config {
+    attr = "hi"
+  }
+}
+action "test_action" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+action "test_action" "world" {
+  config {
+    attr = "world"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    create_before_destroy = true
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action.world]
+    }
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.hello]
+    }
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hi]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectTainted,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hi"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("world"),
+					}),
+				},
+			},
+		},
+
+		"destroy - triggers destroy actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode: plans.DestroyMode,
+			},
+		},
+
+		"forget - don't trigger destroy actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: false,
+			planOpts: &PlanOpts{
+				Mode:   plans.DestroyMode,
+				Forget: true,
+			},
+		},
+
+		"removing an instance triggers destroy actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+resource "test_object" "a" {
+  name = "instance"
+  count = 1
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr0 := mustResourceInstanceAddr("test_object.a[0]")
+				s.SetResourceInstanceCurrent(addr0, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"instance"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+				addr1 := mustResourceInstanceAddr("test_object.a[1]")
+				s.SetResourceInstanceCurrent(addr1, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"instance"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+		},
+
+		"removed block - does trigger destroy actions": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = "hello"
+  }
+}
+removed {
+  from = "test_object.a"
+  lifecycle {
+    action_trigger {
+        events = [after_destroy]
+        actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+		},
+		"before_destroy actions can access the triggering resource": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  name = "instance"
+  lifecycle {
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+			},
+
+			planOpts: &PlanOpts{
+				Mode: plans.DestroyMode,
+			},
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("instance"),
+					}),
+				},
+			},
+		},
+
+		"before_destroy actions can access the triggering resource instance": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  count = 1
+  config {
+    attr = test_object.a[count.index].name
+  }
+}
+resource "test_object" "a" {
+  count = 1
+  name = "instance#{count.index}"
+  lifecycle {
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action.hello[count.index]]
+    }
+  }
+}
+`,
+			},
+
+			planOpts: &PlanOpts{
+				Mode: plans.DestroyMode,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("instance0"),
+					}),
+				},
+			},
+		},
+
+		"after_destroy actions can access the triggering resource": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = test_object.a.name
+  }
+}
+resource "test_object" "a" {
+  name = "instance"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+			},
+
+			planOpts: &PlanOpts{
+				Mode: plans.DestroyMode,
+			},
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("instance"),
+					}),
+				},
+			},
+		},
+
+		"after_destroy actions can access the triggering resource instance": {
+			module: map[string]string{
+				"main.tf": `
+action "test_action" "hello" {
+  count = 1
+  config {
+    attr = test_object.a[count.index].name
+  }
+}
+resource "test_object" "a" {
+  count = 1
+  name = "instance#{count.index}"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.hello[count.index]]
+    }
+  }
+}
+`,
+			},
+
+			planOpts: &PlanOpts{
+				Mode: plans.DestroyMode,
+			},
+
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				addr := mustResourceInstanceAddr("test_object.a")
+				s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"name":"previous_run"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("instance0"),
+					}),
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
