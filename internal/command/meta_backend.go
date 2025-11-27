@@ -427,10 +427,11 @@ func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBacke
 				&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Error reading provider configuration state",
-					Detail: fmt.Sprintf("Terraform experienced an error reading provider configuration for provider %s (%q) while configuring state store %s",
+					Detail: fmt.Sprintf("Terraform experienced an error reading provider configuration for provider %s (%q) while configuring state store %s: %s",
 						settings.Provider.Source.Type,
 						settings.Provider.Source,
 						settings.Type,
+						err,
 					),
 				},
 			)
@@ -444,10 +445,11 @@ func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBacke
 				&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Error reading state store configuration state",
-					Detail: fmt.Sprintf("Terraform experienced an error reading state store configuration for state store %s in provider %s (%q)",
+					Detail: fmt.Sprintf("Terraform experienced an error reading state store configuration for state store %s in provider %s (%q): %s",
 						settings.Type,
 						settings.Provider.Source.Type,
 						settings.Provider.Source,
+						err,
 					),
 				},
 			)
