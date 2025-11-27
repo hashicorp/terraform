@@ -5,6 +5,7 @@ package planfile
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -165,6 +166,234 @@ func Test_writeTfplan_validation(t *testing.T) {
 			}(),
 			wantWriteErrMsg: "plan contains both backend and state_store configurations, only one is expected",
 		},
+		"error when state store lacks a provider source": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// remove backend from example plan
+				rawPlan.Backend = nil
+
+				// Add state store with missing data
+				ver, err := version.NewVersion("9.9.9")
+				if err != nil {
+					t.Fatalf("error encountered during test setup: %s", err)
+				}
+				rawPlan.StateStore = &plans.StateStore{
+					Type: "foo_bar",
+					Provider: &plans.Provider{
+						Version: ver,
+						// Source: omitted
+						Config: mustNewDynamicValue(
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("bar"),
+							}),
+							cty.Object(map[string]cty.Type{
+								"foo": cty.String,
+							}),
+						),
+					},
+					Config: mustNewDynamicValue(
+						cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						}),
+						cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						}),
+					),
+					Workspace: "default",
+				}
+				return rawPlan
+			}(),
+			wantWriteErrMsg: "contains a nil provider Source",
+		},
+		"error when state store lacks a provider version": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// remove backend from example plan
+				rawPlan.Backend = nil
+
+				// Add state store with missing data
+				rawPlan.StateStore = &plans.StateStore{
+					Type: "foo_bar",
+					Provider: &plans.Provider{
+						// Version: omitted
+						Source: &tfaddr.Provider{
+							Hostname:  tfaddr.DefaultProviderRegistryHost,
+							Namespace: "foobar",
+							Type:      "foo",
+						},
+						Config: mustNewDynamicValue(
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("bar"),
+							}),
+							cty.Object(map[string]cty.Type{
+								"foo": cty.String,
+							}),
+						),
+					},
+					Config: mustNewDynamicValue(
+						cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						}),
+						cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						}),
+					),
+					Workspace: "default",
+				}
+				return rawPlan
+			}(),
+			wantWriteErrMsg: "contains a nil provider Version",
+		},
+		"error when state store lacks provider config": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// remove backend from example plan
+				rawPlan.Backend = nil
+
+				// Add state store with missing data
+				ver, err := version.NewVersion("9.9.9")
+				if err != nil {
+					t.Fatalf("error encountered during test setup: %s", err)
+				}
+				rawPlan.StateStore = &plans.StateStore{
+					Type: "foo_bar",
+					Provider: &plans.Provider{
+						Version: ver,
+						Source: &tfaddr.Provider{
+							Hostname:  tfaddr.DefaultProviderRegistryHost,
+							Namespace: "foobar",
+							Type:      "foo",
+						},
+						// Config: omitted
+					},
+					Config: mustNewDynamicValue(
+						cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						}),
+						cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						}),
+					),
+					Workspace: "default",
+				}
+				return rawPlan
+			}(),
+			wantWriteErrMsg: "includes no provider Config",
+		},
+		"error when state store lacks a type": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// remove backend from example plan
+				rawPlan.Backend = nil
+
+				// Add state store with missing data
+				ver, err := version.NewVersion("9.9.9")
+				if err != nil {
+					t.Fatalf("error encountered during test setup: %s", err)
+				}
+				rawPlan.StateStore = &plans.StateStore{
+					// Type: omitted
+					Provider: &plans.Provider{
+						Version: ver,
+						Source: &tfaddr.Provider{
+							Hostname:  tfaddr.DefaultProviderRegistryHost,
+							Namespace: "foobar",
+							Type:      "foo",
+						},
+					},
+					Config: mustNewDynamicValue(
+						cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						}),
+						cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						}),
+					),
+					Workspace: "default",
+				}
+				return rawPlan
+			}(),
+			wantWriteErrMsg: "state store has an unset Type",
+		},
+		"error when state store lacks config": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// remove backend from example plan
+				rawPlan.Backend = nil
+
+				// Add state store with missing data
+				ver, err := version.NewVersion("9.9.9")
+				if err != nil {
+					t.Fatalf("error encountered during test setup: %s", err)
+				}
+				rawPlan.StateStore = &plans.StateStore{
+					Type: "foo_bar",
+					Provider: &plans.Provider{
+						Version: ver,
+						Source: &tfaddr.Provider{
+							Hostname:  tfaddr.DefaultProviderRegistryHost,
+							Namespace: "foobar",
+							Type:      "foo",
+						},
+						Config: mustNewDynamicValue(
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("bar"),
+							}),
+							cty.Object(map[string]cty.Type{
+								"foo": cty.String,
+							}),
+						),
+					},
+					// Config: omitted
+					Workspace: "default",
+				}
+				return rawPlan
+			}(),
+			wantWriteErrMsg: "state store includes no Config",
+		},
+		"error when state store lacks a workspace": {
+			plan: func() *plans.Plan {
+				rawPlan := examplePlanForTest(t)
+				// remove backend from example plan
+				rawPlan.Backend = nil
+
+				// Add state store with missing data
+				ver, err := version.NewVersion("9.9.9")
+				if err != nil {
+					t.Fatalf("error encountered during test setup: %s", err)
+				}
+				rawPlan.StateStore = &plans.StateStore{
+					Type: "foo_bar",
+					Provider: &plans.Provider{
+						Version: ver,
+						Source: &tfaddr.Provider{
+							Hostname:  tfaddr.DefaultProviderRegistryHost,
+							Namespace: "foobar",
+							Type:      "foo",
+						},
+						Config: mustNewDynamicValue(
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("bar"),
+							}),
+							cty.Object(map[string]cty.Type{
+								"foo": cty.String,
+							}),
+						),
+					},
+					Config: mustNewDynamicValue(
+						cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						}),
+						cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						}),
+					),
+					// Workspace: omitted
+				}
+				return rawPlan
+			}(),
+			wantWriteErrMsg: "state store has an unset Workspace",
+		},
 	}
 
 	for tn, tc := range cases {
@@ -174,7 +403,7 @@ func Test_writeTfplan_validation(t *testing.T) {
 			if err == nil {
 				t.Fatal("this test expects an error but got none")
 			}
-			if err.Error() != tc.wantWriteErrMsg {
+			if !strings.Contains(err.Error(), tc.wantWriteErrMsg) {
 				t.Fatalf("unexpected error message: wanted %q, got %q", tc.wantWriteErrMsg, err)
 			}
 		})
