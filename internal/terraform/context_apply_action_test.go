@@ -2554,6 +2554,74 @@ lifecycle {
 				},
 			},
 		},
+
+		"trigger on_failure set to 'fail' fails the resource": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "dummy_action" {}
+resource "test_object" "dummy_resource" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.action_example.dummy_action]
+      on_failure = fail
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Test failure",
+						"action failing for test",
+					),
+				}
+			},
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   "Test failure: action failing for test",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 168},
+							End:      hcl.Pos{Line: 7, Column: 52, Byte: 202},
+						},
+					},
+				)
+			},
+		},
+
+		"trigger on_failure set to 'continue' doesn't cause failure": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "dummy_action" {}
+resource "test_object" "dummy_resource" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.action_example.dummy_action]
+      on_failure = continue
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Test failure",
+						"action failing for test",
+					),
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -2804,6 +2872,7 @@ func newActionHookCapture() actionHookCapture {
 		mu: &sync.Mutex{},
 	}
 }
+
 func (a *actionHookCapture) StartAction(identity HookActionIdentity) (HookAction, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()

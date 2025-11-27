@@ -132,6 +132,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					Config: actionConfig,
 					lifecycleActionTrigger: &lifecycleActionTrigger{
 						events:                  at.Events,
+						onFailure:               at.OnFailure,
 						resourceAddress:         resourceAddr,
 						actionExpr:              action.Expr,
 						actionTriggerBlockIndex: i,
