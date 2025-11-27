@@ -48,7 +48,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 				}
 
 				// add state store instead
-				rawPlan.StateStore = plans.StateStore{
+				rawPlan.StateStore = &plans.StateStore{
 					Type: "foo_bar",
 					Provider: &plans.Provider{
 						Version: ver,
@@ -127,7 +127,7 @@ func Test_writeTfplan_validation(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error encountered during test setup: %s", err)
 				}
-				rawPlan.StateStore = plans.StateStore{
+				rawPlan.StateStore = &plans.StateStore{
 					Type: "foo_bar",
 					Provider: &plans.Provider{
 						Version: ver,
