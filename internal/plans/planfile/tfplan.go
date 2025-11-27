@@ -737,19 +737,18 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	}
 
 	// Store details about accessing state
-	backendInUse := plan.Backend.Type != "" && plan.Backend.Config != nil
 	stateStoreInUse := plan.StateStore.Type != "" && plan.StateStore.Config != nil
 	switch {
-	case !backendInUse && !stateStoreInUse:
+	case plan.Backend == nil && !stateStoreInUse:
 		// This suggests a bug in the code that created the plan, since it
 		// ought to always have either a backend or state_store populated, even if it's the default
 		// "local" backend with a local state file.
 		return fmt.Errorf("plan does not have a backend or state_store configuration")
-	case backendInUse && stateStoreInUse:
+	case plan.Backend != nil && stateStoreInUse:
 		// This suggests a bug in the code that created the plan, since it
 		// should never have both a backend and state_store populated.
 		return fmt.Errorf("plan contains both backend and state_store configurations, only one is expected")
-	case backendInUse:
+	case plan.Backend != nil:
 		rawPlan.Backend = &planproto.Backend{
 			Type:      plan.Backend.Type,
 			Config:    valueToTfplan(plan.Backend.Config),
