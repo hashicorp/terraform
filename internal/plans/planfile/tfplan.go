@@ -222,7 +222,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		if err != nil {
 			return nil, fmt.Errorf("plan file has invalid backend configuration: %s", err)
 		}
-		plan.Backend = plans.Backend{
+		plan.Backend = &plans.Backend{
 			Type:      rawBackend.Type,
 			Config:    config,
 			Workspace: rawBackend.Workspace,

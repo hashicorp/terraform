@@ -74,7 +74,7 @@ type Plan struct {
 	ActionTargetAddrs         []addrs.Targetable
 	ForceReplaceAddrs         []addrs.AbsResourceInstance
 
-	Backend    Backend
+	Backend    *Backend
 	StateStore StateStore
 
 	// Complete is true if Terraform considers this to be a "complete" plan,

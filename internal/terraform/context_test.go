@@ -787,9 +787,11 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 		if err != nil {
 			panic(fmt.Sprintf("NewDynamicValue failed: %s", err)) // shouldn't happen because we control the inputs
 		}
-		plan.Backend.Type = "local"
-		plan.Backend.Config = cfg
-		plan.Backend.Workspace = "default"
+		plan.Backend = &plans.Backend{
+			Type:      "local",
+			Config:    cfg,
+			Workspace: "default",
+		}
 	}
 
 	filename := filepath.Join(dir, "tfplan")
