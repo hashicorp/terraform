@@ -149,7 +149,9 @@ func TestPrimarySeparatePlan(t *testing.T) {
 
 }
 
-// There is NO error if you apply a plan against the wrong workspace and there's no state for that workspace yet.
+// There is NO error if you apply a plan against the wrong workspace and:
+// 1) The plan doesn't depend on prior state (only adds resources)
+// 2) there's no state for that 'wrong' workspace yet
 func TestPrimarySeparatePlan_incorrectWorkspace_noPriorState(t *testing.T) {
 	t.Parallel()
 
@@ -162,7 +164,7 @@ func TestPrimarySeparatePlan_incorrectWorkspace_noPriorState(t *testing.T) {
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	//// INIT
-	stdout, stderr, err := tf.Run("init")
+	stdout, stderr, err := tf.Run("init", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -175,7 +177,7 @@ func TestPrimarySeparatePlan_incorrectWorkspace_noPriorState(t *testing.T) {
 	}
 
 	//// PLAN
-	stdout, stderr, err = tf.Run("plan", "-out=tfplan")
+	stdout, stderr, err = tf.Run("plan", "-out=tfplan", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -212,7 +214,7 @@ func TestPrimarySeparatePlan_incorrectWorkspace_noPriorState(t *testing.T) {
 	}
 
 	//// APPLY
-	stdout, stderr, err = tf.Run("apply", "tfplan")
+	stdout, stderr, err = tf.Run("apply", "tfplan", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -251,7 +253,7 @@ func TestPrimarySeparatePlan_incorrectWorkspace_noPriorState(t *testing.T) {
 	}
 
 	//// DESTROY
-	stdout, stderr, err = tf.Run("destroy", "-auto-approve")
+	stdout, stderr, err = tf.Run("destroy", "-auto-approve", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -279,8 +281,9 @@ func TestPrimarySeparatePlan_incorrectWorkspace_noPriorState(t *testing.T) {
 
 }
 
-// There IS an error if you apply a plan against the wrong workspace and that workspace already
-// has a state file.
+// There is an error if you apply a plan against the wrong workspace, where that plan is making resources for the first time.
+//
+// In this case there is a state for the 'wrong' workspace, which is mismatched with the state used for the plan.
 func TestPrimarySeparatePlan_incorrectWorkspace_withPriorState(t *testing.T) {
 	t.Parallel()
 
@@ -392,6 +395,94 @@ func TestPrimarySeparatePlan_incorrectWorkspace_withPriorState(t *testing.T) {
 
 	if !strings.Contains(stderr, "Saved plan is stale") {
 		t.Errorf("expected error to report the plan as stale, got:\n%s", stderr)
+	}
+}
+
+// There is an error if you apply a plan against the wrong workspace and that plan relies on prior state (makes changes or removes resources)
+//
+// In this case there is no state for the 'wrong' workspace.
+// Also, the error specifies lineage as the reason for the error.
+func TestPrimarySeparatePlan_incorrectWorkspace_planChangingExistingResources_noPriorState(t *testing.T) {
+	t.Parallel()
+
+	// This test reaches out to releases.hashicorp.com to download the
+	// template and null providers, so it can only run if network access is
+	// allowed.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "full-workflow")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	//// INIT
+	stdout, stderr, err := tf.Run("init", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	// Make sure we actually downloaded the plugins, rather than picking up
+	// copies that might be already installed globally on the system.
+	if !strings.Contains(stdout, "Installing hashicorp/null v") {
+		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
+		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
+	}
+
+	//// APPLY
+	//
+	// Create state for the default workspace
+	stdout, stderr, err = tf.Run("apply", "-auto-approve", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
+	}
+
+	//// PLAN
+	stdout, stderr, err = tf.Run("plan", "-var=name=Sarah", "-out=tfplan", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Plan: 1 to add, 0 to change, 1 to destroy.") {
+		t.Fatalf("unexpected output: %s", stdout)
+	}
+
+	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
+		t.Errorf("missing \"Saved the plan to...\" message in plan output\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
+		t.Errorf("missing next-step instruction in plan output\n%s", stdout)
+	}
+
+	plan, err := tf.Plan("tfplan")
+	if err != nil {
+		t.Fatalf("failed to read plan file: %s", err)
+	}
+
+	if plan.Backend.Workspace != "default" {
+		t.Fatalf("expected plan to contain Workspace %q, got %q", "default", plan.Backend.Workspace)
+	}
+
+	// Create and select a workspace that doesn't match the plan made above
+	newWorkspace := "foobar"
+	stdout, stderr, err = tf.Run("workspace", "new", newWorkspace, "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	expectedMsg := fmt.Sprintf("Created and switched to workspace %q!", newWorkspace)
+	if !strings.Contains(stdout, expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
+	}
+
+	//// APPLY
+	stdout, stderr, err = tf.Run("apply", "tfplan", "-no-color")
+	if err == nil {
+		t.Fatalf("expected error but got none: %s\nstdout:\n%s", err, stdout)
+	}
+
+	if !strings.Contains(stderr, "different state lineage") {
+		t.Errorf("expected error to be due to lineage, but got:\n%s", stderr)
 	}
 }
 
