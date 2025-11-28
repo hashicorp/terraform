@@ -35,6 +35,7 @@ import (
 )
 
 var _ providers.Interface = (*GRPCProvider)(nil)
+var _ providers.StateStoreChunkSizeSetter = (*GRPCProvider)(nil) // Specific to the v6 version of GRPCProvider
 
 var (
 	equateEmpty   = cmpopts.EquateEmpty()

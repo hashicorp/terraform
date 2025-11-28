@@ -1985,7 +1985,6 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdi
 	// The provider and state store will be configured using the backend state file.
 
 	var diags tfdiags.Diagnostics
-	var b backend.Backend
 
 	s := sMgr.State()
 
@@ -2092,57 +2091,24 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdi
 		return nil, diags
 	}
 
-	// Validate and configure the state store
-	//
-	// NOTE: there are no marks we need to remove at this point.
-	// We haven't added marks since the state store config from the backend state was used
-	// because the state store's config isn't going to be presented to the user via terminal output or diags.
-	validateStoreResp := provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
-		TypeName: s.StateStore.Type,
-		Config:   stateStoreConfigVal,
-	})
-	diags = diags.Append(validateStoreResp.Diagnostics)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
-		TypeName: s.StateStore.Type,
-		Config:   stateStoreConfigVal,
-		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: backendPluggable.DefaultStateStoreChunkSize,
-		},
-	})
-	diags = diags.Append(cfgStoreResp.Diagnostics)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	chunkSize := cfgStoreResp.Capabilities.ChunkSize
-	if chunkSize == 0 || chunkSize > backendPluggable.MaxStateStoreChunkSize {
-		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
-			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
-			backendPluggable.MaxStateStoreChunkSize, chunkSize,
-		))
-		return nil, diags
-	}
-
-	p, ok := provider.(providers.StateStoreChunkSizeSetter)
-	if !ok {
-		msg := fmt.Sprintf("Unable to set chunk size for provider %s; this is a bug in Terraform - please report it", s.StateStore.Type)
-		panic(msg)
-	}
-	// casting to int here is okay because the number should never exceed int32
-	p.SetStateStoreChunkSize(s.StateStore.Type, int(chunkSize))
-
-	// Now we have a fully configured state store, ready to be used.
-	// To make it usable we need to return it in a backend.Backend interface.
-	b, err = backendPluggable.NewPluggable(provider, s.StateStore.Type)
+	// Now that the provider is configured we can begin using the state store through
+	// the backend.Backend interface.
+	p, err := backendPluggable.NewPluggable(provider, s.StateStore.Type)
 	if err != nil {
 		diags = diags.Append(err)
 	}
 
-	return b, diags
+	// Validate and configure the state store
+	//
+	// Note: we do not use the value returned from PrepareConfig for state stores,
+	// however that old approach is still used with backends for compatibility reasons.
+	_, validateDiags := p.PrepareConfig(stateStoreConfigVal)
+	diags = diags.Append(validateDiags)
+
+	configureDiags := p.Configure(stateStoreConfigVal)
+	diags = diags.Append(configureDiags)
+
+	return p, diags
 }
 
 //-------------------------------------------------------------------
@@ -2367,58 +2333,24 @@ func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, locks *depsfile.L
 		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
-	// Validate state store config and configure the state store
-	//
-	// NOTE: there are no marks we need to remove at this point.
-	// We haven't added marks since the provider config from the backend state was used
-	// because the state-storage provider's config isn't going to be presented to the user via terminal output or diags.
-	validateStoreResp := provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
-		TypeName: c.Type,
-		Config:   stateStoreConfigVal,
-	})
-	diags = diags.Append(validateStoreResp.Diagnostics)
-	if validateStoreResp.Diagnostics.HasErrors() {
-		return nil, cty.NilVal, cty.NilVal, diags
-	}
-
-	cfgStoreResp := provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
-		TypeName: c.Type,
-		Config:   stateStoreConfigVal,
-		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: backendPluggable.DefaultStateStoreChunkSize,
-		},
-	})
-	diags = diags.Append(cfgStoreResp.Diagnostics)
-	if cfgStoreResp.Diagnostics.HasErrors() {
-		return nil, cty.NilVal, cty.NilVal, diags
-	}
-
-	chunkSize := cfgStoreResp.Capabilities.ChunkSize
-	if chunkSize == 0 || chunkSize > backendPluggable.MaxStateStoreChunkSize {
-		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
-			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
-			backendPluggable.MaxStateStoreChunkSize, chunkSize,
-		))
-		return nil, cty.NilVal, cty.NilVal, diags
-	}
-
-	p, ok := provider.(providers.StateStoreChunkSizeSetter)
-	if !ok {
-		msg := fmt.Sprintf("Unable to set chunk size for provider %s; this is a bug in Terraform - please report it", c.Type)
-		panic(msg)
-	}
-	// casting to int here is okay because the number should never exceed int32
-	p.SetStateStoreChunkSize(c.Type, int(chunkSize))
-
-	// Now we have a fully configured state store, ready to be used.
-	// To make it usable we need to return it in a backend.Backend interface.
-	b, err := backendPluggable.NewPluggable(provider, c.Type)
+	// Now that the provider is configured we can begin using the state store through
+	// the backend.Backend interface.
+	p, err := backendPluggable.NewPluggable(provider, c.Type)
 	if err != nil {
 		diags = diags.Append(err)
-		return nil, cty.NilVal, cty.NilVal, diags
 	}
 
-	return b, stateStoreConfigVal, providerConfigVal, diags
+	// Validate and configure the state store
+	//
+	// Note: we do not use the value returned from PrepareConfig for state stores,
+	// however that old approach is still used with backends for compatibility reasons.
+	_, validateDiags := p.PrepareConfig(stateStoreConfigVal)
+	diags = diags.Append(validateDiags)
+
+	configureDiags := p.Configure(stateStoreConfigVal)
+	diags = diags.Append(configureDiags)
+
+	return p, stateStoreConfigVal, providerConfigVal, diags
 }
 
 // Helper method to get aliases from the enhanced backend and alias them

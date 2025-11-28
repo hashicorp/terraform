@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package pluggable
+package chunks
 
 const (
 	// DefaultStateStoreChunkSize is the default chunk size proposed
