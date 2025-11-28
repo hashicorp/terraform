@@ -12,8 +12,6 @@ ENHANCEMENTS:
 
 * init: skip dependencies declared in development override. This allows you to use `terraform init` with developer overrides and install dependencies that are not declared in the override file. ([#27459](https://github.com/hashicorp/terraform/issues/27459))
 
-* actions: `action_trigger` block now supports `on_failure` attribute, which allows specifying terraform behavior on action failure.
-
 
 BUG FIXES:
 
