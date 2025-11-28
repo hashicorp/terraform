@@ -149,7 +149,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 
 }
 
-func TestPrimarySeparatePlan_incorrectWorkspace(t *testing.T) {
+// There is NO error if you apply a plan against the wrong workspace and there's no state for that workspace yet.
+func TestPrimarySeparatePlan_incorrectWorkspace_noPriorState(t *testing.T) {
 	t.Parallel()
 
 	// This test reaches out to releases.hashicorp.com to download the
@@ -276,6 +277,122 @@ func TestPrimarySeparatePlan_incorrectWorkspace(t *testing.T) {
 		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
 	}
 
+}
+
+// There IS an error if you apply a plan against the wrong workspace and that workspace already
+// has a state file.
+func TestPrimarySeparatePlan_incorrectWorkspace_withPriorState(t *testing.T) {
+	t.Parallel()
+
+	// This test reaches out to releases.hashicorp.com to download the
+	// template and null providers, so it can only run if network access is
+	// allowed.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "full-workflow")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	//// INIT
+	stdout, stderr, err := tf.Run("init", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	// Make sure we actually downloaded the plugins, rather than picking up
+	// copies that might be already installed globally on the system.
+	if !strings.Contains(stdout, "Installing hashicorp/null v") {
+		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
+		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
+	}
+
+	// CREATE WORKSPACE
+	//
+	// Create and select a custom workspace
+	newWorkspace := "foobar"
+	stdout, stderr, err = tf.Run("workspace", "new", newWorkspace, "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	expectedMsg := fmt.Sprintf("Created and switched to workspace %q!", newWorkspace)
+	if !strings.Contains(stdout, expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
+	}
+
+	//// APPLY
+	//
+	// This will make the prior state for the custom workspace
+	stdout, stderr, err = tf.Run("apply", "-auto-approve", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
+	}
+
+	//// SELECT WORKSPACE
+	//
+	// Select the default workspace, so we can make a plan with that
+	// workspace baked in.
+	stdout, stderr, err = tf.Run("workspace", "select", "default", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Switched to workspace \"default\"") {
+		t.Fatalf("unexpected output:\n%s", stdout)
+	}
+
+	//// PLAN
+	stdout, stderr, err = tf.Run("plan", "-out=tfplan", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "1 to add, 0 to change, 0 to destroy") {
+		t.Errorf("incorrect plan tally; want 1 to add:\n%s", stdout)
+	}
+
+	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
+		t.Errorf("missing \"Saved the plan to...\" message in plan output\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
+		t.Errorf("missing next-step instruction in plan output\n%s", stdout)
+	}
+
+	plan, err := tf.Plan("tfplan")
+	if err != nil {
+		t.Fatalf("failed to read plan file: %s", err)
+	}
+
+	if plan.Backend.Workspace != "default" {
+		t.Fatalf("expected plan to contain Workspace %q, got %q", "default", plan.Backend.Workspace)
+	}
+
+	//// SELECT WORKSPACE
+	//
+	// Select the custom workspace, so we can try to use the plan against
+	// that workspace with its prior state
+	stdout, stderr, err = tf.Run("workspace", "select", newWorkspace, "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Switched to workspace \"foobar\".") {
+		t.Fatalf("unexpected output:\n%s", stdout)
+	}
+
+	//// APPLY
+	//
+	// With the plan intended for the default workspace
+	stdout, stderr, err = tf.Run("apply", "tfplan", "-no-color")
+	if err == nil {
+		t.Fatalf("expected an error but got none: %s\nstdout:\n%s", err, stdout)
+	}
+
+	if !strings.Contains(stderr, "Saved plan is stale") {
+		t.Errorf("expected error to report the plan as stale, got:\n%s", stderr)
+	}
 }
 
 func TestPrimaryChdirOption(t *testing.T) {
