@@ -135,15 +135,8 @@ func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
 
 	// Negotiated chunk size is valid, so set it in the provider server
 	// that will use the value for future RPCs to read/write state.
-	if cs, ok := p.provider.(providers.StateStoreChunkSizeSetter); ok {
-		cs.SetStateStoreChunkSize(p.typeName, int(chunkSize))
-	} else {
-		// TODO: Remove
-		// I've put this here to try and fish for types of test setup that
-		// use other things that should implement SetStateStoreChunkSize but
-		// don't yet.
-		panic("provider does not implement providers.StateStoreChunkSizeSetter interface. This is a bug in Terraform and should be reported.")
-	}
+	cs := p.provider.(providers.StateStoreChunkSizeSetter)
+	cs.SetStateStoreChunkSize(p.typeName, int(chunkSize))
 	log.Printf("[TRACE] Pluggable.Configure: negotiated a chunk size of %v when configuring state store %s",
 		chunkSize,
 		p.typeName,
