@@ -158,7 +158,7 @@ func (b *Local) opPlan(
 			op.ReportResult(runningOp, diags)
 			return
 		}
-		plan.Backend = *op.PlanOutBackend
+		plan.Backend = op.PlanOutBackend
 
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and

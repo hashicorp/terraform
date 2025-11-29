@@ -222,7 +222,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		if err != nil {
 			return nil, fmt.Errorf("plan file has invalid backend configuration: %s", err)
 		}
-		plan.Backend = plans.Backend{
+		plan.Backend = &plans.Backend{
 			Type:      rawBackend.Type,
 			Config:    config,
 			Workspace: rawBackend.Workspace,
@@ -243,7 +243,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("plan file has invalid state_store provider version: %s", err)
 		}
 
-		plan.StateStore = plans.StateStore{
+		plan.StateStore = &plans.StateStore{
 			Type:      rawStateStore.Type,
 			Provider:  provider,
 			Config:    config,
@@ -737,25 +737,23 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	}
 
 	// Store details about accessing state
-	backendInUse := plan.Backend.Type != "" && plan.Backend.Config != nil
-	stateStoreInUse := plan.StateStore.Type != "" && plan.StateStore.Config != nil
 	switch {
-	case !backendInUse && !stateStoreInUse:
+	case plan.Backend == nil && plan.StateStore == nil:
 		// This suggests a bug in the code that created the plan, since it
 		// ought to always have either a backend or state_store populated, even if it's the default
 		// "local" backend with a local state file.
 		return fmt.Errorf("plan does not have a backend or state_store configuration")
-	case backendInUse && stateStoreInUse:
+	case plan.Backend != nil && plan.StateStore != nil:
 		// This suggests a bug in the code that created the plan, since it
 		// should never have both a backend and state_store populated.
 		return fmt.Errorf("plan contains both backend and state_store configurations, only one is expected")
-	case backendInUse:
+	case plan.Backend != nil:
 		rawPlan.Backend = &planproto.Backend{
 			Type:      plan.Backend.Type,
 			Config:    valueToTfplan(plan.Backend.Config),
 			Workspace: plan.Backend.Workspace,
 		}
-	case stateStoreInUse:
+	case plan.StateStore != nil:
 		rawPlan.StateStore = &planproto.StateStore{
 			Type: plan.StateStore.Type,
 			Provider: &planproto.Provider{

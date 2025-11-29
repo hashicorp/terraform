@@ -447,6 +447,9 @@ func TestPlan_outBackend(t *testing.T) {
 		t.Fatalf("Expected empty plan to be written to plan file, got: %s", spew.Sdump(plan))
 	}
 
+	if plan.Backend == nil {
+		t.Fatal("unexpected nil Backend")
+	}
 	if got, want := plan.Backend.Type, "http"; got != want {
 		t.Errorf("wrong backend type %q; want %q", got, want)
 	}
