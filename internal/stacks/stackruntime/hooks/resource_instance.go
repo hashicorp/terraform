@@ -124,8 +124,45 @@ type ActionInvocation struct {
 	Trigger      plans.ActionTrigger
 }
 
+// ActionInvocationStatus represents the lifecycle status of an action invocation.
+type ActionInvocationStatus rune
+
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ActionInvocationStatus resource_instance.go
+
+const (
+	ActionInvocationStatusInvalid ActionInvocationStatus = 0
+	ActionInvocationPending       ActionInvocationStatus = 'p'
+	ActionInvocationRunning       ActionInvocationStatus = 'r'
+	ActionInvocationCompleted     ActionInvocationStatus = 'C'
+	ActionInvocationErrored       ActionInvocationStatus = 'E'
+)
+
+// ForProtobuf converts the typed status to the protobuf enum value.
+func (s ActionInvocationStatus) ForProtobuf() stacks.StackChangeProgress_ActionInvocationStatus_Status {
+	switch s {
+	case ActionInvocationPending:
+		return stacks.StackChangeProgress_ActionInvocationStatus_PENDING
+	case ActionInvocationRunning:
+		return stacks.StackChangeProgress_ActionInvocationStatus_RUNNING
+	case ActionInvocationCompleted:
+		return stacks.StackChangeProgress_ActionInvocationStatus_COMPLETED
+	case ActionInvocationErrored:
+		return stacks.StackChangeProgress_ActionInvocationStatus_ERRORED
+	default:
+		return stacks.StackChangeProgress_ActionInvocationStatus_INVALID
+	}
+}
+
 type ActionInvocationStatusHookData struct {
 	Addr         stackaddrs.AbsActionInvocationInstance
 	ProviderAddr addrs.Provider
-	Status       string
+	Status       ActionInvocationStatus
+}
+
+// String returns a concise string representation of the action invocation status.
+func (a *ActionInvocationStatusHookData) String() string {
+	if a == nil {
+		return "<nil>"
+	}
+	return a.Addr.String() + " [" + a.Status.String() + "]"
 }
