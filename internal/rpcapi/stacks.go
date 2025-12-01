@@ -1217,27 +1217,18 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 		},
 
 		ReportActionInvocationStatus: func(ctx context.Context, span any, status *hooks.ActionInvocationStatusHookData) any {
-			log.Printf("[DEBUG] ReportActionInvocationStatus: %s -> %s (provider: %s)",
-				status.Addr.Item.String(), status.Status, status.ProviderAddr.String())
+			log.Printf("[DEBUG] ReportActionInvocationStatus called: Action=%s, Status=%s, Provider=%s",
+				status.Addr.Item.String(), status.Status.String(), status.ProviderAddr.String())
 
 			span.(trace.Span).AddEvent("action invocation status", trace.WithAttributes(
 				attribute.String("component_instance", status.Addr.Component.String()),
 				attribute.String("action_instance", status.Addr.Item.String()),
-				attribute.String("status", status.Status),
+				attribute.String("status", status.Status.String()),
 			))
 
-			// Map string status to protobuf enum
-			protoStatus := stacks.StackChangeProgress_ActionInvocationStatus_INVALID
-			switch status.Status {
-			case "PENDING":
-				protoStatus = stacks.StackChangeProgress_ActionInvocationStatus_PENDING
-			case "RUNNING":
-				protoStatus = stacks.StackChangeProgress_ActionInvocationStatus_RUNNING
-			case "COMPLETED":
-				protoStatus = stacks.StackChangeProgress_ActionInvocationStatus_COMPLETED
-			case "ERRORED":
-				protoStatus = stacks.StackChangeProgress_ActionInvocationStatus_ERRORED
-			}
+			protoStatus := status.Status.ForProtobuf()
+			log.Printf("[DEBUG] Sending ActionInvocationStatus to gRPC client: Addr=%s, Status=%d (proto)",
+				status.Addr.String(), protoStatus)
 
 			send(&stacks.StackChangeProgress{
 				Event: &stacks.StackChangeProgress_ActionInvocationStatus_{
@@ -1249,6 +1240,7 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 				},
 			})
 
+			log.Printf("[DEBUG] ActionInvocationStatus event successfully sent to client")
 			return span
 		},
 
