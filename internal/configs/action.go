@@ -104,11 +104,15 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 				event = BeforeUpdate
 			case "after_update":
 				event = AfterUpdate
+			case "before_destroy":
+				event = BeforeDestroy
+			case "after_destroy":
+				event = AfterDestroy
 			default:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Invalid \"event\" value %s", hcl.ExprAsKeyword(expr)),
-					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update.",
+					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 					Subject:  expr.Range().Ptr(),
 				})
 				continue

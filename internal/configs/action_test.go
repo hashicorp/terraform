@@ -183,7 +183,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				},
 			},
 			[]string{
-				"MockExprTraversal:0,0-12: Invalid \"event\" value not_an_event; The \"event\" argument supports the following values: before_create, after_create, before_update, after_update.",
+				"MockExprTraversal:0,0-12: Invalid \"event\" value not_an_event; The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 				":0,0-0: No events specified; At least one event must be specified for an action_trigger.",
 			},
 		},

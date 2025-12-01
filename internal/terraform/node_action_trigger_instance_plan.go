@@ -296,11 +296,40 @@ func evaluateActionCondition(ctx EvalContext, at actionConditionContext) (bool, 
 func containsBeforeEvent(events []configs.ActionTriggerEvent) bool {
 	for _, event := range events {
 		switch event {
-		case configs.BeforeCreate, configs.BeforeUpdate:
+		case configs.BeforeCreate, configs.BeforeUpdate, configs.BeforeDestroy:
 			return true
 		default:
 			continue
 		}
 	}
 	return false
+}
+
+func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
+	triggeredEvents := []configs.ActionTriggerEvent{}
+	for _, event := range events {
+		switch event {
+		case configs.BeforeCreate, configs.AfterCreate:
+			if action.IsReplace() || action == plans.Create {
+				triggeredEvents = append(triggeredEvents, event)
+			} else {
+				continue
+			}
+		case configs.BeforeUpdate, configs.AfterUpdate:
+			if action == plans.Update {
+				triggeredEvents = append(triggeredEvents, event)
+			} else {
+				continue
+			}
+		case configs.BeforeDestroy, configs.AfterDestroy:
+			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
+				triggeredEvents = append(triggeredEvents, event)
+			} else {
+				continue
+			}
+		default:
+			panic(fmt.Sprintf("unknown action trigger event %s", event))
+		}
+	}
+	return triggeredEvents
 }

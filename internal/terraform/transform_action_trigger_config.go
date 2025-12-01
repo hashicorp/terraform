@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -22,9 +23,11 @@ type ActionTriggerConfigTransformer struct {
 	ConcreteActionTriggerNodeFunc ConcreteActionTriggerNodeFunc
 }
 
+var allowedOperations = []walkOperation{walkPlan, walkApply, walkDestroy, walkPlanDestroy}
+
 func (t *ActionTriggerConfigTransformer) Transform(g *Graph) error {
 	// We don't want to run if we are using the query plan mode or have targets in place
-	if (t.Operation != walkPlan && t.Operation != walkApply) || t.queryPlanMode || len(t.ActionTargets) > 0 {
+	if (!slices.Contains(allowedOperations, t.Operation)) || t.queryPlanMode || len(t.ActionTargets) > 0 {
 		return nil
 	}
 
@@ -50,8 +53,8 @@ func (t *ActionTriggerConfigTransformer) transform(g *Graph, config *configs.Con
 func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *configs.Config) error {
 	// During plan we only want to create all triggers to run after the resource
 	createNodesAsAfter := t.Operation == walkPlan
-	// During apply we want all after trigger to also connect to the resource instance nodes
-	connectToResourceInstanceNodes := t.Operation == walkApply
+	// During apply/destroy we want all after trigger to also connect to the resource instance nodes
+	connectToResourceInstanceNodes := t.Operation == walkApply || t.Operation == walkDestroy || t.Operation == walkPlanDestroy
 	actionConfigs := addrs.MakeMap[addrs.ConfigAction, *configs.Action]()
 	for _, a := range config.Module.Actions {
 		actionConfigs.Put(a.Addr().InModule(config.Path), a)
@@ -86,9 +89,9 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 			containsAfterEvent := false
 			for _, event := range at.Events {
 				switch event {
-				case configs.BeforeCreate, configs.BeforeUpdate:
+				case configs.BeforeCreate, configs.BeforeUpdate, configs.BeforeDestroy:
 					containsBeforeEvent = true
-				case configs.AfterCreate, configs.AfterUpdate:
+				case configs.AfterCreate, configs.AfterUpdate, configs.AfterDestroy:
 					containsAfterEvent = true
 				}
 			}
@@ -123,7 +126,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 
 				resourceAddr := r.Addr().InModule(config.Path)
 				resourceNode, ok := resourceNodes.GetOk(resourceAddr)
-				if !ok {
+				if !ok && !connectToResourceInstanceNodes {
 					panic(fmt.Sprintf("Could not find node for %s", resourceAddr))
 				}
 
@@ -141,10 +144,12 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					},
 				}
 
+				var nat dag.Vertex
+
 				// If CreateNodesAsAfter is set we want all nodes to run after the resource
 				// If not we want expansion nodes only to exist if they are being used
 				if !createNodesAsAfter && containsBeforeEvent {
-					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingBefore)
+					nat = t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingBefore)
 					g.Add(nat)
 
 					// We want to run before the resource nodes
@@ -165,7 +170,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 				}
 
 				if createNodesAsAfter || containsAfterEvent {
-					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingAfter)
+					nat = t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingAfter)
 					g.Add(nat)
 
 					// We want to run after the resource nodes
@@ -183,6 +188,15 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 						g.Connect(dag.BasicEdge(nat, priorNode))
 					}
 					priorAfterNodes = append(priorAfterNodes, nat)
+				}
+
+				// TODO: Clarify when this should be done versus the normal expansion process.
+				if natpe, ok := nat.(*nodeActionTriggerPlanExpand); ok {
+					aris := []addrs.AbsResourceInstance{}
+					for _, ri := range resourceInstanceNodes.Get(resourceAddr) {
+						aris = append(aris, ri.ResourceInstanceAddr())
+					}
+					natpe.manualResourceExpansion = aris
 				}
 			}
 		}

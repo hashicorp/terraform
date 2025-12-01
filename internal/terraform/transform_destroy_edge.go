@@ -329,6 +329,16 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 			continue
 		}
 
+		// another special case are destroy actions, therefore we keep all action triggers
+		_, ok := n.(*nodeActionTriggerPlanExpand)
+		if ok {
+			keep.Add(n)
+		}
+		_, ok = n.(*nodeExpandActionDeclaration)
+		if ok {
+			keep.Add(n)
+		}
+
 		// from here we only search for managed resource destroy nodes
 		n, ok := n.(GraphNodeDestroyer)
 		if !ok {

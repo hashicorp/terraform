@@ -17,6 +17,11 @@ type nodeActionTriggerPlanExpand struct {
 	*nodeAbstractActionTriggerExpand
 
 	resourceTargets []addrs.Targetable
+
+	// During planDestroy we don't expand the resource, but instead
+	// use the state to set the resource instances to be processed.
+	// This means we need to track them here and not rely on the expander.
+	manualResourceExpansion []addrs.AbsResourceInstance
 }
 
 var (
@@ -69,74 +74,86 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 		}
 	}
 
-	// First we expand the module
-	moduleInstances := expander.ExpandModule(n.lifecycleActionTrigger.resourceAddress.Module, false)
-	for _, module := range moduleInstances {
-		_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
-		for _, key := range keys {
-			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
+	absResourceInstanceAddrs := []addrs.AbsResourceInstance{}
 
-			// If the triggering resource was targeted, make sure the instance
-			// that triggered this was targeted specifically.
-			// This is necessary since the expansion of a resource instance (and of an action trigger)
-			// happens during the graph walk / execution, therefore the target transformer can not
-			// filter out individual instances, this needs to happen during the graph walk / execution.
-			if n.resourceTargets != nil {
-				matched := false
-				for _, resourceTarget := range n.resourceTargets {
-					if resourceTarget.TargetContains(absResourceInstanceAddr) {
-						matched = true
-						break
-					}
-				}
-				if !matched {
-					continue
+	// If we are in a walk that does not expand on its own, we need to use the
+	// manualResourceExpansion list.
+	if len(n.manualResourceExpansion) > 0 {
+		absResourceInstanceAddrs = n.manualResourceExpansion
+	} else {
+		// First we expand the module
+		moduleInstances := expander.ExpandModule(n.lifecycleActionTrigger.resourceAddress.Module, false)
+		for _, module := range moduleInstances {
+			_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
+			for _, key := range keys {
+				absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
+				absResourceInstanceAddrs = append(absResourceInstanceAddrs, absResourceInstanceAddr)
+			}
+		}
+	}
+	for _, absResourceInstanceAddr := range absResourceInstanceAddrs {
+		module := absResourceInstanceAddr.Module
+		key := absResourceInstanceAddr.Resource.Key
+		// If the triggering resource was targeted, make sure the instance
+		// that triggered this was targeted specifically.
+		// This is necessary since the expansion of a resource instance (and of an action trigger)
+		// happens during the graph walk / execution, therefore the target transformer can not
+		// filter out individual instances, this needs to happen during the graph walk / execution.
+		if n.resourceTargets != nil {
+			matched := false
+			for _, resourceTarget := range n.resourceTargets {
+				if resourceTarget.TargetContains(absResourceInstanceAddr) {
+					matched = true
+					break
 				}
 			}
-
-			// The n.Addr was derived from the ActionRef hcl.Expression referenced inside the resource's lifecycle block, and has not yet been
-			// expanded or fully evaluated, so we will do that now.
-			// Grab the instance key, necessary if the action uses [count.index] or [each.key]
-			repData := instances.RepetitionData{}
-			switch k := key.(type) {
-			case addrs.IntKey:
-				repData.CountIndex = k.Value()
-			case addrs.StringKey:
-				repData.EachKey = k.Value()
-				repData.EachValue = cty.DynamicVal
-			}
-
-			ref, evalActionDiags := evaluateActionExpression(n.lifecycleActionTrigger.actionExpr, repData)
-			diags = append(diags, evalActionDiags...)
-			if diags.HasErrors() {
+			if !matched {
 				continue
 			}
-
-			// The reference is either an action or action instance
-			var actionAddr addrs.AbsActionInstance
-			switch sub := ref.Subject.(type) {
-			case addrs.Action:
-				actionAddr = sub.Absolute(module).Instance(addrs.NoKey)
-			case addrs.ActionInstance:
-				actionAddr = sub.Absolute(module)
-			}
-
-			node := nodeActionTriggerPlanInstance{
-				actionAddress:    actionAddr,
-				resolvedProvider: n.resolvedProvider,
-				actionConfig:     n.Config,
-				lifecycleActionTrigger: &lifecycleActionTriggerInstance{
-					resourceAddress:         absResourceInstanceAddr,
-					events:                  n.lifecycleActionTrigger.events,
-					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
-					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
-					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
-					conditionExpr:           n.lifecycleActionTrigger.conditionExpr,
-				},
-			}
-
-			g.Add(&node)
 		}
+
+		// The n.Addr was derived from the ActionRef hcl.Expression referenced inside the resource's lifecycle block, and has not yet been
+		// expanded or fully evaluated, so we will do that now.
+		// Grab the instance key, necessary if the action uses [count.index] or [each.key]
+		repData := instances.RepetitionData{}
+		switch k := key.(type) {
+		case addrs.IntKey:
+			repData.CountIndex = k.Value()
+		case addrs.StringKey:
+			repData.EachKey = k.Value()
+			repData.EachValue = cty.DynamicVal
+		}
+
+		ref, evalActionDiags := evaluateActionExpression(n.lifecycleActionTrigger.actionExpr, repData)
+		diags = append(diags, evalActionDiags...)
+		if diags.HasErrors() {
+			continue
+		}
+
+		// The reference is either an action or action instance
+		var actionAddr addrs.AbsActionInstance
+		switch sub := ref.Subject.(type) {
+		case addrs.Action:
+			actionAddr = sub.Absolute(module).Instance(addrs.NoKey)
+		case addrs.ActionInstance:
+			actionAddr = sub.Absolute(module)
+		}
+
+		node := nodeActionTriggerPlanInstance{
+			actionAddress:    actionAddr,
+			resolvedProvider: n.resolvedProvider,
+			actionConfig:     n.Config,
+			lifecycleActionTrigger: &lifecycleActionTriggerInstance{
+				resourceAddress:         absResourceInstanceAddr,
+				events:                  n.lifecycleActionTrigger.events,
+				actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
+				actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
+				invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
+				conditionExpr:           n.lifecycleActionTrigger.conditionExpr,
+			},
+		}
+
+		g.Add(&node)
 	}
 
 	addRootNodeToGraph(&g)

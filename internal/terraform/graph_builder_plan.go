@@ -137,11 +137,13 @@ type PlanGraphBuilder struct {
 // See GraphBuilder
 func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] building graph for %s", b.Operation)
-	return (&BasicGraphBuilder{
+	g, d := (&BasicGraphBuilder{
 		Steps:               b.Steps(),
 		Name:                "PlanGraphBuilder",
 		SkipGraphValidation: b.SkipGraphValidation,
 	}).Build(path)
+
+	return g, d
 }
 
 // See GraphBuilder
@@ -170,26 +172,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			importTargets: b.ImportTargets,
 
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
-		},
-
-		&ActionTriggerConfigTransformer{
-			Config:        b.Config,
-			Operation:     b.Operation,
-			ActionTargets: b.ActionTargets,
-			queryPlanMode: b.queryPlan,
-
-			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, _ RelativeActionTiming) dag.Vertex {
-				return &nodeActionTriggerPlanExpand{
-					nodeAbstractActionTriggerExpand: node,
-				}
-			},
-		},
-
-		&ActionInvokePlanTransformer{
-			Config:        b.Config,
-			Operation:     b.Operation,
-			ActionTargets: b.ActionTargets,
-			queryPlanMode: b.queryPlan,
 		},
 
 		// Add dynamic values
@@ -247,6 +229,26 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ConcreteCurrent: b.ConcreteResourceInstance,
 			ConcreteDeposed: b.ConcreteResourceInstanceDeposed,
 			State:           b.State,
+		},
+
+		&ActionTriggerConfigTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			queryPlanMode: b.queryPlan,
+
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, _ RelativeActionTiming) dag.Vertex {
+				return &nodeActionTriggerPlanExpand{
+					nodeAbstractActionTriggerExpand: node,
+				}
+			},
+		},
+
+		&ActionInvokePlanTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			queryPlanMode: b.queryPlan,
 		},
 
 		// Attach the state
