@@ -2570,8 +2570,8 @@ resource "test_object" "dummy_resource" {
 						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 244},
-							End:      hcl.Pos{Line: 7, Column: 54, Byte: 280},
+							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 248},
+							End:      hcl.Pos{Line: 7, Column: 54, Byte: 284},
 						},
 					},
 				)
