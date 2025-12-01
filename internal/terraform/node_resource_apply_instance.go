@@ -564,8 +564,8 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Failed to get provider for %s", ai.Addr),
-					Detail:   fmt.Sprintf("Failed to get provider: %s", err),
+					Summary:  fmt.Sprintf("Failed to get action provider for %s", ai.Addr),
+					Detail:   fmt.Sprintf("Failed to get action provider: %s", err),
 					//Subject:  n.ActionTriggerRange,
 				})
 				return diags

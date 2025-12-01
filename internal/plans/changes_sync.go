@@ -298,5 +298,5 @@ func (cs *ChangesSync) GetActionsByResourceInstance(addr addrs.AbsResourceInstan
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	return cs.changes.ActionsByResourceInstance(addr)
+	return cs.changes.ActionsForResourceInstance(addr)
 }

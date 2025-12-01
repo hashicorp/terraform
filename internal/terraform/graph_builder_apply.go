@@ -183,6 +183,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Changes:       b.Changes,
 		},
 
+		&ActionDiffTransformer{
+			Changes: b.Changes,
+			Config:  b.Config,
+		},
+
 		// action provider transformer?
 
 		// Creates nodes for all the deferred changes.
@@ -208,6 +213,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// add providers
 		transformProviders(concreteProvider, b.Config, b.ExternalProviderConfigs),
+
+		// Attach action providers to resource nodes (only during apply)
+		&ActionProviderTransformer{b.Config, b.Changes},
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},

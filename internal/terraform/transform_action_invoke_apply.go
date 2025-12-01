@@ -26,7 +26,7 @@ func (t *ActionInvokeApplyTransformer) Transform(g *Graph) error {
 	// We just want to add all invoke triggered action invocations
 	for _, action := range t.Changes.ActionInvocations {
 		// Add nodes for each action invocation
-		node := &nodeActionInvokeApplyInstance{
+		node := &nodeActionTriggerApplyInstance{
 			ActionInvocation: action,
 		}
 		g.Add(node)

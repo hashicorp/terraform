@@ -263,32 +263,32 @@ func (c *Changes) SyncWrapper() *ChangesSync {
 	}
 }
 
-// ActionInstances returns planned action invocations for all module instances
-// that reside in the parent path.  Returns nil if no actions are planned.
-func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.ModuleCall) []*ActionInvocationInstance {
-	var ret []*ActionInvocationInstance
+// // ActionInstances returns planned action invocations for all module instances
+// // that reside in the parent path.  Returns nil if no actions are planned.
+// func (c *Changes) ActionInstances(parent addrs.ModuleInstance, module addrs.ModuleCall) []*ActionInvocationInstance {
+// 	var ret []*ActionInvocationInstance
 
-	for _, a := range c.ActionInvocations {
-		changeMod, changeCall := a.Addr.Module.Call()
-		// this does not reside on our parent instance path
-		if !changeMod.Equal(parent) {
-			continue
-		}
+// 	for _, a := range c.ActionInvocations {
+// 		changeMod, changeCall := a.Addr.Module.Call()
+// 		// this does not reside on our parent instance path
+// 		if !changeMod.Equal(parent) {
+// 			continue
+// 		}
 
-		// this is not the module you're looking for
-		if changeCall.Name != module.Name {
-			continue
-		}
+// 		// this is not the module you're looking for
+// 		if changeCall.Name != module.Name {
+// 			continue
+// 		}
 
-		ret = append(ret, a)
-	}
+// 		ret = append(ret, a)
+// 	}
 
-	return ret
-}
+// 	return ret
+// }
 
-// ActionsByResourceInstance returns planned action invocation for the given
+// ActionsForResourceInstance returns planned action invocation for the given
 // AbsResourceInstance. Returns an empty list if no actions are planned.
-func (c *Changes) ActionsByResourceInstance(addr addrs.AbsResourceInstance) []*ActionInvocationInstance {
+func (c *Changes) ActionsForResourceInstance(addr addrs.AbsResourceInstance) []*ActionInvocationInstance {
 	var ret []*ActionInvocationInstance
 
 	for _, a := range c.ActionInvocations {

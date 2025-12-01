@@ -88,11 +88,6 @@ type GraphNodeProviderConsumer interface {
 	SetProvider(addrs.AbsProviderConfig)
 }
 
-type ProviderConfig struct {
-	addr  addrs.ProviderConfig
-	exact bool
-}
-
 // ProviderTransformer is a GraphTransformer that maps resources to providers
 // within the graph. This will error if there are any resources that don't map
 // to proper resources.
