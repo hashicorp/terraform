@@ -202,7 +202,11 @@ resource "test_object" "a" {
 		"before_create failing": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
+action "action_example" "hello" {
+  config {
+    attr = "failure"
+  }
+}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
@@ -214,19 +218,7 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
-				return []providers.InvokeActionEvent{
-					providers.InvokeActionEvent_Completed{
-						Diagnostics: tfdiags.Diagnostics{
-							tfdiags.Sourceless(
-								tfdiags.Error,
-								"test case for failing",
-								"this simulates a provider failing",
-							),
-						},
-					},
-				}
-			},
+			events:                   generateTestActionEventsFunc(),
 
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
@@ -235,8 +227,8 @@ resource "test_object" "a" {
 					Detail:   "test case for failing: this simulates a provider failing",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
-						End:      hcl.Pos{Line: 7, Column: 45, Byte: 175},
+						Start:    hcl.Pos{Line: 7, Column: 18, Byte: 185},
+						End:      hcl.Pos{Line: 7, Column: 45, Byte: 212},
 					},
 				})
 			},
@@ -361,20 +353,7 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-			events: func(r providers.InvokeActionRequest) []providers.InvokeActionEvent {
-				if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
-					return []providers.InvokeActionEvent{
-						providers.InvokeActionEvent_Completed{
-							Diagnostics: tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(tfdiags.Error, "test case for failing", "this simulates a provider failing")),
-						},
-					}
-				}
-
-				return []providers.InvokeActionEvent{
-					providers.InvokeActionEvent_Completed{},
-				}
-
-			},
+			events:                   generateTestActionEventsFunc(),
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
@@ -2555,71 +2534,192 @@ lifecycle {
 			},
 		},
 
-		"trigger on_failure set to 'fail' fails the resource": {
+		"trigger on_failure set to 'fail' fails the resource and doesn't run the remainder of actions": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "dummy_action" {}
+action "action_example" "failing_action" {
+  config {
+    attr = "failure"
+  }
+}
+action "action_example" "last_action" {}
 resource "test_object" "dummy_resource" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.action_example.dummy_action]
+      actions = [action.action_example.failing_action, action.action_example.last_action]
       on_failure = fail
     }
   }
 }
 `,
 			},
+			events:                   generateTestActionEventsFunc(),
 			expectInvokeActionCalled: true,
-			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{
-					tfdiags.Sourceless(
-						tfdiags.Error,
-						"Test failure",
-						"action failing for test",
-					),
-				}
-			},
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "action_example",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("failure"),
+				}),
+			}},
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Error when invoking action",
-						Detail:   "Test failure: action failing for test",
+						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 168},
-							End:      hcl.Pos{Line: 7, Column: 52, Byte: 202},
+							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 244},
+							End:      hcl.Pos{Line: 7, Column: 54, Byte: 280},
 						},
 					},
 				)
 			},
 		},
 
-		"trigger on_failure set to 'continue' doesn't cause failure": {
+		"trigger on_failure set to 'continue' doesn't cause failure and proceeds invoking remaining actions": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "dummy_action" {}
+action "action_example" "first_action" {}
+action "action_example" "failing_action" {
+  config {
+    attr = "failure"
+  }
+}
+action "action_example" "last_action" {}
 resource "test_object" "dummy_resource" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.action_example.dummy_action]
+      actions = [action.action_example.first_action, action.action_example.failing_action, action.action_example.last_action]
       on_failure = continue
     }
+
+	action_trigger {
+      events = [after_create]
+      actions = [action.action_example.first_action, action.action_example.failing_action, action.action_example.last_action]
+	  on_failure = fail
+	}
   }
 }
 `,
 			},
+			events:                   generateTestActionEventsFunc(),
 			expectInvokeActionCalled: true,
-			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{
-					tfdiags.Sourceless(
-						tfdiags.Error,
-						"Test failure",
-						"action failing for test",
-					),
-				}
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				// Before create skips over the failing action and continues
+				// current run due to 'on_failure' set to 'continue'.
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				}, {
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("failure"),
+					}),
+				}, {
+					ActionType: "action_example",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+				// After create will fail on the second action due to it being
+				// a failing action and having 'on_failure' set to 'fail'
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				}, {
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("failure"),
+					}),
+				},
+			},
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   "test case for failing: this simulates a provider failing",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 54, Byte: 535},
+							End:      hcl.Pos{Line: 7, Column: 90, Byte: 571},
+						},
+					},
+				)
+			},
+		},
+
+		"when omitted 'on_failure' behaves as 'on_failure = fail'": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "failing_action" {
+  config {
+    attr = "failure"
+  }
+}
+action "action_example" "last_action" {}
+
+resource "test_object" "dummy_resource" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.action_example.failing_action, action.action_example.last_action]
+      on_failure = continue
+    }
+
+	action_trigger {
+      events = [after_create]
+      actions = [action.action_example.failing_action, action.action_example.last_action]
+	}
+  }
+}
+`},
+			events:                   generateTestActionEventsFunc(),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				// Before create skips over the failing action and continues
+				// current run due to 'on_failure' set to 'continue'.
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("failure"),
+					}),
+				}, {
+					ActionType: "action_example",
+					PlannedActionData: cty.NullVal(cty.Object(map[string]cty.Type{
+						"attr": cty.String,
+					})),
+				},
+				// After create will fail on the second action due to it being
+				// a failing action and having 'on_failure' not being explicitly
+				// set.
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("failure"),
+					}),
+				},
+			},
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   "test case for failing: this simulates a provider failing",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 422},
+							End:      hcl.Pos{Line: 7, Column: 54, Byte: 458},
+						},
+					},
+				)
 			},
 		},
 	} {
@@ -3002,5 +3102,31 @@ resource "test_object" "a" {
 
 	if diff := cmp.Diff(expectedOrder, orderedCalls); diff != "" {
 		t.Fatalf("expected calls in order did not match actual calls (-expected +actual):\n%s", diff)
+	}
+}
+
+// generateTestActionEventsFunc returns function which would in turn generate
+// a slice of InvokeActionEvents.
+//
+// By the default it returns a slice comprised of a single Completed event
+// without additional context.
+//
+// The default behavior can be modified by configuring actions accordingly:
+//   - setting the config `attr` to `failure` will create a slice of a single
+//     Completed event populated with a dummy Diagnostics which simulates failed
+//     action, i.e. this setting is used to simulate Action failure.
+func generateTestActionEventsFunc() func(providers.InvokeActionRequest) []providers.InvokeActionEvent {
+	return func(r providers.InvokeActionRequest) []providers.InvokeActionEvent {
+		if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
+			return []providers.InvokeActionEvent{
+				providers.InvokeActionEvent_Completed{
+					Diagnostics: tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(tfdiags.Error, "test case for failing", "this simulates a provider failing")),
+				},
+			}
+		}
+
+		return []providers.InvokeActionEvent{
+			providers.InvokeActionEvent_Completed{},
+		}
 	}
 }
