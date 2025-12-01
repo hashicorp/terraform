@@ -1707,12 +1707,12 @@ func TestApplyDestroy(t *testing.T) {
 							{
 								Addr:         mustAbsActionInvocationInstance("component.self.action.local_exec.example"),
 								ProviderAddr: mustDefaultRootProvider("testing").Provider,
-								Status:       "RUNNING",
+								Status:       hooks.ActionInvocationRunning,
 							},
 							{
 								Addr:         mustAbsActionInvocationInstance("component.self.action.local_exec.example"),
 								ProviderAddr: mustDefaultRootProvider("testing").Provider,
-								Status:       "COMPLETED",
+								Status:       hooks.ActionInvocationCompleted,
 							},
 						},
 					},

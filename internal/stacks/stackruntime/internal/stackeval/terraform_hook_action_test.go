@@ -2,7 +2,6 @@ package stackeval
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -13,18 +12,13 @@ import (
 )
 
 func TestActionHookForwarding(t *testing.T) {
-	var plannedCount, statusCount int
-	var lastPlannedAI, lastStatusAI *hooks.ActionInvocation
+	var statusCount int
+	var statuses []hooks.ActionInvocationStatus
 
 	hks := &Hooks{}
-	hks.ReportActionInvocationPlanned = func(ctx context.Context, span any, ai *hooks.ActionInvocation) any {
-		plannedCount++
-		lastPlannedAI = ai
-		return nil
-	}
-	hks.ReportActionInvocationStatus = func(ctx context.Context, span any, ai *hooks.ActionInvocation) any {
+	hks.ReportActionInvocationStatus = func(ctx context.Context, span any, data *hooks.ActionInvocationStatusHookData) any {
 		statusCount++
-		lastStatusAI = ai
+		statuses = append(statuses, data.Status)
 		return nil
 	}
 
@@ -49,35 +43,55 @@ func TestActionHookForwarding(t *testing.T) {
 	id := terraform.HookActionIdentity{
 		Addr:          addrs.AbsActionInstance{},
 		ActionTrigger: &plans.InvokeActionTrigger{},
+		ProviderAddr:  addrs.AbsProviderConfig{},
 	}
 
-	// StartAction should trigger the planned hook once
+	// StartAction should trigger a status hook with "Running" status
 	_, _ = c.StartAction(id)
-	if plannedCount != 1 {
-		t.Fatalf("expected StartAction to trigger planned hook once, got %d", plannedCount)
-	}
-	if lastPlannedAI == nil {
-		t.Fatalf("expected non-nil ActionInvocation in planned hook")
-	}
-	if !reflect.DeepEqual(lastPlannedAI.Trigger, id.ActionTrigger) {
-		t.Fatalf("planned hook received unexpected trigger: %#v", lastPlannedAI.Trigger)
-	}
-
-	// ProgressAction should trigger a status hook
-	_, _ = c.ProgressAction(id, "in-progress")
 	if statusCount != 1 {
-		t.Fatalf("expected ProgressAction to trigger status hook once, got %d", statusCount)
+		t.Fatalf("expected StartAction to trigger status hook once, got %d", statusCount)
 	}
-	if lastStatusAI == nil {
-		t.Fatalf("expected non-nil ActionInvocation in status hook")
-	}
-	if !reflect.DeepEqual(lastStatusAI.Trigger, id.ActionTrigger) {
-		t.Fatalf("status hook received unexpected trigger: %#v", lastStatusAI.Trigger)
+	if statuses[0] != hooks.ActionInvocationRunning {
+		t.Fatalf("expected ActionInvocationRunning status from StartAction, got %s", statuses[0].String())
 	}
 
-	// CompleteAction should trigger another status hook
-	_, _ = c.CompleteAction(id, nil)
+	// ProgressAction with "in-progress" should keep running status
+	_, _ = c.ProgressAction(id, "in-progress")
 	if statusCount != 2 {
-		t.Fatalf("expected CompleteAction to trigger status hook again, total 2, got %d", statusCount)
+		t.Fatalf("expected ProgressAction to trigger status hook, got %d total", statusCount)
+	}
+	if statuses[1] != hooks.ActionInvocationRunning {
+		t.Fatalf("expected ActionInvocationRunning status from ProgressAction, got %s", statuses[1].String())
+	}
+
+	// ProgressAction with "pending" should switch to pending status
+	_, _ = c.ProgressAction(id, "pending")
+	if statusCount != 3 {
+		t.Fatalf("expected ProgressAction to trigger status hook, got %d total", statusCount)
+	}
+	if statuses[2] != hooks.ActionInvocationPending {
+		t.Fatalf("expected ActionInvocationPending status from ProgressAction('pending'), got %s", statuses[2].String())
+	}
+
+	// CompleteAction with no error should complete successfully
+	_, _ = c.CompleteAction(id, nil)
+	if statusCount != 4 {
+		t.Fatalf("expected CompleteAction to trigger status hook, got %d total", statusCount)
+	}
+	if statuses[3] != hooks.ActionInvocationCompleted {
+		t.Fatalf("expected ActionInvocationCompleted status, got %s", statuses[3].String())
+	}
+
+	// Test error case
+	statusCount = 0
+	statuses = statuses[:0]
+
+	// CompleteAction with error should mark as errored
+	_, _ = c.CompleteAction(id, context.DeadlineExceeded)
+	if statusCount != 1 {
+		t.Fatalf("expected CompleteAction to trigger status hook, got %d total", statusCount)
+	}
+	if statuses[0] != hooks.ActionInvocationErrored {
+		t.Fatalf("expected ActionInvocationErrored status, got %s", statuses[0].String())
 	}
 }
