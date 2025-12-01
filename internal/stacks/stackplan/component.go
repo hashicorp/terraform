@@ -118,6 +118,14 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 		}
 	}
 
+	// Add all action invocations to the plan
+	for _, elem := range c.ActionInvocations.Elems {
+		actionInvocation := elem.Value
+		if actionInvocation != nil {
+			changes.ActionInvocations = append(changes.ActionInvocations, actionInvocation)
+		}
+	}
+
 	priorState := states.NewState()
 	ss := priorState.SyncWrapper()
 	for _, elem := range c.ResourceInstancePriorState.Elems {

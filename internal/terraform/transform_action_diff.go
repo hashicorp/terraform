@@ -4,8 +4,6 @@
 package terraform
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -35,9 +33,14 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 		isBefore := lat.ActionTriggerEvent == configs.BeforeCreate || lat.ActionTriggerEvent == configs.BeforeUpdate
 		isAfter := lat.ActionTriggerEvent == configs.AfterCreate || lat.ActionTriggerEvent == configs.AfterUpdate
 
-		atns, ok := actionTriggerNodes.GetOk(lat.TriggeringResourceAddr.ConfigResource())
+		configResource := lat.TriggeringResourceAddr.ConfigResource()
+		atns, ok := actionTriggerNodes.GetOk(configResource)
 		if !ok {
-			return fmt.Errorf("no action trigger nodes found for resource %s", lat.TriggeringResourceAddr)
+			// If there are no action trigger nodes for this resource, it means the
+			// configuration doesn't have action triggers defined for it, or the resource
+			// doesn't exist in the configuration. In this case, we'll skip the action
+			// invocation rather than failing the entire apply.
+			continue
 		}
 		// We add the action invocations one by one
 		for _, atn := range atns {
