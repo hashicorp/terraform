@@ -344,11 +344,14 @@ func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBacke
 		return nil, diags
 	}
 	var plannedWorkspace string
+	var isCloud bool
 	switch {
 	case plan.StateStore != nil:
 		plannedWorkspace = plan.StateStore.Workspace
+		isCloud = false
 	case plan.Backend != nil:
 		plannedWorkspace = plan.Backend.Workspace
+		isCloud = plan.Backend.Type == "cloud"
 	default:
 		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -362,6 +365,7 @@ func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBacke
 		return nil, diags.Append(&errWrongWorkspaceForPlan{
 			currentWorkspace: currentWorkspace,
 			plannedWorkspace: plannedWorkspace,
+			isCloud:          isCloud,
 		})
 	}
 
