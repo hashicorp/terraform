@@ -229,6 +229,17 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// works, and so code after this point should not make any further use
 		// of either "modifiedPlan" or "plan" (since they share lots of the same
 		// pointers to mutable objects and so both can get modified together.)
+
+		// Populate ActionTargetAddrs with all action invocations so they will
+		// be added to the apply graph by the ActionInvokeApplyTransformer
+		if len(plan.Changes.ActionInvocations) > 0 {
+			plan.ActionTargetAddrs = make([]addrs.Targetable, 0, len(plan.Changes.ActionInvocations))
+			for _, actionInvocation := range plan.Changes.ActionInvocations {
+				plan.ActionTargetAddrs = append(plan.ActionTargetAddrs, actionInvocation.Addr)
+			}
+			log.Printf("[DEBUG] ApplyComponentPlan: Populated ActionTargetAddrs with %d action invocations for %s", len(plan.ActionTargetAddrs), inst.Addr())
+		}
+
 		log.Printf("[DEBUG] ApplyComponentPlan: About to call tfCtx.Apply() for %s", inst.Addr())
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
 			ExternalProviders:         providerClients,
