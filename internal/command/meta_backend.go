@@ -333,6 +333,21 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	// Check the workspace name in the plan matches the current workspace
+	w, err := m.Workspace()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error determining current workspace when initializing a backend from the plan file: %w", err))
+		return nil, diags
+	}
+	if w != settings.Workspace {
+		diags = diags.Append(&errWrongWorkspaceForPlan{
+			currentWorkspace: w,
+			plannedWorkspace: settings.Workspace,
+		})
+		return nil, diags
+	}
+
+	// Proceed with initializing the backend from the configuration in the plan file
 	f := backendInit.Backend(settings.Type)
 	if f == nil {
 		diags = diags.Append(errBackendSavedUnknown{settings.Type})

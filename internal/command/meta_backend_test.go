@@ -1837,6 +1837,52 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	}
 }
 
+// A plan that contains a workspace that isn't the currently selected workspace
+func TestMetaBackend_planLocal_mismatchedWorkspace(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("backend-plan-local"), td)
+	t.Chdir(td)
+
+	backendConfigBlock := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	backendConfigRaw, err := plans.NewDynamicValue(backendConfigBlock, backendConfigBlock.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultWorkspace := "default"
+	backendConfig := plans.Backend{
+		Type:      "local",
+		Config:    backendConfigRaw,
+		Workspace: defaultWorkspace,
+	}
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	selectedWorkspace := "foobar"
+	err = m.SetWorkspace(selectedWorkspace)
+	if err != nil {
+		t.Fatalf("error in test setup: %s", err)
+	}
+
+	// Get the backend
+	_, diags := m.BackendForLocalPlan(backendConfig)
+	if !diags.HasErrors() {
+		t.Fatalf("expected an error but got none: %s", diags.ErrWithWarnings())
+	}
+	expectedMsg := fmt.Sprintf("The plan file describes changes to the %q workspace, but the %q workspace is currently selected in the working directory",
+		defaultWorkspace,
+		selectedWorkspace,
+	)
+	if !strings.Contains(diags.Err().Error(), expectedMsg) {
+		t.Fatalf("expected error to include %q, but got:\n%s",
+			expectedMsg,
+			diags.Err())
+	}
+}
+
 // init a backend using -backend-config options multiple times
 func TestMetaBackend_configureBackendWithExtra(t *testing.T) {
 	// Create a temporary working directory that is empty

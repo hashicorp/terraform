@@ -9,6 +9,27 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// errWrongWorkspaceForPlan is a custom error used to alert users that the plan file they are applying
+// describes a workspace that doesn't match the currently selected workspace.
+type errWrongWorkspaceForPlan struct {
+	plannedWorkspace string
+	currentWorkspace string
+}
+
+func (e *errWrongWorkspaceForPlan) Error() string {
+	return fmt.Sprintf(`The plan file describes changes to the %q workspace, but the %q workspace is currently selected in the working directory.
+
+Applying this plan with the incorrect workspace selected could result in state being stored in an unexpected location, or a downstream error
+when Terraform attempts apply a plan using the other workspace's state.
+
+If you'd like to continue to use the plan file, you must run "terraform workspace select %s" to select the correct workspace.
+In future make sure the selected workspace is not changed between creating and applying a plan file.`,
+		e.plannedWorkspace,
+		e.currentWorkspace,
+		e.plannedWorkspace,
+	)
+}
+
 // errBackendLocalRead is a custom error used to alert users that state
 // files on their local filesystem were not erased successfully after
 // migrating that state to a remote-state backend.
