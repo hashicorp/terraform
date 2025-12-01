@@ -46,6 +46,8 @@ jobs:
       - name: Decide version number
         id: get-product-version
         uses: hashicorp/actions-set-product-version@2ec1b51402b3070bccf7ca95306afbd039e574ff # v2.0.1
+        with:
+          checkout: false
       - name: Determine experiments
         id: get-ldflags
         env:
