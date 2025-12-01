@@ -80,7 +80,6 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 		return nil, diags.Append(fmt.Errorf("failed to GET state: status=%d, body=%s", res.StatusCode, string(body)))
 	}
 
-	// Parse response
 	var esResponse struct {
 		Found  bool          `json:"found"`
 		Source stateDocument `json:"_source"`
@@ -94,13 +93,11 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
-	// Decode state data
 	data := []byte(esResponse.Source.Data)
 	if len(data) == 0 {
 		return nil, diags
 	}
 
-	// Calculate MD5
 	hash := md5.Sum(data)
 
 	return &remote.Payload{
@@ -112,11 +109,9 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	// Calculate MD5
 	hash := md5.Sum(data)
 	md5Str := fmt.Sprintf("%x", hash)
 
-	// Create document
 	doc := stateDocument{
 		Data:      string(data),
 		MD5:       md5Str,
@@ -188,7 +183,6 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 	lockInfo := info.Marshal()
 
-	// Create lock document
 	doc := lockDocument{
 		LockInfo:  string(lockInfo),
 		CreatedAt: time.Now(),
@@ -201,10 +195,13 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 
 	// Try to create the lock document with op_type=create (only succeeds if doesn't exist)
+	// Use Refresh=true to ensure the lock is immediately visible to other clients
+	// See https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-create#operation-create-refresh
 	req := esapi.CreateRequest{
 		Index:      c.Index,
 		DocumentID: c.lockDocumentID(),
 		Body:       bytes.NewReader(body),
+		Refresh:    "true",
 	}
 
 	res, err := req.Do(context.Background(), c.Client)
@@ -309,11 +306,25 @@ func (c *RemoteClient) getExistingLockInfo() (*statemgr.LockInfo, error) {
 
 // Workspaces returns all workspaces stored in Elasticsearch
 func (c *RemoteClient) Workspaces() ([]string, error) {
-	// Search for all state documents by checking existence of "workspace" field
+	// Explicitly refresh the index to ensure all writes are visible
+	refreshReq := esapi.IndicesRefreshRequest{
+		Index: []string{c.Index},
+	}
+	refreshRes, err := refreshReq.Do(context.Background(), c.Client)
+	if err != nil {
+		// Log but don't fail - this is best effort
+		_ = err
+	}
+	if refreshRes != nil {
+		refreshRes.Body.Close()
+	}
+
+	// Search for all state documents by checking existence of "md5" field
+	// Only state documents have "md5", lock documents have "lock_info" instead
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"exists": map[string]interface{}{
-				"field": "workspace",
+				"field": "md5",
 			},
 		},
 		"_source": []string{"workspace"},

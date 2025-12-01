@@ -137,6 +137,12 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	}
 
 	b.index = data.String("index")
+
+	// Validate index name according to Elasticsearch requirements
+	if err := validateIndexName(b.index); err != nil {
+		return backendbase.ErrorAsDiagnostics(err)
+	}
+
 	username := data.String("username")
 	password := data.String("password")
 
@@ -233,4 +239,41 @@ func (b *Backend) ensureIndex() error {
 	}
 
 	return client.ensureIndex()
+}
+
+// validateIndexName validates an Elasticsearch index name according to the naming restrictions
+// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html#indices-create-api-path-params
+func validateIndexName(name string) error {
+	if name == "" {
+		return fmt.Errorf("index name cannot be empty")
+	}
+
+	if len(name) > 255 {
+		return fmt.Errorf("index name cannot be longer than 255 bytes")
+	}
+
+	// Index names must be lowercase
+	if name != strings.ToLower(name) {
+		return fmt.Errorf("index name must be lowercase")
+	}
+
+	// Cannot be . or ..
+	if name == "." || name == ".." {
+		return fmt.Errorf("index name cannot be '.' or '..'")
+	}
+
+	// Cannot start with -, _, or +
+	if strings.HasPrefix(name, "-") || strings.HasPrefix(name, "_") || strings.HasPrefix(name, "+") {
+		return fmt.Errorf("index name cannot start with '-', '_', or '+'")
+	}
+
+	// Cannot contain certain characters
+	invalidChars := []string{"\\", "/", "*", "?", "\"", "<", ">", "|", " ", ",", "#"}
+	for _, char := range invalidChars {
+		if strings.Contains(name, char) {
+			return fmt.Errorf("index name cannot contain '%s'", char)
+		}
+	}
+
+	return nil
 }

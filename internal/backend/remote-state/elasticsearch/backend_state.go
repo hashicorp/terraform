@@ -69,9 +69,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
 	// Build the state client
 	var stateMgr statemgr.Full = &remote.State{
 		Client: &RemoteClient{
-			Client:    b.client,
-			Index:     b.index,
-			Workspace: name,
+			Client:      b.client,
+			Index:       b.index,
+			Workspace:   name,
+			LockEnabled: true,
 		},
 	}
 

@@ -40,6 +40,7 @@ require (
 	github.com/hashicorp/terraform/internal/backend/remote-state/azure v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/backend/remote-state/consul v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/backend/remote-state/cos v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/terraform/internal/backend/remote-state/elasticsearch v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/backend/remote-state/gcs v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/backend/remote-state/oci v0.0.0-00010101000000-000000000000
@@ -63,7 +64,7 @@ require (
 	github.com/spf13/afero v1.9.5
 	github.com/xanzy/ssh-agent v0.3.3
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v1.16.3
+	github.com/zclconf/go-cty v1.17.0
 	github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940
 	github.com/zclconf/go-cty-yaml v1.1.0
 	go.opentelemetry.io/contrib/exporters/autoexport v0.45.0
@@ -309,6 +310,8 @@ replace github.com/hashicorp/terraform/internal/backend/remote-state/azure => ./
 replace github.com/hashicorp/terraform/internal/backend/remote-state/consul => ./internal/backend/remote-state/consul
 
 replace github.com/hashicorp/terraform/internal/backend/remote-state/cos => ./internal/backend/remote-state/cos
+
+replace github.com/hashicorp/terraform/internal/backend/remote-state/elasticsearch => ./internal/backend/remote-state/elasticsearch
 
 replace github.com/hashicorp/terraform/internal/backend/remote-state/gcs => ./internal/backend/remote-state/gcs
 
