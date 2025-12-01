@@ -17,7 +17,7 @@ type errWrongWorkspaceForPlan struct {
 }
 
 func (e *errWrongWorkspaceForPlan) Error() string {
-	return fmt.Sprintf(`The plan file describes changes to the %q workspace, but the %q workspace is currently selected in the working directory.
+	return fmt.Sprintf(`The plan file describes changes to the %q workspace, but the %q workspace is currently in use.
 
 Applying this plan with the incorrect workspace selected could result in state being stored in an unexpected location, or a downstream error
 when Terraform attempts apply a plan using the other workspace's state.

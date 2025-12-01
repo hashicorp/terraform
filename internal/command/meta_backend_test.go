@@ -1945,7 +1945,7 @@ func TestMetaBackend_planLocal_mismatchedWorkspace(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatalf("expected an error but got none: %s", diags.ErrWithWarnings())
 	}
-	expectedMsg := fmt.Sprintf("The plan file describes changes to the %q workspace, but the %q workspace is currently selected in the working directory",
+	expectedMsg := fmt.Sprintf("The plan file describes changes to the %q workspace, but the %q workspace is currently in use",
 		defaultWorkspace,
 		selectedWorkspace,
 	)
