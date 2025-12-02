@@ -4,11 +4,16 @@
 package command
 
 import (
+	"bytes"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestProviders(t *testing.T) {
@@ -194,6 +199,77 @@ func TestProviders_tests(t *testing.T) {
 	wantOutput := []string{
 		"test.main",
 		"provider[registry.terraform.io/hashicorp/bar]",
+	}
+
+	output := ui.OutputWriter.String()
+	for _, want := range wantOutput {
+		if !strings.Contains(output, want) {
+			t.Errorf("output missing %s:\n%s", want, output)
+		}
+	}
+}
+
+func TestProviders_state_withStateStore(t *testing.T) {
+	// State with a 'baz' provider not in the config
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "baz_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("baz"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	// Get bytes describing the state
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(originalState, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider.MockStates = map[string]interface{}{
+		"default": stateBuf.Bytes(),
+	}
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	ui := new(cli.MockUi)
+	c := &ProvidersCommand{
+		Meta: Meta{
+			Ui:                        ui,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	wantOutput := []string{
+		"Providers required by configuration:",
+		"└── provider[registry.terraform.io/hashicorp/test] 1.2.3",
+		"Providers required by state:",
+		"provider[registry.terraform.io/hashicorp/baz]",
 	}
 
 	output := ui.OutputWriter.String()
