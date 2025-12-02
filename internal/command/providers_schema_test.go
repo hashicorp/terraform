@@ -37,7 +37,7 @@ func TestProvidersSchema_error(t *testing.T) {
 
 func TestProvidersSchema_output(t *testing.T) {
 	fixtureDir := "testdata/providers-schema"
-	testDirs, err := ioutil.ReadDir(fixtureDir)
+	testDirs, err := os.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
 	}
