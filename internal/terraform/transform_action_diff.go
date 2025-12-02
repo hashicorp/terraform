@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -17,8 +19,13 @@ type ActionDiffTransformer struct {
 }
 
 func (t *ActionDiffTransformer) Transform(g *Graph) error {
+	applyNodes := addrs.MakeMap[addrs.AbsResourceInstance, *NodeApplyableResourceInstance]()
 	actionTriggerNodes := addrs.MakeMap[addrs.ConfigResource, []*nodeActionTriggerApplyExpand]()
 	for _, vs := range g.Vertices() {
+		if applyableResource, ok := vs.(*NodeApplyableResourceInstance); ok {
+			applyNodes.Put(applyableResource.Addr, applyableResource)
+		}
+
 		if atn, ok := vs.(*nodeActionTriggerApplyExpand); ok {
 			configResource := actionTriggerNodes.Get(atn.lifecycleActionTrigger.resourceAddress)
 			actionTriggerNodes.Put(atn.lifecycleActionTrigger.resourceAddress, append(configResource, atn))
@@ -33,14 +40,9 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 		isBefore := lat.ActionTriggerEvent == configs.BeforeCreate || lat.ActionTriggerEvent == configs.BeforeUpdate
 		isAfter := lat.ActionTriggerEvent == configs.AfterCreate || lat.ActionTriggerEvent == configs.AfterUpdate
 
-		configResource := lat.TriggeringResourceAddr.ConfigResource()
-		atns, ok := actionTriggerNodes.GetOk(configResource)
+		atns, ok := actionTriggerNodes.GetOk(lat.TriggeringResourceAddr.ConfigResource())
 		if !ok {
-			// If there are no action trigger nodes for this resource, it means the
-			// configuration doesn't have action triggers defined for it, or the resource
-			// doesn't exist in the configuration. In this case, we'll skip the action
-			// invocation rather than failing the entire apply.
-			continue
+			return fmt.Errorf("no action trigger nodes found for resource %s", lat.TriggeringResourceAddr)
 		}
 		// We add the action invocations one by one
 		for _, atn := range atns {
