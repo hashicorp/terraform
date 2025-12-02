@@ -2643,13 +2643,23 @@ resource "test_object" "dummy_resource" {
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Actions contained errors but we're wrapping them into warnings as defined by the 'on_failure' value.",
+						Detail:   "Error when invoking action: test case for failing: this simulates a provider failing",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 13, Column: 54, Byte: 326},
+							End:      hcl.Pos{Line: 13, Column: 90, Byte: 362},
+						},
+					},
+					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Error when invoking action",
 						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 7, Column: 54, Byte: 535},
-							End:      hcl.Pos{Line: 7, Column: 90, Byte: 571},
+							Start:    hcl.Pos{Line: 19, Column: 54, Byte: 535},
+							End:      hcl.Pos{Line: 19, Column: 90, Byte: 571},
 						},
 					},
 				)

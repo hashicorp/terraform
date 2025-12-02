@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -160,7 +159,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.CompleteAction(hookIdentity, respDiags.Err())
 		}))
-		return diagsIfNeeded(ai, diags)
+		return respDiags
 	}
 
 	if resp.Events != nil { // should only occur in misconfigured tests
@@ -189,20 +188,30 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		})
 	}
 
-	return diagsIfNeeded(ai, diags)
+	return diagsWrapErrorsAsWarningIfNeeded(ai, diags, n.ActionTriggerRange)
 }
 
-func diagsIfNeeded(
+// If action_trigger block has on_failure set to continue we want to wrap any
+// potential error into a warning. This will be propagated upstream to the
+// caller which may or may not halt the rest of execution.
+func diagsWrapErrorsAsWarningIfNeeded(
 	aii *plans.ActionInvocationInstance,
 	currentDiags tfdiags.Diagnostics,
+	subject *hcl.Range,
 ) tfdiags.Diagnostics {
 	switch aii.ActionTrigger.TriggerOnFailure() {
 	case configs.ActionTriggerOnFailureContinue:
-		if currentDiags.HasErrors() {
-			log.Printf("[WARN] Errors while running action %s, but"+
-				" continuing as request in configuration.", aii.Addr)
+		if len(currentDiags) > 0 {
+			var wrappedErrorDiags tfdiags.Diagnostics
+			wrappedErrorDiags = wrappedErrorDiags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary: "Actions contained errors but we're wrapping them " +
+					"into warnings as defined by the 'on_failure' value.",
+				Detail:  currentDiags.ErrWithWarnings().Error(),
+				Subject: subject,
+			})
+			return wrappedErrorDiags
 		}
-		return nil
 	default:
 		// Nothing to do for now - here to make it exhaustive and to denote the
 		// place to put potential new `on failure` cases.
