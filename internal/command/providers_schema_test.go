@@ -4,20 +4,25 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestProvidersSchema_error(t *testing.T) {
@@ -101,6 +106,82 @@ func TestProvidersSchema_output(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestProvidersSchema_output_withStateStore(t *testing.T) {
+	// State with a 'baz' provider not in the config
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "baz_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("baz"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	// Create a temporary working directory that includes config using
+	// a state store in the `test` provider
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	// Get bytes describing the state
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(originalState, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider.MockStates = map[string]interface{}{
+		"default": stateBuf.Bytes(),
+	}
+	mockProviderAddressTest := addrs.NewDefaultProvider("test")
+
+	// Mock for the provider in the state
+	mockProviderAddressBaz := addrs.NewDefaultProvider("baz")
+
+	ui := new(cli.MockUi)
+	c := &ProvidersSchemaCommand{
+		Meta: Meta{
+			Ui:                        ui,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddressTest: providers.FactoryFixed(mockProvider),
+					mockProviderAddressBaz:  providers.FactoryFixed(mockProvider),
+				},
+			},
+		},
+	}
+
+	args := []string{"-json"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	wantOutput := []string{
+		`{"format_version":"1.0","provider_schemas":{`, // Opening of JSON
+		`"registry.terraform.io/hashicorp/baz":{`,      // provider from state
+		`"registry.terraform.io/hashicorp/test":{`,     // provider from config
+	}
+
+	output := ui.OutputWriter.String()
+	for _, want := range wantOutput {
+		if !strings.Contains(output, want) {
+			t.Errorf("output missing %s:\n%s", want, output)
+		}
+	}
+
 }
 
 type providerSchemas struct {
