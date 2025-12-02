@@ -228,8 +228,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// of either "modifiedPlan" or "plan" (since they share lots of the same
 		// pointers to mutable objects and so both can get modified together.)
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
-			ExternalProviders:         providerClients,
-			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
+			ExternalProviders: providerClients,
 		})
 		diags = diags.Append(moreDiags)
 	} else {
