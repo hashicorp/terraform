@@ -1,4 +1,18 @@
-## 1.14.1 (Unreleased)
+## 1.14.1 (December 3, 2025)
+
+
+BUG FIXES:
+
+* test: allow ephemeral outputs in root modules ([#37813](https://github.com/hashicorp/terraform/issues/37813))
+
+* Combinations of replace_triggered_by and -replace could result in some instances not being replaced ([#37833](https://github.com/hashicorp/terraform/issues/37833))
+
+* providers lock: include providers required by terraform test ([#37851](https://github.com/hashicorp/terraform/issues/37851))
+
+* Set state information in the proto request for the `GenerateResourceConfig` RPC ([#37896](https://github.com/hashicorp/terraform/issues/37896))
+
+* actions: make after_create & after_update actions run after the resource has applied ([#37936](https://github.com/hashicorp/terraform/issues/37936))
+
 
 ## 1.14.0 (November 19, 2025)
 
@@ -49,15 +63,7 @@ UPGRADE NOTES:
 * The parallelism of Terraform operations within container runtimes may be reduced depending on the CPU bandwidth limit setting. ([#37436](https://github.com/hashicorp/terraform/issues/37436))
 
 * Building Terraform 1.14 requires macOS Monterey or later (due to being built on Go 1.25 which imposes these requirements) ([#37436](https://github.com/hashicorp/terraform/issues/37436))
-EXPERIMENTS:
 
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
-- `terraform test cleanup`: The experimental `test cleanup` command. In experimental builds of Terraform, a manifest file and state files for each failed cleanup operation during test operations are saved within the `.terraform` local directory. The `test cleanup` command will attempt to clean up the local state files left behind automatically, without requiring manual intervention.
-- `terraform test`: `backend` blocks and `skip_cleanup` attributes:
-  - Test authors can now specify `backend` blocks within `run` blocks in Terraform Test files. Run blocks with `backend` blocks will load state from the specified backend instead of starting from empty state on every execution. This allows test authors to keep long-running test infrastructure alive between test operations, saving time during regular test operations.
-  - Test authors can now specify `skip_cleanup` attributes within test files and within run blocks. The `skip_cleanup` attribute tells `terraform test` not to clean up state files produced by run blocks with this attribute set to true. The state files for affected run blocks will be written to disk within the `.terraform` directory, where they can then be cleaned up manually using the also experimental `terraform test cleanup` command.
 
 ## Previous Releases
 
