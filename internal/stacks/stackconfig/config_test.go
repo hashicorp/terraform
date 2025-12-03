@@ -286,12 +286,13 @@ func TestOmittingBuiltInProviders(t *testing.T) {
 }
 
 func TestComponentSourceResolution(t *testing.T) {
-	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
+	stackResourceName := "pet-nulls"
+	bundle, err := sourcebundle.OpenDir("testdata/embedded-stack-bundle")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/component-test.git").(sourceaddrs.RemoteSource)
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/root.git").(sourceaddrs.RemoteSource)
 	config, diags := LoadConfigDir(rootAddr, bundle)
 	if len(diags) != 0 {
 		t.Fatalf("unexpected diagnostics:\n%s", diags.NonFatalErr().Error())
@@ -299,18 +300,18 @@ func TestComponentSourceResolution(t *testing.T) {
 
 	t.Run("component source resolution", func(t *testing.T) {
 		// Verify that the component was loaded
-		if got, want := len(config.Root.Stack.Components), 1; got != want {
+		if got, want := len(config.Root.Stack.EmbeddedStacks), 1; got != want {
 			t.Errorf("wrong number of components %d; want %d", got, want)
 		}
 
 		t.Run("pet-nulls component", func(t *testing.T) {
-			cmpn, ok := config.Root.Stack.Components["pet-nulls"]
+			cmpn, ok := config.Root.Stack.EmbeddedStacks[stackResourceName]
 			if !ok {
-				t.Fatal("Root stack config has no component named \"pet-nulls\".")
+				t.Fatalf("Root stack config has no component named %q.", stackResourceName)
 			}
 
 			// Verify component name
-			if got, want := cmpn.Name, "pet-nulls"; got != want {
+			if got, want := cmpn.Name, stackResourceName; got != want {
 				t.Errorf("wrong component name\ngot:  %s\nwant: %s", got, want)
 			}
 
@@ -320,7 +321,7 @@ func TestComponentSourceResolution(t *testing.T) {
 				t.Fatalf("expected ComponentSource, got %T", cmpn.SourceAddr)
 			}
 
-			expectedSourceStr := "app.staging.terraform.io/component-configurations/pet-nulls"
+			expectedSourceStr := "example.com/awesomecorp/tfstack-pet-nulls"
 			if got := componentSource.String(); got != expectedSourceStr {
 				t.Errorf("wrong source address\ngot:  %s\nwant: %s", got, expectedSourceStr)
 			}

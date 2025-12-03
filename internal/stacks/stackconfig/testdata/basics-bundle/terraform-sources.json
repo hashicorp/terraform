@@ -31,16 +31,6 @@
             "local": "builtin",
             "meta": {}
         },
-        {
-            "source": "git::https://example.com/component-test.git",
-            "local": "component-test",
-            "meta": {}
-        },
-        {
-            "source": "git::https://example.com/pet-nulls.git?ref=v0.0.2",
-            "local": "pet-nulls",
-            "meta": {}
-        }
     ],
     "registry": [
         {
@@ -51,19 +41,6 @@
                 },
                 "2.0.0": {
                     "source": "git::https://example.com/nested.git//intentionally-missing-v2"
-                }
-            }
-        }
-    ],
-    "components": [
-        {
-            "source": "app.staging.terraform.io/component-configurations/pet-nulls",
-            "versions": {
-                "0.0.1": {
-                    "source": "git::https://example.com/pet-nulls.git?ref=v0.0.1"
-                },
-                "0.0.2": {
-                    "source": "git::https://example.com/pet-nulls.git?ref=v0.0.2"
                 }
             }
         }
