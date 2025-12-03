@@ -839,7 +839,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	// Evaluate the configuration
-	forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, n.ModulePath(), false)
 
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
@@ -866,7 +866,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	diags = diags.Append(
 		validateResourceForbiddenEphemeralValues(ctx, origConfigVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 	)
-	diags = diags.Append(validateConfigUsingDeprecatedValues(origConfigVal).InConfigBody(n.Config.Config, n.Addr.String()))
+	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(origConfigVal, n.ModulePath()).InConfigBody(n.Config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
 	}
@@ -1828,7 +1828,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	objTy := schema.Body.ImpliedType()
 	priorVal := cty.NullVal(objTy)
 
-	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
+	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, n.ModulePath(), false)
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
@@ -2155,7 +2155,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		return nil, keyData, diags
 	}
 
-	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
+	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, n.ModulePath(), false)
 	keyData = EvalDataForInstanceKey(n.Addr.Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
@@ -2489,7 +2489,7 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 func (n *NodeAbstractResourceInstance) evalProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	forEach, _, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	forEach, _, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, n.ModulePath(), false)
 	diags = diags.Append(forEachDiags)
 
 	keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)

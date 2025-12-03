@@ -7721,3 +7721,103 @@ output "use-everything" {
 
 	tfdiags.AssertDiagnosticsMatch(t, diags, expectedPlanDiags)
 }
+
+func TestContext2Plan_ignoring_nested_expanded_module_deprecations(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+
+module "nested" {
+    count = 3
+    source = "./nested"
+}
+
+locals {
+  foo = module.nested.*.old # WARNING (if not muted)
+}
+`,
+		"mod/nested/main.tf": `
+output "old" {
+    deprecated = "Please stop using this nested output"
+    value = "old"
+}
+
+module "deeper" {
+    count = 4
+    source = "./deeper"
+}
+
+locals {
+  bar = module.deeper[2].old # WARNING (if not muted)
+}
+`,
+		"mod/nested/deeper/main.tf": `
+output "old" {
+  deprecated = "Please stop using this deeply nested output"
+  value = "old"
+}
+`,
+		"main.tf": `
+module "silenced" {
+    count = 2
+    source = "./mod"
+
+    # We don't want deprecations within this module call
+    ignore_nested_deprecations = true
+}
+
+# We want to still have deprecation warnings within our control surface
+locals {
+  using_silenced_old = module.silenced[0].old # WARNING
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		Actions: map[string]*providers.ActionSchema{
+			"test_action": {
+				ConfigSchema: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"attr": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "Please stop using this",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 12, Column: 24, Byte: 259},
+			End:      hcl.Pos{Line: 12, Column: 46, Byte: 281},
+		},
+	}))
+}

@@ -3898,7 +3898,7 @@ resource "test_resource" "test" {
 
 	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
-		Summary:  "Deprecated value used as for_each argument",
+		Summary:  "Deprecated value used",
 		Detail:   "Please stop using this",
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -3907,7 +3907,7 @@ resource "test_resource" "test" {
 		},
 	}).Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
-		Summary:  "Deprecated value used as for_each argument",
+		Summary:  "Deprecated value used",
 		Detail:   "Please stop using this",
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -3968,7 +3968,7 @@ resource "test_resource" "test" {
 
 	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
-		Summary:  "Deprecated value used as count argument",
+		Summary:  "Deprecated value used",
 		Detail:   "Please stop using this",
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -3977,7 +3977,7 @@ resource "test_resource" "test" {
 		},
 	}).Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
-		Summary:  "Deprecated value used as count argument",
+		Summary:  "Deprecated value used",
 		Detail:   "Please stop using this",
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
@@ -4519,6 +4519,135 @@ output "test_output" {
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start:    hcl.Pos{Line: 7, Column: 5, Byte: 67},
 			End:      hcl.Pos{Line: 7, Column: 57, Byte: 119},
+		},
+	}))
+}
+
+func TestContext2Validate_ignoring_nested_module_deprecations(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+
+module "nested" {
+    source = "./nested"
+}
+
+locals {
+  foo = module.nested.old # WARNING (if not muted)
+}
+`,
+		"mod/nested/main.tf": `
+output "old" {
+    deprecated = "Please stop using this nested output"
+    value = "old"
+}
+
+module "deeper" {
+    source = "./deeper"
+}
+
+locals {
+  bar = module.deeper.old # WARNING (if not muted)
+}
+`,
+		"mod/nested/deeper/main.tf": `
+output "old" {
+  deprecated = "Please stop using this deeply nested output"
+  value = "old"
+}
+`,
+		"main.tf": `
+module "normal" {
+    source = "./mod"
+}
+
+module "silenced" {
+    source = "./mod"
+
+    # We don't want deprecations within this module call
+    ignore_nested_deprecations = true
+}
+
+# We want to still have deprecation warnings within our control surface
+locals {
+  using_normal_old = module.normal.old # WARNING
+  using_silenced_old = module.silenced.old # WARNING
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		Actions: map[string]*providers.ActionSchema{
+			"test_action": {
+				ConfigSchema: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"attr": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "Please stop using this",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 15, Column: 22, Byte: 285},
+			End:      hcl.Pos{Line: 15, Column: 39, Byte: 302},
+		},
+	}).Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "Please stop using this",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 16, Column: 24, Byte: 336},
+			End:      hcl.Pos{Line: 16, Column: 43, Byte: 355},
+		},
+	}).Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "Please stop using this nested output",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "mod", "main.tf"),
+			Start:    hcl.Pos{Line: 12, Column: 9, Byte: 141},
+			End:      hcl.Pos{Line: 12, Column: 26, Byte: 158},
+		},
+	}).Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "Please stop using this deeply nested output",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "mod", "nested", "main.tf"),
+			Start:    hcl.Pos{Line: 12, Column: 9, Byte: 155},
+			End:      hcl.Pos{Line: 12, Column: 26, Byte: 172},
 		},
 	}))
 }

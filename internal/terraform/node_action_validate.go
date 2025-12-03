@@ -57,7 +57,7 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 
 		// Basic type-checking of the count argument. More complete validation
 		// of this will happen when we DynamicExpand during the plan walk.
-		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx)
+		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx, n.ModulePath())
 		diags = diags.Append(countDiags)
 
 	case n.Config.ForEach != nil:
@@ -67,7 +67,7 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, false).ValidateActionValue()
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, n.ModulePath(), false).ValidateActionValue()
 		diags = diags.Append(forEachDiags)
 	}
 
@@ -102,7 +102,7 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		}
 	}
 
-	diags = diags.Append(validateConfigUsingDeprecatedValues(configVal).InConfigBody(n.Config.Config, n.Addr.String()))
+	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath()).InConfigBody(n.Config.Config, n.Addr.String()))
 
 	valDiags = validateResourceForbiddenEphemeralValues(ctx, configVal, schema.ConfigSchema)
 	diags = diags.Append(valDiags.InConfigBody(config, n.Addr.String()))

@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -160,16 +159,11 @@ func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContex
 		})
 		return checkResult{Status: checks.StatusError}, diags
 	}
-	if depMarks := marks.GetDeprecationMarks(resultVal); len(depMarks) > 0 {
-		for _, depMark := range depMarks {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Deprecated value used",
-				Detail:   depMark.Message,
-				Subject:  rule.Condition.Range().Ptr(),
-			})
-		}
-	}
+
+	// We don't care about the returned value here, only the diagnostics
+	_, deprecationDiags := ctx.Deprecations().Validate(resultVal, addr.ModuleInstance().Module(), rule.Condition.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	var err error
 	resultVal, err = convert.Convert(resultVal, cty.Bool)
 	if err != nil {

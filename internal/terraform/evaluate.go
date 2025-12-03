@@ -488,14 +488,6 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			} else if cfg.DeprecatedSet && !outputValIsDeprecated {
 				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, nil))
 			} else if !cfg.DeprecatedSet && outputValIsDeprecated {
-				for _, depMark := range marks.GetDeprecationMarks(outputVal) {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagWarning,
-						Summary:  "Deprecated Value used in output",
-						Detail:   depMark.Message,
-						Subject:  rng.ToHCL().Ptr(),
-					})
-				}
 				outputVal = marks.RemoveDeprecationMarks(outputVal)
 			}
 			attrs[name] = outputVal

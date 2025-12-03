@@ -141,9 +141,10 @@ func (n *NodeLocal) References() []*addrs.Reference {
 func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	namedVals := ctx.NamedValues()
 	val, diags := evaluateLocalValue(n.Config, n.Addr.LocalValue, n.Addr.String(), ctx)
-	diags = diags.Append(validateExprUsingDeprecatedValues(val, n.Config.Expr))
-	val = marks.RemoveDeprecationMarks(val)
-	namedVals.SetLocalValue(n.Addr, val)
+	valWithoutDeprecations, deprecationDiags := ctx.Deprecations().Validate(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
+	namedVals.SetLocalValue(n.Addr, valWithoutDeprecations)
 	return diags
 }
 

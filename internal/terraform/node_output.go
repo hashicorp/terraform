@@ -519,14 +519,8 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	}
 
 	if !n.Config.DeprecatedSet && marks.Contains(val, marks.Deprecation) {
-		for _, depMarks := range marks.GetDeprecationMarks(val) {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Deprecated value used",
-				Detail:   depMarks.Message,
-				Subject:  n.Config.Expr.Range().Ptr(),
-			})
-		}
+		_, deprecationDiags := ctx.Deprecations().Validate(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
+		diags = diags.Append(deprecationDiags)
 	}
 
 	if n.Config.DeprecatedSet {
