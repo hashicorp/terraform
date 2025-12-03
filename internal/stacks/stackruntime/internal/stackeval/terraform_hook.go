@@ -223,6 +223,14 @@ func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionI
 	log.Printf("[DEBUG] terraform_hook.ProgressAction called for action: %s, progress=%s", id.Addr.String(), progress)
 	ai := h.actionInvocationFromHookActionIdentity(id)
 
+	// Report the progress message
+	log.Printf("[DEBUG] Reporting action invocation progress: %s", progress)
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationProgress, &hooks.ActionInvocationProgressHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: id.ProviderAddr.Provider,
+		Message:      progress,
+	})
+
 	// Map progress string to appropriate status
 	status := hooks.ActionInvocationRunning
 	if progress == "pending" {
