@@ -27,12 +27,12 @@ import (
 
 func TestContextApply_actions(t *testing.T) {
 	for name, tc := range map[string]struct {
-		module                          map[string]string
-		mode                            plans.Mode
-		prevRunState                    *states.State
-		events                          func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
-		readResourceFn                  func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
-		callingInvokeReturnsDiagnostics func(providers.InvokeActionRequest) tfdiags.Diagnostics
+		module                   map[string]string
+		mode                     plans.Mode
+		prevRunState             *states.State
+		events                   func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
+		readResourceFn           func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
+		invokeDiagnosticResponse func(providers.InvokeActionRequest) tfdiags.Diagnostics
 
 		planOpts  *PlanOpts
 		applyOpts *ApplyOpts
@@ -115,16 +115,10 @@ resource "test_object" "a" {
 
 				// the before should have happened first, and the order should
 				// be correct.
-
-				beforeStart := capture.startActionHooks[0]
-				beforeComplete := capture.completeActionHooks[0]
-				evaluateHook(beforeStart, "action.action_example.hello", configs.BeforeCreate)
-				evaluateHook(beforeComplete, "action.action_example.hello", configs.BeforeCreate)
-
-				afterStart := capture.startActionHooks[1]
-				afterComplete := capture.completeActionHooks[1]
-				evaluateHook(afterStart, "action.action_example.hello", configs.AfterCreate)
-				evaluateHook(afterComplete, "action.action_example.hello", configs.AfterCreate)
+				evaluateHook(capture.startActionHooks[0], "action.action_example.hello", configs.BeforeCreate)
+				evaluateHook(capture.completeActionHooks[0], "action.action_example.hello", configs.BeforeCreate)
+				evaluateHook(capture.startActionHooks[1], "action.action_example.hello", configs.AfterCreate)
+				evaluateHook(capture.completeActionHooks[1], "action.action_example.hello", configs.AfterCreate)
 			},
 		},
 
@@ -145,19 +139,12 @@ resource "test_object" "a" {
 			},
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{"name":"old name"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 			expectInvokeActionCalled: true,
@@ -180,19 +167,12 @@ resource "test_object" "a" {
 			},
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{"name":"old"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 			expectInvokeActionCalled: true,
@@ -314,7 +294,7 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
+			invokeDiagnosticResponse: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{
 					tfdiags.Sourceless(
 						tfdiags.Error,
@@ -424,7 +404,7 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-			callingInvokeReturnsDiagnostics: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {
+			invokeDiagnosticResponse: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {
 				if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
 					// Simulate a failure for the second action
 					return tfdiags.Diagnostics{
@@ -495,7 +475,7 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-			callingInvokeReturnsDiagnostics: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {
+			invokeDiagnosticResponse: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {
 				if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
 					// Simulate a failure for the second action
 					return tfdiags.Diagnostics{
@@ -943,10 +923,7 @@ resource "test_object" "a" {
 						Status:    states.ObjectTainted,
 						AttrsJSON: []byte(`{"name":"previous_run"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 			expectInvokeActionCalled: false,
@@ -978,10 +955,7 @@ resource "test_object" "a" {
 						Status:    states.ObjectTainted,
 						AttrsJSON: []byte(`{"name":"previous_run"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 			expectInvokeActionCalled: false,
@@ -1138,19 +1112,12 @@ resource "test_object" "a" {
 			planOpts:                 SimplePlanOpts(plans.DestroyMode, InputValues{}),
 			prevRunState: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{"name":"previous_run"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 		},
@@ -1174,51 +1141,30 @@ resource "test_object" "a" {
 
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					mustResourceInstanceAddr("test_object.a[0]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 
 				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+					mustResourceInstanceAddr("test_object.a[1]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 
 				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.IntKey(2)).Absolute(addrs.RootModuleInstance),
+					mustResourceInstanceAddr("test_object.a[2]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 		},
@@ -1613,18 +1559,8 @@ action "action_example" "two" {
 `,
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsActionInstance{
-						Action: addrs.ActionInstance{
-							Action: addrs.Action{
-								Type: "action_example",
-								Name: "one",
-							},
-							Key: addrs.IntKey(0),
-						},
-					},
-				},
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustAbsActionInstanceAddr("action.action_example.one[0]")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -1652,15 +1588,8 @@ action "action_example" "one" {
 `,
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsAction{
-						Action: addrs.Action{
-							Type: "action_example",
-							Name: "one",
-						},
-					},
-				},
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustAbsActionAddr("action.action_example.one")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -1694,15 +1623,8 @@ action "action_example" "one" {
 `,
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsAction{
-						Action: addrs.Action{
-							Type: "action_example",
-							Name: "one",
-						},
-					},
-				},
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustAbsActionAddr("action.action_example.one")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -1743,16 +1665,9 @@ action "action_example" "one" {
 `,
 			},
 			planOpts: &PlanOpts{
-				Mode:        plans.RefreshOnlyMode,
-				SkipRefresh: true,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsAction{
-						Action: addrs.Action{
-							Type: "action_example",
-							Name: "one",
-						},
-					},
-				},
+				Mode:          plans.RefreshOnlyMode,
+				SkipRefresh:   true,
+				ActionTargets: []addrs.Targetable{mustAbsActionAddr("action.action_example.one")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -2314,12 +2229,8 @@ resource "test_object" "b" {
 				},
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Targets: []addrs.Targetable{
-					addrs.RootModuleInstance.
-						Resource(addrs.ManagedResourceMode, "test_object", "a").
-						Instance(addrs.IntKey(2)),
-				},
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_object.a[2]")},
 			},
 		},
 
@@ -2573,9 +2484,9 @@ lifecycle {
 
 			invokeActionFn := func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
 				invokeActionCalls = append(invokeActionCalls, req)
-				if tc.callingInvokeReturnsDiagnostics != nil && len(tc.callingInvokeReturnsDiagnostics(req)) > 0 {
+				if tc.invokeDiagnosticResponse != nil && len(tc.invokeDiagnosticResponse(req)) > 0 {
 					return providers.InvokeActionResponse{
-						Diagnostics: tc.callingInvokeReturnsDiagnostics(req),
+						Diagnostics: tc.invokeDiagnosticResponse(req),
 					}
 				}
 
@@ -2600,61 +2511,60 @@ lifecycle {
 				}
 			}
 
-			actionProvider := &testing_provider.MockProvider{
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					Actions: map[string]providers.ActionSchema{
-						"action_example": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Optional: true,
-									},
+			actionProvider := simpleMockProvider()
+			actionProvider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				Actions: map[string]providers.ActionSchema{
+					"action_example": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
-						"action_example_wo": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:      cty.String,
-										Optional:  true,
-										WriteOnly: true,
-									},
+					},
+					"action_example_wo": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
 								},
 							},
 						},
-						// Added nested action schema with nested blocks
-						"action_nested": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"top_attr": {Type: cty.String, Optional: true},
-								},
-								BlockTypes: map[string]*configschema.NestedBlock{
-									"settings": {
-										Nesting: configschema.NestingSingle,
-										Block: configschema.Block{
-											Attributes: map[string]*configschema.Attribute{
-												"name": {Type: cty.String, Required: true},
-											},
-											BlockTypes: map[string]*configschema.NestedBlock{
-												"rule": {
-													Nesting: configschema.NestingList,
-													Block: configschema.Block{
-														Attributes: map[string]*configschema.Attribute{
-															"value": {Type: cty.String, Required: true},
-														},
+					},
+					// Added nested action schema with nested blocks
+					"action_nested": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"top_attr": {Type: cty.String, Optional: true},
+							},
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"settings": {
+									Nesting: configschema.NestingSingle,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"name": {Type: cty.String, Required: true},
+										},
+										BlockTypes: map[string]*configschema.NestedBlock{
+											"rule": {
+												Nesting: configschema.NestingList,
+												Block: configschema.Block{
+													Attributes: map[string]*configschema.Attribute{
+														"value": {Type: cty.String, Required: true},
 													},
 												},
 											},
 										},
 									},
-									"settings_list": {
-										Nesting: configschema.NestingList,
-										Block: configschema.Block{
-											Attributes: map[string]*configschema.Attribute{
-												"id": {Type: cty.String, Required: true},
-											},
+								},
+								"settings_list": {
+									Nesting: configschema.NestingList,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"id": {Type: cty.String, Required: true},
 										},
 									},
 								},
@@ -2662,27 +2572,22 @@ lifecycle {
 						},
 					},
 				},
-				InvokeActionFn: invokeActionFn,
 			}
+			actionProvider.InvokeActionFn = invokeActionFn
 
-			ecosystem := &testing_provider.MockProvider{
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					Actions: map[string]providers.ActionSchema{
-						"ecosystem": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
+			ecosystem := simpleMockProvider()
+			ecosystem.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				Actions: map[string]providers.ActionSchema{
+					"ecosystem": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {Type: cty.String, Optional: true},
 							},
 						},
 					},
-					ResourceTypes: map[string]providers.Schema{},
 				},
-				InvokeActionFn: invokeActionFn,
 			}
+			ecosystem.InvokeActionFn = invokeActionFn
 
 			hookCapture := newActionHookCapture()
 			ctx := testContext2(t, &ContextOpts{
@@ -2811,7 +2716,7 @@ func TestContextApplyActions_after_trigger_runs_after_expanded_resource(t *testi
 locals {
   each = toset(["one"])
 }
-action "action_example" "hello" {
+action "test_action" "hello" {
   config {
     attr = "hello"
   }
@@ -2822,7 +2727,7 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events  = [after_create]
-      actions = [action.action_example.hello]
+      actions = [action.test_action.hello]
     }
   }
 }
@@ -2845,21 +2750,8 @@ resource "test_object" "a" {
 					},
 				},
 			},
-		},
-		ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-			time.Sleep(100 * time.Millisecond)
-			orderedCalls = append(orderedCalls, fmt.Sprintf("ApplyResourceChangeFn %s", arcr.TypeName))
-			return providers.ApplyResourceChangeResponse{
-				NewState:    arcr.PlannedState,
-				NewIdentity: arcr.PlannedIdentity,
-			}
-		},
-	}
-
-	actionProvider := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Actions: map[string]providers.ActionSchema{
-				"action_example": {
+				"test_action": {
 					ConfigSchema: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"attr": {
@@ -2870,7 +2762,14 @@ resource "test_object" "a" {
 					},
 				},
 			},
-			ResourceTypes: map[string]providers.Schema{},
+		},
+		ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			time.Sleep(100 * time.Millisecond)
+			orderedCalls = append(orderedCalls, fmt.Sprintf("ApplyResourceChangeFn %s", arcr.TypeName))
+			return providers.ApplyResourceChangeResponse{
+				NewState:    arcr.PlannedState,
+				NewIdentity: arcr.PlannedIdentity,
+			}
 		},
 		InvokeActionFn: func(iar providers.InvokeActionRequest) providers.InvokeActionResponse {
 			orderedCalls = append(orderedCalls, fmt.Sprintf("InvokeAction %s", iar.ActionType))
@@ -2885,8 +2784,7 @@ resource "test_object" "a" {
 	hookCapture := newActionHookCapture()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
-			addrs.NewDefaultProvider("action"): testProviderFuncFixed(actionProvider),
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
 		},
 		Hooks: []Hook{
 			&hookCapture,
@@ -2911,7 +2809,7 @@ resource "test_object" "a" {
 
 	expectedOrder := []string{
 		"ApplyResourceChangeFn test_object",
-		"InvokeAction action_example",
+		"InvokeAction test_action",
 	}
 
 	if diff := cmp.Diff(expectedOrder, orderedCalls); diff != "" {
@@ -2919,38 +2817,90 @@ resource "test_object" "a" {
 	}
 }
 
-// func TestContextApply_actions_failures(t *testing.T) {
-// 	m := testMainModuleInline(t, `
-// action "test_action" "hello" {
-//   config {
-//     attr = "hello"
-//   }
-// }
+func TestContextApply_actions_failures(t *testing.T) {
 
-// action "test_action" "goodbye" {
-//   config {
-//     attr = "goodbye"
-//   }
-// }
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+    for_each = toset(["a", "b"])
+    source = "./mod"
+    instance_name = each.key
+}`,
 
-// resource "test_object" "a" {
-//   lifecycle {
-//     action_trigger {
-//       events  = [before_create]
-//       actions = [action.test_action.hello]
-//     }
-//   }
-// }
+		"mod/mod.tf": `
+variable "instance_name" {
+  type = string
+}
 
-// resource "test_object" "b" {
-//   name = test_object.a.name  //set up a dependency between test_object.a and test_object.b
-//   lifecycle {
-//     action_trigger {
-//       events  = [before_create]
-//       actions = [action.test_action.goodbye]
-//     }
-//   }
-// }
-// `)
+action "test_action" "hello" {
+  config {
+    test_string = "hello"
+  }
+}
 
-// }
+action "fail_action" "fail" {
+  config {
+    test_string = "hello"
+  }
+}
+
+resource "test_object" "a" {
+  test_string = var.instance_name
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.fail_action.fail]
+    }
+	action_trigger {
+      events  = [after_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+
+resource "test_object" "b" {
+  test_string = test_object.a.test_string  //set up a dependency between test_object.a and test_object.b
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`})
+
+	p := simpleMockProvider()
+	fp := namedMockProvider("fail")
+	fp.InvokeActionResponse = &providers.InvokeActionResponse{
+		Diagnostics: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "bad", "failed")},
+	}
+
+	hookCapture := newActionHookCapture()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("fail"): testProviderFuncFixed(fp),
+		},
+		Hooks: []Hook{&hookCapture},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	planOpts := SimplePlanOpts(plans.NormalMode, InputValues{})
+
+	plan, diags := ctx.Plan(m, nil, planOpts)
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if !plan.Applyable {
+		t.Fatalf("plan is not applyable but should be")
+	}
+
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertDiagnosticCount(t, diags, 2)
+
+	rs := state.AllResourceInstanceObjectAddrs()
+	if len(rs) > 0 {
+		t.Fatal("resource found in state, nothing should have been created")
+	}
+}

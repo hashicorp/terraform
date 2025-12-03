@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -80,6 +82,26 @@ func simpleMockProvider() *testing_provider.MockProvider {
 			},
 			Actions: map[string]providers.ActionSchema{
 				"test_action": {ConfigSchema: simpleTestSchema()},
+			},
+		},
+	}
+}
+
+// namedMockProvider is similar to simpleMockProvider, but the names of it's resources begin with the specified name string.
+// It is pre-configured with schema for its own config, a resource type called NAME_object, a data source also
+// called NAME_object, and an action called NAME_action.
+func namedMockProvider(name string) *testing_provider.MockProvider {
+	return &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				fmt.Sprintf("%s_object", name): {Body: simpleTestSchema()},
+			},
+			DataSources: map[string]providers.Schema{
+				fmt.Sprintf("%s_object", name): {Body: simpleTestSchema()},
+			},
+			Actions: map[string]providers.ActionSchema{
+				fmt.Sprintf("%s_action", name): {ConfigSchema: simpleTestSchema()},
 			},
 		},
 	}
