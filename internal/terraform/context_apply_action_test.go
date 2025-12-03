@@ -27,7 +27,6 @@ import (
 
 func TestContextApply_actions(t *testing.T) {
 	for name, tc := range map[string]struct {
-		toBeImplemented                 bool
 		module                          map[string]string
 		mode                            plans.Mode
 		prevRunState                    *states.State
@@ -2556,30 +2555,15 @@ lifecycle {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if tc.toBeImplemented {
-				t.Skip("This test is not implemented yet")
-			}
-
 			m := testModuleInline(t, tc.module)
 
 			invokeActionCalls := []providers.InvokeActionRequest{}
 
-			testProvider := &testing_provider.MockProvider{
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					ResourceTypes: map[string]providers.Schema{
-						"test_object": {
-							Body: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"name": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
-							},
-						},
-					},
+			testProvider := mockProviderWithResourceTypeSchema("test_object", &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {Type: cty.String, Optional: true},
 				},
-			}
+			})
 
 			if tc.readResourceFn != nil {
 				testProvider.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
@@ -2595,14 +2579,13 @@ lifecycle {
 					}
 				}
 
-				defaultEvents := []providers.InvokeActionEvent{}
-				defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Progress{
-					Message: "Hello world!",
-				})
-				defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Completed{})
-
-				events := defaultEvents
-				if tc.events != nil {
+				var events []providers.InvokeActionEvent
+				if tc.events == nil {
+					events = []providers.InvokeActionEvent{
+						providers.InvokeActionEvent_Progress{Message: "Hello world!"},
+						providers.InvokeActionEvent_Completed{},
+					}
+				} else {
 					events = tc.events(req)
 				}
 
@@ -2616,6 +2599,7 @@ lifecycle {
 					},
 				}
 			}
+
 			actionProvider := &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					Actions: map[string]providers.ActionSchema{
@@ -2677,7 +2661,6 @@ lifecycle {
 							},
 						},
 					},
-					ResourceTypes: map[string]providers.Schema{},
 				},
 				InvokeActionFn: invokeActionFn,
 			}
@@ -2822,7 +2805,7 @@ func (a *actionHookCapture) CompleteAction(identity HookActionIdentity, _ error)
 	return HookActionContinue, nil
 }
 
-func TestContextApply_actions_after_trigger_runs_after_expanded_resource(t *testing.T) {
+func TestContextApplyActions_after_trigger_runs_after_expanded_resource(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 locals {
@@ -2935,3 +2918,39 @@ resource "test_object" "a" {
 		t.Fatalf("expected calls in order did not match actual calls (-expected +actual):\n%s", diff)
 	}
 }
+
+// func TestContextApply_actions_failures(t *testing.T) {
+// 	m := testMainModuleInline(t, `
+// action "test_action" "hello" {
+//   config {
+//     attr = "hello"
+//   }
+// }
+
+// action "test_action" "goodbye" {
+//   config {
+//     attr = "goodbye"
+//   }
+// }
+
+// resource "test_object" "a" {
+//   lifecycle {
+//     action_trigger {
+//       events  = [before_create]
+//       actions = [action.test_action.hello]
+//     }
+//   }
+// }
+
+// resource "test_object" "b" {
+//   name = test_object.a.name  //set up a dependency between test_object.a and test_object.b
+//   lifecycle {
+//     action_trigger {
+//       events  = [before_create]
+//       actions = [action.test_action.goodbye]
+//     }
+//   }
+// }
+// `)
+
+// }

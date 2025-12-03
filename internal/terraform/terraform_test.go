@@ -20,14 +20,13 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/initwd"
+	_ "github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
-
-	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 // This is the directory where our test fixtures are.
@@ -85,6 +84,11 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	}
 
 	return config, snap
+}
+
+// testMainModuleInline is a wrapper for testModuleInline, because many of our tests just need a main.tf
+func testMainModuleInline(t testing.TB, source string, parserOpts ...configs.Option) *configs.Config {
+	return testModuleInline(t, map[string]string{"main.tf": source}, parserOpts...)
 }
 
 // testModuleInline takes a map of path -> config strings and yields a config

@@ -227,6 +227,7 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 		ResourceTypes:     map[string]providers.Schema{},
 		ListResourceTypes: map[string]providers.Schema{},
 		StateStores:       map[string]providers.Schema{},
+		Actions:           map[string]providers.ActionSchema{},
 	}
 }
 
