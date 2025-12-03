@@ -370,6 +370,23 @@ func resolveFinalSourceAddr(base sourceaddrs.FinalSource, rel sourceaddrs.Source
 			underlyingSource = base.FinalSourceAddr(underlyingSource)
 			return sourceaddrs.ResolveRelativeFinalSource(underlyingSource, rel)
 
+		case sourceaddrs.ComponentSourceFinal:
+			ret, err := sourceaddrs.ResolveRelativeFinalSource(base, rel)
+			if err == nil {
+				return ret, nil
+			}
+
+			// If we can't resolve relative to the registry source then
+			// we need to resolve relative to its underlying remote source
+			// instead.
+			underlyingSource, ok := sources.ComponentPackageSourceAddr(base.Package(), base.SelectedVersion())
+			if !ok {
+				// If we also can't find the underlying source for some reason
+				// then we're stuck.
+				return nil, fmt.Errorf("can't find underlying source address for %s", base.Package())
+			}
+			underlyingSource = base.FinalSourceAddr(underlyingSource)
+			return sourceaddrs.ResolveRelativeFinalSource(underlyingSource, rel)
 		default:
 			// Easy case: this source type is already a final type
 			return sourceaddrs.ResolveRelativeFinalSource(base, rel)
