@@ -12866,12 +12866,10 @@ resource "test_object" "a" {
 
 func TestContext2Apply_nilResponse(t *testing.T) {
 	// empty config to remove our resource
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
+	m := testMainModuleInline(t, `
 resource "test_object" "a" {
 }
-`,
-	})
+`)
 
 	p := simpleMockProvider()
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
