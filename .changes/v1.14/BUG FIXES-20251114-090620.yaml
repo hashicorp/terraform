@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Set state information in the proto request for the `GenerateResourceConfig` RPC
-time: 2025-11-14T09:06:20.057751+01:00
-custom:
-    Issue: "37896"
