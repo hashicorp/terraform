@@ -166,3 +166,17 @@ func (a *ActionInvocationStatusHookData) String() string {
 	}
 	return a.Addr.String() + " [" + a.Status.String() + "]"
 }
+
+type ActionInvocationProgressHookData struct {
+	Addr         stackaddrs.AbsActionInvocationInstance
+	ProviderAddr addrs.Provider
+	Message      string
+}
+
+// String returns a concise string representation of the action invocation progress.
+func (a *ActionInvocationProgressHookData) String() string {
+	if a == nil {
+		return "<nil>"
+	}
+	return a.Addr.String() + ": " + a.Message
+}
