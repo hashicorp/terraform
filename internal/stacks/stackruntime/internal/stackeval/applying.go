@@ -127,6 +127,26 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, inst.Addr())
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
 
+	// Fire PENDING status for all planned action invocations
+	// These actions are queued and ready to execute during the apply phase
+	if stackPlan != nil && stackPlan.ActionInvocations.Len() > 0 {
+		for _, elem := range stackPlan.ActionInvocations.Elems {
+			actionAddr := elem.Key
+			action := elem.Value
+
+			absActionAddr := stackaddrs.AbsActionInvocationInstance{
+				Component: inst.Addr(),
+				Item:      actionAddr,
+			}
+
+			hookMore(ctx, seq, h.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+				Addr:         absActionAddr,
+				ProviderAddr: action.ProviderAddr.Provider,
+				Status:       hooks.ActionInvocationPending,
+			})
+		}
+	}
+
 	moduleTree := inst.ModuleTree(ctx)
 	if moduleTree == nil {
 		// We should not get here because if the configuration was statically
