@@ -221,6 +221,31 @@ func Test_grpcClient_Put(t *testing.T) {
 			t.Fatalf("expected error to contain %q, but got: %s", expectedErr, err.Error())
 		}
 	})
+
+	t.Run("grpcClient refuses zero-byte writes", func(t *testing.T) {
+		provider := testing_provider.MockProvider{
+			ConfigureProviderCalled:   true,
+			ConfigureStateStoreCalled: true,
+			WriteStateBytesFn: func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+				t.Fatal("expected WriteStateBytes not to be called for zero-byte payload")
+				return providers.WriteStateBytesResponse{}
+			},
+		}
+
+		client := &grpcClient{
+			provider: &provider,
+			typeName: typeName,
+			stateId:  stateId,
+		}
+
+		diags := client.Put(nil)
+		if !diags.HasErrors() {
+			t.Fatalf("expected diagnostics when attempting to write zero bytes")
+		}
+		if provider.WriteStateBytesCalled {
+			t.Fatalf("provider WriteStateBytes should not be called")
+		}
+	})
 }
 
 // Testing grpcClient's Delete method.
