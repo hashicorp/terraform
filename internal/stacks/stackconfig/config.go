@@ -369,7 +369,6 @@ func resolveFinalSourceAddr(base sourceaddrs.FinalSource, rel sourceaddrs.Source
 			}
 			underlyingSource = base.FinalSourceAddr(underlyingSource)
 			return sourceaddrs.ResolveRelativeFinalSource(underlyingSource, rel)
-
 		case sourceaddrs.ComponentSourceFinal:
 			ret, err := sourceaddrs.ResolveRelativeFinalSource(base, rel)
 			if err == nil {
