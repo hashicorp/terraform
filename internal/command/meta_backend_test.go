@@ -2136,58 +2136,6 @@ func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 	}
 }
 
-// Changing from using state_store to backend
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-to-backend"), td)
-	t.Chdir(td)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the backend's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	providerAddr := tfaddr.MustParseProviderSource("hashicorp/test")
-	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
-	if err != nil {
-		t.Fatalf("test setup failed when making constraint: %s", err)
-	}
-	locks := depsfile.NewLocks()
-	locks.SetProvider(
-		providerAddr,
-		versions.MustParseVersion("1.2.3"),
-		constraint,
-		[]providerreqs.Hash{""},
-	)
-
-	// No mock provider is used here - yet
-	// Logic will need to be implemented that lets the init have access to
-	// a factory for the 'old' provider used for PSS previously. This will be
-	// used when migrating away from PSS entirely, or to a new PSS configuration.
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:          true,
-		BackendConfig: mod.Backend,
-		Locks:         locks,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Migration from state store to backend is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
 // Verify that using variables results in an error
 func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	wantErr := "Variables not allowed"

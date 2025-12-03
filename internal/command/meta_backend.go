@@ -836,7 +836,17 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		return m.stateStore_c_S(sMgr, opts.ViewType)
+		// Grab a purely local backend to get the local state if it exists
+		localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return nil, diags
+		}
+
+		v := views.NewInit(opts.ViewType, m.View)
+		v.Output(views.InitMessageCode("state_store_unset"), s.StateStore.Type)
+
+		return m.stateStore_c_S(sMgr, "local", localB, opts.ViewType)
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -884,11 +894,22 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			s.StateStore.Provider.Source,
 			backendConfig.Type,
 		)
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Not implemented yet",
-			Detail:   "Migration from state store to backend is not implemented yet",
-		})
+
+		b, _, moreDiags := m.backendInitFromConfig(backendConfig)
+		diags = diags.Append(moreDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return nil, diags
+		}
+
+		v := views.NewInit(opts.ViewType, m.View)
+		v.Output(views.InitMessageCode("state_store_migrate_backend"), s.StateStore.Type, backendConfig.Type)
+
+		return m.stateStore_c_S(sMgr, backendConfig.Type, b, opts.ViewType)
 
 	// Migration from backend to state store
 	case backendConfig == nil && !s.Backend.Empty() &&
@@ -1910,8 +1931,8 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	return b, diags
 }
 
-// Unconfiguring a state store (moving from state store => local).
-func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
+// Unconfiguring a state store (moving from state store => backend).
+func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, dstBackendType string, dstBackend backend.Backend, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	s := ssSMgr.State()
@@ -1919,13 +1940,6 @@ func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, viewType arguments.Vi
 
 	view := views.NewInit(viewType, m.View)
 	view.Output(views.StateMigrateLocalMessage, stateStoreType)
-
-	// Grab a purely local backend to get the local state if it exists
-	localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return nil, diags
-	}
 
 	// Initialize the configured state store
 	ss, moreDiags := m.savedStateStore(ssSMgr)
@@ -1937,9 +1951,9 @@ func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, viewType arguments.Vi
 	// Perform the migration
 	err := m.backendMigrateState(&backendMigrateOpts{
 		SourceType:      stateStoreType,
-		DestinationType: "local",
+		DestinationType: dstBackendType,
 		Source:          ss,
-		Destination:     localB,
+		Destination:     dstBackend,
 		ViewType:        viewType,
 	})
 	if err != nil {
@@ -1958,11 +1972,8 @@ func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, viewType arguments.Vi
 		return nil, diags
 	}
 
-	v := views.NewInit(viewType, m.View)
-	v.Output(views.InitMessageCode("state_store_unset"), stateStoreType)
-
-	// Return no state store
-	return nil, diags
+	// Return backend
+	return dstBackend, diags
 }
 
 // getStateStorageProviderVersion gets the current version of the state store provider that's in use. This is achieved
