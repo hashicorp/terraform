@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Add component registry source resolution support to Terraform Stacks
+time: 2025-12-04T12:58:48.622196-05:00
+custom:
+    Issue: "37888"
