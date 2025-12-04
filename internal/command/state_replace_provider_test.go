@@ -332,7 +332,7 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 	}
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
-	mockProvider := mockPluggableStateStorageProvider(t)
+	mockProvider := mockPluggableStateStorageProvider()
 	mockProvider.MockStates = map[string]interface{}{
 		"default": stateBuf.Bytes(),
 	}

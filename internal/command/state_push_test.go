@@ -56,7 +56,7 @@ func TestStatePush_stateStore(t *testing.T) {
 	expected := testStateRead(t, "replace.tfstate")
 
 	// Create a mock that doesn't have any internal states.
-	mockProvider := mockPluggableStateStorageProvider(t)
+	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},

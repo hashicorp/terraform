@@ -3238,7 +3238,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			// The test fixture config has no version constraints, so the latest version will
@@ -3325,7 +3325,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
@@ -3374,7 +3374,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
@@ -3429,7 +3429,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		customWorkspace := "my-custom-workspace"
 		t.Setenv(WorkspaceNameEnvVar, customWorkspace)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
@@ -3492,7 +3492,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
 			States: []string{
 				"foobar1",
@@ -3583,7 +3583,7 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		// If the working directory was previously initialized successfully then at least
 		// one workspace is guaranteed to exist when a user is re-running init with no config
 		// changes since last init. So this test says `default` exists.
@@ -3670,7 +3670,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 
 		// The previous init implied by this test scenario would have created this.
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}}
@@ -3758,7 +3758,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -3808,7 +3808,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/provider-config"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -3857,7 +3857,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/state-store-type"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		storeName := "test_store"
 		otherStoreName := "test_otherstore"
 		// Make the provider report that it contains a 2nd storage implementation with the above name
@@ -3909,11 +3909,11 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/provider-used"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
 
 		// Make a mock that implies its name is test2 based on returned schemas
-		mockProvider2 := mockPluggableStateStorageProvider(t)
+		mockProvider2 := mockPluggableStateStorageProvider()
 		mockProvider2.GetProviderSchemaResponse.StateStores["test2_store"] = mockProvider.GetProviderSchemaResponse.StateStores["test_store"]
 		delete(mockProvider2.GetProviderSchemaResponse.StateStores, "test_store")
 
@@ -3974,7 +3974,7 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/provider-upgraded"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider(t)
+		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3", "9.9.9"}, // 1.2.3 is the version used in the backend state file, 9.9.9 is the version being upgraded to
@@ -4023,7 +4023,7 @@ func TestInit_stateStore_unset(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider(t)
+	mockProvider := mockPluggableStateStorageProvider()
 	storeName := "test_store"
 	otherStoreName := "test_otherstore"
 	// Make the provider report that it contains a 2nd storage implementation with the above name
@@ -4121,7 +4121,7 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider(t)
+	mockProvider := mockPluggableStateStorageProvider()
 	storeName := "test_store"
 	otherStoreName := "test_otherstore"
 	// Make the provider report that it contains a 2nd storage implementation with the above name
@@ -4355,7 +4355,7 @@ func expectedPackageInstallPath(name, version string, exe bool) string {
 	))
 }
 
-func mockPluggableStateStorageProvider(t *testing.T) *testing_provider.MockProvider {
+func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 	// Create a mock provider to use for PSS
 	// Get mock provider factory to be used during init
 	//
@@ -4421,15 +4421,7 @@ func mockPluggableStateStorageProvider(t *testing.T) *testing_provider.MockProvi
 	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
 		state := []byte{}
 		if v, exist := mock.MockStates[req.StateId]; exist {
-			s, ok := v.([]byte)
-			if ok {
-				state = s
-			} else {
-				// Test setup is incorrect if this happens
-				t.Logf("Warning: The mock provider is set up to return state bytes from the MockStates map, but the mock encountered a value that wasn't a slice of bytes: %#v",
-					mock.MockStates,
-				)
-			}
+			state = v.([]byte) // If this panics, the mock has been set up with a bad MockStates value
 		}
 		return providers.ReadStateBytesResponse{
 			Bytes:       state,
