@@ -532,6 +532,27 @@ The first step in the traversal for a list resource must be an attribute
 	}
 }
 
+func TestValidate_backendBlocks(t *testing.T) {
+	t.Run("invalid when block contains a repeated attribute", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/repeated-attr")
+		if code != 1 {
+			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
+		}
+		if !strings.Contains(output.Stderr(), "Error: Attribute redefined") {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				"Error: Attribute redefined",
+				output.Stderr(),
+			)
+		}
+	})
+
+	// Backend blocks aren't validated using their schemas currently.
+	t.Run("NOT invalid when there's an unknown attribute present", func(t *testing.T) {
+		if output, code := setupTest(t, "invalid-backend-configuration/unknown-attr"); code != 0 {
+			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+		}
+	})
+}
 
 // Resources are validated using their schemas, so unknown or missing required attributes are identified.
 func TestValidate_resourceBlock(t *testing.T) {
