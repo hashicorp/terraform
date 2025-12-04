@@ -30,7 +30,7 @@
             "source": "git::https://example.com/builtin.git",
             "local": "builtin",
             "meta": {}
-        },
+        }
     ],
     "registry": [
         {
