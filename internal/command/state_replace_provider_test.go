@@ -337,13 +337,8 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 		"default": stateBuf.Bytes(),
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
-	})
-	defer close()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
 	c := &StateReplaceProviderCommand{
 		StateMeta{
 			Meta: Meta{
@@ -353,9 +348,7 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 						mockProviderAddress: providers.FactoryFixed(mockProvider),
 					},
 				},
-				ProviderSource: providerSource,
-				Ui:             ui,
-				View:           view,
+				Ui: ui,
 			},
 		},
 	}

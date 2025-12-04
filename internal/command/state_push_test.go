@@ -58,13 +58,8 @@ func TestStatePush_stateStore(t *testing.T) {
 	// Create a mock that doesn't have any internal states.
 	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
-	})
-	defer close()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,
@@ -73,9 +68,7 @@ func TestStatePush_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			ProviderSource: providerSource,
-			Ui:             ui,
-			View:           view,
+			Ui: ui,
 		},
 	}
 

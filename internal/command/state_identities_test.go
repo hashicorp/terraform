@@ -448,10 +448,6 @@ func TestStateIdentities_stateStore(t *testing.T) {
 		"default": stateBytes,
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
-	})
-	defer close()
 
 	ui := cli.NewMockUi()
 	c := &StateIdentitiesCommand{
@@ -462,8 +458,7 @@ func TestStateIdentities_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			ProviderSource: providerSource,
-			Ui:             ui,
+			Ui: ui,
 		},
 	}
 

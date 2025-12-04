@@ -203,10 +203,6 @@ func TestStateList_stateStore(t *testing.T) {
 		"default": stateBuf.Bytes(),
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
-	})
-	defer close()
 
 	ui := cli.NewMockUi()
 	c := &StateListCommand{
@@ -217,8 +213,7 @@ func TestStateList_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			ProviderSource: providerSource,
-			Ui:             ui,
+			Ui: ui,
 		},
 	}
 

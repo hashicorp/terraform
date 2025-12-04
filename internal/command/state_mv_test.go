@@ -207,10 +207,6 @@ func TestStateMv_stateStore(t *testing.T) {
 		"default": stateBuf.Bytes(),
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
-	})
-	defer close()
 
 	// Make the mock assert that the resource has been moved when the new state is persisted
 	oldAddr := "test_instance.foo"
@@ -260,7 +256,6 @@ func TestStateMv_stateStore(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
 			Meta: Meta{
@@ -270,9 +265,7 @@ func TestStateMv_stateStore(t *testing.T) {
 						mockProviderAddress: providers.FactoryFixed(mockProvider),
 					},
 				},
-				ProviderSource: providerSource,
-				Ui:             ui,
-				View:           view,
+				Ui: ui,
 			},
 		},
 	}

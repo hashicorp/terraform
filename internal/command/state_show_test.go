@@ -376,10 +376,6 @@ func TestStateShow_stateStore(t *testing.T) {
 		"default": stateBuf.Bytes(),
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
-	})
-	defer close()
 
 	ui := cli.NewMockUi()
 	streams, done := terminal.StreamsForTesting(t)
@@ -391,9 +387,8 @@ func TestStateShow_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			ProviderSource: providerSource,
-			Ui:             ui,
-			Streams:        streams,
+			Ui:      ui,
+			Streams: streams,
 		},
 	}
 
