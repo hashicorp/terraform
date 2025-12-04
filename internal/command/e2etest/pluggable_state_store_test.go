@@ -42,11 +42,11 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	// Move the provider binaries into a directory that we will point terraform
 	// to using the -plugin-dir cli flag.
 	platform := getproviders.CurrentPlatform.String()
-	hashiDir := "cache/registry.terraform.io/hashicorp/"
-	if err := os.MkdirAll(tf.Path(hashiDir, "simple6/0.0.1/", platform), os.ModePerm); err != nil {
+	fsMirrorPath := "cache/registry.terraform.io/hashicorp/simple6/0.0.1/"
+	if err := os.MkdirAll(tf.Path(fsMirrorPath, platform), os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+	if err := os.Rename(simple6ProviderExe, tf.Path(fsMirrorPath, platform, "terraform-provider-simple6")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -149,13 +149,14 @@ func TestPrimary_stateStore_stateCmds(t *testing.T) {
 	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
 	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
 
-	// Move the provider binaries into the correct directory .terraform/providers/ directory
+	// Move the provider binaries into the correct .terraform/providers/ directory
 	// that will contain provider binaries in an initialized working directory.
 	platform := getproviders.CurrentPlatform.String()
-	if err := os.MkdirAll(tf.Path(".terraform/providers/registry.terraform.io/hashicorp/simple6/0.0.1/", platform), os.ModePerm); err != nil {
+	providerCachePath := ".terraform/providers/registry.terraform.io/hashicorp/simple6/0.0.1/"
+	if err := os.MkdirAll(tf.Path(providerCachePath, platform), os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Rename(simple6ProviderExe, tf.Path(".terraform/providers/registry.terraform.io/hashicorp/simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+	if err := os.Rename(simple6ProviderExe, tf.Path(providerCachePath, platform, "terraform-provider-simple6")); err != nil {
 		t.Fatal(err)
 	}
 
