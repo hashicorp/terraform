@@ -547,17 +547,16 @@ func TestValidate_backendBlocks(t *testing.T) {
 		}
 	})
 
-	// TODO: Should this validation be added?
-	t.Run("NOT invalid when the backend type is unknown", func(t *testing.T) {
+	t.Run("invalid when the backend type is unknown", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-backend-type")
-		if code != 0 {
-			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stderr())
 		}
-		expectedMsg := "Success! The configuration is valid."
-		if !strings.Contains(output.Stdout(), expectedMsg) {
-			t.Fatalf("unexpected output content: wanted %q, got: %s",
-				expectedMsg,
-				output.Stdout(),
+		expectedErr := "Error: Unsupported backend type"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
 			)
 		}
 	})
