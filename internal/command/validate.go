@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -186,6 +187,22 @@ func (c *ValidateCommand) validateBackend(cfg *configs.Backend) tfdiags.Diagnost
 			Detail:   detail,
 			Subject:  &cfg.TypeRange,
 		})
+		return diags
+	}
+
+	b := bf()
+	backendSchema := b.ConfigSchema()
+
+	decSpec := backendSchema.NoneRequired().DecoderSpec()
+	configVal, hclDiags := hcldec.Decode(cfg.Config, decSpec, nil)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return diags
+	}
+
+	_, validateDiags := b.PrepareConfig(configVal)
+	diags = diags.Append(validateDiags)
+	if validateDiags.HasErrors() {
 		return diags
 	}
 

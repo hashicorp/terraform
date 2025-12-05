@@ -562,17 +562,16 @@ func TestValidate_backendBlocks(t *testing.T) {
 	})
 
 	// Backend blocks aren't validated using their schemas currently.
-	// TODO: Should this validation be added?
-	t.Run("NOT invalid when there's an unknown attribute present", func(t *testing.T) {
+	t.Run("invalid when there's an unknown attribute present", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-attr")
-		if code != 0 {
-			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
 		}
-		expectedMsg := "Success! The configuration is valid."
-		if !strings.Contains(output.Stdout(), expectedMsg) {
-			t.Fatalf("unexpected output content: wanted %q, got: %s",
-				expectedMsg,
-				output.Stdout(),
+		expectedErr := "Error: Unsupported argument"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
 			)
 		}
 	})
