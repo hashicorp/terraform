@@ -846,7 +846,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		v := views.NewInit(opts.ViewType, m.View)
 		v.Output(views.InitMessageCode("state_store_unset"), s.StateStore.Type)
 
-		return m.stateStore_c_S(sMgr, "local", localB, opts.ViewType)
+		return m.stateStore_c_S(sMgr, "local", localB, nil, opts.ViewType)
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -895,12 +895,14 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			backendConfig.Type,
 		)
 
-		b, _, moreDiags := m.backendInitFromConfig(backendConfig)
-		diags = diags.Append(moreDiags)
-		if diags.HasErrors() {
+		if !opts.Init {
+			initReason := fmt.Sprintf("Migrating from state store %q to backend %q",
+				s.StateStore.Type, backendConfig.Type)
+			diags = diags.Append(errBackendInitDiag(initReason))
 			return nil, diags
 		}
 
+		b, configVal, moreDiags := m.backendInitFromConfig(backendConfig)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			return nil, diags
@@ -909,7 +911,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		v := views.NewInit(opts.ViewType, m.View)
 		v.Output(views.InitMessageCode("state_store_migrate_backend"), s.StateStore.Type, backendConfig.Type)
 
-		return m.stateStore_c_S(sMgr, backendConfig.Type, b, opts.ViewType)
+		newBackendCfgState := &workdir.BackendConfigState{
+			Type: backendConfig.Type,
+		}
+		newBackendCfgState.SetConfig(configVal, b.ConfigSchema())
+		newBackendCfgState.Hash = uint64(cHash)
+
+		return m.stateStore_c_S(sMgr, backendConfig.Type, b, newBackendCfgState, opts.ViewType)
 
 	// Migration from backend to state store
 	case backendConfig == nil && !s.Backend.Empty() &&
@@ -1932,7 +1940,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 }
 
 // Unconfiguring a state store (moving from state store => backend).
-func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, dstBackendType string, dstBackend backend.Backend, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, dstBackendType string, dstBackend backend.Backend, newBackendState *workdir.BackendConfigState, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	s := ssSMgr.State()
@@ -1963,6 +1971,7 @@ func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, dstBackendType string
 
 	// Remove the stored metadata
 	s.StateStore = nil
+	s.Backend = newBackendState
 	if err := ssSMgr.WriteState(s); err != nil {
 		diags = diags.Append(errStateStoreClearSaved{err})
 		return nil, diags

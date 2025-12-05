@@ -4115,6 +4115,9 @@ func TestInit_stateStore_unset(t *testing.T) {
 		if !s.StateStore.Empty() {
 			t.Fatal("should not have StateStore config")
 		}
+		if !s.Backend.Empty() {
+			t.Fatalf("expected empty Backend config after unsetting state store, found: %#v", s.Backend)
+		}
 	}
 }
 
@@ -4214,6 +4217,9 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 		if !s.StateStore.Empty() {
 			t.Fatal("should not have StateStore config")
 		}
+		if !s.Backend.Empty() {
+			t.Fatalf("expected empty Backend config after unsetting state store, found: %#v", s.Backend)
+		}
 	}
 }
 
@@ -4238,10 +4244,8 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 
 	{
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning first init")
-
-		ui := cli.NewMockUi()
-
 		// Init
+		ui := cli.NewMockUi()
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -4267,10 +4271,12 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-
+	}
+	{
 		// run apply to ensure state isn't empty
 		// to bypass edge case handling which causes empty state to stop migration
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning apply")
+		ui := cli.NewMockUi()
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
@@ -4284,11 +4290,54 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		aCode := cApply.Run([]string{"-auto-approve"})
 		aTestOutput := aDone(t)
 		if aCode != 0 {
-			t.Fatalf("apply failed: \n%s", aTestOutput.All())
+			t.Fatalf("bad: \n%s", aTestOutput.All())
 		}
-		log.Printf("[TRACE] TestInit_stateStore_to_backend: apply complete")
+
 		t.Logf("Apply output:\n%s", aTestOutput.Stdout())
 		t.Logf("Apply errors:\n%s", aTestOutput.Stderr())
+	}
+	{
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning uninitialised apply")
+
+		backendCfg := []byte(`terraform {
+  backend "http" {
+    address = "https://example.com"
+  }
+}
+`)
+		if err := os.WriteFile("main.tf", backendCfg, 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		cApply := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides:          tOverrides,
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+		code := cApply.Run([]string{"-auto-approve"})
+		testOutput := done(t)
+		if code == 0 {
+			t.Fatalf("expected apply to fail: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: apply complete")
+		expectedErr := "Backend initialization required"
+		if !strings.Contains(testOutput.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, testOutput.Stderr())
+		}
+
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: uninitialised apply complete")
+		t.Logf("First run output:\n%s", testOutput.Stdout())
+		t.Logf("First run errors:\n%s", testOutput.Stderr())
+
+		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
+			t.Fatalf("err: %s", err)
+		}
 	}
 	{
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning second init")
@@ -4342,6 +4391,9 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 		if !s.StateStore.Empty() {
 			t.Fatal("should not have StateStore config")
+		}
+		if s.Backend.Empty() {
+			t.Fatalf("expected backend to not be empty")
 		}
 
 		data, err := statefile.Read(bytes.NewBuffer(testBackend.Data))
