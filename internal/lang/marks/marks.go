@@ -50,6 +50,8 @@ func Contains(val cty.Value, mark interface{}) bool {
 	return ret
 }
 
+// FilterDeprecationMarks returns all deprecation marks present in the given
+// cty.ValueMarks.
 func FilterDeprecationMarks(marks cty.ValueMarks) []DeprecationMark {
 	depMarks := []DeprecationMark{}
 	for mark := range marks {
@@ -60,21 +62,19 @@ func FilterDeprecationMarks(marks cty.ValueMarks) []DeprecationMark {
 	return depMarks
 }
 
+// GetDeprecationMarks returns all deprecation marks present on the given
+// cty.Value.
 func GetDeprecationMarks(val cty.Value) []DeprecationMark {
 	_, marks := val.UnmarkDeep()
 	return FilterDeprecationMarks(marks)
-
 }
 
+// RemoveDeprecationMarks returns a copy of the given cty.Value with all
+// deprecation marks removed.
 func RemoveDeprecationMarks(val cty.Value) cty.Value {
-	newVal, marks := val.Unmark()
-	for mark := range marks {
-		if _, ok := mark.(DeprecationMark); ok {
-			continue
-		}
-		newVal = newVal.Mark(mark)
-	}
-	return newVal
+	newVal, pvms := val.UnmarkDeepWithPaths()
+	otherPvms := RemoveAll(pvms, Deprecation)
+	return newVal.MarkWithPaths(otherPvms)
 }
 
 // Sensitive indicates that this value is marked as sensitive in the context of
