@@ -538,18 +538,41 @@ func TestValidate_backendBlocks(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
 		}
-		if !strings.Contains(output.Stderr(), "Error: Attribute redefined") {
+		expectedErr := "Error: Attribute redefined"
+		if !strings.Contains(output.Stderr(), expectedErr) {
 			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				"Error: Attribute redefined",
+				expectedErr,
 				output.Stderr(),
+			)
+		}
+	})
+
+	t.Run("NOT invalid when the backend type is unknown", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/unknown-backend-type")
+		if code != 0 {
+			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stdout())
+		}
+		expectedMsg := "Success! The configuration is valid."
+		if !strings.Contains(output.Stdout(), expectedMsg) {
+			t.Fatalf("unexpected output content: wanted %q, got: %s",
+				expectedMsg,
+				output.Stdout(),
 			)
 		}
 	})
 
 	// Backend blocks aren't validated using their schemas currently.
 	t.Run("NOT invalid when there's an unknown attribute present", func(t *testing.T) {
-		if output, code := setupTest(t, "invalid-backend-configuration/unknown-attr"); code != 0 {
-			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+		output, code := setupTest(t, "invalid-backend-configuration/unknown-attr")
+		if code != 0 {
+			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
+		}
+		expectedMsg := "Success! The configuration is valid."
+		if !strings.Contains(output.Stdout(), expectedMsg) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedMsg,
+				output.Stdout(),
+			)
 		}
 	})
 }
