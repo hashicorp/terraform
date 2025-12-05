@@ -547,6 +547,7 @@ func TestValidate_backendBlocks(t *testing.T) {
 		}
 	})
 
+	// TODO: Should this validation be added?
 	t.Run("NOT invalid when the backend type is unknown", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-backend-type")
 		if code != 0 {
@@ -562,6 +563,7 @@ func TestValidate_backendBlocks(t *testing.T) {
 	})
 
 	// Backend blocks aren't validated using their schemas currently.
+	// TODO: Should this validation be added?
 	t.Run("NOT invalid when there's an unknown attribute present", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-attr")
 		if code != 0 {
