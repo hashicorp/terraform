@@ -481,14 +481,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 				outputVal = outputVal.Mark(marks.Sensitive)
 			}
 
-			outputValIsDeprecated := marks.Has(outputVal, marks.Deprecation)
-			if cfg.DeprecatedSet && outputValIsDeprecated {
-				outputVal = marks.RemoveDeprecationMarks(outputVal)
+			if cfg.DeprecatedSet {
 				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, nil))
-			} else if cfg.DeprecatedSet && !outputValIsDeprecated {
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, nil))
-			} else if !cfg.DeprecatedSet && outputValIsDeprecated {
-				outputVal = marks.RemoveDeprecationMarks(outputVal)
 			}
 			attrs[name] = outputVal
 		}

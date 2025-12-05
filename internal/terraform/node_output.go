@@ -518,12 +518,8 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		return diags
 	}
 
-	if !n.Config.DeprecatedSet && marks.Contains(val, marks.Deprecation) {
-		_, deprecationDiags := ctx.Deprecations().Validate(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
-		diags = diags.Append(deprecationDiags)
-	}
-
 	if n.Config.DeprecatedSet {
+		val = marks.RemoveDeprecationMarks(val)
 		if n.Addr.Module.IsRoot() {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -531,9 +527,10 @@ If you do intend to export this data, annotate the output value as sensitive by 
 				Detail:   "Root module outputs cannot be deprecated, as there is no higher-level module to inform of the deprecation.",
 				Subject:  n.Config.DeprecatedRange.Ptr(),
 			})
-		} else {
-			val = val.Mark(marks.NewDeprecation(n.Config.Deprecated, &n.Config.DeclRange))
 		}
+	} else {
+		_, deprecationDiags := ctx.Deprecations().Validate(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
+		diags = diags.Append(deprecationDiags)
 	}
 
 	n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), val)
