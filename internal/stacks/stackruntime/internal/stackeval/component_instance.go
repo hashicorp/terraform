@@ -411,6 +411,18 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		// via another return path.
 		return noOpResult, diags
 	}
+
+	// During applying we need to ensure all input values are fully known.
+	for name, iv := range inputValues {
+		if !iv.Value.IsWhollyKnown() {
+			diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error, "Unknown value passed to component input", "Don't do that!", cty.GetAttrPath("inputs").GetAttr(name)))
+		}
+	}
+
+	if diags.HasErrors() {
+		return noOpResult, diags
+	}
+
 	// UGH: the "modules runtime"'s model of planning was designed around
 	// the goal of producing a traditional Terraform CLI-style saved plan
 	// file and so it has the input variable values already encoded as
