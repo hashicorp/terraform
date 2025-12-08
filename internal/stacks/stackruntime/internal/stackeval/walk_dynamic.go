@@ -101,7 +101,9 @@ func walkDynamicObjectsInStack[Output any](
 	for _, variable := range stack.InputVariables() {
 		visit(ctx, walk, variable)
 	}
-	// TODO: Local values
+	for _, localValue := range stack.LocalValues() {
+		visit(ctx, walk, localValue)
+	}
 	for _, output := range stack.OutputValues() {
 		visit(ctx, walk, output)
 	}
