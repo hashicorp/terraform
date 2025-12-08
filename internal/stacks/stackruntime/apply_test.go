@@ -4795,6 +4795,139 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 	}
 }
 
+// Reproduction for https://hashicorp.atlassian.net/browse/GNSE-273
+func TestApplyWithUnknownValueError(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "invalid-local"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	autoBranchVal := cty.ObjectVal(map[string]cty.Value{
+		"enable_auto_build": cty.True,
+		"environment_variables": cty.MapVal(map[string]cty.Value{
+			"BUILD_VERSION": cty.StringVal("3.141"),
+		}),
+		"secrets": cty.MapVal(map[string]cty.Value{
+			"ANSWER_TO_EVERYTHING": cty.StringVal("fourtytwo"),
+		}),
+	})
+
+	planReq := PlanRequest{
+		PlanMode: plans.NormalMode,
+
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			stackaddrs.InputVariable{Name: "auto_branch_creation_config"}: {Value: autoBranchVal},
+		},
+
+		// We previsously had this applied already, we want to make sure nothing is deleted
+		// from state by accident
+		PrevState: stackstate.NewStateBuilder().
+			AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+				SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.data")).
+				SetProviderAddr(mustDefaultRootProvider("testing")).
+				SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+					SchemaVersion: 0,
+					AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+						"id":    "static-id",
+						"value": "{}",
+					}),
+					Status: states.ObjectReady,
+				})).
+			Build(),
+	}
+
+	planChangesCh := make(chan stackplan.PlannedChange)
+	planDiagsCh := make(chan tfdiags.Diagnostic)
+	planResp := PlanResponse{
+		PlannedChanges: planChangesCh,
+		Diagnostics:    planDiagsCh,
+	}
+
+	go Plan(ctx, &planReq, &planResp)
+	planChanges, planDiags := collectPlanOutput(planChangesCh, planDiagsCh)
+	if len(planDiags) > 0 {
+		t.Fatalf("unexpected diagnostics during planning: %s", planDiags)
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	applyReq := ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	applyDiagsCh := make(chan tfdiags.Diagnostic)
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    applyDiagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, applyDiagsCh)
+	if len(applyDiags) > 0 {
+		t.Fatalf("unexpected diagnostics during apply: %s", applyDiags)
+	}
+
+	tfdiags.AssertDiagnosticsMatch(t, applyDiags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Unknown value used in during apply",
+	}))
+
+	// We failed, so we don't expect any changes to have been applied
+	wantChanges := []stackstate.AppliedChange{}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
 func collectApplyOutput(changesCh <-chan stackstate.AppliedChange, diagsCh <-chan tfdiags.Diagnostic) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	var changes []stackstate.AppliedChange
 	var diags tfdiags.Diagnostics
