@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'stacks: surface runtime issues with local values to user during plan'
+time: 2025-12-08T17:02:59.971622+01:00
+custom:
+    Issue: "37980"
