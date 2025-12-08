@@ -4907,13 +4907,11 @@ func TestApplyWithUnknownValueError(t *testing.T) {
 
 	go Apply(ctx, &applyReq, &applyResp)
 	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, applyDiagsCh)
-	if len(applyDiags) > 0 {
-		t.Fatalf("unexpected diagnostics during apply: %s", applyDiags)
-	}
 
 	tfdiags.AssertDiagnosticsMatch(t, applyDiags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
-		Summary:  "Unknown value used in during apply",
+		Summary:  "Configuration contains unknown value",
+		Detail:   "configuration for testing_resource.data still contains unknown values during apply (this is a bug in Terraform; please report it",
 	}))
 
 	// We failed, so we don't expect any changes to have been applied

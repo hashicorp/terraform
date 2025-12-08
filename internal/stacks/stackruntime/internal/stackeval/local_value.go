@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -28,6 +29,7 @@ type LocalValue struct {
 
 var _ Referenceable = (*LocalValue)(nil)
 var _ Plannable = (*LocalValue)(nil)
+var _ Validatable = (*LocalValue)(nil)
 
 func newLocalValue(main *Main, addr stackaddrs.AbsLocalValue, stack *Stack, config *LocalValueConfig) *LocalValue {
 	return &LocalValue{
@@ -50,6 +52,8 @@ func (v *LocalValue) ExprReferenceValue(ctx context.Context, phase EvalPhase) ct
 
 func (v *LocalValue) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+
+	fmt.Printf("check valid called for %s:", v.addr.String())
 
 	_, moreDiags := v.CheckValue(ctx, phase)
 	diags = diags.Append(moreDiags)
@@ -77,6 +81,7 @@ func (v *LocalValue) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value
 
 // PlanChanges implements Plannable as a plan-time validation of the local value
 func (v *LocalValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	fmt.Printf("PlanChanges called for LocalValue:", v.addr.String())
 	return nil, v.checkValid(ctx, PlanPhase)
 }
 
@@ -95,4 +100,9 @@ func (v *LocalValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChange
 
 func (v *LocalValue) tracingName() string {
 	return v.addr.String()
+}
+
+// Validate implements Validatable.
+func (v *LocalValue) Validate(ctx context.Context) tfdiags.Diagnostics {
+	return v.checkValid(ctx, PlanPhase)
 }
