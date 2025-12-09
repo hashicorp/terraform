@@ -188,7 +188,7 @@ func testPlan(t *testing.T) *plans.Plan {
 	}
 
 	return &plans.Plan{
-		Backend: &plans.Backend{
+		Backend: plans.Backend{
 			// This is just a placeholder so that the plan file can be written
 			// out. Caller may wish to override it to something more "real"
 			// where the plan will actually be subsequently applied.
@@ -657,10 +657,7 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 	// Copy the data from the reader to the pipe
 	go func() {
 		defer w.Close()
-		_, err := io.Copy(w, src)
-		if err != nil {
-			t.Errorf("error when copying data from testStdinPipe reader argument to stdin: %s", err)
-		}
+		io.Copy(w, src)
 	}()
 
 	return func() {

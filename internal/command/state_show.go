@@ -48,10 +48,9 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(backendDiags)
 		return 1
 	}
 
@@ -149,7 +148,6 @@ func (c *StateShowCommand) Run(args []string) int {
 	root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(singleInstance, "", 0), schemas)
 	if err != nil {
 		c.Streams.Eprintf("Failed to marshal state to json: %s", err)
-		return 1
 	}
 
 	jstate := jsonformat.State{

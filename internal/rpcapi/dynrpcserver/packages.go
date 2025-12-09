@@ -14,7 +14,6 @@ import (
 type Packages struct {
 	impl packages.PackagesServer
 	mu   sync.RWMutex
-	packages.UnimplementedPackagesServer
 }
 
 var _ packages.PackagesServer = (*Packages)(nil)

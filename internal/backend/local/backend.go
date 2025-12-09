@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -206,7 +207,7 @@ func (b *Local) Workspaces() ([]string, tfdiags.Diagnostics) {
 	// the listing always start with "default"
 	envs := []string{backend.DefaultStateName}
 
-	entries, err := os.ReadDir(b.stateWorkspaceDir())
+	entries, err := ioutil.ReadDir(b.stateWorkspaceDir())
 	// no error if there's no envs configured
 	if os.IsNotExist(err) {
 		return envs, nil

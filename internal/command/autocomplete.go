@@ -4,7 +4,6 @@
 package command
 
 import (
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/posener/complete"
 )
 
@@ -49,18 +48,19 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 			return nil
 		}
 
-		b, diags := m.backend(configPath, arguments.ViewHuman)
+		backendConfig, diags := m.loadBackendConfig(configPath)
+		if diags.HasErrors() {
+			return nil
+		}
+
+		b, diags := m.Backend(&BackendOpts{
+			BackendConfig: backendConfig,
+		})
 		if diags.HasErrors() {
 			return nil
 		}
 
 		names, _ := b.Workspaces()
-		if len(names) == 0 {
-			// Presence of the "default" isn't always guaranteed
-			// Backends will report it as always existing, pluggable
-			// state stores will only do so if it _actually_ exists.
-			return nil
-		}
 		return names
 	})
 }

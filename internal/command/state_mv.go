@@ -92,8 +92,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Read the from state
-	view := arguments.ViewHuman
-	stateFromMgr, err := c.State(view)
+	stateFromMgr, err := c.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -131,7 +130,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		c.statePath = statePathOut
 		c.backupPath = backupPathOut
 
-		stateToMgr, err = c.State(view)
+		stateToMgr, err = c.State()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return 1
@@ -392,8 +391,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.Backend(nil)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

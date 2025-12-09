@@ -4,11 +4,8 @@
 package grpcwrap
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"io"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -17,9 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/hashicorp/terraform/internal/backend/pluggable/chunks"
-	proto6 "github.com/hashicorp/terraform/internal/tfplugin6"
 
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -37,16 +31,10 @@ func Provider6(p providers.Interface) tfplugin6.ProviderServer {
 	}
 }
 
-var _ tfplugin6.ProviderServer = &provider6{}
-
 type provider6 struct {
 	provider        providers.Interface
 	schema          providers.GetProviderSchemaResponse
 	identitySchemas providers.GetResourceIdentitySchemasResponse
-
-	chunkSize int64
-
-	tfplugin6.UnimplementedProviderServer
 }
 
 func (p *provider6) GetMetadata(_ context.Context, req *tfplugin6.GetMetadata_Request) (*tfplugin6.GetMetadata_Response, error) {
@@ -912,267 +900,19 @@ func (p *provider6) ListResource(req *tfplugin6.ListResource_Request, res tfplug
 }
 
 func (p *provider6) ValidateStateStoreConfig(ctx context.Context, req *tfplugin6.ValidateStateStore_Request) (*tfplugin6.ValidateStateStore_Response, error) {
-	resp := &tfplugin6.ValidateStateStore_Response{}
-
-	s, ok := p.schema.StateStores[req.TypeName]
-	if !ok {
-		diag := &tfplugin6.Diagnostic{
-			Severity: tfplugin6.Diagnostic_ERROR,
-			Summary:  "Unsupported state store type",
-			Detail:   fmt.Sprintf("This provider doesn't include a state store called %q", req.TypeName),
-		}
-		resp.Diagnostics = append(resp.Diagnostics, diag)
-		return resp, nil
-	}
-	ty := s.Body.ImpliedType()
-
-	configVal, err := decodeDynamicValue6(req.Config, ty)
-	if err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
-	}
-
-	prepareResp := p.provider.ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest{
-		TypeName: req.TypeName,
-		Config:   configVal,
-	})
-
-	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, prepareResp.Diagnostics)
-	return resp, nil
+	panic("not implemented")
 }
 
 func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.ConfigureStateStore_Request) (*tfplugin6.ConfigureStateStore_Response, error) {
-	resp := &tfplugin6.ConfigureStateStore_Response{}
-
-	s, ok := p.schema.StateStores[req.TypeName]
-	if !ok {
-		diag := &tfplugin6.Diagnostic{
-			Severity: tfplugin6.Diagnostic_ERROR,
-			Summary:  "Unsupported state store type",
-			Detail:   fmt.Sprintf("This provider doesn't include a state store called %q", req.TypeName),
-		}
-		resp.Diagnostics = append(resp.Diagnostics, diag)
-		return resp, nil
-	}
-	ty := s.Body.ImpliedType()
-
-	configVal, err := decodeDynamicValue6(req.Config, ty)
-	if err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
-	}
-
-	configureResp := p.provider.ConfigureStateStore(providers.ConfigureStateStoreRequest{
-		TypeName: req.TypeName,
-		Config:   configVal,
-		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: chunks.DefaultStateStoreChunkSize,
-		},
-	})
-
-	// Validate the returned chunk size value
-	if configureResp.Capabilities.ChunkSize == 0 || configureResp.Capabilities.ChunkSize > chunks.MaxStateStoreChunkSize {
-		diag := &tfplugin6.Diagnostic{
-			Severity: tfplugin6.Diagnostic_ERROR,
-			Summary:  "Failed to negotiate acceptable chunk size",
-			Detail: fmt.Sprintf("Expected size > 0 and <= %d bytes, provider wants %d bytes",
-				chunks.MaxStateStoreChunkSize, configureResp.Capabilities.ChunkSize),
-		}
-		resp.Diagnostics = append(resp.Diagnostics, diag)
-		return resp, nil
-	}
-
-	// If this isn't present, chunk size is 0 and downstream code
-	// acts like there is no state at all.
-	p.chunkSize = configureResp.Capabilities.ChunkSize
-
-	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, configureResp.Diagnostics)
-	resp.Capabilities = &tfplugin6.StateStoreServerCapabilities{
-		ChunkSize: configureResp.Capabilities.ChunkSize,
-	}
-	return resp, nil
-}
-
-func (p *provider6) ReadStateBytes(req *tfplugin6.ReadStateBytes_Request, srv tfplugin6.Provider_ReadStateBytesServer) error {
-	stateReadResp := p.provider.ReadStateBytes(providers.ReadStateBytesRequest{
-		TypeName: req.TypeName,
-		StateId:  req.StateId,
-	})
-
-	state := stateReadResp.Bytes
-	reader := bytes.NewReader(state)
-	totalLength := reader.Size() // length in bytes
-	rangeStart := 0
-
-	for {
-		var diags []*proto6.Diagnostic
-		readBytes := make([]byte, p.chunkSize)
-		byteCount, err := reader.Read(readBytes)
-		if err != nil && !errors.Is(err, io.EOF) {
-			diags := []*proto6.Diagnostic{
-				{
-					Severity: proto6.Diagnostic_ERROR,
-					Summary:  "Error reading from state file",
-					Detail: fmt.Sprintf("State store %s experienced an error when reading from the state file for workspace %s: %s",
-						req.TypeName,
-						req.StateId,
-						err,
-					),
-				},
-			}
-			err := srv.Send(&proto6.ReadStateBytes_Response{
-				// Zero values accompany the error diagnostic
-				Bytes:       nil,
-				TotalLength: 0,
-				Range: &proto6.StateRange{
-					Start: 0,
-					End:   0,
-				},
-				Diagnostics: diags,
-			})
-			if err != nil {
-				return err
-			}
-		}
-
-		if byteCount == 0 {
-			// The previous iteration read the last byte of the data.
-			return nil
-		}
-
-		err = srv.Send(&proto6.ReadStateBytes_Response{
-			Bytes:       readBytes[0:byteCount],
-			TotalLength: int64(totalLength),
-			Range: &proto6.StateRange{
-				Start: int64(rangeStart),
-				End:   int64(rangeStart + byteCount),
-			},
-			Diagnostics: diags,
-		})
-		if err != nil {
-			return err
-		}
-
-		// Track progress to ensure Range values are correct.
-		rangeStart += byteCount
-	}
-}
-
-func (p *provider6) WriteStateBytes(srv tfplugin6.Provider_WriteStateBytesServer) error {
-	var typeName string
-	var stateId string
-
-	state := bytes.Buffer{}
-	var grpcErr error
-	var totalReceivedBytes int
-	var expectedTotalLength int64
-	for {
-		chunk, err := srv.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			grpcErr = fmt.Errorf("wrapped err: %w", err)
-			break
-		}
-		if expectedTotalLength == 0 {
-			// On the first iteration
-			expectedTotalLength = chunk.TotalLength // record expected length
-			if chunk.Meta != nil {
-				// We expect the Meta to be set on the first message, only
-				typeName = chunk.Meta.TypeName
-				stateId = chunk.Meta.StateId
-			} else {
-				panic("expected Meta to be set on first chunk sent to WriteStateBytes")
-			}
-		}
-
-		n, err := state.Write(chunk.Bytes)
-		if err != nil {
-			return fmt.Errorf("error writing state: %w", err)
-		}
-		totalReceivedBytes += n
-	}
-
-	if grpcErr != nil {
-		return grpcErr
-	}
-
-	if int64(totalReceivedBytes) != expectedTotalLength {
-		return fmt.Errorf("expected to receive state in %d bytes, actually received %d bytes", expectedTotalLength, totalReceivedBytes)
-	}
-
-	if totalReceivedBytes == 0 {
-		// Even an empty state file has content; no bytes is not valid
-		return errors.New("No state data received from Terraform: No state data was received from Terraform. This is a bug and should be reported.")
-	}
-
-	resp := p.provider.WriteStateBytes(providers.WriteStateBytesRequest{
-		StateId:  stateId,
-		TypeName: typeName,
-		Bytes:    state.Bytes(),
-	})
-
-	err := srv.SendAndClose(&proto6.WriteStateBytes_Response{
-		Diagnostics: convert.AppendProtoDiag([]*proto6.Diagnostic{}, resp.Diagnostics),
-	})
-
-	return err
-}
-
-func (p *provider6) LockState(ctx context.Context, req *tfplugin6.LockState_Request) (*tfplugin6.LockState_Response, error) {
-	lockResp := p.provider.LockState(providers.LockStateRequest{
-		TypeName:  req.TypeName,
-		StateId:   req.StateId,
-		Operation: req.Operation,
-	})
-
-	resp := &tfplugin6.LockState_Response{
-		LockId:      lockResp.LockId,
-		Diagnostics: convert.AppendProtoDiag([]*proto6.Diagnostic{}, lockResp.Diagnostics),
-	}
-
-	return resp, nil
-}
-
-func (p *provider6) UnlockState(ctx context.Context, req *tfplugin6.UnlockState_Request) (*tfplugin6.UnlockState_Response, error) {
-	unlockResp := p.provider.UnlockState(providers.UnlockStateRequest{
-		TypeName: req.TypeName,
-		StateId:  req.StateId,
-		LockId:   req.LockId,
-	})
-
-	resp := &tfplugin6.UnlockState_Response{
-		Diagnostics: convert.AppendProtoDiag([]*proto6.Diagnostic{}, unlockResp.Diagnostics),
-	}
-
-	return resp, nil
+	panic("not implemented")
 }
 
 func (p *provider6) GetStates(ctx context.Context, req *tfplugin6.GetStates_Request) (*tfplugin6.GetStates_Response, error) {
-	getStatesResp := p.provider.GetStates(providers.GetStatesRequest{
-		TypeName: req.TypeName,
-	})
-
-	resp := &tfplugin6.GetStates_Response{
-		StateId:     getStatesResp.States,
-		Diagnostics: convert.AppendProtoDiag([]*tfplugin6.Diagnostic{}, getStatesResp.Diagnostics),
-	}
-
-	return resp, nil
+	panic("not implemented")
 }
 
 func (p *provider6) DeleteState(ctx context.Context, req *tfplugin6.DeleteState_Request) (*tfplugin6.DeleteState_Response, error) {
-	deleteStatesResp := p.provider.DeleteState(providers.DeleteStateRequest{
-		TypeName: req.TypeName,
-		StateId:  req.StateId,
-	})
-
-	resp := &tfplugin6.DeleteState_Response{
-		Diagnostics: convert.AppendProtoDiag([]*tfplugin6.Diagnostic{}, deleteStatesResp.Diagnostics),
-	}
-
-	return resp, nil
+	panic("not implemented")
 }
 
 func (p *provider6) PlanAction(_ context.Context, req *tfplugin6.PlanAction_Request) (*tfplugin6.PlanAction_Response, error) {

@@ -2792,8 +2792,6 @@ lifecycle {
 var _ Hook = (*actionHookCapture)(nil)
 
 type actionHookCapture struct {
-	NilHook
-
 	mu                  *sync.Mutex
 	startActionHooks    []HookActionIdentity
 	completeActionHooks []HookActionIdentity
@@ -2804,6 +2802,89 @@ func newActionHookCapture() actionHookCapture {
 		mu: &sync.Mutex{},
 	}
 }
+
+func (a *actionHookCapture) PreApply(HookResourceIdentity, addrs.DeposedKey, plans.Action, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostApply(HookResourceIdentity, addrs.DeposedKey, cty.Value, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreDiff(HookResourceIdentity, addrs.DeposedKey, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostDiff(HookResourceIdentity, addrs.DeposedKey, plans.Action, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreProvisionInstance(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostProvisionInstance(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreProvisionInstanceStep(HookResourceIdentity, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostProvisionInstanceStep(HookResourceIdentity, string, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) ProvisionOutput(HookResourceIdentity, string, string) {}
+
+func (a *actionHookCapture) PreRefresh(HookResourceIdentity, addrs.DeposedKey, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostRefresh(HookResourceIdentity, addrs.DeposedKey, cty.Value, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreImportState(HookResourceIdentity, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostImportState(HookResourceIdentity, []providers.ImportedResource) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PrePlanImport(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostPlanImport(HookResourceIdentity, []providers.ImportedResource) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreApplyImport(HookResourceIdentity, plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostApplyImport(HookResourceIdentity, plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreEphemeralOp(HookResourceIdentity, plans.Action) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostEphemeralOp(HookResourceIdentity, plans.Action, error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PreListQuery(HookResourceIdentity, cty.Value) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) PostListQuery(HookResourceIdentity, plans.QueryResults, int64) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
 func (a *actionHookCapture) StartAction(identity HookActionIdentity) (HookAction, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -2819,6 +2900,12 @@ func (a *actionHookCapture) CompleteAction(identity HookActionIdentity, _ error)
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.completeActionHooks = append(a.completeActionHooks, identity)
+	return HookActionContinue, nil
+}
+
+func (a *actionHookCapture) Stopping() {}
+
+func (a *actionHookCapture) PostStateUpdate(*states.State) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

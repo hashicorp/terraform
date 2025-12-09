@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
@@ -203,13 +202,6 @@ func TestStateDeepCopy(t *testing.T) {
 			Private:             []byte("private data"),
 			Dependencies:        []addrs.ConfigResource{},
 			CreateBeforeDestroy: true,
-
-			// these may or may not be copied, but should not affect equality of
-			// the resources.
-			decodeValueCache: cty.ObjectVal(map[string]cty.Value{
-				"woozles": cty.StringVal("confuzles"),
-			}),
-			decodeIdentityCache: cty.DynamicVal,
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -249,33 +241,10 @@ func TestStateDeepCopy(t *testing.T) {
 	)
 
 	state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+
 	stateCopy := state.DeepCopy()
 	if !state.Equal(stateCopy) {
 		t.Fatalf("\nexpected:\n%q\ngot:\n%q\n", state, stateCopy)
-	}
-
-	// this is implied by the above, but has previously used a different
-	// codepath for comparison.
-	if !state.ManagedResourcesEqual(stateCopy) {
-		t.Fatalf("\nexpected managed resources to be equal:\n%q\ngot:\n%q\n", state, stateCopy)
-	}
-
-	// remove the cached values and ensure equality still holds
-	for _, mod := range stateCopy.Modules {
-		for _, res := range mod.Resources {
-			for _, inst := range res.Instances {
-				inst.Current.decodeValueCache = cty.NilVal
-				inst.Current.decodeIdentityCache = cty.NilVal
-			}
-		}
-	}
-
-	if !state.Equal(stateCopy) {
-		t.Fatalf("\nexpected:\n%q\ngot:\n%q\n", state, stateCopy)
-	}
-
-	if !state.ManagedResourcesEqual(stateCopy) {
-		t.Fatalf("\nexpected managed resources to be equal:\n%q\ngot:\n%q\n", state, stateCopy)
 	}
 }
 
@@ -368,18 +337,6 @@ func TestStateHasResourceInstanceObjects(t *testing.T) {
 				s := ss.Lock()
 				delete(s.Modules[""].Resources["test.foo"].Instances, addrs.NoKey)
 				ss.Unlock()
-				done := make(chan struct{})
-				go func() {
-					ss.Lock()
-					ss.Unlock()
-					close(done)
-				}()
-				select {
-				case <-done:
-					// OK: lock was released
-				case <-time.After(500 * time.Millisecond):
-					t.Fatalf("Unlock did not release SyncState lock (timed out acquiring lock again)")
-				}
 			},
 			false,
 		},
@@ -1050,70 +1007,6 @@ func TestState_MoveModule(t *testing.T) {
 			t.Fatal("nested child module of src wasn't moved")
 		}
 	})
-}
-
-func TestState_ProviderAddrs(t *testing.T) {
-	// 1) nil state
-	var nilState *State
-	if got := nilState.ProviderAddrs(); got != nil {
-		t.Fatalf("nil state: expected nil, got %#v", got)
-	}
-
-	// 2) empty state
-	empty := NewState()
-	if got := empty.ProviderAddrs(); got != nil {
-		t.Fatalf("empty state: expected nil, got %#v", got)
-	}
-
-	// 3) populated state
-	s := NewState()
-
-	rootAWS := addrs.AbsProviderConfig{
-		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("aws"),
-	}
-	rootGoogle := addrs.AbsProviderConfig{
-		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("google"),
-	}
-	childAWS := addrs.AbsProviderConfig{
-		Module:   addrs.RootModule.Child("child"),
-		Provider: addrs.NewDefaultProvider("aws"),
-	}
-
-	rm := s.RootModule()
-	rm.SetResourceInstanceCurrent(
-		addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Instance(addrs.NoKey),
-		&ResourceInstanceObjectSrc{Status: ObjectReady, SchemaVersion: 1, AttrsJSON: []byte(`{}`)},
-		rootAWS,
-	)
-
-	rm.SetResourceInstanceCurrent(
-		addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "bar"}.Instance(addrs.NoKey),
-		&ResourceInstanceObjectSrc{Status: ObjectReady, SchemaVersion: 1, AttrsJSON: []byte(`{}`)},
-		rootAWS,
-	)
-
-	rm.SetResourceInstanceCurrent(
-		addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "baz"}.Instance(addrs.NoKey),
-		&ResourceInstanceObjectSrc{Status: ObjectReady, SchemaVersion: 1, AttrsJSON: []byte(`{}`)},
-		rootGoogle,
-	)
-
-	childMI := addrs.RootModuleInstance.Child("child", addrs.NoKey)
-	cm := s.EnsureModule(childMI)
-	cm.SetResourceInstanceCurrent(
-		addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "child"}.Instance(addrs.NoKey),
-		&ResourceInstanceObjectSrc{Status: ObjectReady, SchemaVersion: 1, AttrsJSON: []byte(`{}`)},
-		childAWS,
-	)
-
-	got := s.ProviderAddrs()
-	expected := []addrs.AbsProviderConfig{childAWS, rootAWS, rootGoogle}
-
-	if !reflect.DeepEqual(got, expected) {
-		t.Fatalf("unexpected provider addrs\nexpected: %#v\ngot: %#v", expected, got)
-	}
 }
 
 func mustParseModuleInstanceStr(str string) addrs.ModuleInstance {

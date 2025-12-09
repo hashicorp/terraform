@@ -5,11 +5,8 @@ package testing
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 	"sync"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -19,7 +16,6 @@ import (
 )
 
 var _ providers.Interface = (*MockProvider)(nil)
-var _ providers.StateStoreChunkSizeSetter = (*MockProvider)(nil)
 
 // MockProvider implements providers.Interface but mocks out all the
 // calls for testing purposes.
@@ -149,34 +145,6 @@ type MockProvider struct {
 	ConfigureStateStoreResponse *providers.ConfigureStateStoreResponse
 	ConfigureStateStoreRequest  providers.ConfigureStateStoreRequest
 	ConfigureStateStoreFn       func(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse
-
-	ReadStateBytesCalled   bool
-	ReadStateBytesRequest  providers.ReadStateBytesRequest
-	ReadStateBytesFn       func(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse
-	ReadStateBytesResponse providers.ReadStateBytesResponse
-
-	WriteStateBytesCalled   bool
-	WriteStateBytesRequest  providers.WriteStateBytesRequest
-	WriteStateBytesFn       func(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse
-	WriteStateBytesResponse providers.WriteStateBytesResponse
-
-	// See providers.StateStoreChunkSizeSetter interface
-	SetStateStoreChunkSizeCalled bool
-	SetStateStoreChunkSizeFn     func(string, int)
-
-	LockStateCalled   bool
-	LockStateResponse providers.LockStateResponse
-	LockStateRequest  providers.LockStateRequest
-	LockStateFn       func(providers.LockStateRequest) providers.LockStateResponse
-
-	UnlockStateCalled   bool
-	UnlockStateResponse providers.UnlockStateResponse
-	UnlockStateRequest  providers.UnlockStateRequest
-	UnlockStateFn       func(providers.UnlockStateRequest) providers.UnlockStateResponse
-
-	// MockStates is an internal field that tracks which workspaces have been created in a test
-	// The map keys are state ids (workspaces) and the value depends on the test.
-	MockStates map[string]interface{}
 
 	GetStatesCalled   bool
 	GetStatesResponse *providers.GetStatesResponse
@@ -334,65 +302,6 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 	}
 
 	return resp
-}
-
-func (p *MockProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
-	p.Lock()
-	defer p.Unlock()
-	p.ReadStateBytesCalled = true
-	p.ReadStateBytesRequest = r
-
-	if p.ReadStateBytesFn != nil {
-		return p.ReadStateBytesFn(r)
-	}
-
-	return p.ReadStateBytesResponse
-}
-
-func (p *MockProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
-	p.Lock()
-	defer p.Unlock()
-	p.WriteStateBytesCalled = true
-	p.WriteStateBytesRequest = r
-
-	if p.WriteStateBytesFn != nil {
-		return p.WriteStateBytesFn(r)
-	}
-
-	// If we haven't already, record in the mock that
-	// the matching workspace exists
-	if p.MockStates == nil {
-		p.MockStates = make(map[string]interface{})
-	}
-	p.MockStates[r.StateId] = true
-
-	return p.WriteStateBytesResponse
-}
-
-func (p *MockProvider) LockState(r providers.LockStateRequest) (resp providers.LockStateResponse) {
-	p.Lock()
-	defer p.Unlock()
-	p.LockStateCalled = true
-	p.LockStateRequest = r
-
-	if p.LockStateFn != nil {
-		return p.LockStateFn(r)
-	}
-
-	return p.LockStateResponse
-}
-
-func (p *MockProvider) UnlockState(r providers.UnlockStateRequest) (resp providers.UnlockStateResponse) {
-	p.Lock()
-	defer p.Unlock()
-	p.UnlockStateCalled = true
-	p.UnlockStateRequest = r
-
-	if p.UnlockStateFn != nil {
-		return p.UnlockStateFn(r)
-	}
-
-	return p.UnlockStateResponse
 }
 
 func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
@@ -1087,8 +996,11 @@ func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 		return p.GetStatesFn(r)
 	}
 
-	// When no custom logic is provided to the mock, return the internal states list
-	resp.States = slices.Sorted(maps.Keys(p.MockStates))
+	// If the mock has no further inputs, return an empty list.
+	// The state store should be reporting a minimum of the default workspace usually,
+	// but this should be achieved by querying data storage and identifying the artifact
+	// for that workspace, and reporting that the workspace exists.
+	resp.States = []string{}
 
 	return resp
 }
@@ -1115,16 +1027,7 @@ func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp provide
 		return p.DeleteStateFn(r)
 	}
 
-	// When no custom logic is provided to the mock, delete matching internal state
-	if _, match := p.MockStates[r.StateId]; match {
-		delete(p.MockStates, r.StateId)
-	} else {
-		resp.Diagnostics.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Workspace cannot be deleted",
-			Detail:   fmt.Sprintf("The workspace %q does not exist, so cannot be deleted", r.StateId),
-		})
-	}
+	// There's no logic we can include here in the absence of other fields on the mock.
 
 	// If the response contains no diagnostics then the deletion is assumed to be successful.
 	return resp
@@ -1148,7 +1051,7 @@ func (p *MockProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 	return resp
 }
 
-func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) providers.InvokeActionResponse {
+func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) (resp providers.InvokeActionResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -1163,21 +1066,7 @@ func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) providers.I
 		return *p.InvokeActionResponse
 	}
 
-	events := []providers.InvokeActionEvent{
-		providers.InvokeActionEvent_Progress{
-			Message: "Hello world!",
-		},
-		providers.InvokeActionEvent_Completed{},
-	}
-	return providers.InvokeActionResponse{
-		Events: func(yield func(providers.InvokeActionEvent) bool) {
-			for _, event := range events {
-				if !yield(event) {
-					return
-				}
-			}
-		},
-	}
+	return resp
 }
 
 func (p *MockProvider) Close() error {
@@ -1219,13 +1108,4 @@ func (p *MockProvider) ValidateActionConfig(r providers.ValidateActionConfigRequ
 	}
 
 	return resp
-}
-
-func (p *MockProvider) SetStateStoreChunkSize(storeType string, chunkSize int) {
-	p.SetStateStoreChunkSizeCalled = true
-	if p.SetStateStoreChunkSizeFn != nil {
-		p.SetStateStoreChunkSizeFn(storeType, chunkSize)
-	}
-
-	// If there's no function to use above we do nothing
 }

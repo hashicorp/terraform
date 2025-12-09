@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -26,7 +25,7 @@ type StateMeta struct {
 // the backend, but changes the way that backups are done. This configures
 // backups to be timestamped rather than just the original state path plus a
 // backup path.
-func (c *StateMeta) State(view arguments.ViewType) (statemgr.Full, error) {
+func (c *StateMeta) State() (statemgr.Full, error) {
 	var realState statemgr.Full
 	backupPath := c.backupPath
 	stateOutPath := c.statePath
@@ -35,11 +34,10 @@ func (c *StateMeta) State(view arguments.ViewType) (statemgr.Full, error) {
 	if c.statePath != "" {
 		realState = statemgr.NewFilesystem(c.statePath)
 	} else {
-
 		// Load the backend
-		b, diags := c.backend(".", view)
-		if diags.HasErrors() {
-			return nil, diags.Err()
+		b, backendDiags := c.Backend(nil)
+		if backendDiags.HasErrors() {
+			return nil, backendDiags.Err()
 		}
 
 		workspace, err := c.Workspace()

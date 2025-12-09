@@ -120,7 +120,7 @@ func TestValidateFailingCommandMissingVariable(t *testing.T) {
 	}
 }
 
-func TestSameProviderMultipleTimesShouldFail(t *testing.T) {
+func TestSameProviderMutipleTimesShouldFail(t *testing.T) {
 	output, code := setupTest(t, "validate-invalid/multiple_providers")
 	if code != 1 {
 		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
@@ -530,105 +530,4 @@ The first step in the traversal for a list resource must be an attribute
 			}
 		})
 	}
-}
-
-func TestValidate_backendBlocks(t *testing.T) {
-	t.Run("invalid when block contains a repeated attribute", func(t *testing.T) {
-		output, code := setupTest(t, "invalid-backend-configuration/repeated-attr")
-		if code != 1 {
-			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
-		}
-		if !strings.Contains(output.Stderr(), "Error: Attribute redefined") {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				"Error: Attribute redefined",
-				output.Stderr(),
-			)
-		}
-	})
-
-	// Backend blocks aren't validated using their schemas currently.
-	t.Run("NOT invalid when there's an unknown attribute present", func(t *testing.T) {
-		if output, code := setupTest(t, "invalid-backend-configuration/unknown-attr"); code != 0 {
-			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
-		}
-	})
-}
-
-// Resources are validated using their schemas, so unknown or missing required attributes are identified.
-func TestValidate_resourceBlock(t *testing.T) {
-	t.Run("invalid when block contains a repeated attribute", func(t *testing.T) {
-		output, code := setupTest(t, "invalid-resource-configuration/repeated-attr")
-		if code != 1 {
-			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Attribute redefined"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when there's an unknown attribute present", func(t *testing.T) {
-		output, code := setupTest(t, "invalid-resource-configuration/unknown-attr")
-		if code != 1 {
-			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Unsupported argument"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when a required attribute is unset", func(t *testing.T) {
-		view, done := testView(t)
-		p := testProvider()
-		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-			ResourceTypes: map[string]providers.Schema{
-				"test_instance": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"ami": {Type: cty.String, Required: true},
-						},
-						BlockTypes: map[string]*configschema.NestedBlock{
-							"network_interface": {
-								Nesting: configschema.NestingList,
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"device_index": {Type: cty.String, Optional: true},
-										"description":  {Type: cty.String, Optional: true},
-										"name":         {Type: cty.String, Optional: true},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				View:             view,
-			},
-		}
-
-		args := []string{"-no-color", testFixturePath("invalid-resource-configuration/missing-required-attr")}
-		code := c.Run(args)
-		output := done(t)
-		if code != 1 {
-			t.Fatalf("expected non-successful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Missing required argument"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
 }

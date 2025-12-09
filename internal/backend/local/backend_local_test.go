@@ -160,7 +160,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	plan := &plans.Plan{
 		UIMode:  plans.NormalMode,
 		Changes: plans.NewChangesSrc(),
-		Backend: &plans.Backend{
+		Backend: plans.Backend{
 			Type:   "local",
 			Config: backendConfigRaw,
 		},

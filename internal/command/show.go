@@ -150,7 +150,7 @@ func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Di
 	var diags tfdiags.Diagnostics
 
 	// Load the backend
-	b, backendDiags := c.backend(".", c.viewType)
+	b, backendDiags := c.Backend(nil)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		return nil, diags
@@ -278,9 +278,9 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Remo
 
 func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, redacted bool) (*cloudplan.RemotePlanJSON, error) {
 	// Set up the backend
-	b, diags := c.backend(".", c.viewType)
-	if diags.HasErrors() {
-		return nil, errUnusable(diags.Err(), "cloud plan")
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		return nil, errUnusable(backendDiags.Err(), "cloud plan")
 	}
 	// Cloud plans only work if we're cloud.
 	cl, ok := b.(*cloud.Cloud)

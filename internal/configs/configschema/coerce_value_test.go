@@ -616,54 +616,6 @@ func TestCoerceValue(t *testing.T) {
 			}),
 			``,
 		},
-		"nested type nulls": {
-			// handle NestedTypes with null
-			&Block{
-				Attributes: map[string]*Attribute{
-					"foo": {
-						NestedType: &Object{
-							Nesting: NestingSingle,
-							Attributes: map[string]*Attribute{
-								"bar": {Type: cty.DynamicPseudoType, Optional: true},
-								"baz": {Type: cty.DynamicPseudoType, Optional: true},
-							},
-						},
-						Optional: true,
-					},
-					"fob": {
-						NestedType: &Object{
-							Nesting: NestingGroup,
-							Attributes: map[string]*Attribute{
-								"bar": {Type: cty.DynamicPseudoType, Optional: true},
-								"baz": {Type: cty.DynamicPseudoType, Computed: true},
-							},
-						},
-						Optional: true,
-					},
-				},
-			},
-			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.ObjectVal(map[string]cty.Value{
-					"bar": cty.StringVal("test"),
-					"baz": cty.NullVal(cty.Number),
-				}),
-				"fob": cty.ObjectVal(map[string]cty.Value{
-					"bar": cty.NullVal(cty.String),
-					"baz": cty.NullVal(cty.Number),
-				}),
-			}),
-			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.ObjectVal(map[string]cty.Value{
-					"bar": cty.StringVal("test"),
-					"baz": cty.NullVal(cty.Number),
-				}),
-				"fob": cty.ObjectVal(map[string]cty.Value{
-					"bar": cty.NullVal(cty.String),
-					"baz": cty.NullVal(cty.Number),
-				}),
-			}),
-			``,
-		},
 	}
 
 	for name, test := range tests {
@@ -681,6 +633,7 @@ func TestCoerceValue(t *testing.T) {
 				}
 				return
 			}
+
 			if !gotValue.RawEquals(test.WantValue) {
 				t.Errorf("wrong result\ninput: %#v\ngot:   %#v\nwant:  %#v", test.Input, gotValue, test.WantValue)
 			}

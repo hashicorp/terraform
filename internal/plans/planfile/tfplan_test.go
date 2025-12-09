@@ -39,16 +39,14 @@ func TestTFPlanRoundTrip(t *testing.T) {
 			plan: func() *plans.Plan {
 				rawPlan := examplePlanForTest(t)
 				// remove backend data from example plan
-				rawPlan.Backend = nil
-
-				// add state store instead
+				rawPlan.Backend = plans.Backend{}
 				ver, err := version.NewVersion("9.9.9")
 				if err != nil {
 					t.Fatalf("error encountered during test setup: %s", err)
 				}
 
 				// add state store instead
-				rawPlan.StateStore = &plans.StateStore{
+				rawPlan.StateStore = plans.StateStore{
 					Type: "foo_bar",
 					Provider: &plans.Provider{
 						Version: ver,
@@ -112,7 +110,8 @@ func Test_writeTfplan_validation(t *testing.T) {
 			plan: func() *plans.Plan {
 				rawPlan := examplePlanForTest(t)
 				// remove backend from example plan
-				rawPlan.Backend = nil
+				rawPlan.Backend.Type = ""
+				rawPlan.Backend.Config = nil
 				return rawPlan
 			}(),
 			wantWriteErrMsg: "plan does not have a backend or state_store configuration",
@@ -127,7 +126,7 @@ func Test_writeTfplan_validation(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error encountered during test setup: %s", err)
 				}
-				rawPlan.StateStore = &plans.StateStore{
+				rawPlan.StateStore = plans.StateStore{
 					Type: "foo_bar",
 					Provider: &plans.Provider{
 						Version: ver,
@@ -526,7 +525,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				Name: "woot",
 			}.Absolute(addrs.RootModuleInstance),
 		},
-		Backend: &plans.Backend{
+		Backend: plans.Backend{
 			Type: "local",
 			Config: mustNewDynamicValue(
 				cty.ObjectVal(map[string]cty.Value{
@@ -630,7 +629,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 				Name: "woot",
 			}.Absolute(addrs.RootModuleInstance),
 		},
-		Backend: &plans.Backend{
+		Backend: plans.Backend{
 			Type: "local",
 			Config: mustNewDynamicValue(
 				cty.ObjectVal(map[string]cty.Value{

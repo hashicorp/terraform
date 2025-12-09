@@ -150,7 +150,7 @@ func FormatValueStr(val cty.Value) (string, error) {
 	val, err := cty.Transform(val, func(path cty.Path, val cty.Value) (cty.Value, error) {
 		// If a value is sensitive or ephemeral or unknown, we redact it, otherwise
 		// we return the value as is.
-		if marks.Has(val, marks.Sensitive) || marks.Has(val, marks.Ephemeral) || !val.IsKnown() {
+		if val.HasMark(marks.Sensitive) || val.HasMark(marks.Ephemeral) || !val.IsKnown() {
 			return cty.StringVal(CompactValueStr(val)), nil
 		}
 		return val, nil

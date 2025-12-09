@@ -35,7 +35,7 @@ func (c *OutputCommand) Run(rawArgs []string) int {
 	view := views.NewOutput(args.ViewType, c.View)
 
 	// Fetch data from state
-	outputs, diags := c.Outputs(args.StatePath, args.ViewType)
+	outputs, diags := c.Outputs(args.StatePath)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
@@ -54,7 +54,7 @@ func (c *OutputCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-func (c *OutputCommand) Outputs(statePath string, view arguments.ViewType) (map[string]*states.OutputValue, tfdiags.Diagnostics) {
+func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Allow state path override
@@ -63,9 +63,9 @@ func (c *OutputCommand) Outputs(statePath string, view arguments.ViewType) (map[
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.Backend(nil)
 	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
+	if diags.HasErrors() {
 		return nil, diags
 	}
 
@@ -83,13 +83,13 @@ func (c *OutputCommand) Outputs(statePath string, view arguments.ViewType) (map[
 	}
 
 	// Get the state
-	sMgr, sDiags := b.StateMgr(env)
+	stateStore, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
 		diags = diags.Append(fmt.Errorf("Failed to load state: %s", sDiags.Err()))
 		return nil, diags
 	}
 
-	output, err := sMgr.GetRootOutputValues(ctx)
+	output, err := stateStore.GetRootOutputValues(ctx)
 	if err != nil {
 		return nil, diags.Append(err)
 	}

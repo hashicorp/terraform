@@ -138,9 +138,8 @@ func (o *Object) specType() cty.Type {
 	} else {
 		ret = cty.Object(attrTys)
 	}
-
 	switch o.Nesting {
-	case NestingSingle, NestingGroup:
+	case NestingSingle:
 		return ret
 	case NestingList:
 		return cty.List(ret)

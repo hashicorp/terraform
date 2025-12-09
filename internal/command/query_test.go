@@ -13,11 +13,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	tfversion "github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestQuery(t *testing.T) {
@@ -771,7 +772,6 @@ func TestQuery_JSON(t *testing.T) {
 }
 
 func TestQuery_JSON_Raw(t *testing.T) {
-
 	tfVer := tfversion.String()
 	tests := []struct {
 		name        string

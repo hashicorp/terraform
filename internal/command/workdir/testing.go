@@ -17,16 +17,9 @@ import (
 func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName, config string) *ProviderConfigState {
 	t.Helper()
 
-	var ver *version.Version
-	if semVer == "" {
-		// Allow passing no version in; leave ver nil
-		ver = nil
-	} else {
-		var err error
-		ver, err = version.NewSemver(semVer)
-		if err != nil {
-			t.Fatalf("test setup failed when creating version.Version: %s", err)
-		}
+	ver, err := version.NewSemver(semVer)
+	if err != nil {
+		t.Fatalf("test setup failed when creating version.Version: %s", err)
 	}
 
 	return &ProviderConfigState{
@@ -37,5 +30,6 @@ func getTestProviderState(t *testing.T, semVer, hostname, namespace, typeName, c
 			Type:      typeName,
 		},
 		ConfigRaw: []byte(config),
+		Hash:      12345,
 	}
 }

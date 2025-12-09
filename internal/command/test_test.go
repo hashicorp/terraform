@@ -1256,6 +1256,9 @@ func TestTest_Parallel_Divided_Order(t *testing.T) {
 }
 
 func TestTest_Parallel(t *testing.T) {
+	// Skipped due to flakiness - see https://github.com/hashicorp/terraform/issues/37593
+	t.Skip()
+
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "parallel")), td)
 	t.Chdir(td)

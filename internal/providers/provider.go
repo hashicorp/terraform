@@ -123,16 +123,6 @@ type Interface interface {
 	// ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
 	ConfigureStateStore(ConfigureStateStoreRequest) ConfigureStateStoreResponse
 
-	// ReadStateBytes streams byte chunks of a given state file from a state store
-	ReadStateBytes(ReadStateBytesRequest) ReadStateBytesResponse
-	// WriteStateBytes streams byte chunks of a given state file into a state store
-	WriteStateBytes(WriteStateBytesRequest) WriteStateBytesResponse
-
-	// LockState locks a given state (i.e. CE workspace)
-	LockState(LockStateRequest) LockStateResponse
-	// UnlockState unlocks a given state (i.e. CE workspace)
-	UnlockState(UnlockStateRequest) UnlockStateResponse
-
 	// GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
 	GetStates(GetStatesRequest) GetStatesResponse
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
@@ -149,19 +139,6 @@ type Interface interface {
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
-}
-
-// StateStoreChunkSizeSetter interface indicates that a struct wants to record
-// the negotiated chunk size (from the ConfigureStateStore RPC) internally for
-// future use. The future use is likely to be ReadStateBytes/WriteStateBytes RPCs.
-//
-// We let calling code set the chunk size on that struct from outside, to ensure that
-// the value is persisted. The alternative is relying on anything that might fulfil the
-// providers.Interface interface (mock providers used in integration tests, grpcwrap
-// logic used in E2E tests, GRPCProvider logic) to know it needs to implement
-// stateful-ness when processing chunk size negotiation in the ConfigureStateStore RPC.
-type StateStoreChunkSizeSetter interface {
-	SetStateStoreChunkSize(typeName string, size int)
 }
 
 // GetProviderSchemaResponse is the return type for GetProviderSchema, and
@@ -870,72 +847,9 @@ type ConfigureStateStoreRequest struct {
 
 	// Config is the configuration value to configure the store with.
 	Config cty.Value
-
-	Capabilities StateStoreClientCapabilities
-}
-
-type StateStoreClientCapabilities struct {
-	ChunkSize int64
 }
 
 type ConfigureStateStoreResponse struct {
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-
-	Capabilities StateStoreServerCapabilities
-}
-
-type StateStoreServerCapabilities struct {
-	ChunkSize int64
-}
-
-type ReadStateBytesRequest struct {
-	// TypeName is the name of the state store to read state from
-	TypeName string
-	// StateId is the ID of a state file to read
-	StateId string
-}
-
-type ReadStateBytesResponse struct {
-	// Bytes represents all received bytes of the given state file
-	Bytes []byte
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-}
-
-type WriteStateBytesRequest struct {
-	// TypeName is the name of the state store to write state to
-	TypeName string
-	// Bytes represents all bytes of the given state file to write
-	Bytes []byte
-	// StateId is the ID of a state file to write
-	StateId string
-}
-
-type WriteStateBytesResponse struct {
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-}
-
-type LockStateRequest struct {
-	TypeName  string
-	StateId   string
-	Operation string
-}
-
-type LockStateResponse struct {
-	LockId string
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-}
-
-type UnlockStateRequest struct {
-	TypeName string
-	StateId  string
-	LockId   string
-}
-
-type UnlockStateResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

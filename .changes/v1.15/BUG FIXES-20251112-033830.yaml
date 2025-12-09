@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'cli: Fixed crash in `terraform show -json` when plan contains ephemeral resources with preconditions or postconditions'
-time: 2025-11-12T03:38:30.000000-08:00
-custom:
-    Issue: "37834"

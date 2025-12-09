@@ -325,7 +325,7 @@ func TestGraph_applyPhaseSavedPlan(t *testing.T) {
 		},
 	})
 
-	plan.Backend = &plans.Backend{
+	plan.Backend = plans.Backend{
 		// Doesn't actually matter since we aren't going to activate the backend
 		// for this command anyway, but we need something here for the plan
 		// file writer to succeed.

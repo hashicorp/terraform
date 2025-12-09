@@ -69,7 +69,7 @@ Options:
 
   -junit-xml=path       Saves a test report in JUnit XML format to the specified
                         file. This is currently incompatible with remote test
-                        execution using the -cloud-run option. The file path
+                        execution using the the -cloud-run option. The file path
                         must be relative or absolute.
 
   -no-color             If specified, output won't contain any color.

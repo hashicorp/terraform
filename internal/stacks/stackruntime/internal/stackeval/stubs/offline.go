@@ -293,34 +293,6 @@ func (o *offlineProvider) ConfigureStateStore(providers.ConfigureStateStoreReque
 	}
 }
 
-// ReadStateBytes implements providers.Interface.
-func (o *offlineProvider) ReadStateBytes(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Called ReadStateBytes on an unconfigured provider",
-		"Cannot read from state store because this provider is not configured. This is a bug in Terraform - please report it.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.ReadStateBytesResponse{
-		Diagnostics: diags,
-	}
-}
-
-// WriteStateBytes implements providers.Interface.
-func (o *offlineProvider) WriteStateBytes(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Called WriteStateBytes on an unconfigured provider",
-		"Cannot write to state store because this provider is not configured. This is a bug in Terraform - please report it.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.WriteStateBytesResponse{
-		Diagnostics: diags,
-	}
-}
-
 // GetStates implements providers.Interface.
 func (o *offlineProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
 	var diags tfdiags.Diagnostics
@@ -345,32 +317,6 @@ func (o *offlineProvider) DeleteState(providers.DeleteStateRequest) providers.De
 		nil, // nil attribute path means the overall configuration block
 	))
 	return providers.DeleteStateResponse{
-		Diagnostics: diags,
-	}
-}
-
-func (o *offlineProvider) LockState(providers.LockStateRequest) providers.LockStateResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Called LockState on an unconfigured provider",
-		"Cannot use this state store to lock a state because this provider is not configured. This is a bug in Terraform - please report it.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.LockStateResponse{
-		Diagnostics: diags,
-	}
-}
-
-func (o *offlineProvider) UnlockState(providers.UnlockStateRequest) providers.UnlockStateResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Called UnlockState on an unconfigured provider",
-		"Cannot use this state store to unlock a state because this provider is not configured. This is a bug in Terraform - please report it.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.UnlockStateResponse{
 		Diagnostics: diags,
 	}
 }

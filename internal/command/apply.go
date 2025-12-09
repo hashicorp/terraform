@@ -210,7 +210,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 			))
 			return nil, diags
 		}
-		if plan.Backend == nil {
+		if plan.Backend.Config == nil {
 			// Should never happen; always indicates a bug in the creation of the plan file
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -219,15 +219,19 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 			))
 			return nil, diags
 		}
-		// TODO: Update BackendForLocalPlan to use state storage, and plan to be able to contain State Store config details
-		be, beDiags = c.BackendForLocalPlan(*plan.Backend)
+		be, beDiags = c.BackendForLocalPlan(plan.Backend)
 	} else {
+		// Both new plans and saved cloud plans load their backend from config.
+		backendConfig, configDiags := c.loadBackendConfig(".")
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return nil, diags
+		}
 
-		// Load the backend
-		//
-		// Note: Both new plans and saved cloud plans load their backend from config,
-		// hence the config parsing in the method below.
-		be, beDiags = c.backend(".", viewType)
+		be, beDiags = c.Backend(&BackendOpts{
+			BackendConfig: backendConfig,
+			ViewType:      viewType,
+		})
 	}
 
 	diags = diags.Append(beDiags)
