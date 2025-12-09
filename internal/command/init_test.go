@@ -3674,7 +3674,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 		// The previous init implied by this test scenario would have created this.
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}}
-		mockProvider.MockStates = map[string]interface{}{"default": true}
+		mockProvider.MockStates = map[string]interface{}{"default": []byte(`{"version": 4,"terraform_version":"1.15.0","serial": 1,"lineage": "","outputs": {},"resources": [],"checks":[]}`)}
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -4371,8 +4371,17 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 					},
 				},
 			},
-			DataSources:       map[string]providers.Schema{},
-			ResourceTypes:     map[string]providers.Schema{},
+			DataSources: map[string]providers.Schema{},
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"input": {Type: cty.String, Optional: true},
+							"id":    {Type: cty.String, Computed: true},
+						},
+					},
+				},
+			},
 			ListResourceTypes: map[string]providers.Schema{},
 			StateStores: map[string]providers.Schema{
 				pssName: {
@@ -4412,9 +4421,7 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
 		state := []byte{}
 		if v, exist := mock.MockStates[req.StateId]; exist {
-			if s, ok := v.([]byte); ok {
-				state = s
-			}
+			state = v.([]byte) // If this panics, the mock has been set up with a bad MockStates value
 		}
 		return providers.ReadStateBytesResponse{
 			Bytes:       state,

@@ -4,6 +4,8 @@
 package command
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +16,9 @@ import (
 	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestStateMv(t *testing.T) {
@@ -151,6 +155,130 @@ func TestStateMv(t *testing.T) {
 		}
 	}
 
+}
+
+func TestStateMv_stateStore(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	// Get bytes describing a state containing resources
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "baz",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"baz","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(state, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider.MockStates = map[string]interface{}{
+		"default": stateBuf.Bytes(),
+	}
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	// Make the mock assert that the resource has been moved when the new state is persisted
+	oldAddr := "test_instance.foo"
+	newAddr := "test_instance.bar"
+	mockProvider.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+		r := bytes.NewReader(req.Bytes)
+		file, err := statefile.Read(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		root := file.State.Modules[""]
+		if _, ok := root.Resources[oldAddr]; ok {
+			t.Fatalf("expected the new state to have moved the %s resource to the new addr %s, but the old addr is still present",
+				newAddr,
+				oldAddr,
+			)
+		}
+		resource, ok := root.Resources[newAddr]
+		if !ok {
+			t.Fatalf("expected the moved resource to be at addr %s, but it isn't present", newAddr)
+		}
+
+		// Check that the moved resource has the same state.
+		var key addrs.InstanceKey
+		type attrsJson struct {
+			Id  string `json:"id"`
+			Foo string `json:"foo"`
+			Bar string `json:"bar"`
+		}
+		var data attrsJson
+		attrs := resource.Instances[key].Current.AttrsJSON
+		err = json.Unmarshal(attrs, &data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expectedData := attrsJson{
+			Id:  "foo",
+			Foo: "value",
+			Bar: "value",
+		}
+		if diff := cmp.Diff(expectedData, data); diff != "" {
+			t.Fatalf("the state of the moved resource doesn't match the original state:\nDiff = %s", diff)
+		}
+
+		return providers.WriteStateBytesResponse{}
+	}
+
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				Ui: ui,
+			},
+		},
+	}
+
+	args := []string{
+		oldAddr,
+		newAddr,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// See the mock definition above for logic that asserts what the new state will look like after moving the resource.
 }
 
 func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {

@@ -12,7 +12,9 @@ import (
 	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestStateReplaceProvider(t *testing.T) {
@@ -283,6 +285,97 @@ func TestStateReplaceProvider(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestStateReplaceProvider_stateStore(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	// Get bytes describing a state containing resources
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "baz",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"baz","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(state, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider.MockStates = map[string]interface{}{
+		"default": stateBuf.Bytes(),
+	}
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	ui := new(cli.MockUi)
+	c := &StateReplaceProviderCommand{
+		StateMeta{
+			Meta: Meta{
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				Ui: ui,
+			},
+		},
+	}
+
+	inputBuf := &bytes.Buffer{}
+	ui.InputReader = inputBuf
+	inputBuf.WriteString("yes\n")
+
+	args := []string{
+		"hashicorp/test",
+		"testing-corp/test",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// For the two resources in the mocked state, we expect them both to be changed.
+	expectedOutputMsgs := []string{
+		"- registry.terraform.io/hashicorp/test\n    + registry.terraform.io/testing-corp/test\n",
+		"Successfully replaced provider for 2 resources.",
+	}
+	for _, msg := range expectedOutputMsgs {
+		if !strings.Contains(ui.OutputWriter.String(), msg) {
+			t.Fatalf("expected command output to include %q but it's not present in the output:\nOutput = %s",
+				msg, ui.OutputWriter.String())
+		}
+	}
 }
 
 func TestStateReplaceProvider_docs(t *testing.T) {
