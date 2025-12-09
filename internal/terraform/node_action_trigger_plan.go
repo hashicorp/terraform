@@ -14,7 +14,7 @@ import (
 )
 
 type nodeActionTriggerPlanExpand struct {
-	*nodeAbstractActionTriggerExpand
+	*nodeAbstractActionTrigger
 
 	resourceTargets []addrs.Targetable
 }
@@ -27,16 +27,12 @@ var (
 )
 
 func (n *nodeActionTriggerPlanExpand) Name() string {
-	return fmt.Sprintf("%s (plan)", n.nodeAbstractActionTriggerExpand.Name())
+	return fmt.Sprintf("%s (plan)", n.nodeAbstractActionTrigger.Name())
 }
 
 func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics
-
-	if n.lifecycleActionTrigger == nil {
-		panic("Only actions triggered by plan and apply are supported")
-	}
 
 	expander := ctx.InstanceExpander()
 
@@ -51,7 +47,7 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 		for _, moduleAddr := range pem {
 			actionAddr := moduleAddr.Action(n.Addr.Action)
-			resourceAddr := moduleAddr.Resource(n.lifecycleActionTrigger.resourceAddress.Resource)
+			resourceAddr := moduleAddr.Resource(n.triggerConfig.resourceAddress.Resource)
 
 			// And add a node to the graph for this action.
 			g.Add(&NodeActionTriggerPartialExpanded{
@@ -60,21 +56,21 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 				resolvedProvider: n.resolvedProvider,
 				lifecycleActionTrigger: &lifecycleActionTriggerPartialExpanded{
 					resourceAddress:         resourceAddr,
-					events:                  n.lifecycleActionTrigger.events,
-					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
-					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
-					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
+					events:                  n.triggerConfig.events,
+					actionTriggerBlockIndex: n.triggerConfig.actionTriggerBlockIndex,
+					actionListIndex:         n.triggerConfig.actionListIndex,
+					invokingSubject:         n.triggerConfig.invokingSubject,
 				},
 			})
 		}
 	}
 
 	// First we expand the module
-	moduleInstances := expander.ExpandModule(n.lifecycleActionTrigger.resourceAddress.Module, false)
+	moduleInstances := expander.ExpandModule(n.triggerConfig.resourceAddress.Module, false)
 	for _, module := range moduleInstances {
-		_, keys, _ := expander.ResourceInstanceKeys(n.lifecycleActionTrigger.resourceAddress.Absolute(module))
+		_, keys, _ := expander.ResourceInstanceKeys(n.triggerConfig.resourceAddress.Absolute(module))
 		for _, key := range keys {
-			absResourceInstanceAddr := n.lifecycleActionTrigger.resourceAddress.Absolute(module).Instance(key)
+			absResourceInstanceAddr := n.triggerConfig.resourceAddress.Absolute(module).Instance(key)
 
 			// If the triggering resource was targeted, make sure the instance
 			// that triggered this was targeted specifically.
@@ -106,7 +102,7 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 				repData.EachValue = cty.DynamicVal
 			}
 
-			ref, evalActionDiags := evaluateActionExpression(n.lifecycleActionTrigger.actionExpr, repData)
+			ref, evalActionDiags := evaluateActionExpression(n.triggerConfig.actionExpr, repData)
 			diags = append(diags, evalActionDiags...)
 			if diags.HasErrors() {
 				continue
@@ -125,13 +121,13 @@ func (n *nodeActionTriggerPlanExpand) DynamicExpand(ctx EvalContext) (*Graph, tf
 				actionAddress:    actionAddr,
 				resolvedProvider: n.resolvedProvider,
 				actionConfig:     n.Config,
-				lifecycleActionTrigger: &lifecycleActionTriggerInstance{
+				actionTriggerConfig: lifecycleActionTriggerConfig{
 					resourceAddress:         absResourceInstanceAddr,
-					events:                  n.lifecycleActionTrigger.events,
-					actionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
-					actionListIndex:         n.lifecycleActionTrigger.actionListIndex,
-					invokingSubject:         n.lifecycleActionTrigger.invokingSubject,
-					conditionExpr:           n.lifecycleActionTrigger.conditionExpr,
+					events:                  n.triggerConfig.events,
+					actionTriggerBlockIndex: n.triggerConfig.actionTriggerBlockIndex,
+					actionListIndex:         n.triggerConfig.actionListIndex,
+					invokingSubject:         n.triggerConfig.invokingSubject,
+					conditionExpr:           n.triggerConfig.conditionExpr,
 				},
 			}
 

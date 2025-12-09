@@ -14,7 +14,7 @@ import (
 )
 
 type nodeActionTriggerApplyExpand struct {
-	*nodeAbstractActionTriggerExpand
+	*nodeAbstractActionTrigger
 
 	actionInvocationInstances []*plans.ActionInvocationInstanceSrc
 	relativeTiming            RelativeActionTiming
@@ -28,16 +28,12 @@ var (
 )
 
 func (n *nodeActionTriggerApplyExpand) Name() string {
-	return fmt.Sprintf("%s (apply - %s)", n.nodeAbstractActionTriggerExpand.Name(), n.relativeTiming)
+	return fmt.Sprintf("%s (apply - %s)", n.nodeAbstractActionTrigger.Name(), n.relativeTiming)
 }
 
 func (n *nodeActionTriggerApplyExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics
-
-	if n.lifecycleActionTrigger == nil {
-		panic("Only actions triggered by plan and apply are supported")
-	}
 
 	invocationMap := map[*plans.ActionInvocationInstanceSrc]*nodeActionTriggerApplyInstance{}
 	// We already planned the action invocations, so we can just add them to the graph
@@ -45,8 +41,8 @@ func (n *nodeActionTriggerApplyExpand) DynamicExpand(ctx EvalContext) (*Graph, t
 		node := &nodeActionTriggerApplyInstance{
 			ActionInvocation:   ai,
 			resolvedProvider:   n.resolvedProvider,
-			ActionTriggerRange: n.lifecycleActionTrigger.invokingSubject.Ptr(),
-			ConditionExpr:      n.lifecycleActionTrigger.conditionExpr,
+			ActionTriggerRange: n.triggerConfig.invokingSubject.Ptr(),
+			ConditionExpr:      n.triggerConfig.conditionExpr,
 		}
 		g.Add(node)
 		invocationMap[ai] = node
@@ -75,10 +71,8 @@ func (n *nodeActionTriggerApplyExpand) References() []*addrs.Reference {
 		Subject: n.Addr.Action,
 	})
 
-	if n.lifecycleActionTrigger != nil {
-		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.lifecycleActionTrigger.conditionExpr)
-		refs = append(refs, conditionRefs...)
-	}
+	conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.triggerConfig.conditionExpr)
+	refs = append(refs, conditionRefs...)
 
 	return refs
 }

@@ -83,7 +83,7 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 		// Expand the action instances for this module.
 		for _, knownInstKey := range knownInstKeys {
-			node := NodeActionDeclarationInstance{
+			node := NodeAbstractActionInstance{
 				Addr:             absActAddr.Instance(knownInstKey),
 				Config:           &n.Config,
 				Schema:           n.Schema,
