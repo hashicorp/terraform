@@ -178,9 +178,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ActionTargets: b.ActionTargets,
 			queryPlanMode: b.queryPlan,
 
-			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, _ RelativeActionTiming) dag.Vertex {
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTrigger, _ RelativeActionTiming) dag.Vertex {
 				return &nodeActionTriggerPlanExpand{
-					nodeAbstractActionTriggerExpand: node,
+					nodeAbstractActionTrigger: node,
 				}
 			},
 		},

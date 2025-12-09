@@ -30,10 +30,10 @@ type nodeActionTriggerPlanInstance struct {
 	resolvedProvider addrs.AbsProviderConfig
 	actionConfig     *configs.Action
 
-	lifecycleActionTrigger *lifecycleActionTriggerInstance
+	actionTriggerConfig lifecycleActionTriggerConfig
 }
 
-type lifecycleActionTriggerInstance struct {
+type lifecycleActionTriggerConfig struct {
 	resourceAddress         addrs.AbsResourceInstance
 	events                  []configs.ActionTriggerEvent
 	actionTriggerBlockIndex int
@@ -42,11 +42,11 @@ type lifecycleActionTriggerInstance struct {
 	conditionExpr           hcl.Expression
 }
 
-func (at *lifecycleActionTriggerInstance) Name() string {
+func (at *lifecycleActionTriggerConfig) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
-func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) *plans.LifecycleActionTrigger {
+func (at *lifecycleActionTriggerConfig) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) *plans.LifecycleActionTrigger {
 	return &plans.LifecycleActionTrigger{
 		TriggeringResourceAddr:  at.resourceAddress,
 		ActionTriggerBlockIndex: at.actionTriggerBlockIndex,
@@ -61,14 +61,7 @@ var (
 )
 
 func (n *nodeActionTriggerPlanInstance) Name() string {
-	triggeredBy := "triggered by "
-	if n.lifecycleActionTrigger != nil {
-		triggeredBy += n.lifecycleActionTrigger.resourceAddress.String()
-	} else {
-		triggeredBy += "unknown"
-	}
-
-	return fmt.Sprintf("%s %s", n.actionAddress.String(), triggeredBy)
+	return fmt.Sprintf("%s triggered by %s", n.actionAddress.String(), n.actionTriggerConfig.resourceAddress.String())
 }
 
 func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
@@ -78,11 +71,11 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	// We need the action invocation early to check if we need to
 	ai := plans.ActionInvocationInstance{
 		Addr:          n.actionAddress,
-		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
+		ActionTrigger: n.actionTriggerConfig.ActionTrigger(configs.Unknown),
 	}
-	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
+	change := ctx.Changes().GetResourceInstanceChange(n.actionTriggerConfig.resourceAddress, n.actionTriggerConfig.resourceAddress.CurrentObject().DeposedKey)
 
-	deferred, moreDiags := deferrals.ShouldDeferActionInvocation(ai, n.lifecycleActionTrigger.invokingSubject)
+	deferred, moreDiags := deferrals.ShouldDeferActionInvocation(ai, n.actionTriggerConfig.invokingSubject)
 	diags = diags.Append(moreDiags)
 	if deferred {
 		deferrals.ReportActionInvocationDeferred(ai, providers.DeferredReasonDeferredPrereq)
@@ -98,17 +91,13 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		return diags
 	}
 
-	if n.lifecycleActionTrigger == nil {
-		panic("Only actions triggered by plan and apply are supported")
-	}
-
 	actionInstance, ok := ctx.Actions().GetActionInstance(n.actionAddress)
 	if !ok {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Reference to non-existent action instance",
 			Detail:   "Action instance was not found in the current context.",
-			Subject:  n.lifecycleActionTrigger.invokingSubject,
+			Subject:  n.actionTriggerConfig.invokingSubject,
 		})
 		return diags
 	}
@@ -118,17 +107,17 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	// provider so we'll do that ourselves now.
 	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue)
 
-	triggeredEvents := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, change.Action)
+	triggeredEvents := actionIsTriggeredByEvent(n.actionTriggerConfig.events, change.Action)
 	if len(triggeredEvents) == 0 {
 		return diags
 	}
 
 	// Evaluate the condition expression if it exists (otherwise it's true)
-	if n.lifecycleActionTrigger.conditionExpr != nil {
+	if n.actionTriggerConfig.conditionExpr != nil {
 		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
-			events:          n.lifecycleActionTrigger.events,
-			conditionExpr:   n.lifecycleActionTrigger.conditionExpr,
-			resourceAddress: n.lifecycleActionTrigger.resourceAddress,
+			events:          n.actionTriggerConfig.events,
+			conditionExpr:   n.actionTriggerConfig.conditionExpr,
+			resourceAddress: n.actionTriggerConfig.resourceAddress,
 		})
 		diags = diags.Append(conditionDiags)
 		if conditionDiags.HasErrors() {
@@ -147,7 +136,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 			Severity: hcl.DiagError,
 			Summary:  "Failed to get provider",
 			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
-			Subject:  n.lifecycleActionTrigger.invokingSubject,
+			Subject:  n.actionTriggerConfig.invokingSubject,
 		})
 
 		return diags
@@ -178,7 +167,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 			Severity: severity,
 			Summary:  message,
 			Detail:   err.Error(),
-			Subject:  n.lifecycleActionTrigger.invokingSubject,
+			Subject:  n.actionTriggerConfig.invokingSubject,
 		})
 	}
 	if resp.Deferred != nil {
@@ -194,7 +183,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	for _, triggeredEvent := range triggeredEvents {
 		eventSpecificAi := ai.DeepCopy()
 		// We need to set the triggering event on the action invocation
-		eventSpecificAi.ActionTrigger = n.lifecycleActionTrigger.ActionTrigger(triggeredEvent)
+		eventSpecificAi.ActionTrigger = n.actionTriggerConfig.ActionTrigger(triggeredEvent)
 		ctx.Changes().AppendActionInvocation(eventSpecificAi)
 	}
 	return diags
