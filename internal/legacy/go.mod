@@ -21,8 +21,6 @@ require (
 	github.com/apparentlymart/go-versions v1.0.2 // indirect
 	github.com/bmatcuk/doublestar v1.1.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hashicorp/go-hclog v1.6.3 // indirect
-	github.com/hashicorp/go-plugin v1.7.0 // indirect
 	github.com/hashicorp/go-slug v0.18.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
