@@ -427,7 +427,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 	// This may not exist and be nil. That is okay.
 	s := m.backendStateFile
 	switch {
-	case s == nil:
+	case s == nil || (s.StateStore == nil && s.Backend == nil):
 		// It's ok for the backend state file to be empty. This means either:
 		// 1. The working directory hasn't been initialized yet
 		// 2. An implied local backend is in use, which doesn't get recorded in a backend state file.
