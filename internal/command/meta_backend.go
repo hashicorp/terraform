@@ -764,6 +764,9 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Upon return, we want to set the state we're using in-memory so that
 	// we can access it for commands.
+	//
+	// Currently the only command using these values is the `plan` command,
+	// which records the data in the plan file.
 	m.backendConfigState = nil
 	m.stateStoreConfigState = nil
 	defer func() {
@@ -771,10 +774,14 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		switch {
 		case s == nil:
 			// Do nothing
-
-			// TODO: Should we add a synthetic object here,
-			// as part of addressing actions described in this FIXME?
-			// https://github.com/hashicorp/terraform/blob/053738fbf08d50261eccb463580525b88f461d8e/internal/command/meta_backend.go#L222-L243
+			/* If there is no backend state file then either:
+			1. The working directory isn't initialized yet.
+				The user is either in the process of running an init command, in which case the values set via this deferred function will not be used,
+				or they are performing a non-init command that will be interrupted by an error before these values are used in downstream
+			2. There isn't any backend or state_store configuration and an implied local backend is in use.
+				This is valid and will mean m.backendConfigState is nil until the calling code adds a synthetic object in:
+				https://github.com/hashicorp/terraform/blob/3eea12a1d810a17e9c8e43cf7774817641ca9bc1/internal/command/meta_backend.go#L213-L234
+			*/
 		case !s.Backend.Empty():
 			m.backendConfigState = s.Backend
 		case !s.StateStore.Empty():
