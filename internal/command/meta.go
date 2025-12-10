@@ -208,6 +208,9 @@ type Meta struct {
 	// It is initialized on first use.
 	configLoader *configload.Loader
 
+	// The latest backend configuration state file contents
+	backendStateFile *workdir.BackendStateFile
+
 	// Variables for the context (private)
 	variableArgs arguments.FlagNameValueSlice
 	input        bool

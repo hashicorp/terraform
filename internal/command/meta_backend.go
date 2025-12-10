@@ -423,14 +423,9 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 	var planOutBackend *plans.Backend
 	var planOutStateStore *plans.StateStore
 
-	// Read in the local cache of backend configuration. This may not exist. That is okay.
-	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
-	sMgr := &clistate.LocalState{Path: statePath}
-	if err := sMgr.RefreshState(); err != nil {
-		panic(fmt.Errorf("Failed to load the backend state file: %s", err))
-	}
-	s := sMgr.State()
-
+	// Access the backend state file contents, previously read during the command and set in the Meta.
+	// This may not exist and be nil. That is okay.
+	s := m.backendStateFile
 	switch {
 	case s == nil:
 		// It's ok for the backend state file to be empty. This means either:
@@ -763,6 +758,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		s.Backend = nil
 		s.StateStore = nil
 	}
+
+	// In some operations we might need to access the backend configuration state.
+	// To avoid the backend state file being read twice per operation, we stash the
+	// state manager on the Meta.
+	defer func() {
+		m.backendStateFile = s
+	}()
 
 	// This switch statement covers all the different combinations of
 	// configuring new backends, updating previously-configured backends, etc.
