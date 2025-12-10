@@ -673,6 +673,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		ProposedNewState:   &proto6.DynamicValue{Msgpack: propMP},
 		PriorPrivate:       r.PriorPrivate,
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
+		PlannedPrivate:     r.PlannedPrivate,
 	}
 
 	if metaSchema.Body != nil {
@@ -2060,6 +2061,7 @@ func clientCapabilitiesToProto(c providers.ClientCapabilities) *proto6.ClientCap
 	return &proto6.ClientCapabilities{
 		DeferralAllowed:            c.DeferralAllowed,
 		WriteOnlyAttributesAllowed: c.WriteOnlyAttributesAllowed,
+		StorePlannedPrivate:        c.StorePlannedPrivate,
 	}
 }
 
