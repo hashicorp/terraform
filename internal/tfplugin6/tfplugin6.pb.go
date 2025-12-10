@@ -1,9 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 6.10
+// Terraform Plugin RPC protocol version 6.11
 //
-// This file defines version 6.10 of the RPC protocol. To implement a plugin
+// This file defines version 6.11 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
 // use protoc to generate stubs for your target language.
 //
@@ -1040,8 +1040,12 @@ type ClientCapabilities struct {
 	// The write_only_attributes_allowed capability signals that the client
 	// is able to handle write_only attributes for managed resources.
 	WriteOnlyAttributesAllowed bool `protobuf:"varint,2,opt,name=write_only_attributes_allowed,json=writeOnlyAttributesAllowed,proto3" json:"write_only_attributes_allowed,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	// store_planned_private indicates that the client will store the private data
+	// returned with an initial plan, and send it back to the provider as
+	// PlannedPrivate data in a subsequent plan request.
+	StorePlannedPrivate bool `protobuf:"varint,3,opt,name=store_planned_private,json=storePlannedPrivate,proto3" json:"store_planned_private,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ClientCapabilities) Reset() {
@@ -1084,6 +1088,13 @@ func (x *ClientCapabilities) GetDeferralAllowed() bool {
 func (x *ClientCapabilities) GetWriteOnlyAttributesAllowed() bool {
 	if x != nil {
 		return x.WriteOnlyAttributesAllowed
+	}
+	return false
+}
+
+func (x *ClientCapabilities) GetStorePlannedPrivate() bool {
+	if x != nil {
+		return x.StorePlannedPrivate
 	}
 	return false
 }
@@ -4978,6 +4989,7 @@ type PlanResourceChange_Request struct {
 	ProviderMeta       *DynamicValue          `protobuf:"bytes,6,opt,name=provider_meta,json=providerMeta,proto3" json:"provider_meta,omitempty"`
 	ClientCapabilities *ClientCapabilities    `protobuf:"bytes,7,opt,name=client_capabilities,json=clientCapabilities,proto3" json:"client_capabilities,omitempty"`
 	PriorIdentity      *ResourceIdentityData  `protobuf:"bytes,8,opt,name=prior_identity,json=priorIdentity,proto3" json:"prior_identity,omitempty"`
+	PlannedPrivate     []byte                 `protobuf:"bytes,9,opt,name=planned_private,json=plannedPrivate,proto3" json:"planned_private,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -5064,6 +5076,13 @@ func (x *PlanResourceChange_Request) GetClientCapabilities() *ClientCapabilities
 func (x *PlanResourceChange_Request) GetPriorIdentity() *ResourceIdentityData {
 	if x != nil {
 		return x.PriorIdentity
+	}
+	return nil
+}
+
+func (x *PlanResourceChange_Request) GetPlannedPrivate() []byte {
+	if x != nil {
+		return x.PlannedPrivate
 	}
 	return nil
 }
@@ -8197,10 +8216,11 @@ const file_tfplugin6_proto_rawDesc = "" +
 	"\fplan_destroy\x18\x01 \x01(\bR\vplanDestroy\x12?\n" +
 	"\x1cget_provider_schema_optional\x18\x02 \x01(\bR\x19getProviderSchemaOptional\x12.\n" +
 	"\x13move_resource_state\x18\x03 \x01(\bR\x11moveResourceState\x128\n" +
-	"\x18generate_resource_config\x18\x04 \x01(\bR\x16generateResourceConfig\"\x82\x01\n" +
+	"\x18generate_resource_config\x18\x04 \x01(\bR\x16generateResourceConfig\"\xb6\x01\n" +
 	"\x12ClientCapabilities\x12)\n" +
 	"\x10deferral_allowed\x18\x01 \x01(\bR\x0fdeferralAllowed\x12A\n" +
-	"\x1dwrite_only_attributes_allowed\x18\x02 \x01(\bR\x1awriteOnlyAttributesAllowed\"\xa2\x01\n" +
+	"\x1dwrite_only_attributes_allowed\x18\x02 \x01(\bR\x1awriteOnlyAttributesAllowed\x122\n" +
+	"\x15store_planned_private\x18\x03 \x01(\bR\x13storePlannedPrivate\"\xa2\x01\n" +
 	"\bDeferred\x122\n" +
 	"\x06reason\x18\x01 \x01(\x0e2\x1a.tfplugin6.Deferred.ReasonR\x06reason\"b\n" +
 	"\x06Reason\x12\v\n" +
@@ -8338,8 +8358,8 @@ const file_tfplugin6_proto_rawDesc = "" +
 	"\vdiagnostics\x18\x02 \x03(\v2\x15.tfplugin6.DiagnosticR\vdiagnostics\x12\x18\n" +
 	"\aprivate\x18\x03 \x01(\fR\aprivate\x12/\n" +
 	"\bdeferred\x18\x04 \x01(\v2\x13.tfplugin6.DeferredR\bdeferred\x12B\n" +
-	"\fnew_identity\x18\x05 \x01(\v2\x1f.tfplugin6.ResourceIdentityDataR\vnewIdentity\"\x87\a\n" +
-	"\x12PlanResourceChange\x1a\xd3\x03\n" +
+	"\fnew_identity\x18\x05 \x01(\v2\x1f.tfplugin6.ResourceIdentityDataR\vnewIdentity\"\xb0\a\n" +
+	"\x12PlanResourceChange\x1a\xfc\x03\n" +
 	"\aRequest\x12\x1b\n" +
 	"\ttype_name\x18\x01 \x01(\tR\btypeName\x128\n" +
 	"\vprior_state\x18\x02 \x01(\v2\x17.tfplugin6.DynamicValueR\n" +
@@ -8349,7 +8369,8 @@ const file_tfplugin6_proto_rawDesc = "" +
 	"\rprior_private\x18\x05 \x01(\fR\fpriorPrivate\x12<\n" +
 	"\rprovider_meta\x18\x06 \x01(\v2\x17.tfplugin6.DynamicValueR\fproviderMeta\x12N\n" +
 	"\x13client_capabilities\x18\a \x01(\v2\x1d.tfplugin6.ClientCapabilitiesR\x12clientCapabilities\x12F\n" +
-	"\x0eprior_identity\x18\b \x01(\v2\x1f.tfplugin6.ResourceIdentityDataR\rpriorIdentity\x1a\x9a\x03\n" +
+	"\x0eprior_identity\x18\b \x01(\v2\x1f.tfplugin6.ResourceIdentityDataR\rpriorIdentity\x12'\n" +
+	"\x0fplanned_private\x18\t \x01(\fR\x0eplannedPrivate\x1a\x9a\x03\n" +
 	"\bResponse\x12<\n" +
 	"\rplanned_state\x18\x01 \x01(\v2\x17.tfplugin6.DynamicValueR\fplannedState\x12C\n" +
 	"\x10requires_replace\x18\x02 \x03(\v2\x18.tfplugin6.AttributePathR\x0frequiresReplace\x12'\n" +
