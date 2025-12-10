@@ -475,6 +475,78 @@ func TestPlan_outBackend(t *testing.T) {
 	}
 }
 
+// When using "-out" with a backend, the plan should encode the backend config
+// and also the selected workspace, if workspaces are supported by the backend.
+//
+// This test demonstrates that setting the workspace in the backend plan
+// responds to the selected workspace, versus other tests that show the same process
+// when defaulting to the default workspace when there's a lack of information about
+// the selected workspace.
+//
+// To test planning with a non-default workspace we need to use a backend that supports
+// workspaces. In this test the `inmem` backend is used.
+func TestPlan_outBackend_withWorkspace(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-out-backend-workspace"), td)
+	t.Chdir(td)
+
+	// These values are coupled with the test fixture used above.
+	expectedBackendType := "inmem"
+	expectedWorkspace := "custom-workspace"
+
+	outPath := "foo"
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"ami": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-out", outPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Logf("stdout: %s", output.Stdout())
+		t.Fatalf("plan command failed with exit code %d\n\n%s", code, output.Stderr())
+	}
+
+	plan := testReadPlan(t, outPath)
+	if got, want := plan.Backend.Type, expectedBackendType; got != want {
+		t.Errorf("wrong backend type %q; want %q", got, want)
+	}
+	if got, want := plan.Backend.Workspace, expectedWorkspace; got != want {
+		t.Errorf("wrong backend workspace %q; want %q", got, want)
+	}
+}
+
 // When using "-out" with a state store, the plan should encode the state store config
 func TestPlan_outStateStore(t *testing.T) {
 	// Create a temporary working directory with state_store config
@@ -561,10 +633,10 @@ func TestPlan_outStateStore(t *testing.T) {
 	}
 
 	if plan.Backend != nil {
-		t.Errorf("expected the planfile to not describe a backend, but got %#v", plan.Backend)
+		t.Errorf("expected the plan file to not describe a backend, but got %#v", plan.Backend)
 	}
 	if plan.StateStore == nil {
-		t.Errorf("expected the planfile to describe a state store, but it's empty: %#v", plan.StateStore)
+		t.Errorf("expected the plan file to describe a state store, but it's empty: %#v", plan.StateStore)
 	}
 	if got, want := plan.StateStore.Workspace, "default"; got != want {
 		t.Errorf("wrong workspace %q; want %q", got, want)
