@@ -453,13 +453,9 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 	case m.stateStoreConfigState != nil:
 		// To access the provider schema, we need to access the underlying backends
 		var providerSchema *configschema.Block
-		if lb, ok := b.(*local.Local); ok {
-			if p, ok := lb.Backend.(*backendPluggable.Pluggable); ok {
-				providerSchema = p.ProviderSchema()
-			}
-		}
-
-		// TODO: do we need to protect against a nil provider schema? When a provider has an empty schema does that present as nil?
+		lb := b.(*local.Local)
+		p := lb.Backend.(*backendPluggable.Pluggable)
+		providerSchema = p.ProviderSchema()
 
 		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace)
 		if err != nil {
@@ -1833,11 +1829,12 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 		},
 	}
 	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
-	if plug, ok := b.(*backendPluggable.Pluggable); ok {
-		// We need to convert away from backend.Backend interface to use the method
-		// for accessing the provider schema.
-		s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
-	}
+
+	// We need to briefly convert away from backend.Backend interface to use the method
+	// for accessing the provider schema. In this method we _always_ expect the concrete value
+	// to be backendPluggable.Pluggable.
+	plug := b.(*backendPluggable.Pluggable)
+	s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
 
 	// Verify that selected workspace exists in the state store.
 	if opts.Init && b != nil {
