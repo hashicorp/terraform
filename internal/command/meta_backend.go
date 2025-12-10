@@ -383,6 +383,10 @@ func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBacke
 			diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
 			return nil, diags
 		}
+		log.Printf("[TRACE] Meta.BackendForLocalPlan: launched instance of provider %s (%q)",
+			settings.Provider.Source.Type,
+			settings.Provider.Source,
+		)
 
 		// We purposefully don't have a deferred call to the provider's Close method here because the calling code needs a
 		// running provider instance inside the returned backend.Backend instance.
@@ -501,6 +505,11 @@ func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBacke
 		if configureDiags.HasErrors() {
 			return nil, diags
 		}
+		log.Printf("[TRACE] Meta.BackendForLocalPlan: finished configuring state store %s in provider %s (%q)",
+			settings.Type,
+			settings.Provider.Source.Type,
+			settings.Provider.Source,
+		)
 
 		// The fully configured Pluggable is used as the instance of backend.Backend
 		b = p
