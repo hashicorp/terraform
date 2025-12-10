@@ -298,6 +298,11 @@ type ClientCapabilities struct {
 	// The write_only_attributes_allowed capability signals that the client
 	// is able to handle write_only attributes for managed resources.
 	WriteOnlyAttributesAllowed bool
+
+	// StorePlannedPrivate indicates that the client is will store private data
+	// returned from PlanResourceChange, and return it with the final
+	// PlanResourceChange call.
+	StorePlannedPrivate bool
 }
 
 type ValidateProviderConfigRequest struct {
@@ -546,6 +551,11 @@ type PlanResourceChangeRequest struct {
 	// PriorPrivate is the previously saved private data returned from the
 	// provider during the last apply.
 	PriorPrivate []byte
+
+	// PlannedPrivate is the private data stored from the the last plan.
+	// PlannedPrivate will only be supplied in the plan immediately preceding an
+	// ApplyResourceChange call.
+	PlannedPrivate []byte
 
 	// ProviderMeta is the configuration for the provider_meta block for the
 	// module and provider this resource belongs to. Its use is defined by
