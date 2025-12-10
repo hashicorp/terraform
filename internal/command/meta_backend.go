@@ -212,30 +212,6 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 		panic(err)
 	}
 
-	// If we got here from backendFromConfig returning nil then m.backendState
-	// won't be set, since that codepath considers that to be no backend at all,
-	// but our caller considers that to be the local backend with no config
-	// and so we'll synthesize a backend state so other code doesn't need to
-	// care about this special case.
-	//
-	// FIXME: We should refactor this so that we more directly and explicitly
-	// treat the local backend as the default, including in the UI shown to
-	// the user, since the local backend should only be used when learning or
-	// in exceptional cases and so it's better to help the user learn that
-	// by introducing it as a concept.
-	stateStoreInUse := opts.StateStoreConfig != nil
-	if !stateStoreInUse && m.backendConfigState == nil {
-		// NOTE: This synthetic object is intentionally _not_ retained in the
-		// on-disk record of the backend configuration, which was already dealt
-		// with inside backendFromConfig, because we still need that codepath
-		// to be able to recognize the lack of a config as distinct from
-		// explicitly setting local until we do some more refactoring here.
-		m.backendConfigState = &workdir.BackendConfigState{
-			Type:      "local",
-			ConfigRaw: json.RawMessage("{}"),
-		}
-	}
-
 	return local, diags
 }
 
@@ -446,18 +422,45 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 
 	var planOutBackend *plans.Backend
 	var planOutStateStore *plans.StateStore
+
+	// Read in the local cache of backend configuration. This may not exist. That is okay.
+	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		panic(fmt.Errorf("Failed to load the backend state file: %s", err))
+	}
+	s := sMgr.State()
+
 	switch {
-	case m.backendConfigState != nil && m.stateStoreConfigState != nil:
-		// Both set
-		panic("failed to encode backend configuration for plan: both backend and state_store data present but they are mutually exclusive")
-	case m.stateStoreConfigState != nil:
+	case s == nil:
+		// It's ok for the backend state file to be empty. This means either:
+		// 1. The working directory hasn't been initialized yet
+		// 2. An implied local backend is in use, which doesn't get recorded in a backend state file.
+
+		// Assembling an Operation, in this method, happens only in non-init commands, so we are handling scenario 2.
+		// Empty configuration means an implied local backend. Downstream logic requires explicit descriptions of the
+		// backend or state store, so here we supply a synthetic object that describes a local backend.
+		// This is purposefully not saved to the backend state file/cache.
+		syntheticBackendState := &workdir.BackendConfigState{
+			Type:      "local",
+			ConfigRaw: json.RawMessage("{}"),
+		}
+		planOutBackend, err = syntheticBackendState.PlanData(schema, nil, workspace)
+		if err != nil {
+			// Always indicates an implementation error in practice, because
+			// errors here indicate invalid encoding of the backend configuration
+			// in memory, and we should always have validated that by the time
+			// we get here.
+			panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
+		}
+	case !s.StateStore.Empty():
 		// To access the provider schema, we need to access the underlying backends
 		var providerSchema *configschema.Block
 		lb := b.(*local.Local)
 		p := lb.Backend.(*backendPluggable.Pluggable)
 		providerSchema = p.ProviderSchema()
 
-		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace)
+		planOutStateStore, err = s.StateStore.PlanData(schema, providerSchema, workspace)
 		if err != nil {
 			// Always indicates an implementation error in practice, because
 			// errors here indicate invalid encoding of the state_store configuration
@@ -465,9 +468,8 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 			// we get here.
 			panic(fmt.Sprintf("failed to encode state_store configuration for plan: %s", err))
 		}
-	default:
-		// Either backendConfigState is set, or it's nil; PlanData method can handle either.
-		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace)
+	case !s.Backend.Empty():
+		planOutBackend, err = s.Backend.PlanData(schema, nil, workspace)
 		if err != nil {
 			// Always indicates an implementation error in practice, because
 			// errors here indicate invalid encoding of the backend configuration
@@ -761,33 +763,6 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		s.Backend = nil
 		s.StateStore = nil
 	}
-
-	// Upon return, we want to set the state we're using in-memory so that
-	// we can access it for commands.
-	//
-	// Currently the only command using these values is the `plan` command,
-	// which records the data in the plan file.
-	m.backendConfigState = nil
-	m.stateStoreConfigState = nil
-	defer func() {
-		s := sMgr.State()
-		switch {
-		case s == nil:
-			// Do nothing
-			/* If there is no backend state file then either:
-			1. The working directory isn't initialized yet.
-				The user is either in the process of running an init command, in which case the values set via this deferred function will not be used,
-				or they are performing a non-init command that will be interrupted by an error before these values are used in downstream
-			2. There isn't any backend or state_store configuration and an implied local backend is in use.
-				This is valid and will mean m.backendConfigState is nil until the calling code adds a synthetic object in:
-				https://github.com/hashicorp/terraform/blob/3eea12a1d810a17e9c8e43cf7774817641ca9bc1/internal/command/meta_backend.go#L213-L234
-			*/
-		case !s.Backend.Empty():
-			m.backendConfigState = s.Backend
-		case !s.StateStore.Empty():
-			m.stateStoreConfigState = s.StateStore
-		}
-	}()
 
 	// This switch statement covers all the different combinations of
 	// configuring new backends, updating previously-configured backends, etc.
