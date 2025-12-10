@@ -836,7 +836,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		// Grab a purely local backend to get the local state if it exists
+		// Grab a purely local backend to be the destination for migrated state
 		localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
