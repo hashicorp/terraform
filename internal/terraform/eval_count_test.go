@@ -11,6 +11,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -33,7 +34,7 @@ func TestEvaluateCountExpression(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			countVal, diags := evaluateCountExpression(test.Expr, ctx, false)
+			countVal, diags := evaluateCountExpression(test.Expr, ctx, addrs.RootModule, false)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -53,7 +54,7 @@ func TestEvaluateCountExpression_ephemeral(t *testing.T) {
 	expr := hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark(marks.Ephemeral))
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	_, diags := evaluateCountExpression(expr, ctx, false)
+	_, diags := evaluateCountExpression(expr, ctx, addrs.RootModule, false)
 	if !diags.HasErrors() {
 		t.Fatalf("unexpected success; want error")
 	}
@@ -82,7 +83,7 @@ func TestEvaluateCountExpression_allowUnknown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			countVal, diags := evaluateCountExpression(test.Expr, ctx, true)
+			countVal, diags := evaluateCountExpression(test.Expr, ctx, addrs.RootModule, true)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
