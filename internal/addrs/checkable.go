@@ -39,6 +39,7 @@ type Checkable interface {
 
 	CheckableKind() CheckableKind
 	String() string
+	ModuleInstance() ModuleInstance
 }
 
 var (

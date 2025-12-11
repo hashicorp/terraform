@@ -446,7 +446,7 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 
 	switch {
 	case n.Config != nil && n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, allowUnknown)
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, n.ModulePath(), allowUnknown)
 		diags = diags.Append(countDiags)
 		if countDiags.HasErrors() {
 			return diags
@@ -460,7 +460,7 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 		}
 
 	case n.Config != nil && n.Config.ForEach != nil:
-		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, allowUnknown)
+		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, n.ModulePath(), allowUnknown)
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
 			return diags

@@ -106,6 +106,11 @@ func (c AbsCheck) CheckRule(typ CheckRuleType, i int) CheckRule {
 	}
 }
 
+// ModuleInstance returns the module instance portion of the address.
+func (c AbsCheck) ModuleInstance() ModuleInstance {
+	return c.Module
+}
+
 // ConfigCheckable returns the ConfigCheck address for this absolute reference.
 func (c AbsCheck) ConfigCheckable() ConfigCheckable {
 	return ConfigCheck{

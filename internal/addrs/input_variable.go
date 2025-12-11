@@ -81,6 +81,11 @@ func (v AbsInputVariableInstance) CheckRule(typ CheckRuleType, i int) CheckRule 
 	}
 }
 
+// ModuleInstance returns the module instance portion of the address.
+func (v AbsInputVariableInstance) ModuleInstance() ModuleInstance {
+	return v.Module
+}
+
 func (v AbsInputVariableInstance) ConfigCheckable() ConfigCheckable {
 	return ConfigInputVariable{
 		Module:   v.Module.Module(),

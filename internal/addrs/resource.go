@@ -280,6 +280,11 @@ func (m ModuleInstance) ResourceInstance(mode ResourceMode, typeName string, nam
 	}
 }
 
+// ModuleInstance returns the module instance portion of the address.
+func (r AbsResourceInstance) ModuleInstance() ModuleInstance {
+	return r.Module
+}
+
 // ContainingResource returns the address of the resource that contains the
 // receving resource instance. In other words, it discards the key portion
 // of the address to produce an AbsResource value.
