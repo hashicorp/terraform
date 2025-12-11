@@ -193,7 +193,7 @@ func (c *ValidateCommand) validateBackend(cfg *configs.Backend) tfdiags.Diagnost
 	b := bf()
 	backendSchema := b.ConfigSchema()
 
-	decSpec := backendSchema.NoneRequired().DecoderSpec()
+	decSpec := backendSchema.DecoderSpec()
 	configVal, hclDiags := hcldec.Decode(cfg.Config, decSpec, nil)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
