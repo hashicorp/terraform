@@ -1,19 +1,16 @@
 ## 1.14.2 (Unreleased)
 
 
+ENHANCEMENTS:
+
+* Add component registry source resolution support to Terraform Stacks ([#37888](https://github.com/hashicorp/terraform/issues/37888))
+
+
 BUG FIXES:
 
 * stacks: surface runtime issues with local values to user during plan ([#37980](https://github.com/hashicorp/terraform/issues/37980))
 
 * resource instance apply failures should not cause the resource instance state to be empty. ([#37981](https://github.com/hashicorp/terraform/issues/37981))
-
-
-## 1.14.2 (December 11, 2025)
-
-
-ENHANCEMENTS:
-
-* Add component registry source resolution support to Terraform Stacks ([#37888](https://github.com/hashicorp/terraform/issues/37888))
 
 
 ## 1.14.1 (December 3, 2025)
