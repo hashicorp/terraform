@@ -32,7 +32,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 
 	keyData := EvalDataForInstanceKey(addr.Resource.Key, nil)
 	if config.ForEach != nil {
-		forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
+		forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, n.ModulePath(), false)
 		keyData = EvalDataForInstanceKey(addr.Resource.Key, forEach)
 	}
 
