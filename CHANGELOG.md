@@ -1,3 +1,13 @@
+## 1.14.3 (December 11, 2025)
+
+
+BUG FIXES:
+
+* stacks: surface runtime issues with local values to user during plan ([#37980](https://github.com/hashicorp/terraform/issues/37980))
+
+* resource instance apply failures should not cause the resource instance state to be empty. ([#37981](https://github.com/hashicorp/terraform/issues/37981))
+
+
 ## 1.14.2 (December 11, 2025)
 
 
