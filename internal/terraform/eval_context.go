@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -222,6 +223,10 @@ type EvalContext interface {
 	// declarations and their instances that are available in this
 	// EvalContext.
 	Actions() *actions.Actions
+
+	// Deprecations returns the deprecations object that tracks meta-information
+	// about deprecation, e.g. which module calls suppress deprecation warnings.
+	Deprecations() *deprecation.Deprecations
 }
 
 func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {

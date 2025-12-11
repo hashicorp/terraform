@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -53,9 +54,11 @@ type ContextGraphWalker struct {
 	PlanTimestamp           time.Time
 	Overrides               *mocking.Overrides
 	// Forget if set to true will cause the plan to forget all resources. This is
-	// only allowd in the context of a destroy plan.
-	Forget  bool
-	Actions *actions.Actions
+	// only allowed in the context of a destroy plan.
+	Forget bool
+
+	Actions      *actions.Actions
+	Deprecations *deprecation.Deprecations
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -144,6 +147,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
 		ActionsValue:            w.Actions,
+		DeprecationsValue:       w.Deprecations,
 	}
 
 	return ctx

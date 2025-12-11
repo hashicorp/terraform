@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -93,6 +94,7 @@ type BuiltinEvalContext struct {
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
 	ActionsValue            *actions.Actions
+	DeprecationsValue       *deprecation.Deprecations
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -642,4 +644,8 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 
 func (ctx *BuiltinEvalContext) Actions() *actions.Actions {
 	return ctx.ActionsValue
+}
+
+func (ctx *BuiltinEvalContext) Deprecations() *deprecation.Deprecations {
+	return ctx.DeprecationsValue
 }
