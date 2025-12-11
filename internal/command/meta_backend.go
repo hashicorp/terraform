@@ -1105,11 +1105,15 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			stateStoreConfig.Provider.Name,
 			stateStoreConfig.ProviderAddr,
 		)
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Not implemented yet",
-			Detail:   "Migration from backend to state store is not implemented yet",
-		})
+
+		if !opts.Init {
+			initReason := fmt.Sprintf("Migrating from backend %q to state store %q",
+				s.Backend.Type, stateStoreConfig.Type)
+			diags = diags.Append(errBackendInitDiag(initReason))
+			return nil, diags
+		}
+
+		return m.backend_to_stateStore(s.Backend, sMgr, stateStoreConfig, cHash, opts)
 
 	// Potentially changing a backend configuration
 	case backendConfig != nil && !s.Backend.Empty() &&
@@ -1886,6 +1890,280 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 	}
 
 	return be, diags
+}
+
+func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clistate.LocalState, c *configs.StateStore, cHash int, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+	v := views.NewInit(opts.ViewType, m.View)
+	// TODO: Introduce backend_migrate_state_store
+	v.Output(views.InitMessageCode("backend_migrate_state_store"), bcs.Type, c.Type)
+
+	// TODO: m.backend_c_r_S()
+
+	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
+
+	s := sMgr.State()
+
+	cloudMode := cloud.DetectConfigChangeType(s.Backend, nil, false)
+	diags = diags.Append(m.assertSupportedCloudInitOptions(cloudMode))
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Get the backend type for output
+	backendType := s.Backend.Type
+
+	view := views.NewInit(vt, m.View)
+	if cloudMode == cloud.ConfigMigrationOut {
+		view.Output(views.BackendCloudMigrateLocalMessage)
+	} else {
+		view.Output(views.BackendMigrateLocalMessage, s.Backend.Type)
+	}
+
+	// Grab a purely local backend to get the local state if it exists
+	localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Initialize the configured backend
+	b, moreDiags := m.savedBackend(sMgr)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Perform the migration
+	err := m.backendMigrateState(&backendMigrateOpts{
+		SourceType:      s.Backend.Type,
+		DestinationType: "local",
+		Source:          b,
+		Destination:     localB,
+		ViewType:        vt,
+	})
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	// Remove the stored metadata
+	s.Backend = nil
+	if err := sMgr.WriteState(s); err != nil {
+		diags = diags.Append(errBackendClearSaved{err})
+		return nil, diags
+	}
+	if err := sMgr.PersistState(); err != nil {
+		diags = diags.Append(errBackendClearSaved{err})
+		return nil, diags
+	}
+
+	view.Output(views.BackendConfiguredUnsetMessage, backendType)
+
+	// TODO: m.stateStore_C_s()
+
+	// Grab a purely local backend to get the local state if it exists
+	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+	if localBDiags.HasErrors() {
+		diags = diags.Append(localBDiags)
+		return nil, diags
+	}
+
+	workspaces, wDiags := localB.Workspaces()
+	if wDiags.HasErrors() {
+		diags = diags.Append(&errBackendLocalRead{wDiags.Err()})
+		return nil, diags
+	}
+
+	var localStates []statemgr.Full
+	for _, workspace := range workspaces {
+		localState, sDiags := localB.StateMgr(workspace)
+		if sDiags.HasErrors() {
+			diags = diags.Append(&errBackendLocalRead{sDiags.Err()})
+			return nil, diags
+		}
+		if err := localState.RefreshState(); err != nil {
+			diags = diags.Append(&errBackendLocalRead{err})
+			return nil, diags
+		}
+
+		// We only care about non-empty states.
+		if localS := localState.State(); !localS.Empty() {
+			log.Printf("[TRACE] Meta.Backend: will need to migrate workspace states because of existing %q workspace", workspace)
+			localStates = append(localStates, localState)
+		} else {
+			log.Printf("[TRACE] Meta.Backend: ignoring local %q workspace because its state is empty", workspace)
+		}
+	}
+
+	// Get the state store as an instance of backend.Backend
+	b, storeConfigVal, providerConfigVal, moreDiags := m.stateStoreInitFromConfig(c, opts.Locks)
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	if len(localStates) > 0 {
+		// Migrate any local states into the new state store
+		err := m.backendMigrateState(&backendMigrateOpts{
+			SourceType:      "local",
+			DestinationType: c.Type,
+			Source:          localB,
+			Destination:     b,
+			ViewType:        vt,
+		})
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+
+		// We remove the local state after migration to prevent confusion
+		// As we're migrating to a state store we don't have insight into whether it stores
+		// files locally at all, and whether those local files conflict with the location of
+		// the old local state.
+		log.Printf("[TRACE] Meta.Backend: removing old state snapshots from old backend")
+		for _, localState := range localStates {
+			// We always delete the local state, unless that was our new state too.
+			if err := localState.WriteState(nil); err != nil {
+				diags = diags.Append(&errBackendMigrateLocalDelete{err})
+				return nil, diags
+			}
+			if err := localState.PersistState(nil); err != nil {
+				diags = diags.Append(&errBackendMigrateLocalDelete{err})
+				return nil, diags
+			}
+		}
+	}
+
+	if m.stateLock {
+		view := views.NewStateLocker(vt, m.View)
+		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
+		if err := stateLocker.Lock(sMgr, "init is initializing state_store first time"); err != nil {
+			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
+			return nil, diags
+		}
+		defer stateLocker.Unlock()
+	}
+
+	// Store the state_store metadata in our saved state location
+
+	var pVersion *version.Version // This will remain nil for builtin providers or unmanaged providers.
+	if c.ProviderAddr.Hostname == addrs.BuiltInProviderHost {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State storage is using a builtin provider",
+			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+		})
+	} else {
+		isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while initializing state store for the first time. This is a bug in Terraform and should be reported: %w", err))
+			return nil, diags
+		}
+		if isReattached {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "State storage provider is not managed by Terraform",
+				Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+			})
+		} else {
+			// The provider is not built in and is being managed by Terraform
+			// This is the most common scenario, by far.
+			var vDiags tfdiags.Diagnostics
+			pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks)
+			diags = diags.Append(vDiags)
+			if vDiags.HasErrors() {
+				return nil, diags
+			}
+		}
+	}
+
+	s.StateStore = &workdir.StateStoreConfigState{
+		Type: c.Type,
+		Hash: uint64(stateStoreHash),
+		Provider: &workdir.ProviderConfigState{
+			Source:  &c.ProviderAddr,
+			Version: pVersion,
+		},
+	}
+	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
+	if plug, ok := b.(*backendPluggable.Pluggable); ok {
+		// We need to convert away from backend.Backend interface to use the method
+		// for accessing the provider schema.
+		s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	}
+
+	// Verify that selected workspace exists in the state store.
+	if opts.Init && b != nil {
+		err := m.selectWorkspace(b)
+		if err != nil {
+			if errors.Is(err, &errBackendNoExistingWorkspaces{}) {
+				// If there are no workspaces, Terraform either needs to create the default workspace here
+				// or instruct the user to run a `terraform workspace new` command.
+				ws, err := m.Workspace()
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
+					return nil, diags
+				}
+
+				if ws == backend.DefaultStateName {
+					// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
+					if opts.CreateDefaultWorkspace {
+						diags = diags.Append(m.createDefaultWorkspace(c, b))
+						if !diags.HasErrors() {
+							// Report workspace creation to the view
+							view := views.NewInit(vt, m.View)
+							view.Output(views.DefaultWorkspaceCreatedMessage)
+						}
+					} else {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "The default workspace does not exist",
+							Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. To create it, either remove the `-create-default-workspace=false` flag and re-run the 'init' command, or create it using a 'workspace new' command",
+						})
+					}
+				} else {
+					// User needs to run a `terraform workspace new` command to create the missing custom workspace.
+					diags = append(diags, tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("Workspace %q has not been created yet", ws),
+						fmt.Sprintf("State store %q in provider %s (%q) reports that no workspaces currently exist. To create the custom workspace %q use the command `terraform workspace new %s`.",
+							c.Type,
+							c.Provider.Name,
+							c.ProviderAddr,
+							ws,
+							ws,
+						),
+					))
+					return nil, diags
+				}
+			} else {
+				// For all other errors, report via diagnostics
+				diags = diags.Append(fmt.Errorf("Failed to select a workspace: %w", err))
+			}
+		}
+	}
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Update backend state file
+	if err := sMgr.WriteState(s); err != nil {
+		diags = diags.Append(errBackendWriteSavedDiag(err))
+		return nil, diags
+	}
+	if err := sMgr.PersistState(); err != nil {
+		diags = diags.Append(errBackendWriteSavedDiag(err))
+		return nil, diags
+	}
+
+	return b, diags
 }
 
 //-------------------------------------------------------------------
