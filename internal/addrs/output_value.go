@@ -77,6 +77,11 @@ func (m ModuleInstance) OutputValue(name string) AbsOutputValue {
 	}
 }
 
+// ModuleInstance returns the module instance portion of the address.
+func (v AbsOutputValue) ModuleInstance() ModuleInstance {
+	return v.Module
+}
+
 func (v AbsOutputValue) CheckRule(t CheckRuleType, i int) CheckRule {
 	return CheckRule{
 		Container: v,

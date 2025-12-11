@@ -68,6 +68,16 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 			}
 		}
 	}
+
+	if n.Schema != nil && n.Schema.Body != nil && n.Schema.Body.Deprecated {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  fmt.Sprintf("Usage of deprecated resource %q", n.Addr.Resource.Type),
+			Detail:   fmt.Sprintf("The resource %q has been marked as deprecated by its provider. Please check the provider documentation for more information.", n.Addr.Resource.Type),
+			Subject:  &n.Config.DeclRange,
+		})
+	}
+
 	return diags
 }
 
@@ -302,7 +312,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		// Basic type-checking of the count argument. More complete validation
 		// of this will happen when we DynamicExpand during the plan walk.
-		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx)
+		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx, n.ModulePath())
 		diags = diags.Append(countDiags)
 
 	case n.Config.ForEach != nil:
@@ -312,7 +322,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, false).ValidateResourceValue()
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, n.ModulePath(), false).ValidateResourceValue()
 		diags = diags.Append(forEachDiags)
 	}
 
@@ -355,6 +365,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath()).InConfigBody(n.Config.Config, n.Addr.String()))
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
@@ -434,6 +445,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath()))
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -469,6 +481,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		resp := provider.ValidateEphemeralResourceConfig(req)
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath()))
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	case addrs.ListResourceMode:
 		schema := providerSchema.SchemaForListResourceType(n.Config.Type)
@@ -487,18 +500,21 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		if valDiags.HasErrors() {
 			return diags
 		}
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(blockVal, n.ModulePath()))
 
 		limit, _, limitDiags := newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
 		diags = diags.Append(limitDiags)
 		if limitDiags.HasErrors() {
 			return diags
 		}
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(limit, n.ModulePath()))
 
 		includeResource, _, includeDiags := newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
 		diags = diags.Append(includeDiags)
 		if includeDiags.HasErrors() {
 			return diags
 		}
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(includeResource, n.ModulePath()))
 
 		// Use unmarked value for validate request
 		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
@@ -630,7 +646,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				return diags
 			}
 
-			forEachData, _, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, true).ImportValues()
+			forEachData, _, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, n.ModulePath(), true).ImportValues()
 			diags = diags.Append(forEachDiags)
 			if forEachDiags.HasErrors() {
 				return diags
