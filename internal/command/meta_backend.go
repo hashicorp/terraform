@@ -846,7 +846,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		v := views.NewInit(opts.ViewType, m.View)
 		v.Output(views.InitMessageCode("state_store_unset"), s.StateStore.Type)
 
-		return m.stateStore_c_S(sMgr, "local", localB, nil, opts.ViewType)
+		return m.stateStore_to_backend(sMgr, "local", localB, nil, opts.ViewType)
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -917,7 +917,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		newBackendCfgState.SetConfig(configVal, b.ConfigSchema())
 		newBackendCfgState.Hash = uint64(cHash)
 
-		return m.stateStore_c_S(sMgr, backendConfig.Type, b, newBackendCfgState, opts.ViewType)
+		return m.stateStore_to_backend(sMgr, backendConfig.Type, b, newBackendCfgState, opts.ViewType)
 
 	// Migration from backend to state store
 	case backendConfig == nil && !s.Backend.Empty() &&
@@ -1939,8 +1939,8 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	return b, diags
 }
 
-// Unconfiguring a state store (moving from state store => backend).
-func (m *Meta) stateStore_c_S(ssSMgr *clistate.LocalState, dstBackendType string, dstBackend backend.Backend, newBackendState *workdir.BackendConfigState, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
+// Migrating a state store to backend (including local).
+func (m *Meta) stateStore_to_backend(ssSMgr *clistate.LocalState, dstBackendType string, dstBackend backend.Backend, newBackendState *workdir.BackendConfigState, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	s := ssSMgr.State()
