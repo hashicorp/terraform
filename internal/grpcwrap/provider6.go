@@ -982,6 +982,10 @@ func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.Conf
 		return resp, nil
 	}
 
+	// If this isn't present, chunk size is 0 and downstream code
+	// acts like there is no state at all.
+	p.chunkSize = configureResp.Capabilities.ChunkSize
+
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, configureResp.Diagnostics)
 	resp.Capabilities = &tfplugin6.StateStoreServerCapabilities{
 		ChunkSize: configureResp.Capabilities.ChunkSize,

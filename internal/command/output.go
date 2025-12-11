@@ -83,13 +83,13 @@ func (c *OutputCommand) Outputs(statePath string, view arguments.ViewType) (map[
 	}
 
 	// Get the state
-	stateStore, sDiags := b.StateMgr(env)
+	sMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
 		diags = diags.Append(fmt.Errorf("Failed to load state: %s", sDiags.Err()))
 		return nil, diags
 	}
 
-	output, err := stateStore.GetRootOutputValues(ctx)
+	output, err := sMgr.GetRootOutputValues(ctx)
 	if err != nil {
 		return nil, diags.Append(err)
 	}

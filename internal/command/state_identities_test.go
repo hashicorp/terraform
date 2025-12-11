@@ -4,6 +4,7 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -11,6 +12,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestStateIdentities(t *testing.T) {
@@ -422,4 +426,69 @@ func TestStateIdentities_modules(t *testing.T) {
 		}
 	})
 
+}
+
+func TestStateIdentities_stateStore(t *testing.T) {
+	// We need configuration present to force pluggable state storage to be used
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	// Get a state file, that contains identity information,as bytes
+	state := testStateWithIdentity()
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(state, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+	stateBytes := stateBuf.Bytes()
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider.MockStates = map[string]interface{}{
+		"default": stateBytes,
+	}
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	ui := cli.NewMockUi()
+	c := &StateIdentitiesCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			Ui: ui,
+		},
+	}
+
+	args := []string{"-json"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	expected := `{
+  "test_instance.bar": {
+    "id": "my-bar-id"
+  },
+  "test_instance.foo": {
+    "id": "my-foo-id"
+  }
+}
+`
+	actual := ui.OutputWriter.String()
+
+	// Normalize JSON strings
+	var expectedJSON, actualJSON map[string]interface{}
+	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
+		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
+	}
+	if err := json.Unmarshal([]byte(actual), &actualJSON); err != nil {
+		t.Fatalf("Failed to unmarshal actual JSON: %s", err)
+	}
+
+	if !reflect.DeepEqual(expectedJSON, actualJSON) {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", expected, actual)
+	}
 }
