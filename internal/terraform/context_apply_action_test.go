@@ -2857,6 +2857,30 @@ func TestContextApply_actions_resource_action_ordering(t *testing.T) {
 				"InvokeAction action_example - cty.ObjectVal(map[string]cty.Value{\"attr\":cty.StringVal(\"hello\")})",
 			},
 		},
+		"resource dependencies in before_create action": {
+			module: map[string]string{
+				"main.tf": `
+       action "action_example" "hello" {}
+       resource "test_object" "dep" {
+            name = "dep"
+       }
+       resource "test_object" "a" {
+         depends_on = [test_object.dep]
+         name = "a"
+         lifecycle {
+           action_trigger {
+             events  = [before_create]
+             actions = [action.action_example.hello]
+           }
+         }
+       }`,
+			},
+			expectedOrder: []string{
+				"ApplyResourceChangeFn test_object - cty.ObjectVal(map[string]cty.Value{\"name\":cty.StringVal(\"dep\")})",
+				"InvokeAction action_example - cty.NilVal",
+				"ApplyResourceChangeFn test_object - cty.ObjectVal(map[string]cty.Value{\"name\":cty.StringVal(\"a\")})",
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testModuleInline(t, tc.module)

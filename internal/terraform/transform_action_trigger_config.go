@@ -141,10 +141,25 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					},
 				}
 
+				// Before_* actions during apply need to be aware of any dependent references to resources
+				additionalReferences := []*addrs.Reference{}
+				if t.Operation == walkApply {
+					for _, rn := range resourceNode {
+						if gr, ok := rn.(*nodeExpandApplyableResource); ok {
+							fmt.Printf("\n\n Resource Node --> %#v\n", gr.Addr.String())
+							asd := gr.References()
+							fmt.Printf("\n\t asd --> %#v\n", asd)
+
+							additionalReferences = append(additionalReferences, asd...)
+						}
+					}
+				}
+				fmt.Printf("\n\n additionalReferences --> %#v\n", additionalReferences)
+
 				// If CreateNodesAsAfter is set we want all nodes to run after the resource
 				// If not we want expansion nodes only to exist if they are being used
 				if !createNodesAsAfter && containsBeforeEvent {
-					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingBefore)
+					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingBefore, additionalReferences)
 					g.Add(nat)
 
 					// We want to run before the resource nodes
@@ -165,7 +180,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 				}
 
 				if createNodesAsAfter || containsAfterEvent {
-					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingAfter)
+					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingAfter, additionalReferences)
 					g.Add(nat)
 
 					// We want to run after the resource nodes

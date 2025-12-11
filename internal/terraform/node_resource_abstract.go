@@ -28,6 +28,10 @@ type GraphNodeConfigResource interface {
 	ResourceAddr() addrs.ConfigResource
 }
 
+type GraphNodeDependsOn interface {
+	DependsOn() []*addrs.Reference
+}
+
 // ConcreteResourceInstanceNodeFunc is a callback type used to convert an
 // abstract resource instance to a concrete one of some type.
 type ConcreteResourceInstanceNodeFunc func(*NodeAbstractResourceInstance) dag.Vertex
@@ -109,6 +113,7 @@ var (
 	_ graphNodeAttachDataResourceDependsOn = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
 	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
+	_ GraphNodeDependsOn                   = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for

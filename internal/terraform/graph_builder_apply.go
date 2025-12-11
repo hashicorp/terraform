@@ -167,11 +167,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Operation:     b.Operation,
 			ActionTargets: b.ActionTargets,
 
-			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, timing RelativeActionTiming) dag.Vertex {
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, timing RelativeActionTiming, refs []*addrs.Reference) dag.Vertex {
 				return &nodeActionTriggerApplyExpand{
 					nodeAbstractActionTriggerExpand: node,
 
-					relativeTiming: timing,
+					relativeTiming:      timing,
+					inheritedReferences: refs,
 				}
 			},
 		},

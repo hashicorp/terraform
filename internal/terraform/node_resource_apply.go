@@ -4,6 +4,9 @@
 package terraform
 
 import (
+	"fmt"
+	"runtime/debug"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -30,6 +33,11 @@ var (
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	refs := n.NodeAbstractResource.References()
+	fmt.Printf("ExpandApplyableResource %s references: %v\n", n.Name(), refs)
+	fmt.Println("===== refs ======")
+	debug.PrintStack()
+	fmt.Println("===== refs (END) ======")
+	return refs
 
 	// The expand node needs to connect to the individual resource instances it
 	// references, but cannot refer to it's own instances without causing
@@ -39,7 +47,8 @@ func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	// filter them out for all resource node types, because the only method we
 	// have for catching certain invalid configurations are the cycles that
 	// result from these inter-instance references.
-	return filterSelfRefs(n.Addr.Resource, refs)
+	// return filterSelfRefs(n.Addr.Resource, refs)
+	return refs
 }
 
 func (n *nodeExpandApplyableResource) Name() string {

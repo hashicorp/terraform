@@ -18,6 +18,7 @@ type nodeActionTriggerApplyExpand struct {
 
 	actionInvocationInstances []*plans.ActionInvocationInstanceSrc
 	relativeTiming            RelativeActionTiming
+	inheritedReferences       []*addrs.Reference
 }
 
 var (
@@ -74,6 +75,7 @@ func (n *nodeActionTriggerApplyExpand) References() []*addrs.Reference {
 	refs = append(refs, &addrs.Reference{
 		Subject: n.Addr.Action,
 	})
+	refs = append(refs, n.inheritedReferences...)
 
 	if n.lifecycleActionTrigger != nil {
 		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.lifecycleActionTrigger.conditionExpr)

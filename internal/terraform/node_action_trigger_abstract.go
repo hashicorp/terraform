@@ -23,7 +23,7 @@ const (
 
 // ConcreteActionTriggerNodeFunc is a callback type used to convert an
 // abstract action trigger to a concrete one of some type.
-type ConcreteActionTriggerNodeFunc func(*nodeAbstractActionTriggerExpand, RelativeActionTiming) dag.Vertex
+type ConcreteActionTriggerNodeFunc func(*nodeAbstractActionTriggerExpand, RelativeActionTiming, []*addrs.Reference) dag.Vertex
 
 type nodeAbstractActionTriggerExpand struct {
 	Addr             addrs.ConfigAction

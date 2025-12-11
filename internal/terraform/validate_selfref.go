@@ -144,6 +144,8 @@ func filterSelfRefs(self addrs.Resource, refs []*addrs.Reference) []*addrs.Refer
 	for i := 0; i < len(refs); i++ {
 		ref := refs[i]
 
+		fmt.Printf("\n\t ref --> %#v\n", ref)
+
 		var subject addrs.Resource
 		switch subj := ref.Subject.(type) {
 		case addrs.Resource:
@@ -151,10 +153,12 @@ func filterSelfRefs(self addrs.Resource, refs []*addrs.Reference) []*addrs.Refer
 		case addrs.ResourceInstance:
 			subject = subj.ContainingResource()
 		default:
+			fmt.Println("continueing...")
 			continue
 		}
 
 		if self.Equal(subject) {
+			fmt.Println("eqlau")
 			tail := len(refs) - 1
 
 			refs[i], refs[tail] = refs[tail], refs[i]
