@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/backend/local"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	backendPluggable "github.com/hashicorp/terraform/internal/backend/pluggable"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -37,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -221,13 +223,14 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 	// the user, since the local backend should only be used when learning or
 	// in exceptional cases and so it's better to help the user learn that
 	// by introducing it as a concept.
-	if m.backendState == nil {
+	stateStoreInUse := opts.StateStoreConfig != nil
+	if !stateStoreInUse && m.backendConfigState == nil {
 		// NOTE: This synthetic object is intentionally _not_ retained in the
 		// on-disk record of the backend configuration, which was already dealt
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &workdir.BackendConfigState{
+		m.backendConfigState = &workdir.BackendConfigState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -440,13 +443,38 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		// here first is a bug, so panic.
 		panic(fmt.Sprintf("invalid workspace: %s", err))
 	}
-	planOutBackend, err := m.backendState.PlanData(schema, nil, workspace)
-	if err != nil {
-		// Always indicates an implementation error in practice, because
-		// errors here indicate invalid encoding of the backend configuration
-		// in memory, and we should always have validated that by the time
-		// we get here.
-		panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
+
+	var planOutBackend *plans.Backend
+	var planOutStateStore *plans.StateStore
+	switch {
+	case m.backendConfigState != nil && m.stateStoreConfigState != nil:
+		// Both set
+		panic("failed to encode backend configuration for plan: both backend and state_store data present but they are mutually exclusive")
+	case m.stateStoreConfigState != nil:
+		// To access the provider schema, we need to access the underlying backends
+		var providerSchema *configschema.Block
+		lb := b.(*local.Local)
+		p := lb.Backend.(*backendPluggable.Pluggable)
+		providerSchema = p.ProviderSchema()
+
+		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace)
+		if err != nil {
+			// Always indicates an implementation error in practice, because
+			// errors here indicate invalid encoding of the state_store configuration
+			// in memory, and we should always have validated that by the time
+			// we get here.
+			panic(fmt.Sprintf("failed to encode state_store configuration for plan: %s", err))
+		}
+	default:
+		// Either backendConfigState is set, or it's nil; PlanData method can handle either.
+		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace)
+		if err != nil {
+			// Always indicates an implementation error in practice, because
+			// errors here indicate invalid encoding of the backend configuration
+			// in memory, and we should always have validated that by the time
+			// we get here.
+			panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
+		}
 	}
 
 	stateLocker := clistate.NewNoopLocker()
@@ -465,8 +493,11 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		log.Printf("[WARN] Failed to load dependency locks while preparing backend operation (ignored): %s", diags.Err().Error())
 	}
 
-	return &backendrun.Operation{
-		PlanOutBackend:  planOutBackend,
+	op := &backendrun.Operation{
+		// These two fields are mutually exclusive; one is being assigned a nil value below.
+		PlanOutBackend:    planOutBackend,
+		PlanOutStateStore: planOutStateStore,
+
 		Targets:         m.targets,
 		UIIn:            m.UIInput(),
 		UIOut:           m.Ui,
@@ -474,6 +505,12 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		StateLocker:     stateLocker,
 		DependencyLocks: depLocks,
 	}
+
+	if op.PlanOutBackend != nil && op.PlanOutStateStore != nil {
+		panic("failed to prepare operation: both backend and state_store configurations are present")
+	}
+
+	return op
 }
 
 // backendConfig returns the local configuration for the backend
@@ -727,10 +764,28 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Upon return, we want to set the state we're using in-memory so that
 	// we can access it for commands.
-	m.backendState = nil
+	//
+	// Currently the only command using these values is the `plan` command,
+	// which records the data in the plan file.
+	m.backendConfigState = nil
+	m.stateStoreConfigState = nil
 	defer func() {
-		if s := sMgr.State(); s != nil && !s.Backend.Empty() {
-			m.backendState = s.Backend
+		s := sMgr.State()
+		switch {
+		case s == nil:
+			// Do nothing
+			/* If there is no backend state file then either:
+			1. The working directory isn't initialized yet.
+				The user is either in the process of running an init command, in which case the values set via this deferred function will not be used,
+				or they are performing a non-init command that will be interrupted by an error before these values are used in downstream
+			2. There isn't any backend or state_store configuration and an implied local backend is in use.
+				This is valid and will mean m.backendConfigState is nil until the calling code adds a synthetic object in:
+				https://github.com/hashicorp/terraform/blob/3eea12a1d810a17e9c8e43cf7774817641ca9bc1/internal/command/meta_backend.go#L213-L234
+			*/
+		case !s.Backend.Empty():
+			m.backendConfigState = s.Backend
+		case !s.StateStore.Empty():
+			m.stateStoreConfigState = s.StateStore
 		}
 	}()
 
@@ -1781,11 +1836,12 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 		},
 	}
 	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
-	if plug, ok := b.(*backendPluggable.Pluggable); ok {
-		// We need to convert away from backend.Backend interface to use the method
-		// for accessing the provider schema.
-		s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
-	}
+
+	// We need to briefly convert away from backend.Backend interface to use the method
+	// for accessing the provider schema. In this method we _always_ expect the concrete value
+	// to be backendPluggable.Pluggable.
+	plug := b.(*backendPluggable.Pluggable)
+	s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
 
 	// Verify that selected workspace exists in the state store.
 	if opts.Init && b != nil {

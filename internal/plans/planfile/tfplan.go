@@ -229,10 +229,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 	case rawPlan.StateStore != nil:
 		rawStateStore := rawPlan.StateStore
-		config, err := valueFromTfplan(rawStateStore.Config)
-		if err != nil {
-			return nil, fmt.Errorf("plan file has invalid state_store configuration: %s", err)
-		}
+
 		provider := &plans.Provider{}
 		err = provider.SetSource(rawStateStore.Provider.Source)
 		if err != nil {
@@ -242,11 +239,21 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		if err != nil {
 			return nil, fmt.Errorf("plan file has invalid state_store provider version: %s", err)
 		}
+		providerConfig, err := valueFromTfplan(rawStateStore.Provider.Config)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store configuration: %s", err)
+		}
+		provider.Config = providerConfig
+
+		storeConfig, err := valueFromTfplan(rawStateStore.Config)
+		if err != nil {
+			return nil, fmt.Errorf("plan file has invalid state_store configuration: %s", err)
+		}
 
 		plan.StateStore = &plans.StateStore{
 			Type:      rawStateStore.Type,
 			Provider:  provider,
-			Config:    config,
+			Config:    storeConfig,
 			Workspace: rawStateStore.Workspace,
 		}
 	}
@@ -759,6 +766,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 			Provider: &planproto.Provider{
 				Version: plan.StateStore.Provider.Version.String(),
 				Source:  plan.StateStore.Provider.Source.String(),
+				Config:  valueToTfplan(plan.StateStore.Provider.Config),
 			},
 			Config:    valueToTfplan(plan.StateStore.Config),
 			Workspace: plan.StateStore.Workspace,
