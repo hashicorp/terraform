@@ -9,12 +9,16 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
@@ -248,5 +252,66 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 
 	if deferred.Reason != providers.DeferredReasonAbsentPrereq {
 		t.Fatalf("expected deferral to be AbsentPrereq, got %s", deferred.Reason)
+	}
+}
+
+func TestNodeAbstractResourceInstance_apply_with_unknown_values(t *testing.T) {
+	state := states.NewState()
+	evalCtx := &MockEvalContext{}
+	evalCtx.StateState = state.SyncWrapper()
+	evalCtx.Scope = evalContextModuleInstance{Addr: addrs.RootModuleInstance}
+
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+	mockProvider.ConfigureProviderCalled = true
+
+	node := &NodeAbstractResourceInstance{
+		Addr: mustResourceInstanceAddr("aws_instance.foo"),
+		NodeAbstractResource: NodeAbstractResource{
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		},
+	}
+	evalCtx.ProviderProvider = mockProvider
+	evalCtx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
+	evalCtx.EvaluateBlockResult = cty.ObjectVal(map[string]cty.Value{
+		"id": cty.UnknownVal(cty.String),
+	})
+	priorState := &states.ResourceInstanceObject{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("prior"),
+		}),
+		Status: states.ObjectReady,
+	}
+	change := &plans.ResourceInstanceChange{
+		Addr: node.Addr,
+		Change: plans.Change{
+			Action: plans.Update,
+			Before: priorState.Value,
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+			}),
+		},
+	}
+
+	// Not needed for this test
+	applyConfig := &configs.Resource{}
+	keyData := instances.RepetitionData{}
+
+	newState, diags := node.apply(evalCtx, priorState, change, applyConfig, keyData, false)
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Configuration contains unknown value",
+		Detail:   "configuration for aws_instance.foo still contains unknown values during apply (this is a bug in Terraform; please report it!)\nThe following paths in the resource configuration are unknown:\n.id",
+	}))
+
+	if !newState.Value.RawEquals(priorState.Value) {
+		t.Fatalf("expected prior state to be preserved, got %s", newState.Value.GoString())
 	}
 }
