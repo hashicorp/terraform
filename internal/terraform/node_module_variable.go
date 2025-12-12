@@ -306,6 +306,10 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 	finalVal, moreDiags := PrepareFinalInputVariableValue(n.Addr, rawVal, n.Config)
 	diags = diags.Append(moreDiags)
 
+	var deprecationDiags tfdiags.Diagnostics
+	finalVal, deprecationDiags = ctx.Deprecations().Validate(finalVal, n.ModulePath(), errSourceRange.ToHCL().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	return finalVal, diags.ErrWithWarnings()
 }
 

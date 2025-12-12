@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -347,6 +349,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			repData.EachValue = cty.DynamicVal
 		}
 
+		// Even if we don't run the provisioners during plan we need to make sure they are valid
+		if n.Config != nil && n.Config.Managed != nil {
+			for _, p := range n.Config.Managed.Provisioners {
+				diags = diags.Append(n.validateProvisioner(ctx, p, n.Config.Managed.Connection, repData))
+				if diags.HasErrors() {
+					return diags
+				}
+			}
+		}
 		diags = diags.Append(n.replaceTriggered(ctx, repData))
 		if diags.HasErrors() {
 			return diags
@@ -638,6 +649,12 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			diags = diags.Append(configDiags)
 			return nil, deferred, diags
 		}
+
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath()).InConfigBody(n.Config.Config, absAddr.String()))
+		if diags.HasErrors() {
+			return nil, deferred, diags
+		}
+
 		configVal, _ = configVal.UnmarkDeep()
 
 		// Let's pretend we're reading the value as a data source so we
@@ -1007,6 +1024,75 @@ func (n *NodePlannableResourceInstance) generateResourceConfig(ctx EvalContext, 
 
 	// or fallback to the default process of guessing at a legacy config.
 	return genconfig.ExtractLegacyConfigFromState(schema.Body, state), diags
+}
+
+func (n *NodePlannableResourceInstance) validateProvisioner(ctx EvalContext, p *configs.Provisioner, baseConn *configs.Connection, repData instances.RepetitionData) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	provisioner, err := ctx.Provisioner(p.Type)
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	if provisioner == nil {
+		return diags.Append(fmt.Errorf("provisioner %s not initialized", p.Type))
+	}
+	provisionerSchema, err := ctx.ProvisionerSchema(p.Type)
+	if err != nil {
+		return diags.Append(fmt.Errorf("failed to read schema for provisioner %s: %s", p.Type, err))
+	}
+	if provisionerSchema == nil {
+		return diags.Append(fmt.Errorf("provisioner %s has no schema", p.Type))
+	}
+
+	// Validate the provisioner's own config first
+	configVal, _, configDiags := n.evaluateBlock(ctx, p.Config, provisionerSchema, repData)
+	diags = diags.Append(configDiags)
+
+	if configVal == cty.NilVal {
+		// Should never happen for a well-behaved EvaluateBlock implementation
+		return diags.Append(fmt.Errorf("EvaluateBlock returned nil value"))
+	}
+
+	// Use unmarked value for validate request
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+	req := provisioners.ValidateProvisionerConfigRequest{
+		Config: unmarkedConfigVal,
+	}
+
+	resp := provisioner.ValidateProvisionerConfig(req)
+	diags = diags.Append(resp.Diagnostics)
+
+	if p.Connection != nil {
+		// We can't comprehensively validate the connection config since its
+		// final structure is decided by the communicator and we can't instantiate
+		// that until we have a complete instance state. However, we *can* catch
+		// configuration keys that are not valid for *any* communicator, catching
+		// typos early rather than waiting until we actually try to run one of
+		// the resource's provisioners.
+
+		cfg := p.Connection.Config
+		if baseConn != nil {
+			// Merge the local config into the base connection config, if we
+			// both specified.
+			cfg = configs.MergeBodies(baseConn.Config, cfg)
+		}
+
+		_, _, connDiags := n.evaluateBlock(ctx, cfg, connectionBlockSupersetSchema, repData)
+		diags = diags.Append(connDiags)
+	} else if baseConn != nil {
+		// Just validate the baseConn directly.
+		_, _, connDiags := n.evaluateBlock(ctx, baseConn.Config, connectionBlockSupersetSchema, repData)
+		diags = diags.Append(connDiags)
+
+	}
+	return diags
+}
+
+func (n *NodePlannableResourceInstance) evaluateBlock(ctx EvalContext, body hcl.Body, schema *configschema.Block, keyData instances.RepetitionData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	val, hclBody, diags := ctx.EvaluateBlock(body, schema, n.Addr.Resource, keyData)
+	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(val, n.ModulePath()).InConfigBody(body, n.Addr.String()))
+	return val, hclBody, diags
 }
 
 // mergeDeps returns the union of 2 sets of dependencies

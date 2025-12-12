@@ -11,6 +11,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -31,7 +32,11 @@ func TestEvaluateCountExpression(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			ctx := &MockEvalContext{}
+			ctx := &MockEvalContext{
+				Scope: evalContextModuleInstance{
+					Addr: addrs.RootModuleInstance,
+				},
+			}
 			ctx.installSimpleEval()
 			countVal, diags := evaluateCountExpression(test.Expr, ctx, false)
 
@@ -51,7 +56,11 @@ func TestEvaluateCountExpression(t *testing.T) {
 
 func TestEvaluateCountExpression_ephemeral(t *testing.T) {
 	expr := hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark(marks.Ephemeral))
-	ctx := &MockEvalContext{}
+	ctx := &MockEvalContext{
+		Scope: evalContextModuleInstance{
+			Addr: addrs.RootModuleInstance,
+		},
+	}
 	ctx.installSimpleEval()
 	_, diags := evaluateCountExpression(expr, ctx, false)
 	if !diags.HasErrors() {

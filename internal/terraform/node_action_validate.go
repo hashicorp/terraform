@@ -105,6 +105,12 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 	valDiags = validateResourceForbiddenEphemeralValues(ctx, configVal, schema.ConfigSchema)
 	diags = diags.Append(valDiags.InConfigBody(config, n.Addr.String()))
 
+	deprecationDiags := ctx.Deprecations().ValidateAsConfig(configVal, n.Addr.Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
+	}
+
 	// Use unmarked value for validate request
 	unmarkedConfigVal, _ := configVal.UnmarkDeep()
 	log.Printf("[TRACE] Validating config for %q", n.Addr)

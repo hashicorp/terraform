@@ -77,27 +77,6 @@ func (b *Block) StaticValidateTraversal(traversal hcl.Traversal) tfdiags.Diagnos
 	}
 
 	if attrS, exists := b.Attributes[name]; exists {
-		// Check for Deprecated status of this attribute.
-		// We currently can't provide the user with any useful guidance because
-		// the deprecation string is not part of the schema, but we can at
-		// least warn them.
-		//
-		// This purposely does not attempt to recurse into nested attribute
-		// types. Because nested attribute values are often not accessed via a
-		// direct traversal to the leaf attributes, we cannot reliably detect
-		// if a nested, deprecated attribute value is actually used from the
-		// traversal alone. More precise detection of deprecated attributes
-		// would require adding metadata like marks to the cty value itself, to
-		// be caught during evaluation.
-		if attrS.Deprecated {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  `Deprecated attribute`,
-				Detail:   fmt.Sprintf(`The attribute %q is deprecated. Refer to the provider documentation for details.`, name),
-				Subject:  next.SourceRange().Ptr(),
-			})
-		}
-
 		// For attribute validation we will just apply the rest of the
 		// traversal to an unknown value of the attribute type and pass
 		// through HCL's own errors, since we don't want to replicate all
