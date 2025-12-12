@@ -23,7 +23,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
+func (c *InitCommand) run(initArgs *arguments.Init, view views.Init, rootModEarly *configs.Module, earlyConfDiags tfdiags.Diagnostics) int {
 	var diags tfdiags.Diagnostics
 
 	c.forceInitCopy = initArgs.ForceInitCopy
@@ -130,8 +130,14 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 0
 	}
 
-	// Load just the root module to begin backend and module initialization
-	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	// If the passed root module is nil, attempt to parse it.
+	// At this point we load just the root module to begin backend and module initialization
+	//
+	// TODO(SarahFrench/radeksimko): Once PSS's experiment is over, remove use of arguments and
+	// restore parsing of config to always happen here in this code instead of calling code.
+	if rootModEarly == nil {
+		rootModEarly, earlyConfDiags = c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	}
 
 	// There may be parsing errors in config loading but these will be shown later _after_
 	// checking for core version requirement errors. Not meeting the version requirement should

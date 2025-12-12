@@ -62,10 +62,11 @@ func (c *InitCommand) Run(args []string) int {
 		view.Diagnostics(diags)
 		return 1
 	}
-	rootMod, _ := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
-	// We purposefully ignore any diagnostics returned here. They will be encountered downstream,
-	// when the 'run' logic below is executed. If we return early due to error diagnostics here we
-	// will break the order that errors are expected to be raised in.
+	rootMod, rootModDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	// We purposefully don't exit early if there are error diagnostics returned here; there are errors related to the Terraform version
+	// that have precedence and are detected downstream.
+	// We pass the configuration and diagnostic values from here into downstream code, replacing where the files are parsed there.
+	// This prevents the diagnostics being lost, as re-parsing the same config results in lost diagnostics.
 
 	// The else condition below invokes the original logic of the init command.
 	// An experimental version of the init code will be used if:
@@ -73,9 +74,9 @@ func (c *InitCommand) Run(args []string) int {
 	//  > The terraform block in the configuration lists the `pluggable_state_stores` experiment.
 	if c.Meta.AllowExperimentalFeatures && rootMod.ActiveExperiments.Has(experiments.PluggableStateStores) {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
-		return c.runPssInit(initArgs, view)
+		return c.runPssInit(initArgs, view, rootMod, rootModDiags)
 	} else {
-		return c.run(initArgs, view)
+		return c.run(initArgs, view, rootMod, rootModDiags)
 	}
 }
 
@@ -1488,10 +1489,11 @@ Options:
   -test-directory=path    Set the Terraform test directory, defaults to "tests".
 
   -create-default-workspace [EXPERIMENTAL]
-                          This flag must be used alongside the -enable-pluggable-state-storage-
-                          experiment flag with experiments enabled. This flag's value defaults
-                          to true, which allows the default workspace to be created if it does
-                          not exist. Use -create-default-workspace=false to disable this behavior.
+                          This flag must be used alongside naming the pluggable_state_stores
+                          experiment in your configuration and using an experimental build of
+                          Terraform. This flag's value defaults to true, which allows the default
+                          workspace to be created if it does not exist.
+                          Use -create-default-workspace=false to disable this behavior.
 
 `
 	return strings.TrimSpace(helpText)
