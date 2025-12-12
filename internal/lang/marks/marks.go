@@ -4,7 +4,6 @@
 package marks
 
 import (
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -94,9 +93,10 @@ const Ephemeral = valueMark("Ephemeral")
 // `type` function.
 const TypeType = valueMark("TypeType")
 
+// DeprecationMark is a mark indicating that a value is deprecated. It is a struct
+// rather than a primitive type so that it can carry a deprecation message.
 type DeprecationMark struct {
 	Message string
-	Origin  *hcl.Range
 }
 
 func (d DeprecationMark) GoString() string {
@@ -104,11 +104,10 @@ func (d DeprecationMark) GoString() string {
 }
 
 // Empty deprecation mark for usage in marks.Has / Contains / etc
-var Deprecation = NewDeprecation("", nil)
+var Deprecation = NewDeprecation("")
 
-func NewDeprecation(message string, origin *hcl.Range) DeprecationMark {
+func NewDeprecation(message string) DeprecationMark {
 	return DeprecationMark{
 		Message: message,
-		Origin:  origin,
 	}
 }
