@@ -131,7 +131,7 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 	// Create a temporary working directory that includes config using
 	// a state store in the `test` provider
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("provider-schemas-state-store"), td)
 	t.Chdir(td)
 
 	// Get bytes describing the state
@@ -169,10 +169,11 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
+	// Does the output mention the 2 providers, and the name of the state store?
 	wantOutput := []string{
-		`{"format_version":"1.0","provider_schemas":{`, // Opening of JSON
-		`"registry.terraform.io/hashicorp/baz":{`,      // provider from state
-		`"registry.terraform.io/hashicorp/test":{`,     // provider from config
+		mockProviderAddressBaz.String(),  // provider from state
+		mockProviderAddressTest.String(), // provider from config
+		"test_store",                     // the name of the state store implemented in the provider
 	}
 
 	output := ui.OutputWriter.String()
@@ -182,6 +183,32 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 		}
 	}
 
+	// Does the output match the full expected schema?
+	var got, want providerSchemas
+
+	gotString := ui.OutputWriter.String()
+	err := json.Unmarshal([]byte(gotString), &got)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantFile, err := os.Open("output.json")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer wantFile.Close()
+	byteValue, err := ioutil.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = json.Unmarshal([]byte(byteValue), &want)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cmp.Equal(got, want) {
+		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+	}
 }
 
 type providerSchemas struct {
@@ -193,6 +220,7 @@ type providerSchema struct {
 	Provider          interface{}            `json:"provider,omitempty"`
 	ResourceSchemas   map[string]interface{} `json:"resource_schemas,omitempty"`
 	DataSourceSchemas map[string]interface{} `json:"data_source_schemas,omitempty"`
+	StateStoreSchemas map[string]interface{} `json:"state_store_schemas,omitempty"`
 }
 
 // testProvider returns a mock provider that is configured for basic
