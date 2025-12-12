@@ -86,6 +86,7 @@ func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags
 
 	// validate the for_each value for use in resource expansion
 	diags = diags.Append(ev.validateResourceOrActionForEach(forEachVal, "resource"))
+	forEachVal = marks.RemoveDeprecationMarks(forEachVal)
 	if diags.HasErrors() {
 		return res, false, diags
 	}
@@ -328,6 +329,9 @@ func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value
 	}
 
 	diags = diags.Append(ev.ensureNotEphemeral(forEachVal))
+	var deprecationDiags tfdiags.Diagnostics
+	forEachVal, deprecationDiags = ev.ctx.Deprecations().Validate(forEachVal, ev.ctx.Path().Module(), ev.expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
 
 	if diags.HasErrors() {
 		return diags

@@ -76,6 +76,12 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	diags = diags.Append(validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(config.Config, inp.addr.String()))
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	unmarkedConfigVal, configMarks := configVal.UnmarkDeepWithPaths()
 
 	if !unmarkedConfigVal.IsWhollyKnown() {

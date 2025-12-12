@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -2459,37 +2460,476 @@ resource "aws_instance" "test" {
 }
 
 func TestContext2Validate_deprecatedAttr(t *testing.T) {
-	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"foo": {Type: cty.String, Optional: true, Deprecated: true},
-				},
+	for name, tc := range map[string]struct {
+		attributeSchema         map[string]*configschema.Attribute
+		blockSchema             map[string]*configschema.NestedBlock
+		module                  map[string]string
+		expectedValidationDiags func(*configs.Config) tfdiags.Diagnostics
+		expectedPlanDiags       func(*configs.Config) tfdiags.Diagnostics
+		expectedApplyDiags      func(*configs.Config) tfdiags.Diagnostics
+	}{
+		"in locals": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+            }
+            locals {
+              deprecated = aws_instance.test.foo
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 28, Byte: 108},
+						End:      hcl.Pos{Line: 5, Column: 49, Byte: 129},
+					},
+				})
 			},
 		},
-	})
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-resource "aws_instance" "test" {
-}
-locals {
-  deprecated = aws_instance.test.foo
-}
 
- `,
-	})
-
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		"in count": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.Number, Required: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+                foo = 2
+            }
+            resource "aws_instance" "test2" {
+              count = aws_instance.test.foo
+              foo = 1
+            }
+             `,
+			},
+			expectedValidationDiags: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 23, Byte: 152},
+						End:      hcl.Pos{Line: 6, Column: 44, Byte: 173},
+					},
+				})
+			},
 		},
-	})
 
-	diags := ctx.Validate(m, nil)
-	warn := diags.ErrWithWarnings().Error()
-	if !strings.Contains(warn, `The attribute "foo" is deprecated`) {
-		t.Fatalf("expected deprecated warning, got: %q\n", warn)
+		"in for_each": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.Set(cty.String), Required: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+                foo = ["a", "b"]
+            }
+            resource "aws_instance" "test2" {
+              for_each = aws_instance.test.foo
+              foo = ["x"]
+            }
+             `,
+			},
+			expectedValidationDiags: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 26, Byte: 164},
+						End:      hcl.Pos{Line: 6, Column: 47, Byte: 185},
+					},
+				})
+			},
+		},
+
+		"in output": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+            }
+            output "deprecated_output" {
+              value = aws_instance.test.foo
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 23, Byte: 123},
+						End:      hcl.Pos{Line: 5, Column: 44, Byte: 144},
+					},
+				})
+			},
+			// During apply we take the planned value for the output. Since the plan
+			// does not contain marks we can not detect this usage at apply time.
+			expectedApplyDiags: func(c *configs.Config) tfdiags.Diagnostics { return tfdiags.Diagnostics{} },
+		},
+
+		"in resource attribute": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+				"bar": {Type: cty.String, Optional: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+            }
+            resource "aws_instance" "test2" {
+              bar = aws_instance.test.foo
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 21, Byte: 126},
+						End:      hcl.Pos{Line: 5, Column: 42, Byte: 147},
+					},
+				})
+			},
+		},
+
+		"in precondition": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Required: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+              foo = "bar"
+            }
+            resource "aws_instance" "test2" {
+              foo = "baz"
+              lifecycle {
+                precondition {
+                  condition = aws_instance.test.foo != ""
+                  error_message = "foo must not be empty"
+                }
+              }
+            }
+             `,
+			},
+			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 31, Byte: 245},
+						End:      hcl.Pos{Line: 9, Column: 58, Byte: 272},
+					},
+				})
+			},
+		},
+
+		"in postcondition condition": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Required: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+              foo = "bar"
+              lifecycle {
+                postcondition {
+                  condition = self.foo != ""
+                  error_message = "foo must not be empty"
+                }
+              }
+            }
+             `,
+			},
+			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 31, Byte: 160},
+						End:      hcl.Pos{Line: 6, Column: 45, Byte: 174},
+					},
+				})
+			},
+		},
+
+		"in dynamic block": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.Set(cty.String), Computed: true, Deprecated: true},
+			},
+			blockSchema: map[string]*configschema.NestedBlock{
+				"bar": {
+					Nesting: configschema.NestingList,
+					Block: configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"baz": {
+								Type:     cty.String,
+								Required: false,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+              foo = ["a", "b"]
+            }
+            resource "aws_instance" "test2" {
+              dynamic "bar" {
+                for_each = aws_instance.test.foo
+                content {
+                    baz = bar.value
+                }
+              }
+            }
+             `,
+			},
+			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 45, Byte: 135},
+						End:      hcl.Pos{Line: 5, Column: 45, Byte: 135},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 45, Byte: 135},
+						End:      hcl.Pos{Line: 5, Column: 45, Byte: 135},
+					},
+				})
+			},
+		},
+
+		"in check assertion": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Required: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+              foo = "bar"
+            }
+            check "test_check" {
+              assert {
+                condition = aws_instance.test.foo != ""
+                error_message = "foo must not be empty"
+              }
+            }
+             `,
+			},
+			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 29, Byte: 170},
+						End:      hcl.Pos{Line: 7, Column: 56, Byte: 197},
+					},
+				})
+			},
+		},
+
+		"in module input": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+            }
+            module "child" {
+              source = "./child"
+              input = aws_instance.test.foo
+            }
+             `,
+				"child/main.tf": `
+            variable "input" {
+              type = string
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 23, Byte: 144},
+						End:      hcl.Pos{Line: 6, Column: 44, Byte: 165},
+					},
+				})
+			},
+		},
+
+		"in provisioner and connection block": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+            }
+            resource "aws_instance" "test2" {
+              provisioner "shell" {
+                test_string      = aws_instance.test.foo
+                connection {
+                  type = "ssh"
+                  host = aws_instance.test.foo
+                }
+              }
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 36, Byte: 177},
+						End:      hcl.Pos{Line: 6, Column: 57, Byte: 198},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 26, Byte: 284},
+						End:      hcl.Pos{Line: 9, Column: 47, Byte: 305},
+					},
+				})
+			},
+		},
+
+		"in action config": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+            }
+            action "aws_register" "example" {
+              config {
+                host = aws_instance.test.foo
+              }
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 24, Byte: 152},
+						End:      hcl.Pos{Line: 6, Column: 45, Byte: 173},
+					},
+				})
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			// Default values
+			if tc.expectedValidationDiags == nil {
+				tc.expectedValidationDiags = func(c *configs.Config) tfdiags.Diagnostics {
+					return tfdiags.Diagnostics{}
+				}
+			}
+			// By default we want the same validations in plan as in validate
+			if tc.expectedPlanDiags == nil {
+				tc.expectedPlanDiags = tc.expectedValidationDiags
+			}
+			// And the same validations in apply as in plan
+			if tc.expectedApplyDiags == nil {
+				tc.expectedApplyDiags = tc.expectedPlanDiags
+			}
+
+			pr := simpleMockProvisioner()
+			p := testProvider("aws")
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"aws_instance": {
+						Attributes: tc.attributeSchema,
+						BlockTypes: tc.blockSchema,
+					},
+				},
+				Actions: map[string]*providers.ActionSchema{
+					"aws_register": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"host": {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			})
+			m := testModuleInline(t, tc.module)
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				},
+				Provisioners: map[string]provisioners.Factory{
+					"shell": testProvisionerFuncFixed(pr),
+				},
+			})
+
+			t.Run("validate", func(t *testing.T) {
+				validateDiags := ctx.Validate(m, nil)
+				tfdiags.AssertDiagnosticsMatch(t, validateDiags, tc.expectedValidationDiags(m))
+			})
+
+			var plan *plans.Plan
+			t.Run("plan", func(t *testing.T) {
+				var planDiags tfdiags.Diagnostics
+				plan, planDiags = ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+				tfdiags.AssertDiagnosticsMatch(t, planDiags, tc.expectedPlanDiags(m))
+			})
+
+			t.Run("apply", func(t *testing.T) {
+				_, applyDiags := ctx.Apply(plan, m, &ApplyOpts{})
+				tfdiags.AssertDiagnosticsMatch(t, applyDiags, tc.expectedApplyDiags(m))
+			})
+		})
 	}
 }
 
@@ -3845,4 +4285,56 @@ func TestContext2Validate_noListValidated(t *testing.T) {
 			tfdiags.AssertNoDiagnostics(t, diags)
 		})
 	}
+}
+
+func TestContext2Validate_deprecated_resource(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "test" { # WARNING
+    attr = "value"
+}
+output "a" {
+    value = test_resource.test.attr # WARNING
+}
+`,
+	})
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Deprecated: true,
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  `Usage of deprecated resource "test_resource"`,
+		Detail:   `The resource "test_resource" has been marked as deprecated by its provider. Please check the provider documentation for more information.`,
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+			End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
+		},
+	}).Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   `Resource "test_resource" is deprecated`,
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 7, Column: 13, Byte: 92},
+			End:      hcl.Pos{Line: 7, Column: 36, Byte: 115},
+		},
+	}))
 }

@@ -103,8 +103,9 @@ func validateCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalCo
 	hclCtx, moreDiags := scope.EvalContext(refs)
 	diags = diags.Append(moreDiags)
 
-	errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, &addr)
+	errorMessage, errorMessageValMarks, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, &addr)
 	diags = diags.Append(moreDiags)
+	diags = diags.Append(ctx.Deprecations().DiagnosticsForValueMarks(errorMessageValMarks, ctx.Path().Module(), rule.ErrorMessage.Range().Ptr()))
 
 	return errorMessage, hclCtx, diags
 }
@@ -119,6 +120,10 @@ func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContex
 
 	resultVal, hclDiags := rule.Condition.Value(hclCtx)
 	diags = diags.Append(hclDiags)
+
+	var deprecationDiags tfdiags.Diagnostics
+	resultVal, deprecationDiags = ctx.Deprecations().Validate(resultVal, ctx.Path().Module(), rule.Condition.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
 
 	if diags.HasErrors() {
 		log.Printf("[TRACE] evalCheckRule: %s: %s", addr.Type, diags.Err().Error())

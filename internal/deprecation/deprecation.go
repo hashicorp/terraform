@@ -43,21 +43,7 @@ func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.R
 	}
 
 	notDeprecatedValue := marks.RemoveDeprecationMarks(value)
-
-	// Check if we need to suppress deprecation warnings for this module call.
-	if d.IsModuleCallDeprecationSuppressed(module) {
-		return notDeprecatedValue, diags
-	}
-
-	for _, depMark := range deprecationMarks {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Deprecated value used",
-			Detail:   depMark.Message,
-			Subject:  rng,
-		})
-	}
-
+	diags = diags.Append(d.diagnosticsForDeprecationMarks(deprecationMarks, module, rng))
 	return notDeprecatedValue, diags
 }
 
@@ -83,6 +69,27 @@ func (d *Deprecations) ValidateAsConfig(value cty.Value, module addrs.Module) tf
 			}
 		}
 	}
+	return diags
+}
+
+func (d *Deprecations) DiagnosticsForValueMarks(valueMarks cty.ValueMarks, module addrs.Module, rng *hcl.Range) tfdiags.Diagnostics {
+	return d.diagnosticsForDeprecationMarks(marks.FilterDeprecationMarks(valueMarks), module, rng)
+}
+
+func (d *Deprecations) diagnosticsForDeprecationMarks(deprecationMarks []marks.DeprecationMark, module addrs.Module, rng *hcl.Range) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	// Check if we need to suppress deprecation warnings for this module call.
+	if !d.IsModuleCallDeprecationSuppressed(module) {
+		for _, depMark := range deprecationMarks {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Deprecated value used",
+				Detail:   depMark.Message,
+				Subject:  rng,
+			})
+		}
+	}
+
 	return diags
 }
 
