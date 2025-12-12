@@ -4,6 +4,7 @@
 package e2etest
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path"
@@ -12,8 +13,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 // Tests using `terraform workspace` commands in combination with pluggable state storage.
@@ -205,6 +210,10 @@ resource "terraform_data" "my-data" {
 //
 // Commands `terraform providers locks` and `terraform providers mirror` aren't tested as they
 // don't interact with the backend.
+//
+// The test `TestProvidersSchema` has test coverage showing that state store schemas are present
+// in the command's outputs. _This_ test is intended to assert that the command is able to read and use
+// state via a state store ok, and is able to detect providers required only by the state.
 func TestPrimary_stateStore_providerCmds(t *testing.T) {
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
@@ -217,24 +226,75 @@ func TestPrimary_stateStore_providerCmds(t *testing.T) {
 
 	t.Setenv(e2e.TestExperimentFlag, "true")
 	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 	workspaceDirName := "states" // See workspace_dir value in the configuration
 
+	// Add a state file describing a resource from the simple (v5) provider, so
+	// we can test that the state is read and used to get all the provider schemas
+	fakeState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "simple_resource",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("simple"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	fakeStateFile := &statefile.File{
+		Lineage:          "boop",
+		Serial:           4,
+		TerraformVersion: version.Must(version.NewVersion("1.0.0")),
+		State:            fakeState,
+	}
+	var fakeStateBuf bytes.Buffer
+	err := statefile.WriteForTest(fakeStateFile, &fakeStateBuf)
+	if err != nil {
+		t.Error(err)
+	}
+	fakeStateBytes := fakeStateBuf.Bytes()
+
+	if err := os.MkdirAll(tf.Path(workspaceDirName, "default"), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(tf.Path(workspaceDirName, "default", "terraform.tfstate"), fakeStateBytes, 0644); err != nil {
+		t.Fatal(err)
+	}
+
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
-	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
+	// Here will build the simple6 (built with protocol v6) provider, which will be used for PSS.
+	// The simple (v5) provider is also built, as that provider will be present in the state and therefore
+	// needed for creating the schema output.
 	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
 	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+
+	simpleProvider := filepath.Join(tf.WorkDir(), "terraform-provider-simple")
+	simpleProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple/main", simpleProvider)
 
 	// Move the provider binaries into a directory that we will point terraform
 	// to using the -plugin-dir cli flag.
 	platform := getproviders.CurrentPlatform.String()
-	hashiDir := "cache/registry.terraform.io/hashicorp/"
-	if err := os.MkdirAll(tf.Path(hashiDir, "simple6/0.0.1/", platform), os.ModePerm); err != nil {
+	fsMirrorPathV6 := "cache/registry.terraform.io/hashicorp/simple6/0.0.1/"
+	if err := os.MkdirAll(tf.Path(fsMirrorPathV6, platform), os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+	if err := os.Rename(simple6ProviderExe, tf.Path(fsMirrorPathV6, platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+
+	fsMirrorPathV5 := "cache/registry.terraform.io/hashicorp/simple/0.0.1/"
+	if err := os.MkdirAll(tf.Path(fsMirrorPathV5, platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simpleProviderExe, tf.Path(fsMirrorPathV5, platform, "terraform-provider-simple")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -257,9 +317,14 @@ func TestPrimary_stateStore_providerCmds(t *testing.T) {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
 
+	// We expect the command to be able to use the state store to
+	// detect providers that come from only the state.
 	expectedMsgs := []string{
-		"├── provider[registry.terraform.io/hashicorp/simple6]",
-		"└── provider[terraform.io/builtin/terraform]",
+		"Providers required by configuration:",
+		"provider[registry.terraform.io/hashicorp/simple6]",
+		"provider[terraform.io/builtin/terraform]",
+		"Providers required by state:",
+		"provider[registry.terraform.io/hashicorp/simple]",
 	}
 	for _, msg := range expectedMsgs {
 		if !strings.Contains(stdout, msg) {
@@ -274,13 +339,17 @@ func TestPrimary_stateStore_providerCmds(t *testing.T) {
 	}
 
 	expectedMsgs = []string{
-		`{"format_version":"1.0","provider_schemas":{`, // opening of JSON
-		`"registry.terraform.io/hashicorp/simple6":{`,  // provider 1
-		`"terraform.io/builtin/terraform":{`,           // provider 2
+		`"registry.terraform.io/hashicorp/simple6"`, // provider used for PSS
+		`"terraform.io/builtin/terraform"`,          // provider used for resources
+		`"registry.terraform.io/hashicorp/simple"`,  // provider present only in the state
 	}
 	for _, msg := range expectedMsgs {
 		if !strings.Contains(stdout, msg) {
 			t.Errorf("unexpected output, expected %q, but got:\n%s", msg, stdout)
 		}
 	}
+
+	// More thorough checking of the JSON output is in `TestProvidersSchema`.
+	// This test just asserts that `terraform providers schema` can read state
+	// via the state store, and therefore detects all 3 providers needed for the output.
 }
