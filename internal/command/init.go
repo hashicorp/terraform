@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -55,12 +56,22 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	path, err := ModulePath(initArgs.Args)
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+	rootMod, _ := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	// We purposefully ignore any diagnostics returned here. They will be encountered downstream,
+	// when the 'run' logic below is executed. If we return early due to error diagnostics here we
+	// will break the order that errors are expected to be raised in.
+
 	// The else condition below invokes the original logic of the init command.
 	// An experimental version of the init code will be used if:
-	// 	> The user uses an experimental version of TF (alpha or built from source)
-	//  > Either the flag -enable-pluggable-state-storage-experiment is passed to the init command.
-	//  > Or, the environment variable TF_ENABLE_PLUGGABLE_STATE_STORAGE is set to any value.
-	if c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment {
+	// 	> The user uses an experimental version of TF (alpha or built from source).
+	//  > The terraform block in the configuration lists the `pluggable_state_stores` experiment.
+	if c.Meta.AllowExperimentalFeatures && rootMod.ActiveExperiments.Has(experiments.PluggableStateStores) {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
 		return c.runPssInit(initArgs, view)
 	} else {
@@ -1475,10 +1486,6 @@ Options:
                           HCP Terraform or Terraform Enterprise for more information.
 
   -test-directory=path    Set the Terraform test directory, defaults to "tests".
-
-  -enable-pluggable-state-storage-experiment [EXPERIMENTAL]
-                          A flag to enable an alternative init command that allows use of
-                          pluggable state storage. Only usable with experiments enabled.
 
   -create-default-workspace [EXPERIMENTAL]
                           This flag must be used alongside the -enable-pluggable-state-storage-

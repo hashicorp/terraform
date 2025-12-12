@@ -54,7 +54,7 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	intCmd := &InitCommand{
 		Meta: meta,
 	}
-	args := []string{"-enable-pluggable-state-storage-experiment"} // Needed to test init changes for PSS project
+	args := []string{}
 	code := intCmd.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
