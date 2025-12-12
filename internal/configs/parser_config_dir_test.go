@@ -36,11 +36,16 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			parser := NewParser(nil)
 
+			var expectWarning bool
 			if strings.Contains(name, "state-store") {
 				// The PSS project is currently gated as experimental
 				// TODO(SarahFrench/radeksimko) - remove this from the test once
 				// the feature is GA.
 				parser.allowExperiments = true
+
+				// While the feature is experimental a warning will always be returned
+				// about the feature.
+				expectWarning = true
 			}
 
 			path := filepath.Join("testdata/valid-modules", name)
@@ -73,8 +78,20 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 				}
 				diags = filterDiags
 			}
-			if len(diags) != 0 {
-				t.Errorf("unexpected diagnostics")
+			if diags.HasErrors() {
+				t.Errorf("unexpected error diagnostics")
+				for _, diag := range diags.Errs() {
+					t.Logf("- %s", diag)
+				}
+			}
+			if !expectWarning && len(diags) != 0 {
+				t.Errorf("unexpected diagnostics: expected no warnings")
+				for _, diag := range diags {
+					t.Logf("- %s", diag)
+				}
+			}
+			if expectWarning && len(diags) != 1 {
+				t.Errorf("unexpected diagnostics: expected a single warning")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}
