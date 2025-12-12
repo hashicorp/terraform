@@ -73,7 +73,7 @@ func TestExperimentsConfig(t *testing.T) {
 			t.Errorf("wrong error\n%s", diff)
 		}
 	})
-	t.Run("concluded", func(t *testing.T) {
+	t.Run("unknown", func(t *testing.T) {
 		parser := NewParser(nil)
 		parser.AllowLanguageExperiments(true)
 		_, diags := parser.LoadConfigDir("testdata/experiments/unknown")
