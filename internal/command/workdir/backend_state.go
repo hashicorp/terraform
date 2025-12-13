@@ -90,6 +90,15 @@ func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 		return nil, fmt.Errorf("invalid syntax: no format version number")
 	}
 	if versionSniff.Version != 3 {
+		// Check if this looks like a state snapshot file (version 4)
+		// rather than a backend configuration file. This can happen if
+		// someone accidentally configures their local backend to store
+		// state in the .terraform/ directory, overwriting the internal
+		// backend configuration. Version 4 is the state snapshot format
+		// and is never used for backend configuration files.
+		if versionSniff.Version == 4 {
+			return nil, fmt.Errorf("the backend configuration file appears to contain Terraform state data rather than backend configuration; the .terraform directory may have been corrupted by storing user data there (the .terraform directory is for internal Terraform use only)")
+		}
 		return nil, fmt.Errorf("unsupported backend state version %d; you may need to use Terraform CLI v%s to work in this directory", versionSniff.Version, versionSniff.TFVersion)
 	}
 

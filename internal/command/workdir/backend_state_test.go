@@ -34,12 +34,23 @@ func TestParseBackendStateFile(t *testing.T) {
 			}`,
 			WantErr: `unsupported backend state version 2; you may need to use Terraform CLI v0.3.0 to work in this directory`,
 		},
-		"newer version": {
+		"state snapshot file overwrote backend state": {
 			Input: `{
 				"version": 4,
-				"terraform_version": "54.23.9"
+				"terraform_version": "1.14.0"
 			}`,
-			WantErr: `unsupported backend state version 4; you may need to use Terraform CLI v54.23.9 to work in this directory`,
+			WantErr: `the backend configuration file appears to contain Terraform state data rather than backend configuration; the .terraform directory may have been corrupted by storing user data there (the .terraform directory is for internal Terraform use only)`,
+		},
+		"state snapshot file with lineage": {
+			Input: `{
+				"version": 4,
+				"terraform_version": "1.14.0",
+				"lineage": "abc123-def456",
+				"serial": 1,
+				"outputs": {},
+				"resources": []
+			}`,
+			WantErr: `the backend configuration file appears to contain Terraform state data rather than backend configuration; the .terraform directory may have been corrupted by storing user data there (the .terraform directory is for internal Terraform use only)`,
 		},
 		"legacy remote state is active": {
 			Input: `{

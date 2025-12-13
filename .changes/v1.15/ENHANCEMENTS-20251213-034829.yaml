@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'cli: improve error message when backend state file is corrupted by state data'
+time: 2025-12-13T11:50:00.000000+00:00
+custom:
+    Issue: "37953"
