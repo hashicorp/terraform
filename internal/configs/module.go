@@ -662,6 +662,8 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		m.CoreVersionConstraints = append(m.CoreVersionConstraints, file.CoreVersionConstraints...)
 	}
 
+	m.ActiveExperiments = experiments.SetUnion(m.ActiveExperiments, file.ActiveExperiments)
+
 	if len(file.Backends) != 0 {
 		switch len(file.Backends) {
 		case 1:

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -680,4 +681,37 @@ func TestModule_state_store_multiple(t *testing.T) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})
+}
+
+// Test that experiments present in override files are used, and that if an
+// override file references a concluded experiment then that error is surfaced.
+func TestModule_override_experiments(t *testing.T) {
+	// Experiments are set globally, so we need to use special helpers to
+	// ensure there is a current experiment present.
+	current := experiments.Experiment("current")
+	concluded := experiments.Experiment("concluded")
+	currentExperiments := experiments.NewSet(current)
+	concludedExperiments := map[experiments.Experiment]string{
+		concluded: "Reticulate your splines.",
+	}
+	defer experiments.OverrideForTesting(t, currentExperiments, concludedExperiments)()
+
+	mod, diags := testModuleFromDirWithExperiments("testdata/valid-modules/override-experiments")
+	if !diags.HasErrors() {
+		// We want to see that concluded experiments are flagged even if they're in an override file
+		// that, in turn, is overridden.
+		t.Fatal("module should have error diag due to a concluded experiment, but does not")
+	}
+	if !mod.ActiveExperiments.Has(current) {
+		t.Errorf("expected the overridden module to include %q as an active experiment, but it was missing. Got: %#v",
+			current.Keyword(),
+			mod.ActiveExperiments,
+		)
+	}
+	if mod.ActiveExperiments.Has(concluded) {
+		t.Errorf("expected the overridden module to not include %q as an active experiment because a subsequent override replaces it. Got: %#v",
+			concluded.Keyword(),
+			mod.ActiveExperiments,
+		)
+	}
 }
