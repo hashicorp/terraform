@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/experiments"
 )
 
 // TestParseLoadConfigDirSuccess is a simple test that just verifies that
@@ -26,19 +27,28 @@ import (
 // module element contents. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigDirSuccess(t *testing.T) {
-	dirs, err := ioutil.ReadDir("testdata/valid-modules")
+	dirs, err := os.ReadDir("testdata/valid-modules")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// One of the valid modules tests use of experiments, so we need to set
+	// some experiments for the purposes of the test.
+	current := experiments.Experiment("current")
+	concluded := experiments.Experiment("concluded")
+	currentExperiments := experiments.NewSet(current)
+	concludedExperiments := map[experiments.Experiment]string{
+		concluded: "Reticulate your splines.",
+	}
+	defer experiments.OverrideForTesting(t, currentExperiments, concludedExperiments)()
 
 	for _, info := range dirs {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
 			parser := NewParser(nil)
 
-			if strings.Contains(name, "state-store") {
-				// The PSS project is currently gated as experimental
-				// TODO(SarahFrench/radeksimko) - remove this from the test once
+			if strings.Contains(name, "state-store") || strings.Contains(name, "override-experiments") {
+				// TODO(SarahFrench/radeksimko) - remove this "state-store" check from the test once
 				// the feature is GA.
 				parser.allowExperiments = true
 			}
@@ -73,8 +83,15 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 				}
 				diags = filterDiags
 			}
+			if diags.HasErrors() {
+				t.Errorf("unexpected error diagnostics")
+				for _, diag := range diags {
+					t.Logf("- %s", diag)
+				}
+			}
 			if len(diags) != 0 {
-				t.Errorf("unexpected diagnostics")
+				// We expect warnings related to experiments to be filtered out above.
+				t.Errorf("unexpected warning diagnostics")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}
