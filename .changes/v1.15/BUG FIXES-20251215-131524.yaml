@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'experiments: Experiments listed in the terraform block present in override files will now be active, instead of silently ignored by Terraform'
+time: 2025-12-15T13:15:24.858667Z
+custom:
+    Issue: "38011"
