@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -21,6 +23,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	httpBackend "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -4112,6 +4115,9 @@ func TestInit_stateStore_unset(t *testing.T) {
 		if !s.StateStore.Empty() {
 			t.Fatal("should not have StateStore config")
 		}
+		if !s.Backend.Empty() {
+			t.Fatalf("expected empty Backend config after unsetting state store, found: %#v", s.Backend)
+		}
 	}
 }
 
@@ -4210,6 +4216,211 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 		if !s.StateStore.Empty() {
 			t.Fatal("should not have StateStore config")
+		}
+		if !s.Backend.Empty() {
+			t.Fatalf("expected empty Backend config after unsetting state store, found: %#v", s.Backend)
+		}
+	}
+}
+
+func TestInit_stateStore_to_backend(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-state-store"), td)
+	t.Chdir(td)
+
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+	})
+	defer close()
+
+	tOverrides := &testingOverrides{
+		Providers: map[addrs.Provider]providers.Factory{
+			mockProviderAddress: providers.FactoryFixed(mockProvider),
+		},
+	}
+
+	{
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning first init")
+		// Init
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides:          tOverrides,
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("bad: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: first init complete")
+		t.Logf("First run output:\n%s", testOutput.Stdout())
+		t.Logf("First run errors:\n%s", testOutput.Stderr())
+
+		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		// run apply to ensure state isn't empty
+		// to bypass edge case handling which causes empty state to stop migration
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning apply")
+		ui := cli.NewMockUi()
+		aView, aDone := testView(t)
+		cApply := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides:          tOverrides,
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      aView,
+				AllowExperimentalFeatures: true,
+			},
+		}
+		aCode := cApply.Run([]string{"-auto-approve"})
+		aTestOutput := aDone(t)
+		if aCode != 0 {
+			t.Fatalf("bad: \n%s", aTestOutput.All())
+		}
+
+		t.Logf("Apply output:\n%s", aTestOutput.Stdout())
+		t.Logf("Apply errors:\n%s", aTestOutput.Stderr())
+	}
+	{
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning uninitialised apply")
+
+		backendCfg := []byte(`terraform {
+  backend "http" {
+    address = "https://example.com"
+  }
+}
+`)
+		if err := os.WriteFile("main.tf", backendCfg, 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		cApply := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides:          tOverrides,
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+		code := cApply.Run([]string{"-auto-approve"})
+		testOutput := done(t)
+		if code == 0 {
+			t.Fatalf("expected apply to fail: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: apply complete")
+		expectedErr := "Backend initialization required"
+		if !strings.Contains(testOutput.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, testOutput.Stderr())
+		}
+
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: uninitialised apply complete")
+		t.Logf("First run output:\n%s", testOutput.Stdout())
+		t.Logf("First run errors:\n%s", testOutput.Stderr())
+
+		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning second init")
+
+		testBackend := new(httpBackend.TestHTTPBackend)
+		ts := httptest.NewServer(http.HandlerFunc(testBackend.Handle))
+		defer ts.Close()
+
+		t.Cleanup(ts.Close)
+
+		// Override state store to backend
+		backendCfg := fmt.Sprintf(`terraform {
+  backend "http" {
+    address = %q
+  }
+}
+`, ts.URL)
+		if err := os.WriteFile("main.tf", []byte(backendCfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-force-copy",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("bad: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: second init complete")
+		t.Logf("Second run output:\n%s", testOutput.Stdout())
+		t.Logf("Second run errors:\n%s", testOutput.Stderr())
+
+		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if !s.StateStore.Empty() {
+			t.Fatal("should not have StateStore config")
+		}
+		if s.Backend.Empty() {
+			t.Fatalf("expected backend to not be empty")
+		}
+
+		data, err := statefile.Read(bytes.NewBuffer(testBackend.Data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		expectedOutputs := map[string]*states.OutputValue{
+			"test": &states.OutputValue{
+				Addr: addrs.AbsOutputValue{
+					OutputValue: addrs.OutputValue{
+						Name: "test",
+					},
+				},
+				Value: cty.StringVal("test"),
+			},
+		}
+		if diff := cmp.Diff(expectedOutputs, data.State.RootOutputValues); diff != "" {
+			t.Fatalf("unexpected data: %s", diff)
+		}
+
+		expectedGetCalls := 4
+		if testBackend.GetCalled != expectedGetCalls {
+			t.Fatalf("expected %d GET calls, got %d", expectedGetCalls, testBackend.GetCalled)
+		}
+		expectedPostCalls := 1
+		if testBackend.PostCalled != expectedPostCalls {
+			t.Fatalf("expected %d POST calls, got %d", expectedPostCalls, testBackend.PostCalled)
 		}
 	}
 }
@@ -4411,9 +4622,9 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 			if mock.MockStates == nil {
 				mock.MockStates = make(map[string]interface{})
 			}
-
-			mock.MockStates[req.StateId] = req.Bytes
 		}
+		mock.MockStates[req.StateId] = req.Bytes
+
 		return providers.WriteStateBytesResponse{
 			Diagnostics: nil, // success
 		}
