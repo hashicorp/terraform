@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -131,6 +132,12 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 	// Load just the root module to begin backend and module initialization
 	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+
+	if rootModEarly.ActiveExperiments != nil && rootModEarly.ActiveExperiments.Has(experiments.Current) {
+		view.Output("*********\nThis is terminal output that's only present when the experiment `current` is ACTIVE.\n*********")
+	} else {
+		view.Output("*********\nThis is terminal output that's only present when the experiment `current` is INACTIVE.\n*********")
+	}
 
 	// There may be parsing errors in config loading but these will be shown later _after_
 	// checking for core version requirement errors. Not meeting the version requirement should
