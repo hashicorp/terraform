@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -95,7 +95,7 @@ func TestProvidersSchema_output(t *testing.T) {
 				t.Fatalf("err: %s", err)
 			}
 			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
+			byteValue, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("err: %s", err)
 			}
@@ -197,7 +197,7 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
+	byteValue, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
