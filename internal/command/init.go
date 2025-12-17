@@ -56,17 +56,28 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	path, err := ModulePath(initArgs.Args)
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(diags)
-		return 1
+	// Look for experiments opted-into via the configuration.
+	// However we need to accommodate when the -from-module flag is used.
+	// For now, we simply won't parse experiments at this stage when deciding if the PSS experiment is enabled;
+	// users are unlikely to be consuming the experiment via -from-module and there are complications accommodating that use case.
+	//
+	// The variables below will not be set if the -from-module flag is used, and downstream logic will perform parsing once
+	// the module is downloaded.
+	var rootMod *configs.Module
+	var rootModDiags tfdiags.Diagnostics
+	if initArgs.FromModule == "" {
+		path, err := ModulePath(initArgs.Args)
+		if err != nil {
+			diags = diags.Append(err)
+			view.Diagnostics(diags)
+			return 1
+		}
+		rootMod, rootModDiags = c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+		// We purposefully don't exit early if there are error diagnostics returned here; there are errors related to the Terraform version
+		// that have precedence and are detected downstream.
+		// We pass the configuration and diagnostic values from here into downstream code, replacing where the files are parsed there.
+		// This prevents the diagnostics being lost, as re-parsing the same config results in lost diagnostics.
 	}
-	rootMod, rootModDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
-	// We purposefully don't exit early if there are error diagnostics returned here; there are errors related to the Terraform version
-	// that have precedence and are detected downstream.
-	// We pass the configuration and diagnostic values from here into downstream code, replacing where the files are parsed there.
-	// This prevents the diagnostics being lost, as re-parsing the same config results in lost diagnostics.
 
 	// The else condition below invokes the original logic of the init command.
 	// An experimental version of the init code will be used if:

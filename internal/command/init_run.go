@@ -130,12 +130,11 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init, rootModEarl
 		return 0
 	}
 
-	// We re-parse the root module if it was affected by init's -from-module flag.
-	// We also use any new diagnostics returned from the new config present in root.
-	//
-	// TODO(SarahFrench/radeksimko): Once PSS's experiment is over, remove use of earlyConfDiags argument and
+	// TODO(SarahFrench/radeksimko): Once PSS's experiment is over
 	// restore parsing of config to only happen here in this code instead of calling code.
-	if initArgs.FromModule != "" {
+	//
+	// Here we accommodate use of -from-module; we need to parse config after the module is downloaded.
+	if initArgs.FromModule != "" && rootModEarly == nil {
 		rootModEarly, earlyConfDiags = c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
 	}
 
