@@ -138,12 +138,12 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init, root
 		return 0
 	}
 
-	// If the passed root module is nil, attempt to parse it.
-	// At this point we load just the root module to begin backend and module initialization
+	// We re-parse the root module if it was affected by init's -from-module flag.
+	// We also use any new diagnostics returned from the new config present in root.
 	//
-	// TODO(SarahFrench/radeksimko): Once PSS's experiment is over, remove use of arguments and
-	// restore parsing of config to always happen here in this code instead of calling code.
-	if rootModEarly == nil {
+	// TODO(SarahFrench/radeksimko): Once PSS's experiment is over, remove use of earlyConfDiags argument and
+	// restore parsing of config to only happen here in this code instead of calling code.
+	if initArgs.FromModule != "" {
 		rootModEarly, earlyConfDiags = c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
 	}
 
