@@ -426,6 +426,27 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 		return nil, false, diags
 	}
 
+	// Validate the attribute reference against the target resource's schema.
+	// We use schema-based validation rather than value-based validation because
+	// resources may contain dynamically-typed attributes (DynamicPseudoType) whose
+	// actual type can change between plans. Schema validation ensures we only
+	// error on truly invalid attribute references.
+	// We use change.ProviderAddr rather than resolving from config because
+	// the provider configuration may not be local to the current module.
+	providerSchema, err := ctx.ProviderSchema(change.ProviderAddr)
+	if err == nil {
+		schema := providerSchema.SchemaForResourceType(resCfg.Mode, resCfg.Type)
+		if schema.Body != nil {
+			moreDiags := schema.Body.StaticValidateTraversal(ref.Remaining)
+			diags = diags.Append(moreDiags)
+			if diags.HasErrors() {
+				return nil, false, diags
+			}
+		}
+	}
+	// If we couldn't get the schema, we skip validation and let the value
+	// comparison below handle it. This is a graceful degradation for edge cases.
+
 	path, _ := traversalToPath(ref.Remaining)
 	attrBefore, _ := path.Apply(change.Before)
 	attrAfter, _ := path.Apply(change.After)
