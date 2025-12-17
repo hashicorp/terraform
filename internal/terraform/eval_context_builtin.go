@@ -426,10 +426,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 		return nil, false, diags
 	}
 
-	path, _ := traversalToPath(ref.Remaining)
-	attrBefore, _ := path.Apply(change.Before)
-	attrAfter, _ := path.Apply(change.After)
-
+	attrBefore, attrAfter, diags := evalTriggeredByRefPath(ref, change)
 	if attrBefore == cty.NilVal || attrAfter == cty.NilVal {
 		replace := attrBefore != attrAfter
 		return ref, replace, diags
@@ -438,6 +435,42 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	replace := !attrBefore.RawEquals(attrAfter)
 
 	return ref, replace, diags
+}
+
+// evalTriggeredByRefPath evaluates the attribute reference path in the context of the
+// resource change objects. It returns the before and after values of the attribute
+// and any diagnostics that occurred during evaluation.
+func evalTriggeredByRefPath(ref *addrs.Reference, change *plans.ResourceInstanceChange) (cty.Value, cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	path, key := traversalToPath(ref.Remaining)
+
+	applyPath := func(value cty.Value) (cty.Value, tfdiags.Diagnostics) {
+		attr, err := path.Apply(value)
+		if err != nil {
+			return cty.NilVal, tfdiags.Diagnostics{}.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid attribute path",
+				fmt.Sprintf(
+					"The specified path %q could not be applied to the object specified in replace_triggered_by:\n"+
+						"Path: %s\n"+
+						"Error: %s\n"+
+						"Please check your configuration and ensure the path is valid.",
+					key, ref.DisplayString(), err.Error(),
+				),
+				path,
+			))
+		}
+		return attr, nil
+	}
+
+	// Apply the path to the "before" and "after" states
+	attrBefore, beforeDiags := applyPath(change.Before)
+	diags = diags.AppendWithoutDuplicates(beforeDiags...)
+
+	attrAfter, afterDiags := applyPath(change.After)
+	diags = diags.AppendWithoutDuplicates(afterDiags...)
+
+	return attrBefore, attrAfter, diags
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {

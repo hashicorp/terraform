@@ -4399,6 +4399,51 @@ resource "test_object" "b" {
 	}
 }
 
+func TestContext2Plan_triggeredByInvalid(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "a" {
+				count = 1
+				test_string = "new"
+			}
+			resource "test_object" "b" {
+				count = 1
+				test_string = test_object.a[count.index].test_string
+				lifecycle {
+					# reference to an invalid attribute "yikes" should cause an error
+					replace_triggered_by = [ test_object.a[count.index].yikes ]
+				}
+			}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a[0]"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"old"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("expected errors, got none")
+	}
+}
+
 func TestContext2Plan_dataSchemaChange(t *testing.T) {
 	// We can't decode the prior state when a data source upgrades the schema
 	// in an incompatible way. Since prior state for data sources is purely
