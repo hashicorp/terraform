@@ -192,8 +192,9 @@ func testPlan(t *testing.T) *plans.Plan {
 			// This is just a placeholder so that the plan file can be written
 			// out. Caller may wish to override it to something more "real"
 			// where the plan will actually be subsequently applied.
-			Type:   "local",
-			Config: backendConfigRaw,
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
 		},
 		Changes: plans.NewChangesSrc(),
 
