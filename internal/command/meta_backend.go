@@ -407,19 +407,14 @@ func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBacke
 
 		stateStoreSchema, exists := resp.StateStores[settings.Type]
 		if !exists {
-			suggestions := slices.Sorted(maps.Keys(resp.StateStores))
-			suggestion := didyoumean.NameSuggestion(settings.Type, suggestions)
-			if suggestion != "" {
-				suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-			}
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "State store not implemented by the provider",
-				Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+				Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)",
 					settings.Type,
 					settings.Provider.Source.Type,
 					settings.Provider.Source,
-					suggestion),
+				),
 			})
 			return nil, diags
 		}
