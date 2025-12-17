@@ -431,8 +431,9 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	// resources may contain dynamically-typed attributes (DynamicPseudoType) whose
 	// actual type can change between plans. Schema validation ensures we only
 	// error on truly invalid attribute references.
-	providerAddr := ctx.Evaluator.Config.ResolveAbsProviderAddr(resCfg.ProviderConfigAddr(), ctx.Path().Module())
-	providerSchema, err := ctx.ProviderSchema(providerAddr)
+	// We use change.ProviderAddr rather than resolving from config because
+	// the provider configuration may not be local to the current module.
+	providerSchema, err := ctx.ProviderSchema(change.ProviderAddr)
 	if err == nil {
 		schema := providerSchema.SchemaForResourceType(resCfg.Mode, resCfg.Type)
 		if schema.Body != nil {
