@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -35,29 +34,29 @@ func (n *nodeActionTriggerApplyExpand) DynamicExpand(ctx EvalContext) (*Graph, t
 	var g Graph
 	var diags tfdiags.Diagnostics
 
-	invocationMap := map[*plans.ActionInvocationInstanceSrc]*nodeActionTriggerApplyInstance{}
-	// We already planned the action invocations, so we can just add them to the graph
-	for _, ai := range n.actionInvocationInstances {
-		node := &nodeActionTriggerApplyInstance{
-			ActionInvocation:   ai,
-			resolvedProvider:   n.resolvedProvider,
-			ActionTriggerRange: n.triggerConfig.invokingSubject.Ptr(),
-			ConditionExpr:      n.triggerConfig.conditionExpr,
-		}
-		g.Add(node)
-		invocationMap[ai] = node
-	}
+	// invocationMap := map[*plans.ActionInvocationInstanceSrc]*nodeActionTriggerApplyInstance{}
+	// // We already planned the action invocations, so we can just add them to the graph
+	// for _, ai := range n.actionInvocationInstances {
+	// 	node := &nodeActionTriggerApplyInstance{
+	// 		ActionInvocation:   ai,
+	// 		resolvedProvider:   n.resolvedProvider,
+	// 		ActionTriggerRange: n.triggerConfig.invokingSubject.Ptr(),
+	// 		ConditionExpr:      n.triggerConfig.conditionExpr,
+	// 	}
+	// 	g.Add(node)
+	// 	invocationMap[ai] = node
+	// }
 
-	for _, ai := range n.actionInvocationInstances {
-		node := invocationMap[ai]
-		others := ai.FilterLaterActionInvocations(n.actionInvocationInstances)
-		for _, other := range others {
-			otherNode := invocationMap[other]
-			g.Connect(dag.BasicEdge(otherNode, node))
-		}
-	}
+	// for _, ai := range n.actionInvocationInstances {
+	// 	node := invocationMap[ai]
+	// 	others := ai.FilterLaterActionInvocations(n.actionInvocationInstances)
+	// 	for _, other := range others {
+	// 		otherNode := invocationMap[other]
+	// 		g.Connect(dag.BasicEdge(otherNode, node))
+	// 	}
+	// }
 
-	addRootNodeToGraph(&g)
+	// addRootNodeToGraph(&g)
 	return &g, diags
 }
 

@@ -80,16 +80,55 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		resourceNodes.Put(rAddr, append(resourceNodes.Get(rAddr), rn))
 	}
 
+	actionInstances := addrs.MakeMap[addrs.AbsActionInstance, []GraphNodeActionInstance]()
+	for _, ai := range changes.ActionInvocations {
+		// create nodeActionTriggerApplyInstance
+		// attach to the resource
+		// run that node's "apply"
+
+		abstract := NewNodeAbstractAction(addr)
+		node := &nodeActionApplyInstance{
+			ActionInvocation: ai,
+			resolvedProvider: ai.ProviderAddr,
+		}
+
+	}
+
 	for _, rc := range changes.Resources {
 		addr := rc.Addr
 		dk := rc.DeposedKey
+
+		// Grab the planned actions and their NodeAbstractActionInstances for
+		// this resource instance. They will be attached to the appropriate
+		// resource instance node when it is created below.
+		var updateActions, createActions []*plans.ActionInvocationInstanceSrc
+		var updateActionNodes, createActionNodes []GraphNodeActionInstance
+		actions := changes.GetActionsByResourceInstance(addr)
+		for _, a := range actions {
+			if a.ActionTrigger.TriggerEvent().IsCreate() {
+				createActions = append(createActions, a)
+				if can, ok := actionNodes.GetOk(a.Addr); ok {
+					createActionNodes = append(createActionNodes, can)
+				} else {
+					panic("oh")
+				}
+			}
+			if a.ActionTrigger.TriggerEvent().IsUpdate() {
+				updateActions = append(updateActions, a)
+				if uan, ok := actionNodes.GetOk(a.Addr); ok {
+					createActionNodes = append(createActionNodes, uan)
+				} else {
+					panic("i have no idea what i'm doing")
+				}
+			}
+		}
 
 		log.Printf("[TRACE] DiffTransformer: found %s change for %s %s", rc.Action, addr, dk)
 
 		// Depending on the action we'll need some different combinations of
 		// nodes, because destroying uses a special node type separate from
 		// other actions.
-		var update, delete, forget, createBeforeDestroy bool
+		var update, delete, forget, create, createBeforeDestroy bool
 		switch rc.Action {
 		case plans.NoOp:
 			// For a no-op change we don't take any action but we still
@@ -102,9 +141,12 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		case plans.DeleteThenCreate, plans.CreateThenDelete:
 			update = true
 			delete = true
+			create = true
 			createBeforeDestroy = (rc.Action == plans.CreateThenDelete)
 		case plans.Forget:
 			forget = true
+		case plans.Create:
+			create = true // to determine which actions go with this change
 		default:
 			update = true
 		}
@@ -165,7 +207,15 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			if f := t.Concrete; f != nil {
 				node = f(abstract)
 			}
-
+			if create {
+				if len(createActions) > 0 {
+					abstract.AttachPlannedActionInvocations(createActions, createActionNodes)
+				}
+			} else {
+				if len(updateActions) > 0 {
+					abstract.AttachPlannedActionInvocations(updateActions, updateActionNodes)
+				}
+			}
 			if createBeforeDestroy {
 				// We'll attach our pre-allocated DeposedKey to the node if
 				// it supports that. NodeApplyableResourceInstance is the
@@ -226,7 +276,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, dag.VertexName(node))
 			g.Add(node)
 		}
-
 	}
 
 	log.Printf("[TRACE] DiffTransformer complete")

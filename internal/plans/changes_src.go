@@ -642,3 +642,20 @@ func sameTriggerEvent(one, two *LifecycleActionTrigger) bool {
 func triggersLater(one, two *LifecycleActionTrigger) bool {
 	return one.ActionTriggerBlockIndex > two.ActionTriggerBlockIndex || (one.ActionTriggerBlockIndex == two.ActionTriggerBlockIndex && one.ActionsListIndex > two.ActionsListIndex)
 }
+
+// GetActionsByResourceInstance returns planned action invocation for the given
+// AbsResourceInstance. Returns an empty list if no actions are planned.
+func (cs *ChangesSrc) GetActionsByResourceInstance(addr addrs.AbsResourceInstance) []*ActionInvocationInstanceSrc {
+	var ret []*ActionInvocationInstanceSrc
+
+	for _, a := range cs.ActionInvocations {
+		switch a.ActionTrigger.(type) {
+		case *LifecycleActionTrigger: // only check the resource lifecycle actions, not invoked actions
+			if a.ActionTrigger.(*LifecycleActionTrigger).TriggeringResourceAddr.Equal(addr) {
+				ret = append(ret, a)
+			}
+		}
+	}
+
+	return ret
+}
