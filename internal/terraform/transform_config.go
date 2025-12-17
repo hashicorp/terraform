@@ -141,7 +141,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		if a != nil {
 			addr := a.Addr().InModule(path)
 			allConfigActions[addr.String()] = a
-			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
 			abstract := &NodeAbstractAction{
 				Addr:   addr,
 				Config: *a,

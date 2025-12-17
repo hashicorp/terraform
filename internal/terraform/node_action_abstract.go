@@ -47,7 +47,7 @@ type ConcreteActionNodeFunc func(*NodeAbstractAction) dag.Vertex
 // DefaultConcreteActionNodeFunc is the default ConcreteActionNodeFunc used by
 // everything except validate.
 func DefaultConcreteActionNodeFunc(a *NodeAbstractAction) dag.Vertex {
-	return &nodeExpandActionDeclaration{
+	return &nodeExpandAction{
 		NodeAbstractAction: a,
 	}
 }

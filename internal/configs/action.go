@@ -66,6 +66,18 @@ const (
 	Invoke
 )
 
+func (e ActionTriggerEvent) IsUpdate() bool {
+	return e == BeforeUpdate || e == AfterUpdate
+}
+
+func (e ActionTriggerEvent) IsCreate() bool {
+	return e == BeforeCreate || e == AfterCreate
+}
+
+func (e ActionTriggerEvent) IsDestroy() bool {
+	return e == BeforeDestroy || e == AfterDestroy
+}
+
 // ActionRef represents a reference to a configured Action
 type ActionRef struct {
 	Expr  hcl.Expression

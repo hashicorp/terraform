@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -286,7 +287,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 
 	// Now look for all provider consumers and connect them to the appropriate closers.
 	for _, v := range g.Vertices() {
-		if actionNode, ok := v.(*nodeExpandActionDeclaration); ok {
+		if actionNode, ok := v.(*nodeExpandAction); ok {
 			actionNodes.Put(actionNode.ActionAddr(), actionNode.ResolvedProvider)
 		}
 		pc, ok := v.(GraphNodeProviderConsumer)

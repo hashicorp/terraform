@@ -26,6 +26,13 @@ type NodeAbstractActionInstance struct {
 	Dependencies     []addrs.ConfigResource
 }
 
+// GraphNodeActionInstance is implemented by action instances.
+type GraphNodeActionInstance interface {
+	ActionAddr() addrs.AbsActionInstance
+	ActionSchema() providers.ActionSchema
+	ActionProvider() addrs.AbsProviderConfig
+}
+
 var (
 	_ GraphNodeModuleInstance = (*NodeAbstractActionInstance)(nil)
 	_ GraphNodeExecutable     = (*NodeAbstractActionInstance)(nil)
@@ -61,7 +68,7 @@ func (n *NodeAbstractActionInstance) Execute(ctx EvalContext, _ walkOperation) t
 	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
 	if n.Config.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, keyData)
+		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema, nil, keyData)
 
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
