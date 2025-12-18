@@ -276,7 +276,7 @@ func TestPrimary_stateStore_outputCmd(t *testing.T) {
 // Tests using the `terraform show` command in combination with pluggable state storage
 // > `terraform show`
 // > `terraform show <path-to-state-file>`
-// > `terraform show <path-to-plan-file>` // TODO
+// > `terraform show <path-to-plan-file>`
 func TestPrimary_stateStore_showCmd(t *testing.T) {
 
 	if !canRunGoBuild {
@@ -353,7 +353,44 @@ greeting = "hello world"
 		t.Errorf("wrong result, diff:\n%s", diff)
 	}
 
-	// TODO(SarahFrench/radeksimko): Show plan file: terraform show <path to plan file>
+	//// Show state: terraform show <path to plan file>
+
+	// 1. Create a plan file via plan command
+	newOutput := `output "replacement" {
+  value = resource.terraform_data.my-data.output
+}`
+	if err := os.WriteFile(filepath.Join(tf.WorkDir(), "outputs.tf"), []byte(newOutput), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	planFile := "tfplan"
+	stdout, stderr, err = tf.Run("plan", fmt.Sprintf("-out=%s", planFile), "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	expectedMsg = "Changes to Outputs"
+	if !strings.Contains(stdout, expectedMsg) {
+		t.Errorf("wrong result, expected the plan command to create a plan file but that hasn't happened, got:\n%s",
+			stdout,
+		)
+	}
+
+	// 2. Inspect plan file
+	stdout, stderr, err = tf.Run("show", planFile, "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	expectedMsg = `
+Changes to Outputs:
+  - greeting    = "hello world" -> null
+  + replacement = "hello world"
+
+You can apply this plan to save these new output values to the Terraform
+state, without changing any real infrastructure.
+`
+	if diff := cmp.Diff(stdout, expectedMsg); diff != "" {
+		t.Errorf("wrong result, diff:\n%s", diff)
+	}
 }
 
 // Tests using the `terraform provider` subcommands in combination with pluggable state storage:
