@@ -327,40 +327,217 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	return m.SetWorkspace(workspace)
 }
 
-// BackendForLocalPlan is similar to Backend, but uses backend settings that were
-// stored in a plan.
+// BackendForLocalPlan is similar to Backend, but uses settings that were
+// stored in a plan when preparing the returned operations backend.
+// The plan's data may describe `backend` or `state_store` configuration.
 //
 // The current workspace name is also stored as part of the plan, and so this
 // method will check that it matches the currently-selected workspace name
 // and produce error diagnostics if not.
-func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	f := backendInit.Backend(settings.Type)
-	if f == nil {
-		diags = diags.Append(errBackendSavedUnknown{settings.Type})
-		return nil, diags
-	}
-	b := f()
-	log.Printf("[TRACE] Meta.BackendForLocalPlan: instantiated backend of type %T", b)
+	var b backend.Backend
+	switch {
+	case plan.StateStore != nil:
+		settings := plan.StateStore
 
-	schema := b.ConfigSchema()
-	configVal, err := settings.Config.Decode(schema.ImpliedType())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("saved backend configuration is invalid: %w", err))
-		return nil, diags
-	}
+		// BackendForLocalPlan is used in the context of an apply command using a plan file,
+		// so we can read locks directly from the lock file and trust it contains what we need.
+		locks, lockDiags := m.lockedDependencies()
+		diags = diags.Append(lockDiags)
+		if lockDiags.HasErrors() {
+			return nil, diags
+		}
 
-	newVal, validateDiags := b.PrepareConfig(configVal)
-	diags = diags.Append(validateDiags)
-	if validateDiags.HasErrors() {
-		return nil, diags
-	}
+		factories, err := m.ProviderFactoriesFromLocks(locks)
+		if err != nil {
+			// This may happen if the provider isn't present in the provider cache.
+			// This should be caught earlier by logic that diffs the config against the backend state file.
+			return nil, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider unavailable",
+				Detail: fmt.Sprintf("Terraform experienced an error when trying to use provider %s (%q) to initialize the %q state store: %s",
+					settings.Provider.Source.Type,
+					settings.Provider.Source,
+					settings.Type,
+					err),
+			})
+		}
 
-	configureDiags := b.Configure(newVal)
-	diags = diags.Append(configureDiags)
-	if configureDiags.HasErrors() {
-		return nil, diags
+		factory, exists := factories[*settings.Provider.Source]
+		if !exists {
+			return nil, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider unavailable",
+				Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
+					settings.Provider.Source.Type,
+					settings.Provider.Source,
+					settings.Type,
+				),
+			})
+		}
+
+		provider, err := factory()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("error when obtaining provider instance during state store initialization: %w", err))
+			return nil, diags
+		}
+		log.Printf("[TRACE] Meta.BackendForLocalPlan: launched instance of provider %s (%q)",
+			settings.Provider.Source.Type,
+			settings.Provider.Source,
+		)
+
+		// We purposefully don't have a deferred call to the provider's Close method here because the calling code needs a
+		// running provider instance inside the returned backend.Backend instance.
+		// Stopping the provider process is the responsibility of the calling code.
+
+		resp := provider.GetProviderSchema()
+
+		if len(resp.StateStores) == 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider does not support pluggable state storage",
+				Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+					settings.Provider.Source.Type,
+					settings.Provider.Source),
+			})
+			return nil, diags
+		}
+
+		stateStoreSchema, exists := resp.StateStores[settings.Type]
+		if !exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "State store not implemented by the provider",
+				Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)",
+					settings.Type,
+					settings.Provider.Source.Type,
+					settings.Provider.Source,
+				),
+			})
+			return nil, diags
+		}
+
+		// Get the provider config from the backend state file.
+		providerConfigVal, err := settings.Provider.Config.Decode(resp.Provider.Body.ImpliedType())
+		if err != nil {
+			diags = diags.Append(
+				&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Error reading provider configuration state",
+					Detail: fmt.Sprintf("Terraform experienced an error reading provider configuration for provider %s (%q) while configuring state store %s: %s",
+						settings.Provider.Source.Type,
+						settings.Provider.Source,
+						settings.Type,
+						err,
+					),
+				},
+			)
+			return nil, diags
+		}
+
+		// Get the state store config from the backend state file.
+		stateStoreConfigVal, err := settings.Config.Decode(stateStoreSchema.Body.ImpliedType())
+		if err != nil {
+			diags = diags.Append(
+				&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Error reading state store configuration state",
+					Detail: fmt.Sprintf("Terraform experienced an error reading state store configuration for state store %s in provider %s (%q): %s",
+						settings.Type,
+						settings.Provider.Source.Type,
+						settings.Provider.Source,
+						err,
+					),
+				},
+			)
+			return nil, diags
+		}
+
+		// Validate and configure the provider
+		//
+		// NOTE: there are no marks we need to remove at this point.
+		// We haven't added marks since the provider config from the backend state was used
+		// because the state-storage provider's config isn't going to be presented to the user via terminal output or diags.
+		validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+			Config: providerConfigVal,
+		})
+		diags = diags.Append(validateResp.Diagnostics)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		configureResp := provider.ConfigureProvider(providers.ConfigureProviderRequest{
+			TerraformVersion: tfversion.SemVer.String(),
+			Config:           providerConfigVal,
+		})
+		diags = diags.Append(configureResp.Diagnostics)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		// Now that the provider is configured we can begin using the state store through
+		// the backend.Backend interface.
+		p, err := backendPluggable.NewPluggable(provider, settings.Type)
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+
+		// Validate and configure the state store
+		//
+		// Note: we do not use the value returned from PrepareConfig for state stores,
+		// however that old approach is still used with backends for compatibility reasons.
+		_, validateDiags := p.PrepareConfig(stateStoreConfigVal)
+		diags = diags.Append(validateDiags)
+		if validateDiags.HasErrors() {
+			return nil, diags
+		}
+
+		configureDiags := p.Configure(stateStoreConfigVal)
+		diags = diags.Append(configureDiags)
+		if configureDiags.HasErrors() {
+			return nil, diags
+		}
+		log.Printf("[TRACE] Meta.BackendForLocalPlan: finished configuring state store %s in provider %s (%q)",
+			settings.Type,
+			settings.Provider.Source.Type,
+			settings.Provider.Source,
+		)
+
+		// The fully configured Pluggable is used as the instance of backend.Backend
+		b = p
+
+	default:
+		settings := plan.Backend
+
+		f := backendInit.Backend(settings.Type)
+		if f == nil {
+			diags = diags.Append(errBackendSavedUnknown{settings.Type})
+			return nil, diags
+		}
+		b = f()
+		log.Printf("[TRACE] Meta.BackendForLocalPlan: instantiated backend of type %T", b)
+
+		schema := b.ConfigSchema()
+		configVal, err := settings.Config.Decode(schema.ImpliedType())
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("saved backend configuration is invalid: %w", err))
+			return nil, diags
+		}
+
+		newVal, validateDiags := b.PrepareConfig(configVal)
+		diags = diags.Append(validateDiags)
+		if validateDiags.HasErrors() {
+			return nil, diags
+		}
+
+		configureDiags := b.Configure(newVal)
+		diags = diags.Append(configureDiags)
+		if configureDiags.HasErrors() {
+			return nil, diags
+		}
 	}
 
 	// If the backend supports CLI initialization, do it.
