@@ -312,6 +312,13 @@ message ProviderSchema {
   Schema provider_config = 1;
   map<string, Schema> managed_resource_types = 2;
   map<string, Schema> data_resource_types = 3;
+  map<string, ActionSchema> action_types = 4;
+}
+
+// ActionSchema defines the schema for an action that can be invoked by
+// Terraform.
+message ActionSchema {
+  Schema schema = 1; // of the action itself
 }
 
 // Schema describes a schema for an instance of a particular object, such as

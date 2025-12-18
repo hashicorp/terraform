@@ -100,3 +100,101 @@ func TestAddRaw(t *testing.T) {
 		})
 	}
 }
+
+func TestAddRawActionInvocation(t *testing.T) {
+	loader := NewLoader()
+
+	// Add component instance first
+	componentRaw := mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
+		ComponentInstanceAddr: "stack.root.component.foo",
+		PlannedAction:         planproto.Action_NOOP,
+		Mode:                  planproto.Mode_NORMAL,
+		PlanApplyable:         true,
+		PlanComplete:          true,
+		PlanTimestamp:         "2023-01-01T00:00:00Z",
+	})
+	if err := loader.AddRaw(componentRaw); err != nil {
+		t.Fatalf("AddRaw() component error = %v", err)
+	}
+
+	// Add action invocation
+	actionRaw := mustMarshalAnyPb(&tfstackdata1.PlanActionInvocationPlanned{
+		ComponentInstanceAddr: "stack.root.component.foo",
+		ActionInvocationAddr:  "action.example.test",
+		ProviderConfigAddr:    "provider[\"registry.terraform.io/hashicorp/testing\"]",
+		Invocation: &planproto.ActionInvocationInstance{
+			Addr:     "action.example.test",
+			Provider: "provider[\"registry.terraform.io/hashicorp/testing\"]",
+			ActionTrigger: &planproto.ActionInvocationInstance_InvokeActionTrigger{
+				InvokeActionTrigger: &planproto.InvokeActionTrigger{},
+			},
+		},
+	})
+	if err := loader.AddRaw(actionRaw); err != nil {
+		t.Fatalf("AddRaw() action error = %v", err)
+	}
+
+	plan := loader.ret
+
+	// Verify the component was created
+	componentAddr, err := stackaddrs.ParseAbsComponentInstanceStr("stack.root.component.foo")
+	if err != nil {
+		t.Fatalf("failed to parse component address: %v", err)
+	}
+
+	component, componentFound := plan.Root.GetOk(componentAddr)
+	if !componentFound {
+		t.Fatalf("expected component %s to be present in plan", componentAddr)
+	}
+
+	// Verify the action invocation was added to the component
+	if len(component.ActionInvocations.Elems) != 1 {
+		t.Fatalf("expected 1 action invocation, got %d", len(component.ActionInvocations.Elems))
+	}
+
+	// Check that the action invocation has the correct address
+	if component.ActionInvocations.Len() == 0 {
+		t.Fatal("expected action invocations to be non-empty")
+	}
+
+	// Iterate over the action invocations to find our test action
+	expectedActionAddr := "action.example.test"
+	actionFound := false
+	for _, elem := range component.ActionInvocations.Elems {
+		actionAddr := elem.Key
+		if actionAddr.String() == expectedActionAddr {
+			actionFound = true
+			break
+		}
+	}
+
+	if !actionFound {
+		t.Errorf("expected to find action address %s in component action invocations", expectedActionAddr)
+	}
+}
+func TestAddRawActionInvocation_InvalidAddr(t *testing.T) {
+	loader := NewLoader()
+
+	// Valid component
+	loader.AddRaw(mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
+		ComponentInstanceAddr: "stack.root.component.foo",
+	}))
+
+	// Invalid action invocation (empty address)
+	loader.AddRaw(mustMarshalAnyPb(&tfstackdata1.PlanActionInvocationPlanned{
+		ComponentInstanceAddr: "stack.root.component.foo",
+		ActionInvocationAddr:  "",
+	}))
+
+	componentAddr, err := stackaddrs.ParseAbsComponentInstanceStr("stack.root.component.foo")
+	if err != nil {
+		t.Fatalf("failed to parse component address: %v", err)
+	}
+	component, ok := loader.ret.Root.GetOk(componentAddr)
+	if !ok {
+		t.Fatalf("component not found")
+	}
+	if component.ActionInvocations.Len() != 0 {
+		t.Errorf("expected no action invocations for invalid address")
+	}
+}
