@@ -31,6 +31,7 @@ To report a bug, an enhancement proposal, or give any other product feedback, pl
 - [Acceptance Tests: Testing interactions with external services](#acceptance-tests-testing-interactions-with-external-services)
 - [Generated Code](#generated-code)
 - [External Dependencies](#external-dependencies)
+- [AI Usage](#ai-usage)
 
 <!-- /MarkdownTOC -->
 
