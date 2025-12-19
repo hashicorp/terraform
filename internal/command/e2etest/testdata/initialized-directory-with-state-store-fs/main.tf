@@ -19,7 +19,3 @@ variable "name" {
 resource "terraform_data" "my-data" {
   input = "hello ${var.name}"
 }
-
-output "greeting" {
-  value = resource.terraform_data.my-data.output
-}
