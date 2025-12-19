@@ -3963,3 +3963,125 @@ func objectLockPreCheck(t *testing.T) {
 		t.Skip("s3 backend tests using object lock enabled buckets require setting TF_S3_OBJECT_LOCK_TEST")
 	}
 }
+
+// TestBoolAttrDefaultEnvVarOk tests the boolAttrDefaultEnvVarOk helper function
+// which reads boolean values from environment variables. This is a regression
+// test for https://github.com/hashicorp/terraform/issues/37601 where setting
+// AWS_USE_FIPS_ENDPOINT=false incorrectly enabled FIPS endpoints.
+func TestBoolAttrDefaultEnvVarOk(t *testing.T) {
+	testCases := map[string]struct {
+		attrValue cty.Value
+		envValue  string
+		wantBool  bool
+		wantOk    bool
+	}{
+		"attr set true": {
+			attrValue: cty.BoolVal(true),
+			envValue:  "",
+			wantBool:  true,
+			wantOk:    true,
+		},
+		"attr set false": {
+			attrValue: cty.BoolVal(false),
+			envValue:  "",
+			wantBool:  false,
+			wantOk:    true,
+		},
+		"attr null, env true": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "true",
+			wantBool:  true,
+			wantOk:    true,
+		},
+		"attr null, env TRUE": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "TRUE",
+			wantBool:  true,
+			wantOk:    true,
+		},
+		"attr null, env True": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "True",
+			wantBool:  true,
+			wantOk:    true,
+		},
+		"attr null, env false": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "false",
+			wantBool:  false,
+			wantOk:    true,
+		},
+		"attr null, env FALSE": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "FALSE",
+			wantBool:  false,
+			wantOk:    true,
+		},
+		"attr null, env False": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "False",
+			wantBool:  false,
+			wantOk:    true,
+		},
+		"attr null, env empty": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr null, env invalid": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "invalid",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr null, env yes": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "yes",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr null, env 1": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "1",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr null, env 0": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "0",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr takes precedence over env": {
+			attrValue: cty.BoolVal(false),
+			envValue:  "true",
+			wantBool:  false,
+			wantOk:    true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			servicemocks.StashEnv(t)
+
+			const testEnvVar = "TF_TEST_BOOL_ENV_VAR"
+			if tc.envValue != "" {
+				os.Setenv(testEnvVar, tc.envValue)
+			}
+
+			obj := cty.ObjectVal(map[string]cty.Value{
+				"test_attr": tc.attrValue,
+			})
+
+			gotBool, gotOk := boolAttrDefaultEnvVarOk(obj, "test_attr", testEnvVar)
+
+			if gotBool != tc.wantBool {
+				t.Errorf("got bool %v, want %v", gotBool, tc.wantBool)
+			}
+			if gotOk != tc.wantOk {
+				t.Errorf("got ok %v, want %v", gotOk, tc.wantOk)
+			}
+		})
+	}
+}
