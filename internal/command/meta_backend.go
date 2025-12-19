@@ -1293,60 +1293,70 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
 		return backendLocal.New(), diags
 	}
-	if s.Backend == nil {
-		// s.Backend is nil, so return a local backend
-		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
-		return backendLocal.New(), diags
-	}
-	log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 
-	//backend init function
-	if s.Backend.Type == "" {
-		return backendLocal.New(), diags
-	}
-	f := backendInit.Backend(s.Backend.Type)
-	if f == nil {
-		diags = diags.Append(errBackendSavedUnknown{s.Backend.Type})
-		return nil, diags
-	}
-	b := f()
-
-	// The configuration saved in the working directory state file is used
-	// in this case, since it will contain any additional values that
-	// were provided via -backend-config arguments on terraform init.
-	schema := b.ConfigSchema()
-	configVal, err := s.Backend.Config(schema)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to decode current backend config",
-			fmt.Sprintf("The backend configuration created by the most recent run of \"terraform init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"terraform init -reconfigure\" to force re-initialization of the backend.", err),
-		))
-		return nil, diags
-	}
-
-	// Validate the config and then configure the backend
-	newVal, validDiags := b.PrepareConfig(configVal)
-	diags = diags.Append(validDiags)
-	if validDiags.HasErrors() {
-		return nil, diags
-	}
-
-	configDiags := b.Configure(newVal)
-	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// If the result of loading the backend is an enhanced backend,
-	// then set up enhanced backend service aliases.
-	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
-		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
-
-		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
-			diags = diags.Append(err)
+	// Depending on the contents of the backend state file,
+	// prepare a backend.Backend in the appropriate way.
+	var b backend.Backend
+	switch {
+	case !s.StateStore.Empty():
+		// state_store
+		panic("not implemented yet")
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q state store", s.StateStore.Type)
+	case !s.Backend.Empty():
+		// backend or cloud
+		if s.Backend.Type == "" {
+			return backendLocal.New(), diags
+		}
+		f := backendInit.Backend(s.Backend.Type)
+		if f == nil {
+			diags = diags.Append(errBackendSavedUnknown{s.Backend.Type})
 			return nil, diags
 		}
+		b = f()
+
+		// The configuration saved in the working directory state file is used
+		// in this case, since it will contain any additional values that
+		// were provided via -backend-config arguments on terraform init.
+		schema := b.ConfigSchema()
+		configVal, err := s.Backend.Config(schema)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to decode current backend config",
+				fmt.Sprintf("The backend configuration created by the most recent run of \"terraform init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"terraform init -reconfigure\" to force re-initialization of the backend.", err),
+			))
+			return nil, diags
+		}
+
+		// Validate the config and then configure the backend
+		newVal, validDiags := b.PrepareConfig(configVal)
+		diags = diags.Append(validDiags)
+		if validDiags.HasErrors() {
+			return nil, diags
+		}
+
+		configDiags := b.Configure(newVal)
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return nil, diags
+		}
+
+		// If the result of loading the backend is an enhanced backend,
+		// then set up enhanced backend service aliases.
+		if enhanced, ok := b.(backendrun.OperationsBackend); ok {
+			log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+
+			if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+				diags = diags.Append(err)
+				return nil, diags
+			}
+		}
+
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
+	default:
+		// s.StateStore and s.Backend are empty, so return a local backend
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
+		b = backendLocal.New()
 	}
 
 	return b, diags
