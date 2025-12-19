@@ -551,7 +551,12 @@ func TestModule_conflicting_backend_cloud_stateStore(t *testing.T) {
 				t.Fatal("module should have error diags, but does not")
 			}
 
-			if got := diags.Error(); !strings.Contains(got, tc.wantMsg) {
+			if tc.allowExperiments {
+				if len(diags) != 2 && len(diags.Errs()) != 1 {
+					t.Fatalf("expected 2 diagnostics (1 error, 1 warning), but got: %#v", diags)
+				}
+			}
+			if got := diags.Errs()[0]; !strings.Contains(got.Error(), tc.wantMsg) {
 				t.Fatalf("expected error to contain %q\nerror was:\n%s", tc.wantMsg, got)
 			}
 		})
@@ -674,9 +679,13 @@ func TestModule_state_store_multiple(t *testing.T) {
 		if !diags.HasErrors() {
 			t.Fatal("module should have error diags, but does not")
 		}
+		if len(diags.Errs()) != 1 {
+			t.Fatalf("expected 1 error, but received %d", len(diags.Errs()))
+		}
 
 		want := `Duplicate 'state_store' configuration block`
-		if got := diags.Error(); !strings.Contains(got, want) {
+		err := diags.Errs()[0]
+		if got := err.Error(); !strings.Contains(got, want) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})

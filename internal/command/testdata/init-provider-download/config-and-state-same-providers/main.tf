@@ -1,4 +1,5 @@
 terraform {
+  experiments = [pluggable_state_stores]
   required_providers {
     random = {
       source  = "hashicorp/random"

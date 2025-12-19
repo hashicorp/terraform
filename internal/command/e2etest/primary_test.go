@@ -270,7 +270,7 @@ func TestPrimary_stateStore(t *testing.T) {
 	}
 
 	//// INIT
-	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	stdout, stderr, err := tf.Run("init", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -432,7 +432,7 @@ func TestPrimary_stateStore_inMem(t *testing.T) {
 	//
 	// Note - the inmem PSS implementation means that the default workspace state created during init
 	// is lost as soon as the command completes.
-	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	stdout, stderr, err := tf.Run("init", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 	}

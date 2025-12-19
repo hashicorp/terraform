@@ -56,7 +56,7 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	}
 
 	//// Init
-	_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	_, stderr, err := tf.Run("init", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}

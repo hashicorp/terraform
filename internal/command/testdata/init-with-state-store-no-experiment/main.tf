@@ -1,16 +1,14 @@
 terraform {
-  # Not including an experiments list here
-  # See https://github.com/hashicorp/terraform/issues/38012
+  # There should be `experiments = [pluggable_state_stores]` present here, but it is intentionally missing.
   required_providers {
     test = {
       source = "hashicorp/test"
     }
   }
   state_store "test_store" {
-    provider "test" {}
+    provider "test" {
+    }
 
     value = "foobar"
   }
 }
-
-provider "test" {}
