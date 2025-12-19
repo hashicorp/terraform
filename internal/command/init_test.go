@@ -1662,6 +1662,57 @@ func TestInit_getProvider(t *testing.T) {
 	})
 }
 
+func TestInit_getProvider_stateStore(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-get-providers-state-store"), td)
+	t.Chdir(td)
+
+	overrides := metaOverridesForProvider(testProvider())
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		// looking for an exact version
+		"exact": {"1.2.3"},
+		// config requires >= 2.3.3
+		"greater-than": {"2.3.4", "2.3.3", "2.3.0"},
+		// config specifies
+		"between": {"3.4.5", "2.3.4", "1.2.3"},
+	})
+	defer close()
+	m := Meta{
+		testingOverrides: overrides,
+		Ui:               ui,
+		View:             view,
+		ProviderSource:   providerSource,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{
+		"-backend=false", // should be possible to install plugins without backend init
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).Stderr())
+	}
+
+	// check that we got the providers for our config
+	exactPath := fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/exact/1.2.3/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
+		t.Fatal("provider 'exact' not downloaded")
+	}
+	greaterThanPath := fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/greater-than/2.3.4/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(greaterThanPath); os.IsNotExist(err) {
+		t.Fatal("provider 'greater-than' not downloaded")
+	}
+	betweenPath := fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/between/2.3.4/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
+		t.Fatal("provider 'between' not downloaded")
+	}
+}
+
 func TestInit_getProviderSource(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
