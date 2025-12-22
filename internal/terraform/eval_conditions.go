@@ -159,6 +159,11 @@ func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContex
 		})
 		return checkResult{Status: checks.StatusError}, diags
 	}
+
+	// We don't care about the returned value here, only the diagnostics
+	_, deprecationDiags := ctx.Deprecations().Validate(resultVal, addr.ModuleInstance().Module(), rule.Condition.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	var err error
 	resultVal, err = convert.Convert(resultVal, cty.Bool)
 	if err != nil {

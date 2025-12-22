@@ -112,6 +112,10 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 	expander := globalCtx.InstanceExpander()
 	_, call := n.Addr.Call()
 
+	if n.ModuleCall.IgnoreNestedDeprecations {
+		globalCtx.Deprecations().SuppressModuleCallDeprecation(n.Addr)
+	}
+
 	// Allowing unknown values in count and for_each is a top-level plan option.
 	//
 	// If this is false then the codepaths that handle unknown values below
@@ -127,7 +131,7 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, moduleCtx, allowUnknown)
+			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, moduleCtx, n.Addr, allowUnknown)
 			diags = diags.Append(ctDiags)
 			if diags.HasErrors() {
 				return diags
@@ -140,7 +144,7 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 			}
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, known, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, moduleCtx, allowUnknown)
+			forEach, known, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, moduleCtx, module.Module(), allowUnknown)
 			diags = diags.Append(feDiags)
 			if diags.HasErrors() {
 				return diags
@@ -261,6 +265,10 @@ func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (d
 	_, call := n.Addr.Call()
 	expander := globalCtx.InstanceExpander()
 
+	if n.ModuleCall.IgnoreNestedDeprecations {
+		globalCtx.Deprecations().SuppressModuleCallDeprecation(n.Addr)
+	}
+
 	// Modules all evaluate to single instances during validation, only to
 	// create a proper context within which to evaluate. All parent modules
 	// will be a single instance, but still get our address in the expected
@@ -273,11 +281,11 @@ func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (d
 		// a full expansion, presuming these errors will be caught in later steps
 		switch {
 		case n.ModuleCall.Count != nil:
-			_, countDiags := evaluateCountExpressionValue(n.ModuleCall.Count, moduleCtx)
+			_, countDiags := evaluateCountExpressionValue(n.ModuleCall.Count, moduleCtx, n.ModulePath())
 			diags = diags.Append(countDiags)
 
 		case n.ModuleCall.ForEach != nil:
-			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, moduleCtx, false).ValidateResourceValue()
+			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, moduleCtx, module.Module(), false).ValidateResourceValue()
 			diags = diags.Append(forEachDiags)
 		}
 
