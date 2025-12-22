@@ -223,3 +223,46 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeActionTriggerBlock_onFailure(t *testing.T) {
+	fooActionExpr := hcltest.MockExprTraversalSrc("action.action_type.foo")
+
+	testData := map[string]struct {
+		valid   bool
+		diagMsg string
+	}{
+		"continue": {true, ""},
+		"fail":     {true, ""},
+		"foo": {false, "MockExprLiteral:0,0-0: Invalid " +
+			"\"on_failure\" keyword; The \"on_failure\" argument requires " +
+			"one of the following keywords: continue or fail."},
+	}
+	for keyword, td := range testData {
+		t.Run("", func(t *testing.T) {
+			givenActionTriggerBlock := &hcl.Block{
+				Type: "action_trigger",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"events": hcltest.MockExprList([]hcl.Expression{
+							hcltest.MockExprTraversalSrc("before_create"),
+						}),
+						"actions": hcltest.MockExprList([]hcl.Expression{
+							fooActionExpr,
+						}),
+						"on_failure": hcltest.MockExprTraversalSrc(keyword),
+					}),
+				}),
+			}
+
+			_, diags := decodeActionTriggerBlock(givenActionTriggerBlock)
+
+			if diags.HasErrors() && td.valid {
+				t.Fatalf("keyword %s should be valid but has returned"+
+					" diags: %v", keyword, diags)
+			} else if !diags.HasErrors() && !td.valid {
+				t.Fatalf("keyword %s should have been invalid but was"+
+					"valid.", keyword)
+			}
+		})
+	}
+}

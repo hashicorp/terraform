@@ -38,6 +38,8 @@ type ActionTrigger interface {
 
 	TriggerEvent() configs.ActionTriggerEvent
 
+	TriggerOnFailure() configs.ActionTriggerOnFailure
+
 	String() string
 
 	Equals(to ActionTrigger) bool
@@ -55,6 +57,8 @@ type LifecycleActionTrigger struct {
 	// Information about the trigger
 	// The event that triggered this action invocation.
 	ActionTriggerEvent configs.ActionTriggerEvent
+	// Hint to Terraform how to handle action failure
+	ActionTriggerOnFailure configs.ActionTriggerOnFailure
 	// The index of the action_trigger block that triggered this invocation.
 	ActionTriggerBlockIndex int
 	// The index of the action in the events list of the action_trigger block
@@ -63,6 +67,10 @@ type LifecycleActionTrigger struct {
 
 func (t *LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 	return t.ActionTriggerEvent
+}
+
+func (t *LifecycleActionTrigger) TriggerOnFailure() configs.ActionTriggerOnFailure {
+	return t.ActionTriggerOnFailure
 }
 
 func (t *LifecycleActionTrigger) actionTriggerSigil() {}
@@ -108,6 +116,11 @@ func (t *InvokeActionTrigger) String() string {
 
 func (t *InvokeActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 	return configs.Invoke
+}
+
+func (t *InvokeActionTrigger) TriggerOnFailure() configs.ActionTriggerOnFailure {
+	// We always fail on direct invocation
+	return configs.ActionTriggerOnFailureFail
 }
 
 func (t *InvokeActionTrigger) Equals(other ActionTrigger) bool {

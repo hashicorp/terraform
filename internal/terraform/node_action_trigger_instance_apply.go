@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -159,7 +160,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.CompleteAction(hookIdentity, respDiags.Err())
 		}))
-		return diags
+		return diagsIfNeeded(ai, diags)
 	}
 
 	if resp.Events != nil { // should only occur in misconfigured tests
@@ -169,21 +170,12 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.ProgressAction(hookIdentity, ev.Message)
 				}))
-				if diags.HasErrors() {
-					return diags
-				}
 			case providers.InvokeActionEvent_Completed:
 				// Enhance the diagnostics
 				diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
 				}))
-				if ev.Diagnostics.HasErrors() {
-					return diags
-				}
-				if diags.HasErrors() {
-					return diags
-				}
 			default:
 				panic(fmt.Sprintf("unexpected action event type %T", ev))
 			}
@@ -197,7 +189,26 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		})
 	}
 
-	return diags
+	return diagsIfNeeded(ai, diags)
+}
+
+func diagsIfNeeded(
+	aii *plans.ActionInvocationInstance,
+	currentDiags tfdiags.Diagnostics,
+) tfdiags.Diagnostics {
+	switch aii.ActionTrigger.TriggerOnFailure() {
+	case configs.ActionTriggerOnFailureContinue:
+		if currentDiags.HasErrors() {
+			log.Printf("[WARN] Errors while running action %s, but"+
+				" continuing as request in configuration.", aii.Addr)
+		}
+		return nil
+	default:
+		// Nothing to do for now - here to make it exhaustive and to denote the
+		// place to put potential new `on failure` cases.
+	}
+
+	return currentDiags
 }
 
 func (n *nodeActionTriggerApplyInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
