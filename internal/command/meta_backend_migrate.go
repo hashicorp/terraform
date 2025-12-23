@@ -282,37 +282,43 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 	var err error
 	destinationState, sDiags := opts.Destination.StateMgr(opts.destinationWorkspace)
-	if sDiags.HasErrors() && sDiags.Err().Error() == backend.ErrDefaultWorkspaceNotSupported.Error() {
-		// If the backend doesn't support using the default state, we ask the user
-		// for a new name and migrate the default state to the given named state.
-		destinationState, err = func() (statemgr.Full, error) {
-			log.Print("[TRACE] backendMigrateState: destination doesn't support a default workspace, so we must prompt for a new name")
-			name, err := m.promptNewWorkspaceName(opts.DestinationType)
-			if err != nil {
-				return nil, err
-			}
-
-			// Update the name of the destination state.
-			opts.destinationWorkspace = name
-
-			destinationState, sDiags := opts.Destination.StateMgr(opts.destinationWorkspace)
-			if sDiags.HasErrors() {
-				return nil, sDiags.Err()
-			}
-
-			// Ignore invalid workspace name as it is irrelevant in this context.
-			workspace, _ := m.Workspace()
-
-			// If the currently selected workspace is the default workspace, then set
-			// the named workspace as the new selected workspace.
-			if workspace == backend.DefaultStateName {
-				if err := m.SetWorkspace(opts.destinationWorkspace); err != nil {
-					return nil, fmt.Errorf("Failed to set new workspace: %s", err)
+	if sDiags.HasErrors() {
+		if sDiags.Err().Error() == backend.ErrDefaultWorkspaceNotSupported.Error() {
+			// If the backend doesn't support using the default state, we ask the user
+			// for a new name and migrate the default state to the given named state.
+			destinationState, err = func() (statemgr.Full, error) {
+				log.Print("[TRACE] backendMigrateState: destination doesn't support a default workspace, so we must prompt for a new name")
+				name, err := m.promptNewWorkspaceName(opts.DestinationType)
+				if err != nil {
+					return nil, err
 				}
-			}
 
-			return destinationState, nil
-		}()
+				// Update the name of the destination state.
+				opts.destinationWorkspace = name
+
+				destinationState, sDiags := opts.Destination.StateMgr(opts.destinationWorkspace)
+				if sDiags.HasErrors() {
+					return nil, sDiags.Err()
+				}
+
+				// Ignore invalid workspace name as it is irrelevant in this context.
+				workspace, _ := m.Workspace()
+
+				// If the currently selected workspace is the default workspace, then set
+				// the named workspace as the new selected workspace.
+				if workspace == backend.DefaultStateName {
+					if err := m.SetWorkspace(opts.destinationWorkspace); err != nil {
+						return nil, fmt.Errorf("Failed to set new workspace: %s", err)
+					}
+				}
+
+				return destinationState, nil
+			}()
+		} else {
+			// For any other error, return it immediately to avoid nil pointer dereference
+			return fmt.Errorf(strings.TrimSpace(
+				errMigrateSingleLoadDefault), opts.DestinationType, sDiags.Err())
+		}
 	}
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
