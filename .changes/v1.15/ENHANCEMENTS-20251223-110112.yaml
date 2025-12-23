@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: improve detection of deprecated resource attributes
+time: 2025-12-23T11:01:12.544749+01:00
+custom:
+    Issue: "38006"

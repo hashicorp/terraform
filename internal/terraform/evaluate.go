@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -627,9 +628,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		// resource has (using d.Evaluator.Instances.ResourceInstanceKeys) and
 		// then retrieving the value for each instance to assemble into the
 		// result, using some per-resource-mode logic maintained elsewhere.
-		return d.getEphemeralResource(addr, rng)
+		val, ephemeralDiags := d.getEphemeralResource(addr, rng)
+		diags = diags.Append(ephemeralDiags)
+		return deprecation.MarkDeprecatedValues(val, schema.Body), diags
 	case addrs.ListResourceMode:
-		return d.getListResource(config, rng)
+		val, listDiags := d.getListResource(config, rng)
+		diags = diags.Append(listDiags)
+		return deprecation.MarkDeprecatedValues(val, schema.Body), diags
 	default:
 		// continue with the rest of the function
 	}
@@ -774,7 +779,24 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// We should only end up here during the validate walk (or
 			// console/eval), since later walks should have at least partial
 			// states populated for all resources in the configuration.
-			return cty.DynamicVal, diags
+			switch {
+			case config.Count != nil:
+				return cty.DynamicVal, diags
+			case config.ForEach != nil:
+				return cty.DynamicVal, diags
+			default:
+
+				// We don't know the values of the single resource instance, but we know the general
+				// shape these values will take.
+
+				content := map[string]cty.Value{}
+				for attr, attrType := range ty.AttributeTypes() {
+					content[attr] = cty.UnknownVal(attrType)
+				}
+				instance := cty.ObjectVal(content)
+				instance = deprecation.MarkDeprecatedValues(instance, schema.Body)
+				return instance, diags
+			}
 		}
 	}
 
@@ -804,7 +826,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 					continue
 				}
 
-				vals[int(intKey)] = instance
+				vals[int(intKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body)
 			}
 
 			// Insert unknown values where there are any missing instances
@@ -826,7 +848,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// old key that is being dropped and not used for evaluation
 				continue
 			}
-			vals[string(strKey)] = instance
+			vals[string(strKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body)
 		}
 
 		if len(vals) > 0 {
@@ -846,7 +868,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			val = cty.UnknownVal(ty)
 		}
 
-		ret = val
+		ret = deprecation.MarkDeprecatedValues(val, schema.Body)
 	}
 
 	return ret, diags

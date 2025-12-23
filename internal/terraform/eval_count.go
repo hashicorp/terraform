@@ -87,6 +87,9 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		return nullCount, diags
 	}
 
+	countVal, deprecationDiags := ctx.Deprecations().Validate(countVal, ctx.Path().Module(), expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	if marks.Has(countVal, marks.Ephemeral) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

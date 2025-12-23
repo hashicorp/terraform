@@ -68,6 +68,12 @@ func (n *NodeActionDeclarationPartialExpanded) Execute(ctx EvalContext, op walkO
 		if diags.HasErrors() {
 			return diags
 		}
+
+		deprecationDiags := ctx.Deprecations().ValidateAsConfig(configVal, n.ActionAddr().Module)
+		diags = diags.Append(deprecationDiags)
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 	ctx.Actions().AddPartialExpandedAction(n.addr, configVal, n.resolvedProvider)
 	return nil

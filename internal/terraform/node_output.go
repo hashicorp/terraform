@@ -508,6 +508,10 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	// "flagWarnOutputErrors", because they relate to features that were added
 	// more recently than the historical change to treat invalid output values
 	// as errors rather than warnings.
+	var deprecationDiags tfdiags.Diagnostics
+	val, deprecationDiags = ctx.Deprecations().Validate(val, n.Addr.Module.Module(), n.Config.Expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	if !n.Config.Ephemeral && marks.Contains(val, marks.Ephemeral) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -586,6 +590,9 @@ func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) t
 	if val == cty.NilVal {
 		val = cty.DynamicVal
 	}
+	var deprecationDiags tfdiags.Diagnostics
+	val, deprecationDiags = ctx.Deprecations().Validate(val, n.Addr.Module.Module(), n.Config.Expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
 
 	// We'll also check that the depends_on argument is valid, since that's
 	// a static concern anyway and so cannot vary between instances of the
