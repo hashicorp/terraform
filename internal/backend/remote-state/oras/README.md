@@ -1,5 +1,11 @@
 # Terraform ORAS Remote State Backend
 
+## Status
+
+This backend is an experiment/reference implementation of storing Terraform state in an OCI registry using ORAS.
+
+Terraform Core generally does not accept new remote state backends upstream (see `.github/CONTRIBUTING.md`). If this code cannot be merged, the intent is that it still remains useful as documentation and as a starting point for downstream forks.
+
 ## The Big Idea
 
 Use an OCI registry as a remote backend for Terraform state.
@@ -7,6 +13,15 @@ Use an OCI registry as a remote backend for Terraform state.
 This backend stores each workspace's state as an OCI manifest + layer in a repository you control (e.g. a registry you already use for containers), and stores the lock as a separate manifest/tag. That means you can reuse existing registry authentication, authorization, and operational tooling.
 
 > **Note**: Currently only tested with GitHub Container Registry (ghcr.io). Other registries should work but haven't been validated.
+
+## Security considerations
+
+Terraform state frequently contains sensitive data (provider credentials, resource attributes, and sometimes plaintext secrets depending on providers and configuration). Treat the OCI repository as sensitive storage:
+
+- Use a private repository and least-privilege tokens.
+- Prefer registries with encryption at rest and audit logging.
+- Be deliberate about retention/versioning: keeping many historical states can increase your exposure window.
+- Consider whether your organization’s threat model allows state to live in a container registry at all.
 
 ## Parameters
 
@@ -149,13 +164,13 @@ Example (GitHub Actions CI):
     terraform init
 ```
 
-The `GITHUB_TOKEN` needs `packages:write` scope. For version retention/deletion, you'll also need `delete:packages`.
+The token used for `docker login` must have permission to read/write the target repository. If you enable version retention/deletion, you will also need a token that is allowed to enumerate and delete package versions (exact requirements vary by registry and token type).
 
 ## Troubleshooting
 
 **"unauthorized" or "denied" errors**
 - Check `docker login <registry>` works
-- For GHCR: token needs `read:packages` and `write:packages` scopes
+- For GHCR, ensure the token has package read/write permissions (for example, with a PAT: `read:packages` + `write:packages`).
 
 **Lock stuck after crashed run**
 - Set `lock_ttl = 300` to auto-expire locks after 5 minutes
@@ -163,12 +178,20 @@ The `GITHUB_TOKEN` needs `packages:write` scope. For version retention/deletion,
 
 **Version deletion fails on GHCR (405 error)**
 - GHCR doesn't support OCI DELETE, we fall back to GitHub API
-- Your token needs `delete:packages` scope
+- Ensure the token is allowed to delete package versions (for example, with a PAT: `delete:packages`).
 - If it still fails, old versions will accumulate (not a blocker, just messy)
 
 **Debug mode**
 ```bash
 TF_LOG=DEBUG terraform plan
+```
+
+## Testing
+
+Unit tests for this backend are designed to run offline and use an in-memory fake OCI repository for most behaviors.
+
+```bash
+go test ./internal/backend/remote-state/oras
 ```
 
 ## Limitations / Future Enhancements
