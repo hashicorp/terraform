@@ -22,9 +22,14 @@ func TestInit_backend(t *testing.T) {
 		{"consul", "*consul.Backend"},
 		{"cos", "*cos.Backend"},
 		{"gcs", "*gcs.Backend"},
+		{"http", "*http.Backend"},
 		{"inmem", "*inmem.Backend"},
+		{"kubernetes", "*kubernetes.Backend"},
+		{"oras", "*oras.Backend"},
+		{"oss", "*oss.Backend"},
 		{"pg", "*pg.Backend"},
 		{"s3", "*s3.Backend"},
+		{"oci", "*oci.Backend"},
 	}
 
 	// Make sure we get the requested backend

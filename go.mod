@@ -57,6 +57,8 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/mitchellh/gox v1.0.1
 	github.com/nishanths/exhaustive v0.12.0
+	github.com/opencontainers/go-digest v1.0.0
+	github.com/opencontainers/image-spec v1.1.1
 	github.com/packer-community/winrmcp v0.0.0-20221126162354-6e900dd2c68f
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/posener/complete v1.2.3
@@ -79,12 +81,14 @@ require (
 	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.37.0
 	golang.org/x/text v0.31.0
+	golang.org/x/time v0.12.0
 	golang.org/x/tools v0.38.0
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
 	google.golang.org/grpc v1.69.4
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.36.6
 	honnef.co/go/tools v0.6.0
+	oras.land/oras-go/v2 v2.6.0
 )
 
 require (
@@ -254,7 +258,6 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/telemetry v0.0.0-20251008203120-078029d740a8 // indirect
-	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.155.0 // indirect
