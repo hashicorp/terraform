@@ -1,0 +1,1 @@
+provider: Remove stale FIXME comment regarding validation logic
