@@ -101,9 +101,6 @@ func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRe
 
 // ValidateDataResourceConfig is used to validate the data source configuration values.
 func (p *Provider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
-	// FIXME: move the backend configuration validate call that's currently
-	// inside the read method  into here so that we can catch provider configuration
-	// errors in terraform validate as well as during terraform plan.
 	var res providers.ValidateDataResourceConfigResponse
 
 	// This should not happen
