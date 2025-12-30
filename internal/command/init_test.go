@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,6 +22,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	httpBackend "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -478,6 +481,84 @@ func TestInit_backend(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+}
+
+// regression test for https://github.com/hashicorp/terraform/issues/38027
+func TestInit_backend_migration_stateMgr_error(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	t.Chdir(td)
+
+	{
+		// create some state in (implied) local backend
+		outputCfg := `output "test" { value = "test" }
+`
+		if err := os.WriteFile("output.tf", []byte(outputCfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := new(cli.MockUi)
+		applyView, done := testView(t)
+		applyCmd := &ApplyCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: applyView,
+			},
+		}
+		code := applyCmd.Run([]string{"-auto-approve"})
+		testOut := done(t)
+		if code != 0 {
+			t.Fatalf("bad: \n%s", testOut.All())
+		}
+
+		if _, err := os.Stat(DefaultStateFilename); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		// attempt to migrate the state to a broken backend
+		testBackend := new(httpBackend.TestHTTPBackend)
+		testBackend.SetMethodFunc("GET", func(w http.ResponseWriter, r *http.Request) {
+			// simulate "broken backend" in the way described in #38027
+			// i.e. access denied
+			w.WriteHeader(403)
+		})
+		ts := httptest.NewServer(http.HandlerFunc(testBackend.Handle))
+		t.Cleanup(ts.Close)
+
+		backendCfg := fmt.Sprintf(`terraform {
+  backend "http" {
+    address = %q
+  }
+}
+`, ts.URL)
+		if err := os.WriteFile("backend.tf", []byte(backendCfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := new(cli.MockUi)
+		initView, done := testView(t)
+		initCmd := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: initView,
+			},
+		}
+		code := initCmd.Run([]string{"-migrate-state"})
+		out := done(t)
+		if code == 0 {
+			t.Fatalf("expected migration to fail (gracefully): %s", out.Stdout())
+		}
+		expectedErrMsg := "HTTP remote state endpoint invalid auth"
+		if !strings.Contains(out.Stderr(), expectedErrMsg) {
+			t.Fatalf("expected error %q, given: %s", expectedErrMsg, out.Stderr())
+		}
+
+		getCalled := testBackend.CallCount("GET")
+		if getCalled != 1 {
+			t.Fatalf("expected GET to be called exactly %d, called %d times", 1, getCalled)
+		}
 	}
 }
 
