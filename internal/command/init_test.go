@@ -4414,7 +4414,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatalf("unexpected data: %s", diff)
 		}
 
-		expectedGetCalls := 4
+		expectedGetCalls := 6
 		if testBackend.GetCalled != expectedGetCalls {
 			t.Fatalf("expected %d GET calls, got %d", expectedGetCalls, testBackend.GetCalled)
 		}
