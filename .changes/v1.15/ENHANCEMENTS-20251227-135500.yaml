@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: "provider: Remove stale FIXME comment regarding validation logic"
-time: 2025-12-27T13:55:00-05:00
-custom:
-    Issue: "3626"
