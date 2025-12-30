@@ -277,14 +277,10 @@ func TestMTLSServer_NoCertFails(t *testing.T) {
 	}
 
 	// Now get a state manager and check that it fails to refresh the state
-	sm, sDiags := b.StateMgr(backend.DefaultStateName)
-	if sDiags.HasErrors() {
-		t.Fatalf("unexpected error fetching StateMgr with %s: %v", backend.DefaultStateName, sDiags)
-	}
-	err = sm.RefreshState()
-	if nil == err {
+	_, sDiags := b.StateMgr(backend.DefaultStateName)
+	if !sDiags.HasErrors() {
 		t.Error("expected error when refreshing state without a client cert")
-	} else if !strings.Contains(err.Error(), "remote error: tls: certificate required") {
+	} else if !strings.Contains(sDiags.Err().Error(), "remote error: tls: certificate required") {
 		t.Errorf("expected the error to report missing tls credentials: %v", err)
 	}
 }
