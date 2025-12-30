@@ -4344,8 +4344,6 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 
 		testBackend := new(httpBackend.TestHTTPBackend)
 		ts := httptest.NewServer(http.HandlerFunc(testBackend.Handle))
-		defer ts.Close()
-
 		t.Cleanup(ts.Close)
 
 		// Override state store to backend
@@ -4377,6 +4375,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			"-migrate-state",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -4415,12 +4414,12 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		}
 
 		expectedGetCalls := 6
-		if testBackend.GetCalled != expectedGetCalls {
-			t.Fatalf("expected %d GET calls, got %d", expectedGetCalls, testBackend.GetCalled)
+		if testBackend.CallCount("GET") != expectedGetCalls {
+			t.Fatalf("expected %d GET calls, got %d", expectedGetCalls, testBackend.CallCount("GET"))
 		}
 		expectedPostCalls := 1
-		if testBackend.PostCalled != expectedPostCalls {
-			t.Fatalf("expected %d POST calls, got %d", expectedPostCalls, testBackend.PostCalled)
+		if testBackend.CallCount("POST") != expectedPostCalls {
+			t.Fatalf("expected %d POST calls, got %d", expectedPostCalls, testBackend.CallCount("POST"))
 		}
 	}
 }
