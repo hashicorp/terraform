@@ -73,13 +73,19 @@ type Operation struct {
 
 	// PlanId is an opaque value that backends can use to execute a specific
 	// plan for an apply operation.
-	//
+	PlanId      string
+	PlanRefresh bool   // PlanRefresh will do a refresh before a plan
+	PlanOutPath string // PlanOutPath is the path to save the plan
+
 	// PlanOutBackend is the backend to store with the plan. This is the
 	// backend that will be used when applying the plan.
-	PlanId         string
-	PlanRefresh    bool   // PlanRefresh will do a refresh before a plan
-	PlanOutPath    string // PlanOutPath is the path to save the plan
+	// Only one of PlanOutBackend or PlanOutStateStore may be set.
 	PlanOutBackend *plans.Backend
+
+	// PlanOutStateStore is the state_store to store with the plan. This is the
+	// state store that will be used when applying the plan.
+	// Only one of PlanOutBackend or PlanOutStateStore may be set
+	PlanOutStateStore *plans.StateStore
 
 	// ConfigDir is the path to the directory containing the configuration's
 	// root module.

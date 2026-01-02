@@ -33,6 +33,7 @@ func TestMarshalProvider(t *testing.T) {
 				ResourceIdentitySchemas:  map[string]*IdentitySchema{},
 				ListResourceSchemas:      map[string]*Schema{},
 				ActionSchemas:            map[string]*ActionSchema{},
+				StateStoreSchemas:        map[string]*Schema{},
 			},
 		},
 		{
@@ -250,6 +251,7 @@ func TestMarshalProvider(t *testing.T) {
 						},
 					},
 				},
+				StateStoreSchemas: map[string]*Schema{},
 			},
 		},
 	}
