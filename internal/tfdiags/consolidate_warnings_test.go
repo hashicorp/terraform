@@ -13,7 +13,7 @@ import (
 func TestConsolidateWarnings(t *testing.T) {
 	var diags Diagnostics
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Warning 1",

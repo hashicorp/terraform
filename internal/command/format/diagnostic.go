@@ -85,8 +85,7 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 	if diag.Detail != "" {
 		paraWidth := width - leftRuleWidth - 1 // leave room for the left rule
 		if paraWidth > 0 {
-			lines := strings.Split(diag.Detail, "\n")
-			for _, line := range lines {
+			for line := range strings.SplitSeq(diag.Detail, "\n") {
 				if !strings.HasPrefix(line, " ") {
 					line = wordwrap.WrapString(line, uint(paraWidth))
 				}
@@ -159,8 +158,7 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 
 	if diag.Detail != "" {
 		if width > 1 {
-			lines := strings.Split(diag.Detail, "\n")
-			for _, line := range lines {
+			for line := range strings.SplitSeq(diag.Detail, "\n") {
 				if !strings.HasPrefix(line, " ") {
 					line = wordwrap.WrapString(line, uint(width-1))
 				}

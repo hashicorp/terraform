@@ -38,7 +38,7 @@ func TestPanicLimit(t *testing.T) {
 
 	rec("panic: test")
 
-	for i := 0; i < 200; i++ {
+	for i := range 200 {
 		rec(fmt.Sprintf("LINE: %d", i))
 	}
 

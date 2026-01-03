@@ -244,7 +244,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 
 			readDiags := func(data []byte, _ error) []string {
 				var expected []string
-				for _, s := range strings.Split(string(data), "\n") {
+				for s := range strings.SplitSeq(string(data), "\n") {
 					msg := strings.TrimSpace(s)
 					msg = strings.ReplaceAll(msg, `\n`, "\n")
 					if msg != "" {

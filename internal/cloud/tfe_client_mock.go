@@ -1981,7 +1981,7 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 			searchValue = options.Search
 		}
 		if len(options.Tags) > 0 {
-			for _, tag := range strings.Split(options.Tags, ",") {
+			for tag := range strings.SplitSeq(options.Tags, ",") {
 				searchTags[tag] = ""
 			}
 		}
