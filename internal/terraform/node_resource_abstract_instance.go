@@ -3090,31 +3090,31 @@ func hintIfAlreadyExists(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
 	if !diags.HasErrors() {
 		return diags
 	}
-	// Check if any error matches the pattern
-	found := false
-	for _, diag := range diags {
-		if diag.Severity() == tfdiags.Error {
-			desc := diag.Description()
-			// Case-insensitive match for common "already exists" errors
-			lower := strings.ToLower(desc.Summary + " " + desc.Detail)
-			if strings.Contains(lower, "already exists") ||
-				strings.Contains(lower, "entityalreadyexists") ||
-				strings.Contains(lower, "duplicate") ||
-				strings.Contains(lower, "invalidchangebatch") {
-				found = true
-				break
-			}
-		}
-	}
 
-	if found {
+	if shouldHintAlreadyExists(diags) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Hint: Resource Conflict",
-			"The provider returned an error indicating the resource already exists. "+
-				"If you are renaming a resource or moving it to a module, Terraform may treat it as a new resource and try to create it before destroying the old one. "+
-				"Use 'moved' blocks to inform Terraform of the move, or use 'terraform state mv'.",
+			"The provider reported that a resource already exists. "+
+				"If you recently renamed a resource or moved it between modules, Terraform may plan a destroy+create for two different addresses and attempt the create before the old object is fully gone. "+
+				"Use 'moved' blocks (or 'terraform state mv') to tell Terraform that the resource moved. "+
+				"If you did not refactor, some providers return from delete before the object is fully removed (eventual consistency); check the provider docs for delete timeouts/retries or re-run apply after a short delay.",
 		))
 	}
 	return diags
+}
+
+func shouldHintAlreadyExists(diags tfdiags.Diagnostics) bool {
+	for _, diag := range diags {
+		if diag.Severity() != tfdiags.Error {
+			continue
+		}
+		desc := diag.Description()
+		// Conservative match to avoid false positives for unrelated duplicate errors.
+		lower := strings.ToLower(desc.Summary + " " + desc.Detail)
+		if strings.Contains(lower, "already exists") || strings.Contains(lower, "entityalreadyexists") {
+			return true
+		}
+	}
+	return false
 }
