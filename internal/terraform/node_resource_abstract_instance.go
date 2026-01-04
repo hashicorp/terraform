@@ -2662,6 +2662,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	if applyConfig != nil {
 		applyDiags = applyDiags.InConfigBody(applyConfig.Config, n.Addr.String())
 	}
+	applyDiags = hintIfAlreadyExists(applyDiags)
 	diags = diags.Append(applyDiags)
 
 	// Even if there are errors in the returned diagnostics, the provider may
@@ -3083,4 +3084,37 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	}
 
 	return reqRep, diags
+}
+
+func hintIfAlreadyExists(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+	if !diags.HasErrors() {
+		return diags
+	}
+	// Check if any error matches the pattern
+	found := false
+	for _, diag := range diags {
+		if diag.Severity() == tfdiags.Error {
+			desc := diag.Description()
+			// Case-insensitive match for common "already exists" errors
+			lower := strings.ToLower(desc.Summary + " " + desc.Detail)
+			if strings.Contains(lower, "already exists") ||
+				strings.Contains(lower, "entityalreadyexists") ||
+				strings.Contains(lower, "duplicate") ||
+				strings.Contains(lower, "invalidchangebatch") {
+				found = true
+				break
+			}
+		}
+	}
+
+	if found {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Hint: Resource Conflict",
+			"The provider returned an error indicating the resource already exists. "+
+				"If you are renaming a resource or moving it to a module, Terraform may treat it as a new resource and try to create it before destroying the old one. "+
+				"Use 'moved' blocks to inform Terraform of the move, or use 'terraform state mv'.",
+		))
+	}
+	return diags
 }
