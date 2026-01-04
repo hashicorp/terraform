@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Core: Added a diagnostic hint for resource conflict errors (e.g. EntityAlreadyExists) to suggest the use of `moved` blocks during refactors'
+time: 2026-01-04T11:30:00.000000Z
+custom:
+    Issue: "24704"
