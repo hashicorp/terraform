@@ -810,6 +810,116 @@ func TestStackChangeProgress(t *testing.T) {
 				},
 			},
 		},
+		"invalid - update": {
+			source: "git::https://example.com/invalid.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ResourceInstanceStatus_{
+						ResourceInstanceStatus: &stacks.StackChangeProgress_ResourceInstanceStatus{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_resource.resource",
+							},
+							Status:       stacks.StackChangeProgress_ResourceInstanceStatus_ERRORED,
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_ERRORED,
+						},
+					},
+				},
+			},
+			diagnostics: []*terraform1.Diagnostic{
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "invalid configuration",
+					Detail:   "configure_error attribute was set",
+				},
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "Provider configuration is invalid",
+					Detail:   "Cannot decode the prior state for this resource instance because its provider configuration is invalid.",
+				},
+			},
+		},
+		"invalid - create": {
+			source: "git::https://example.com/invalid.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ResourceInstanceStatus_{
+						ResourceInstanceStatus: &stacks.StackChangeProgress_ResourceInstanceStatus{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_resource.resource",
+							},
+							Status:       stacks.StackChangeProgress_ResourceInstanceStatus_ERRORED,
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_ERRORED,
+						},
+					},
+				},
+			},
+			diagnostics: []*terraform1.Diagnostic{
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "invalid configuration",
+					Detail:   "configure_error attribute was set",
+				},
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "Provider configuration is invalid",
+					Detail:   "Cannot plan changes for this resource because its associated provider configuration is invalid.",
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {
