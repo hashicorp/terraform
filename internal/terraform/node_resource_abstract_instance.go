@@ -478,6 +478,9 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		}
 		diags = diags.Append(resp.Diagnostics)
 		if diags.HasErrors() {
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal, diags.Err())
+			}))
 			return plan, deferred, diags
 		}
 
@@ -994,6 +997,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
+		}))
 		return nil, nil, deferred, keyData, diags
 	}
 

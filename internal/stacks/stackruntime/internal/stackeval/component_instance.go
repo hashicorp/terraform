@@ -351,6 +351,8 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				ReportComponentInstance(ctx, plan, h, seq, c)
 				if plan.Complete {
 					hookMore(ctx, seq, h.EndComponentInstancePlan, c.Addr())
+				} else if plan.Errored {
+					hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
 				} else {
 					hookMore(ctx, seq, h.DeferComponentInstancePlan, c.Addr())
 				}
