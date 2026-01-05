@@ -170,11 +170,9 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 							b.renderer.Streams.Println(result.String())
 						}
 					default:
-						if b.renderer != nil {
-							err := b.renderer.RenderLog(log)
-							if err != nil {
-								return err
-							}
+						err := b.renderer.RenderLog(log)
+						if err != nil {
+							return err
 						}
 					}
 				}
