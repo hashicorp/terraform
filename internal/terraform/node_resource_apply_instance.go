@@ -36,16 +36,19 @@ type NodeApplyableResourceInstance struct {
 	// forceReplace indicates that this resource is being replaced for external
 	// reasons, like a -replace flag or via replace_triggered_by.
 	forceReplace bool
+
+	resolvedActionProviders []addrs.AbsProviderConfig
 }
 
 var (
-	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance       = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator                = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer                = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutable             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies     = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeActionProviderConsumer = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -314,9 +317,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
 	}
 
-	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
-	diags = diags.Append(applyDiags)
-
 	// Re-evaluate the condition and trigger any before_* actions
 	actionDiags := n.applyActions(ctx, beforeActions)
 	diags = diags.Append(actionDiags)
@@ -324,6 +324,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// quit if any before action failed
 		return diags
 	}
+
+	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
+	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
@@ -526,13 +529,13 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			}
 			aiSrc := actions[i][j]
 
-			actionInstanceNode, ok := n.actionInstances.GetOk(aiSrc.Addr)
+			actionInstanceNode, ok := n.actionInstances.GetOk(aiSrc.Addr.ConfigAction())
 			if !ok {
 				panic("HOW")
 			}
 
 			aschema := actionInstanceNode.ActionSchema()
-			ai, err := aiSrc.Decode(&aschema)
+			ai, err := aiSrc.Decode(aschema)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a planned action invocation: %v\n\nThis is a bug in Terraform; please report it!", err)))
 			}
@@ -755,4 +758,21 @@ func (o actionInvocationInstanceSrcs) Less(i, j int) bool {
 	itrigger, _ := o[i].ActionTrigger.(*plans.LifecycleActionTrigger)
 	jtrigger, _ := o[j].ActionTrigger.(*plans.LifecycleActionTrigger)
 	return itrigger.ActionsListIndex < jtrigger.ActionsListIndex
+}
+
+func (n *NodeApplyableResourceInstance) ActionsProvidedBy() []addrs.AbsProviderConfig {
+	providers := make([]addrs.AbsProviderConfig, 0)
+	if n.plannedActions != nil {
+		for _, action := range n.plannedActions {
+			providers = append(providers, action.ProviderAddr)
+		}
+	}
+	return providers
+}
+
+func (n *NodeApplyableResourceInstance) AppendProvider(provider addrs.AbsProviderConfig) {
+	if n.resolvedActionProviders == nil {
+		n.resolvedActionProviders = make([]addrs.AbsProviderConfig, 0)
+	}
+	n.resolvedActionProviders = append(n.resolvedActionProviders, provider)
 }

@@ -26,13 +26,6 @@ type NodeAbstractActionInstance struct {
 	Dependencies     []addrs.ConfigResource
 }
 
-// GraphNodeActionInstance is implemented by action instances.
-type GraphNodeActionInstance interface {
-	ActionAddr() addrs.AbsActionInstance
-	ActionSchema() providers.ActionSchema
-	ActionProvider() addrs.AbsProviderConfig
-}
-
 var (
 	_ GraphNodeModuleInstance = (*NodeAbstractActionInstance)(nil)
 	_ GraphNodeExecutable     = (*NodeAbstractActionInstance)(nil)

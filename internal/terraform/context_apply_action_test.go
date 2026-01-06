@@ -47,16 +47,16 @@ func TestContextApply_actions(t *testing.T) {
 		"before_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
-  }
-}
-`,
+		action "action_example" "hello" {}
+		resource "test_object" "a" {
+		  lifecycle {
+		    action_trigger {
+		      events = [before_create]
+		      actions = [action.action_example.hello]
+		    }
+		  }
+		}
+		`,
 			},
 			expectInvokeActionCalled: true,
 		},
@@ -64,16 +64,16 @@ resource "test_object" "a" {
 		"after_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.action_example.hello]
-    }
-  }
-}
-`,
+		action "action_example" "hello" {}
+		resource "test_object" "a" {
+		  lifecycle {
+		    action_trigger {
+		      events = [after_create]
+		      actions = [action.action_example.hello]
+		    }
+		  }
+		}
+		`,
 			},
 			expectInvokeActionCalled: true,
 		},
@@ -81,16 +81,16 @@ resource "test_object" "a" {
 		"before and after created triggered": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create,after_create]
-      actions = [action.action_example.hello]
-    }
-  }
-}
-`,
+		action "action_example" "hello" {}
+		resource "test_object" "a" {
+		  lifecycle {
+		    action_trigger {
+		      events = [before_create,after_create]
+		      actions = [action.action_example.hello]
+		    }
+		  }
+		}
+		`,
 			},
 			expectInvokeActionCalled: true,
 			assertHooks: func(t *testing.T, capture actionHookCapture) {
@@ -178,16 +178,16 @@ resource "test_object" "a" {
 		"before_create failing": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
-  }
-}
-`,
+		action "action_example" "hello" {}
+		resource "test_object" "a" {
+		  lifecycle {
+		    action_trigger {
+		      events = [before_create]
+		      actions = [action.action_example.hello]
+		    }
+		  }
+		}
+		`,
 			},
 			expectInvokeActionCalled: true,
 			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
@@ -220,22 +220,22 @@ resource "test_object" "a" {
 		"before_create failing with successfully completed actions": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
-action "action_example" "world" {}
-action "action_example" "failure" {
-  config {
-    attr = "failure"
-  }
-}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello, action.action_example.world, action.action_example.failure]
-    }
-  }
-}
-`,
+		action "action_example" "hello" {}
+		action "action_example" "world" {}
+		action "action_example" "failure" {
+		  config {
+		    attr = "failure"
+		  }
+		}
+		resource "test_object" "a" {
+		  lifecycle {
+		    action_trigger {
+		      events = [before_create]
+		      actions = [action.action_example.hello, action.action_example.world, action.action_example.failure]
+		    }
+		  }
+		}
+		`,
 			},
 			expectInvokeActionCalled: true,
 			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
@@ -277,16 +277,16 @@ resource "test_object" "a" {
 		"before_create failing when calling invoke": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
-  }
-}
-`,
+		action "action_example" "hello" {}
+		resource "test_object" "a" {
+		  lifecycle {
+		    action_trigger {
+		      events = [before_create]
+		      actions = [action.action_example.hello]
+		    }
+		  }
+		}
+		`,
 			},
 			expectInvokeActionCalled: true,
 			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
@@ -317,22 +317,22 @@ resource "test_object" "a" {
 		"failing an action by action event stops next actions in list": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
-action "action_example" "failure" {
-  config {
-    attr = "failure"
-  }
-}
-action "action_example" "goodbye" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
-    }
-  }
-}
-`,
+		action "action_example" "hello" {}
+		action "action_example" "failure" {
+		  config {
+		    attr = "failure"
+		  }
+		}
+		action "action_example" "goodbye" {}
+		resource "test_object" "a" {
+		  lifecycle {
+		    action_trigger {
+		      events = [before_create]
+		      actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
+		    }
+		  }
+		}
+		`,
 			},
 			expectInvokeActionCalled: true,
 			events: func(r providers.InvokeActionRequest) []providers.InvokeActionEvent {
@@ -380,22 +380,22 @@ resource "test_object" "a" {
 		"failing an action during invocation stops next actions in list": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
-action "action_example" "failure" {
-  config {
-    attr = "failure"
-  }
-}
-action "action_example" "goodbye" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
-    }
-  }
-}
-`,
+		action "action_example" "hello" {}
+		action "action_example" "failure" {
+		  config {
+		    attr = "failure"
+		  }
+		}
+		action "action_example" "goodbye" {}
+		resource "test_object" "a" {
+		  lifecycle {
+		    action_trigger {
+		      events = [before_create]
+		      actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
+		    }
+		  }
+		}
+		`,
 			},
 			expectInvokeActionCalled: true,
 			callingInvokeReturnsDiagnostics: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {

@@ -80,18 +80,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		resourceNodes.Put(rAddr, append(resourceNodes.Get(rAddr), rn))
 	}
 
-	actionInstances := addrs.MakeMap[addrs.AbsActionInstance, []GraphNodeActionInstance]()
-	for _, ai := range changes.ActionInvocations {
-		// create nodeActionTriggerApplyInstance
-		// attach to the resource
-		// run that node's "apply"
-
-		abstract := NewNodeAbstractAction(addr)
-		node := &nodeActionApplyInstance{
-			ActionInvocation: ai,
-			resolvedProvider: ai.ProviderAddr,
+	// FIXME: this can happen in the same loop as above (if it sticks around)
+	actionNodes := addrs.MakeMap[addrs.ConfigAction, []GraphNodeConfigAction]()
+	for _, node := range g.Vertices() {
+		an, ok := node.(GraphNodeConfigAction)
+		if !ok {
+			continue
 		}
-
+		actionNodes.Put(an.ActionAddr(), append(actionNodes.Get(an.ActionAddr()), an))
 	}
 
 	for _, rc := range changes.Resources {
@@ -102,21 +98,21 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		// this resource instance. They will be attached to the appropriate
 		// resource instance node when it is created below.
 		var updateActions, createActions []*plans.ActionInvocationInstanceSrc
-		var updateActionNodes, createActionNodes []GraphNodeActionInstance
+		var updateActionNodes, createActionNodes []GraphNodeConfigAction
 		actions := changes.GetActionsByResourceInstance(addr)
 		for _, a := range actions {
 			if a.ActionTrigger.TriggerEvent().IsCreate() {
 				createActions = append(createActions, a)
-				if can, ok := actionNodes.GetOk(a.Addr); ok {
-					createActionNodes = append(createActionNodes, can)
+				if can, ok := actionNodes.GetOk(a.Addr.ConfigAction()); ok {
+					createActionNodes = append(createActionNodes, can...)
 				} else {
 					panic("oh")
 				}
 			}
 			if a.ActionTrigger.TriggerEvent().IsUpdate() {
 				updateActions = append(updateActions, a)
-				if uan, ok := actionNodes.GetOk(a.Addr); ok {
-					createActionNodes = append(createActionNodes, uan)
+				if uan, ok := actionNodes.GetOk(a.Addr.ConfigAction()); ok {
+					createActionNodes = append(createActionNodes, uan...)
 				} else {
 					panic("i have no idea what i'm doing")
 				}
@@ -147,6 +143,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			forget = true
 		case plans.Create:
 			create = true // to determine which actions go with this change
+			update = true // create is also an update
 		default:
 			update = true
 		}

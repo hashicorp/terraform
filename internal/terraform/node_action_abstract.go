@@ -86,6 +86,10 @@ func (n *NodeAbstractAction) AttachActionSchema(schema *providers.ActionSchema) 
 	n.Schema = schema
 }
 
+func (n *NodeAbstractAction) ActionSchema() *providers.ActionSchema {
+	return n.Schema
+}
+
 func (n *NodeAbstractAction) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// If the resolvedProvider is set, use that
 	if n.ResolvedProvider.Provider.Type != "" {

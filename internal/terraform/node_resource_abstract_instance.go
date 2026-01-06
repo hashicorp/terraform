@@ -56,8 +56,8 @@ type NodeAbstractResourceInstance struct {
 	// plannedActions are added by the DiffTransformer during an apply walk
 	plannedActions []*plans.ActionInvocationInstanceSrc
 
-	// We use the AbsActionInstanceNodes to apply the action (as that's where the provider is attached)
-	actionInstances addrs.Map[addrs.AbsActionInstance, GraphNodeActionInstance]
+	// We use the ActionInstanceNodes to apply the action (as that's where the provider is attached)
+	actionInstances addrs.Map[addrs.ConfigAction, GraphNodeConfigAction] // ... except these aren't instances
 }
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
@@ -3130,22 +3130,22 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	return reqRep, diags
 }
 
-// // AttachPlannedActionInvocation is used in TransformDiff to attach the planned action, and its representative NodeAbstractActionInstance (or trigger instance)(dunno).
-// func (n *NodeAbstractResourceInstance) AttachPlannedActionInvocations(ais []*plans.ActionInvocationInstanceSrc, ans []GraphNodeActionInstance) {
-// 	// this field is only used during apply, so we can wait to create it.
-// 	if n.plannedActions == nil {
-// 		n.plannedActions = make([]*plans.ActionInvocationInstanceSrc, 0)
-// 	}
-// 	n.plannedActions = append(n.plannedActions, ais...)
+// AttachPlannedActionInvocation is used in TransformDiff to attach the planned action, and its representative NodeAbstractActionInstance (or trigger instance)(dunno).
+func (n *NodeAbstractResourceInstance) AttachPlannedActionInvocations(ais []*plans.ActionInvocationInstanceSrc, ans []GraphNodeConfigAction) {
+	// this field is only used during apply, so we can wait to create it.
+	if n.plannedActions == nil {
+		n.plannedActions = make([]*plans.ActionInvocationInstanceSrc, 0)
+	}
+	n.plannedActions = append(n.plannedActions, ais...)
 
-// 	if n.actionInstances.Len() == 0 {
-// 		n.actionInstances = addrs.MakeMap(addrs.MapElem[addrs.AbsActionInstance, GraphNodeActionInstance]{})
-// 	}
+	if n.actionInstances.Len() == 0 {
+		n.actionInstances = addrs.MakeMap(addrs.MapElem[addrs.ConfigAction, GraphNodeConfigAction]{})
+	}
 
-// 	for _, an := range ans {
-// 		if _, ok := n.actionInstances.GetOk(an.ActionAddr()); ok {
-// 			return
-// 		}
-// 		n.actionInstances.Put(an.ActionAddr(), an)
-// 	}
-// }
+	for _, an := range ans {
+		if _, ok := n.actionInstances.GetOk(an.ActionAddr()); ok {
+			return
+		}
+		n.actionInstances.Put(an.ActionAddr(), an)
+	}
+}
