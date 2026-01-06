@@ -89,20 +89,19 @@ type GraphNodeProviderConsumer interface {
 }
 
 // GraphNodeActionProviderConsumer is an interface that nodes which require
-// providers for planned actions must implement. ProvidedBy must return the
-// addresses of the providers to use, which will be resolved to a configuration
-// either in the same module or in an ancestor module, with the resulting
-// absolute addresses passed to SetProviders.
+// providers for planned actions must implement. Unlike
+// GraphNodeProviderConsumer, this interface is used by nodes during apply only
+// and so the absolute provider is already resolved.
 type GraphNodeActionProviderConsumer interface {
 	GraphNodeModulePath
 
-	// ActionsProvidedBy returns a map of addresses of the provider
-	// configurations the node's planned actions refers to, if available, along
-	// with the address of the action associated with this provider.
-	// We already have exact provider addrs, since these come from the planned action.
+	// ActionsProvidedBy returns a list of addresses of the provider
+	// configurations the node's planned actions refers to.
 	ActionsProvidedBy() []addrs.AbsProviderConfig
 
-	// Add a resolved provider address for this resource's actions.
+	// Add a resolved provider address for this resource's actions. @mildwonkey
+	// NOTE: should this be a map (to avoid duplicates), or should we just let
+	// the transformer remove redundancies?
 	AppendProvider(addrs.AbsProviderConfig)
 }
 
@@ -184,7 +183,9 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			needConfigured[absPc.String()] = absPc
 		}
 
-		// Does the vertex _directly_ use action providers?
+		// Does the vertex use action providers? Note that this interface is
+		// implemented by NodeApplyableResourceInstance and only relevant during
+		// apply.
 		if pv, ok := v.(GraphNodeActionProviderConsumer); ok {
 			providers := pv.ActionsProvidedBy()
 			for _, provider := range providers {
@@ -549,7 +550,7 @@ type ProviderConfigTransformer struct {
 	// each provider node is stored here so that the proxy nodes can look up
 	// their targets by name.
 	providers map[string]GraphNodeProvider
-	// record providers that can be overriden with a proxy
+	// record providers that can be overridden with a proxy
 	proxiable map[string]bool
 
 	// Config is the root node of the configuration tree to add providers from.
