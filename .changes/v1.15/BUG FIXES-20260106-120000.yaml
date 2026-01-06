@@ -1,0 +1,6 @@
+kind: BUG FIXES
+body: 'backend/s3: `AWS_USE_FIPS_ENDPOINT` and `AWS_USE_DUALSTACK_ENDPOINT` environment variables are now properly parsed as booleans, allowing values like "false" to correctly disable FIPS/DualStack endpoints'
+time: 2026-01-06T12:00:00.000000Z
+custom:
+    Issue: "37601"
+

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -1331,14 +1332,16 @@ func boolAttrOk(obj cty.Value, name string) (bool, bool) {
 	}
 }
 
-// boolAttrDefaultEnvVarOk checks for a configured bool argument or a non-empty
-// value in any of the provided environment variables. If any of the environment
-// variables are non-empty, to boolean is considered true.
+// boolAttrDefaultEnvVarOk checks for a configured bool argument or a boolean
+// value in any of the provided environment variables. Environment variable
+// values are parsed using strconv.ParseBool. Invalid values are ignored.
 func boolAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (bool, bool) {
 	if val := obj.GetAttr(name); val.IsNull() {
 		for _, envvar := range envvars {
 			if v := os.Getenv(envvar); v != "" {
-				return true, true
+				if b, err := strconv.ParseBool(v); err == nil {
+					return b, true
+				}
 			}
 		}
 		return false, false

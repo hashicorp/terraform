@@ -3963,3 +3963,85 @@ func objectLockPreCheck(t *testing.T) {
 		t.Skip("s3 backend tests using object lock enabled buckets require setting TF_S3_OBJECT_LOCK_TEST")
 	}
 }
+
+func TestBoolAttrDefaultEnvVarOk(t *testing.T) {
+	cases := map[string]struct {
+		envValue     string
+		expectedBool bool
+		expectedOk   bool
+	}{
+		"true": {
+			envValue:     "true",
+			expectedBool: true,
+			expectedOk:   true,
+		},
+		"TRUE": {
+			envValue:     "TRUE",
+			expectedBool: true,
+			expectedOk:   true,
+		},
+		"True": {
+			envValue:     "True",
+			expectedBool: true,
+			expectedOk:   true,
+		},
+		"1": {
+			envValue:     "1",
+			expectedBool: true,
+			expectedOk:   true,
+		},
+		"false": {
+			envValue:     "false",
+			expectedBool: false,
+			expectedOk:   true,
+		},
+		"FALSE": {
+			envValue:     "FALSE",
+			expectedBool: false,
+			expectedOk:   true,
+		},
+		"False": {
+			envValue:     "False",
+			expectedBool: false,
+			expectedOk:   true,
+		},
+		"0": {
+			envValue:     "0",
+			expectedBool: false,
+			expectedOk:   true,
+		},
+		"invalid value": {
+			envValue:     "invalid",
+			expectedBool: false,
+			expectedOk:   false,
+		},
+		"empty string": {
+			envValue:     "",
+			expectedBool: false,
+			expectedOk:   false,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			servicemocks.StashEnv(t)
+
+			if tc.envValue != "" {
+				os.Setenv("TEST_BOOL_ENV_VAR", tc.envValue)
+			}
+
+			obj := cty.ObjectVal(map[string]cty.Value{
+				"test_bool": cty.NullVal(cty.Bool),
+			})
+
+			gotBool, gotOk := boolAttrDefaultEnvVarOk(obj, "test_bool", "TEST_BOOL_ENV_VAR")
+
+			if gotBool != tc.expectedBool {
+				t.Errorf("expected bool %v, got %v", tc.expectedBool, gotBool)
+			}
+			if gotOk != tc.expectedOk {
+				t.Errorf("expected ok %v, got %v", tc.expectedOk, gotOk)
+			}
+		})
+	}
+}
