@@ -136,51 +136,50 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			providerAddr, exact := pv.ProvidedBy()
 			if providerAddr == nil && exact {
-				// no provider is required
-				continue
-			}
+				// this node does not require a provider
+			} else {
+				requested[v] = make(map[string]ProviderRequest)
 
-			requested[v] = make(map[string]ProviderRequest)
+				var absPc addrs.AbsProviderConfig
 
-			var absPc addrs.AbsProviderConfig
+				switch p := providerAddr.(type) {
+				case addrs.AbsProviderConfig:
+					// ProvidedBy() returns an AbsProviderConfig when the provider
+					// configuration is set in state, so we do not need to verify
+					// the FQN matches.
+					absPc = p
 
-			switch p := providerAddr.(type) {
-			case addrs.AbsProviderConfig:
-				// ProvidedBy() returns an AbsProviderConfig when the provider
-				// configuration is set in state, so we do not need to verify
-				// the FQN matches.
-				absPc = p
+					if exact {
+						log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), absPc)
+					}
 
-				if exact {
-					log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), absPc)
-				}
+				case addrs.LocalProviderConfig:
+					// ProvidedBy() return a LocalProviderConfig when the resource
+					// contains a `provider` attribute
+					absPc.Provider = pv.Provider()
+					modPath := pv.ModulePath()
+					if t.Config == nil {
+						absPc.Module = modPath
+						absPc.Alias = p.Alias
+						break
+					}
 
-			case addrs.LocalProviderConfig:
-				// ProvidedBy() return a LocalProviderConfig when the resource
-				// contains a `provider` attribute
-				absPc.Provider = pv.Provider()
-				modPath := pv.ModulePath()
-				if t.Config == nil {
 					absPc.Module = modPath
 					absPc.Alias = p.Alias
-					break
+
+				default:
+					// This should never happen; the case statements are meant to be exhaustive
+					panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), absPc))
 				}
 
-				absPc.Module = modPath
-				absPc.Alias = p.Alias
+				requested[v][absPc.String()] = ProviderRequest{
+					Addr:  absPc,
+					Exact: exact,
+				}
 
-			default:
-				// This should never happen; the case statements are meant to be exhaustive
-				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), absPc))
+				// Direct references need the provider configured as well as initialized
+				needConfigured[absPc.String()] = absPc
 			}
-
-			requested[v][absPc.String()] = ProviderRequest{
-				Addr:  absPc,
-				Exact: exact,
-			}
-
-			// Direct references need the provider configured as well as initialized
-			needConfigured[absPc.String()] = absPc
 		}
 
 		// Does the vertex use action providers? Note that this interface is
@@ -322,22 +321,20 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		if pc, ok := v.(GraphNodeProviderConsumer); ok {
 			p, exact := pc.ProvidedBy()
 			if p == nil && exact {
-				// this node does not require a provider
-				continue
-			}
+				// do nothing
+			} else {
+				provider, ok := p.(addrs.AbsProviderConfig)
+				if !ok {
+					return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
+				}
 
-			provider, ok := p.(addrs.AbsProviderConfig)
-			if !ok {
-				return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
+				closer, ok := cpm[provider.String()]
+				if !ok {
+					return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
+				}
+				g.Connect(dag.BasicEdge(closer, v))
 			}
-
-			closer, ok := cpm[provider.String()]
-			if !ok {
-				return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
-			}
-			g.Connect(dag.BasicEdge(closer, v))
 		}
-
 		if apc, ok := v.(GraphNodeActionProviderConsumer); ok {
 			ps := apc.ActionsProvidedBy()
 			for _, provider := range ps {
@@ -345,7 +342,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 				if !ok {
 					return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
 				}
-				g.Connect(dag.BasicEdge(closer, apc))
+				g.Connect(dag.BasicEdge(closer, v))
 			}
 		}
 	}
