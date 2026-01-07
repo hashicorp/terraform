@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'backend/s3: Fixed incorrect parsing of `AWS_USE_FIPS_ENDPOINT` and `AWS_USE_DUALSTACK_ENDPOINT` environment variables where any non-empty value incorrectly enabled the feature instead of properly parsing boolean values'
-time: 2025-11-25T13:30:00.000000Z
-custom:
-    Issue: "37601"

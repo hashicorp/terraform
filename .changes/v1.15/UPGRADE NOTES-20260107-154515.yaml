@@ -1,0 +1,5 @@
+kind: UPGRADE NOTES
+body: 'backend/s3: The `AWS_USE_FIPS_ENDPOINT` and `AWS_USE_DUALSTACK_ENDPOINT` environment variables now only respect `true` or `false` values, aligning with the AWS SDK for Go. This replaces the previous behavior which treated any non-empty value as `true`.'
+time: 2026-01-07T15:45:15.958679-05:00
+custom:
+    Issue: "37601"
