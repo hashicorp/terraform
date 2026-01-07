@@ -4399,6 +4399,65 @@ resource "test_object" "b" {
 	}
 }
 
+func TestContext2Plan_triggeredByInvalidAttribute(t *testing.T) {
+	// This test verifies that referencing a non-existent attribute in
+	// replace_triggered_by produces an error.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "new"
+}
+resource "test_object" "b" {
+  test_string = "value"
+  lifecycle {
+    replace_triggered_by = [ test_object.a.nonexistent_attribute ]
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"old"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.b"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected errors for invalid attribute reference in replace_triggered_by")
+	}
+
+	// Check that the error message is about the invalid attribute reference.
+	// StaticValidateTraversal returns "Unsupported attribute" errors.
+	errMsg := diags.Err().Error()
+	if !strings.Contains(errMsg, "Unsupported attribute") && !strings.Contains(errMsg, "nonexistent_attribute") {
+		t.Fatalf("unexpected error message: %s", errMsg)
+	}
+}
+
 func TestContext2Plan_dataSchemaChange(t *testing.T) {
 	// We can't decode the prior state when a data source upgrades the schema
 	// in an incompatible way. Since prior state for data sources is purely

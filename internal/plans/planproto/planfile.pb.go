@@ -900,6 +900,7 @@ type Provider struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	Config        *DynamicValue          `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -946,6 +947,13 @@ func (x *Provider) GetVersion() string {
 		return x.Version
 	}
 	return ""
+}
+
+func (x *Provider) GetConfig() *DynamicValue {
+	if x != nil {
+		return x.Config
+	}
+	return nil
 }
 
 // Change represents a change made to some object, transforming it from an old
@@ -2265,10 +2273,11 @@ const file_planfile_proto_rawDesc = "" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12,\n" +
 	"\x06config\x18\x02 \x01(\v2\x14.tfplan.DynamicValueR\x06config\x12\x1c\n" +
 	"\tworkspace\x18\x03 \x01(\tR\tworkspace\x12,\n" +
-	"\bprovider\x18\x04 \x01(\v2\x10.tfplan.ProviderR\bprovider\"<\n" +
+	"\bprovider\x18\x04 \x01(\v2\x10.tfplan.ProviderR\bprovider\"j\n" +
 	"\bProvider\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion\"\xbc\x03\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x12,\n" +
+	"\x06config\x18\x03 \x01(\v2\x14.tfplan.DynamicValueR\x06config\"\xbc\x03\n" +
 	"\x06Change\x12&\n" +
 	"\x06action\x18\x01 \x01(\x0e2\x0e.tfplan.ActionR\x06action\x12,\n" +
 	"\x06values\x18\x02 \x03(\v2\x14.tfplan.DynamicValueR\x06values\x12B\n" +
@@ -2476,42 +2485,43 @@ var file_planfile_proto_depIdxs = []int32{
 	18, // 13: tfplan.Backend.config:type_name -> tfplan.DynamicValue
 	18, // 14: tfplan.StateStore.config:type_name -> tfplan.DynamicValue
 	10, // 15: tfplan.StateStore.provider:type_name -> tfplan.Provider
-	1,  // 16: tfplan.Change.action:type_name -> tfplan.Action
-	18, // 17: tfplan.Change.values:type_name -> tfplan.DynamicValue
-	19, // 18: tfplan.Change.before_sensitive_paths:type_name -> tfplan.Path
-	19, // 19: tfplan.Change.after_sensitive_paths:type_name -> tfplan.Path
-	20, // 20: tfplan.Change.importing:type_name -> tfplan.Importing
-	18, // 21: tfplan.Change.before_identity:type_name -> tfplan.DynamicValue
-	18, // 22: tfplan.Change.after_identity:type_name -> tfplan.DynamicValue
-	11, // 23: tfplan.ResourceInstanceChange.change:type_name -> tfplan.Change
-	19, // 24: tfplan.ResourceInstanceChange.required_replace:type_name -> tfplan.Path
-	2,  // 25: tfplan.ResourceInstanceChange.action_reason:type_name -> tfplan.ResourceInstanceActionReason
-	21, // 26: tfplan.DeferredResourceInstanceChange.deferred:type_name -> tfplan.Deferred
-	12, // 27: tfplan.DeferredResourceInstanceChange.change:type_name -> tfplan.ResourceInstanceChange
-	21, // 28: tfplan.DeferredActionInvocation.deferred:type_name -> tfplan.Deferred
-	22, // 29: tfplan.DeferredActionInvocation.action_invocation:type_name -> tfplan.ActionInvocationInstance
-	11, // 30: tfplan.OutputChange.change:type_name -> tfplan.Change
-	6,  // 31: tfplan.CheckResults.kind:type_name -> tfplan.CheckResults.ObjectKind
-	5,  // 32: tfplan.CheckResults.status:type_name -> tfplan.CheckResults.Status
-	28, // 33: tfplan.CheckResults.objects:type_name -> tfplan.CheckResults.ObjectResult
-	29, // 34: tfplan.Path.steps:type_name -> tfplan.Path.Step
-	18, // 35: tfplan.Importing.identity:type_name -> tfplan.DynamicValue
-	3,  // 36: tfplan.Deferred.reason:type_name -> tfplan.DeferredReason
-	18, // 37: tfplan.ActionInvocationInstance.config_value:type_name -> tfplan.DynamicValue
-	19, // 38: tfplan.ActionInvocationInstance.sensitive_config_paths:type_name -> tfplan.Path
-	23, // 39: tfplan.ActionInvocationInstance.lifecycle_action_trigger:type_name -> tfplan.LifecycleActionTrigger
-	24, // 40: tfplan.ActionInvocationInstance.invoke_action_trigger:type_name -> tfplan.InvokeActionTrigger
-	4,  // 41: tfplan.LifecycleActionTrigger.trigger_event:type_name -> tfplan.ActionTriggerEvent
-	11, // 42: tfplan.ResourceInstanceActionChange.change:type_name -> tfplan.Change
-	18, // 43: tfplan.Plan.VariablesEntry.value:type_name -> tfplan.DynamicValue
-	19, // 44: tfplan.Plan.resource_attr.attr:type_name -> tfplan.Path
-	5,  // 45: tfplan.CheckResults.ObjectResult.status:type_name -> tfplan.CheckResults.Status
-	18, // 46: tfplan.Path.Step.element_key:type_name -> tfplan.DynamicValue
-	47, // [47:47] is the sub-list for method output_type
-	47, // [47:47] is the sub-list for method input_type
-	47, // [47:47] is the sub-list for extension type_name
-	47, // [47:47] is the sub-list for extension extendee
-	0,  // [0:47] is the sub-list for field type_name
+	18, // 16: tfplan.Provider.config:type_name -> tfplan.DynamicValue
+	1,  // 17: tfplan.Change.action:type_name -> tfplan.Action
+	18, // 18: tfplan.Change.values:type_name -> tfplan.DynamicValue
+	19, // 19: tfplan.Change.before_sensitive_paths:type_name -> tfplan.Path
+	19, // 20: tfplan.Change.after_sensitive_paths:type_name -> tfplan.Path
+	20, // 21: tfplan.Change.importing:type_name -> tfplan.Importing
+	18, // 22: tfplan.Change.before_identity:type_name -> tfplan.DynamicValue
+	18, // 23: tfplan.Change.after_identity:type_name -> tfplan.DynamicValue
+	11, // 24: tfplan.ResourceInstanceChange.change:type_name -> tfplan.Change
+	19, // 25: tfplan.ResourceInstanceChange.required_replace:type_name -> tfplan.Path
+	2,  // 26: tfplan.ResourceInstanceChange.action_reason:type_name -> tfplan.ResourceInstanceActionReason
+	21, // 27: tfplan.DeferredResourceInstanceChange.deferred:type_name -> tfplan.Deferred
+	12, // 28: tfplan.DeferredResourceInstanceChange.change:type_name -> tfplan.ResourceInstanceChange
+	21, // 29: tfplan.DeferredActionInvocation.deferred:type_name -> tfplan.Deferred
+	22, // 30: tfplan.DeferredActionInvocation.action_invocation:type_name -> tfplan.ActionInvocationInstance
+	11, // 31: tfplan.OutputChange.change:type_name -> tfplan.Change
+	6,  // 32: tfplan.CheckResults.kind:type_name -> tfplan.CheckResults.ObjectKind
+	5,  // 33: tfplan.CheckResults.status:type_name -> tfplan.CheckResults.Status
+	28, // 34: tfplan.CheckResults.objects:type_name -> tfplan.CheckResults.ObjectResult
+	29, // 35: tfplan.Path.steps:type_name -> tfplan.Path.Step
+	18, // 36: tfplan.Importing.identity:type_name -> tfplan.DynamicValue
+	3,  // 37: tfplan.Deferred.reason:type_name -> tfplan.DeferredReason
+	18, // 38: tfplan.ActionInvocationInstance.config_value:type_name -> tfplan.DynamicValue
+	19, // 39: tfplan.ActionInvocationInstance.sensitive_config_paths:type_name -> tfplan.Path
+	23, // 40: tfplan.ActionInvocationInstance.lifecycle_action_trigger:type_name -> tfplan.LifecycleActionTrigger
+	24, // 41: tfplan.ActionInvocationInstance.invoke_action_trigger:type_name -> tfplan.InvokeActionTrigger
+	4,  // 42: tfplan.LifecycleActionTrigger.trigger_event:type_name -> tfplan.ActionTriggerEvent
+	11, // 43: tfplan.ResourceInstanceActionChange.change:type_name -> tfplan.Change
+	18, // 44: tfplan.Plan.VariablesEntry.value:type_name -> tfplan.DynamicValue
+	19, // 45: tfplan.Plan.resource_attr.attr:type_name -> tfplan.Path
+	5,  // 46: tfplan.CheckResults.ObjectResult.status:type_name -> tfplan.CheckResults.Status
+	18, // 47: tfplan.Path.Step.element_key:type_name -> tfplan.DynamicValue
+	48, // [48:48] is the sub-list for method output_type
+	48, // [48:48] is the sub-list for method input_type
+	48, // [48:48] is the sub-list for extension type_name
+	48, // [48:48] is the sub-list for extension extendee
+	0,  // [0:48] is the sub-list for field type_name
 }
 
 func init() { file_planfile_proto_init() }

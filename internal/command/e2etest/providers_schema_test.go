@@ -269,6 +269,33 @@ func TestProvidersSchema(t *testing.T) {
                         }
                     }
                 }
+            },
+            "state_store_schemas" : {
+                "simple6_fs": {
+                    "version":0,
+                    "block": {
+                        "attributes": {
+                            "workspace_dir": {
+                                "type":"string",
+                                "description":"The directory where state files will be created. When unset the value will default to terraform.tfstate.d","description_kind":"plain","optional":true}
+                            },
+                        "description_kind":"plain"
+                    }
+                },
+                "simple6_inmem": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "lock_id": {
+                                "type": "string",
+                                "description": "initializes the state in a locked configuration",
+                                "description_kind": "plain",
+                                "optional": true
+                            }
+                        },
+                        "description_kind":"plain"
+                    }
+                }
             }
         }
     }

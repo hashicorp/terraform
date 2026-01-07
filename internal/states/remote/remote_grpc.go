@@ -79,6 +79,15 @@ func (g *grpcClient) Get() (*Payload, tfdiags.Diagnostics) {
 //
 // Implementation of remote.Client
 func (g *grpcClient) Put(state []byte) tfdiags.Diagnostics {
+	if len(state) == 0 {
+		var diags tfdiags.Diagnostics
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Refusing to write empty remote state snapshot",
+			"Terraform produced an empty state file and will not upload it to remote storage. This indicates a bug in Terraform; please report it.",
+		))
+	}
+
 	req := providers.WriteStateBytesRequest{
 		TypeName: g.typeName,
 		StateId:  g.stateId,

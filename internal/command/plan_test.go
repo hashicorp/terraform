@@ -22,11 +22,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -447,6 +449,9 @@ func TestPlan_outBackend(t *testing.T) {
 		t.Fatalf("Expected empty plan to be written to plan file, got: %s", spew.Sdump(plan))
 	}
 
+	if plan.Backend == nil {
+		t.Fatal("unexpected nil Backend")
+	}
 	if got, want := plan.Backend.Type, "http"; got != want {
 		t.Errorf("wrong backend type %q; want %q", got, want)
 	}
@@ -466,6 +471,228 @@ func TestPlan_outBackend(t *testing.T) {
 		}
 		if !want.RawEquals(got) {
 			t.Errorf("wrong backend config\ngot:  %#v\nwant: %#v", got, want)
+		}
+	}
+}
+
+// When using "-out" with a backend, the plan should encode the backend config
+// and also the selected workspace, if workspaces are supported by the backend.
+//
+// This test demonstrates that setting the workspace in the backend plan
+// responds to the selected workspace, versus other tests that show the same process
+// when defaulting to the default workspace when there's a lack of information about
+// the selected workspace.
+//
+// To test planning with a non-default workspace we need to use a backend that supports
+// workspaces. In this test the `inmem` backend is used.
+func TestPlan_outBackend_withWorkspace(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-out-backend-workspace"), td)
+	t.Chdir(td)
+
+	// These values are coupled with the test fixture used above.
+	expectedBackendType := "inmem"
+	expectedWorkspace := "custom-workspace"
+
+	outPath := "foo"
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"ami": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-out", outPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Logf("stdout: %s", output.Stdout())
+		t.Fatalf("plan command failed with exit code %d\n\n%s", code, output.Stderr())
+	}
+
+	plan := testReadPlan(t, outPath)
+	if got, want := plan.Backend.Type, expectedBackendType; got != want {
+		t.Errorf("wrong backend type %q; want %q", got, want)
+	}
+	if got, want := plan.Backend.Workspace, expectedWorkspace; got != want {
+		t.Errorf("wrong backend workspace %q; want %q", got, want)
+	}
+}
+
+// When using "-out" with a state store, the plan should encode the state store config
+func TestPlan_outStateStore(t *testing.T) {
+	// Create a temporary working directory with state_store config
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-out-state-store"), td)
+	t.Chdir(td)
+
+	// Make state that resembles the resource defined in the test fixture
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","ami":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(originalState, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+	stateBytes := stateBuf.Bytes()
+
+	// Make a mock provider that:
+	// 1) will return the state defined above.
+	// 2) has a schema for the resource being managed in this test.
+	mock := mockPluggableStateStorageProvider()
+	mock.MockStates = map[string]interface{}{
+		"default": stateBytes,
+	}
+	mock.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
+		"test_instance": {
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"ami": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+	mock.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides:          metaOverridesForProvider(mock),
+			View:                      view,
+		},
+	}
+
+	outPath := "foo"
+	args := []string{
+		"-out", outPath,
+		"-no-color",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Logf("stdout: %s", output.Stdout())
+		t.Fatalf("plan command failed with exit code %d\n\n%s", code, output.Stderr())
+	}
+
+	plan := testReadPlan(t, outPath)
+	if !plan.Changes.Empty() {
+		t.Fatalf("Expected empty plan to be written to plan file, got: %s", spew.Sdump(plan))
+	}
+
+	if plan.Backend != nil {
+		t.Errorf("expected the plan file to not describe a backend, but got %#v", plan.Backend)
+	}
+	if plan.StateStore == nil {
+		t.Errorf("expected the plan file to describe a state store, but it's empty: %#v", plan.StateStore)
+	}
+	if got, want := plan.StateStore.Workspace, "default"; got != want {
+		t.Errorf("wrong workspace %q; want %q", got, want)
+	}
+	{
+		// Comparing the plan's description of the state store
+		// to the backend state file's description of the state store:
+		statePath := ".terraform/terraform.tfstate"
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+		s := sMgr.State() // The plan should resemble this.
+
+		if !plan.StateStore.Provider.Version.Equal(s.StateStore.Provider.Version) {
+			t.Fatalf("wrong provider version, got %q; want %q",
+				plan.StateStore.Provider.Version,
+				s.StateStore.Provider.Version,
+			)
+		}
+		if !plan.StateStore.Provider.Source.Equals(*s.StateStore.Provider.Source) {
+			t.Fatalf("wrong provider source, got %q; want %q",
+				plan.StateStore.Provider.Source,
+				s.StateStore.Provider.Source,
+			)
+		}
+
+		// Is the provider config data correct?
+		providerSchema := mock.GetProviderSchemaResponse.Provider
+		providerTy := providerSchema.Body.ImpliedType()
+		pGot, err := plan.StateStore.Provider.Config.Decode(providerTy)
+		if err != nil {
+			t.Fatalf("failed to decode provider config in plan: %s", err)
+		}
+		pWant, err := s.StateStore.Provider.Config(providerSchema.Body)
+		if err != nil {
+			t.Fatalf("failed to decode cached provider config: %s", err)
+		}
+		if !pWant.RawEquals(pGot) {
+			t.Errorf("wrong provider config\ngot:  %#v\nwant: %#v", pGot, pWant)
+		}
+
+		// Is the store config data correct?
+		storeSchema := mock.GetProviderSchemaResponse.StateStores["test_store"]
+		ty := storeSchema.Body.ImpliedType()
+		sGot, err := plan.StateStore.Config.Decode(ty)
+		if err != nil {
+			t.Fatalf("failed to decode state store config in plan: %s", err)
+		}
+
+		sWant, err := s.StateStore.Config(storeSchema.Body)
+		if err != nil {
+			t.Fatalf("failed to decode cached state store config: %s", err)
+		}
+		if !sWant.RawEquals(sGot) {
+			t.Errorf("wrong state store config\ngot:  %#v\nwant: %#v", sGot, sWant)
 		}
 	}
 }

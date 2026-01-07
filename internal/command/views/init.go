@@ -263,6 +263,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
 		JSONValue:  "Successfully unset the state store %q. Terraform will now operate locally.",
 	},
+	"state_store_migrate_backend": {
+		HumanValue: "Migrating from %q state store to %q backend.",
+		JSONValue:  "Migrating from %q state store to %q backend.",
+	},
 	"backend_configured_success": {
 		HumanValue: backendConfiguredSuccessHuman,
 		JSONValue:  backendConfiguredSuccessJSON,

@@ -74,8 +74,8 @@ type Plan struct {
 	ActionTargetAddrs         []addrs.Targetable
 	ForceReplaceAddrs         []addrs.AbsResourceInstance
 
-	Backend    Backend
-	StateStore StateStore
+	Backend    *Backend
+	StateStore *StateStore
 
 	// Complete is true if Terraform considers this to be a "complete" plan,
 	// which is to say that it includes a planned action (even if no-op)
@@ -181,9 +181,30 @@ func (p *Plan) ProviderAddrs() []addrs.AbsProviderConfig {
 	}
 
 	m := map[string]addrs.AbsProviderConfig{}
+
+	// Get all provider requirements from resources.
 	for _, rc := range p.Changes.Resources {
 		m[rc.ProviderAddr.String()] = rc.ProviderAddr
 	}
+
+	// Get the provider required for pluggable state storage, if that's in use.
+	//
+	// This check should be redundant as:
+	// 1) Any provider used for state storage would be in required_providers, which is checked separately elsewhere.
+	// 2) An apply operation that uses the planfile only checks the providers needed for the plan _after_ the operations backend
+	//    for the operation is set up, and that process will detect if the provider needed for state storage is missing.
+	//
+	// However, for completeness when describing the providers needed by a plan, it is included here.
+	if p.StateStore != nil {
+		address := addrs.AbsProviderConfig{
+			Module:   addrs.RootModule, // A state_store block is only ever in the root module
+			Provider: *p.StateStore.Provider.Source,
+			// Alias: aliases are not permitted when using a provider for PSS.
+		}
+
+		m[p.StateStore.Provider.Source.String()] = address
+	}
+
 	if len(m) == 0 {
 		return nil
 	}

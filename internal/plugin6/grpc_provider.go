@@ -945,9 +945,15 @@ func (p *GRPCProvider) GenerateResourceConfig(r providers.GenerateResourceConfig
 		return resp
 	}
 
+	mp, err := msgpack.Marshal(r.State, resSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
 	protoReq := &proto6.GenerateResourceConfig_Request{
 		TypeName: r.TypeName,
-		State:    nil,
+		State:    &proto6.DynamicValue{Msgpack: mp},
 	}
 
 	protoResp, err := p.client.GenerateResourceConfig(p.ctx, protoReq)
@@ -1520,6 +1526,11 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 	logger.Trace("GRPCProvider.v6: ConfigureStateStore: received server capabilities", resp.Capabilities)
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	// Note: validation of chunk size will happen in the calling code, and if the data is valid
+	// (p *GRPCProvider) SetStateStoreChunkSize should be used to make the value accessible in
+	// the instance of GRPCProvider.
+
 	return resp
 }
 
