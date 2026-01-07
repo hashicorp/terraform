@@ -429,7 +429,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.HookResourceIdentity(), deposedKey, currentState.Value, nullVal)
+		return h.PreDiff(n.HookResourceIdentity(), deposedKey, currentState.Value, nullVal, nil)
 	}))
 	if diags.HasErrors() {
 		return plan, deferred, diags
@@ -501,7 +501,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal)
+		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal, nil)
 	}))
 	if diags.HasErrors() {
 		return plan, deferred, diags
@@ -948,7 +948,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, priorVal, proposedNewVal)
+		return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, priorVal, proposedNewVal, nil)
 	}))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1303,7 +1303,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, priorVal, plannedNewVal)
+		return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, priorVal, plannedNewVal, nil)
 	}))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1945,7 +1945,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		}
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal)
+			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, nil)
 		}))
 
 		return plannedChange, plannedNewState, deferred, keyData, diags

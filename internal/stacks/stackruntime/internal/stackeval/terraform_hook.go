@@ -56,20 +56,28 @@ func (h *componentInstanceTerraformHook) resourceInstanceObjectAddr(riAddr addrs
 	}
 }
 
-func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (terraform.HookAction, error) {
+	status := hooks.ResourceInstancePlanning
+	if err != nil {
+		status = hooks.ResourceInstanceErrored
+	}
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
 		ProviderAddr: id.ProviderAddr,
-		Status:       hooks.ResourceInstancePlanning,
+		Status:       status,
 	})
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (terraform.HookAction, error) {
+	status := hooks.ResourceInstancePlanned
+	if err != nil {
+		status = hooks.ResourceInstanceErrored
+	}
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
 		ProviderAddr: id.ProviderAddr,
-		Status:       hooks.ResourceInstancePlanned,
+		Status:       status,
 	})
 	return terraform.HookActionContinue, nil
 }
