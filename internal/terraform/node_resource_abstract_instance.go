@@ -1213,6 +1213,9 @@ func (n *NodeAbstractResourceInstance) plan(
 		// append these new diagnostics if there's at least one error inside.
 		if resp.Diagnostics.HasErrors() {
 			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
+			}))
 			return nil, nil, deferred, keyData, diags
 		}
 
@@ -1239,6 +1242,9 @@ func (n *NodeAbstractResourceInstance) plan(
 			))
 		}
 		if diags.HasErrors() {
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
+			}))
 			return nil, nil, deferred, keyData, diags
 		}
 
@@ -1257,6 +1263,9 @@ func (n *NodeAbstractResourceInstance) plan(
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
+			}))
 			return nil, nil, deferred, keyData, diags
 		}
 	}
