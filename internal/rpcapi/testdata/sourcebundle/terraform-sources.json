@@ -35,6 +35,11 @@
       "source": "git::https://example.com/invalid.git",
       "local": "invalid",
       "meta": {}
+    },
+    {
+      "source": "git::https://example.com/simple.git",
+      "local": "simple",
+      "meta": {}
     }
   ]
 }
