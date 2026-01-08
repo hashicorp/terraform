@@ -490,6 +490,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 
 func TestStackChangeProgress(t *testing.T) {
 	tcs := map[string]struct {
+		mode        stacks.PlanMode
 		source      string
 		store       *stacks_testing_provider.ResourceStore
 		state       []stackstate.AppliedChange
@@ -498,6 +499,7 @@ func TestStackChangeProgress(t *testing.T) {
 		diagnostics []*terraform1.Diagnostic
 	}{
 		"deferred_changes": {
+			mode:   stacks.PlanMode_NORMAL,
 			source: "git::https://example.com/bar.git",
 			want: []*stacks.StackChangeProgress{
 				{
@@ -567,6 +569,7 @@ func TestStackChangeProgress(t *testing.T) {
 			},
 		},
 		"moved": {
+			mode:   stacks.PlanMode_NORMAL,
 			source: "git::https://example.com/moved.git",
 			store: stacks_testing_provider.NewResourceStoreBuilder().
 				AddResource("before", cty.ObjectVal(map[string]cty.Value{
@@ -628,6 +631,7 @@ func TestStackChangeProgress(t *testing.T) {
 			},
 		},
 		"import": {
+			mode:   stacks.PlanMode_NORMAL,
 			source: "git::https://example.com/import.git",
 			store: stacks_testing_provider.NewResourceStoreBuilder().
 				AddResource("self", cty.ObjectVal(map[string]cty.Value{
@@ -749,6 +753,7 @@ func TestStackChangeProgress(t *testing.T) {
 			},
 		},
 		"removed": {
+			mode:   stacks.PlanMode_NORMAL,
 			source: "git::https://example.com/removed.git",
 			store: stacks_testing_provider.NewResourceStoreBuilder().
 				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
@@ -811,6 +816,7 @@ func TestStackChangeProgress(t *testing.T) {
 			},
 		},
 		"invalid - update": {
+			mode:   stacks.PlanMode_NORMAL,
 			source: "git::https://example.com/invalid.git",
 			store: stacks_testing_provider.NewResourceStoreBuilder().
 				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
@@ -875,6 +881,7 @@ func TestStackChangeProgress(t *testing.T) {
 			},
 		},
 		"invalid - create": {
+			mode:   stacks.PlanMode_NORMAL,
 			source: "git::https://example.com/invalid.git",
 			store: stacks_testing_provider.NewResourceStoreBuilder().
 				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
@@ -920,12 +927,67 @@ func TestStackChangeProgress(t *testing.T) {
 				},
 			},
 		},
+		"destroy plan": {
+			mode:   stacks.PlanMode_DESTROY,
+			source: "git::https://example.com/simple.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ResourceInstancePlannedChange_{
+						ResourceInstancePlannedChange: &stacks.StackChangeProgress_ResourceInstancePlannedChange{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_resource.resource",
+							},
+							Actions: []stacks.ChangeType{
+								stacks.ChangeType_DELETE,
+							},
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
+						ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Total:  1,
+							Remove: 1,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
-
 			handles := newHandleTable()
 			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
@@ -971,7 +1033,7 @@ func TestStackChangeProgress(t *testing.T) {
 			})
 
 			resp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
-				PlanMode:          stacks.PlanMode_NORMAL,
+				PlanMode:          tc.mode,
 				StackConfigHandle: open.StackConfigHandle,
 				PreviousState:     appliedChangeToRawState(t, tc.state),
 				InputValues: func() map[string]*stacks.DynamicValueWithSource {
