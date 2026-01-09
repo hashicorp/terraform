@@ -983,6 +983,70 @@ func TestStackChangeProgress(t *testing.T) {
 				},
 			},
 		},
+		"no-op plan": {
+			mode:   stacks.PlanMode_NORMAL,
+			source: "git::https://example.com/simple.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_PLANNED,
+						},
+					},
+				},
+			},
+		},
+		"empty plan": {
+			mode:   stacks.PlanMode_NORMAL,
+			source: "git::https://example.com/empty.git",
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_PLANNED,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {
