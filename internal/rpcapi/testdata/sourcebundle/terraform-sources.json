@@ -40,6 +40,11 @@
       "source": "git::https://example.com/simple.git",
       "local": "simple",
       "meta": {}
+    },
+    {
+      "source": "git::https://example.com/empty.git",
+      "local": "empty",
+      "meta": {}
     }
   ]
 }
