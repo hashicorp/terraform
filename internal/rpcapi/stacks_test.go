@@ -1278,6 +1278,29 @@ func TestStackChangeProgressDuringApply(t *testing.T) {
 				},
 			},
 		},
+		"empty": {
+			mode:   stacks.PlanMode_NORMAL,
+			source: "git::https://example.com/empty.git",
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_APPLIED,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {
