@@ -488,7 +488,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	}
 }
 
-func TestStackChangeProgress(t *testing.T) {
+func TestStackChangeProgressDuringPlan(t *testing.T) {
 	tcs := map[string]struct {
 		mode        stacks.PlanMode
 		source      string
@@ -1210,6 +1210,294 @@ func TestStackChangeProgress(t *testing.T) {
 	}
 }
 
+func TestStackChangeProgressDuringApply(t *testing.T) {
+	tcs := map[string]struct {
+		mode        stacks.PlanMode
+		source      string
+		store       *stacks_testing_provider.ResourceStore
+		state       []stackstate.AppliedChange
+		inputs      map[string]cty.Value
+		want        []*stacks.StackChangeProgress
+		diagnostics []*terraform1.Diagnostic
+	}{
+		"simple": {
+			mode:   stacks.PlanMode_NORMAL,
+			source: "git::https://example.com/simple.git",
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_APPLIED,
+						},
+					},
+				},
+			},
+		},
+		"no-op": {
+			mode:   stacks.PlanMode_NORMAL,
+			source: "git::https://example.com/simple.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_APPLIED,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			handles := newHandleTable()
+			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+			// For this test, we do actually want to use a "real" provider. We'll
+			// use the providerCacheOverride to side-load the testing provider.
+			stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, tc.store), nil
+			}
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+			stacksServer.providerDependencyLockOverride = lock
+
+			sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+			if err != nil {
+				t.Fatal(err)
+			}
+			hnd := handles.NewSourceBundle(sb)
+
+			client, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+				stacks.RegisterStacksServer(srv, stacksServer)
+			})
+			defer close()
+
+			stacksClient := stacks.NewStacksClient(client)
+
+			open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+				SourceBundleHandle: hnd.ForProtobuf(),
+				SourceAddress: &terraform1.SourceAddress{
+					Source: tc.source,
+				},
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+				StackConfigHandle: open.StackConfigHandle,
+			})
+
+			planResp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+				PlanMode:          tc.mode,
+				StackConfigHandle: open.StackConfigHandle,
+				PreviousState:     appliedChangeToRawState(t, tc.state),
+				InputValues: func() map[string]*stacks.DynamicValueWithSource {
+					values := make(map[string]*stacks.DynamicValueWithSource)
+					for name, value := range tc.inputs {
+						values[name] = &stacks.DynamicValueWithSource{
+							Value: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, value, value.Type()),
+							},
+							SourceRange: &terraform1.SourceRange{
+								Start: &terraform1.SourcePos{},
+								End:   &terraform1.SourcePos{},
+							},
+						}
+					}
+					return values
+				}(),
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			planEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+				var events []*stacks.PlanStackChanges_Event
+				for {
+					event, err := planResp.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatalf("unexpected error: %s", err)
+					}
+					events = append(events, event)
+				}
+				return events
+			}())
+
+			planStream, err := stacksClient.OpenPlan(ctx)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			for _, v := range planEvents.PlannedChanges {
+				for _, r := range v.GetPlannedChange().Raw {
+					planStream.Send(&stacks.OpenStackPlan_RequestItem{
+						Raw: r,
+					})
+				}
+			}
+
+			planResult, err := planStream.CloseAndRecv()
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			applyResp, err := stacksClient.ApplyStackChanges(ctx, &stacks.ApplyStackChanges_Request{
+				StackConfigHandle: open.StackConfigHandle,
+				PlanHandle:        planResult.PlanHandle,
+				InputValues: func() map[string]*stacks.DynamicValueWithSource {
+					values := make(map[string]*stacks.DynamicValueWithSource)
+					for name, value := range tc.inputs {
+						values[name] = &stacks.DynamicValueWithSource{
+							Value: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, value, value.Type()),
+							},
+							SourceRange: &terraform1.SourceRange{
+								Start: &terraform1.SourcePos{},
+								End:   &terraform1.SourcePos{},
+							},
+						}
+					}
+					return values
+				}(),
+			})
+
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			wantEvents := splitApplyStackOperationEvents(func() []*stacks.ApplyStackChanges_Event {
+				events := make([]*stacks.ApplyStackChanges_Event, 0, len(tc.want))
+				for _, want := range tc.want {
+					events = append(events, &stacks.ApplyStackChanges_Event{
+						Event: &stacks.ApplyStackChanges_Event_Progress{
+							Progress: want,
+						},
+					})
+				}
+				return events
+			}())
+
+			gotApplyEvents := splitApplyStackOperationEvents(func() []*stacks.ApplyStackChanges_Event {
+				var events []*stacks.ApplyStackChanges_Event
+				for {
+					event, err := applyResp.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatalf("unexpected error: %s", err)
+					}
+					events = append(events, event)
+				}
+				return events
+			}())
+
+			// First, validate the diagnostics. Most of the tests are either
+			// expecting a specific single diagnostic so we do actually check
+			// everything.
+
+			diagIx := 0
+			for ; diagIx < len(tc.diagnostics); diagIx++ {
+				if diagIx >= len(gotApplyEvents.Diagnostics) {
+					// Then we have more expected diagnostics than we got.
+					t.Errorf("missing expected diagnostic: %v", tc.diagnostics[diagIx])
+					continue
+				}
+				diag := gotApplyEvents.Diagnostics[diagIx].Event.(*stacks.ApplyStackChanges_Event_Diagnostic).Diagnostic
+				if diff := cmp.Diff(tc.diagnostics[diagIx], diag, protocmp.Transform()); diff != "" {
+					// Then we have a diagnostic that doesn't match what we
+					// expected.
+					t.Errorf("wrong diagnostic\n%s", diff)
+				}
+			}
+			for ; diagIx < len(gotApplyEvents.Diagnostics); diagIx++ {
+				// Then we have more diagnostics than we expected.
+				t.Errorf("unexpected diagnostic: %v", gotApplyEvents.Diagnostics[diagIx])
+			}
+
+			// Now we're going to manually verify the existence of some key events.
+			// We're not looking for every event because (a) the exact ordering of
+			// events is not guaranteed and (b) we don't want to start failing every
+			// time a new event is added.
+
+		WantPlannedChange:
+			for _, want := range wantEvents.AppliedChanges {
+				for _, got := range gotApplyEvents.AppliedChanges {
+					if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
+						continue WantPlannedChange
+					}
+				}
+				t.Errorf("missing expected planned change: %v", want)
+			}
+
+		WantMiscHook:
+			for _, want := range wantEvents.MiscHooks {
+				for _, got := range gotApplyEvents.MiscHooks {
+					if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
+						continue WantMiscHook
+					}
+				}
+				t.Errorf("missing expected event: %v", want)
+			}
+
+			if t.Failed() {
+				// if the test failed, let's print out all the events we got to help
+				// with debugging.
+				for _, evt := range gotApplyEvents.MiscHooks {
+					t.Logf("        returned event: %s", evt.String())
+				}
+
+				for _, evt := range gotApplyEvents.AppliedChanges {
+					t.Logf("        returned event: %s", evt.String())
+				}
+			}
+		})
+	}
+}
+
 func TestStacksOpenTerraformState_ConfigPath(t *testing.T) {
 	ctx := context.Background()
 
@@ -1515,6 +1803,30 @@ func splitStackOperationEvents(all []*stacks.PlanStackChanges_Event) stackOperat
 		case *stacks.PlanStackChanges_Event_PlannedChange:
 			ret.PlannedChanges = append(ret.PlannedChanges, evt)
 		case *stacks.PlanStackChanges_Event_Diagnostic:
+			ret.Diagnostics = append(ret.Diagnostics, evt)
+		default:
+			ret.MiscHooks = append(ret.MiscHooks, evt)
+		}
+	}
+	return ret
+}
+
+type stacksApplyOperationEventStreams struct {
+	AppliedChanges []*stacks.ApplyStackChanges_Event
+	Diagnostics    []*stacks.ApplyStackChanges_Event
+
+	// MiscHooks is the "everything else" category where the detailed begin/end
+	// events for individual Terraform Core operations appear.
+	MiscHooks []*stacks.ApplyStackChanges_Event
+}
+
+func splitApplyStackOperationEvents(all []*stacks.ApplyStackChanges_Event) stacksApplyOperationEventStreams {
+	ret := stacksApplyOperationEventStreams{}
+	for _, evt := range all {
+		switch evt.Event.(type) {
+		case *stacks.ApplyStackChanges_Event_AppliedChange:
+			ret.AppliedChanges = append(ret.AppliedChanges, evt)
+		case *stacks.ApplyStackChanges_Event_Diagnostic:
 			ret.Diagnostics = append(ret.Diagnostics, evt)
 		default:
 			ret.MiscHooks = append(ret.MiscHooks, evt)
