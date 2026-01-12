@@ -10,7 +10,7 @@ import (
 )
 
 func TestDeprecationMark(t *testing.T) {
-	deprecation := cty.StringVal("OldValue").Mark(NewDeprecation("This is outdated"))
+	deprecation := cty.StringVal("OldValue").Mark(NewDeprecation("This is outdated", nil))
 
 	composite := cty.ObjectVal(map[string]cty.Value{
 		"foo": deprecation,
