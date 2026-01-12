@@ -57,7 +57,7 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 
 		// Basic type-checking of the count argument. More complete validation
 		// of this will happen when we DynamicExpand during the plan walk.
-		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx, n.ModulePath())
+		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx)
 		diags = diags.Append(countDiags)
 
 	case n.Config.ForEach != nil:
@@ -67,7 +67,7 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, n.ModulePath(), false).ValidateActionValue()
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, false).ValidateActionValue()
 		diags = diags.Append(forEachDiags)
 	}
 
