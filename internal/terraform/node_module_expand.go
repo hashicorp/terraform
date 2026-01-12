@@ -131,7 +131,7 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, moduleCtx, n.Addr, allowUnknown)
+			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, moduleCtx, allowUnknown)
 			diags = diags.Append(ctDiags)
 			if diags.HasErrors() {
 				return diags
@@ -144,7 +144,7 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 			}
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, known, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, moduleCtx, module.Module(), allowUnknown)
+			forEach, known, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, moduleCtx, allowUnknown)
 			diags = diags.Append(feDiags)
 			if diags.HasErrors() {
 				return diags
@@ -281,11 +281,11 @@ func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (d
 		// a full expansion, presuming these errors will be caught in later steps
 		switch {
 		case n.ModuleCall.Count != nil:
-			_, countDiags := evaluateCountExpressionValue(n.ModuleCall.Count, moduleCtx, n.ModulePath())
+			_, countDiags := evaluateCountExpressionValue(n.ModuleCall.Count, moduleCtx)
 			diags = diags.Append(countDiags)
 
 		case n.ModuleCall.ForEach != nil:
-			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, moduleCtx, module.Module(), false).ValidateResourceValue()
+			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, moduleCtx, false).ValidateResourceValue()
 			diags = diags.Append(forEachDiags)
 		}
 

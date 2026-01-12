@@ -19,13 +19,13 @@ import (
 // evaluateForEachExpression differs from evaluateForEachExpressionValue by
 // returning an error if the count value is not known, and converting the
 // cty.Value to a map[string]cty.Value for compatibility with other calls.
-func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext, module addrs.Module, allowUnknown bool) (forEach map[string]cty.Value, known bool, diags tfdiags.Diagnostics) {
-	return newForEachEvaluator(expr, ctx, module, allowUnknown).ResourceValue()
+func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext, allowUnknown bool) (forEach map[string]cty.Value, known bool, diags tfdiags.Diagnostics) {
+	return newForEachEvaluator(expr, ctx, allowUnknown).ResourceValue()
 }
 
 // forEachEvaluator is the standard mechanism for interpreting an expression
 // given for a "for_each" argument on a resource, module, or import.
-func newForEachEvaluator(expr hcl.Expression, ctx EvalContext, module addrs.Module, allowUnknown bool) *forEachEvaluator {
+func newForEachEvaluator(expr hcl.Expression, ctx EvalContext, allowUnknown bool) *forEachEvaluator {
 	if ctx == nil {
 		panic("nil EvalContext")
 	}
@@ -33,7 +33,6 @@ func newForEachEvaluator(expr hcl.Expression, ctx EvalContext, module addrs.Modu
 	return &forEachEvaluator{
 		ctx:          ctx,
 		expr:         expr,
-		moduleAddr:   module,
 		allowUnknown: allowUnknown,
 	}
 }
@@ -49,8 +48,6 @@ type forEachEvaluator struct {
 	// function.
 	ctx  EvalContext
 	expr hcl.Expression
-
-	moduleAddr addrs.Module
 
 	// TEMP: If allowUnknown is set then we skip the usual restriction that
 	// unknown values are not allowed in for_each. A caller that sets this
@@ -331,8 +328,7 @@ func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value
 	}
 
 	// We don't care about the returned value here, only the diagnostics
-	module := addrs.RootModule // TODO: FIXME
-	_, deprecationDiags := ev.ctx.Deprecations().Validate(forEachVal, module, ev.expr.Range().Ptr())
+	_, deprecationDiags := ev.ctx.Deprecations().Validate(forEachVal, ev.ctx.Path().Module(), ev.expr.Range().Ptr())
 
 	diags = diags.Append(deprecationDiags)
 

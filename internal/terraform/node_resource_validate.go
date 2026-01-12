@@ -69,15 +69,6 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 		}
 	}
 
-	if n.Schema != nil && n.Schema.Body != nil && n.Schema.Body.Deprecated {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  fmt.Sprintf("Usage of deprecated resource %q", n.Addr.Resource.Type),
-			Detail:   fmt.Sprintf("The resource %q has been marked as deprecated by its provider. Please check the provider documentation for more information.", n.Addr.Resource.Type),
-			Subject:  &n.Config.DeclRange,
-		})
-	}
-
 	return diags
 }
 
@@ -312,7 +303,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		// Basic type-checking of the count argument. More complete validation
 		// of this will happen when we DynamicExpand during the plan walk.
-		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx, n.ModulePath())
+		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx)
 		diags = diags.Append(countDiags)
 
 	case n.Config.ForEach != nil:
@@ -322,7 +313,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, n.ModulePath(), false).ValidateResourceValue()
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, false).ValidateResourceValue()
 		diags = diags.Append(forEachDiags)
 	}
 
@@ -646,7 +637,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				return diags
 			}
 
-			forEachData, _, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, n.ModulePath(), true).ImportValues()
+			forEachData, _, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, true).ImportValues()
 			diags = diags.Append(forEachDiags)
 			if forEachDiags.HasErrors() {
 				return diags

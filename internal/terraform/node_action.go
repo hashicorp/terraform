@@ -115,7 +115,7 @@ func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr add
 
 	switch {
 	case n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, n.ModulePath(), false)
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, false)
 		diags = diags.Append(countDiags)
 		if countDiags.HasErrors() {
 			return diags
@@ -130,7 +130,7 @@ func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr add
 		}
 
 	case n.Config.ForEach != nil:
-		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, n.ModulePath(), false)
+		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, false)
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
 			return diags

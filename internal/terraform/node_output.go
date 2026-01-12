@@ -528,8 +528,9 @@ If you do intend to export this data, annotate the output value as sensitive by 
 				Subject:  n.Config.DeprecatedRange.Ptr(),
 			})
 		}
-	} else {
-		_, deprecationDiags := ctx.Deprecations().Validate(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
+	} else if n.Config.Expr != nil {
+		var deprecationDiags tfdiags.Diagnostics
+		val, deprecationDiags = ctx.Deprecations().Validate(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
 		diags = diags.Append(deprecationDiags)
 	}
 

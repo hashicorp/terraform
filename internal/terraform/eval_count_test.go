@@ -34,7 +34,10 @@ func TestEvaluateCountExpression(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			countVal, diags := evaluateCountExpression(test.Expr, ctx, addrs.RootModule, false)
+			scopedCtx := ctx.withScope(evalContextModuleInstance{
+				Addr: addrs.RootModuleInstance,
+			})
+			countVal, diags := evaluateCountExpression(test.Expr, scopedCtx, false)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -54,7 +57,10 @@ func TestEvaluateCountExpression_ephemeral(t *testing.T) {
 	expr := hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark(marks.Ephemeral))
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	_, diags := evaluateCountExpression(expr, ctx, addrs.RootModule, false)
+	scopedCtx := ctx.withScope(evalContextModuleInstance{
+		Addr: addrs.RootModuleInstance,
+	})
+	_, diags := evaluateCountExpression(expr, scopedCtx, false)
 	if !diags.HasErrors() {
 		t.Fatalf("unexpected success; want error")
 	}
@@ -83,7 +89,10 @@ func TestEvaluateCountExpression_allowUnknown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			countVal, diags := evaluateCountExpression(test.Expr, ctx, addrs.RootModule, true)
+			scopedCtx := ctx.withScope(evalContextModuleInstance{
+				Addr: addrs.RootModuleInstance,
+			})
+			countVal, diags := evaluateCountExpression(test.Expr, scopedCtx, true)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))

@@ -4412,6 +4412,7 @@ module "sink" {
 	}))
 }
 
+// TODO: Shouldn't this one live in https://github.com/hashicorp/terraform/pull/38006
 func TestContext2Validate_deprecated_resource(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
