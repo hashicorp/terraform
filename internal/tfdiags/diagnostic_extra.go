@@ -260,3 +260,50 @@ func DiagnosticCausedByTestFailure(diag Diagnostic) bool {
 	}
 	return maybe.DiagnosticCausedByTestFailure()
 }
+
+// DiagnosticExtraDeprecationOrigin is an interface implemented by values in
+// the Extra field of Diagnostic when the diagnostic is related to a
+// deprecation warning. It provides information about the origin of the
+// deprecation.
+type DiagnosticExtraDeprecationOrigin interface {
+	DeprecationOrigin() *SourceRange
+}
+
+// DiagnosticDeprecationOrigin returns the origin range of a deprecation
+// warning diagnostic, or nil if the diagnostic does not have such information.
+func DiagnosticDeprecationOrigin(diag Diagnostic) *SourceRange {
+	maybe := ExtraInfo[DiagnosticExtraDeprecationOrigin](diag)
+	if maybe == nil {
+		return nil
+	}
+	return maybe.DeprecationOrigin()
+}
+
+type DeprecationOriginDiagnosticExtra struct {
+	Origin *SourceRange
+
+	wrapped interface{}
+}
+
+var (
+	_ DiagnosticExtraDeprecationOrigin = (*DeprecationOriginDiagnosticExtra)(nil)
+	_ DiagnosticExtraWrapper           = (*DeprecationOriginDiagnosticExtra)(nil)
+	_ DiagnosticExtraUnwrapper         = (*DeprecationOriginDiagnosticExtra)(nil)
+)
+
+func (c *DeprecationOriginDiagnosticExtra) UnwrapDiagnosticExtra() interface{} {
+	return c.wrapped
+}
+
+func (c *DeprecationOriginDiagnosticExtra) WrapDiagnosticExtra(inner interface{}) {
+	if c.wrapped != nil {
+		// This is a logical inconsistency, the caller should know whether they
+		// have already wrapped an extra or not.
+		panic("Attempted to wrap a diagnostic extra into a DeprecationOriginDiagnosticExtra that is already wrapping a different extra. This is a bug in Terraform, please report it.")
+	}
+	c.wrapped = inner
+}
+
+func (c *DeprecationOriginDiagnosticExtra) DeprecationOrigin() *SourceRange {
+	return c.Origin
+}
