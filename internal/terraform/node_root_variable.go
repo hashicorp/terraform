@@ -98,6 +98,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 			Summary:  "Deprecated variable got a value",
 			Detail:   n.Config.Deprecated,
 			Subject:  &n.Config.DeprecatedRange,
+			Context:  &n.Config.DeclRange,
 		})
 	}
 

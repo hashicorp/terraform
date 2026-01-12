@@ -10,7 +10,6 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -29,8 +28,8 @@ import (
 // true instead permits unknown values, indicating them by returning the
 // placeholder value -1. Callers can assume that a return value of -1 without
 // any error diagnostics represents a valid unknown value.
-func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, moduleAddr addrs.Module, allowUnknown bool) (int, tfdiags.Diagnostics) {
-	countVal, diags := evaluateCountExpressionValue(expr, ctx, moduleAddr)
+func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, allowUnknown bool) (int, tfdiags.Diagnostics) {
+	countVal, diags := evaluateCountExpressionValue(expr, ctx)
 	if !allowUnknown && !countVal.IsKnown() {
 		// Currently this is a rather bad outcome from a UX standpoint, since we have
 		// no real mechanism to deal with this situation and all we can do is produce
@@ -75,7 +74,7 @@ func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, moduleAddr ad
 // evaluateCountExpressionValue is like evaluateCountExpression
 // except that it returns a cty.Value which must be a cty.Number and can be
 // unknown.
-func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext, moduleAddr addrs.Module) (cty.Value, tfdiags.Diagnostics) {
+func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	nullCount := cty.NullVal(cty.Number)
 	if expr == nil {
@@ -103,7 +102,7 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext, moduleAd
 		})
 	}
 
-	countVal, deprecationDiags := ctx.Deprecations().Validate(countVal, moduleAddr, expr.Range().Ptr())
+	countVal, deprecationDiags := ctx.Deprecations().Validate(countVal, ctx.Path().Module(), expr.Range().Ptr())
 	diags = diags.Append(deprecationDiags)
 
 	// Sensitive values are allowed in count but not for_each. This is a

@@ -83,7 +83,10 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachMap, _, diags := evaluateForEachExpression(test.Expr, ctx, addrs.RootModule, false)
+			scopedCtx := ctx.withScope(evalContextModuleInstance{
+				Addr: addrs.RootModuleInstance,
+			})
+			forEachMap, _, diags := evaluateForEachExpression(test.Expr, scopedCtx, false)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -202,7 +205,10 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			_, _, diags := evaluateForEachExpression(test.Expr, ctx, addrs.RootModule, false)
+			scopedCtx := ctx.withScope(evalContextModuleInstance{
+				Addr: addrs.RootModuleInstance,
+			})
+			_, _, diags := evaluateForEachExpression(test.Expr, scopedCtx, false)
 
 			if len(diags) != 1 {
 				t.Fatalf("got %d diagnostics; want 1", len(diags))
@@ -262,7 +268,10 @@ func TestEvaluateForEachExpression_allowUnknown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			_, known, diags := evaluateForEachExpression(test.Expr, ctx, addrs.RootModule, true)
+			scopedCtx := ctx.withScope(evalContextModuleInstance{
+				Addr: addrs.RootModuleInstance,
+			})
+			_, known, diags := evaluateForEachExpression(test.Expr, scopedCtx, true)
 
 			// With allowUnknown set, all of these expressions should be treated
 			// as valid for_each values.
@@ -285,7 +294,10 @@ func TestEvaluateForEachExpressionKnown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			diags := newForEachEvaluator(expr, ctx, addrs.RootModule, false).ValidateResourceValue()
+			scopedCtx := ctx.withScope(evalContextModuleInstance{
+				Addr: addrs.RootModuleInstance,
+			})
+			diags := newForEachEvaluator(expr, scopedCtx, false).ValidateResourceValue()
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
