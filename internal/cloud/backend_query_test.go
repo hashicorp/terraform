@@ -144,6 +144,13 @@ func TestCloud_queryJSONWithDiags(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
 	op, configCleanup, done := testOperationQuery(t, "./testdata/query-json-diag")
 	defer configCleanup()
 	defer done(t)
@@ -162,7 +169,9 @@ func TestCloud_queryJSONWithDiags(t *testing.T) {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 
-	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	testOut := close(t)
+	output := testOut.Stdout()
+
 	// Warning diagnostic message
 	testString := "Warning: Something went wrong"
 	if !strings.Contains(output, testString) {
