@@ -112,6 +112,10 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 	expander := globalCtx.InstanceExpander()
 	_, call := n.Addr.Call()
 
+	if n.ModuleCall.IgnoreNestedDeprecations {
+		globalCtx.Deprecations().SuppressModuleCallDeprecation(n.Addr)
+	}
+
 	// Allowing unknown values in count and for_each is a top-level plan option.
 	//
 	// If this is false then the codepaths that handle unknown values below
@@ -260,6 +264,10 @@ var _ GraphNodeExecutable = (*nodeValidateModule)(nil)
 func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	_, call := n.Addr.Call()
 	expander := globalCtx.InstanceExpander()
+
+	if n.ModuleCall.IgnoreNestedDeprecations {
+		globalCtx.Deprecations().SuppressModuleCallDeprecation(n.Addr)
+	}
 
 	// Modules all evaluate to single instances during validation, only to
 	// create a proper context within which to evaluate. All parent modules

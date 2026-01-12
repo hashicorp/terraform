@@ -411,9 +411,19 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// structural type of similar kind, so that it can be considered as
 	// valid during both the validate and plan walks.
 	if d.Operation == walkValidate {
+		// In case of non-expanded module calls we return a known object with unknonwn values
+		// In case of an expanded module call we return unknown list/map
+		// This means deprecation can only for non-expanded modules be detected during validate
+		// since we don't want false positives. The plan walk will give definitive warnings.
 		atys := make(map[string]cty.Type, len(outputConfigs))
-		for name := range outputConfigs {
+		as := make(map[string]cty.Value, len(outputConfigs))
+		for name, c := range outputConfigs {
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
+			val := cty.UnknownVal(cty.DynamicPseudoType)
+			if c.DeprecatedSet {
+				val = val.Mark(marks.NewDeprecation(c.Deprecated))
+			}
+			as[name] = val
 		}
 		instTy := cty.Object(atys)
 
@@ -423,7 +433,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		case callConfig.ForEach != nil:
 			return cty.UnknownVal(cty.Map(instTy)), diags
 		default:
-			return cty.UnknownVal(instTy), diags
+			val := cty.ObjectVal(as)
+			return val, diags
 		}
 	}
 
@@ -468,6 +479,10 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			outputVal := namedVals.GetOutputValue(outputAddr)
 			if cfg.Sensitive {
 				outputVal = outputVal.Mark(marks.Sensitive)
+			}
+
+			if cfg.DeprecatedSet {
+				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated))
 			}
 			attrs[name] = outputVal
 		}
@@ -774,7 +789,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// We should only end up here during the validate walk (or
 			// console/eval), since later walks should have at least partial
 			// states populated for all resources in the configuration.
-			return cty.DynamicVal, diags
+			ret := cty.DynamicVal
+			if schema.Body.Deprecated {
+				ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type)))
+			}
+			return ret, diags
 		}
 	}
 
@@ -847,6 +866,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		ret = val
+	}
+
+	if schema.Body.Deprecated {
+		ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type)))
 	}
 
 	return ret, diags
@@ -1127,6 +1150,9 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	}
 	if config.Ephemeral {
 		value = value.Mark(marks.Ephemeral)
+	}
+	if config.DeprecatedSet {
+		value = value.Mark(marks.NewDeprecation(config.Deprecated))
 	}
 
 	return value, diags

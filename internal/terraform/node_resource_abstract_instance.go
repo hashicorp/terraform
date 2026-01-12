@@ -866,6 +866,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	diags = diags.Append(
 		validateResourceForbiddenEphemeralValues(ctx, origConfigVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 	)
+	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(origConfigVal, n.ModulePath()).InConfigBody(n.Config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
 	}
