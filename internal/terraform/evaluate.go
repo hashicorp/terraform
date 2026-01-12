@@ -421,7 +421,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
 			val := cty.UnknownVal(cty.DynamicPseudoType)
 			if c.DeprecatedSet {
-				val = val.Mark(marks.NewDeprecation(c.Deprecated))
+				val = val.Mark(marks.NewDeprecation(c.Deprecated, &c.DeclRange))
 			}
 			as[name] = val
 		}
@@ -482,7 +482,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			if cfg.DeprecatedSet {
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated))
+				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, &cfg.DeclRange))
 			}
 			attrs[name] = outputVal
 		}
@@ -791,7 +791,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// states populated for all resources in the configuration.
 			ret := cty.DynamicVal
 			if schema.Body.Deprecated {
-				ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type)))
+				ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type), &config.DeclRange))
 			}
 			return ret, diags
 		}
@@ -869,7 +869,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	}
 
 	if schema.Body.Deprecated {
-		ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type)))
+		ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type), &config.DeclRange))
 	}
 
 	return ret, diags
@@ -1152,7 +1152,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 		value = value.Mark(marks.Ephemeral)
 	}
 	if config.DeprecatedSet {
-		value = value.Mark(marks.NewDeprecation(config.Deprecated))
+		value = value.Mark(marks.NewDeprecation(config.Deprecated, &config.DeclRange))
 	}
 
 	return value, diags
