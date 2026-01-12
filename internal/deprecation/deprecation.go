@@ -50,12 +50,20 @@ func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.R
 	}
 
 	for _, depMark := range deprecationMarks {
-		diags = diags.Append(&hcl.Diagnostic{
+		diag := &hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Deprecated value used",
 			Detail:   depMark.Message,
 			Subject:  rng,
-		})
+		}
+		if depMark.Origin != nil {
+			origin := *depMark.Origin
+			sourceRange := tfdiags.SourceRangeFromHCL(origin)
+			diag.Extra = &tfdiags.DeprecationOriginDiagnosticExtra{
+				Origin: &sourceRange,
+			}
+		}
+		diags = diags.Append(diag)
 	}
 
 	return notDeprecatedValue, diags
@@ -72,14 +80,27 @@ func (d *Deprecations) ValidateAsConfig(value cty.Value, module addrs.Module) tf
 	for _, pvm := range pvms {
 		for m := range pvm.Marks {
 			if depMark, ok := m.(marks.DeprecationMark); ok {
-				diags = diags.Append(
-					tfdiags.AttributeValue(
-						tfdiags.Warning,
-						"Deprecated value used",
-						depMark.Message,
-						pvm.Path,
-					),
+				diag := tfdiags.AttributeValue(
+					tfdiags.Warning,
+					"Deprecated value used",
+					depMark.Message,
+					pvm.Path,
 				)
+				origin := depMark.Origin
+				if origin != nil {
+					diag = tfdiags.Override(
+						diag,
+						tfdiags.Warning, // We just want to override the extra info
+						func() tfdiags.DiagnosticExtraWrapper {
+							sourceRange := tfdiags.SourceRangeFromHCL(*origin)
+							return &tfdiags.DeprecationOriginDiagnosticExtra{
+								Origin: &sourceRange,
+							}
+						})
+				}
+
+				diags = diags.Append(diag)
+
 			}
 		}
 	}
