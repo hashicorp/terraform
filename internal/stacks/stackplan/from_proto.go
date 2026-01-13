@@ -301,6 +301,9 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			DeferredReason: deferredReason,
 		})
 
+	case *tfstackdata1.PlanActionInvocationPlanned:
+		// TODO: Implemented in a future apply-related PR.
+
 	default:
 		// Should not get here, because a stack plan can only be loaded by
 		// the same version of Terraform that created it, and the above

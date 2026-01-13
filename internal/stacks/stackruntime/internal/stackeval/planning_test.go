@@ -1053,3 +1053,139 @@ func mustPlanDynamicValue(t *testing.T, v cty.Value) *tfstackdata1.DynamicValue 
 	}
 	return tfstackdata1.Terraform1ToStackDataDynamicValue(ret)
 }
+
+func TestPlanning_ActionInvocationLifecycle(t *testing.T) {
+	// This integration test verifies that action invocations with lifecycle
+	// triggers are correctly planned and included in the PlannedChange objects.
+
+	cfg := testStackConfig(t, "planning", "action_lifecycle")
+	componentInstAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{
+				Name: "web",
+			},
+		},
+	}
+	actionInstAddr := addrs.AbsActionInstance{
+		Module: addrs.RootModuleInstance,
+		Action: addrs.ActionInstance{
+			Action: addrs.Action{
+				Type: "test_action",
+				Name: "notify",
+			},
+			Key: addrs.NoKey,
+		},
+	}
+	providerAddr := addrs.NewBuiltInProvider("test")
+	providerInstAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: providerAddr,
+	}
+
+	resourceTypeSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"value": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	actionTypeSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"message": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode:  plans.NormalMode,
+		PlanTimestamp: time.Now().UTC(),
+		ProviderFactories: ProviderFactories{
+			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
+				return &providerTesting.MockProvider{
+					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+						Provider: providers.Schema{
+							Body: &configschema.Block{},
+						},
+						ResourceTypes: map[string]providers.Schema{
+							"test_resource": {
+								Body: resourceTypeSchema,
+							},
+						},
+						Actions: map[string]providers.ActionSchema{
+							"test_action": {
+								ConfigSchema: actionTypeSchema,
+							},
+						},
+					},
+					ConfigureProviderFn: func(cpr providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+						return providers.ConfigureProviderResponse{}
+					},
+					PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+						return providers.PlanResourceChangeResponse{
+							PlannedState: prcr.ProposedNewState,
+						}
+					},
+				}, nil
+			},
+		},
+	})
+
+	outp, outpTest := testPlanOutput(t)
+	main.PlanAll(context.Background(), outp)
+	plan, diags := outpTest.Close(t)
+	assertNoDiagnostics(t, diags)
+
+	cmpPlan := plan.GetComponent(componentInstAddr)
+	if cmpPlan == nil {
+		t.Fatalf("no plan for %s", componentInstAddr)
+	}
+
+	// Verify that we have planned changes for action invocations
+	plannedChanges := outpTest.PlannedChanges()
+	var foundActionChange *stackplan.PlannedChangeActionInvocationInstancePlanned
+	for _, pc := range plannedChanges {
+		if actionChange, ok := pc.(*stackplan.PlannedChangeActionInvocationInstancePlanned); ok {
+			foundActionChange = actionChange
+			break
+		}
+	}
+
+	if foundActionChange == nil {
+		t.Fatalf("no action invocation planned change found; got %d changes", len(plannedChanges))
+	}
+
+	// Verify the action invocation details
+	if got, want := foundActionChange.ActionInvocationAddr.Component.String(), componentInstAddr.String(); got != want {
+		t.Errorf("wrong component instance\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := foundActionChange.ActionInvocationAddr.Item.String(), actionInstAddr.String(); got != want {
+		t.Errorf("wrong action instance\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := foundActionChange.ProviderConfigAddr.String(), providerInstAddr.String(); got != want {
+		t.Errorf("wrong provider config addr\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// Verify the invocation has the correct trigger type
+	if foundActionChange.Invocation == nil {
+		t.Fatal("invocation is nil")
+	}
+	if _, ok := foundActionChange.Invocation.ActionTrigger.(*plans.LifecycleActionTrigger); !ok {
+		t.Errorf("wrong action trigger type\ngot:  %T\nwant: *plans.LifecycleActionTrigger", foundActionChange.Invocation.ActionTrigger)
+	}
+
+	// Verify we can convert to proto successfully
+	protoChange, err := foundActionChange.PlannedChangeProto()
+	if err != nil {
+		t.Fatalf("failed to convert to proto: %s", err)
+	}
+	if protoChange == nil {
+		t.Fatal("proto change is nil")
+	}
+	if len(protoChange.Descriptions) == 0 {
+		t.Error("expected at least one description in proto change")
+	}
+}
