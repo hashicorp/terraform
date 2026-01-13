@@ -240,6 +240,8 @@ func TestInit_two_step_provider_download(t *testing.T) {
 	}
 }
 
+// Test that an error is returned if users provide the removed directory argument, which was replaced with -chdir
+// See: https://github.com/hashicorp/terraform/commit/ca23a096d8c48544b9bfc6dbf13c66488f9b6964
 func TestInit_multipleArgs(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -262,6 +264,13 @@ func TestInit_multipleArgs(t *testing.T) {
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", done(t).All())
+	}
+
+	expectedMsg := "Did you mean to use -chdir?"
+	if !strings.Contains(done(t).All(), expectedMsg) {
+		t.Fatalf("expected the error message to include %q as part of protecting against deprecated additional arguments.",
+			expectedMsg,
+		)
 	}
 }
 
