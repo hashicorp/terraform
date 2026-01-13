@@ -44,6 +44,16 @@ func (diags Diagnostics) InConfigBody(body hcl.Body, addr string) Diagnostics {
 	for i, srcDiag := range diags {
 		if cd, isCD := srcDiag.(contextualFromConfigBody); isCD {
 			ret[i] = cd.ElaborateFromConfigBody(body, addr)
+		} else if override, isOverride := srcDiag.(overriddenDiagnostic); isOverride {
+			if cd, isCD := override.original.(contextualFromConfigBody); isCD {
+				newOriginal := cd.ElaborateFromConfigBody(body, addr)
+				ret[i] = &overriddenDiagnostic{
+					original: newOriginal,
+					severity: override.severity,
+					extra:    override.extra,
+				}
+			}
+
 		} else {
 			ret[i] = srcDiag
 		}
