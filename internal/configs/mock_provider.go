@@ -181,7 +181,7 @@ type MockResource struct {
 	Type string
 
 	Defaults cty.Value
-	RawValue hcl.Expression
+	RawExpr  hcl.Expression
 
 	// UseForPlan is true if the values should be computed during the planning
 	// phase.
@@ -332,11 +332,11 @@ func decodeMockResourceBlock(block *hcl.Block, useForPlanDefault bool) (*MockRes
 
 	if defaults, exists := content.Attributes["defaults"]; exists {
 		resource.DefaultsRange = defaults.Range
-		resource.RawValue = defaults.Expr
+		resource.RawExpr = defaults.Expr
 	} else {
 		// It's fine if we don't have any defaults, just means we'll generate
 		// values for everything ourselves.
-		resource.Defaults = cty.NilVal
+		resource.RawExpr = hcl.StaticExpr(cty.EmptyObjectVal, hcl.Range{})
 	}
 
 	useForPlan, useForPlanDiags := useForPlan(content, useForPlanDefault)
@@ -480,6 +480,11 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	if attribute, exists := content.Attributes[attributeName]; exists {
 		override.ValuesRange = attribute.Range
 		override.RawExpr = attribute.Expr
+	} else {
+		// It's fine if we don't have any values, just means we'll generate
+		// values for everything ourselves. We set this to an empty object so
+		// it's equivalent to `values = {}` which makes later processing easier.
+		override.RawExpr = hcl.StaticExpr(cty.EmptyObjectVal, hcl.Range{})
 	}
 
 	useForPlan, useForPlanDiags := useForPlan(content, useForPlanDefault)

@@ -52,7 +52,6 @@ func TestTest_Runs(t *testing.T) {
 		initCode              int
 		skip                  bool
 		description           string
-		selectFiles           []string
 	}{
 		"simple_pass": {
 			expectedOut: []string{"1 passed, 0 failed."},
@@ -428,6 +427,10 @@ func TestTest_Runs(t *testing.T) {
 				"Invalid outputs attribute",
 			},
 			code: 1,
+		},
+		"mock-sources-inline": {
+			expectedOut: []string{"2 passed, 0 failed."},
+			code:        0,
 		},
 	}
 	for name, tc := range tcs {
