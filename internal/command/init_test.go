@@ -461,8 +461,9 @@ func TestInit_getUpgradeModules(t *testing.T) {
 	}
 }
 
-func TestInit_backend(t *testing.T) {
-	// Create a temporary working directory that is empty
+// Test initializing a backend from config (new working directory with no pre-existing backend state file).
+func TestInit_backend_initFromConfig(t *testing.T) {
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
@@ -487,6 +488,39 @@ func TestInit_backend(t *testing.T) {
 	}
 }
 
+// Test init when the -backend=false flag is present (backend state file is used instead of the config).
+func TestInit_backend_initFromState(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-backend-config-file-change-to-s3"), td)
+	t.Chdir(td)
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-backend=false",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).All())
+	}
+
+	// Double check that the successful init above was due to ignoring the config.
+	// When we don't provide -backend=false there should be an error due to a config change being detected;
+	// the config specifies an s3 backend instead of local.
+	args = []string{}
+	view, done = testView(t)
+	c.View = view
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad, expected a 'Backend configuration changed' error but command succeeded : \n%s", done(t).All())
+	}
+}
 func TestInit_backendUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
