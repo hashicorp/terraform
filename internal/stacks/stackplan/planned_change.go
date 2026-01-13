@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -493,7 +494,6 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 			},
 		},
 	}, nil
-
 }
 
 func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*stacks.DynamicValue, error) {
@@ -851,5 +851,159 @@ func (pc *PlannedChangeProviderFunctionResults) PlannedChangeProto() (*stacks.Pl
 
 	return &stacks.PlannedChange{
 		Raw: []*anypb.Any{&raw},
+	}, nil
+}
+
+// PlannedChangeActionInvocationInstancePlanned represents a planned action
+// invocation within a component instance.
+type PlannedChangeActionInvocationInstancePlanned struct {
+	ActionInvocationAddr stackaddrs.AbsActionInvocationInstance
+
+	// Invocation describes the planned invocation.
+	Invocation *plans.ActionInvocationInstanceSrc
+
+	// ProviderConfigAddr is the address of the provider configuration
+	// that planned this change, resolved in terms of the configuration for
+	// the component this action invocation belongs to.
+	ProviderConfigAddr addrs.AbsProviderConfig
+
+	// Schema MUST be the same schema that was used to encode the dynamic
+	// values inside Invocation.
+	//
+	// Can be empty if and only if Invocation is nil.
+	Schema providers.ActionSchema
+}
+
+var _ PlannedChange = (*PlannedChangeActionInvocationInstancePlanned)(nil)
+
+// PlanActionInvocationProto converts the planned action invocation to the
+// internal protobuf representation for persistence.
+func (pc *PlannedChangeActionInvocationInstancePlanned) PlanActionInvocationProto() (*tfstackdata1.PlanActionInvocationPlanned, error) {
+	addr := pc.ActionInvocationAddr
+
+	if pc.Invocation == nil {
+		// Return a minimal placeholder if there's no actual invocation
+		return &tfstackdata1.PlanActionInvocationPlanned{
+			ComponentInstanceAddr: addr.Component.String(),
+			ActionInvocationAddr:  addr.Item.String(),
+			ProviderConfigAddr:    pc.ProviderConfigAddr.Provider.String(),
+		}, nil
+	}
+
+	invocationProto, err := planfile.ActionInvocationToProto(pc.Invocation)
+	if err != nil {
+		return nil, fmt.Errorf("converting action invocation to proto: %w", err)
+	}
+
+	return &tfstackdata1.PlanActionInvocationPlanned{
+		ComponentInstanceAddr: addr.Component.String(),
+		ActionInvocationAddr:  addr.Item.String(),
+		ProviderConfigAddr:    pc.ProviderConfigAddr.Provider.String(),
+		Invocation:            invocationProto,
+	}, nil
+}
+
+// ChangeDescription implements PlannedChange by producing an external
+// description of the action invocation for the RPC API.
+func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*stacks.PlannedChange_ChangeDescription, error) {
+	addr := pc.ActionInvocationAddr
+
+	// We only emit an external description if there's an invocation to describe.
+	if pc.Invocation == nil {
+		return nil, nil
+	}
+
+	invoke := stacks.PlannedChange_ActionInvocationInstance{
+		Addr:         stacks.NewActionInvocationInStackAddr(addr),
+		ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
+		ActionType:   pc.Invocation.Addr.Action.Action.Type,
+
+		ConfigValue: stacks.NewDynamicValue(
+			pc.Invocation.ConfigValue,
+			pc.Invocation.SensitiveConfigPaths,
+		),
+	}
+
+	// Convert the action trigger information
+	switch at := pc.Invocation.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		triggerEvent := stacks.PlannedChange_INVALID_EVENT
+		switch at.ActionTriggerEvent {
+		case configs.BeforeCreate:
+			triggerEvent = stacks.PlannedChange_BEFORE_CREATE
+		case configs.AfterCreate:
+			triggerEvent = stacks.PlannedChange_AFTER_CREATE
+		case configs.BeforeUpdate:
+			triggerEvent = stacks.PlannedChange_BEFORE_UPDATE
+		case configs.AfterUpdate:
+			triggerEvent = stacks.PlannedChange_AFTER_UPDATE
+		case configs.BeforeDestroy:
+			triggerEvent = stacks.PlannedChange_BEFORE_DESTROY
+		case configs.AfterDestroy:
+			triggerEvent = stacks.PlannedChange_AFTER_DESTROY
+		}
+
+		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_LifecycleActionTrigger{
+			LifecycleActionTrigger: &stacks.PlannedChange_LifecycleActionTrigger{
+				TriggerEvent: triggerEvent,
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(stackaddrs.AbsResourceInstance{
+					Component: addr.Component,
+					Item:      at.TriggeringResourceAddr,
+				}),
+				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(at.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		// TODO Implement this when implementing Stacks support for Direct Action Invocation
+		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_InvokeActionTrigger{
+			InvokeActionTrigger: &stacks.PlannedChange_InvokeActionTrigger{},
+		}
+	default:
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
+	}
+
+	return &stacks.PlannedChange_ChangeDescription{
+		Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationPlanned{
+			ActionInvocationPlanned: &invoke,
+		},
+	}, nil
+}
+
+// PlannedChangeProto implements PlannedChange.
+func (pc *PlannedChangeActionInvocationInstancePlanned) PlannedChangeProto() (*stacks.PlannedChange, error) {
+	paip, err := pc.PlanActionInvocationProto()
+	if err != nil {
+		return nil, err
+	}
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, paip, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	if pc.Invocation == nil {
+		// We only emit a "raw" in this case, because this is a relatively
+		// uninteresting edge-case. The PlanActionInvocationProto
+		// function should have returned a placeholder value for this use case.
+
+		return &stacks.PlannedChange{
+			Raw: []*anypb.Any{&raw},
+		}, nil
+	}
+
+	var descs []*stacks.PlannedChange_ChangeDescription
+	desc, err := pc.ChangeDescription()
+	if err != nil {
+		return nil, err
+	}
+	if desc != nil {
+		descs = append(descs, desc)
+	}
+
+	return &stacks.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
 	}, nil
 }

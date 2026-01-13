@@ -797,6 +797,20 @@ func (c *ComponentInstance) ResourceSchema(ctx context.Context, providerTypeAddr
 	return ret, nil
 }
 
+// ActionSchema implements stackplan.PlanProducer.
+func (c *ComponentInstance) ActionSchema(ctx context.Context, providerTypeAddr addrs.Provider, actionType string) (providers.ActionSchema, error) {
+	providerType := c.main.ProviderType(providerTypeAddr)
+	providerSchema, err := providerType.Schema(ctx)
+	if err != nil {
+		return providers.ActionSchema{}, err
+	}
+	ret := providerSchema.SchemaForActionType(actionType)
+	if ret.ConfigSchema == nil {
+		return providers.ActionSchema{}, fmt.Errorf("schema does not include action type %q", actionType)
+	}
+	return ret, nil
+}
+
 // RequiredComponents implements stackplan.PlanProducer.
 func (c *ComponentInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
 	return c.call.RequiredComponents(ctx)
