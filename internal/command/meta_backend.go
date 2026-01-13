@@ -1166,7 +1166,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		cloudMode := cloud.DetectConfigChangeType(s.Backend, backendConfig, false)
 
 		if !opts.Init {
-			//user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
+			// user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
 			initDiag := m.determineInitReason(s.Backend.Type, backendConfig.Type, cloudMode)
 			diags = diags.Append(initDiag)
 			return nil, diags
@@ -1386,8 +1386,8 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 
 // Unconfiguring a backend (moving from backend => local).
 func (m *Meta) backend_c_r_S(
-	c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
-
+	c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts,
+) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON

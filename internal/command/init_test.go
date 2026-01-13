@@ -199,7 +199,6 @@ func TestInit_two_step_provider_download(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-
 			// Create a temporary working directory no tf configuration but has state
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(tc.workDirPath), td)
@@ -1578,7 +1577,6 @@ prompts.
 			t.Errorf("wrong error output\n%s", diff)
 		}
 	})
-
 }
 
 // make sure inputFalse stops execution on migrate
@@ -3966,7 +3964,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
-
 	})
 
 	t.Run("handling changed state store provider config is currently unimplemented", func(t *testing.T) {
@@ -4565,7 +4562,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatal(err)
 		}
 		expectedOutputs := map[string]*states.OutputValue{
-			"test": &states.OutputValue{
+			"test": {
 				Addr: addrs.AbsOutputValue{
 					OutputValue: addrs.OutputValue{
 						Name: "test",
