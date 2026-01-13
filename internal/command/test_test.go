@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -425,12 +424,10 @@ func TestTest_Runs(t *testing.T) {
 			expectedResourceCount: 0,
 		},
 		"mocking-invalid-outputs": {
-			override: "mocking-invalid",
 			expectedErr: []string{
 				"Invalid outputs attribute",
 			},
-			selectFiles: []string{"module_mocked_invalid_type.tftest.hcl"},
-			code:        1,
+			code: 1,
 		},
 	}
 	for name, tc := range tcs {
@@ -455,28 +452,6 @@ func TestTest_Runs(t *testing.T) {
 
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
-			if len(tc.selectFiles) > 0 {
-				dirs, _ := os.ReadDir(td)
-				dirs2, _ := os.ReadDir(filepath.Join(td, "tests"))
-				for _, dir := range dirs {
-					dirName := dir.Name()
-					if !slices.Contains(tc.selectFiles, dirName) && strings.HasSuffix(dirName, "tftest.hcl") {
-						err := os.Remove(filepath.Join(td, dirName))
-						if err != nil {
-							t.Errorf("failed to remove file %s: %v", dirName, err)
-						}
-					}
-				}
-				for _, dir := range dirs2 {
-					dirName := dir.Name()
-					if !slices.Contains(tc.selectFiles, dirName) && strings.HasSuffix(dirName, "tftest.hcl") {
-						err := os.Remove(filepath.Join(td, "tests", dirName))
-						if err != nil {
-							t.Errorf("failed to remove file %s: %v", dirName, err)
-						}
-					}
-				}
-			}
 			t.Chdir(td)
 
 			store := &testing_command.ResourceStore{
