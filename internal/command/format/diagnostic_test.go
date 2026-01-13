@@ -407,10 +407,42 @@ func TestDiagnostic(t *testing.T) {
 [red]╵[reset]
 `,
 		},
+		"warning from deprecation": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Deprecation detected",
+				Detail:   "Countermeasures must be taken.",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+					Origin: &tfdiags.SourceRange{
+						Filename: "deprecated.tf",
+						Start:    tfdiags.SourcePos{Line: 1, Column: 11, Byte: 10},
+						End:      tfdiags.SourcePos{Line: 1, Column: 22, Byte: 21},
+					},
+				},
+			},
+			`[yellow]╷[reset]
+[yellow]│[reset] [bold][yellow]Warning: [reset][bold]Deprecation detected[reset]
+[yellow]│[reset]
+[yellow]│[reset]   on test.tf line 1:
+[yellow]│[reset]    1: test [underline]source[reset] code
+[yellow]│[reset]
+[yellow]│[reset]   (origin of deprecation on deprecated.tf line 1):
+[yellow]│[reset]    1: source of [underline]deprecation[reset]
+[yellow]│[reset]
+[yellow]│[reset] Countermeasures must be taken.
+[yellow]╵[reset]
+`,
+		},
 	}
 
 	sources := map[string][]byte{
-		"test.tf": []byte(`test source code`),
+		"test.tf":       []byte(`test source code`),
+		"deprecated.tf": []byte(`source of deprecation`),
 	}
 
 	// This empty Colorize just passes through all of the formatting codes
@@ -424,8 +456,9 @@ func TestDiagnostic(t *testing.T) {
 			diag := diags[0]
 			got := strings.TrimSpace(Diagnostic(diag, sources, colorize, 40))
 			want := strings.TrimSpace(test.Want)
-			if got != want {
-				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n", got, want)
+
+			if diff := cmp.Diff(got, want); diff != "" {
+				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\ndiff:\n%s\n\n", got, want, diff)
 			}
 		})
 	}
@@ -715,10 +748,42 @@ Error: Bad bad bad
 Whatever shall we do?
 `,
 		},
+
+		"warning from deprecation": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Deprecation detected",
+				Detail:   "Countermeasures must be taken.",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+					Origin: &tfdiags.SourceRange{
+						Filename: "deprecated.tf",
+						Start:    tfdiags.SourcePos{Line: 1, Column: 11, Byte: 10},
+						End:      tfdiags.SourcePos{Line: 1, Column: 22, Byte: 21},
+					},
+				},
+			},
+			`
+Warning: Deprecation detected
+
+  on test.tf line 1:
+   1: test source code
+
+  (origin of deprecation on deprecated.tf line 1):
+   1: source of deprecation
+
+Countermeasures must be taken.
+`,
+		},
 	}
 
 	sources := map[string][]byte{
-		"test.tf": []byte(`test source code`),
+		"test.tf":       []byte(`test source code`),
+		"deprecated.tf": []byte(`source of deprecation`),
 	}
 
 	for name, test := range tests {
@@ -728,8 +793,8 @@ Whatever shall we do?
 			diag := diags[0]
 			got := strings.TrimSpace(DiagnosticPlain(diag, sources, 40))
 			want := strings.TrimSpace(test.Want)
-			if got != want {
-				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n", got, want)
+			if diff := cmp.Diff(got, want); diff != "" {
+				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n,diff:\n%s\n\n", got, want, diff)
 			}
 		})
 	}
