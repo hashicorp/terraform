@@ -253,6 +253,16 @@ func (f *snippetFormatter) write() {
 		}
 		fmt.Fprintf(buf, "  on %s line %d%s:\n", diag.Range.Filename, diag.Range.Start.Line, contextStr)
 		f.writeSnippet(snippet, code)
+
+		if diag.DeprecationOriginRange != nil && diag.DeprecationOriginSnippet != nil {
+			var depContextStr string
+			if diag.DeprecationOriginSnippet.Context != nil {
+				depContextStr = fmt.Sprintf(", in %s", *snippet.Context)
+			}
+			buf.WriteByte('\n')
+			fmt.Fprintf(buf, "  (origin of deprecation on %s line %d%s):\n", diag.DeprecationOriginRange.Filename, diag.DeprecationOriginRange.Start.Line, depContextStr)
+			f.writeSnippet(diag.DeprecationOriginSnippet, diag.DeprecationOriginSnippet.Code)
+		}
 	}
 
 	buf.WriteByte('\n')
