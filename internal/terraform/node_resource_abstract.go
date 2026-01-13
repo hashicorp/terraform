@@ -56,7 +56,7 @@ type NodeAbstractResource struct {
 
 	Schema *providers.Schema // Schema for processing the configuration body
 
-	// Config and RemovedConfig are mutally-exclusive, because a
+	// Config and RemovedConfig are mutually-exclusive, because a
 	// resource can't be both declared and removed at the same time.
 	Config        *configs.Resource // Config is the resource in the config, if any
 	RemovedConfig *configs.Removed  // RemovedConfig is the "removed" block for this resource, if any
@@ -65,6 +65,9 @@ type NodeAbstractResource struct {
 	ProviderMetas map[addrs.Provider]*configs.ProviderMeta
 
 	ProvisionerSchemas map[string]*configschema.Block
+
+	// ActionConfigs is the configuration of any associated actions
+	ActionConfigs map[string]*configs.Action
 
 	// Set from GraphNodeTargetable
 	Targets []addrs.Targetable
@@ -109,6 +112,7 @@ var (
 	_ graphNodeAttachDataResourceDependsOn = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
 	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachActionConfig          = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -244,6 +248,13 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			result = append(result, refs...)
 			refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 			result = append(result, refs...)
+		}
+
+		for _, triggers := range c.Managed.ActionTriggers {
+			for _, actionRef := range triggers.Actions {
+				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, actionRef.Expr)
+				result = append(result, refs...)
+			}
 		}
 	}
 
@@ -625,4 +636,59 @@ func graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(a, b dag.Ver
 		return false
 	}
 	return !aModInst.Equal(bModInst)
+}
+
+// GraphNodeAttachActionConfig
+func (n *NodeAbstractResource) AttachActionConfig(action addrs.ConfigAction, cfg *configs.Action) {
+	if n.ActionConfigs == nil {
+		n.ActionConfigs = make(map[string]*configs.Action)
+	}
+	n.ActionConfigs[action.String()] = cfg
+}
+
+// ActionAddrs returns the addresses of any actions referenced inside the resource's lifecycle. This will only return actions after the AttachResourceConfigTransformer
+func (n *NodeAbstractResource) ActionAddrs() []addrs.ConfigAction {
+	if n.Config == nil {
+		return nil
+	}
+
+	actions := make(map[string]addrs.ConfigAction)
+	if n.Config.Managed != nil {
+		if n.Config.Managed.ActionTriggers != nil {
+			for _, at := range n.Config.Managed.ActionTriggers {
+				for _, a := range at.Actions {
+					configAction := configActionFromActionRef(a, n.ModulePath())
+					actions[configAction.String()] = configAction
+				}
+			}
+		}
+	}
+
+	ret := make([]addrs.ConfigAction, 0, len(actions))
+	for _, v := range actions {
+		ret = append(ret, v)
+	}
+	return ret
+}
+
+func configActionFromActionRef(action configs.ActionRef, path addrs.Module) addrs.ConfigAction {
+	// errors here would have been captured during configload
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+
+	var configAction addrs.ConfigAction
+
+	for _, ref := range refs {
+		switch a := ref.Subject.(type) {
+		case addrs.Action:
+			configAction = a.InModule(path)
+		case addrs.ActionInstance:
+			configAction = a.Action.InModule(path)
+		case addrs.CountAttr, addrs.ForEachAttr:
+			// nothing to do, these will get evaluated later
+		default:
+			// This should have been caught during validation
+			panic(fmt.Sprintf("unexpected action address %T", a))
+		}
+	}
+	return configAction
 }

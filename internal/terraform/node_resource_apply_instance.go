@@ -228,8 +228,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Get & Order the actions for this resource
-	actions := n.plannedActions
-	beforeActions, afterActions := sortAndOrderActions(actions)
+	var beforeActions, afterActions map[int]actionInvocationInstanceSrcs
+	if len(n.plannedActions) > 0 {
+		actions := n.plannedActions
+		beforeActions, afterActions = sortAndOrderActions(actions)
+	}
 
 	// We don't want to do any destroys
 	// (these are handled by NodeDestroyResourceInstance instead)
@@ -318,11 +321,13 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Re-evaluate the condition and trigger any before_* actions
-	actionDiags := n.applyActions(ctx, beforeActions)
-	diags = diags.Append(actionDiags)
-	if diags.HasErrors() {
-		// quit if any before action failed
-		return diags
+	if len(beforeActions) > 0 {
+		actionDiags := n.applyActions(ctx, beforeActions)
+		diags = diags.Append(actionDiags)
+		if diags.HasErrors() {
+			// quit if any before action failed
+			return diags
+		}
 	}
 
 	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
@@ -397,11 +402,13 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	diags = diags.Append(updateStateHook(ctx))
 
 	// now run the after actions
-	actionDiags = n.applyActions(ctx, afterActions)
-	diags = diags.Append(actionDiags)
-	if diags.HasErrors() {
-		// quit if any before action failed
-		return diags
+	if len(afterActions) > 0 {
+		actionDiags := n.applyActions(ctx, afterActions)
+		diags = diags.Append(actionDiags)
+		if diags.HasErrors() {
+			// quit if any before action failed
+			return diags
+		}
 	}
 
 	// Post-conditions might block further progress. We intentionally do this
@@ -517,17 +524,24 @@ func maybeTainted(addr addrs.AbsResourceInstance, state *states.ResourceInstance
 }
 
 func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions map[int]actionInvocationInstanceSrcs) tfdiags.Diagnostics {
+
+	// the map keys correlate to the actionTriggerBlockIndex, so start by making a map of index position -> map key
+	keys := make([]int, 0)
+	for k := range actions {
+		keys = append(keys, k)
+	}
+
 	var diags tfdiags.Diagnostics
 	// for each action_trigger block
 	for i := 0; i < len(actions); i++ {
 		// for each action
-		for j := 0; j < len(actions[i]); j++ {
+		for j := 0; j < len(actions[keys[i]]); j++ {
 			// evaluate condition again
 			triggerConfig := n.Config.Managed.ActionTriggers[i]
 			if triggerConfig == nil {
 				panic("well at least you didn't expect that to work")
 			}
-			aiSrc := actions[i][j]
+			aiSrc := actions[keys[i]][j]
 
 			actionInstanceNode, ok := n.actionInstances.GetOk(aiSrc.Addr.ConfigAction())
 			if !ok {

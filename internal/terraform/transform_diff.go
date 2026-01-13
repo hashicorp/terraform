@@ -97,8 +97,11 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		// Grab the planned actions and their NodeAbstractActionInstances for
 		// this resource instance. They will be attached to the appropriate
 		// resource instance node when it is created below.
-		var updateActions, createActions []*plans.ActionInvocationInstanceSrc
-		var updateActionNodes, createActionNodes []GraphNodeConfigAction
+		updateActions := make([]*plans.ActionInvocationInstanceSrc, 0)
+		createActions := make([]*plans.ActionInvocationInstanceSrc, 0)
+		updateActionNodes := make([]GraphNodeConfigAction, 0)
+		createActionNodes := make([]GraphNodeConfigAction, 0)
+
 		actions := changes.GetActionsByResourceInstance(addr)
 		for _, a := range actions {
 			if a.ActionTrigger.TriggerEvent().IsCreate() {
@@ -112,7 +115,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			if a.ActionTrigger.TriggerEvent().IsUpdate() {
 				updateActions = append(updateActions, a)
 				if uan, ok := actionNodes.GetOk(a.Addr.ConfigAction()); ok {
-					createActionNodes = append(createActionNodes, uan...)
+					updateActionNodes = append(updateActionNodes, uan...)
 				} else {
 					panic("i have no idea what i'm doing")
 				}
@@ -200,10 +203,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		if update {
 			// All actions except destroying the node type chosen by t.Concrete
 			abstract := NewNodeAbstractResourceInstance(addr)
-			var node dag.Vertex = abstract
-			if f := t.Concrete; f != nil {
-				node = f(abstract)
-			}
 			if create {
 				if len(createActions) > 0 {
 					abstract.AttachPlannedActionInvocations(createActions, createActionNodes)
@@ -212,6 +211,10 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				if len(updateActions) > 0 {
 					abstract.AttachPlannedActionInvocations(updateActions, updateActionNodes)
 				}
+			}
+			var node dag.Vertex = abstract
+			if f := t.Concrete; f != nil {
+				node = f(abstract)
 			}
 			if createBeforeDestroy {
 				// We'll attach our pre-allocated DeposedKey to the node if
