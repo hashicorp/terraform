@@ -48,6 +48,7 @@ func TestNewDiagnostic(t *testing.T) {
   var.k,
 ]
 `),
+		"deprecation.tf": []byte(`resource "test_resource" "deprecated" {}`),
 	}
 	testCases := map[string]struct {
 		diag interface{} // allow various kinds of diags
@@ -864,6 +865,65 @@ func TestNewDiagnostic(t *testing.T) {
 							Statement: `is object with 2 attributes`,
 						},
 					},
+				},
+			},
+		},
+
+		"warning with deprecation origin": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Deprecated value caught in action",
+				Detail:   "Oh no - don't do it!",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 10, Byte: 9},
+					End:      hcl.Pos{Line: 1, Column: 25, Byte: 24},
+				},
+				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+					Origin: &tfdiags.SourceRange{
+						Filename: "deprecation.tf",
+						Start:    tfdiags.SourcePos{Line: 1, Column: 10, Byte: 9},
+						End:      tfdiags.SourcePos{Line: 1, Column: 25, Byte: 24},
+					},
+				},
+			},
+			&Diagnostic{
+				Severity: "warning",
+				Summary:  "Deprecated value caught in action",
+				Detail:   "Oh no - don't do it!",
+				Range: &DiagnosticRange{
+					Filename: "test.tf",
+					Start: Pos{
+						Line:   1,
+						Column: 10,
+						Byte:   9,
+					},
+					End: Pos{
+						Line:   1,
+						Column: 25,
+						Byte:   24,
+					},
+				},
+				Snippet: &DiagnosticSnippet{
+					Context:              strPtr(`resource "test_resource" "test"`),
+					Code:                 `resource "test_resource" "test" {`,
+					StartLine:            1,
+					HighlightStartOffset: 9,
+					HighlightEndOffset:   24,
+					Values:               []DiagnosticExpressionValue{},
+				},
+				DeprecationOriginRange: &DiagnosticRange{
+					Filename: "deprecation.tf",
+					Start:    Pos{Line: 1, Column: 10, Byte: 9},
+					End:      Pos{Line: 1, Column: 25, Byte: 24},
+				},
+				DeprecationOriginSnippet: &DiagnosticSnippet{
+					Context:              strPtr(`resource "test_resource" "deprecated"`),
+					Code:                 `resource "test_resource" "deprecated" {}`,
+					StartLine:            1,
+					HighlightStartOffset: 9,
+					HighlightEndOffset:   24,
+					Values:               []DiagnosticExpressionValue{},
 				},
 			},
 		},
