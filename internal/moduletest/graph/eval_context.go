@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
@@ -327,6 +328,9 @@ func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module,
 		errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, nil)
 		ruleDiags = ruleDiags.Append(moreDiags)
 
+		errorMessage, _ = errorMessage.Unmark()
+		errorMessageStr := strings.TrimSpace(errorMessage.AsString())
+
 		runVal, hclDiags := rule.Condition.Value(hclCtx)
 		ruleDiags = ruleDiags.Append(hclDiags)
 
@@ -390,7 +394,7 @@ func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module,
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Test assertion failed",
-				Detail:      errorMessage,
+				Detail:      errorMessageStr,
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
