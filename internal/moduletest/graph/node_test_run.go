@@ -162,7 +162,9 @@ func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 		return
 	}
 
-	// Evaluate the override blocks
+	// Evaluate the override blocks for this test run.
+	// We use a context that only contains functions, and thus references are currently
+	// not supported in the override/mock blocks.
 	hclCtx, diags := ctx.HclContext(nil)
 	if diags != nil {
 		run.Status = moduletest.Error

@@ -60,14 +60,13 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 		}
 
 		configure := &NodeProviderConfigure{
-			name:         config.Name,
-			alias:        config.Alias,
-			Addr:         addr,
-			File:         t.File,
-			Config:       config,
-			Provider:     impl,
-			Schema:       impl.GetProviderSchema(),
-			MockProvider: mock,
+			name:     config.Name,
+			alias:    config.Alias,
+			Addr:     addr,
+			File:     t.File,
+			Config:   config,
+			Provider: impl,
+			Schema:   impl.GetProviderSchema(),
 		}
 		g.Add(configure)
 

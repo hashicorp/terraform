@@ -26,12 +26,11 @@ var (
 type NodeProviderConfigure struct {
 	name, alias string
 
-	Addr         addrs.RootProviderConfig
-	File         *moduletest.File
-	Config       *configs.Provider
-	Provider     providers.Interface
-	Schema       providers.GetProviderSchemaResponse
-	MockProvider *providers.Mock
+	Addr     addrs.RootProviderConfig
+	File     *moduletest.File
+	Config   *configs.Provider
+	Provider providers.Interface
+	Schema   providers.GetProviderSchemaResponse
 }
 
 func (n *NodeProviderConfigure) Name() string {
@@ -79,13 +78,15 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 		return
 	}
 
-	if n.MockProvider != nil {
-		for _, res := range n.MockProvider.Data.MockResources {
+	// This means we are using a mock provider, which may contain not-yet-evaluated
+	// mock data, so we will evaluate the data here.
+	if mock, ok := n.Provider.(*providers.Mock); ok {
+		for _, res := range mock.Data.MockResources {
 			values, hclDiags := res.RawValue.Value(hclContext)
 			n.File.Diagnostics.Append(hclDiags)
 			res.Defaults = values
 		}
-		for _, res := range n.MockProvider.Data.MockDataSources {
+		for _, res := range mock.Data.MockDataSources {
 			values, hclDiags := res.RawValue.Value(hclContext)
 			n.File.Diagnostics.Append(hclDiags)
 			res.Defaults = values

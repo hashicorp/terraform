@@ -30,11 +30,16 @@ func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.
 		localOverrides:    addrs.MakeMap[addrs.Targetable, *configs.Override](),
 	}
 
+	// helper function to evaluate each override values, returning any error encountered.
 	evalAndPut := func(container addrs.Map[addrs.Targetable, *configs.Override], target addrs.Targetable, override *configs.Override) tfdiags.Diagnostics {
 		var hclDiags hcl.Diagnostics
+		// It's fine if we don't have any values, just means we'll generate
+		// values for everything ourselves. We set this to an empty object so
+		// it's equivalent to `values = {}` which makes later processing easier.
 		values := cty.EmptyObjectVal
-		if override.RawValue != nil {
-			values, hclDiags = override.RawValue.Value(ctx)
+
+		if override.RawExpr != nil {
+			values, hclDiags = override.RawExpr.Value(ctx)
 			if values != cty.NilVal && !values.Type().IsObjectType() {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,

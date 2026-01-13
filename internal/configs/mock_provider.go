@@ -212,7 +212,7 @@ type Override struct {
 	BlockName string
 
 	// The raw expression of the values/outputs block
-	RawValue hcl.Expression
+	RawExpr hcl.Expression
 
 	// UseForPlan is true if the values should be computed during the planning
 	// phase.
@@ -479,7 +479,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	}
 	if attribute, exists := content.Attributes[attributeName]; exists {
 		override.ValuesRange = attribute.Range
-		override.RawValue = attribute.Expr
+		override.RawExpr = attribute.Expr
 	}
 
 	useForPlan, useForPlanDiags := useForPlan(content, useForPlanDefault)
