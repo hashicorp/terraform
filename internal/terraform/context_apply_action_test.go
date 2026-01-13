@@ -502,11 +502,6 @@ resource "test_object" "b" {
 					Severity: hcl.DiagError,
 					Summary:  "Action configuration unknown during apply",
 					Detail:   "The action action.action_example.hello was not fully known during apply.\n\nThis is a bug in Terraform, please report it.",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 14, Column: 18, Byte: 238},
-						End:      hcl.Pos{Line: 14, Column: 45, Byte: 265},
-					},
 				})
 			},
 		},

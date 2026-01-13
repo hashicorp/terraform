@@ -126,8 +126,9 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	// Our "requested" map is from graph vertices to string representations of
 	// provider config addresses (for deduping) to requests.
 	type ProviderRequest struct {
-		Addr  addrs.AbsProviderConfig
-		Exact bool // If true, inheritance from parent modules is not attempted
+		Addr           addrs.AbsProviderConfig
+		Exact          bool // If true, inheritance from parent modules is not attempted
+		ActionProvider bool // if this is an action or resource
 	}
 	requested := map[dag.Vertex]map[string]ProviderRequest{}
 	needConfigured := map[string]addrs.AbsProviderConfig{}
@@ -143,11 +144,13 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				log.Printf("[TRACE] ProviderTransformer: %s has an action provided by %s exactly", dag.VertexName(v), provider.String())
 				// we only associate action providers with resources during apply, so we already have the exact provider
 				requested[v][provider.String()] = ProviderRequest{
-					Addr:  provider,
-					Exact: true,
+					Addr:           provider,
+					Exact:          true,
+					ActionProvider: true,
 				}
 			}
 		}
+
 		// Does the vertex _directly_ use a provider?
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			providerAddr, exact := pv.ProvidedBy()
@@ -273,12 +276,17 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			}
 
 			log.Printf("[DEBUG] ProviderTransformer: %q (%T) needs %s", dag.VertexName(v), v, dag.VertexName(target))
-			if pv, ok := v.(GraphNodeProviderConsumer); ok {
-				pv.SetProvider(target.ProviderAddr())
+
+			if req.ActionProvider {
+				if pv, ok := v.(GraphNodeActionProviderConsumer); ok {
+					pv.AppendProvider(target.ProviderAddr())
+				}
+			} else {
+				if pv, ok := v.(GraphNodeProviderConsumer); ok {
+					pv.SetProvider(target.ProviderAddr())
+				}
 			}
-			if pv, ok := v.(GraphNodeActionProviderConsumer); ok {
-				pv.AppendProvider(target.ProviderAddr())
-			}
+
 			g.Connect(dag.BasicEdge(v, target))
 		}
 	}
@@ -321,8 +329,9 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 
 	// Now look for all provider consumers and connect them to the appropriate closers.
 	for _, v := range g.Vertices() {
-		if pc, ok := v.(GraphNodeActionProviderConsumer); ok {
-			providers := pc.ActionsProvidedBy()
+		log.Printf("[KRISTIN]: CloseProviderTransformer Evaluating Vertex %s", dag.VertexName(v))
+		if apc, ok := v.(GraphNodeActionProviderConsumer); ok {
+			providers := apc.ActionsProvidedBy()
 			if len(providers) > 0 {
 				for _, provider := range providers {
 					closer, ok := cpm[provider.String()]
@@ -337,19 +346,25 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		if pc, ok := v.(GraphNodeProviderConsumer); ok {
 			p, exact := pc.ProvidedBy()
 			if p == nil && exact {
+				log.Printf("[KRISTIN]: %s does not need a provider\n", dag.VertexName(pc))
+
 				// this node does not require a provider
-			}
+			} else {
+				provider, ok := p.(addrs.AbsProviderConfig)
+				if !ok {
+					return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
+				}
 
-			provider, ok := p.(addrs.AbsProviderConfig)
-			if !ok {
-				return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
-			}
+				log.Printf("[KRISTIN]: %s needs %s\n", dag.VertexName(pc), provider.String())
 
-			closer, ok := cpm[provider.String()]
-			if !ok {
-				return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
+				closer, ok := cpm[provider.String()]
+				if !ok {
+					return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
+				}
+
+				log.Printf("[KRISTIN]: connecting closer %s to %s\n", closer.Addr.String(), dag.VertexName(pc))
+				g.Connect(dag.BasicEdge(closer, v))
 			}
-			g.Connect(dag.BasicEdge(closer, v))
 		}
 	}
 

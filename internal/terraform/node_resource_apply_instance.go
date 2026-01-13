@@ -524,12 +524,12 @@ func maybeTainted(addr addrs.AbsResourceInstance, state *states.ResourceInstance
 }
 
 func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions map[int]actionInvocationInstanceSrcs) tfdiags.Diagnostics {
-
 	// the map keys correlate to the actionTriggerBlockIndex, so start by making a map of index position -> map key
 	keys := make([]int, 0)
 	for k := range actions {
 		keys = append(keys, k)
 	}
+	sort.Ints(keys)
 
 	var diags tfdiags.Diagnostics
 	// for each action_trigger block
@@ -537,7 +537,7 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 		// for each action
 		for j := 0; j < len(actions[keys[i]]); j++ {
 			// evaluate condition again
-			triggerConfig := n.Config.Managed.ActionTriggers[i]
+			triggerConfig := n.Config.Managed.ActionTriggers[keys[i]]
 			if triggerConfig == nil {
 				panic("well at least you didn't expect that to work")
 			}
@@ -552,6 +552,7 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			ai, err := aiSrc.Decode(aschema)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a planned action invocation: %v\n\nThis is a bug in Terraform; please report it!", err)))
+				return diags
 			}
 			at := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
 			if triggerConfig.Condition != nil {
@@ -579,13 +580,12 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 
 			actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
 			if !ok {
-				diags = diags.Append(&hcl.Diagnostic{
+				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Action instance not found",
 					Detail:   "Could not find action instance for address " + ai.Addr.String(),
 					//Subject:
 				})
-				return diags
 			}
 
 			provider, schema, err := getProvider(ctx, actionData.ProviderAddr)
@@ -623,6 +623,9 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 						ai.Addr, tfdiags.FormatError(err)),
 					//Subject: n.ActionTriggerRange,
 				})
+			}
+			if diags.HasErrors() {
+				return diags
 			}
 
 			if !configValue.IsWhollyKnown() {
