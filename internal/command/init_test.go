@@ -383,6 +383,11 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if _, err := os.Stat(filepath.Join(td, "foo", "foo")); err != nil {
+		// Note: originally foo was never copied into itself in this scenario,
+		// but behavior changed sometime around when -chdir replaced legacy positional
+		// path arguments. We may want to revert to the original behavior in a
+		// future major release.
+		// See: https://github.com/hashicorp/terraform/pull/38059
 		t.Fatalf("err: %s", err)
 	}
 
