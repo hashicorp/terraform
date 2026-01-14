@@ -345,6 +345,8 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Instead of using the -chdir flag, we change directory into the directory foo.
+	// This creates the test scenario; foo/ will be included in the data retrieved by -from-module below.
 	if err := os.Chdir("foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
