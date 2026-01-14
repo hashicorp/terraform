@@ -32,15 +32,15 @@ func TestPathsWithMark(t *testing.T) {
 		},
 		{
 			Path:  cty.GetAttrPath("deprecated"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil)),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", "")),
 		},
 		{
 			Path:  cty.GetAttrPath("multipleDeprecations"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil), NewDeprecation("this is also deprecated", nil)),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", "")),
 		},
 		{
 			Path:  cty.GetAttrPath("multipleDeprecationsAndSensitive"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil), NewDeprecation("this is also deprecated", nil), "sensitive"),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", ""), "sensitive"),
 		},
 	}
 
@@ -71,15 +71,15 @@ func TestPathsWithMark(t *testing.T) {
 		},
 		{
 			Path:  cty.GetAttrPath("deprecated"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil)),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", "")),
 		},
 		{
 			Path:  cty.GetAttrPath("multipleDeprecations"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil), NewDeprecation("this is also deprecated", nil)),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", "")),
 		},
 		{
 			Path:  cty.GetAttrPath("multipleDeprecationsAndSensitive"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil), NewDeprecation("this is also deprecated", nil), "sensitive"),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", ""), "sensitive"),
 		},
 	}
 
@@ -116,7 +116,7 @@ func TestPathsWithMark(t *testing.T) {
 		},
 		{
 			Path:  cty.GetAttrPath("multipleDeprecationsAndSensitive"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil), NewDeprecation("this is also deprecated", nil), "sensitive"),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", ""), "sensitive"),
 		},
 	}
 
@@ -166,15 +166,15 @@ func TestRemoveAll_dataMarks(t *testing.T) {
 	input := []cty.PathValueMarks{
 		{
 			Path:  cty.GetAttrPath("deprecated"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil)),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", "")),
 		},
 		{
 			Path:  cty.GetAttrPath("multipleDeprecations"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil), NewDeprecation("this is also deprecated", nil)),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", "")),
 		},
 		{
 			Path:  cty.GetAttrPath("multipleDeprecationsAndSensitive"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", nil), NewDeprecation("this is also deprecated", nil), "sensitive"),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", ""), "sensitive"),
 		},
 	}
 
@@ -250,7 +250,7 @@ func TestMarkPaths(t *testing.T) {
 		cty.GetAttrPath("o").GetAttr("b"),
 		cty.GetAttrPath("t").IndexInt(0),
 	}
-	deprecationMark := NewDeprecation("this is deprecated", nil)
+	deprecationMark := NewDeprecation("this is deprecated", "")
 	got = MarkPaths(value, deprecationMark, deprecatedPaths)
 	want = cty.ObjectVal(map[string]cty.Value{
 		"s": cty.StringVal(".s").Mark(deprecationMark),
@@ -365,28 +365,28 @@ func TestMarksEqual(t *testing.T) {
 		},
 		{
 			[]cty.PathValueMarks{
-				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("same message", nil))},
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("same message", ""))},
 			},
 			[]cty.PathValueMarks{
-				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("same message", nil))},
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("same message", ""))},
 			},
 			true,
 		},
 		{
 			[]cty.PathValueMarks{
-				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("different", nil))},
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("different", ""))},
 			},
 			[]cty.PathValueMarks{
-				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("message", nil))},
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("message", ""))},
 			},
 			false,
 		},
 		{
 			[]cty.PathValueMarks{
-				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("same message", nil))},
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("same message", ""))},
 			},
 			[]cty.PathValueMarks{
-				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("same message", nil))},
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(NewDeprecation("same message", ""))},
 			},
 			true,
 		},
