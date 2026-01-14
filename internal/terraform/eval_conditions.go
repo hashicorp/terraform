@@ -107,7 +107,7 @@ func validateCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalCo
 	errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, &addr)
 	diags = diags.Append(moreDiags)
 
-	_, deprecationDiags := ctx.Deprecations().Validate(errorMessage, ctx.Path().Module(), rule.ErrorMessage.Range().Ptr())
+	_, deprecationDiags := ctx.Deprecations().ValidateDeep(errorMessage, ctx.Path().Module(), rule.ErrorMessage.Range().Ptr())
 	diags = diags.Append(deprecationDiags)
 
 	// NOTE: We've discarded any other marks the string might have been carrying,
@@ -170,7 +170,7 @@ func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContex
 	}
 
 	// We don't care about the returned value here, only the diagnostics
-	_, deprecationDiags := ctx.Deprecations().Validate(resultVal, addr.ModuleInstance().Module(), rule.Condition.Range().Ptr())
+	_, deprecationDiags := ctx.Deprecations().ValidateDeep(resultVal, addr.ModuleInstance().Module(), rule.Condition.Range().Ptr())
 	diags = diags.Append(deprecationDiags)
 
 	var err error
