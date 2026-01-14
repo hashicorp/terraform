@@ -346,7 +346,10 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 	}
 
 	// Instead of using the -chdir flag, we change directory into the directory foo.
-	// This creates the test scenario; foo/ will be included in the data retrieved by -from-module below.
+	// 	.
+	// ├── issue518.tf
+	// └── foo/               << current directory
+	//     └── (empty)
 	if err := os.Chdir("foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -361,8 +364,7 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		},
 	}
 
-	// The path ./.. could cause the foo directory to be copied into the current
-	// directory foo.
+	// The path ./.. includes the current directory foo.
 	args := []string{
 		"-from-module=./..",
 	}
@@ -370,9 +372,27 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
 
-	// We expect the .tf file to be copied into the current directory, foo
+	// Assert this outcome
+	// 	.
+	// ├── issue518.tf
+	// └── foo/               << current directory
+	//     ├── issue518.tf
+	//     └── foo/
+	//         └── (empty)
 	if _, err := os.Stat(filepath.Join(td, "foo", "issue518.tf")); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(filepath.Join(td, "foo", "foo")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// We don't expect foo to be copied into itself multiple times
+	_, err := os.Stat(filepath.Join(td, "foo", "foo", "foo"))
+	if err == nil {
+		t.Fatal("expected directory ./foo/foo/foo to not exist, but it does")
+	}
+	if _, ok := err.(*os.PathError); !ok {
+		t.Fatalf("unexpected err: %s", err)
 	}
 }
 
