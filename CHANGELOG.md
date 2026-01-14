@@ -1,4 +1,4 @@
-## 1.15.0 (Unreleased)
+## 1.15.0-alpha20260114 (January 14, 2026)
 
 
 NEW FEATURES:
@@ -26,6 +26,13 @@ BUG FIXES:
 * cli: Fixed `terraform init -json` to properly format all backend configuration messages as JSON instead of plain text ([#37911](https://github.com/hashicorp/terraform/issues/37911))
 
 * `state show`: The `state show` command will now explicitly fail and return code 1 when it fails to render the named resources state ([#37933](https://github.com/hashicorp/terraform/issues/37933))
+
+* lifecycle: `replace_triggered_by` now reports an error when given an invalid attribute reference that does not exist in the target resource ([#36740](https://github.com/hashicorp/terraform/issues/36740))
+
+
+UPGRADE NOTES:
+
+* backend/s3: The `AWS_USE_FIPS_ENDPOINT` and `AWS_USE_DUALSTACK_ENDPOINT` environment variables now only respect `true` or `false` values, aligning with the AWS SDK for Go. This replaces the previous behavior which treated any non-empty value as `true`. ([#37601](https://github.com/hashicorp/terraform/issues/37601))
 
 
 EXPERIMENTS:
