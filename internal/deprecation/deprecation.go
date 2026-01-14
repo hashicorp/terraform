@@ -35,6 +35,9 @@ func (d *Deprecations) SuppressModuleCallDeprecation(addr addrs.Module) {
 	d.suppressedModules.Add(addr)
 }
 
+// Validate checks the given value for deprecation marks and returns diagnostics
+// for each deprecation found, unless deprecation warnings are suppressed for the given module.
+// It does not check for deeply nested deprecation marks.
 func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.Range) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	deprecationMarks := marks.GetDeprecationMarks(value)
@@ -67,6 +70,9 @@ func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.R
 	return notDeprecatedValue, diags
 }
 
+// ValidateAsConfig checks the given value for deprecation marks and returns diagnostics
+// for each deprecation found, unless deprecation warnings are suppressed for the given module.
+// It checks for deeply nested deprecation marks as well.
 func (d *Deprecations) ValidateAsConfig(value cty.Value, module addrs.Module) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	_, pvms := value.UnmarkDeepWithPaths()

@@ -64,7 +64,7 @@ func FilterDeprecationMarks(marks cty.ValueMarks) []DeprecationMark {
 // GetDeprecationMarks returns all deprecation marks present on the given
 // cty.Value.
 func GetDeprecationMarks(val cty.Value) []DeprecationMark {
-	_, marks := val.UnmarkDeep()
+	_, marks := val.Unmark()
 	return FilterDeprecationMarks(marks)
 }
 
