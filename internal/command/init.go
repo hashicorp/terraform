@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -55,16 +56,38 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Look for experiments opted-into via the configuration.
+	// However we need to accommodate when the -from-module flag is used.
+	// For now, we simply won't parse experiments at this stage when deciding if the PSS experiment is enabled;
+	// users are unlikely to be consuming the experiment via -from-module and there are complications accommodating that use case.
+	//
+	// The variables below will not be set if the -from-module flag is used, and downstream logic will perform parsing once
+	// the module is downloaded.
+	var rootMod *configs.Module
+	var rootModDiags tfdiags.Diagnostics
+	if initArgs.FromModule == "" {
+		path, err := ModulePath(initArgs.Args)
+		if err != nil {
+			diags = diags.Append(err)
+			view.Diagnostics(diags)
+			return 1
+		}
+		rootMod, rootModDiags = c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+		// We purposefully don't exit early if there are error diagnostics returned here; there are errors related to the Terraform version
+		// that have precedence and are detected downstream.
+		// We pass the configuration and diagnostic values from here into downstream code, replacing where the files are parsed there.
+		// This prevents the diagnostics being lost, as re-parsing the same config results in lost diagnostics.
+	}
+
 	// The else condition below invokes the original logic of the init command.
 	// An experimental version of the init code will be used if:
-	// 	> The user uses an experimental version of TF (alpha or built from source)
-	//  > Either the flag -enable-pluggable-state-storage-experiment is passed to the init command.
-	//  > Or, the environment variable TF_ENABLE_PLUGGABLE_STATE_STORAGE is set to any value.
-	if c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment {
+	// 	> The user uses an experimental version of TF (alpha or built from source).
+	//  > The terraform block in the configuration lists the `pluggable_state_stores` experiment.
+	if c.Meta.AllowExperimentalFeatures && rootMod.ActiveExperiments.Has(experiments.PluggableStateStores) {
 		// TODO(SarahFrench/radeksimko): Remove forked init logic once feature is no longer experimental
-		return c.runPssInit(initArgs, view)
+		return c.runPssInit(initArgs, view, rootMod, rootModDiags)
 	} else {
-		return c.run(initArgs, view)
+		return c.run(initArgs, view, rootMod, rootModDiags)
 	}
 }
 
@@ -1476,15 +1499,12 @@ Options:
 
   -test-directory=path    Set the Terraform test directory, defaults to "tests".
 
-  -enable-pluggable-state-storage-experiment [EXPERIMENTAL]
-                          A flag to enable an alternative init command that allows use of
-                          pluggable state storage. Only usable with experiments enabled.
-
   -create-default-workspace [EXPERIMENTAL]
-                          This flag must be used alongside the -enable-pluggable-state-storage-
-                          experiment flag with experiments enabled. This flag's value defaults
-                          to true, which allows the default workspace to be created if it does
-                          not exist. Use -create-default-workspace=false to disable this behavior.
+                          This flag must be used alongside naming the pluggable_state_stores
+                          experiment in your configuration and using an experimental build of
+                          Terraform. This flag's value defaults to true, which allows the default
+                          workspace to be created if it does not exist.
+                          Use -create-default-workspace=false to disable this behavior.
 
 `
 	return strings.TrimSpace(helpText)

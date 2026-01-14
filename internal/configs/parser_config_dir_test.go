@@ -73,8 +73,14 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 				}
 				diags = filterDiags
 			}
-			if len(diags) != 0 {
-				t.Errorf("unexpected diagnostics")
+			if diags.HasErrors() {
+				t.Error("unexpected error diagnostics")
+				for _, diag := range diags.Errs() {
+					t.Logf("- %s", diag)
+				}
+			}
+			if len(diags) > 0 {
+				t.Error("unexpected diagnostics:")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}

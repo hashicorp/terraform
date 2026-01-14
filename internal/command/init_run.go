@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -22,7 +23,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
+func (c *InitCommand) run(initArgs *arguments.Init, view views.Init, rootModEarly *configs.Module, earlyConfDiags tfdiags.Diagnostics) int {
 	var diags tfdiags.Diagnostics
 
 	c.forceInitCopy = initArgs.ForceInitCopy
@@ -129,8 +130,13 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 0
 	}
 
-	// Load just the root module to begin backend and module initialization
-	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	// TODO(SarahFrench/radeksimko): Once PSS's experiment is over
+	// restore parsing of config to only happen here in this code instead of calling code.
+	//
+	// Here we accommodate use of -from-module; we need to parse config after the module is downloaded.
+	if initArgs.FromModule != "" && rootModEarly == nil {
+		rootModEarly, earlyConfDiags = c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	}
 
 	// There may be parsing errors in config loading but these will be shown later _after_
 	// checking for core version requirement errors. Not meeting the version requirement should
@@ -142,7 +148,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		return 1
 	}
-	if !(c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment) && rootModEarly.StateStore != nil {
+	if !(c.Meta.AllowExperimentalFeatures && rootModEarly.ActiveExperiments.Has(experiments.PluggableStateStores)) && rootModEarly.StateStore != nil {
 		// TODO(SarahFrench/radeksimko) - remove when this feature isn't experimental.
 		// This approach for making the feature experimental is required
 		// to let us assert the feature is gated behind an experiment in tests.
@@ -152,11 +158,13 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		if !c.Meta.AllowExperimentalFeatures {
 			detail += " an experimental build of terraform"
 		}
-		if !initArgs.EnablePssExperiment {
+		if !rootModEarly.ActiveExperiments.Has(experiments.PluggableStateStores) {
 			if !c.Meta.AllowExperimentalFeatures {
 				detail += " and"
 			}
-			detail += " -enable-pluggable-state-storage-experiment flag"
+			detail += fmt.Sprintf(" the configuration to opt into the %q experiment using the `terraform` block's `experiments` attribute",
+				experiments.PluggableStateStores.Keyword(),
+			)
 		}
 
 		diags = diags.Append(earlyConfDiags)

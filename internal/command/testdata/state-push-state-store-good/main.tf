@@ -1,4 +1,5 @@
 terraform {
+  experiments = [pluggable_state_stores]
   required_providers {
     test = {
       source = "registry.terraform.io/hashicorp/test"

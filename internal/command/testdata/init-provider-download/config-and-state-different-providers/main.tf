@@ -1,4 +1,5 @@
 terraform {
+  experiments = [pluggable_state_stores]
   required_providers {
     null = {
       source  = "hashicorp/null"

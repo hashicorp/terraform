@@ -31,7 +31,7 @@ import (
 // `runPssInit` is an altered version of the logic in `run` that contains changes
 // related to the PSS project. This is used by the (InitCommand.Run method only if Terraform has
 // experimental features enabled.
-func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int {
+func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init, rootModEarly *configs.Module, earlyConfDiags tfdiags.Diagnostics) int {
 	var diags tfdiags.Diagnostics
 
 	c.forceInitCopy = initArgs.ForceInitCopy
@@ -138,8 +138,13 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		return 0
 	}
 
-	// Load just the root module to begin backend and module initialization
-	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	// TODO(SarahFrench/radeksimko): Once PSS's experiment is over
+	// restore parsing of config to only happen here in this code instead of calling code.
+	//
+	// Here we accommodate use of -from-module; we need to parse config after the module is downloaded.
+	if initArgs.FromModule != "" && rootModEarly == nil {
+		rootModEarly, earlyConfDiags = c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	}
 
 	// There may be parsing errors in config loading but these will be shown later _after_
 	// checking for core version requirement errors. Not meeting the version requirement should
