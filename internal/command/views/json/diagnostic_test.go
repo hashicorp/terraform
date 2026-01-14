@@ -880,11 +880,7 @@ func TestNewDiagnostic(t *testing.T) {
 					End:      hcl.Pos{Line: 1, Column: 25, Byte: 24},
 				},
 				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-					Origin: &tfdiags.SourceRange{
-						Filename: "deprecation.tf",
-						Start:    tfdiags.SourcePos{Line: 1, Column: 10, Byte: 9},
-						End:      tfdiags.SourcePos{Line: 1, Column: 25, Byte: 24},
-					},
+					OriginDescription: "aws_s3_bucket.hello.acl",
 				},
 			},
 			&Diagnostic{
@@ -912,19 +908,7 @@ func TestNewDiagnostic(t *testing.T) {
 					HighlightEndOffset:   24,
 					Values:               []DiagnosticExpressionValue{},
 				},
-				DeprecationOriginRange: &DiagnosticRange{
-					Filename: "deprecation.tf",
-					Start:    Pos{Line: 1, Column: 10, Byte: 9},
-					End:      Pos{Line: 1, Column: 25, Byte: 24},
-				},
-				DeprecationOriginSnippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "deprecated"`),
-					Code:                 `resource "test_resource" "deprecated" {}`,
-					StartLine:            1,
-					HighlightStartOffset: 9,
-					HighlightEndOffset:   24,
-					Values:               []DiagnosticExpressionValue{},
-				},
+				DeprecationOriginDescription: "aws_s3_bucket.hello.acl",
 			},
 		},
 	}

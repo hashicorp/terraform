@@ -40,8 +40,7 @@ type Diagnostic struct {
 	Range   *DiagnosticRange   `json:"range,omitempty"`
 	Snippet *DiagnosticSnippet `json:"snippet,omitempty"`
 
-	DeprecationOriginRange   *DiagnosticRange   `json:"deprecation_origin_range,omitempty"`
-	DeprecationOriginSnippet *DiagnosticSnippet `json:"deprecation_origin_snippet,omitempty"`
+	DeprecationOriginDescription string `json:"deprecation_origin_description,omitempty"`
 }
 
 // Pos represents a position in the source code.
@@ -403,31 +402,8 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		}
 	}
 
-	if deprecationOrigin := tfdiags.DiagnosticDeprecationOrigin(diag); deprecationOrigin != nil {
-		diagnostic.DeprecationOriginRange = &DiagnosticRange{
-			Filename: deprecationOrigin.Filename,
-			Start: Pos{
-				Line:   deprecationOrigin.Start.Line,
-				Column: deprecationOrigin.Start.Column,
-				Byte:   deprecationOrigin.Start.Byte,
-			},
-			End: Pos{
-				Line:   deprecationOrigin.End.Line,
-				Column: deprecationOrigin.End.Column,
-				Byte:   deprecationOrigin.End.Byte,
-			},
-		}
-
-		var src []byte
-		if sources != nil {
-			src = sources[deprecationOrigin.Filename]
-		}
-
-		if src != nil {
-			highlightRange := deprecationOrigin.ToHCL()
-			diagnostic.DeprecationOriginSnippet = snippetFromRange(src, highlightRange, highlightRange)
-		}
-
+	if deprecationOrigin := tfdiags.DeprecatedOriginDescription(diag); deprecationOrigin != "" {
+		diagnostic.DeprecationOriginDescription = deprecationOrigin
 	}
 
 	return diagnostic

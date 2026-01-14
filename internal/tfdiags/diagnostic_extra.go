@@ -266,21 +266,21 @@ func DiagnosticCausedByTestFailure(diag Diagnostic) bool {
 // deprecation warning. It provides information about the origin of the
 // deprecation.
 type DiagnosticExtraDeprecationOrigin interface {
-	DeprecationOrigin() *SourceRange
+	DeprecatedOriginDescription() string
 }
 
 // DiagnosticDeprecationOrigin returns the origin range of a deprecation
 // warning diagnostic, or nil if the diagnostic does not have such information.
-func DiagnosticDeprecationOrigin(diag Diagnostic) *SourceRange {
+func DeprecatedOriginDescription(diag Diagnostic) string {
 	maybe := ExtraInfo[DiagnosticExtraDeprecationOrigin](diag)
 	if maybe == nil {
-		return nil
+		return ""
 	}
-	return maybe.DeprecationOrigin()
+	return maybe.DeprecatedOriginDescription()
 }
 
 type DeprecationOriginDiagnosticExtra struct {
-	Origin *SourceRange
+	OriginDescription string
 
 	wrapped interface{}
 }
@@ -304,6 +304,6 @@ func (c *DeprecationOriginDiagnosticExtra) WrapDiagnosticExtra(inner interface{}
 	c.wrapped = inner
 }
 
-func (c *DeprecationOriginDiagnosticExtra) DeprecationOrigin() *SourceRange {
-	return c.Origin
+func (c *DeprecationOriginDiagnosticExtra) DeprecatedOriginDescription() string {
+	return c.OriginDescription
 }

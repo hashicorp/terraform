@@ -418,11 +418,7 @@ func TestDiagnostic(t *testing.T) {
 					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
 				},
 				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-					Origin: &tfdiags.SourceRange{
-						Filename: "deprecated.tf",
-						Start:    tfdiags.SourcePos{Line: 1, Column: 11, Byte: 10},
-						End:      tfdiags.SourcePos{Line: 1, Column: 22, Byte: 21},
-					},
+					OriginDescription: "module.foo.bar",
 				},
 			},
 			`[yellow]╷[reset]
@@ -431,8 +427,7 @@ func TestDiagnostic(t *testing.T) {
 [yellow]│[reset]   on test.tf line 1:
 [yellow]│[reset]    1: test [underline]source[reset] code
 [yellow]│[reset]
-[yellow]│[reset]   (origin of deprecation on deprecated.tf line 1):
-[yellow]│[reset]    1: source of [underline]deprecation[reset]
+[yellow]│[reset]   The deprecation originates from module.foo.bar
 [yellow]│[reset]
 [yellow]│[reset] Countermeasures must be taken.
 [yellow]╵[reset]
@@ -760,11 +755,7 @@ Whatever shall we do?
 					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
 				},
 				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-					Origin: &tfdiags.SourceRange{
-						Filename: "deprecated.tf",
-						Start:    tfdiags.SourcePos{Line: 1, Column: 11, Byte: 10},
-						End:      tfdiags.SourcePos{Line: 1, Column: 22, Byte: 21},
-					},
+					OriginDescription: "module.foo.bar",
 				},
 			},
 			`
@@ -773,8 +764,7 @@ Warning: Deprecation detected
   on test.tf line 1:
    1: test source code
 
-  (origin of deprecation on deprecated.tf line 1):
-   1: source of deprecation
+  The deprecation originates from module.foo.bar
 
 Countermeasures must be taken.
 `,
