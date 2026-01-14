@@ -59,6 +59,7 @@ func cleanString(s string) string {
 	return s
 }
 
+// Test that users can initialize an empty directory
 func TestInit_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -86,6 +87,7 @@ func TestInit_empty(t *testing.T) {
 	}
 }
 
+// Test that users can initialize a directory containing tests and no configuration
 func TestInit_only_test_files(t *testing.T) {
 	// Create a temporary working directory that has only test files and no tf configuration
 	td := t.TempDir()
@@ -117,6 +119,8 @@ func TestInit_only_test_files(t *testing.T) {
 	}
 }
 
+// Test that the new init logic for the PSS project downloads all expected providers,
+// without redundant download steps, and maintaining features like provider upgrade.
 func TestInit_two_step_provider_download(t *testing.T) {
 	cases := map[string]struct {
 		workDirPath          string
@@ -199,7 +203,6 @@ func TestInit_two_step_provider_download(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-
 			// Create a temporary working directory no tf configuration but has state
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(tc.workDirPath), td)
@@ -266,6 +269,7 @@ func TestInit_multipleArgs(t *testing.T) {
 	}
 }
 
+// Test that the -migrate-state and -json flags are mutually exclusive and an error is returned.
 func TestInit_migrateStateAndJSON(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -296,6 +300,7 @@ func TestInit_migrateStateAndJSON(t *testing.T) {
 	checkGoldenReference(t, testOutput, "init-migrate-state-with-json")
 }
 
+// Test copying a source module using the -from-module=MODULE-SOURCE flag.
 func TestInit_fromModule_cwdDest(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -591,6 +596,7 @@ func TestInit_backend_migration_stateMgr_error(t *testing.T) {
 	}
 }
 
+// Test removing a backend block, i.e. migration to an implied local backend
 func TestInit_backendUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -661,8 +667,11 @@ func TestInit_backendUnset(t *testing.T) {
 	}
 }
 
+// Test use of the -backend-config flag when initializing a backend,
+// using a file path as the flag value.
 func TestInit_backendConfigFile(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// The same working directory is used across test cases; after the first test case subsequent cases need to
+	// perform a state migration, unless they end early due to testing an error case.
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
 	t.Chdir(td)
@@ -797,6 +806,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 	})
 }
 
+// Test use of the -backend-config flag in Powershell
 func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -833,6 +843,8 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	}
 }
 
+// Test that the -reconfigure flag allows users to initialize a backend
+// independently of prior backend state files and avoiding state migrations.
 func TestInit_backendReconfigure(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -998,6 +1010,8 @@ func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
 	}
 }
 
+// Test use of the -backend-config flag when initializing a backend,
+// using key-value pairs as the flag value.
 func TestInit_backendConfigKV(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -1026,6 +1040,9 @@ func TestInit_backendConfigKV(t *testing.T) {
 	}
 }
 
+// Test that the -backend-config flag's values persist when subsequent init commands
+// are run, and that subsequent init commands can use overwrite config if -backend-config
+// is supplied with a different value.
 func TestInit_backendConfigKVReInit(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -1578,7 +1595,6 @@ prompts.
 			t.Errorf("wrong error output\n%s", diff)
 		}
 	})
-
 }
 
 // make sure inputFalse stops execution on migrate
@@ -3269,6 +3285,7 @@ func TestInit_testsWithOverriddenInvalidRequiredProviders(t *testing.T) {
 	}
 }
 
+// Test that Terraform doesn't crash when required_providers is malformed
 func TestInit_testsWithInvalidRequiredProviders(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-with-duplicates"), td)
@@ -3299,6 +3316,7 @@ func TestInit_testsWithInvalidRequiredProviders(t *testing.T) {
 	}
 }
 
+// Test that modules referenced in test files are installed during init
 func TestInit_testsWithModule(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -3858,6 +3876,94 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 	})
 
+	t.Run("the -backend=false flag makes Terraform ignore config and use only the the backend state file during initialization", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+
+		// The previous init implied by this test scenario would have created this.
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}}
+		mockProvider.MockStates = map[string]interface{}{"default": []byte(`{"version": 4,"terraform_version":"1.15.0","serial": 1,"lineage": "","outputs": {},"resources": [],"checks":[]}`)}
+
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-backend=false",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert contents of the backend state file
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be created, but there isn't one")
+		}
+		v1_2_3, _ := version.NewVersion("1.2.3")
+		expectedState := &workdir.StateStoreConfigState{
+			Type:      "test_store",
+			ConfigRaw: []byte("{\n      \"value\": \"changed-value\"\n    }"),
+			Hash:      uint64(1157855489), // The new hash after reconfiguring; this doesn't match the backend state test fixture
+			Provider: &workdir.ProviderConfigState{
+				Version: v1_2_3,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
+			},
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+	})
+
 	t.Run("handling changed state store config is currently unimplemented", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
@@ -3905,7 +4011,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
-
 	})
 
 	t.Run("handling changed state store provider config is currently unimplemented", func(t *testing.T) {
@@ -4124,6 +4229,11 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 	})
 }
 
+// Test migration from state_store to backend
+//
+// In this test the provider used for pluggable state storage is still present in
+// the config's required_providers list, but this isn't necessary.
+// See also TestInit_stateStore_unset_withoutProviderRequirements.
 func TestInit_stateStore_unset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -4225,6 +4335,11 @@ func TestInit_stateStore_unset(t *testing.T) {
 	}
 }
 
+// Test migration from state_store to backend
+//
+// Specifically, this test shows that when migrating away from a state_store (to implied backend)
+// the required_provider entry used for pluggable state storage don't need to be present in the
+// configuration during the migration process.
 func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -4327,6 +4442,7 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 	}
 }
 
+// Test the ability to migrate from using `state_store` config to `backend` config
 func TestInit_stateStore_to_backend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -4504,7 +4620,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatal(err)
 		}
 		expectedOutputs := map[string]*states.OutputValue{
-			"test": &states.OutputValue{
+			"test": {
 				Addr: addrs.AbsOutputValue{
 					OutputValue: addrs.OutputValue{
 						Name: "test",
