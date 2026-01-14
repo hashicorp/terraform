@@ -519,7 +519,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	}
 
 	if n.Config.DeprecatedSet {
-		val = marks.RemoveDeprecationMarks(val)
+		val = marks.RemoveDeprecationMarksDeep(val)
 		if n.Addr.Module.IsRoot() {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -530,7 +530,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 	} else if n.Config.Expr != nil {
 		var deprecationDiags tfdiags.Diagnostics
-		val, deprecationDiags = ctx.Deprecations().Validate(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
+		val, deprecationDiags = ctx.Deprecations().ValidateDeep(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
 		diags = diags.Append(deprecationDiags)
 	}
 
