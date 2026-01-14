@@ -324,23 +324,19 @@ func TestInit_fromModule_cwdDest(t *testing.T) {
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/518
+// Regression test to check that Terraform doesn't recursively copy
+// a directory when the source module includes the current directory.
+// See: https://github.com/hashicorp/terraform/issues/518
 func TestInit_fromModule_dstInSrc(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	// Change to a temporary directory
+	td := t.TempDir()
+	t.Chdir(td)
 
-	// Change to the temporary directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
-
+	// Create contents
+	// 	.
+	// ├── issue518.tf
+	// └── foo/
+	//     └── (empty)
 	if err := os.Mkdir("foo", os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
@@ -363,6 +359,8 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		},
 	}
 
+	// The path ./.. could cause the foo directory to be copied into the current
+	// directory foo.
 	args := []string{
 		"-from-module=./..",
 	}
@@ -370,7 +368,8 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
 
-	if _, err := os.Stat(filepath.Join(dir, "foo", "issue518.tf")); err != nil {
+	// We expect the .tf file to be copied into the current directory, foo
+	if _, err := os.Stat(filepath.Join(td, "foo", "issue518.tf")); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
