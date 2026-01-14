@@ -56,11 +56,9 @@ func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.R
 			Detail:   depMark.Message,
 			Subject:  rng,
 		}
-		if depMark.Origin != nil {
-			origin := *depMark.Origin
-			sourceRange := tfdiags.SourceRangeFromHCL(origin)
+		if depMark.OriginDescription != "" {
 			diag.Extra = &tfdiags.DeprecationOriginDiagnosticExtra{
-				Origin: &sourceRange,
+				OriginDescription: depMark.OriginDescription,
 			}
 		}
 		diags = diags.Append(diag)
@@ -86,15 +84,14 @@ func (d *Deprecations) ValidateAsConfig(value cty.Value, module addrs.Module) tf
 					depMark.Message,
 					pvm.Path,
 				)
-				origin := depMark.Origin
-				if origin != nil {
+				if depMark.OriginDescription != "" {
 					diag = tfdiags.Override(
 						diag,
 						tfdiags.Warning, // We just want to override the extra info
 						func() tfdiags.DiagnosticExtraWrapper {
-							sourceRange := tfdiags.SourceRangeFromHCL(*origin)
 							return &tfdiags.DeprecationOriginDiagnosticExtra{
-								Origin: &sourceRange,
+								// TODO: Remove common prefixes from origin descriptions?
+								OriginDescription: depMark.OriginDescription,
 							}
 						})
 				}
