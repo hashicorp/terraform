@@ -7418,6 +7418,17 @@ output "test_output2" {
 				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
 			},
 		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 10, Byte: 80},
+				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
+			},
+		},
 	))
 }
 
