@@ -421,7 +421,14 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
 			val := cty.UnknownVal(cty.DynamicPseudoType)
 			if c.DeprecatedSet {
-				val = val.Mark(marks.NewDeprecation(c.Deprecated, &c.DeclRange))
+				accessor := "."
+				switch {
+				case callConfig.Count != nil:
+					accessor = ".[*]."
+				case callConfig.ForEach != nil:
+					accessor = ".[*]."
+				}
+				val = val.Mark(marks.NewDeprecation(c.Deprecated, fmt.Sprintf("%s%s%s", addr.String(), accessor, name)))
 			}
 			as[name] = val
 		}
@@ -482,7 +489,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			if cfg.DeprecatedSet {
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, &cfg.DeclRange))
+				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, fmt.Sprintf("%s.%s", moduleInstAddr.String(), name)))
 			}
 			attrs[name] = outputVal
 		}
@@ -791,7 +798,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// states populated for all resources in the configuration.
 			ret := cty.DynamicVal
 			if schema.Body.Deprecated {
-				ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type), &config.DeclRange))
+				ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type), addr.String()))
 			}
 			return ret, diags
 		}
@@ -869,7 +876,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	}
 
 	if schema.Body.Deprecated {
-		ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type), &config.DeclRange))
+		ret = ret.Mark(marks.NewDeprecation(fmt.Sprintf("Resource %q is deprecated", addr.Type), addr.String()))
 	}
 
 	return ret, diags
@@ -1152,7 +1159,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 		value = value.Mark(marks.Ephemeral)
 	}
 	if config.DeprecatedSet {
-		value = value.Mark(marks.NewDeprecation(config.Deprecated, &config.DeclRange))
+		value = value.Mark(marks.NewDeprecation(config.Deprecated, addr.Absolute(d.ModulePath).String()))
 	}
 
 	return value, diags
