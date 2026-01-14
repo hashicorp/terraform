@@ -37,19 +37,31 @@ func (d *Deprecations) SuppressModuleCallDeprecation(addr addrs.Module) {
 
 // Validate checks the given value for deprecation marks and returns diagnostics
 // for each deprecation found, unless deprecation warnings are suppressed for the given module.
-// It does not check for deeply nested deprecation marks.
-func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.Range) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	deprecationMarks := marks.GetDeprecationMarks(value)
-	if len(deprecationMarks) == 0 {
-		return value, diags
-	}
 
+// This is appropriate for non-terminal values (values that can be referenced) only.
+// If the value can not be referenced, use ValidateDeep or ValidateAsConfig instead.
+func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.Range) (cty.Value, tfdiags.Diagnostics) {
+	deprecationMarks := marks.GetDeprecationMarks(value)
 	notDeprecatedValue := marks.RemoveDeprecationMarks(value)
+	return notDeprecatedValue, d.deprecationMarksToDiagnostics(deprecationMarks, module, rng)
+}
+
+// ValidateDeep does the same as Validate but checks deeply nested deprecation marks as well.
+func (d *Deprecations) ValidateDeep(value cty.Value, module addrs.Module, rng *hcl.Range) (cty.Value, tfdiags.Diagnostics) {
+	deprecationMarks := marks.GetDeprecationMarksDeep(value)
+	notDeprecatedValue := marks.RemoveDeprecationMarksDeep(value)
+	return notDeprecatedValue, d.deprecationMarksToDiagnostics(deprecationMarks, module, rng)
+}
+
+func (d *Deprecations) deprecationMarksToDiagnostics(deprecationMarks []marks.DeprecationMark, module addrs.Module, rng *hcl.Range) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if len(deprecationMarks) == 0 {
+		return diags
+	}
 
 	// Check if we need to suppress deprecation warnings for this module call.
 	if d.IsModuleCallDeprecationSuppressed(module) {
-		return notDeprecatedValue, diags
+		return diags
 	}
 
 	for _, depMark := range deprecationMarks {
@@ -66,8 +78,7 @@ func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.R
 		}
 		diags = diags.Append(diag)
 	}
-
-	return notDeprecatedValue, diags
+	return diags
 }
 
 // ValidateAsConfig checks the given value for deprecation marks and returns diagnostics
