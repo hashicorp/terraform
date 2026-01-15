@@ -337,11 +337,35 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	var planWorkspace string
+	var isCloud bool
+	if plan.StateStore != nil {
+		planWorkspace = plan.StateStore.Workspace
+		isCloud = false
+	} else {
+		planWorkspace = plan.Backend.Workspace
+		isCloud = plan.Backend.Type == "cloud"
+	}
+
+	// Check the workspace name in the plan matches the current workspace
+	w, err := m.Workspace()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error determining current workspace when initializing a backend from the plan file: %w", err))
+		return nil, diags
+	}
+	if w != planWorkspace {
+		diags = diags.Append(&errWrongWorkspaceForPlan{
+			currentWorkspace: w,
+			plannedWorkspace: planWorkspace,
+			isCloud:          isCloud,
+		})
+		return nil, diags
+	}
+
 	var b backend.Backend
 	switch {
 	case plan.StateStore != nil:
 		settings := plan.StateStore
-
 		// BackendForLocalPlan is used in the context of an apply command using a plan file,
 		// so we can read locks directly from the lock file and trust it contains what we need.
 		locks, lockDiags := m.lockedDependencies()
@@ -1166,7 +1190,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		cloudMode := cloud.DetectConfigChangeType(s.Backend, backendConfig, false)
 
 		if !opts.Init {
-			//user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
+			// user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
 			initDiag := m.determineInitReason(s.Backend.Type, backendConfig.Type, cloudMode)
 			diags = diags.Append(initDiag)
 			return nil, diags
@@ -1300,7 +1324,7 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 	}
 	log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 
-	//backend init function
+	// backend init function
 	if s.Backend.Type == "" {
 		return backendLocal.New(), diags
 	}
@@ -1371,8 +1395,8 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 
 // Unconfiguring a backend (moving from backend => local).
 func (m *Meta) backend_c_r_S(
-	c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
-
+	c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts,
+) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
