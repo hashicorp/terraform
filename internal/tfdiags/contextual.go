@@ -42,19 +42,19 @@ func (diags Diagnostics) InConfigBody(body hcl.Body, addr string) Diagnostics {
 
 	ret := make(Diagnostics, len(diags))
 	for i, srcDiag := range diags {
-		if cd, isCD := srcDiag.(contextualFromConfigBody); isCD {
-			ret[i] = cd.ElaborateFromConfigBody(body, addr)
-		} else if override, isOverride := srcDiag.(overriddenDiagnostic); isOverride {
-			if cd, isCD := override.original.(contextualFromConfigBody); isCD {
+		switch diag := srcDiag.(type) {
+		case contextualFromConfigBody:
+			ret[i] = diag.ElaborateFromConfigBody(body, addr)
+		case overriddenDiagnostic:
+			if cd, isCD := diag.original.(contextualFromConfigBody); isCD {
 				newOriginal := cd.ElaborateFromConfigBody(body, addr)
 				ret[i] = &overriddenDiagnostic{
 					original: newOriginal,
-					severity: override.severity,
-					extra:    override.extra,
+					severity: diag.severity,
+					extra:    diag.extra,
 				}
 			}
-
-		} else {
+		default:
 			ret[i] = srcDiag
 		}
 	}
