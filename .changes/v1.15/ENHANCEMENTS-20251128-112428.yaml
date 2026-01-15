@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'actions: `action_trigger` block now supports `on_failure` attribute, which allows specifying terraform behavior on action failure.'
+time: 2025-11-28T11:24:28.415647+01:00
+custom:
+    Issue: "37945"

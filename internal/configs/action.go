@@ -45,6 +45,7 @@ type ActionTrigger struct {
 	Condition hcl.Expression
 	Events    []ActionTriggerEvent
 	Actions   []ActionRef // References to actions
+	OnFailure ActionTriggerOnFailure
 
 	DeclRange hcl.Range
 }
@@ -54,6 +55,17 @@ type ActionTrigger struct {
 type ActionTriggerEvent int
 
 //go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerEvent
+
+// ActionTriggerOnFailure is an enum capturing the types of behaviors available
+// to action trigger on_failure attribute.
+type ActionTriggerOnFailure int
+
+const (
+	ActionTriggerOnFailureFail ActionTriggerOnFailure = iota
+	ActionTriggerOnFailureContinue
+)
+
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerOnFailure
 
 const (
 	Unknown ActionTriggerEvent = iota
@@ -78,6 +90,7 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		Events:    []ActionTriggerEvent{},
 		Actions:   []ActionRef{},
 		Condition: nil,
+		OnFailure: ActionTriggerOnFailureFail,
 	}
 
 	content, bodyDiags := block.Body.Content(actionTriggerSchema)
@@ -135,6 +148,22 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		actionRefs, ediags := decodeActionTriggerRef(attr.Expr)
 		diags = append(diags, ediags...)
 		a.Actions = actionRefs
+	}
+
+	if attr, exists := content.Attributes["on_failure"]; exists {
+		switch hcl.ExprAsKeyword(attr.Expr) {
+		case "continue":
+			a.OnFailure = ActionTriggerOnFailureContinue
+		case "fail":
+			a.OnFailure = ActionTriggerOnFailureFail
+		default:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid \"on_failure\" keyword",
+				Detail:   "The \"on_failure\" argument requires one of the following keywords: continue or fail.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
 	}
 
 	if len(a.Actions) == 0 {
@@ -265,6 +294,10 @@ var actionTriggerSchema = &hcl.BodySchema{
 		{
 			Name:     "actions",
 			Required: true,
+		},
+		{
+			Name:     "on_failure",
+			Required: false,
 		},
 	},
 }

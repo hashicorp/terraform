@@ -36,6 +36,7 @@ type nodeActionTriggerPlanInstance struct {
 type lifecycleActionTriggerInstance struct {
 	resourceAddress         addrs.AbsResourceInstance
 	events                  []configs.ActionTriggerEvent
+	onFailure               configs.ActionTriggerOnFailure
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
@@ -52,6 +53,7 @@ func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.
 		ActionTriggerBlockIndex: at.actionTriggerBlockIndex,
 		ActionsListIndex:        at.actionListIndex,
 		ActionTriggerEvent:      triggeringEvent,
+		ActionTriggerOnFailure:  at.onFailure,
 	}
 }
 

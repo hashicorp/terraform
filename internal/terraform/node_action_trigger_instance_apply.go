@@ -159,7 +159,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.CompleteAction(hookIdentity, respDiags.Err())
 		}))
-		return diags
+		return respDiags
 	}
 
 	if resp.Events != nil { // should only occur in misconfigured tests
@@ -169,21 +169,12 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.ProgressAction(hookIdentity, ev.Message)
 				}))
-				if diags.HasErrors() {
-					return diags
-				}
 			case providers.InvokeActionEvent_Completed:
 				// Enhance the diagnostics
 				diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
 				}))
-				if ev.Diagnostics.HasErrors() {
-					return diags
-				}
-				if diags.HasErrors() {
-					return diags
-				}
 			default:
 				panic(fmt.Sprintf("unexpected action event type %T", ev))
 			}
@@ -197,7 +188,36 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		})
 	}
 
-	return diags
+	return diagsWrapErrorsAsWarningIfNeeded(ai, diags, n.ActionTriggerRange)
+}
+
+// If action_trigger block has on_failure set to continue we want to wrap any
+// potential error into a warning. This will be propagated upstream to the
+// caller which may or may not halt the rest of execution.
+func diagsWrapErrorsAsWarningIfNeeded(
+	aii *plans.ActionInvocationInstance,
+	currentDiags tfdiags.Diagnostics,
+	subject *hcl.Range,
+) tfdiags.Diagnostics {
+	switch aii.ActionTrigger.TriggerOnFailure() {
+	case configs.ActionTriggerOnFailureContinue:
+		if len(currentDiags) > 0 {
+			var wrappedErrorDiags tfdiags.Diagnostics
+			wrappedErrorDiags = wrappedErrorDiags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary: "Actions contained errors but we're wrapping them " +
+					"into warnings as defined by the 'on_failure' value.",
+				Detail:  currentDiags.ErrWithWarnings().Error(),
+				Subject: subject,
+			})
+			return wrappedErrorDiags
+		}
+	default:
+		// Nothing to do for now - here to make it exhaustive and to denote the
+		// place to put potential new `on failure` cases.
+	}
+
+	return currentDiags
 }
 
 func (n *nodeActionTriggerApplyInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
