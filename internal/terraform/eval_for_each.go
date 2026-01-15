@@ -329,7 +329,7 @@ func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value
 	}
 
 	// We don't care about the returned value here, only the diagnostics
-	_, deprecationDiags := ev.ctx.Deprecations().ValidateDeep(forEachVal, ev.ctx.Path().Module(), ev.expr.Range().Ptr())
+	_, deprecationDiags := ev.ctx.Deprecations().Validate(forEachVal, ev.ctx.Path().Module(), ev.expr.Range().Ptr())
 
 	diags = diags.Append(deprecationDiags)
 

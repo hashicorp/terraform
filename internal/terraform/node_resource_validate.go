@@ -356,7 +356,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath()).InConfigBody(n.Config.Config, n.Addr.String()))
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath()).InConfigBody(n.Config.Config, n.Addr.String()))
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
@@ -436,7 +436,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath()))
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath()))
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -472,7 +472,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		resp := provider.ValidateEphemeralResourceConfig(req)
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath()))
+		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath()))
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	case addrs.ListResourceMode:
 		schema := providerSchema.SchemaForListResourceType(n.Config.Type)
@@ -486,26 +486,39 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		blockVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.FullSchema, nil, keyData)
-		diags = diags.Append(valDiags)
-		if valDiags.HasErrors() {
-			return diags
-		}
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(blockVal, n.ModulePath()))
+		var blockVal, limit, includeResource cty.Value
+		var includeDiags tfdiags.Diagnostics
 
-		limit, _, limitDiags := newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
-		diags = diags.Append(limitDiags)
-		if limitDiags.HasErrors() {
-			return diags
+		if n.Config.Config != nil {
+			var valDiags tfdiags.Diagnostics
+			blockVal, _, valDiags = ctx.EvaluateBlock(n.Config.Config, schema.FullSchema, nil, keyData)
+			diags = diags.Append(valDiags)
+			if valDiags.HasErrors() {
+				return diags
+			}
+			diags = diags.Append(ctx.Deprecations().ValidateAsConfig(blockVal, schema.FullSchema, n.ModulePath()))
 		}
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(limit, n.ModulePath()))
 
-		includeResource, _, includeDiags := newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
-		diags = diags.Append(includeDiags)
-		if includeDiags.HasErrors() {
-			return diags
+		if n.Config.List.Limit != nil {
+			var limitDiags tfdiags.Diagnostics
+			limit, _, limitDiags = newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
+			diags = diags.Append(limitDiags)
+			if limitDiags.HasErrors() {
+				return diags
+			}
+			_, deprecationDiags := ctx.Deprecations().Validate(limit, n.ModulePath(), n.Config.List.Limit.Range().Ptr())
+			diags = diags.Append(deprecationDiags)
 		}
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(includeResource, n.ModulePath()))
+
+		if n.Config.List.IncludeResource != nil {
+			includeResource, _, includeDiags = newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
+			diags = diags.Append(includeDiags)
+			if includeDiags.HasErrors() {
+				return diags
+			}
+			_, deprecationDiags := ctx.Deprecations().Validate(includeResource, n.ModulePath(), n.Config.List.IncludeResource.Range().Ptr())
+			diags = diags.Append(deprecationDiags)
+		}
 
 		// Use unmarked value for validate request
 		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
