@@ -2662,6 +2662,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	if applyConfig != nil {
 		applyDiags = applyDiags.InConfigBody(applyConfig.Config, n.Addr.String())
 	}
+	applyDiags = hintIfAlreadyExists(applyDiags)
 	diags = diags.Append(applyDiags)
 
 	// Even if there are errors in the returned diagnostics, the provider may
@@ -3083,4 +3084,37 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	}
 
 	return reqRep, diags
+}
+
+func hintIfAlreadyExists(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+	if !diags.HasErrors() {
+		return diags
+	}
+
+	if shouldHintAlreadyExists(diags) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Hint: Resource Conflict",
+			"The provider reported that a resource already exists. "+
+				"If you recently renamed a resource or moved it between modules, Terraform may plan a destroy+create for two different addresses and attempt the create before the old object is fully gone. "+
+				"Use 'moved' blocks (or 'terraform state mv') to tell Terraform that the resource moved. "+
+				"If you did not refactor, some providers return from delete before the object is fully removed (eventual consistency); check the provider docs for delete timeouts/retries or re-run apply after a short delay.",
+		))
+	}
+	return diags
+}
+
+func shouldHintAlreadyExists(diags tfdiags.Diagnostics) bool {
+	for _, diag := range diags {
+		if diag.Severity() != tfdiags.Error {
+			continue
+		}
+		desc := diag.Description()
+		// Conservative match to avoid false positives for unrelated duplicate errors.
+		lower := strings.ToLower(desc.Summary + " " + desc.Detail)
+		if strings.Contains(lower, "already exists") || strings.Contains(lower, "entityalreadyexists") {
+			return true
+		}
+	}
+	return false
 }
