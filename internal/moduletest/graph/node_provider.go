@@ -78,9 +78,25 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 		return
 	}
 
-	body, hclDiags := hcldec.Decode(n.Config.Config, spec, hclContext)
-	n.File.AppendDiagnostics(moreDiags)
-	if hclDiags.HasErrors() {
+	// This means we are using a mock provider, which may contain not-yet-evaluated
+	// mock data, so we will evaluate the data here.
+	if mock, ok := n.Provider.(*providers.Mock); ok {
+		for _, res := range mock.Data.MockResources {
+			values, exprHclDiags := res.RawExpr.Value(hclContext)
+			moreDiags = moreDiags.Append(exprHclDiags)
+			res.Defaults = values
+		}
+		for _, res := range mock.Data.MockDataSources {
+			values, exprHclDiags := res.RawExpr.Value(hclContext)
+			moreDiags = moreDiags.Append(exprHclDiags)
+			res.Defaults = values
+		}
+	}
+
+	body, decHclDiags := hcldec.Decode(n.Config.Config, spec, hclContext)
+	moreDiags = moreDiags.Append(decHclDiags)
+	if moreDiags.HasErrors() {
+		n.File.AppendDiagnostics(moreDiags)
 		ctx.SetProviderStatus(n.Addr, moduletest.Error)
 		return
 	}
