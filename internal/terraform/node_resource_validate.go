@@ -493,34 +493,39 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		blockVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.FullSchema, nil, keyData)
-		diags = diags.Append(valDiags)
-		if valDiags.HasErrors() {
-			return diags
-		}
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(blockVal, n.ModulePath()))
+		var blockVal, limit, includeResource cty.Value
+		var includeDiags tfdiags.Diagnostics
 
-		limit, _, limitDiags := newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
-		diags = diags.Append(limitDiags)
-		if limitDiags.HasErrors() {
-			return diags
+		if n.Config.Config != nil {
+			var valDiags tfdiags.Diagnostics
+			blockVal, _, valDiags = ctx.EvaluateBlock(n.Config.Config, schema.FullSchema, nil, keyData)
+			diags = diags.Append(valDiags)
+			if valDiags.HasErrors() {
+				return diags
+			}
+			diags = diags.Append(ctx.Deprecations().ValidateAsConfig(blockVal, n.ModulePath()))
 		}
+
 		if n.Config.List.Limit != nil {
-			var limitDeprecationDiags tfdiags.Diagnostics
-			limit, limitDeprecationDiags = ctx.Deprecations().Validate(limit, n.ModulePath(), n.Config.List.Limit.Range().Ptr())
-			diags = diags.Append(limitDeprecationDiags)
+			var limitDiags tfdiags.Diagnostics
+			limit, _, limitDiags = newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
+			diags = diags.Append(limitDiags)
+			if limitDiags.HasErrors() {
+				return diags
+			}
+			_, deprecationDiags := ctx.Deprecations().Validate(limit, n.ModulePath(), n.Config.List.Limit.Range().Ptr())
+			diags = diags.Append(deprecationDiags)
 			limit = marks.RemoveDeprecationMarks(limit)
 		}
 
-		includeResource, _, includeDiags := newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
-		diags = diags.Append(includeDiags)
-		if includeDiags.HasErrors() {
-			return diags
-		}
 		if n.Config.List.IncludeResource != nil {
-			var includeDeprecationDiags tfdiags.Diagnostics
-			includeResource, includeDeprecationDiags = ctx.Deprecations().Validate(includeResource, n.ModulePath(), n.Config.List.IncludeResource.Range().Ptr())
-			diags = diags.Append(includeDeprecationDiags)
+			includeResource, _, includeDiags = newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
+			diags = diags.Append(includeDiags)
+			if includeDiags.HasErrors() {
+				return diags
+			}
+			_, deprecationDiags := ctx.Deprecations().Validate(includeResource, n.ModulePath(), n.Config.List.IncludeResource.Range().Ptr())
+			diags = diags.Append(deprecationDiags)
 			includeResource = marks.RemoveDeprecationMarks(includeResource)
 		}
 
