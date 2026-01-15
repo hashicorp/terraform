@@ -1302,7 +1302,7 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 		// state_store
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q state store", s.StateStore.Type)
 		var ssDiags tfdiags.Diagnostics
-		b, ssDiags = m.savedStateStore(sMgr)
+		b, ssDiags = m.savedStateStore(sMgr) // Relies on the state manager's internal state being refreshed above.
 		diags = diags.Append(ssDiags)
 		if ssDiags.HasErrors() {
 			return nil, diags
