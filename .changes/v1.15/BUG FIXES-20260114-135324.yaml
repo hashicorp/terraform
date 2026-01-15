@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'cloud: terraform cloud and registry discovery network requests are now more resilient, making temporary network or service related errors less common'
+time: 2026-01-14T13:53:24.359613-07:00
+custom:
+    Issue: "38064"
