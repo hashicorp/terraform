@@ -1331,14 +1331,21 @@ func boolAttrOk(obj cty.Value, name string) (bool, bool) {
 	}
 }
 
-// boolAttrDefaultEnvVarOk checks for a configured bool argument or a non-empty
-// value in any of the provided environment variables. If any of the environment
-// variables are non-empty, to boolean is considered true.
+// boolAttrDefaultEnvVarOk checks for a configured bool argument or a boolean
+// value ("true" or "false", case-insensitive) in any of the provided environment
+// variables. Invalid values are treated as unset.
 func boolAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (bool, bool) {
 	if val := obj.GetAttr(name); val.IsNull() {
 		for _, envvar := range envvars {
 			if v := os.Getenv(envvar); v != "" {
-				return true, true
+				if strings.EqualFold(v, "true") {
+					return true, true
+				}
+				if strings.EqualFold(v, "false") {
+					return false, true
+				}
+				// Invalid boolean value, treat as unset
+				return false, false
 			}
 		}
 		return false, false
