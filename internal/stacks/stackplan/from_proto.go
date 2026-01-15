@@ -5,6 +5,7 @@ package stackplan
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -67,6 +68,10 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 	// the protobuf descriptors for these types are included in the
 	// compiled program, and thus available in the global protobuf
 	// registry that anypb.UnmarshalNew relies on above.
+
+	// Debug: log all incoming proto messages
+	log.Printf("[DEBUG] AddRaw: Processing proto message type: %T", msg)
+
 	switch msg := msg.(type) {
 
 	case *tfstackdata1.PlanHeader:
@@ -237,6 +242,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			ResourceInstancePriorState:      addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
 			ResourceInstanceProviderConfig:  addrs.MakeMap[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig](),
 			DeferredResourceInstanceChanges: addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.DeferredResourceInstanceChangeSrc](),
+			ActionInvocations:               addrs.MakeMap[addrs.AbsActionInstance, *plans.ActionInvocationInstanceSrc](),
 		})
 		err = c.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
 		if err != nil {
@@ -300,6 +306,36 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			ChangeSrc:      riPlan,
 			DeferredReason: deferredReason,
 		})
+
+	case *tfstackdata1.PlanActionInvocationPlanned:
+		log.Printf("[DEBUG] AddRaw: Processing action invocation: %s", msg.ActionInvocationAddr)
+		cAddr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
+		}
+
+		_, diags = addrs.ParseAbsProviderConfigStr(msg.ProviderConfigAddr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid provider configuration address syntax in %q", msg.ProviderConfigAddr)
+		}
+
+		actionAddr, diags := addrs.ParseAbsActionInstanceStr(msg.ActionInvocationAddr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid action invocation address syntax in %q", msg.ActionInvocationAddr)
+		}
+
+		c, ok := l.ret.Root.GetOk(cAddr)
+		if !ok {
+			return fmt.Errorf("action invocation for unannounced component instance %s", cAddr)
+		}
+
+		// Convert the proto invocation to the plans.ActionInvocationInstanceSrc type
+		src, err := planfile.ActionInvocationFromTfplan(msg.Invocation)
+		if err != nil {
+			return fmt.Errorf("invalid action invocation for %s: %w", actionAddr, err)
+		}
+		log.Printf("[DEBUG] AddRaw: Added action invocation %s to component %s", actionAddr, cAddr)
+		c.ActionInvocations.Put(actionAddr, src)
 
 	default:
 		// Should not get here, because a stack plan can only be loaded by
