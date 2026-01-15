@@ -1150,24 +1150,24 @@ func TestStackChangeProgressDuringPlan(t *testing.T) {
 			// First, validate the diagnostics. Most of the tests are either
 			// expecting a specific single diagnostic so we do actually check
 			// everything.
+			// We don't care about the ordering since it's not guaranteed.
 
-			diagIx := 0
-			for ; diagIx < len(tc.diagnostics); diagIx++ {
-				if diagIx >= len(gotEvents.Diagnostics) {
-					// Then we have more expected diagnostics than we got.
-					t.Errorf("missing expected diagnostic: %v", tc.diagnostics[diagIx])
-					continue
-				}
-				diag := gotEvents.Diagnostics[diagIx].Event.(*stacks.PlanStackChanges_Event_Diagnostic).Diagnostic
-				if diff := cmp.Diff(tc.diagnostics[diagIx], diag, protocmp.Transform()); diff != "" {
-					// Then we have a diagnostic that doesn't match what we
-					// expected.
-					t.Errorf("wrong diagnostic\n%s", diff)
-				}
+			if len(tc.diagnostics) != len(gotEvents.Diagnostics) {
+				t.Fatalf("expected %d diagnostics, got %d", len(tc.diagnostics), len(gotEvents.Diagnostics))
 			}
-			for ; diagIx < len(gotEvents.Diagnostics); diagIx++ {
-				// Then we have more diagnostics than we expected.
-				t.Errorf("unexpected diagnostic: %v", gotEvents.Diagnostics[diagIx])
+
+		DIAGS:
+			for _, expectedDiag := range tc.diagnostics {
+				for _, gotDiagEvent := range gotEvents.Diagnostics {
+					gotDiag := gotDiagEvent.Event.(*stacks.PlanStackChanges_Event_Diagnostic).Diagnostic
+
+					if diff := cmp.Diff(expectedDiag, gotDiag, protocmp.Transform()); diff == "" {
+						continue DIAGS // Found it
+					}
+				}
+
+				// If we reach this point we did not find the diag
+				t.Errorf("missing expected diagnostic: %v, got %v", expectedDiag, gotEvents.Diagnostics)
 			}
 
 			// Now we're going to manually verify the existence of some key events.
