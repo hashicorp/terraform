@@ -8,7 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/addrs"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -87,6 +90,13 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 
 	diags = diags.Append(c.validateConfig(cfg))
 
+	// Validation of backend block, if present
+	// Backend blocks live outside the Terraform graph so we have to do this separately.
+	backend := cfg.Module.Backend
+	if backend != nil {
+		diags = diags.Append(c.validateBackend(backend))
+	}
+
 	// Unless excluded, we'll also do a quick validation of the Terraform test files. These live
 	// outside the Terraform graph so we have to do this separately.
 	if !c.ParsedArgs.NoTests {
@@ -152,6 +162,48 @@ func (c *ValidateCommand) validateTestFiles(cfg *configs.Config) tfdiags.Diagnos
 			}
 
 		}
+	}
+
+	return diags
+}
+
+// We validate the backend in an offline manner, so we use PrepareConfig to validate the configuration (and ENVs present),
+// but we never use the Configure method, as that will interact with third-party systems.
+//
+// The code in this method is very similar to the `backendInitFromConfig` method, expect it doesn't configure the backend.
+func (c *ValidateCommand) validateBackend(cfg *configs.Backend) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	bf := backendInit.Backend(cfg.Type)
+	if bf == nil {
+		detail := fmt.Sprintf("There is no backend type named %q.", cfg.Type)
+		if msg, removed := backendInit.RemovedBackends[cfg.Type]; removed {
+			detail = msg
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported backend type",
+			Detail:   detail,
+			Subject:  &cfg.TypeRange,
+		})
+		return diags
+	}
+
+	b := bf()
+	backendSchema := b.ConfigSchema()
+
+	decSpec := backendSchema.DecoderSpec()
+	configVal, hclDiags := hcldec.Decode(cfg.Config, decSpec, nil)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return diags
+	}
+
+	_, validateDiags := b.PrepareConfig(configVal)
+	diags = diags.Append(validateDiags)
+	if validateDiags.HasErrors() {
+		return diags
 	}
 
 	return diags
