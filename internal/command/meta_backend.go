@@ -1300,8 +1300,13 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 	switch {
 	case !s.StateStore.Empty():
 		// state_store
-		panic("not implemented yet")
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q state store", s.StateStore.Type)
+		var ssDiags tfdiags.Diagnostics
+		b, ssDiags = m.savedStateStore(sMgr)
+		diags = diags.Append(ssDiags)
+		if ssDiags.HasErrors() {
+			return nil, diags
+		}
 	case !s.Backend.Empty():
 		// backend or cloud
 		if s.Backend.Type == "" {
