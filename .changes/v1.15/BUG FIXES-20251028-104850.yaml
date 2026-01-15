@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Improve wording of for_each key dependency error when using a set
+time: 2025-10-28T10:48:50.112437+00:00
+custom:
+    Issue: ""
