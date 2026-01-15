@@ -194,6 +194,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
+		// Attach triggered action configuration to any resources
+		&AttachActionConfigTransformer{Config: b.Config},
+
 		// add providers
 		transformProviders(concreteProvider, b.Config, b.ExternalProviderConfigs),
 

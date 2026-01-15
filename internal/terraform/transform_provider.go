@@ -329,7 +329,6 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 
 	// Now look for all provider consumers and connect them to the appropriate closers.
 	for _, v := range g.Vertices() {
-		log.Printf("[KRISTIN]: CloseProviderTransformer Evaluating Vertex %s", dag.VertexName(v))
 		if apc, ok := v.(GraphNodeActionProviderConsumer); ok {
 			providers := apc.ActionsProvidedBy()
 			if len(providers) > 0 {
@@ -346,7 +345,6 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		if pc, ok := v.(GraphNodeProviderConsumer); ok {
 			p, exact := pc.ProvidedBy()
 			if p == nil && exact {
-				log.Printf("[KRISTIN]: %s does not need a provider\n", dag.VertexName(pc))
 
 				// this node does not require a provider
 			} else {
@@ -355,14 +353,11 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 					return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
 				}
 
-				log.Printf("[KRISTIN]: %s needs %s\n", dag.VertexName(pc), provider.String())
-
 				closer, ok := cpm[provider.String()]
 				if !ok {
 					return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
 				}
 
-				log.Printf("[KRISTIN]: connecting closer %s to %s\n", closer.Addr.String(), dag.VertexName(pc))
 				g.Connect(dag.BasicEdge(closer, v))
 			}
 		}

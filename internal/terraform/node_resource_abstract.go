@@ -123,24 +123,6 @@ func NewNodeAbstractResource(addr addrs.ConfigResource) *NodeAbstractResource {
 	}
 }
 
-var (
-	_ GraphNodeModuleInstance            = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeReferenceable             = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeReferencer                = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProviderConsumer          = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeConfigResource            = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeResourceInstance          = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceState       = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeTargetable                = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeOverridable               = (*NodeAbstractResourceInstance)(nil)
-	_ dag.GraphNodeDotter                = (*NodeAbstractResourceInstance)(nil)
-)
-
 func (n *NodeAbstractResource) Name() string {
 	return n.ResourceAddr().String()
 }
@@ -248,13 +230,6 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			result = append(result, refs...)
 			refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 			result = append(result, refs...)
-		}
-
-		for _, triggers := range c.Managed.ActionTriggers {
-			for _, actionRef := range triggers.Actions {
-				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, actionRef.Expr)
-				result = append(result, refs...)
-			}
 		}
 	}
 

@@ -47,16 +47,16 @@ func TestContextApply_actions(t *testing.T) {
 		"before_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-		action "action_example" "hello" {}
-		resource "test_object" "a" {
-		  lifecycle {
-		    action_trigger {
-		      events = [before_create]
-		      actions = [action.action_example.hello]
-		    }
-		  }
-		}
-		`,
+action "action_example" "hello" {}
+resource "test_object" "a" {
+	lifecycle {
+	action_trigger {
+		events = [before_create]
+		actions = [action.action_example.hello]
+	}
+	}
+}
+`,
 			},
 			expectInvokeActionCalled: true,
 		},
@@ -67,10 +67,10 @@ func TestContextApply_actions(t *testing.T) {
 		action "action_example" "hello" {}
 		resource "test_object" "a" {
 		  lifecycle {
-		    action_trigger {
-		      events = [after_create]
-		      actions = [action.action_example.hello]
-		    }
+			action_trigger {
+			  events = [after_create]
+			  actions = [action.action_example.hello]
+			}
 		  }
 		}
 		`,
@@ -81,16 +81,16 @@ func TestContextApply_actions(t *testing.T) {
 		"before and after created triggered": {
 			module: map[string]string{
 				"main.tf": `
-		action "action_example" "hello" {}
-		resource "test_object" "a" {
-		  lifecycle {
-		    action_trigger {
-		      events = [before_create,after_create]
-		      actions = [action.action_example.hello]
-		    }
-		  }
+action "action_example" "hello" {}
+resource "test_object" "a" {
+	lifecycle {
+		action_trigger {
+			events = [before_create,after_create]
+			actions = [action.action_example.hello]
 		}
-		`,
+	}
+}
+`,
 			},
 			expectInvokeActionCalled: true,
 			assertHooks: func(t *testing.T, capture actionHookCapture) {
@@ -153,6 +153,7 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {}
 resource "test_object" "a" {
+<<<<<<< HEAD
   test_string = "new name"
   lifecycle {
     action_trigger {
@@ -160,6 +161,15 @@ resource "test_object" "a" {
       actions = [action.action_example.hello]
     }
   }
+=======
+	name = "new name"
+	lifecycle {
+		action_trigger {
+			events = [after_update]
+			actions = [action.action_example.hello]
+		}
+	}
+>>>>>>> fc21719b71 (down to 4 test failures)
 }
 `,
 			},
@@ -178,16 +188,16 @@ resource "test_object" "a" {
 		"before_create failing": {
 			module: map[string]string{
 				"main.tf": `
-		action "action_example" "hello" {}
-		resource "test_object" "a" {
-		  lifecycle {
-		    action_trigger {
-		      events = [before_create]
-		      actions = [action.action_example.hello]
-		    }
-		  }
+action "action_example" "hello" {}
+resource "test_object" "a" {
+	lifecycle {
+		action_trigger {
+			events = [before_create]
+			actions = [action.action_example.hello]
 		}
-		`,
+	}
+}
+`,
 			},
 			expectInvokeActionCalled: true,
 			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
@@ -206,13 +216,8 @@ resource "test_object" "a" {
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Error when invoking action",
-					Detail:   "test case for failing: this simulates a provider failing",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
-						End:      hcl.Pos{Line: 7, Column: 45, Byte: 175},
-					},
+					Summary:  "test case for failing",
+					Detail:   "this simulates a provider failing",
 				})
 			},
 		},
@@ -220,22 +225,22 @@ resource "test_object" "a" {
 		"before_create failing with successfully completed actions": {
 			module: map[string]string{
 				"main.tf": `
-		action "action_example" "hello" {}
-		action "action_example" "world" {}
-		action "action_example" "failure" {
-		  config {
-		    attr = "failure"
-		  }
+action "action_example" "hello" {}
+action "action_example" "world" {}
+action "action_example" "failure" {
+	config {
+		attr = "failure"
+	}
+}
+resource "test_object" "a" {
+	lifecycle {
+		action_trigger {
+			events = [before_create]
+			actions = [action.action_example.hello, action.action_example.world, action.action_example.failure]
 		}
-		resource "test_object" "a" {
-		  lifecycle {
-		    action_trigger {
-		      events = [before_create]
-		      actions = [action.action_example.hello, action.action_example.world, action.action_example.failure]
-		    }
-		  }
-		}
-		`,
+	}
+}
+`,
 			},
 			expectInvokeActionCalled: true,
 			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
@@ -258,35 +263,27 @@ resource "test_object" "a" {
 				}
 			},
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(
-					&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   `test case for failing: this simulates a provider failing`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 76, Byte: 315},
-							End:      hcl.Pos{Line: 13, Column: 105, Byte: 344},
-						},
-					},
-				)
-
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "test case for failing",
+					Detail:   "this simulates a provider failing",
+				})
 			},
 		},
 
 		"before_create failing when calling invoke": {
 			module: map[string]string{
 				"main.tf": `
-		action "action_example" "hello" {}
-		resource "test_object" "a" {
-		  lifecycle {
-		    action_trigger {
-		      events = [before_create]
-		      actions = [action.action_example.hello]
-		    }
-		  }
+action "action_example" "hello" {}
+resource "test_object" "a" {
+	lifecycle {
+		action_trigger {
+			events = [before_create]
+			actions = [action.action_example.hello]
 		}
-		`,
+	}
+}
+`,
 			},
 			expectInvokeActionCalled: true,
 			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
@@ -317,22 +314,22 @@ resource "test_object" "a" {
 		"failing an action by action event stops next actions in list": {
 			module: map[string]string{
 				"main.tf": `
-		action "action_example" "hello" {}
-		action "action_example" "failure" {
-		  config {
-		    attr = "failure"
-		  }
+action "action_example" "hello" {}
+action "action_example" "failure" {
+	config {
+		attr = "failure"
+	}
+}
+action "action_example" "goodbye" {}
+resource "test_object" "a" {
+	lifecycle {
+		action_trigger {
+			events = [before_create]
+			actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
 		}
-		action "action_example" "goodbye" {}
-		resource "test_object" "a" {
-		  lifecycle {
-		    action_trigger {
-		      events = [before_create]
-		      actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
-		    }
-		  }
-		}
-		`,
+	}
+}
+`,
 			},
 			expectInvokeActionCalled: true,
 			events: func(r providers.InvokeActionRequest) []providers.InvokeActionEvent {
@@ -380,22 +377,22 @@ resource "test_object" "a" {
 		"failing an action during invocation stops next actions in list": {
 			module: map[string]string{
 				"main.tf": `
-		action "action_example" "hello" {}
-		action "action_example" "failure" {
-		  config {
-		    attr = "failure"
-		  }
+action "action_example" "hello" {}
+action "action_example" "failure" {
+	config {
+		attr = "failure"
+	}
+}
+action "action_example" "goodbye" {}
+resource "test_object" "a" {
+	lifecycle {
+		action_trigger {
+			events = [before_create]
+			actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
 		}
-		action "action_example" "goodbye" {}
-		resource "test_object" "a" {
-		  lifecycle {
-		    action_trigger {
-		      events = [before_create]
-		      actions = [action.action_example.hello, action.action_example.failure, action.action_example.goodbye]
-		    }
-		  }
-		}
-		`,
+	}
+}
+`,
 			},
 			expectInvokeActionCalled: true,
 			callingInvokeReturnsDiagnostics: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {
@@ -452,10 +449,10 @@ action "action_example" "hello" {
 }
 resource "test_object" "b" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -478,15 +475,15 @@ variable "unknown_value" {
 }
 action "action_example" "hello" {
   config {
-    attr = var.unknown_value
+	attr = var.unknown_value
   }
 }
 resource "test_object" "b" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -515,15 +512,15 @@ variable "secret_value" {
 }
 action "action_example" "hello" {
   config {
-    attr = var.secret_value
+	attr = var.secret_value
   }
 }
 resource "test_object" "b" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -553,10 +550,10 @@ action "action_example" "hello" {
 }
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -569,18 +566,18 @@ resource "test_object" "a" {
 				"main.tf": `
 terraform {
   required_providers {
-    ecosystem = {
-      source = "danielmschmidt/ecosystem"
-    }
+	ecosystem = {
+	  source = "danielmschmidt/ecosystem"
+	}
   }
 }
 action "ecosystem" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.ecosystem.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.ecosystem.hello]
+	}
   }
 }
 `,
@@ -599,10 +596,10 @@ action "action_example" "hello" {
 resource "test_object" "a" {
   test_string = "test_object_a"
   lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [after_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -620,17 +617,17 @@ resource "test_object" "a" {
 			module: map[string]string{
 				"main.tf": `
 module "mod" {
-    source = "./mod"
+	source = "./mod"
 }
 `,
 				"mod/mod.tf": `
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -648,18 +645,18 @@ resource "test_object" "a" {
 			module: map[string]string{
 				"main.tf": `
 module "mod" {
-    count = 2
-    source = "./mod"
+	count = 2
+	source = "./mod"
 }
 `,
 				"mod/mod.tf": `
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -682,8 +679,8 @@ resource "test_object" "a" {
 			module: map[string]string{
 				"main.tf": `
 module "mod" {
-    count = 0
-    source = "./mod"
+	count = 0
+	source = "./mod"
 }
 
 // an empty plan is not applyable so we have this extra resource here
@@ -693,10 +690,10 @@ resource "test_object" "a" {}
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -708,22 +705,22 @@ resource "test_object" "a" {
 			module: map[string]string{
 				"main.tf": `
 module "mod" {
-    source = "./mod"
+	source = "./mod"
 }
 `,
 				"mod/mod.tf": `
 provider "action" {
-    alias = "inthemodule"
+	alias = "inthemodule"
 }
 action "action_example" "hello" {
   provider = action.inthemodule
 }
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -744,15 +741,15 @@ action "action_example" "hello" {
   for_each = toset(["a", "b"])
   
   config {
-    attr = "value-${each.key}"
+	attr = "value-${each.key}"
   }
 }
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello["a"], action.action_example.hello["b"]]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello["a"], action.action_example.hello["b"]]
+	}
   }
 }
 `,
@@ -778,16 +775,16 @@ action "action_example" "hello" {
   count = 2
 
   config {
-    attr = "value-${count.index}"
+	attr = "value-${count.index}"
   }
 }
 
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello[0], action.action_example.hello[1]]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello[0], action.action_example.hello[1]]
+	}
   }
 }
 `,
@@ -811,10 +808,10 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_update]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_update]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -828,10 +825,10 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [after_update]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [after_update]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -845,10 +842,10 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_update]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_update]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -872,10 +869,10 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [after_update]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [after_update]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -900,10 +897,10 @@ resource "test_object" "a" {
   count = 2
   test_string = "test-${count.index}"
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -936,10 +933,10 @@ action "action_example" "hello" {
 resource "test_object" "b" {
   test_string = "b"
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -975,28 +972,28 @@ action "action_example" "hello_b" {
 resource "test_object" "c" {
   test_string = "c"
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello_a]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello_a]
+	}
   }
 }
 resource "test_object" "d" {
   test_string = "d"
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello_b]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello_b]
+	}
   }
 }
 resource "test_object" "e" {
   test_string = "e"
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello_a, action.action_example.hello_b]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello_a, action.action_example.hello_b]
+	}
   }
 }
 `,
@@ -1031,10 +1028,10 @@ resource "test_object" "e" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [before_create, after_update]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create, after_update]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1059,10 +1056,10 @@ action "action_example" "hello" {}
 resource "test_object" "a" {
   count = 2
   lifecycle {
-    action_trigger {
-      events = [before_create, after_update]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create, after_update]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1125,7 +1122,7 @@ resource "test_object" "a" {
 			module: map[string]string{
 				"main.tf": `
 module "action_mod" {
-    source = "./action_mod"
+	source = "./action_mod"
 }
 `,
 				"action_mod/main.tf": `
@@ -1154,27 +1151,27 @@ resource "test_object" "trigger" {
 			module: map[string]string{
 				"main.tf": `
 module "parent" {
-    source = "./parent"
+	source = "./parent"
 }
 `,
 				"parent/main.tf": `
 module "child" {
-    source = "./child"
+	source = "./child"
 }
 `,
 				"parent/child/main.tf": `
 action "action_example" "nested_action" {
   config {
-    attr = "nested_value"
+	attr = "nested_value"
   }
 }
 resource "test_object" "nested_resource" {
   test_string = "nested"
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.nested_action]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.nested_action]
+	}
   }
 }
 `,
@@ -1192,9 +1189,9 @@ resource "test_object" "nested_resource" {
 			module: map[string]string{
 				"main.tf": `
 module "multi_mod" {
-    for_each = toset(["a", "b"])
-    source = "./multi_mod"
-    instance_name = each.key
+	for_each = toset(["a", "b"])
+	source = "./multi_mod"
+	instance_name = each.key
 }
 `,
 				"multi_mod/main.tf": `
@@ -1204,16 +1201,16 @@ variable "instance_name" {
 
 action "action_example" "hello" {
   config {
-    attr = "instance-${var.instance_name}"
+	attr = "instance-${var.instance_name}"
   }
 }
 resource "test_object" "resource" {
   test_string = "resource-${var.instance_name}"
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1244,16 +1241,16 @@ variable "attr" {
 resource "test_object" "resource" {
   test_string = "hello"
   lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example_wo.hello]
-    }
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example_wo.hello]
+	}
   }
 }
 
 action "action_example_wo" "hello" {
   config {
-    attr = var.attr
+	attr = var.attr
   }
 }
 `,
@@ -1280,21 +1277,21 @@ action "action_example_wo" "hello" {
 				"main.tf": `
 action "action_nested" "with_blocks" {
   config {
-    top_attr = "top"
-    settings {
-      name = "primary"
-      rule { value = "r1" }
-      rule { value = "r2" }
-    }
+	top_attr = "top"
+	settings {
+	  name = "primary"
+	  rule { value = "r1" }
+	  rule { value = "r2" }
+	}
   }
 }
 resource "test_object" "a" {
   test_string = "object"
   lifecycle {
-    action_trigger {
-      events  = [before_create]
-      actions = [action.action_nested.with_blocks]
-    }
+	action_trigger {
+	  events  = [before_create]
+	  actions = [action.action_nested.with_blocks]
+	}
   }
 }
 `,
@@ -1324,16 +1321,16 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_nested" "with_list" {
   config {
-    settings_list { id = "one" }
-    settings_list { id = "two" }
+	settings_list { id = "one" }
+	settings_list { id = "two" }
   }
 }
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events  = [after_create]
-      actions = [action.action_nested.with_list]
-    }
+	action_trigger {
+	  events  = [after_create]
+	  actions = [action.action_nested.with_list]
+	}
   }
 }
 `,
@@ -1408,11 +1405,11 @@ action "action_example" "hello" {}
 resource "test_object" "a" {
   test_string = "foo"
   lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = "foo" == "foo"
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [after_create]
+	  condition = "foo" == "foo"
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1427,11 +1424,11 @@ action "action_example" "hello" {}
 resource "test_object" "a" {
   test_string = "foo"
   lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = "foo" == "bar"
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [after_create]
+	  condition = "foo" == "bar"
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1447,11 +1444,11 @@ resource "test_object" "a" {
   count = 3
   test_string = "item-${count.index}"
   lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = count.index == 1
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [after_create]
+	  condition = count.index == 1
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1467,11 +1464,11 @@ resource "test_object" "a" {
   for_each = toset(["foo", "bar"])
   test_string = each.key
   lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = each.key == "foo"
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [after_create]
+	  condition = each.key == "foo"
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1487,11 +1484,11 @@ resource "test_object" "a" {
   for_each = {"foo" = "value1", "bar" = "value2"}
   test_string = each.value
   lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = each.value == "value1"
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [after_create]
+	  condition = each.value == "value1"
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1503,12 +1500,12 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = "hello"
+	attr = "hello"
   }
 }
 action "action_example" "world" {
   config {
-    attr = "world"
+	attr = "world"
   }
 }
 resource "test_object" "a" {
@@ -1544,14 +1541,14 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events = [
-        before_create, // should trigger
-        after_create, // should trigger
-        before_update // should be ignored
-      ]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events = [
+		before_create, // should trigger
+		after_create, // should trigger
+		before_update // should be ignored
+	  ]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1579,21 +1576,21 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   lifecycle {
-    // should trigger
-    action_trigger {
-      events = [before_create]
-      actions = [action.action_example.hello]
-    }
-    // should trigger
-    action_trigger {
-      events = [after_create]
-      actions = [action.action_example.hello]
-    }
-    // should be ignored
-    action_trigger {
-      events = [before_update]
-      actions = [action.action_example.hello]
-    }
+	// should trigger
+	action_trigger {
+	  events = [before_create]
+	  actions = [action.action_example.hello]
+	}
+	// should trigger
+	action_trigger {
+	  events = [after_create]
+	  actions = [action.action_example.hello]
+	}
+	// should be ignored
+	action_trigger {
+	  events = [before_update]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -1768,42 +1765,42 @@ func TestContextApply_targeted_resource_actions(t *testing.T) {
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = "hello"
+	attr = "hello"
   }
 }
 action "action_example" "there" {
   config {
-    attr = "there"
+	attr = "there"
   }
 }
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events  = [before_create]
-      actions = [action.action_example.hello]
-    }
-    action_trigger {
-      events  = [after_create]
-      actions = [action.action_example.there]
-    }
+	action_trigger {
+	  events  = [before_create]
+	  actions = [action.action_example.hello]
+	}
+	action_trigger {
+	  events  = [after_create]
+	  actions = [action.action_example.there]
+	}
   }
 }
 action "action_example" "general" {
   config {
-    attr = "general"
+	attr = "general"
   }
 }
 action "action_example" "kenobi" {
   config {
-    attr = "kenobi"
+	attr = "kenobi"
   }
 }
 resource "test_object" "b" {
   lifecycle {
-    action_trigger {
-      events  = [before_create, after_update]
-      actions = [action.action_example.general]
-    }
+	action_trigger {
+	  events  = [before_create, after_update]
+	  actions = [action.action_example.general]
+	}
   }
 }
 `,
@@ -1837,40 +1834,40 @@ resource "test_object" "b" {
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = "hello"
+	attr = "hello"
   }
 }
 action "action_example" "there" {
   config {
-    attr = "there"
+	attr = "there"
   }
 }
 resource "test_object" "origin" {
   test_string = "origin"
   lifecycle {
-    action_trigger {
-      events  = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events  = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 resource "test_object" "a" {
   test_string = test_object.origin.test_string
   lifecycle {
-    action_trigger {
-      events  = [after_create]
-      actions = [action.action_example.there]
-    }
+	action_trigger {
+	  events  = [after_create]
+	  actions = [action.action_example.there]
+	}
   }
 }
 action "action_example" "general" {}
 action "action_example" "kenobi" {}
 resource "test_object" "b" {
   lifecycle {
-    action_trigger {
-      events  = [before_create, after_update]
-      actions = [action.action_example.general]
-    }
+	action_trigger {
+	  events  = [before_create, after_update]
+	  actions = [action.action_example.general]
+	}
   }
 }
 `,
@@ -1903,36 +1900,36 @@ resource "test_object" "b" {
 action "action_example" "hello" {
   count = 3
   config {
-    attr = "hello-${count.index}"
+	attr = "hello-${count.index}"
   }
 }
 action "action_example" "there" {
   count = 3
   config {
-    attr = "there-${count.index}"
+	attr = "there-${count.index}"
   }
 }
 resource "test_object" "a" {
   count = 3
   lifecycle {
-    action_trigger {
-      events  = [before_create]
-      actions = [action.action_example.hello[count.index]]
-    }
-    action_trigger {
-      events  = [after_create]
-      actions = [action.action_example.there[count.index]]
-    }
+	action_trigger {
+	  events  = [before_create]
+	  actions = [action.action_example.hello[count.index]]
+	}
+	action_trigger {
+	  events  = [after_create]
+	  actions = [action.action_example.there[count.index]]
+	}
   }
 }
 action "action_example" "general" {}
 action "action_example" "kenobi" {}
 resource "test_object" "b" {
   lifecycle {
-    action_trigger {
-      events  = [before_create, after_update]
-      actions = [action.action_example.general]
-    }
+	action_trigger {
+	  events  = [before_create, after_update]
+	  actions = [action.action_example.general]
+	}
   }
 }
 `,
@@ -1974,29 +1971,29 @@ action "action_example" "hello" {
 }
 action "action_example" "there" {
   config {
-    attr = "there"
+	attr = "there"
   }
 }
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events  = [before_create]
-      actions = [action.action_example.hello]
-    }
-    action_trigger {
-      events  = [after_create]
-      actions = [action.action_example.there]
-    }
+	action_trigger {
+	  events  = [before_create]
+	  actions = [action.action_example.hello]
+	}
+	action_trigger {
+	  events  = [after_create]
+	  actions = [action.action_example.there]
+	}
   }
 }
 action "action_example" "general" {}
 action "action_example" "kenobi" {}
 resource "test_object" "b" {
   lifecycle {
-    action_trigger {
-      events  = [before_create, after_update]
-      actions = [action.action_example.general]
-    }
+	action_trigger {
+	  events  = [before_create, after_update]
+	  actions = [action.action_example.general]
+	}
   }
 }
 `,
@@ -2069,16 +2066,16 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = "hello"
+	attr = "hello"
   }
 }
 resource "test_object" "source" {
   test_string = "source"
   lifecycle {
-    action_trigger {
-      events  = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events  = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 action "action_example" "there" {
@@ -2088,18 +2085,18 @@ action "action_example" "there" {
 }
 resource "test_object" "a" {
   lifecycle {
-    action_trigger {
-      events  = [after_create]
-      actions = [action.action_example.there]
-    }
+	action_trigger {
+	  events  = [after_create]
+	  actions = [action.action_example.there]
+	}
   }
 }
 resource "test_object" "b" {
   lifecycle {
-    action_trigger {
-      events  = [before_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events  = [before_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,
@@ -2133,7 +2130,7 @@ resource "test_object" "b" {
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = "hello"
+	attr = "hello"
   }
 }
 resource "test_object" "source" {
@@ -2764,7 +2761,7 @@ func TestContextApply_invoked_actions(t *testing.T) {
 						t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
 					}
 					if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
-						t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
+						t.Fatalf("expected invoke action call #%d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
 					}
 				}
 			}
@@ -2813,17 +2810,17 @@ locals {
 }
 action "action_example" "hello" {
   config {
-    attr = "hello"
+	attr = "hello"
   }
 }
 resource "test_object" "a" {
   for_each = local.each
   name = each.value
   lifecycle {
-    action_trigger {
-      events  = [after_create]
-      actions = [action.action_example.hello]
-    }
+	action_trigger {
+	  events  = [after_create]
+	  actions = [action.action_example.hello]
+	}
   }
 }
 `,

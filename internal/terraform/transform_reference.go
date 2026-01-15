@@ -51,6 +51,15 @@ type GraphNodeImportReferencer interface {
 	ImportReferences() []*addrs.Reference
 }
 
+// GraphNodeReferencer must be implemented by nodes that trigger actions.
+type GraphNodeActionReferencer interface {
+	GraphNodeReferencer
+
+	// ImportReferences returns a list of references made by this node's
+	// associated import block.
+	ActionReferences() []*addrs.Reference
+}
+
 type GraphNodeAttachDependencies interface {
 	AttachDependencies([]addrs.ConfigResource)
 }
@@ -323,6 +332,12 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 		for _, ref := range rn.ImportReferences() {
 			// import block references are always in the root module scope
 			referenceKeys = append(referenceKeys, m.referenceMapKey(addrs.RootModule, ref.Subject))
+		}
+	}
+
+	if rn, ok := v.(GraphNodeActionReferencer); ok {
+		for _, ref := range rn.ActionReferences() {
+			referenceKeys = append(referenceKeys, m.referenceMapKey(vertexReferencePath(v), ref.Subject))
 		}
 	}
 

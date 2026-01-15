@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -38,17 +39,20 @@ type NodeApplyableResourceInstance struct {
 	forceReplace bool
 
 	resolvedActionProviders []addrs.AbsProviderConfig
+	ActionSchemas           map[string]*providers.ActionSchema
 }
 
 var (
-	_ GraphNodeConfigResource         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance       = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator                = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer             = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer                = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeExecutable             = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachDependencies     = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeActionProviderConsumer = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance           = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator                    = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer                 = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer                    = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutable                 = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeActionProviderConsumer     = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachResourceActionSchema = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeActionReferencer           = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -539,21 +543,18 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			// evaluate condition again
 			triggerConfig := n.Config.Managed.ActionTriggers[keys[i]]
 			if triggerConfig == nil {
-				panic("well at least you didn't expect that to work")
+				panic("well at least you didn't expect that to work") // replace w/should be unpossible error
 			}
 			aiSrc := actions[keys[i]][j]
 
-			actionInstanceNode, ok := n.actionInstances.GetOk(aiSrc.Addr.ConfigAction())
-			if !ok {
-				panic("HOW")
-			}
-
-			aschema := actionInstanceNode.ActionSchema()
-			ai, err := aiSrc.Decode(aschema)
+			// @mildwonkey FFS DON'T USE STRINGS YOU CAN'T EVEN REMEMBER WHAT THIS IS
+			actionSchema := n.ActionSchemas[aiSrc.Addr.ConfigAction().Action.Type]
+			ai, err := aiSrc.Decode(actionSchema)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a planned action invocation: %v\n\nThis is a bug in Terraform; please report it!", err)))
 				return diags
 			}
+
 			at := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
 			if triggerConfig.Condition != nil {
 				condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
@@ -578,40 +579,18 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 				}
 			}
 
-			actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
-			if !ok {
-				return diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Action instance not found",
-					Detail:   "Could not find action instance for address " + ai.Addr.String(),
-					//Subject:
-				})
-			}
-
-			provider, schema, err := getProvider(ctx, actionData.ProviderAddr)
+			provider, _, err := getProvider(ctx, ai.ProviderAddr)
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Failed to get action provider for %s", ai.Addr),
+					Summary:  "Failed to get action provider",
 					Detail:   fmt.Sprintf("Failed to get action provider: %s", err),
 					//Subject:  n.ActionTriggerRange,
 				})
 				return diags
 			}
 
-			actionSchema, ok := schema.Actions[ai.Addr.Action.Action.Type]
-			if !ok {
-				// This should have been caught earlier
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Action %s not found in provider schema", ai.Addr),
-					Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", ai.Addr.Action.Action.Type, actionData.ProviderAddr),
-					//Subject:  n.ActionTriggerRange,
-				})
-				return diags
-			}
-
-			configValue := actionData.ConfigValue
+			configValue := ai.ConfigValue
 
 			// Validate that what we planned matches the action data we have.
 			errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configValue))
@@ -777,6 +756,16 @@ func (o actionInvocationInstanceSrcs) Less(i, j int) bool {
 	return itrigger.ActionsListIndex < jtrigger.ActionsListIndex
 }
 
+func (n *NodeApplyableResourceInstance) ActionTypesProvidedBy() map[string]addrs.AbsProviderConfig {
+	providers := make(map[string]addrs.AbsProviderConfig, 0)
+	if n.plannedActions != nil {
+		for _, action := range n.plannedActions {
+			providers[action.Addr.Action.Action.Type] = action.ProviderAddr
+		}
+	}
+	return providers
+}
+
 func (n *NodeApplyableResourceInstance) ActionsProvidedBy() []addrs.AbsProviderConfig {
 	providers := make([]addrs.AbsProviderConfig, 0)
 	if n.plannedActions != nil {
@@ -792,4 +781,28 @@ func (n *NodeApplyableResourceInstance) AppendProvider(provider addrs.AbsProvide
 		n.resolvedActionProviders = make([]addrs.AbsProviderConfig, 0)
 	}
 	n.resolvedActionProviders = append(n.resolvedActionProviders, provider)
+}
+
+func (n *NodeApplyableResourceInstance) AttachActionSchema(name string, schema *providers.ActionSchema) {
+	if n.ActionSchemas == nil {
+		n.ActionSchemas = make(map[string]*providers.ActionSchema)
+	}
+	n.ActionSchemas[name] = schema
+}
+
+func (n *NodeApplyableResourceInstance) ActionReferences() []*addrs.Reference {
+	var result []*addrs.Reference
+	for _, action := range n.ActionConfigs {
+		if action.Config == nil {
+			continue
+		}
+
+		if schema, ok := n.ActionSchemas[action.Provider.String()]; ok {
+			refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, action.Config, schema.ConfigSchema)
+			result = append(result, refs...)
+		} else {
+			log.Printf("[WARN] no action schema is attached to %s, so action config references cannot be detected", n.Name())
+		}
+	}
+	return result
 }
