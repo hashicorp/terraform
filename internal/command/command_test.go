@@ -307,7 +307,7 @@ func testState() *states.State {
 				// The weird whitespace here is reflective of how this would
 				// get written out in a real state file, due to the indentation
 				// of all of the containing wrapping objects and arrays.
-				AttrsJSON:    []byte("{\n            \"id\": \"bar\"\n          }"),
+				AttrsJSON:    []byte(`{"id":"bar"}`),
 				Status:       states.ObjectReady,
 				Dependencies: []addrs.ConfigResource{},
 			},
