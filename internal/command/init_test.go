@@ -332,23 +332,19 @@ func TestInit_fromModule_cwdDest(t *testing.T) {
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/518
+// Regression test to check that Terraform doesn't recursively copy
+// a directory when the source module includes the current directory.
+// See: https://github.com/hashicorp/terraform/issues/518
 func TestInit_fromModule_dstInSrc(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	// Change to a temporary directory
+	td := t.TempDir()
+	t.Chdir(td)
 
-	// Change to the temporary directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
-
+	// Create contents
+	// 	.
+	// ├── issue518.tf
+	// └── foo/
+	//     └── (empty)
 	if err := os.Mkdir("foo", os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
@@ -357,6 +353,11 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Instead of using the -chdir flag, we change directory into the directory foo.
+	// 	.
+	// ├── issue518.tf
+	// └── foo/               << current directory
+	//     └── (empty)
 	if err := os.Chdir("foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -371,6 +372,7 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		},
 	}
 
+	// The path ./.. includes the current directory foo.
 	args := []string{
 		"-from-module=./..",
 	}
@@ -378,8 +380,32 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
 
-	if _, err := os.Stat(filepath.Join(dir, "foo", "issue518.tf")); err != nil {
+	// Assert this outcome
+	// 	.
+	// ├── issue518.tf
+	// └── foo/               << current directory
+	//     ├── issue518.tf
+	//     └── foo/
+	//         └── (empty)
+	if _, err := os.Stat(filepath.Join(td, "foo", "issue518.tf")); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(filepath.Join(td, "foo", "foo")); err != nil {
+		// Note: originally foo was never copied into itself in this scenario,
+		// but behavior changed sometime around when -chdir replaced legacy positional
+		// path arguments. We may want to revert to the original behavior in a
+		// future major release.
+		// See: https://github.com/hashicorp/terraform/pull/38059
+		t.Fatalf("err: %s", err)
+	}
+
+	// We don't expect foo to be copied into itself multiple times
+	_, err := os.Stat(filepath.Join(td, "foo", "foo", "foo"))
+	if err == nil {
+		t.Fatal("expected directory ./foo/foo/foo to not exist, but it does")
+	}
+	if _, ok := err.(*os.PathError); !ok {
+		t.Fatalf("unexpected err: %s", err)
 	}
 }
 
@@ -527,6 +553,84 @@ func TestInit_backend_initFromState(t *testing.T) {
 	c.View = view
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad, expected a 'Backend configuration changed' error but command succeeded : \n%s", done(t).All())
+	}
+}
+
+// regression test for https://github.com/hashicorp/terraform/issues/38027
+func TestInit_backend_migration_stateMgr_error(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	t.Chdir(td)
+
+	{
+		// create some state in (implied) local backend
+		outputCfg := `output "test" { value = "test" }
+`
+		if err := os.WriteFile("output.tf", []byte(outputCfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := new(cli.MockUi)
+		applyView, done := testView(t)
+		applyCmd := &ApplyCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: applyView,
+			},
+		}
+		code := applyCmd.Run([]string{"-auto-approve"})
+		testOut := done(t)
+		if code != 0 {
+			t.Fatalf("bad: \n%s", testOut.All())
+		}
+
+		if _, err := os.Stat(DefaultStateFilename); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		// attempt to migrate the state to a broken backend
+		testBackend := new(httpBackend.TestHTTPBackend)
+		testBackend.SetMethodFunc("GET", func(w http.ResponseWriter, r *http.Request) {
+			// simulate "broken backend" in the way described in #38027
+			// i.e. access denied
+			w.WriteHeader(403)
+		})
+		ts := httptest.NewServer(http.HandlerFunc(testBackend.Handle))
+		t.Cleanup(ts.Close)
+
+		backendCfg := fmt.Sprintf(`terraform {
+  backend "http" {
+    address = %q
+  }
+}
+`, ts.URL)
+		if err := os.WriteFile("backend.tf", []byte(backendCfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := new(cli.MockUi)
+		initView, done := testView(t)
+		initCmd := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: initView,
+			},
+		}
+		code := initCmd.Run([]string{"-migrate-state"})
+		out := done(t)
+		if code == 0 {
+			t.Fatalf("expected migration to fail (gracefully): %s", out.Stdout())
+		}
+		expectedErrMsg := "HTTP remote state endpoint invalid auth"
+		if !strings.Contains(out.Stderr(), expectedErrMsg) {
+			t.Fatalf("expected error %q, given: %s", expectedErrMsg, out.Stderr())
+		}
+
+		getCalled := testBackend.CallCount("GET")
+		if getCalled != 1 {
+			t.Fatalf("expected GET to be called exactly %d, called %d times", 1, getCalled)
+		}
 	}
 }
 
@@ -4385,8 +4489,6 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 
 		testBackend := new(httpBackend.TestHTTPBackend)
 		ts := httptest.NewServer(http.HandlerFunc(testBackend.Handle))
-		defer ts.Close()
-
 		t.Cleanup(ts.Close)
 
 		// Override state store to backend
@@ -4418,6 +4520,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			"-migrate-state",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -4455,13 +4558,13 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatalf("unexpected data: %s", diff)
 		}
 
-		expectedGetCalls := 4
-		if testBackend.GetCalled != expectedGetCalls {
-			t.Fatalf("expected %d GET calls, got %d", expectedGetCalls, testBackend.GetCalled)
+		expectedGetCalls := 6
+		if testBackend.CallCount("GET") != expectedGetCalls {
+			t.Fatalf("expected %d GET calls, got %d", expectedGetCalls, testBackend.CallCount("GET"))
 		}
 		expectedPostCalls := 1
-		if testBackend.PostCalled != expectedPostCalls {
-			t.Fatalf("expected %d POST calls, got %d", expectedPostCalls, testBackend.PostCalled)
+		if testBackend.CallCount("POST") != expectedPostCalls {
+			t.Fatalf("expected %d POST calls, got %d", expectedPostCalls, testBackend.CallCount("POST"))
 		}
 	}
 }
