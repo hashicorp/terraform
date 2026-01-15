@@ -72,7 +72,7 @@ func TestTerraformHook(t *testing.T) {
 
 	t.Run("PreDiff", func(t *testing.T) {
 		hook := makeHook()
-		action, err := hook.PreDiff(resourceIdentity, addrs.NotDeposed, cty.NilVal, cty.NilVal)
+		action, err := hook.PreDiff(resourceIdentity, addrs.NotDeposed, cty.NilVal, cty.NilVal, nil)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -93,9 +93,9 @@ func TestTerraformHook(t *testing.T) {
 		}
 	})
 
-	t.Run("PostDiff", func(t *testing.T) {
+	t.Run("PostDiff - success", func(t *testing.T) {
 		hook := makeHook()
-		action, err := hook.PostDiff(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
+		action, err := hook.PostDiff(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal, nil)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -110,6 +110,29 @@ func TestTerraformHook(t *testing.T) {
 			Addr:         stackAddr,
 			ProviderAddr: providerAddr,
 			Status:       hooks.ResourceInstancePlanned,
+		}
+		if diff := cmp.Diff(gotRihd, wantRihd); diff != "" {
+			t.Errorf("wrong status hook data:\n%s", diff)
+		}
+	})
+
+	t.Run("PostDiff - error", func(t *testing.T) {
+		hook := makeHook()
+		action, err := hook.PostDiff(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal, errors.New("oh no"))
+		if err != nil {
+			t.Errorf("unexpected error: %s", err)
+		}
+		if action != terraform.HookActionContinue {
+			t.Errorf("wrong action: %#v", action)
+		}
+		if hook.seq.tracking != "boop" {
+			t.Errorf("wrong tracking value: %#v", hook.seq.tracking)
+		}
+
+		wantRihd := &hooks.ResourceInstanceStatusHookData{
+			Addr:         stackAddr,
+			ProviderAddr: providerAddr,
+			Status:       hooks.ResourceInstanceErrored,
 		}
 		if diff := cmp.Diff(gotRihd, wantRihd); diff != "" {
 			t.Errorf("wrong status hook data:\n%s", diff)
