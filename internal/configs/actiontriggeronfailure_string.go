@@ -10,11 +10,12 @@ func _() {
 	var x [1]struct{}
 	_ = x[ActionTriggerOnFailureFail-0]
 	_ = x[ActionTriggerOnFailureContinue-1]
+	_ = x[ActionTriggerOnFailureTaint-2]
 }
 
-const _ActionTriggerOnFailure_name = "ActionTriggerOnFailureFailActionTriggerOnFailureContinue"
+const _ActionTriggerOnFailure_name = "ActionTriggerOnFailureFailActionTriggerOnFailureContinueActionTriggerOnFailureTaint"
 
-var _ActionTriggerOnFailure_index = [...]uint8{0, 26, 56}
+var _ActionTriggerOnFailure_index = [...]uint8{0, 26, 56, 83}
 
 func (i ActionTriggerOnFailure) String() string {
 	idx := int(i) - 0

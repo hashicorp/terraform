@@ -63,6 +63,7 @@ type ActionTriggerOnFailure int
 const (
 	ActionTriggerOnFailureFail ActionTriggerOnFailure = iota
 	ActionTriggerOnFailureContinue
+	ActionTriggerOnFailureTaint
 )
 
 //go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerOnFailure
@@ -156,6 +157,8 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 			a.OnFailure = ActionTriggerOnFailureContinue
 		case "fail":
 			a.OnFailure = ActionTriggerOnFailureFail
+		case "taint":
+			a.OnFailure = ActionTriggerOnFailureTaint
 		default:
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,

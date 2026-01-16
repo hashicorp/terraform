@@ -44,6 +44,7 @@ func TestContextApply_actions(t *testing.T) {
 		expectDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
 		ignoreWarnings                      bool
 
+		assertState func(*testing.T, *states.State)
 		assertHooks func(*testing.T, actionHookCapture)
 	}{
 		"before_create triggered": {
@@ -2666,6 +2667,57 @@ resource "test_object" "dummy_resource" {
 			},
 		},
 
+		"trigger on_failure set to 'taint' taints the resource and doesn't run the remainder of actions": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "failing_action" {
+  config {
+    attr = "failure"
+  }
+}
+action "action_example" "tainting_action" {}
+resource "test_object" "dummy_resource" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.action_example.failing_action, action.action_example.tainting_action]
+      on_failure = taint
+    }
+  }
+}
+`,
+			},
+			events:                   generateTestActionEventsFunc(),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "action_example",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("failure"),
+				}),
+			}},
+			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error when invoking action",
+						Detail:   "test case for failing: this simulates a provider failing",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 251},
+							End:      hcl.Pos{Line: 7, Column: 54, Byte: 287},
+						},
+					},
+				)
+			},
+			assertState: func(t *testing.T, state *states.State) {
+				resourceAddr := mustResourceInstanceAddr("test_object.dummy_resource")
+				ri := state.ResourceInstance(resourceAddr)
+				if ri.Current.Status != states.ObjectTainted {
+					t.Fatalf("expected tainted resource, got %v", ri.Current.Status)
+				}
+			},
+		},
+
 		"when omitted 'on_failure' behaves as 'on_failure = fail'": {
 			module: map[string]string{
 				"main.tf": `
@@ -2915,7 +2967,7 @@ resource "test_object" "dummy_resource" {
 				t.Fatalf("plan is not applyable but should be")
 			}
 
-			_, diags = ctx.Apply(plan, m, tc.applyOpts)
+			resultingState, diags := ctx.Apply(plan, m, tc.applyOpts)
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
 			} else {
@@ -2962,6 +3014,10 @@ resource "test_object" "dummy_resource" {
 
 			if tc.assertHooks != nil {
 				tc.assertHooks(t, hookCapture)
+			}
+
+			if tc.assertState != nil {
+				tc.assertState(t, resultingState)
 			}
 		})
 	}

@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/actions"
+	"github.com/hashicorp/terraform/internal/states"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -36,7 +38,7 @@ func (n *nodeActionTriggerApplyInstance) Name() string {
 	return n.ActionInvocation.Addr.String() + " (instance)"
 }
 
-func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {
+func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	actionInvocation := n.ActionInvocation
 
@@ -188,16 +190,19 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		})
 	}
 
-	return diagsWrapErrorsAsWarningIfNeeded(ai, diags, n.ActionTriggerRange)
+	return handleActionFailureMode(ai, diags, ctx.State(), n.ActionTriggerRange, actionData)
 }
 
+// TODO: Rework the comment once the work has been finished
 // If action_trigger block has on_failure set to continue we want to wrap any
 // potential error into a warning. This will be propagated upstream to the
 // caller which may or may not halt the rest of execution.
-func diagsWrapErrorsAsWarningIfNeeded(
+func handleActionFailureMode(
 	aii *plans.ActionInvocationInstance,
 	currentDiags tfdiags.Diagnostics,
+	state *states.SyncState,
 	subject *hcl.Range,
+	actionData *actions.ActionData,
 ) tfdiags.Diagnostics {
 	switch aii.ActionTrigger.TriggerOnFailure() {
 	case configs.ActionTriggerOnFailureContinue:
@@ -211,6 +216,24 @@ func diagsWrapErrorsAsWarningIfNeeded(
 				Subject: subject,
 			})
 			return wrappedErrorDiags
+		}
+	case configs.ActionTriggerOnFailureTaint:
+		switch at := aii.ActionTrigger.(type) {
+		case *plans.LifecycleActionTrigger:
+			// Taint the triggering resource if:
+			//	1.
+			triggeringResourceAddr := at.TriggeringResourceAddr
+			sr := state.ResourceInstance(triggeringResourceAddr)
+			if sr != nil {
+				if sr.Current == nil {
+				}
+				sr.Current.Status = states.ObjectTainted
+			}
+			state.SetResourceInstanceCurrent(
+				triggeringResourceAddr,
+				sr.Current,
+				actionData.ProviderAddr,
+			)
 		}
 	default:
 		// Nothing to do for now - here to make it exhaustive and to denote the

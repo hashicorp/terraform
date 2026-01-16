@@ -233,6 +233,7 @@ func TestDecodeActionTriggerBlock_onFailure(t *testing.T) {
 	}{
 		"continue": {true, ""},
 		"fail":     {true, ""},
+		"taint":    {true, ""},
 		"foo": {false, "MockExprLiteral:0,0-0: Invalid " +
 			"\"on_failure\" keyword; The \"on_failure\" argument requires " +
 			"one of the following keywords: continue or fail."},
