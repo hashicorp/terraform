@@ -563,6 +563,208 @@ simple_attr = "val"
 	}
 }
 
+func TestAttributeDiagnosticElaborateFromConfigBody(t *testing.T) {
+	testConfig := `
+resource "aws_security_group" {
+  name        = "primary"
+  description = "example"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16", "192.168.0.0/24"]
+  }
+
+  tags = {
+    Name = "example"
+    Env  = "dev"
+  }
+}
+`
+
+	f, parseDiags := hclsyntax.ParseConfig([]byte(testConfig), "test.tf", hcl.Pos{Line: 1, Column: 1})
+	if len(parseDiags) != 0 {
+		t.Fatal(parseDiags)
+	}
+
+	rootBody := f.Body
+
+	tests := []struct {
+		name             string
+		diag             *attributeDiagnostic
+		expectedSubject  *SourceRange
+		expectedAddress  string
+		expectSameObject bool
+	}{
+		{
+			name: "empty path sets address only",
+			diag: &attributeDiagnostic{
+				diagnosticBase: diagnosticBase{
+					summary: "empty-path",
+				},
+			},
+			expectedSubject:  nil,
+			expectedAddress:  "test.addr",
+			expectSameObject: true,
+		},
+		{
+			name: "existing subject preserved",
+			diag: &attributeDiagnostic{
+				diagnosticBase: diagnosticBase{
+					summary: "existing-subject",
+					address: "original.addr",
+				},
+				attrPath: cty.Path{
+					cty.GetAttrStep{Name: "name"},
+				},
+				subject: &SourceRange{Filename: "preexisting.tf"},
+			},
+			expectedSubject:  &SourceRange{Filename: "preexisting.tf"},
+			expectedAddress:  "original.addr",
+			expectSameObject: true,
+		},
+		{
+			name: "index first step uses missing item range",
+			diag: &attributeDiagnostic{
+				attrPath: cty.Path{
+					cty.IndexStep{Key: cty.StringVal("nope")},
+				},
+			},
+			expectedSubject: &SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+			expectedAddress:  "test.addr",
+			expectSameObject: false,
+		},
+		{
+			name: "traverse labeled block attribute",
+			diag: &attributeDiagnostic{
+				attrPath: cty.Path{
+					cty.GetAttrStep{Name: "resource"},
+					cty.IndexStep{Key: cty.StringVal("aws_security_group")},
+					cty.GetAttrStep{Name: "name"},
+				},
+			},
+			expectedSubject: &SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 3, Column: 17, Byte: 49},
+				End:      SourcePos{Line: 3, Column: 26, Byte: 58},
+			},
+			expectedAddress:  "test.addr",
+			expectSameObject: false,
+		},
+		{
+			name: "missing labeled block falls back to missing item range",
+			diag: &attributeDiagnostic{
+				attrPath: cty.Path{
+					cty.GetAttrStep{Name: "resource"},
+					cty.IndexStep{Key: cty.StringVal("missing")},
+					cty.GetAttrStep{Name: "name"},
+				},
+			},
+			expectedSubject: &SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+			expectedAddress:  "test.addr",
+			expectSameObject: false,
+		},
+		{
+			name: "list index selects element range",
+			diag: &attributeDiagnostic{
+				attrPath: cty.Path{
+					cty.GetAttrStep{Name: "resource"},
+					cty.IndexStep{Key: cty.StringVal("aws_security_group")},
+					cty.GetAttrStep{Name: "ingress"},
+					cty.GetAttrStep{Name: "cidr_blocks"},
+					cty.IndexStep{Key: cty.NumberIntVal(1)},
+				},
+			},
+			expectedSubject: &SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 10, Column: 35, Byte: 198},
+				End:      SourcePos{Line: 10, Column: 51, Byte: 214},
+			},
+			expectedAddress:  "test.addr",
+			expectSameObject: false,
+		},
+		{
+			name: "list index out of range uses attribute name range",
+			diag: &attributeDiagnostic{
+				attrPath: cty.Path{
+					cty.GetAttrStep{Name: "resource"},
+					cty.IndexStep{Key: cty.StringVal("aws_security_group")},
+					cty.GetAttrStep{Name: "ingress"},
+					cty.GetAttrStep{Name: "cidr_blocks"},
+					cty.IndexStep{Key: cty.NumberIntVal(99)},
+				},
+			},
+			expectedSubject: &SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 10, Column: 5, Byte: 168},
+				End:      SourcePos{Line: 10, Column: 16, Byte: 179},
+			},
+			expectedAddress:  "test.addr",
+			expectSameObject: false,
+		},
+		{
+			name: "map index selects value range",
+			diag: &attributeDiagnostic{
+				attrPath: cty.Path{
+					cty.GetAttrStep{Name: "resource"},
+					cty.IndexStep{Key: cty.StringVal("aws_security_group")},
+					cty.GetAttrStep{Name: "tags"},
+					cty.IndexStep{Key: cty.StringVal("Env")},
+				},
+			},
+			expectedSubject: &SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 15, Column: 13, Byte: 265},
+				End:      SourcePos{Line: 15, Column: 16, Byte: 268},
+			},
+			expectedAddress:  "test.addr",
+			expectSameObject: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.diag.ElaborateFromConfigBody(rootBody, "test.addr")
+			ad, ok := got.(*attributeDiagnostic)
+			if !ok {
+				t.Fatalf("unexpected diagnostic type: %T", got)
+			}
+
+			if tc.expectSameObject && ad != tc.diag {
+				t.Fatalf("expected original diagnostic to be returned")
+			}
+			if !tc.expectSameObject && ad == tc.diag && tc.diag.subject == nil {
+				// When subject is nil, ElaborateFromConfigBody should return a copy.
+				t.Fatalf("expected a copy of the diagnostic to be returned")
+			}
+
+			if ad.address != tc.expectedAddress {
+				t.Fatalf("expected address %q, got %q", tc.expectedAddress, ad.address)
+			}
+
+			if tc.expectedSubject == nil {
+				if ad.subject != nil {
+					t.Fatalf("expected subject to be nil, got %#v", ad.subject)
+				}
+				return
+			}
+
+			for _, problem := range deep.Equal(ad.subject, tc.expectedSubject) {
+				t.Error(problem)
+			}
+		})
+	}
+}
+
 func TestGetAttribute(t *testing.T) {
 	path := cty.Path{
 		cty.GetAttrStep{Name: "foo"},
