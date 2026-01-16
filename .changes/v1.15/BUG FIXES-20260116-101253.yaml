@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Fixed an issue where terraform stacks validate was failing to resolve relative paths for modules'
+time: 2026-01-16T10:12:53.854705-05:00
+custom:
+    Issue: "38025"
