@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixed a regex parsing failure caused by invisible ANSI reset codes
+time: 2026-01-16T16:58:53.204922-05:00
+custom:
+    Issue: "38072"
