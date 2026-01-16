@@ -729,6 +729,25 @@ resource "aws_security_group" {
 			expectedAddress:  "test.addr",
 			expectSameObject: false,
 		},
+		{
+			name: "select element inside list value",
+			diag: &attributeDiagnostic{
+				attrPath: cty.Path{
+					cty.GetAttrStep{Name: "resource"},
+					cty.IndexStep{Key: cty.StringVal("aws_security_group")},
+					cty.GetAttrStep{Name: "ingress"},
+					cty.GetAttrStep{Name: "cidr_blocks"},
+					cty.IndexStep{Key: cty.NumberIntVal(1)},
+				},
+			},
+			expectedSubject: &SourceRange{
+				Filename: "test.tf",
+				Start:    SourcePos{Line: 10, Column: 35, Byte: 198},
+				End:      SourcePos{Line: 10, Column: 51, Byte: 214},
+			},
+			expectedAddress:  "test.addr",
+			expectSameObject: false,
+		},
 	}
 
 	for _, tc := range tests {
