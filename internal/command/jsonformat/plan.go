@@ -241,7 +241,8 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 		}
 
 		var buf strings.Builder
-		buf.WriteString(renderer.Colorize.Color("\n[bold]Plan:[reset] "))
+		buf.WriteString(renderer.Colorize.Color("\n[bold]Plan:[reset]"))
+		buf.WriteString(" ")
 		if importingCount > 0 {
 			buf.WriteString(fmt.Sprintf("%d to import, ", importingCount))
 		}
