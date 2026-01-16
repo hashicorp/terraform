@@ -42,9 +42,19 @@ func (diags Diagnostics) InConfigBody(body hcl.Body, addr string) Diagnostics {
 
 	ret := make(Diagnostics, len(diags))
 	for i, srcDiag := range diags {
-		if cd, isCD := srcDiag.(contextualFromConfigBody); isCD {
-			ret[i] = cd.ElaborateFromConfigBody(body, addr)
-		} else {
+		switch diag := srcDiag.(type) {
+		case contextualFromConfigBody:
+			ret[i] = diag.ElaborateFromConfigBody(body, addr)
+		case overriddenDiagnostic:
+			if cd, isCD := diag.original.(contextualFromConfigBody); isCD {
+				newOriginal := cd.ElaborateFromConfigBody(body, addr)
+				ret[i] = &overriddenDiagnostic{
+					original: newOriginal,
+					severity: diag.severity,
+					extra:    diag.extra,
+				}
+			}
+		default:
 			ret[i] = srcDiag
 		}
 	}
@@ -146,7 +156,14 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string
 	// presence of errors where performance isn't a concern.
 
 	traverse := d.attrPath[:]
-	final := d.attrPath[len(d.attrPath)-1]
+
+	// We want to only deal with parts that can possibly be in the schema.
+	// Therefore we will find the latest GetAttrStep and if present the
+	// IndexStep after and remove every part of the path after that.
+
+	var final *cty.GetAttrStep
+	var idxStep *cty.IndexStep
+	traverse, final, idxStep = getFinalAttrAndIndex(traverse)
 
 	// Index should never be the first step
 	// as indexing of top blocks (such as resources & data sources)
@@ -155,13 +172,6 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string
 		subject := SourceRangeFromHCL(body.MissingItemRange())
 		ret.subject = &subject
 		return &ret
-	}
-
-	// Process index separately
-	idxStep, hasIdx := final.(cty.IndexStep)
-	if hasIdx {
-		final = d.attrPath[len(d.attrPath)-2]
-		traverse = d.attrPath[:len(d.attrPath)-1]
 	}
 
 	// If we have more than one step after removing index
@@ -178,15 +188,14 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string
 
 	// Once we get here, "final" should be a GetAttr step that maps to an
 	// attribute in our current body.
-	finalStep, isAttr := final.(cty.GetAttrStep)
-	if !isAttr {
+	if final == nil {
 		return &ret
 	}
 
 	content, _, contentDiags := body.PartialContent(&hcl.BodySchema{
 		Attributes: []hcl.AttributeSchema{
 			{
-				Name:     finalStep.Name,
+				Name:     final.Name,
 				Required: true,
 			},
 		},
@@ -195,17 +204,34 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string
 		return &ret
 	}
 
-	if attr, ok := content.Attributes[finalStep.Name]; ok {
+	if attr, ok := content.Attributes[final.Name]; ok {
 		hclRange := attr.Expr.Range()
-		if hasIdx {
+		if idxStep != nil {
 			// Try to be more precise by finding index range
-			hclRange = hclRangeFromIndexStepAndAttribute(idxStep, attr)
+			hclRange = hclRangeFromIndexStepAndAttribute(*idxStep, attr)
 		}
 		subject = SourceRangeFromHCL(hclRange)
 		ret.subject = &subject
 	}
 
 	return &ret
+}
+
+func getFinalAttrAndIndex(p cty.Path) (cty.Path, *cty.GetAttrStep, *cty.IndexStep) {
+	for index := len(p) - 1; index > 0; index-- {
+		// The first GetAttrPath we find is the last one
+		if attrStep, ok := p[index].(cty.GetAttrStep); ok {
+			var indexStep *cty.IndexStep
+			if len(p) > index+1 {
+				if step, ok := p[index+1].(cty.IndexStep); ok {
+					indexStep = &step
+				}
+			}
+			return p[:index+1], &attrStep, indexStep
+		}
+	}
+	// Found nothing
+	return p, nil, nil
 }
 
 func (d *attributeDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
