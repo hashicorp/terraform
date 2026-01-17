@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 )
 
-// IntegrationOutputWriter is an interface used to to write output tailored for
+// IntegrationOutputWriter is an interface used to write output tailored for
 // HCP Terraform integrations
 type IntegrationOutputWriter interface {
 	End()

@@ -86,7 +86,7 @@ func AssertNoErrors(t *testing.T, diags Diagnostics) {
 	t.FailNow()
 }
 
-// LogDiagnostics is a test helper that logs the given diagnostics to to the
+// LogDiagnostics is a test helper that logs the given diagnostics to the
 // given testing.T using t.Log, in a way that is hopefully useful in debugging
 // a test. It does not generate any errors or fail the test. See
 // tfdiags.AssertNoDiagnostics and tfdiags.AssertNoErrors for more specific helpers that can
