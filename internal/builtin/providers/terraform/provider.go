@@ -215,7 +215,7 @@ func (p *Provider) MoveResourceState(req providers.MoveResourceStateRequest) pro
 	}
 }
 
-// ValidateResourceConfig is used to to validate the resource configuration values.
+// ValidateResourceConfig is used to validate the resource configuration values.
 func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	return validateDataStoreResourceConfig(req)
 }
