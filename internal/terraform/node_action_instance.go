@@ -71,7 +71,7 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
 		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
-		deprecationDiags := ctx.Deprecations().ValidateAsConfig(configVal, n.ModulePath())
+		deprecationDiags := ctx.Deprecations().ValidateAsConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
 		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		if diags.HasErrors() {

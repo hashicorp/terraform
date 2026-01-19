@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -85,7 +86,7 @@ func (d *Deprecations) deprecationMarksToDiagnostics(deprecationMarks []marks.De
 // ValidateAsConfig checks the given value for deprecation marks and returns diagnostics
 // for each deprecation found, unless deprecation warnings are suppressed for the given module.
 // It checks for deeply nested deprecation marks as well.
-func (d *Deprecations) ValidateAsConfig(value cty.Value, module addrs.Module) tfdiags.Diagnostics {
+func (d *Deprecations) ValidateAsConfig(value cty.Value, schema *configschema.Block, module addrs.Module) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	_, pvms := value.UnmarkDeepWithPaths()
 
