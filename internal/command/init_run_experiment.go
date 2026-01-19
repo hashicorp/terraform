@@ -438,6 +438,7 @@ func (c *InitCommand) initPssBackend(ctx context.Context, root *configs.Module, 
 
 		opts = &BackendOpts{
 			StateStoreConfig:       root.StateStore,
+			ProviderRequirements:   root.ProviderRequirements,
 			Locks:                  configLocks,
 			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
 			ConfigOverride:         configOverride,
