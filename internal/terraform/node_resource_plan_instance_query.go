@@ -51,7 +51,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(blockVal, n.ModulePath()).InConfigBody(config.Config, n.Addr.String()))
+	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(blockVal, schema.FullSchema, n.ModulePath()).InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags
 	}
