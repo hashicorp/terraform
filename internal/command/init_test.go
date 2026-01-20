@@ -240,6 +240,8 @@ func TestInit_two_step_provider_download(t *testing.T) {
 	}
 }
 
+// Test that an error is returned if users provide the removed directory argument, which was replaced with -chdir
+// See: https://github.com/hashicorp/terraform/commit/ca23a096d8c48544b9bfc6dbf13c66488f9b6964
 func TestInit_multipleArgs(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -262,6 +264,13 @@ func TestInit_multipleArgs(t *testing.T) {
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", done(t).All())
+	}
+
+	expectedMsg := "Did you mean to use -chdir?"
+	if !strings.Contains(done(t).All(), expectedMsg) {
+		t.Fatalf("expected the error message to include %q as part of protecting against deprecated additional arguments.",
+			expectedMsg,
+		)
 	}
 }
 
@@ -401,7 +410,7 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 }
 
 func TestInit_get(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
@@ -429,7 +438,7 @@ func TestInit_get(t *testing.T) {
 }
 
 func TestInit_json(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
@@ -455,7 +464,7 @@ func TestInit_json(t *testing.T) {
 }
 
 func TestInit_getUpgradeModules(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
@@ -486,8 +495,9 @@ func TestInit_getUpgradeModules(t *testing.T) {
 	}
 }
 
-func TestInit_backend(t *testing.T) {
-	// Create a temporary working directory that is empty
+// Test initializing a backend from config (new working directory with no pre-existing backend state file).
+func TestInit_backend_initFromConfig(t *testing.T) {
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
@@ -509,6 +519,40 @@ func TestInit_backend(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+}
+
+// Test init when the -backend=false flag is present (backend state file is used instead of the config).
+func TestInit_backend_initFromState(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-backend-config-file-change-to-s3"), td)
+	t.Chdir(td)
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-backend=false",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).All())
+	}
+
+	// Double check that the successful init above was due to ignoring the config.
+	// When we don't provide -backend=false there should be an error due to a config change being detected;
+	// the config specifies an s3 backend instead of local.
+	args = []string{}
+	view, done = testView(t)
+	c.View = view
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad, expected a 'Backend configuration changed' error but command succeeded : \n%s", done(t).All())
 	}
 }
 
@@ -591,7 +635,7 @@ func TestInit_backend_migration_stateMgr_error(t *testing.T) {
 }
 
 func TestInit_backendUnset(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
@@ -661,7 +705,7 @@ func TestInit_backendUnset(t *testing.T) {
 }
 
 func TestInit_backendConfigFile(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
 	t.Chdir(td)
@@ -797,7 +841,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 }
 
 func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
 	t.Chdir(td)
@@ -833,7 +877,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 }
 
 func TestInit_backendReconfigure(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
@@ -880,7 +924,7 @@ func TestInit_backendReconfigure(t *testing.T) {
 }
 
 func TestInit_backendConfigFileChange(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file-change"), td)
 	t.Chdir(td)
@@ -908,7 +952,7 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 }
 
 func TestInit_backendMigrateWhileLocked(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-migrate-while-locked"), td)
 	t.Chdir(td)
@@ -961,7 +1005,7 @@ func TestInit_backendMigrateWhileLocked(t *testing.T) {
 }
 
 func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file-change-migrate-existing"), td)
 	t.Chdir(td)
@@ -998,7 +1042,7 @@ func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
 }
 
 func TestInit_backendConfigKV(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
 	t.Chdir(td)
@@ -1026,7 +1070,7 @@ func TestInit_backendConfigKV(t *testing.T) {
 }
 
 func TestInit_backendConfigKVReInit(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
 	t.Chdir(td)
@@ -1089,7 +1133,7 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 }
 
 func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
@@ -1137,7 +1181,7 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 }
 
 func TestInit_backendCli_no_config_block(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init"), td)
 	t.Chdir(td)
@@ -1658,7 +1702,7 @@ func TestInit_inputFalse(t *testing.T) {
 }
 
 func TestInit_getProvider(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	t.Chdir(td)
@@ -1765,7 +1809,7 @@ func TestInit_getProvider(t *testing.T) {
 }
 
 func TestInit_getProviderSource(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-provider-source"), td)
 	t.Chdir(td)
@@ -1815,7 +1859,7 @@ func TestInit_getProviderSource(t *testing.T) {
 }
 
 func TestInit_getProviderLegacyFromState(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-provider-legacy-from-state"), td)
 	t.Chdir(td)
@@ -1857,7 +1901,7 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 }
 
 func TestInit_getProviderInvalidPackage(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-provider-invalid-package"), td)
 	t.Chdir(td)
@@ -1921,7 +1965,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 }
 
 func TestInit_getProviderDetectedLegacy(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-provider-detected-legacy"), td)
 	t.Chdir(td)
@@ -1990,7 +2034,7 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 }
 
 func TestInit_providerSource(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-required-providers"), td)
 	t.Chdir(td)
@@ -2184,7 +2228,7 @@ func TestInit_cancelProviders(t *testing.T) {
 }
 
 func TestInit_getUpgradePlugins(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	t.Chdir(td)
@@ -2309,7 +2353,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 }
 
 func TestInit_getProviderMissing(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	t.Chdir(td)
@@ -2350,7 +2394,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 }
 
 func TestInit_checkRequiredVersion(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-check-required-version"), td)
 	t.Chdir(td)
@@ -2432,7 +2476,7 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 }
 
 func TestInit_providerLockFile(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-provider-lock-file"), td)
 	// The temporary directory does not have write permission (dr-xr-xr-x) after the copy
@@ -2621,7 +2665,7 @@ provider "registry.terraform.io/hashicorp/test" {
 
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
-			// Create a temporary working directory that is empty
+			// Create a temporary working directory and copy in test fixtures
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(tc.fixture), td)
 			t.Chdir(td)
@@ -3160,7 +3204,7 @@ func TestInit_testsWithExternalProviders(t *testing.T) {
 }
 
 func TestInit_tests(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-with-tests"), td)
 	t.Chdir(td)
@@ -3190,7 +3234,7 @@ func TestInit_tests(t *testing.T) {
 }
 
 func TestInit_testsWithProvider(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-with-tests-with-provider"), td)
 	t.Chdir(td)
@@ -3298,7 +3342,7 @@ func TestInit_testsWithInvalidRequiredProviders(t *testing.T) {
 }
 
 func TestInit_testsWithModule(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-with-tests-with-module"), td)
 	t.Chdir(td)
@@ -4183,7 +4227,7 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 }
 
 func TestInit_stateStore_unset(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
@@ -4284,7 +4328,7 @@ func TestInit_stateStore_unset(t *testing.T) {
 }
 
 func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
@@ -4386,7 +4430,7 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 }
 
 func TestInit_stateStore_to_backend(t *testing.T) {
-	// Create a temporary working directory that is empty
+	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
