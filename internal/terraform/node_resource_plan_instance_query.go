@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -50,6 +51,11 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(blockVal, n.ModulePath()).InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
+	}
+
 	// Unmark before sending to provider
 	unmarkedBlockVal, _ := blockVal.UnmarkDeepWithPaths()
 	configKnown := blockVal.IsWhollyKnown()
@@ -64,10 +70,24 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	if config.List.Limit != nil {
+		var limitDeprecationDiags tfdiags.Diagnostics
+		limitCty, limitDeprecationDiags = ctx.Deprecations().Validate(limitCty, ctx.Path().Module(), config.List.Limit.Range().Ptr())
+		diags = diags.Append(limitDeprecationDiags)
+		limitCty = marks.RemoveDeprecationMarks(limitCty)
+	}
+
 	includeRscCty, includeRsc, includeDiags := newIncludeRscEvaluator(false).EvaluateExpr(ctx, config.List.IncludeResource)
 	diags = diags.Append(includeDiags)
 	if includeDiags.HasErrors() {
 		return diags
+	}
+
+	if config.List.IncludeResource != nil {
+		var includeDeprecationDiags tfdiags.Diagnostics
+		includeRscCty, includeDeprecationDiags = ctx.Deprecations().Validate(includeRscCty, ctx.Path().Module(), config.List.IncludeResource.Range().Ptr())
+		diags = diags.Append(includeDeprecationDiags)
+		includeRscCty = marks.RemoveDeprecationMarks(includeRscCty)
 	}
 
 	rId := HookResourceIdentity{
