@@ -90,6 +90,7 @@ func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags
 		return res, false, diags
 	}
 
+	forEachVal = marks.RemoveDeprecationMarks(forEachVal)
 	if forEachVal.IsNull() || !forEachVal.IsKnown() || markSafeLengthInt(forEachVal) == 0 {
 		// we check length, because an empty set returns a nil map which will panic below
 		return res, true, diags
