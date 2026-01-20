@@ -237,5 +237,10 @@ func evaluateLocalValue(config *configs.Local, localAddr addrs.LocalValue, addrS
 	if val == cty.NilVal {
 		val = cty.DynamicVal
 	}
+
+	var deprecationDiags tfdiags.Diagnostics
+	val, deprecationDiags = ctx.Deprecations().Validate(val, ctx.Path().Module(), expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	return val, diags
 }
