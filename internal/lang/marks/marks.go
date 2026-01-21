@@ -70,9 +70,9 @@ func GetDeprecationMarks(val cty.Value) []DeprecationMark {
 
 // GetDeprecationMarksDeep returns all deprecation marks present on the given
 // cty.Value or any nested values.
-func GetDeprecationMarksDeep(val cty.Value) []DeprecationMark {
-	_, marks := val.UnmarkDeep()
-	return FilterDeprecationMarks(marks)
+func GetDeprecationMarksDeep(val cty.Value) (cty.Value, []DeprecationMark) {
+	unmarked, marks := val.UnmarkDeep()
+	return unmarked, FilterDeprecationMarks(marks)
 }
 
 // RemoveDeprecationMarks returns a copy of the given cty.Value with all
