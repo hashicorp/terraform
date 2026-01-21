@@ -131,7 +131,8 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	// Emit config values that are known at this point (before apply begins)
 	// This supports progressive resolution where some values are available upfront
 	log.Printf("[TRACE] ApplyComponentPlan: emitting pre-apply config values for %s", inst.Addr())
-	emitKnownConfigValues(ctx, h, inst, "pre-apply")
+	// TODO: Temporarily disabled to isolate failure cause
+	// emitKnownConfigValues(ctx, h, inst, "pre-apply")
 
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
 
@@ -341,7 +342,8 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// Emit config values that are now available after successful apply
 		// These will have resolved/concrete values from the final state
 		log.Printf("[TRACE] ApplyComponentPlan: emitting post-apply config values for %s", inst.Addr())
-		emitKnownConfigValues(ctx, h, inst, "post-apply")
+		// TODO: Temporarily disabled to isolate failure cause
+		// emitKnownConfigValues(ctx, h, inst, "post-apply")
 
 		hookMore(ctx, seq, h.EndComponentInstanceApply, inst.Addr())
 	}
