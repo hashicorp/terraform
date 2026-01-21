@@ -39,7 +39,12 @@ type NodeApplyableResourceInstance struct {
 	forceReplace bool
 
 	resolvedActionProviders []addrs.AbsProviderConfig
-	ActionSchemas           map[string]*providers.ActionSchema
+
+	// @mildwonkey todo/fixme/something
+	// currently the string here is the action type
+	// terrible copy paste from provisioners? maybe.
+	// what's better? actionTypeName interface for string? actual addr?
+	ActionSchemas map[string]*providers.ActionSchema
 }
 
 var (
@@ -590,7 +595,17 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 				return diags
 			}
 
-			configValue := ai.ConfigValue
+			// get the expanded action data
+			actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Action instance not found",
+					Detail:   "Could not find action instance for address " + ai.Addr.String(),
+				})
+				return diags
+			}
+			configValue := actionData.ConfigValue
 
 			// Validate that what we planned matches the action data we have.
 			errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configValue))
@@ -797,12 +812,13 @@ func (n *NodeApplyableResourceInstance) ActionReferences() []*addrs.Reference {
 			continue
 		}
 
-		if schema, ok := n.ActionSchemas[action.Provider.String()]; ok {
+		if schema, ok := n.ActionSchemas[action.Type]; ok {
 			refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, action.Config, schema.ConfigSchema)
 			result = append(result, refs...)
 		} else {
 			log.Printf("[WARN] no action schema is attached to %s, so action config references cannot be detected", n.Name())
 		}
 	}
+
 	return result
 }
