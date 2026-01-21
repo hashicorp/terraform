@@ -871,6 +871,7 @@ message StackChangeProgress {
     ActionInvocationPlanned action_invocation_planned = 9;
     ActionInvocationStatus action_invocation_status = 10;
     ActionInvocationProgress action_invocation_progress = 11;
+    ConfigValue config_value = 12;
   }
 
   // ComponentInstanceStatus describes the current status of a component instance
@@ -959,6 +960,16 @@ message StackChangeProgress {
       ActionInvocationInstanceInStackAddr addr = 1;
       string message = 2;
       string provider_addr = 3;
+  }
+
+  // ConfigValue describes a configuration value that has become available
+  // during graph traversal, supporting progressive resolution.
+  message ConfigValue {
+      string addr = 1;
+      string phase = 2;
+      bool available = 3;
+      // TODO: Add serialized value field when value serialization is needed
+      // DynamicValue value = 4;
   }
 
   // LifecycleActionTrigger contains details on the conditions that led to the
