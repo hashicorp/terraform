@@ -50,8 +50,7 @@ func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.R
 
 // ValidateDeep does the same as Validate but checks deeply nested deprecation marks as well.
 func (d *Deprecations) ValidateDeep(value cty.Value, module addrs.Module, rng *hcl.Range) (cty.Value, tfdiags.Diagnostics) {
-	deprecationMarks := marks.GetDeprecationMarksDeep(value)
-	notDeprecatedValue := marks.RemoveDeprecationMarksDeep(value)
+	notDeprecatedValue, deprecationMarks := marks.GetDeprecationMarksDeep(value)
 	return notDeprecatedValue, d.deprecationMarksToDiagnostics(deprecationMarks, module, rng)
 }
 
