@@ -127,12 +127,12 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 	h := hooksFromContext(ctx)
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, inst.Addr())
-	
+
 	// Emit config values that are known at this point (before apply begins)
 	// This supports progressive resolution where some values are available upfront
 	log.Printf("[TRACE] ApplyComponentPlan: emitting pre-apply config values for %s", inst.Addr())
 	emitKnownConfigValues(ctx, h, inst, "pre-apply")
-	
+
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
 
 	// Fire PENDING status for all planned action invocations
@@ -342,7 +342,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// These will have resolved/concrete values from the final state
 		log.Printf("[TRACE] ApplyComponentPlan: emitting post-apply config values for %s", inst.Addr())
 		emitKnownConfigValues(ctx, h, inst, "post-apply")
-		
+
 		hookMore(ctx, seq, h.EndComponentInstanceApply, inst.Addr())
 	}
 
@@ -393,7 +393,7 @@ func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponen
 	// For each declared output value, emit a placeholder or computed value
 	for _, output := range moduleTree.Module.Outputs {
 		var value cty.Value
-		
+
 		if phase == "post-apply" {
 			// After apply, try to get the resolved value from the final state
 			result := componentInst.ApplyResult(ctx)
@@ -405,31 +405,19 @@ func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponen
 						break
 					}
 				}
-				
-				// If we didn't find it in state, fall back to component result
+
+				// If we didn't find it in state, use unknown value as fallback
+				// Note: During apply phase, we can't call ResultValue() as it requires planning evaluator
 				if value == cty.NilVal {
-					componentResult := componentInst.ResultValue(ctx, ApplyPhase)
-					if componentResult.Type().IsObjectType() && componentResult.Type().HasAttribute(output.Name) {
-						value = componentResult.GetAttr(output.Name)
-					} else {
-						value = cty.UnknownVal(cty.DynamicPseudoType)
-					}
+					value = cty.UnknownVal(cty.DynamicPseudoType)
 				}
 			} else {
 				value = cty.UnknownVal(cty.DynamicPseudoType)
 			}
 		} else {
-			// For pre-apply phase, use the result value from the component instance
-			// This will be unknown/dynamic during pre-apply, but provides structure
-			value = componentInst.ResultValue(ctx, PlanPhase)
-			
-			// If the result value is an object, try to extract the specific output
-			if value.Type().IsObjectType() && value.Type().HasAttribute(output.Name) {
-				value = value.GetAttr(output.Name)
-			} else {
-				// Use unknown value as placeholder
-				value = cty.UnknownVal(cty.DynamicPseudoType)
-			}
+			// For pre-apply phase, we can't use ResultValue during apply operations
+			// Instead, use unknown values as placeholders
+			value = cty.UnknownVal(cty.DynamicPseudoType)
 		}
 
 		// Create the output address
@@ -443,7 +431,7 @@ func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponen
 			Addr:              outputAddr.String(),
 			Value:             value,
 			ComponentInstance: &componentInst.addr,
-			Phase:            phase,
+			Phase:             phase,
 		}
 
 		log.Printf("[TRACE] emitKnownConfigValues: emitting config value %s = %s [%s]", outputAddr.String(), value.GoString(), phase)
