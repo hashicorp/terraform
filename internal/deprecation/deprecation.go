@@ -43,8 +43,7 @@ func (d *Deprecations) SuppressModuleCallDeprecation(addr addrs.Module) {
 // values.
 // If the value can not be referenced, use ValidateDeep or ValidateAsConfig instead.
 func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.Range) (cty.Value, tfdiags.Diagnostics) {
-	deprecationMarks := marks.GetDeprecationMarks(value)
-	notDeprecatedValue := marks.RemoveDeprecationMarks(value)
+	notDeprecatedValue, deprecationMarks := marks.GetDeprecationMarks(value)
 	return notDeprecatedValue, d.deprecationMarksToDiagnostics(deprecationMarks, module, rng)
 }
 
