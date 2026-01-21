@@ -84,12 +84,13 @@ func (d *Deprecations) deprecationMarksToDiagnostics(deprecationMarks []marks.De
 // ValidateAsConfig checks the given value for deprecation marks and returns diagnostics
 // for each deprecation found, unless deprecation warnings are suppressed for the given module.
 // It checks for deeply nested deprecation marks as well.
-func (d *Deprecations) ValidateAsConfig(value cty.Value, schema *configschema.Block, module addrs.Module) tfdiags.Diagnostics {
+func (d *Deprecations) ValidateAsConfig(value cty.Value, schema *configschema.Block, module addrs.Module) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	_, pvms := value.UnmarkDeepWithPaths()
+	unmarked, pvms := value.UnmarkDeepWithPaths()
 
-	if len(pvms) == 0 || d.IsModuleCallDeprecationSuppressed(module) {
-		return diags
+	if d.IsModuleCallDeprecationSuppressed(module) {
+		// Even if we don't want to get deprecation warnings we want to remove the marks
+		return unmarked.MarkWithPaths(marks.RemoveAll(pvms, marks.Deprecation)), diags
 	}
 
 	for _, pvm := range pvms {
@@ -118,7 +119,8 @@ func (d *Deprecations) ValidateAsConfig(value cty.Value, schema *configschema.Bl
 			}
 		}
 	}
-	return diags
+
+	return unmarked.MarkWithPaths(marks.RemoveAll(pvms, marks.Deprecation)), diags
 }
 
 func (d *Deprecations) IsModuleCallDeprecationSuppressed(addr addrs.Module) bool {
