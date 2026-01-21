@@ -6,8 +6,10 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -125,6 +127,12 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 	h := hooksFromContext(ctx)
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, inst.Addr())
+	
+	// Emit config values that are known at this point (before apply begins)
+	// This supports progressive resolution where some values are available upfront
+	log.Printf("[TRACE] ApplyComponentPlan: emitting pre-apply config values for %s", inst.Addr())
+	emitKnownConfigValues(ctx, h, inst, "pre-apply")
+	
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
 
 	// Fire PENDING status for all planned action invocations
@@ -330,6 +338,11 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	if diags.HasErrors() {
 		hookMore(ctx, seq, h.ErrorComponentInstanceApply, inst.Addr())
 	} else {
+		// Emit config values that are now available after successful apply
+		// These will have resolved/concrete values from the final state
+		log.Printf("[TRACE] ApplyComponentPlan: emitting post-apply config values for %s", inst.Addr())
+		emitKnownConfigValues(ctx, h, inst, "post-apply")
+		
 		hookMore(ctx, seq, h.EndComponentInstanceApply, inst.Addr())
 	}
 
@@ -351,4 +364,96 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// return errors explaining why it cannot.
 		Complete: !diags.HasErrors(),
 	}, diags
+}
+
+// emitKnownConfigValues emits configuration values that are known at this point
+// in the graph traversal, supporting progressive resolution where some values
+// are available before apply and others become available after.
+func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponentInstance, phase string) {
+	if h.ReportConfigValue == nil {
+		log.Printf("[TRACE] emitKnownConfigValues: ReportConfigValue hook is nil, skipping")
+		return
+	}
+
+	// Try to cast to *ComponentInstance to access output values
+	componentInst, ok := inst.(*ComponentInstance)
+	if !ok {
+		log.Printf("[TRACE] emitKnownConfigValues: instance is not *ComponentInstance (got %T), skipping", inst)
+		return
+	}
+
+	log.Printf("[TRACE] emitKnownConfigValues: starting config value emission for %s in phase %s", componentInst.Addr(), phase)
+
+	// Get the module tree to access declared outputs
+	moduleTree := componentInst.ModuleTree(ctx)
+	if moduleTree == nil || moduleTree.Module == nil {
+		return
+	}
+
+	// For each declared output value, emit a placeholder or computed value
+	for _, output := range moduleTree.Module.Outputs {
+		var value cty.Value
+		
+		if phase == "post-apply" {
+			// After apply, try to get the resolved value from the final state
+			result := componentInst.ApplyResult(ctx)
+			if result != nil && result.FinalState != nil {
+				// Look for the output value in the final state
+				for _, outputValue := range result.FinalState.RootOutputValues {
+					if outputValue.Addr.OutputValue.Name == output.Name {
+						value = outputValue.Value
+						break
+					}
+				}
+				
+				// If we didn't find it in state, fall back to component result
+				if value == cty.NilVal {
+					componentResult := componentInst.ResultValue(ctx, ApplyPhase)
+					if componentResult.Type().IsObjectType() && componentResult.Type().HasAttribute(output.Name) {
+						value = componentResult.GetAttr(output.Name)
+					} else {
+						value = cty.UnknownVal(cty.DynamicPseudoType)
+					}
+				}
+			} else {
+				value = cty.UnknownVal(cty.DynamicPseudoType)
+			}
+		} else {
+			// For pre-apply phase, use the result value from the component instance
+			// This will be unknown/dynamic during pre-apply, but provides structure
+			value = componentInst.ResultValue(ctx, PlanPhase)
+			
+			// If the result value is an object, try to extract the specific output
+			if value.Type().IsObjectType() && value.Type().HasAttribute(output.Name) {
+				value = value.GetAttr(output.Name)
+			} else {
+				// Use unknown value as placeholder
+				value = cty.UnknownVal(cty.DynamicPseudoType)
+			}
+		}
+
+		// Create the output address
+		outputAddr := stackaddrs.AbsOutputValue{
+			Stack: componentInst.Addr().Stack,
+			Item:  stackaddrs.OutputValue{Name: output.Name},
+		}
+
+		// Create the config value hook data
+		configData := &hooks.ConfigValueHookData{
+			Addr:              outputAddr.String(),
+			Value:             value,
+			ComponentInstance: &componentInst.addr,
+			Phase:            phase,
+		}
+
+		log.Printf("[TRACE] emitKnownConfigValues: emitting config value %s = %s [%s]", outputAddr.String(), value.GoString(), phase)
+
+		// Emit the config value using the hook function directly
+		if h.ReportConfigValue != nil {
+			h.ReportConfigValue(ctx, nil, configData)
+			log.Printf("[TRACE] emitKnownConfigValues: successfully emitted config value %s", outputAddr.String())
+		} else {
+			log.Printf("[WARN] emitKnownConfigValues: ReportConfigValue hook became nil during iteration")
+		}
+	}
 }
