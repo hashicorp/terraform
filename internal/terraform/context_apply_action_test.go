@@ -50,10 +50,10 @@ func TestContextApply_actions(t *testing.T) {
 action "action_example" "hello" {}
 resource "test_object" "a" {
 	lifecycle {
-	action_trigger {
-		events = [before_create]
-		actions = [action.action_example.hello]
-	}
+		action_trigger {
+			events = [before_create]
+			actions = [action.action_example.hello]
+		}
 	}
 }
 `,
@@ -64,16 +64,16 @@ resource "test_object" "a" {
 		"after_create triggered": {
 			module: map[string]string{
 				"main.tf": `
-		action "action_example" "hello" {}
-		resource "test_object" "a" {
-		  lifecycle {
-			action_trigger {
-			  events = [after_create]
-			  actions = [action.action_example.hello]
-			}
-		  }
+action "action_example" "hello" {}
+resource "test_object" "a" {
+	lifecycle {
+		action_trigger {
+			events = [after_create]
+			actions = [action.action_example.hello]
 		}
-		`,
+	}
+}
+`,
 			},
 			expectInvokeActionCalled: true,
 		},

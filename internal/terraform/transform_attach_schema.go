@@ -59,9 +59,11 @@ type GraphNodeAttachResourceActionSchema interface {
 	ActionTypesProvidedBy() map[string]addrs.AbsProviderConfig
 
 	// AttachProvisionerSchema is called during transform for each action provider
-	// type returned from ProvisionedBy, providing the configuration schema
+	// type returned from ActionTypesProvidedBy, providing the configuration schema
 	// for each action in turn. The implementer should save these for
 	// later use in evaluating provisioner configuration blocks.
+	//
+	// `name` here is the action type name, which possibly made more sense where this was copied from (provisioners)
 	AttachActionSchema(name string, schema *providers.ActionSchema)
 }
 

@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -124,6 +126,7 @@ func (n *nodeExpandAction) recordActionData(ctx EvalContext, addr addrs.AbsActio
 		}
 
 		if count >= 0 {
+			log.Printf("[KRISTIN] setting action %s count: %d\n", n.Addr.Action, count)
 			expander.SetActionCount(addr.Module, n.Addr.Action, count)
 		} else {
 			// this should not be possible as allowUnknown was set to false
@@ -141,6 +144,7 @@ func (n *nodeExpandAction) recordActionData(ctx EvalContext, addr addrs.AbsActio
 		// This method takes care of all of the business logic of updating this
 		// while ensuring that any existing instances are preserved, etc.
 		if known {
+			log.Printf("[KRISTIN] setting action %s for_each: %s\n", n.Addr.Action, forEach)
 			expander.SetActionForEach(addr.Module, n.Addr.Action, forEach)
 		} else {
 			// this should not be possible as allowUnknown was set to false
@@ -149,6 +153,7 @@ func (n *nodeExpandAction) recordActionData(ctx EvalContext, addr addrs.AbsActio
 		}
 
 	default:
+		log.Printf("[KRISTIN] hot singles in your area want action: %s\n", n.Addr.Action)
 		expander.SetActionSingle(addr.Module, n.Addr.Action)
 	}
 
