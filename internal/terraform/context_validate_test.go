@@ -2836,6 +2836,30 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 					},
 				})
 			},
+			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{} // We can not connect this during planning
+			},
+			expectedApplyDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 36, Byte: 177},
+						End:      hcl.Pos{Line: 6, Column: 57, Byte: 198},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `deprecated resource attribute used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 26, Byte: 284},
+						End:      hcl.Pos{Line: 9, Column: 47, Byte: 305},
+					},
+				})
+			},
 		},
 
 		"in action config": {
