@@ -4,6 +4,8 @@
 package hooks
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -179,4 +181,30 @@ func (a *ActionInvocationProgressHookData) String() string {
 		return "<nil>"
 	}
 	return a.Addr.String() + ": " + a.Message
+}
+
+// ConfigValueHookData represents a configuration value that has become
+// available during graph traversal. This supports progressive resolution
+// where values become known at different phases.
+type ConfigValueHookData struct {
+	// Addr is the string address of the configuration value (e.g., output value)
+	Addr string
+	// Value is the resolved configuration value
+	Value cty.Value
+	// ComponentInstance is set if this config value comes from a component instance
+	ComponentInstance *stackaddrs.AbsComponentInstance
+	// Phase indicates when this value became available (e.g., "plan", "apply")
+	Phase string
+}
+
+// String returns a concise string representation of the config value.
+func (c *ConfigValueHookData) String() string {
+	if c == nil {
+		return "<nil>"
+	}
+	phaseInfo := ""
+	if c.Phase != "" {
+		phaseInfo = " [" + c.Phase + "]"
+	}
+	return c.Addr + phaseInfo
 }

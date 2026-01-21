@@ -134,6 +134,11 @@ type Hooks struct {
 	ReportActionInvocationStatus   hooks.MoreFunc[*hooks.ActionInvocationStatusHookData]
 	ReportActionInvocationProgress hooks.MoreFunc[*hooks.ActionInvocationProgressHookData]
 
+	// ReportConfigValue is called when config values (such as output values)
+	// become available during graph traversal. This supports progressive
+	// resolution where some values are known upfront and others after apply.
+	ReportConfigValue hooks.MoreFunc[*hooks.ConfigValueHookData]
+
 	// ReportComponentInstancePlanned is called after a component instance
 	// is planned. It should be called inside a tracing context established by
 	// [Hooks.BeginComponentInstancePlan].
