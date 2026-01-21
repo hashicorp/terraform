@@ -981,8 +981,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					},
 				},
 				Schema: providers.ActionSchema{
-					ConfigSchema: &configschema.Block{
-					},
+					ConfigSchema: &configschema.Block{},
 				},
 			},
 			Want: &stacks.PlannedChange{
