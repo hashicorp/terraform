@@ -200,7 +200,9 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 		return &change, diags
 	}
 
-	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ResourceAddr().Module).InConfigBody(n.config.Config, n.addr.String()))
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ResourceAddr().Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.addr.String()))
 	if diags.HasErrors() {
 		return &change, diags
 	}
@@ -359,7 +361,9 @@ func (n *nodePlannablePartialExpandedResource) dataResourceExecute(ctx EvalConte
 		return &change, diags
 	}
 
-	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ResourceAddr().Module).InConfigBody(n.config.Config, n.addr.String()))
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ResourceAddr().Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.addr.String()))
 	if diags.HasErrors() {
 		return &change, diags
 	}

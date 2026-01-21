@@ -76,7 +76,9 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, ctx.Path().Module()).InConfigBody(config.Config, inp.addr.String()))
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, ctx.Path().Module())
+	diags = diags.Append(deprecationDiags.InConfigBody(config.Config, inp.addr.String()))
 	if diags.HasErrors() {
 		return nil, diags
 	}

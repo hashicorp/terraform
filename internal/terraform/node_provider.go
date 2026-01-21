@@ -83,7 +83,8 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 		return diags
 	}
 
-	deprecationDiags := ctx.Deprecations().ValidateAsConfig(configVal, configSchema, n.Addr.Module)
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, configSchema, n.Addr.Module)
 	diags = diags.Append(deprecationDiags.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags

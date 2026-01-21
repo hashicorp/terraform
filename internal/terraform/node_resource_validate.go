@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -144,9 +143,11 @@ func (n *NodeValidatableResource) evaluateBlock(ctx EvalContext, body hcl.Body, 
 	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
 
 	val, hclBody, diags := ctx.EvaluateBlock(body, schema, selfAddr, keyData)
-	diags = diags.Append(ctx.Deprecations().ValidateAsConfig(val, schema, n.Addr.Module).InConfigBody(body, n.Addr.String()))
 
-	return marks.RemoveDeprecationMarks(val), hclBody, diags
+	var deprecationDiags tfdiags.Diagnostics
+	val, deprecationDiags = ctx.Deprecations().ValidateAsConfig(val, schema, n.Addr.Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(body, n.Addr.String()))
+	return val, hclBody, diags
 }
 
 // connectionBlockSupersetSchema is a schema representing the superset of all
@@ -360,7 +361,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath()).InConfigBody(n.Config.Config, n.Addr.String()))
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
@@ -440,7 +443,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
-		diags = diags.Append(ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath()))
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -468,8 +473,10 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		if valDiags.HasErrors() {
 			return diags
 		}
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath())
 		diags = diags.Append(
-			ctx.Deprecations().ValidateAsConfig(configVal, schema.Body, n.ModulePath()).InConfigBody(n.Config.Config, n.Addr.String()),
+			deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()),
 		)
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -502,7 +509,8 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			if valDiags.HasErrors() {
 				return diags
 			}
-			deprecationDiags := ctx.Deprecations().ValidateAsConfig(blockVal, schema.FullSchema, n.ModulePath())
+			var deprecationDiags tfdiags.Diagnostics
+			blockVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(blockVal, schema.FullSchema, n.ModulePath())
 			diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 		}
 
@@ -513,9 +521,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			if limitDiags.HasErrors() {
 				return diags
 			}
-			_, deprecationDiags := ctx.Deprecations().Validate(limit, n.ModulePath(), n.Config.List.Limit.Range().Ptr())
+			var deprecationDiags tfdiags.Diagnostics
+			limit, deprecationDiags = ctx.Deprecations().Validate(limit, n.ModulePath(), n.Config.List.Limit.Range().Ptr())
 			diags = diags.Append(deprecationDiags)
-			limit = marks.RemoveDeprecationMarks(limit)
 		}
 
 		if n.Config.List.IncludeResource != nil {
@@ -524,9 +532,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			if includeDiags.HasErrors() {
 				return diags
 			}
-			_, deprecationDiags := ctx.Deprecations().Validate(includeResource, n.ModulePath(), n.Config.List.IncludeResource.Range().Ptr())
+			var deprecationDiags tfdiags.Diagnostics
+			includeResource, deprecationDiags = ctx.Deprecations().Validate(includeResource, n.ModulePath(), n.Config.List.IncludeResource.Range().Ptr())
 			diags = diags.Append(deprecationDiags)
-			includeResource = marks.RemoveDeprecationMarks(includeResource)
 		}
 
 		// Use unmarked value for validate request

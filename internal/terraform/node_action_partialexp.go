@@ -68,8 +68,8 @@ func (n *NodeActionDeclarationPartialExpanded) Execute(ctx EvalContext, op walkO
 		if diags.HasErrors() {
 			return diags
 		}
-
-		deprecationDiags := ctx.Deprecations().ValidateAsConfig(configVal, n.Schema.ConfigSchema, n.ActionAddr().Module)
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, n.Schema.ConfigSchema, n.ActionAddr().Module)
 		diags = diags.Append(deprecationDiags)
 		if diags.HasErrors() {
 			return diags
