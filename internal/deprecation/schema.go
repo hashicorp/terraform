@@ -23,7 +23,7 @@ func MarkDeprecatedValues(val cty.Value, schema *configschema.Block, origin stri
 
 	// Check if the block is deprecated
 	if schema.Deprecated {
-		newVal = newVal.Mark(marks.NewDeprecation("deprecated resource block used", origin))
+		newVal = newVal.Mark(marks.NewDeprecation("Deprecated resource used as value", origin))
 	}
 
 	if !newVal.IsKnown() {
@@ -38,12 +38,12 @@ func MarkDeprecatedValues(val cty.Value, schema *configschema.Block, origin stri
 
 			attr := schema.AttributeByPath(p)
 			if attr != nil && attr.Deprecated {
-				v = v.Mark(marks.NewDeprecation("deprecated resource attribute used", fmt.Sprintf("%s.%s", origin, p)))
+				v = v.Mark(marks.NewDeprecation(fmt.Sprintf("Deprecated resource attribute %q used", p), fmt.Sprintf("%s.%s", origin, p)))
 			}
 
 			block := schema.BlockByPath(p)
 			if block != nil && block.Deprecated {
-				v = v.Mark(marks.NewDeprecation("deprecated resource block used", fmt.Sprintf("%s.%s", origin, p)))
+				v = v.Mark(marks.NewDeprecation(fmt.Sprintf("Deprecated resource block %q used", p), fmt.Sprintf("%s.%s", origin, p)))
 			}
 
 			return v, nil
