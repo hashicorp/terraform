@@ -31,12 +31,16 @@ runs:
 
     - name: "download equivalence test binary"
       shell: bash
+      env:
+        TARGET_VERSION: ${{ inputs.target-equivalence-test-version }}
+        TARGET_OS: ${{ inputs.target-os }}
+        TARGET_ARCH: ${{ inputs.target-arch }}
       run: |
         ./.github/scripts/equivalence-test.sh download_equivalence_test_binary \
-          ${{ inputs.target-equivalence-test-version }} \
+          "$TARGET_VERSION" \
           ./bin/equivalence-tests \
-          ${{ inputs.target-os }} \
-          ${{ inputs.target-arch }}
+          "$TARGET_OS" \
+          "$TARGET_ARCH"
 
     - name: Build terraform
       shell: bash
@@ -58,22 +62,29 @@ runs:
     - name: "branch, commit, and push changes"
       if: steps.execute.outputs.changed == 'true'
       shell: bash
+      env:
+        NEW_BRANCH: ${{ inputs.new-branch }}
       run: |
         git config user.name "hc-github-team-tf-core"
         git config user.email "github-team-tf-core@hashicorp.com"
-        git checkout -b ${{ inputs.new-branch }}
+        git checkout -b "$NEW_BRANCH"
         git add testing/equivalence-tests/outputs
         git commit -m "Update equivalence test golden files."
-        git push --set-upstream origin ${{ inputs.new-branch }}
+        git push --set-upstream origin "$NEW_BRANCH"
           
     - name: "create pull request"
       if: steps.execute.outputs.changed == 'true'
       shell: bash
+      env:
+        CURRENT_BRANCH: ${{ inputs.current-branch }}
+        NEW_BRANCH: ${{ inputs.new-branch }}
+        PR_MESSAGE: ${{ inputs.message }}
+        PR_REVIEWERS: ${{ inputs.reviewers }}
       run: |
         gh pr create \
           --draft \
-          --base ${{ inputs.current-branch }} \
-          --head ${{ inputs.new-branch }} \
+          --base "$CURRENT_BRANCH" \
+          --head "$NEW_BRANCH" \
           --title "Update equivalence test golden files" \
-          --body '${{ inputs.message }}' \
-          --reviewer ${{ inputs.reviewers }}
+          --body "$PR_MESSAGE" \
+          --reviewer "$PR_REVIEWERS"
