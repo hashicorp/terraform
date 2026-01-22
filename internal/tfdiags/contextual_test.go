@@ -239,8 +239,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 19, Column: 3, Byte: 155},
-				End:      SourcePos{Line: 19, Column: 19, Byte: 171},
+				Start:    SourcePos{Line: 19, Column: 22, Byte: 174},
+				End:      SourcePos{Line: 19, Column: 43, Byte: 195},
 			},
 		},
 		{
@@ -378,8 +378,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 21, Column: 3, Byte: 233},
-				End:      SourcePos{Line: 21, Column: 13, Byte: 243},
+				Start:    SourcePos{Line: 21, Column: 16, Byte: 246},
+				End:      SourcePos{Line: 25, Column: 4, Byte: 393},
 			},
 		},
 
@@ -444,8 +444,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 27, Column: 1, Byte: 396},
-				End:      SourcePos{Line: 27, Column: 13, Byte: 408},
+				Start:    SourcePos{Line: 27, Column: 16, Byte: 411},
+				End:      SourcePos{Line: 27, Column: 23, Byte: 418},
 			},
 		},
 		{
@@ -461,8 +461,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 28, Column: 1, Byte: 419},
-				End:      SourcePos{Line: 28, Column: 13, Byte: 431},
+				Start:    SourcePos{Line: 28, Column: 16, Byte: 434},
+				End:      SourcePos{Line: 28, Column: 34, Byte: 452},
 			},
 		},
 		{
@@ -509,8 +509,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 29, Column: 1, Byte: 453},
-				End:      SourcePos{Line: 29, Column: 9, Byte: 461},
+				Start:    SourcePos{Line: 29, Column: 12, Byte: 464},
+				End:      SourcePos{Line: 32, Column: 2, Byte: 501},
 			},
 		},
 		{
