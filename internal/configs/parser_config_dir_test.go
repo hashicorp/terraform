@@ -280,12 +280,6 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 			"invalid_data_override_target.tftest.hcl:8,3-24: Invalid override target; You can only target data sources from override_data blocks, not module.child.",
 			"invalid_data_override_target.tftest.hcl:3,3-31: Invalid override target; You can only target data sources from override_data blocks, not aws_instance.target.",
 		},
-		"invalid_mock_data_sources": {
-			"invalid_mock_data_sources.tftest.hcl:7,13-16: Variables not allowed; Variables may not be used here.",
-		},
-		"invalid_mock_resources": {
-			"invalid_mock_resources.tftest.hcl:7,13-16: Variables not allowed; Variables may not be used here.",
-		},
 		"invalid_module_override": {
 			"invalid_module_override.tftest.hcl:5,1-16: Missing target attribute; override_module blocks must specify a target address.",
 			"invalid_module_override.tftest.hcl:11,3-9: Unsupported argument; An argument named \"values\" is not expected here.",

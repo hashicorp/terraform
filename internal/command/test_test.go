@@ -297,7 +297,6 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"mocking-invalid": {
 			expectedErr: []string{
-				"Invalid outputs attribute",
 				"The override_during attribute must be a value of plan or apply.",
 			},
 			initCode: 1,
@@ -417,6 +416,21 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"no-tests": {
 			code: 0,
+		},
+		"simple_pass_function": {
+			expectedOut:           []string{"2 passed, 0 failed."},
+			code:                  0,
+			expectedResourceCount: 0,
+		},
+		"mocking-invalid-outputs": {
+			expectedErr: []string{
+				"Invalid outputs attribute",
+			},
+			code: 1,
+		},
+		"mock-sources-inline": {
+			expectedOut: []string{"2 passed, 0 failed."},
+			code:        0,
 		},
 	}
 	for name, tc := range tcs {
