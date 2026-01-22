@@ -97,6 +97,18 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 		}
 	}
 
+	// add actions?
+	if n.Config.Managed != nil {
+		if n.Config.Managed.ActionTriggers != nil {
+			for _, at := range n.Config.Managed.ActionTriggers {
+				for _, a := range at.Actions {
+					refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, a.Expr)
+					ret = append(ret, refs...)
+				}
+			}
+		}
+	}
+
 	return ret
 }
 

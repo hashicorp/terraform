@@ -131,6 +131,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ConfigTransformer{
 			Concrete: concreteResource,
 			Config:   b.Config,
+			Planning: false,
 		},
 
 		&ActionTriggerConfigTransformer{

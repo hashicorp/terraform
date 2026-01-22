@@ -8,12 +8,10 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/hashicorp/terraform/internal/addrs"
-
-	"github.com/hashicorp/terraform/internal/dag"
 )
 
 // Graph represents the graph that Terraform uses to represent resources

@@ -153,7 +153,6 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {}
 resource "test_object" "a" {
-<<<<<<< HEAD
   test_string = "new name"
   lifecycle {
     action_trigger {
@@ -161,15 +160,6 @@ resource "test_object" "a" {
       actions = [action.action_example.hello]
     }
   }
-=======
-	name = "new name"
-	lifecycle {
-		action_trigger {
-			events = [after_update]
-			actions = [action.action_example.hello]
-		}
-	}
->>>>>>> fc21719b71 (down to 4 test failures)
 }
 `,
 			},

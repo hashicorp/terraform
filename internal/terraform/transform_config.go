@@ -44,6 +44,10 @@ type ConfigTransformer struct {
 	// some actions are skipped during the destroy process
 	destroy bool
 
+	// Planning must be set to true when building a planning graph, and must be
+	// false when building an apply graph.
+	Planning bool
+
 	// importTargets specifies a slice of addresses that will have state
 	// imported for them.
 	importTargets []*ImportTarget
@@ -149,7 +153,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			if f := t.ConcreteAction; f != nil {
 				node = f(abstract)
 			} else {
-				node = DefaultConcreteActionNodeFunc(abstract)
+				node = DefaultConcreteActionNodeFunc(abstract, t.Planning)
 			}
 			g.Add(node)
 		}
