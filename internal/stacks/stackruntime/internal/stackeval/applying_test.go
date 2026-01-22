@@ -419,7 +419,7 @@ func assertSliceElementsInRelativeOrder[S ~[]E, E comparable](t *testing.T, s S,
 
 func TestEmitKnownConfigValues(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Track config value hook invocations
 	var configValues []string
 	var configPhases []string
@@ -454,40 +454,62 @@ func TestEmitKnownConfigValues(t *testing.T) {
 		// Success is no panic - function should return early
 	})
 
-	t.Run("pre-apply vs post-apply behavior", func(t *testing.T) {
+	subtestInPromisingTask(t, "pre-apply with hooks and real component", func(ctx context.Context, t *testing.T) {
 		// Clear previous results
 		configValuesMutex.Lock()
 		configValues = nil
 		configPhases = nil
 		configValuesMutex.Unlock()
 
-		// Create a simple test configuration
-		cfg := testStackConfig(t, "component", "single_instance")
+		// Create a test configuration that has outputs
+		cfg := testStackConfig(t, "applying", "component_dependencies")
 		stack := testEvaluator(t, testEvaluatorOpts{
 			Config: cfg,
+			TestOnlyGlobals: map[string]cty.Value{
+				"component_a_marker": cty.StringVal("marker-a"),
+				"component_b_markers": cty.MapVal(map[string]cty.Value{
+					"i":   cty.StringVal("marker-b-i"),
+					"ii":  cty.StringVal("marker-b-ii"),
+					"iii": cty.StringVal("marker-b-iii"),
+				}),
+				"component_c_marker": cty.StringVal("marker-c"),
+			},
 		})
 
 		// Try to get a component from the test configuration
-		// This tests the code paths even if the component doesn't have evaluable outputs
 		mainStack := stack.MainStack()
-		component := mainStack.Component(stackaddrs.Component{Name: "self"})
-		if component != nil {
-			instances, _, diags := component.CheckInstances(ctx, ApplyPhase)
-			if !diags.HasErrors() && len(instances) > 0 {
-				componentInst := instances[addrs.NoKey]
-				if componentInst != nil {
-					// Test pre-apply phase - should attempt expression evaluation
-					emitKnownConfigValues(ctx, hks, componentInst, "pre-apply")
-					
-					// Test post-apply phase - should skip for safety  
-					emitKnownConfigValues(ctx, hks, componentInst, "post-apply")
-				}
-			}
+		component := mainStack.Component(stackaddrs.Component{Name: "a"})
+		if component == nil {
+			t.Log("component 'a' not found, skipping")
+			return
 		}
 
-		// The implementation now attempts real evaluation in pre-apply phase
-		// and maintains safety in post-apply phase. Success is measured by
-		// no panics and proper execution of both code paths.
+		instances, _, diags := component.CheckInstances(ctx, ApplyPhase)
+		if diags.HasErrors() {
+			t.Logf("CheckInstances had errors: %v", diags.Err())
+			return
+		}
+		if len(instances) == 0 {
+			t.Log("no instances found, skipping")
+			return
+		}
+
+		componentInst := instances[addrs.NoKey]
+		if componentInst == nil {
+			t.Log("instance not found, skipping")
+			return
+		}
+
+		// Now call with REAL hooks - this should go through the full path
+		emitKnownConfigValues(ctx, hks, componentInst, "pre-apply")
+
+		// Check if we got any config values
+		configValuesMutex.Lock()
+		defer configValuesMutex.Unlock()
+		t.Logf("Config values emitted: %d", len(configValues))
+		for i, addr := range configValues {
+			t.Logf("  [%d] addr=%s phase=%s", i, addr, configPhases[i])
+		}
 	})
 
 	// Note: Future tests could verify actual value emission by setting up

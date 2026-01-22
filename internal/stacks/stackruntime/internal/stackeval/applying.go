@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -380,6 +382,57 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	}, diags
 }
 
+// moduleExpressionScope wraps a ComponentInstance to provide module-level variable resolution
+type moduleExpressionScope struct {
+	componentInst *ComponentInstance
+	phase         EvalPhase
+}
+
+// ResolveExpressionReference implements ExpressionScope, handling module variable references specially
+func (m *moduleExpressionScope) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+	// Check if this is a module variable reference (var.name)
+	if varAddr, isVar := ref.Target.(stackaddrs.InputVariable); isVar {
+		// Create a variable reference that returns the component's input value for this variable
+		return &moduleVariableReference{
+			componentInst: m.componentInst,
+			varName:       varAddr.Name,
+			phase:         m.phase,
+		}, nil
+	}
+
+	// For non-variable references, delegate to the component instance
+	return m.componentInst.ResolveExpressionReference(ctx, ref)
+}
+
+// PlanTimestamp implements ExpressionScope
+func (m *moduleExpressionScope) PlanTimestamp() time.Time {
+	return m.componentInst.PlanTimestamp()
+}
+
+// ExternalFunctions implements ExpressionScope
+func (m *moduleExpressionScope) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return m.componentInst.ExternalFunctions(ctx)
+}
+
+// moduleVariableReference provides the value for a module variable reference
+type moduleVariableReference struct {
+	componentInst *ComponentInstance
+	varName       string
+	phase         EvalPhase
+}
+
+// ExprReferenceValue implements Referenceable, returning the component's input value for this variable
+func (v *moduleVariableReference) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+	inputVals := v.componentInst.InputVariableValues(ctx, v.phase)
+	if inputVals == cty.NilVal || !inputVals.Type().IsObjectType() {
+		return cty.DynamicVal
+	}
+	if !inputVals.Type().HasAttribute(v.varName) {
+		return cty.DynamicVal
+	}
+	return inputVals.GetAttr(v.varName)
+}
+
 // emitKnownConfigValues emits configuration values that are known at this point
 // in the graph traversal, supporting progressive resolution where some values
 // are available before apply and others become available after.
@@ -437,10 +490,15 @@ func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponen
 			// For pre-apply, try to evaluate the output expression with current known values
 			// This works for outputs that depend only on inputs, locals, data sources, etc.
 			log.Printf("[DEBUG] emitKnownConfigValues: attempting pre-apply evaluation for output %s", output.Name)
-			
-			// Try to evaluate the output expression using the apply phase context
-			// Since we're in the apply phase, some values should be available
-			result, diags := EvalExprAndEvalContext(ctx, output.Expr, ApplyPhase, componentInst)
+
+			// Create a module-level expression scope that can resolve var.* references to component inputs
+			moduleScope := &moduleExpressionScope{
+				componentInst: componentInst,
+				phase:         ApplyPhase,
+			}
+
+			// Try to evaluate the output expression using the module-level scope
+			result, diags := EvalExprAndEvalContext(ctx, output.Expr, ApplyPhase, moduleScope)
 			if !diags.HasErrors() && result.Value.IsKnown() && !result.Value.IsNull() {
 				value = result.Value
 				hasRealValue = true
