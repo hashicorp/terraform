@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -45,7 +46,10 @@ type Client struct {
 // done using it, or else they will leak goroutines.
 func NewInternalClient(ctx context.Context, clientCaps *setup.ClientCapabilities) (*Client, error) {
 	fakeListener := bufconn.Listen(4 * 1024 * 1024 /* buffer size */)
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
+		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+	)
 	registerGRPCServices(srv, &serviceOpts{})
 
 	go func() {
