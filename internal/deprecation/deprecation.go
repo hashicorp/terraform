@@ -65,20 +65,24 @@ func (d *Deprecations) deprecationMarksToDiagnostics(deprecationMarks []marks.De
 	}
 
 	for _, depMark := range deprecationMarks {
-		diag := &hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Deprecated value used",
-			Detail:   depMark.Message,
-			Subject:  rng,
-		}
-		if depMark.OriginDescription != "" {
-			diag.Extra = &tfdiags.DeprecationOriginDiagnosticExtra{
-				OriginDescription: depMark.OriginDescription,
-			}
-		}
-		diags = diags.Append(diag)
+		diags = diags.Append(deprecationMarkToDiagnostic(depMark, rng))
 	}
 	return diags
+}
+
+func deprecationMarkToDiagnostic(depMark marks.DeprecationMark, subject *hcl.Range) *hcl.Diagnostic {
+	diag := &hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   depMark.Message,
+		Subject:  subject,
+	}
+	if depMark.OriginDescription != "" {
+		diag.Extra = &tfdiags.DeprecationOriginDiagnosticExtra{
+			OriginDescription: depMark.OriginDescription,
+		}
+	}
+	return diag
 }
 
 // ValidateAsConfig checks the given value for deprecation marks and returns diagnostics
