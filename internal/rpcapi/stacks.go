@@ -1349,7 +1349,7 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 		// ReportConfigValue emits configuration values as they become available
 		// during graph traversal, supporting progressive resolution.
 		ReportConfigValue: func(ctx context.Context, span any, cvhd *hooks.ConfigValueHookData) any {
-			log.Printf("[TRACE] RPC ReportConfigValue: sending config value %s [%s] (value: %s)", cvhd.Addr, cvhd.Phase, cvhd.Value.GoString())
+			log.Printf("[DEBUG] RPC ReportConfigValue: sending config value %s [%s] (value: %s)", cvhd.Addr, cvhd.Phase, cvhd.Value.GoString())
 			send(&stacks.StackChangeProgress{
 				Event: &stacks.StackChangeProgress_ConfigValue_{
 					ConfigValue: &stacks.StackChangeProgress_ConfigValue{
@@ -1360,7 +1360,7 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 					},
 				},
 			})
-			log.Printf("[TRACE] RPC ReportConfigValue: successfully sent config value %s", cvhd.Addr)
+			log.Printf("[DEBUG] RPC ReportConfigValue: successfully sent config value %s", cvhd.Addr)
 			return span
 		},
 	}
