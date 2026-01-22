@@ -45,7 +45,11 @@ type Client struct {
 // done using it, or else they will leak goroutines.
 func NewInternalClient(ctx context.Context, clientCaps *setup.ClientCapabilities) (*Client, error) {
 	fakeListener := bufconn.Listen(4 * 1024 * 1024 /* buffer size */)
-	srv := grpc.NewServer()
+	// Use insecure credentials for internal in-memory communication
+	// This is safe since the server only listens on in-memory buffers
+	// and is never exposed to the network
+	creds := insecure.NewCredentials()
+	srv := grpc.NewServer(grpc.Creds(creds))
 	registerGRPCServices(srv, &serviceOpts{})
 
 	go func() {
