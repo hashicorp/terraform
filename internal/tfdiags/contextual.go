@@ -338,12 +338,16 @@ func rangeOfDeepestAttributeValueFromPath(body hcl.Body, traverse cty.Path) hcl.
 		return body.MissingItemRange()
 	}
 
+	return RangeForExpressionAtPath(attr.Expr, rest)
+}
+
+func RangeForExpressionAtPath(expression hcl.Expression, path cty.Path) hcl.Range {
 	// Now we need to loop through the rest of the path and progressively introspect
 	// the HCL expression.
-	currentExpr := attr.Expr
+	currentExpr := expression
 
 STEP_ITERATION:
-	for _, step := range rest {
+	for _, step := range path {
 		// We treat cty.IndexStep[type=String] and cty.GetAttrStep the same, so we just
 		// need to deal with list indexes first
 		if idxStep, ok := step.(cty.IndexStep); ok && idxStep.Key.Type() == cty.Number {
@@ -354,7 +358,7 @@ STEP_ITERATION:
 				return currentExpr.Range()
 			}
 			if err != nil || idx >= len(items) {
-				return attr.NameRange
+				return currentExpr.Range()
 			}
 			currentExpr = items[idx]
 			continue STEP_ITERATION
@@ -386,7 +390,7 @@ STEP_ITERATION:
 			}
 		}
 		// If we could not find the item return early
-		return attr.NameRange
+		return currentExpr.Range()
 	}
 
 	return currentExpr.Range()
