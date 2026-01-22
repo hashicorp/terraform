@@ -337,6 +337,34 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	// Check the workspace name in the plan matches the current workspace
+	currentWorkspace, err := m.Workspace()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error determining current workspace when initializing a backend from the plan file: %w", err))
+		return nil, diags
+	}
+	var plannedWorkspace string
+	switch {
+	case plan.StateStore != nil:
+		plannedWorkspace = plan.StateStore.Workspace
+	case plan.Backend != nil:
+		plannedWorkspace = plan.Backend.Workspace
+	default:
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Workspace data missing from plan file",
+			Detail: fmt.Sprintf("The plan file does not contain a named workspace, so Terraform cannot determine if it was intended to be used with current workspace %q. This is a bug in Terraform and should be reported.",
+				currentWorkspace,
+			),
+		})
+	}
+	if currentWorkspace != plannedWorkspace {
+		return nil, diags.Append(&errWrongWorkspaceForPlan{
+			currentWorkspace: currentWorkspace,
+			plannedWorkspace: plannedWorkspace,
+		})
+	}
+
 	var b backend.Backend
 	switch {
 	case plan.StateStore != nil:
