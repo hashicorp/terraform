@@ -131,8 +131,14 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	// Emit config values that are known at this point (before apply begins)
 	// This supports progressive resolution where some values are available upfront
 	log.Printf("[TRACE] ApplyComponentPlan: emitting pre-apply config values for %s", inst.Addr())
-	// TODO: Temporarily disabled to isolate failure cause
-	// emitKnownConfigValues(ctx, h, inst, "pre-apply")
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[WARN] ApplyComponentPlan: config value emission panicked: %v", r)
+			}
+		}()
+		emitKnownConfigValues(ctx, h, inst, "pre-apply")
+	}()
 
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
 
@@ -342,8 +348,14 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// Emit config values that are now available after successful apply
 		// These will have resolved/concrete values from the final state
 		log.Printf("[TRACE] ApplyComponentPlan: emitting post-apply config values for %s", inst.Addr())
-		// TODO: Temporarily disabled to isolate failure cause
-		// emitKnownConfigValues(ctx, h, inst, "post-apply")
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("[WARN] ApplyComponentPlan: post-apply config value emission panicked: %v", r)
+				}
+			}()
+			emitKnownConfigValues(ctx, h, inst, "post-apply")
+		}()
 
 		hookMore(ctx, seq, h.EndComponentInstanceApply, inst.Addr())
 	}
@@ -372,6 +384,17 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 // in the graph traversal, supporting progressive resolution where some values
 // are available before apply and others become available after.
 func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponentInstance, phase string) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[ERROR] emitKnownConfigValues: panic during config value emission: %v", r)
+		}
+	}()
+
+	if h == nil {
+		log.Printf("[TRACE] emitKnownConfigValues: hooks is nil, skipping")
+		return
+	}
+	
 	if h.ReportConfigValue == nil {
 		log.Printf("[TRACE] emitKnownConfigValues: ReportConfigValue hook is nil, skipping")
 		return
@@ -384,13 +407,27 @@ func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponen
 		return
 	}
 
+	if componentInst == nil {
+		log.Printf("[TRACE] emitKnownConfigValues: componentInst is nil, skipping")
+		return
+	}
+
 	log.Printf("[TRACE] emitKnownConfigValues: starting config value emission for %s in phase %s", componentInst.Addr(), phase)
 
 	// Get the module tree to access declared outputs
 	moduleTree := componentInst.ModuleTree(ctx)
 	if moduleTree == nil || moduleTree.Module == nil {
+		log.Printf("[TRACE] emitKnownConfigValues: moduleTree is nil for %s, skipping", componentInst.Addr())
 		return
 	}
+
+	// Check if there are any outputs to emit
+	if len(moduleTree.Module.Outputs) == 0 {
+		log.Printf("[TRACE] emitKnownConfigValues: no outputs declared for %s, skipping", componentInst.Addr())
+		return
+	}
+
+	log.Printf("[TRACE] emitKnownConfigValues: found %d output(s) to emit for %s", len(moduleTree.Module.Outputs), componentInst.Addr())
 
 	// For each declared output value, emit a placeholder or computed value
 	for _, output := range moduleTree.Module.Outputs {
@@ -438,9 +475,17 @@ func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponen
 
 		log.Printf("[TRACE] emitKnownConfigValues: emitting config value %s = %s [%s]", outputAddr.String(), value.GoString(), phase)
 
-		// Emit the config value using the hook function directly
+		// Emit the config value using the hook function with error handling
 		if h.ReportConfigValue != nil {
-			h.ReportConfigValue(ctx, nil, configData)
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("[ERROR] emitKnownConfigValues: panic in ReportConfigValue hook: %v", r)
+					}
+				}()
+				h.ReportConfigValue(ctx, nil, configData)
+				log.Printf("[TRACE] emitKnownConfigValues: successfully emitted config value %s", outputAddr.String())
+			}()
 			log.Printf("[TRACE] emitKnownConfigValues: successfully emitted config value %s", outputAddr.String())
 		} else {
 			log.Printf("[WARN] emitKnownConfigValues: ReportConfigValue hook became nil during iteration")
