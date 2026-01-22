@@ -47,10 +47,25 @@ func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.R
 	return notDeprecatedValue, d.deprecationMarksToDiagnostics(deprecationMarks, module, rng)
 }
 
-// ValidateDeep does the same as Validate but checks deeply nested deprecation marks as well.
-func (d *Deprecations) ValidateDeep(value cty.Value, module addrs.Module, rng *hcl.Range) (cty.Value, tfdiags.Diagnostics) {
-	notDeprecatedValue, deprecationMarks := marks.GetDeprecationMarksDeep(value)
-	return notDeprecatedValue, d.deprecationMarksToDiagnostics(deprecationMarks, module, rng)
+// ValidateExpressionDeep does the same as Validate but checks deeply nested deprecation marks as well.
+func (d *Deprecations) ValidateExpressionDeep(value cty.Value, module addrs.Module, expr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	unmarked, pvms := value.UnmarkDeepWithPaths()
+
+	// Check if we need to suppress deprecation warnings for this module call.
+	if d.IsModuleCallDeprecationSuppressed(module) {
+		return unmarked.MarkWithPaths(marks.RemoveAll(pvms, marks.Deprecation)), diags
+	}
+
+	for _, pvm := range pvms {
+		for m := range pvm.Marks {
+			if depMark, ok := m.(marks.DeprecationMark); ok {
+				rng := tfdiags.RangeForExpressionAtPath(expr, pvm.Path)
+				diags = diags.Append(deprecationMarkToDiagnostic(depMark, &rng))
+			}
+		}
+	}
+	return unmarked.MarkWithPaths(marks.RemoveAll(pvms, marks.Deprecation)), diags
 }
 
 func (d *Deprecations) deprecationMarksToDiagnostics(deprecationMarks []marks.DeprecationMark, module addrs.Module, rng *hcl.Range) tfdiags.Diagnostics {
