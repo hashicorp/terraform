@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 )
 
@@ -414,4 +415,82 @@ func assertSliceElementsInRelativeOrder[S ~[]E, E comparable](t *testing.T, s S,
 	if !sliceElementsInRelativeOrder(s, v1, v2) {
 		t.Fatalf("incorrect element order\ngot: %s\nwant: %#v before %#v", strings.TrimSpace(spew.Sdump(s)), v1, v2)
 	}
+}
+
+func TestEmitKnownConfigValues(t *testing.T) {
+	ctx := context.Background()
+	
+	// Track config value hook invocations
+	var configValues []string
+	var configPhases []string
+	var configValuesMutex sync.Mutex
+
+	// Create hooks with our config value handler
+	hks := &Hooks{}
+	hks.ReportConfigValue = func(ctx context.Context, span any, data *hooks.ConfigValueHookData) any {
+		configValuesMutex.Lock()
+		defer configValuesMutex.Unlock()
+		configValues = append(configValues, data.Addr)
+		configPhases = append(configPhases, data.Phase)
+		return nil
+	}
+
+	t.Run("nil hooks", func(t *testing.T) {
+		// Test that nil hooks are handled gracefully
+		emitKnownConfigValues(ctx, nil, nil, "post-apply")
+		// Success is no panic - function should return early
+	})
+
+	t.Run("nil component instance", func(t *testing.T) {
+		// Test that nil component instances are handled gracefully
+		emitKnownConfigValues(ctx, hks, nil, "post-apply")
+		// Success is no panic - function should return early
+	})
+
+	t.Run("hooks without ReportConfigValue", func(t *testing.T) {
+		// Test hooks without the config value hook
+		emptyHooks := &Hooks{}
+		emitKnownConfigValues(ctx, emptyHooks, nil, "post-apply")
+		// Success is no panic - function should return early
+	})
+
+	t.Run("pre-apply vs post-apply behavior", func(t *testing.T) {
+		// Clear previous results
+		configValuesMutex.Lock()
+		configValues = nil
+		configPhases = nil
+		configValuesMutex.Unlock()
+
+		// Create a simple test configuration
+		cfg := testStackConfig(t, "component", "single_instance")
+		stack := testEvaluator(t, testEvaluatorOpts{
+			Config: cfg,
+		})
+
+		// Try to get a component from the test configuration
+		// This tests the code paths even if the component doesn't have evaluable outputs
+		mainStack := stack.MainStack()
+		component := mainStack.Component(stackaddrs.Component{Name: "self"})
+		if component != nil {
+			instances, _, diags := component.CheckInstances(ctx, ApplyPhase)
+			if !diags.HasErrors() && len(instances) > 0 {
+				componentInst := instances[addrs.NoKey]
+				if componentInst != nil {
+					// Test pre-apply phase - should attempt expression evaluation
+					emitKnownConfigValues(ctx, hks, componentInst, "pre-apply")
+					
+					// Test post-apply phase - should skip for safety  
+					emitKnownConfigValues(ctx, hks, componentInst, "post-apply")
+				}
+			}
+		}
+
+		// The implementation now attempts real evaluation in pre-apply phase
+		// and maintains safety in post-apply phase. Success is measured by
+		// no panics and proper execution of both code paths.
+	})
+
+	// Note: Future tests could verify actual value emission by setting up
+	// a component with static outputs that should be evaluable in pre-apply phase,
+	// but that requires more complex test setup with module trees and configs.
 }

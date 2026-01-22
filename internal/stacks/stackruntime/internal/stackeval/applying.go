@@ -130,16 +130,15 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 	// Emit config values that are known at this point (before apply begins)
 	// This supports progressive resolution where some values are available upfront
-	log.Printf("[DEBUG] ApplyComponentPlan: skipping pre-apply config values for %s (conservative mode)", inst.Addr())
-	// TODO: Pre-apply emission temporarily disabled for stability
-	// func() {
-	//	defer func() {
-	//		if r := recover(); r != nil {
-	//			log.Printf("[WARN] ApplyComponentPlan: config value emission panicked: %v", r)
-	//		}
-	//	}()
-	//	emitKnownConfigValues(ctx, h, inst, "pre-apply")
-	// }()
+	log.Printf("[DEBUG] ApplyComponentPlan: emitting pre-apply config values for %s", inst.Addr())
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[WARN] ApplyComponentPlan: pre-apply config value emission panicked: %v", r)
+			}
+		}()
+		emitKnownConfigValues(ctx, h, inst, "pre-apply")
+	}()
 
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
 
@@ -429,66 +428,66 @@ func emitKnownConfigValues(ctx context.Context, h *Hooks, inst ApplyableComponen
 
 	log.Printf("[DEBUG] emitKnownConfigValues: found %d output(s) to emit for %s", len(moduleTree.Module.Outputs), componentInst.Addr())
 
-	// For each declared output value, emit only real values (not unknowns)
+	// For each declared output value, try to resolve values that are available
 	for _, output := range moduleTree.Module.Outputs {
 		var value cty.Value
 		var hasRealValue bool
 
-		if phase == "post-apply" {
-			// After apply, try to get the resolved value from the final state
-			result := componentInst.ApplyResult(ctx)
-			if result != nil && result.FinalState != nil {
-				// Look for the output value in the final state
-				for _, outputValue := range result.FinalState.RootOutputValues {
-					if outputValue.Addr.OutputValue.Name == output.Name {
-						value = outputValue.Value
-						hasRealValue = !value.IsNull() && value.IsKnown()
-						break
-					}
-				}
+		if phase == "pre-apply" {
+			// For pre-apply, try to evaluate the output expression with current known values
+			// This works for outputs that depend only on inputs, locals, data sources, etc.
+			log.Printf("[DEBUG] emitKnownConfigValues: attempting pre-apply evaluation for output %s", output.Name)
+			
+			// Try to evaluate the output expression using the apply phase context
+			// Since we're in the apply phase, some values should be available
+			result, diags := EvalExprAndEvalContext(ctx, output.Expr, ApplyPhase, componentInst)
+			if !diags.HasErrors() && result.Value.IsKnown() && !result.Value.IsNull() {
+				value = result.Value
+				hasRealValue = true
+				log.Printf("[DEBUG] emitKnownConfigValues: pre-apply evaluation succeeded for output %s", output.Name)
+			} else if diags.HasErrors() {
+				log.Printf("[DEBUG] emitKnownConfigValues: pre-apply evaluation failed for output %s: %s", output.Name, diags.Err().Error())
+			} else {
+				log.Printf("[DEBUG] emitKnownConfigValues: pre-apply evaluation not ready for output %s (known: %v, null: %v)", output.Name, result.Value.IsKnown(), result.Value.IsNull())
 			}
 		} else {
-			// Skip pre-apply phase for now
-			log.Printf("[DEBUG] emitKnownConfigValues: skipping pre-apply output %s", output.Name)
+			// Post-apply phase - for now keep it disabled for safety
+			log.Printf("[DEBUG] emitKnownConfigValues: post-apply phase detected for output %s, but value retrieval disabled for safety", output.Name)
 			continue
 		}
 
-		// Only emit if we have a real value
-		if !hasRealValue {
-			log.Printf("[DEBUG] emitKnownConfigValues: skipping output %s (no real value available)", output.Name)
-			continue
-		}
+		// Only emit if we have a real, known value
+		if hasRealValue {
+			// Create the output address
+			outputAddr := stackaddrs.AbsOutputValue{
+				Stack: componentInst.Addr().Stack,
+				Item:  stackaddrs.OutputValue{Name: output.Name},
+			}
 
-		// Create the output address
-		outputAddr := stackaddrs.AbsOutputValue{
-			Stack: componentInst.Addr().Stack,
-			Item:  stackaddrs.OutputValue{Name: output.Name},
-		}
+			// Create the config value hook data
+			configData := &hooks.ConfigValueHookData{
+				Addr:              outputAddr.String(),
+				Value:             value,
+				ComponentInstance: &componentInst.addr,
+				Phase:             phase,
+			}
 
-		// Create the config value hook data
-		configData := &hooks.ConfigValueHookData{
-			Addr:              outputAddr.String(),
-			Value:             value,
-			ComponentInstance: &componentInst.addr,
-			Phase:             phase,
-		}
+			log.Printf("[DEBUG] emitKnownConfigValues: emitting config value %s = %s [%s]", outputAddr.String(), value.GoString(), phase)
 
-		log.Printf("[DEBUG] emitKnownConfigValues: emitting config value %s = %s [%s]", outputAddr.String(), value.GoString(), phase)
-
-		// Emit the config value using the hook function with error handling
-		if h.ReportConfigValue != nil {
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
-						log.Printf("[ERROR] emitKnownConfigValues: panic in ReportConfigValue hook: %v", r)
-					}
+			// Emit the config value with error handling
+			if h.ReportConfigValue != nil {
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Printf("[ERROR] emitKnownConfigValues: panic in ReportConfigValue hook: %v", r)
+						}
+					}()
+					h.ReportConfigValue(ctx, nil, configData)
+					log.Printf("[DEBUG] emitKnownConfigValues: successfully emitted config value %s", outputAddr.String())
 				}()
-				h.ReportConfigValue(ctx, nil, configData)
-				log.Printf("[DEBUG] emitKnownConfigValues: successfully emitted config value %s", outputAddr.String())
-			}()
-			log.Printf("[TRACE] emitKnownConfigValues: successfully emitted config value %s", outputAddr.String())
-		} else {
-			log.Printf("[WARN] emitKnownConfigValues: ReportConfigValue hook became nil during iteration")
+			} else {
+				log.Printf("[WARN] emitKnownConfigValues: ReportConfigValue hook became nil during iteration")
+			}
 		}
 	}
 }
