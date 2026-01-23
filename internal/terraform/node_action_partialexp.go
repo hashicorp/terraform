@@ -70,7 +70,7 @@ func (n *NodeActionDeclarationPartialExpanded) Execute(ctx EvalContext, op walkO
 		}
 		var deprecationDiags tfdiags.Diagnostics
 		configVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(configVal, n.Schema.ConfigSchema, n.ActionAddr().Module)
-		diags = diags.Append(deprecationDiags)
+		diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.ActionAddr().String()))
 		if diags.HasErrors() {
 			return diags
 		}
