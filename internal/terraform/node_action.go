@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -164,4 +165,24 @@ func (n *nodeExpandAction) recordActionData(ctx EvalContext, addr addrs.AbsActio
 	}
 
 	return diags
+}
+
+// we only return references to count/for_each during apply
+func (n *nodeExpandAction) References() []*addrs.Reference {
+	var result []*addrs.Reference
+	c := n.Config
+
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Count)
+	result = append(result, refs...)
+	refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
+	result = append(result, refs...)
+
+	if n.Planning {
+		if n.Schema != nil {
+			configRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
+			result = append(result, configRefs...)
+		}
+	}
+
+	return result
 }

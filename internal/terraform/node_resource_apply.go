@@ -6,6 +6,7 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -30,6 +31,18 @@ var (
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	refs := n.NodeAbstractResource.References()
+
+	// now add the action references
+	if n.Config.Managed != nil {
+		if n.Config.Managed.ActionTriggers != nil {
+			for _, at := range n.Config.Managed.ActionTriggers {
+				for _, a := range at.Actions {
+					aRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, a.Expr)
+					refs = append(refs, aRefs...)
+				}
+			}
+		}
+	}
 
 	// The expand node needs to connect to the individual resource instances it
 	// references, but cannot refer to it's own instances without causing

@@ -101,6 +101,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		})
 		return diags
 	}
+
 	ai.ProviderAddr = actionInstance.ProviderAddr
 	// with resources, the provider would be expected to strip the ephemeral
 	// values out. with actions, we don't get the value back from the

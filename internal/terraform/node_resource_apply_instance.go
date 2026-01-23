@@ -607,17 +607,23 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 				return diags
 			}
 
-			// get the expanded action data
-			actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
-			if !ok {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Action instance not found",
-					Detail:   "Could not find action instance for address " + ai.Addr.String(),
-				})
+			// get the action expansion and config for evaluation
+			allInsts := ctx.InstanceExpander()
+			keyData := allInsts.GetActionInstanceRepetitionData(aiSrc.Addr)
+			actionData := n.ActionConfigs[aiSrc.Addr.String()]
+
+			configValue, _, configDiags := ctx.EvaluateBlock(actionData.Config, actionSchema.ConfigSchema, nil, keyData)
+			diags = diags.Append(configDiags)
+			if configDiags.HasErrors() {
 				return diags
 			}
-			configValue := actionData.ConfigValue
+
+			valDiags := validateResourceForbiddenEphemeralValues(ctx, configValue, actionSchema.ConfigSchema)
+			diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
+			if valDiags.HasErrors() {
+				return diags
+			}
 
 			// Validate that what we planned matches the action data we have.
 			errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configValue))
