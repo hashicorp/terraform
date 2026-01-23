@@ -50,7 +50,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 	var deprecationDiags tfdiags.Diagnostics
-	blockVal, deprecationDiags = ctx.Deprecations().ValidateAsConfig(blockVal, schema.FullSchema, n.ModulePath())
+	blockVal, deprecationDiags = ctx.Deprecations().ValidateConfig(blockVal, schema.FullSchema, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags
