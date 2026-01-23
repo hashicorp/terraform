@@ -893,7 +893,16 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[\"a\"]' and 'action.test_action.hello[\"b\"]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+							t.Fatalf("expected action to have triggering resource address 'test_object.a', but it is %s", at.TriggeringResourceAddr)
+						}
+					}
 				},
 			},
 
@@ -938,7 +947,16 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+							t.Fatalf("expected action to have triggering resource address 'test_object.a', but it is %s", at.TriggeringResourceAddr)
+						}
+					}
 				},
 			},
 
@@ -1048,7 +1066,23 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello' and 'action.test_action.hello', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					actionTriggers := []plans.LifecycleActionTrigger{}
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						actionTriggers = append(actionTriggers, *at)
+					}
+
+					if !actionTriggers[0].TriggeringResourceAddr.Resource.Resource.Equal(actionTriggers[1].TriggeringResourceAddr.Resource.Resource) {
+						t.Fatalf("expected both actions to have the same triggering resource address, but got %s and %s", actionTriggers[0].TriggeringResourceAddr, actionTriggers[1].TriggeringResourceAddr)
+					}
+
+					if actionTriggers[0].TriggeringResourceAddr.Resource.Key == actionTriggers[1].TriggeringResourceAddr.Resource.Key {
+						t.Fatalf("expected both actions to have different triggering resource instance keys, but got the same %s", actionTriggers[0].TriggeringResourceAddr.Resource.Key)
+					}
 				},
 			},
 			"expanded resource - expanded action": {
@@ -1093,7 +1127,23 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					actionTriggers := []plans.LifecycleActionTrigger{}
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						actionTriggers = append(actionTriggers, *at)
+					}
+
+					if !actionTriggers[0].TriggeringResourceAddr.Resource.Resource.Equal(actionTriggers[1].TriggeringResourceAddr.Resource.Resource) {
+						t.Fatalf("expected both actions to have the same triggering resource address, but got %s and %s", actionTriggers[0].TriggeringResourceAddr, actionTriggers[1].TriggeringResourceAddr)
+					}
+
+					if actionTriggers[0].TriggeringResourceAddr.Resource.Key == actionTriggers[1].TriggeringResourceAddr.Resource.Key {
+						t.Fatalf("expected both actions to have different triggering resource instance keys, but got the same %s", actionTriggers[0].TriggeringResourceAddr.Resource.Key)
+					}
 				},
 			},
 
