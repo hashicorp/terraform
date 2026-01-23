@@ -47,7 +47,10 @@ func (d *Deprecations) Validate(value cty.Value, module addrs.Module, rng *hcl.R
 	return notDeprecatedValue, d.deprecationMarksToDiagnostics(deprecationMarks, module, rng)
 }
 
-// ValidateExpressionDeep does the same as Validate but checks deeply nested deprecation marks as well.
+// ValidateExpressionDeep looks for deprecation marks deeply within the given value
+// and returns diagnostics for each deprecation found, unless deprecation warnings
+// are suppressed for the given module. It finds the most specific range possible for
+// each diagnostic.
 func (d *Deprecations) ValidateExpressionDeep(value cty.Value, module addrs.Module, expr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	unmarked, pvms := value.UnmarkDeepWithPaths()
@@ -100,9 +103,8 @@ func deprecationMarkToDiagnostic(depMark marks.DeprecationMark, subject *hcl.Ran
 	return diag
 }
 
-// ValidateConfig checks the given value for deprecation marks and returns diagnostics
+// ValidateConfig checks the given value deeply for deprecation marks and returns diagnostics
 // for each deprecation found, unless deprecation warnings are suppressed for the given module.
-// It checks for deeply nested deprecation marks as well.
 func (d *Deprecations) ValidateConfig(value cty.Value, schema *configschema.Block, module addrs.Module) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	unmarked, pvms := value.UnmarkDeepWithPaths()
