@@ -783,6 +783,32 @@ resource "test_object" "a" {
 			}},
 		},
 
+		"not triggered with no module instances": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    count = 0
+    source = "./mod"
+}
+
+// an empty plan is not applyable so we have this extra resource here
+resource "test_object" "a" {} 
+`,
+				"mod/mod.tf": `
+action "action_example" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
+		},
+
 		"provider is within module": {
 			module: map[string]string{
 				"main.tf": `

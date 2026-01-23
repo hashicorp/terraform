@@ -1749,6 +1749,82 @@ resource "other_object" "a" {
 				},
 			},
 
+			"not triggered if module is count=0": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    count = 0
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"not triggered if for_each is empty": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    for_each = toset([])
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"action declaration in module if module is count=0": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    count = 0
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"action declaration in module if for_each is empty": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    for_each = toset([])
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
 			"provider is within module": {
 				module: map[string]string{
 					"main.tf": `
