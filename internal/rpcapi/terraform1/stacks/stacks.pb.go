@@ -6835,10 +6835,10 @@ func (x *StackChangeProgress_DeferredResourceInstancePlannedChange) GetChange() 
 // ProvisionerStatus represents the progress of a given provisioner during its
 // resource instance's apply operation.
 type StackChangeProgress_ProvisionerStatus struct {
-	state         protoimpl.MessageState                 `protogen:"open.v1"`
-	Addr          *ResourceInstanceObjectInStackAddr     `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
-	Name          string                                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Status        *StackChangeProgress_ProvisionerStatus `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	state         protoimpl.MessageState                       `protogen:"open.v1"`
+	Addr          *ResourceInstanceObjectInStackAddr           `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Name          string                                       `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Status        StackChangeProgress_ProvisionerStatus_Status `protobuf:"varint,3,opt,name=status,proto3,enum=terraform1.stacks.StackChangeProgress_ProvisionerStatus_Status" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6887,11 +6887,11 @@ func (x *StackChangeProgress_ProvisionerStatus) GetName() string {
 	return ""
 }
 
-func (x *StackChangeProgress_ProvisionerStatus) GetStatus() *StackChangeProgress_ProvisionerStatus {
+func (x *StackChangeProgress_ProvisionerStatus) GetStatus() StackChangeProgress_ProvisionerStatus_Status {
 	if x != nil {
 		return x.Status
 	}
-	return nil
+	return StackChangeProgress_ProvisionerStatus_INVALID
 }
 
 // ProvisionerOutput represents recorded output data emitted by a provisioner
@@ -7774,7 +7774,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\rInputVariable\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
 	"\tnew_value\x18\x02 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\bnewValue\x1a\t\n" +
-	"\aNothing\"\xe8(\n" +
+	"\aNothing\"\xef(\n" +
 	"\x13StackChangeProgress\x12|\n" +
 	"\x19component_instance_status\x18\x01 \x01(\v2>.terraform1.stacks.StackChangeProgress.ComponentInstanceStatusH\x00R\x17componentInstanceStatus\x12y\n" +
 	"\x18resource_instance_status\x18\x02 \x01(\v2=.terraform1.stacks.StackChangeProgress.ResourceInstanceStatusH\x00R\x16resourceInstanceStatus\x12\x8f\x01\n" +
@@ -7859,11 +7859,11 @@ const file_stacks_proto_rawDesc = "" +
 	"\x13InvokeActionTrigger\x1a\xbe\x01\n" +
 	"%DeferredResourceInstancePlannedChange\x127\n" +
 	"\bdeferred\x18\x01 \x01(\v2\x1b.terraform1.stacks.DeferredR\bdeferred\x12\\\n" +
-	"\x06change\x18\x02 \x01(\v2D.terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChangeR\x06change\x1a\x8a\x02\n" +
+	"\x06change\x18\x02 \x01(\v2D.terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChangeR\x06change\x1a\x91\x02\n" +
 	"\x11ProvisionerStatus\x12H\n" +
 	"\x04addr\x18\x01 \x01(\v24.terraform1.stacks.ResourceInstanceObjectInStackAddrR\x04addr\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12P\n" +
-	"\x06status\x18\x03 \x01(\v28.terraform1.stacks.StackChangeProgress.ProvisionerStatusR\x06status\"E\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12W\n" +
+	"\x06status\x18\x03 \x01(\x0e2?.terraform1.stacks.StackChangeProgress.ProvisionerStatus.StatusR\x06status\"E\n" +
 	"\x06Status\x12\v\n" +
 	"\aINVALID\x10\x00\x12\x10\n" +
 	"\fPROVISIONING\x10\x01\x12\x0f\n" +
@@ -8239,7 +8239,7 @@ var file_stacks_proto_depIdxs = []int32{
 	35,  // 136: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange.deferred:type_name -> terraform1.stacks.Deferred
 	113, // 137: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange.change:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange
 	33,  // 138: terraform1.stacks.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	121, // 139: terraform1.stacks.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus
+	10,  // 139: terraform1.stacks.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus.Status
 	33,  // 140: terraform1.stacks.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
 	30,  // 141: terraform1.stacks.StackChangeProgress.ComponentInstanceChanges.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
 	32,  // 142: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved.prev_addr:type_name -> terraform1.stacks.ResourceInstanceInStackAddr

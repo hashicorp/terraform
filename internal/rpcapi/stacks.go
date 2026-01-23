@@ -1271,6 +1271,52 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			return span
 		},
 
+		ReportResourceInstanceProvisionerStatus: func(ctx context.Context, span any, status *hooks.ResourceInstanceProvisionerHookData) any {
+			log.Printf("[DEBUG] ReportResourceInstanceProvisionerStatus called: Addr=%s, Name=%s, Status=%s",
+				status.Addr.String(), status.Name, status.Status.String())
+
+			span.(trace.Span).AddEvent("provisioner status", trace.WithAttributes(
+				attribute.String("component_instance", status.Addr.Component.String()),
+				attribute.String("resource_instance", status.Addr.Item.String()),
+				attribute.String("provisioner", status.Name),
+				attribute.String("status", status.Status.String()),
+			))
+
+			protoStatus := status.Status.ForProtobuf()
+
+			var event *stacks.StackChangeProgress
+			if status.Output != nil {
+				// This is provisioner output (like ASCII art)
+				log.Printf("[DEBUG] Sending ProvisionerOutput to gRPC client: Addr=%s, Output length=%d",
+					status.Addr.String(), len(*status.Output))
+
+				event = &stacks.StackChangeProgress{
+					Event: &stacks.StackChangeProgress_ProvisionerOutput_{
+						ProvisionerOutput: &stacks.StackChangeProgress_ProvisionerOutput{
+							Addr:   stacks.NewResourceInstanceObjectInStackAddr(status.Addr),
+							Name:   status.Name,
+							Output: *status.Output,
+						},
+					},
+				}
+			} else {
+				// This is just status without output
+				event = &stacks.StackChangeProgress{
+					Event: &stacks.StackChangeProgress_ProvisionerStatus_{
+						ProvisionerStatus: &stacks.StackChangeProgress_ProvisionerStatus{
+							Addr:   stacks.NewResourceInstanceObjectInStackAddr(status.Addr),
+							Name:   status.Name,
+							Status: protoStatus,
+						},
+					},
+				}
+			}
+
+			send(event)
+			log.Printf("[DEBUG] ProvisionerStatus/Output event successfully sent to client")
+			return span
+		},
+
 		ReportResourceInstanceDeferred: func(ctx context.Context, span any, change *hooks.DeferredResourceInstanceChange) any {
 			span.(trace.Span).AddEvent("deferred resource instance", trace.WithAttributes(
 				attribute.String("component_instance", change.Change.Addr.Component.String()),

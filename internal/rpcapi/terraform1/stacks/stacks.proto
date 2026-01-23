@@ -1010,7 +1010,7 @@ message StackChangeProgress {
   message ProvisionerStatus {
     ResourceInstanceObjectInStackAddr addr = 1;
     string name = 2;
-    ProvisionerStatus status = 3;
+    Status status = 3;
 
     enum Status {
       INVALID = 0;
