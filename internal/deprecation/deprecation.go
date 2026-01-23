@@ -100,10 +100,10 @@ func deprecationMarkToDiagnostic(depMark marks.DeprecationMark, subject *hcl.Ran
 	return diag
 }
 
-// ValidateAsConfig checks the given value for deprecation marks and returns diagnostics
+// ValidateConfig checks the given value for deprecation marks and returns diagnostics
 // for each deprecation found, unless deprecation warnings are suppressed for the given module.
 // It checks for deeply nested deprecation marks as well.
-func (d *Deprecations) ValidateAsConfig(value cty.Value, schema *configschema.Block, module addrs.Module) (cty.Value, tfdiags.Diagnostics) {
+func (d *Deprecations) ValidateConfig(value cty.Value, schema *configschema.Block, module addrs.Module) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	unmarked, pvms := value.UnmarkDeepWithPaths()
 
