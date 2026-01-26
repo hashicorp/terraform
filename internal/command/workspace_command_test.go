@@ -779,7 +779,106 @@ func TestWorkspace_selectWithOrCreate(t *testing.T) {
 	if current != "test" {
 		t.Fatalf("current workspace should be 'test', got %q", current)
 	}
+}
 
+// Test that the old `env` subcommands raise a deprecation warning
+//
+// Test covers:
+// - `terraform env new`
+// - `terraform env select`
+// - `terraform env list`
+// - `terraform env delete`
+//
+// Note: there is no `env` equivalent of `terraform workspace show`.
+func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
+	// We're asserting the warning below is returned whenever a legacy `env` command
+	// is executed. Commands are made to be legacy via LegacyName: true
+	expectedWarning := `Warning: the "terraform env" family of commands is deprecated`
+
+	// Create a temporary working directory to make workspaces in
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	t.Chdir(td)
+
+	newCmd := &WorkspaceNewCommand{}
+	current, _ := newCmd.Workspace()
+	if current != backend.DefaultStateName {
+		t.Fatal("current workspace should be 'default'")
+	}
+
+	// Assert `terraform env new "foobar"` returns expected deprecation warning
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	newCmd = &WorkspaceNewCommand{
+		Meta:       Meta{Ui: ui, View: view},
+		LegacyName: true,
+	}
+	newWorkspace := "foobar"
+	args := []string{newWorkspace}
+	if code := newCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarning,
+			ui.ErrorWriter.String(),
+		)
+	}
+
+	// Assert `terraform env select "default"` returns expected deprecation warning
+	ui = new(cli.MockUi)
+	view, _ = testView(t)
+	selectCmd := &WorkspaceSelectCommand{
+		Meta:       Meta{Ui: ui, View: view},
+		LegacyName: true,
+	}
+	defaultWorkspace := "default"
+	args = []string{defaultWorkspace}
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarning,
+			ui.ErrorWriter.String(),
+		)
+	}
+
+	// Assert `terraform env list` returns expected deprecation warning
+	ui = new(cli.MockUi)
+	view, _ = testView(t)
+	listCmd := &WorkspaceListCommand{
+		Meta:       Meta{Ui: ui, View: view},
+		LegacyName: true,
+	}
+	args = []string{}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarning,
+			ui.ErrorWriter.String(),
+		)
+	}
+
+	// Assert `terraform env delete` returns expected deprecation warning
+	ui = new(cli.MockUi)
+	view, _ = testView(t)
+	deleteCmd := &WorkspaceDeleteCommand{
+		Meta:       Meta{Ui: ui, View: view},
+		LegacyName: true,
+	}
+	args = []string{newWorkspace}
+	if code := deleteCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarning,
+			ui.ErrorWriter.String(),
+		)
+	}
 }
 
 func TestValidWorkspaceName(t *testing.T) {
