@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
@@ -884,6 +886,135 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
 			expectedWarning,
 			ui.ErrorWriter.String(),
+		)
+	}
+}
+
+func TestWorkspace_list_humanOutput(t *testing.T) {
+	// Create a temporary working directory with pluggable state storage in the config
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+
+	// Assumes the mocked provider is hashicorp/test
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	meta := Meta{
+		AllowExperimentalFeatures: true,
+		Ui:                        ui,
+		View:                      view,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+			},
+		},
+		ProviderSource: providerSource,
+	}
+
+	// Return multiple workspaces
+	mock.GetStatesResponse = &providers.GetStatesResponse{
+		States:      []string{"default", "dev", "stage", "prod"},
+		Diagnostics: nil,
+	}
+
+	listCmd := &WorkspaceListCommand{
+		Meta: meta,
+	}
+	args := []string{}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+	output := done(t)
+	expectedOutput := "* default\n  dev\n  stage\n  prod\n"
+	if output.All() != expectedOutput {
+		t.Fatal()
+	}
+
+	// Warnings accompany listed workspaces, and are formatted and colourised
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Warning from test",
+		Detail:   "This is a warning from the mocked state store.",
+	})
+	mock.GetStatesResponse = &providers.GetStatesResponse{
+		States:      []string{"default", "dev", "stage", "prod"},
+		Diagnostics: diags,
+	}
+
+	view, done = testView(t)
+	meta.View = view
+	listCmd = &WorkspaceListCommand{
+		Meta: meta,
+	}
+	args = []string{}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+	output = done(t)
+	expectedOutput = "\x1b[33m╷\x1b[0m\x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\x1b[1m\x1b[33mWarning: \x1b[0m\x1b[0m\x1b[1mWarning from test\x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\x1b[0mThis is a warning from the mocked state store.\n\x1b[33m╵\x1b[0m\x1b[0m\n* default\n  dev\n  stage\n  prod\n"
+	if output.All() != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s",
+			expectedOutput,
+			output.All(),
+		)
+	}
+
+	// Errors are displayed on their own and don't accompany listed workspaces,
+	// even if that data is present.
+	diags = tfdiags.Diagnostics{} // empty
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Error from test",
+		Detail:   "This is a error from the mocked state store.",
+	})
+	mock.GetStatesResponse = &providers.GetStatesResponse{
+		States:      []string{"default", "dev", "stage", "prod"},
+		Diagnostics: diags,
+	}
+
+	view, done = testView(t)
+	meta.View = view
+	listCmd = &WorkspaceListCommand{
+		Meta: meta,
+	}
+	args = []string{}
+	if code := listCmd.Run(args); code != 1 {
+		t.Fatalf("expected a failure with code 1, but got: %d\n\n%s", code, done(t).All())
+	}
+	output = done(t)
+	expectedOutput = "\x1b[31m╷\x1b[0m\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[1m\x1b[31mError: \x1b[0m\x1b[0m\x1b[1mError from test\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[0mThis is a error from the mocked state store.\n\x1b[31m╵\x1b[0m\x1b[0m\n"
+	if output.All() != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s",
+			expectedOutput,
+			output.All(),
+		)
+	}
+
+	// Formatting can be turned off with -no-color.
+	// Demonstrate this by repeating the error case above with the flag.
+	view, done = testView(t)
+	meta.View = view
+	listCmd = &WorkspaceListCommand{
+		Meta: meta,
+	}
+	args = []string{"-no-color"}
+	if code := listCmd.Run(args); code != 1 {
+		t.Fatalf("expected a failure with code 1, but got: %d\n\n%s", code, done(t).All())
+	}
+	output = done(t)
+	expectedOutput = "\nError: Error from test\n\nThis is a error from the mocked state store.\n"
+	if output.All() != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s",
+			expectedOutput,
+			output.All(),
 		)
 	}
 }
