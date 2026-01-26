@@ -866,6 +866,8 @@ message StackChangeProgress {
     ComponentInstances component_instances = 7;
     DeferredResourceInstancePlannedChange deferred_resource_instance_planned_change = 8;
     ActionInvocationPlanned action_invocation_planned = 9;
+    ActionInvocationStatus action_invocation_status = 10;
+    ActionInvocationProgress action_invocation_progress = 11;
   }
 
   // ComponentInstanceStatus describes the current status of a component instance
@@ -941,6 +943,26 @@ message StackChangeProgress {
           LifecycleActionTrigger lifecycle_action_trigger = 3;
           InvokeActionTrigger invoke_action_trigger = 4;
       }
+  }
+
+  message ActionInvocationStatus {
+      ActionInvocationInstanceInStackAddr addr = 1;
+      Status status = 2;
+      string provider_addr = 3;
+
+      enum Status {
+        INVALID = 0;
+        PENDING = 1;
+        RUNNING = 2;
+        COMPLETED = 3;
+        ERRORED = 4;
+      }
+  }
+
+  message ActionInvocationProgress {
+      ActionInvocationInstanceInStackAddr addr = 1;
+      string message = 2;
+      string provider_addr = 3;
   }
 
   // LifecycleActionTrigger contains details on the conditions that led to the
