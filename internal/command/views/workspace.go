@@ -17,7 +17,7 @@ type Workspace interface {
 	Output(message string)
 }
 
-// NewInit returns Init implementation for the given ViewType.
+// NewWorkspace returns the Workspace implementation for the given ViewType.
 func NewWorkspace(vt arguments.ViewType, view *View) Workspace {
 	switch vt {
 	case arguments.ViewJSON:
