@@ -220,20 +220,19 @@ func handleActionFailureMode(
 	case configs.ActionTriggerOnFailureTaint:
 		switch at := aii.ActionTrigger.(type) {
 		case *plans.LifecycleActionTrigger:
-			// Taint the triggering resource if:
-			//	1.
 			triggeringResourceAddr := at.TriggeringResourceAddr
 			sr := state.ResourceInstance(triggeringResourceAddr)
 			if sr != nil {
 				if sr.Current == nil {
 				}
 				sr.Current.Status = states.ObjectTainted
+
+				state.SetResourceInstanceCurrent(
+					triggeringResourceAddr,
+					sr.Current,
+					actionData.ProviderAddr,
+				)
 			}
-			state.SetResourceInstanceCurrent(
-				triggeringResourceAddr,
-				sr.Current,
-				actionData.ProviderAddr,
-			)
 		}
 	default:
 		// Nothing to do for now - here to make it exhaustive and to denote the
