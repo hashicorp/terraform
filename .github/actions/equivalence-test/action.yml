@@ -25,6 +25,10 @@ inputs:
   message:
     description: "Message to include in the commit."
     required: true
+  github-token:
+    description: "Token to use for PR creation."
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -77,6 +81,7 @@ runs:
       if: steps.execute.outputs.changed == 'true'
       shell: bash
       env:
+        GH_TOKEN: ${{ inputs.github-token }}
         CURRENT_BRANCH: ${{ inputs.current-branch }}
         NEW_BRANCH: ${{ inputs.new-branch }}
         PR_MESSAGE: ${{ inputs.message }}

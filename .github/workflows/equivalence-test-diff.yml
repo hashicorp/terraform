@@ -12,9 +12,6 @@ permissions:
   contents: read
   pull-requests: write
 
-env:
-  GH_TOKEN: ${{ github.token }}
-
 jobs:
   equivalence-test-diff:
     name: "Equivalence Test Diff"
@@ -60,6 +57,8 @@ jobs:
       - name: Equivalence tests failed
         if: steps.equivalence-tests.outputs.exit-code == 1 # 1 is the exit code for failure
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
             --body "The equivalence tests failed. Please investigate [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
@@ -68,6 +67,8 @@ jobs:
       - name: Equivalence tests changed
         if: steps.equivalence-tests.outputs.exit-code == 2 # 2 is the exit code for changed
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
             --body "The equivalence tests will be updated. Please verify the changes [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
