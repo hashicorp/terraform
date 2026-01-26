@@ -98,16 +98,19 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	//// List Workspaces
 	ui = new(cli.MockUi)
 	meta.Ui = ui
+	view, done := testView(t)
+	meta.View = view
 	listCmd := &WorkspaceListCommand{
 		Meta: meta,
 	}
 	args = []string{}
 	code = listCmd.Run(args)
+	output := done(t)
 	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+		t.Fatalf("bad: %d\n\n%s\n%s", code, output.Stderr(), output.Stdout())
 	}
-	if !strings.Contains(ui.OutputWriter.String(), newWorkspace) {
-		t.Errorf("unexpected output, expected the new %q workspace to be listed present, but it's missing. Got:\n%s", newWorkspace, ui.OutputWriter)
+	if !strings.Contains(output.Stdout(), newWorkspace) {
+		t.Errorf("unexpected output, expected the new %q workspace to be listed present, but it's missing. Got:\n%s", newWorkspace, output.Stdout())
 	}
 
 	//// Select Workspace
@@ -203,7 +206,6 @@ func TestWorkspace_createAndChange(t *testing.T) {
 	if current != backend.DefaultStateName {
 		t.Fatal("current workspace should be 'default'")
 	}
-
 }
 
 func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
@@ -282,15 +284,15 @@ func TestWorkspace_createAndList(t *testing.T) {
 	}
 
 	listCmd := &WorkspaceListCommand{}
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
-	listCmd.Meta = Meta{Ui: ui, View: view}
-
-	if code := listCmd.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	view, done := testView(t)
+	listCmd.Meta = Meta{View: view}
+	args := []string{}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
-	actual := strings.TrimSpace(ui.OutputWriter.String())
+	output := done(t).All()
+	actual := strings.TrimSpace(output)
 	expected := "default\n  test_a\n  test_b\n* test_c"
 
 	if actual != expected {
@@ -389,15 +391,13 @@ func TestWorkspace_createInvalid(t *testing.T) {
 
 	// list workspaces to make sure none were created
 	listCmd := &WorkspaceListCommand{}
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
-	listCmd.Meta = Meta{Ui: ui, View: view}
-
+	view, done := testView(t)
+	listCmd.Meta = Meta{View: view}
 	if code := listCmd.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
-	actual := strings.TrimSpace(ui.OutputWriter.String())
+	actual := strings.TrimSpace(done(t).Stdout())
 	expected := "* default"
 
 	if actual != expected {
@@ -705,14 +705,14 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 
 	// Assert there is a default and "test" workspace, and "test" is selected
 	listCmd := &WorkspaceListCommand{}
-	ui = cli.NewMockUi()
-	listCmd.Meta = Meta{Ui: ui, View: view}
+	view, done := testView(t)
+	listCmd.Meta = Meta{View: view}
 
 	if code := listCmd.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
-	actual := strings.TrimSpace(ui.OutputWriter.String())
+	actual := strings.TrimSpace(done(t).Stdout())
 	expected := "default\n* test"
 
 	if actual != expected {
@@ -721,6 +721,7 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 
 	// Attempt to delete the default workspace (not forced)
 	ui = cli.NewMockUi()
+	view, _ = testView(t)
 	delCmd := &WorkspaceDeleteCommand{
 		Meta: Meta{Ui: ui, View: view},
 	}
@@ -845,20 +846,26 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 
 	// Assert `terraform env list` returns expected deprecation warning
-	ui = new(cli.MockUi)
-	view, _ = testView(t)
+	view, done := testView(t)
 	listCmd := &WorkspaceListCommand{
-		Meta:       Meta{Ui: ui, View: view},
+		Meta:       Meta{View: view},
 		LegacyName: true,
 	}
-	args = []string{}
+	args = []string{"-no-color"}
 	if code := listCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
-		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+	output := done(t)
+	// Warning swaps from stderr to stdout after switching to View from Ui
+	// Ui (MockUi)prints warnings to stderr:
+	// 	https://github.com/hashicorp/cli/blob/4383e52914f5677576e148a6d7e1f399c0e91a7c/ui_mock.go#L75-L80
+	// View prints warnings to stdout:
+	// 	https://github.com/hashicorp/terraform/blob/ac3e32b62bdd35dad7cc3e9ad000119fdb537f65/internal/command/views/view.go#L120-L124
+	if !strings.Contains(output.Stdout(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\nstderr: %s\n stdout: %s",
 			expectedWarning,
-			ui.ErrorWriter.String(),
+			output.Stderr(),
+			output.Stdout(),
 		)
 	}
 

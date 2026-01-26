@@ -8,6 +8,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // WorkspaceCommand is a Command Implementation that manipulates workspaces,
@@ -65,6 +68,29 @@ with other concepts.
 The "terraform workspace" commands should be used instead. "terraform env"
 will be removed in a future Terraform version.
 `)
+}
+
+// This is a version of `envCommandShowWarning` that uses views.View instead of
+// cli.Ui. We intend to change all `workspace` commands to use views.View, at which
+// point the original version of the method can be removed.
+func envCommandShowWarningWithView(view *views.View, show bool) {
+	if !show {
+		return
+	}
+
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Detail:   `Warning: the "terraform env" family of commands is deprecated.`,
+		Summary: `"Workspace" is now the preferred term for what earlier Terraform versions
+called "environment", to reduce ambiguity caused by the latter term colliding
+with other concepts.
+
+The "terraform workspace" commands should be used instead. "terraform env"
+will be removed in a future Terraform version.
+`,
+	})
+	view.Diagnostics(diags)
 }
 
 const (
