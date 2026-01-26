@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -148,6 +149,15 @@ func (b *Local) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 				cty.Path{cty.GetAttrStep{Name: "path"}},
 			))
 		}
+		// Check if the path is inside the .terraform directory
+		if strings.HasPrefix(p, ".terraform") {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid local state file path",
+				`The "path" attribute must not be inside the ".terraform" directory.`,
+				cty.Path{cty.GetAttrStep{Name: "path"}},
+			))
+		}
 	}
 
 	if val := obj.GetAttr("workspace_dir"); !val.IsNull() {
@@ -157,6 +167,15 @@ func (b *Local) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 				tfdiags.Error,
 				"Invalid local workspace directory path",
 				`The "workspace_dir" attribute value must not be empty.`,
+				cty.Path{cty.GetAttrStep{Name: "workspace_dir"}},
+			))
+		}
+		// Check if the workspace_dir is inside the .terraform directory
+		if strings.HasPrefix(p, ".terraform") {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid local workspace directory path",
+				`The "workspace_dir" attribute must not be inside the ".terraform" directory.`,
 				cty.Path{cty.GetAttrStep{Name: "workspace_dir"}},
 			))
 		}
