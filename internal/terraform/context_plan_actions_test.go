@@ -4434,6 +4434,97 @@ resource "test_object" "b" {
 				},
 			},
 
+			"removing the last instance triggers destroy actions": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {}
+			resource "test_object" "a" {
+			  name = "instance"
+			  count = 0
+			  lifecycle {
+			    action_trigger {
+			      events = [after_destroy]
+			      actions = [action.test_action.hello]
+			    }
+			  }
+			}
+			`,
+				},
+
+				buildState: func(s *states.SyncState) {
+					addr0 := mustResourceInstanceAddr("test_object.a[0]")
+					s.SetResourceInstanceCurrent(addr0, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"instance"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					}
+					lat, ok := p.Changes.ActionInvocations[0].ActionTrigger.(*plans.LifecycleActionTrigger)
+					if !ok {
+						t.Fatalf("expected action trigger to be LifecycleActionTrigger, got %T", p.Changes.ActionInvocations[0].ActionTrigger)
+					}
+					if lat.TriggeringResourceAddr.String() != "test_object.a[0]" {
+						t.Fatalf("expected triggering resource address to be 'test_object.a[0]', got %s", lat.TriggeringResourceAddr.String())
+					}
+				},
+			},
+
+			"removing a module instance triggers destroy actions": {
+				module: map[string]string{
+					"mod/mod.tf": `
+			action "test_action" "hello" {}
+			resource "test_object" "a" {
+			  name = "instance"
+			  count = 1
+			  lifecycle {
+			    action_trigger {
+			      events = [after_destroy]
+			      actions = [action.test_action.hello]
+			    }
+			  }
+			}
+			`,
+
+					"main.tf": `
+            module "mod" {
+              count = 0
+              source = "./mod"
+            }
+            `,
+				},
+
+				buildState: func(s *states.SyncState) {
+					addr0 := mustResourceInstanceAddr("module.mod[0].test_object.a[0]")
+					s.SetResourceInstanceCurrent(addr0, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"instance"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "module.mod[0].action.test_action.hello" {
+						t.Fatalf("expected action 'module.mod[0].action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					}
+					lat, ok := p.Changes.ActionInvocations[0].ActionTrigger.(*plans.LifecycleActionTrigger)
+					if !ok {
+						t.Fatalf("expected action trigger to be LifecycleActionTrigger, got %T", p.Changes.ActionInvocations[0].ActionTrigger)
+					}
+					if lat.TriggeringResourceAddr.String() != "module.mod[0].test_object.a[0]" {
+						t.Fatalf("expected triggering resource address to be 'module.mod[0].test_object.a[0]', got %s", lat.TriggeringResourceAddr.String())
+					}
+				},
+			},
+
 			"removed block - does trigger destroy actions": {
 				module: map[string]string{
 					"main.tf": `
@@ -4502,6 +4593,73 @@ resource "test_object" "b" {
 				},
 			},
 
+			"tainted resource triggers destroy action": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {}
+			resource "test_object" "a" {
+			  name = "name"
+			  lifecycle {
+			    action_trigger {
+			      events = [after_destroy]
+			      actions = [action.test_action.hello]
+			    }
+			  }
+			}
+			`,
+				},
+				buildState: func(s *states.SyncState) {
+					addr := mustResourceInstanceAddr("test_object.a")
+					s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"name"}`),
+						Status:    states.ObjectTainted,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					}
+				},
+			},
+
+			"deposed resource triggers destroy action": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {}
+			resource "test_object" "a" {
+			  name = "name"
+			  lifecycle {
+			    action_trigger {
+			      events = [after_destroy]
+			      actions = [action.test_action.hello]
+			    }
+			  }
+			}
+			`,
+				},
+				buildState: func(s *states.SyncState) {
+					addr := mustResourceInstanceAddr("test_object.a")
+					s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"name"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+					s.DeposeResourceInstanceObject(addr)
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					}
+				},
+			},
+
 			"before_destroy actions can access the triggering resource": {
 				module: map[string]string{
 					"main.tf": `
@@ -4565,6 +4723,102 @@ resource "test_object" "b" {
 			  lifecycle {
 			    action_trigger {
 			      events = [before_destroy]
+			      actions = [action.test_action.hello[count.index]]
+			    }
+			  }
+			}
+			`,
+				},
+
+				planOpts: &PlanOpts{
+					Mode: plans.DestroyMode,
+				},
+				buildState: func(s *states.SyncState) {
+					addr := mustResourceInstanceAddr("test_object.a[0]")
+					s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"instance0"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello[0]" {
+						t.Fatalf("expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					}
+					ai, err := p.Changes.ActionInvocations[0].Decode(&testActionSchema)
+					if err != nil {
+						t.Fatalf("failed to decode action invocation: %s", err)
+					}
+					if ai.ConfigValue.GetAttr("attr").AsString() != "instance0" {
+						t.Fatalf("expected action config attr to be 'instance0', got '%s'", ai.ConfigValue.GetAttr("attr").AsString())
+					}
+				},
+			},
+
+			"before_destroy conditions can access the triggering resource": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {}
+			resource "test_object" "a" {
+			  name = "instance"
+			  lifecycle {
+			    action_trigger {
+			      events = [before_destroy]
+                  condition = test_object.a.name == "instance"
+			      actions = [action.test_action.hello]
+			    }
+			  }
+			}
+			`,
+				},
+
+				planOpts: &PlanOpts{
+					Mode: plans.DestroyMode,
+				},
+				buildState: func(s *states.SyncState) {
+					addr := mustResourceInstanceAddr("test_object.a")
+					s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"instance"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					}
+					ai, err := p.Changes.ActionInvocations[0].Decode(&testActionSchema)
+					if err != nil {
+						t.Fatalf("failed to decode action invocation: %s", err)
+					}
+					if ai.ConfigValue.GetAttr("attr").AsString() != "instance" {
+						t.Fatalf("expected action config attr to be 'instance', got '%s'", ai.ConfigValue.GetAttr("attr").AsString())
+					}
+				},
+			},
+
+			"before_destroy conditions can access the triggering resource instance": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {
+			  count = 1
+			  config {
+			    attr = test_object.a[count.index].name
+			  }
+			}
+			resource "test_object" "a" {
+			  count = 1
+			  name = "instance#{count.index}"
+			  lifecycle {
+			    action_trigger {
+			      events = [before_destroy]
+			      condition = test_object.a[count.index].name == "instance#{count.index}"
 			      actions = [action.test_action.hello[count.index]]
 			    }
 			  }
@@ -4698,6 +4952,99 @@ resource "test_object" "b" {
 				},
 			},
 
+			"after_destroy conditions can access the triggering resource": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {}
+			resource "test_object" "a" {
+			  name = "instance"
+			  lifecycle {
+			    action_trigger {
+			      events = [after_destroy]
+				  condition = test_object.a.name == "instance"
+			      actions = [action.test_action.hello]
+			    }
+			  }
+			}
+			`,
+				},
+
+				planOpts: &PlanOpts{
+					Mode: plans.DestroyMode,
+				},
+				buildState: func(s *states.SyncState) {
+					addr := mustResourceInstanceAddr("test_object.a")
+					s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"instance"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
+						t.Fatalf("expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					}
+					ai, err := p.Changes.ActionInvocations[0].Decode(&testActionSchema)
+					if err != nil {
+						t.Fatalf("failed to decode action invocation: %s", err)
+					}
+					if ai.ConfigValue.GetAttr("attr").AsString() != "instance" {
+						t.Fatalf("expected action config attr to be 'instance', got '%s'", ai.ConfigValue.GetAttr("attr").AsString())
+					}
+				},
+			},
+
+			"after_destroy conditions can access the triggering resource instance": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {
+			  count = 1
+			}
+			resource "test_object" "a" {
+			  count = 1
+			  name = "instance#{count.index}"
+			  lifecycle {
+			    action_trigger {
+			      events = [after_destroy]
+				  condition = test_object.a[count.index].name == "instance#{count.index}"
+			      actions = [action.test_action.hello[count.index]]
+			    }
+			  }
+			}
+			`,
+				},
+
+				planOpts: &PlanOpts{
+					Mode: plans.DestroyMode,
+				},
+				buildState: func(s *states.SyncState) {
+					addr := mustResourceInstanceAddr("test_object.a[0]")
+					s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"instance0"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected 1 action invocations, got %d", len(p.Changes.ActionInvocations))
+					}
+					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello[0]" {
+						t.Fatalf("expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
+					}
+					ai, err := p.Changes.ActionInvocations[0].Decode(&testActionSchema)
+					if err != nil {
+						t.Fatalf("failed to decode action invocation: %s", err)
+					}
+					if ai.ConfigValue.GetAttr("attr").AsString() != "instance0" {
+						t.Fatalf("expected action config attr to be 'instance0', got '%s'", ai.ConfigValue.GetAttr("attr").AsString())
+					}
+				},
+			},
+
 			"after_destroy actions can not access other resources than the triggering resource": {
 				module: map[string]string{
 					"main.tf": `
@@ -4736,7 +5083,11 @@ resource "test_object" "b" {
 					if !d.HasErrors() {
 						t.Fatalf("expected errors, got none")
 					}
-					// TODO: Write precise assertion for the error message
+					tfdiags.AssertDiagnosticsMatch(t, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Action triggered by destroy events can not reference other resources than the triggering resource",
+						Detail:   "This causes potential cycles in the graph and is therefore forbidden.",
+					}), d)
 				},
 			},
 
@@ -4778,7 +5129,97 @@ resource "test_object" "b" {
 					if !d.HasErrors() {
 						t.Fatalf("expected errors, got none")
 					}
-					// TODO: Write precise assertion for the error message
+					tfdiags.AssertDiagnosticsMatch(t, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Action triggered by destroy events can not reference other resources than the triggering resource",
+						Detail:   "This causes potential cycles in the graph and is therefore forbidden.",
+					}), d)
+				},
+			},
+
+			"after_destroy conditions can not access other resources than the triggering resource": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {}
+			resource "test_object" "a" {
+			  name = "instance"
+			  lifecycle {
+			    action_trigger {
+			      events = [after_destroy]
+				  condition = test_object.a.name == test_object.forbidden.name
+			      actions = [action.test_action.hello]
+			    }
+			  }
+			}
+			resource "test_object" "forbidden" {
+			    name = "you-should-not-access-me"
+			}
+			`,
+				},
+
+				planOpts: &PlanOpts{
+					Mode: plans.DestroyMode,
+				},
+				buildState: func(s *states.SyncState) {
+					addr := mustResourceInstanceAddr("test_object.a")
+					s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"instance"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: false,
+				assertValidateDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if !d.HasErrors() {
+						t.Fatalf("expected errors, got none")
+					}
+					tfdiags.AssertDiagnosticsMatch(t, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Action triggered by destroy events can not reference other resources than the triggering resource",
+						Detail:   "This causes potential cycles in the graph and is therefore forbidden.",
+					}), d)
+				},
+			},
+
+			"before_destroy conditions can not access other resources than the triggering resource": {
+				module: map[string]string{
+					"main.tf": `
+			action "test_action" "hello" {}
+			resource "test_object" "a" {
+			  name = "instance"
+			  lifecycle {
+			    action_trigger {
+			      events = [before_destroy]
+				  condition = test_object.a.name == test_object.forbidden.name
+			      actions = [action.test_action.hello]
+			    }
+			  }
+			}
+			resource "test_object" "forbidden" {
+			    name = "you-should-not-access-me"
+			}
+			`,
+				},
+
+				planOpts: &PlanOpts{
+					Mode: plans.DestroyMode,
+				},
+				buildState: func(s *states.SyncState) {
+					addr := mustResourceInstanceAddr("test_object.a")
+					s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"instance"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				expectPlanActionCalled: false,
+				assertValidateDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
+					if !d.HasErrors() {
+						t.Fatalf("expected errors, got none")
+					}
+					tfdiags.AssertDiagnosticsMatch(t, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Action triggered by destroy events can not reference other resources than the triggering resource",
+						Detail:   "This causes potential cycles in the graph and is therefore forbidden.",
+					}), d)
 				},
 			},
 		},
