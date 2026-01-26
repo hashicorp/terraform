@@ -5,10 +5,13 @@ package command
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/posener/complete"
 )
 
@@ -18,28 +21,48 @@ type WorkspaceListCommand struct {
 }
 
 func (c *WorkspaceListCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments, e.g. -no-color
+	common, args := arguments.ParseView(args)
+	// Propagate -no-color for legacy use of Ui.  The remote backend and
+	// cloud package use this; it should be removed when/if they are
+	// migrated to views.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
+
+	// Prepare the view
+	viewType := arguments.ViewHuman
+	view := views.NewWorkspace(viewType, c.View)
+	c.View.Configure(common)
+
+	// Warn against using `terraform env` commands
+	envCommandShowWarningWithView(c.View, c.LegacyName)
 
 	cmdFlags := c.Meta.defaultFlagSet("workspace list")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	cmdFlags.Usage = func() {
+		var flagDiags tfdiags.Diagnostics
+		flagDiags = flagDiags.Append(errors.New(c.Help()))
+		view.Diagnostics(flagDiags)
+	}
 	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		diags.Append(fmt.Errorf("Error parsing command-line flags: %s\n", err.Error()))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	args = cmdFlags.Args()
 	configPath, err := ModulePath(args)
 	if err != nil {
-		c.Ui.Error(err.Error())
+		diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(configPath, view)
+	b, diags := c.backend(configPath, viewType)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -49,10 +72,11 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	states, wDiags := b.Workspaces()
 	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
-		c.Ui.Error(wDiags.Err().Error())
+		view.Diagnostics(diags)
 		return 1
 	}
-	c.showDiagnostics(diags) // output warnings, if any
+
+	view.Diagnostics(diags) // output warnings, if any
 
 	env, isOverridden := c.WorkspaceOverridden()
 
@@ -66,10 +90,10 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		out.WriteString(s + "\n")
 	}
 
-	c.Ui.Output(out.String())
+	view.Output(out.String())
 
 	if isOverridden {
-		c.Ui.Output(envIsOverriddenNote)
+		view.Output(envIsOverriddenNote)
 	}
 
 	return 0
