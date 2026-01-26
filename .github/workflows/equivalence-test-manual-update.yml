@@ -21,9 +21,6 @@ permissions:
   contents: write
   pull-requests: write
 
-env:
-  GH_TOKEN: ${{ github.token }}
-
 jobs:
   run-equivalence-tests:
     name: "Run equivalence tests"
@@ -52,3 +49,4 @@ jobs:
           new-branch: ${{ inputs.new-branch }}
           reviewers: ${{ github.actor }}
           message: "Update equivalence test golden files."
+          github-token: ${{ github.token }}
