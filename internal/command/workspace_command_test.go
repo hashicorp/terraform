@@ -228,14 +228,26 @@ func TestWorkspace_list_noReturnedWorkspaces(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	// There are no warnings or errors, and no workspace names are listed.
-	expectedOutput := "\n"
-	if ui.OutputWriter.String() != expectedOutput {
-		t.Fatalf("unexpected stdout output: %s", ui.OutputWriter)
+	// Users see a warning that the selected workspace doesn't exist yet
+	expectedWarningMessages := []string{
+		"Warning: Terraform cannot find any existing workspaces.",
+		"The \"default\" workspace is selected in your working directory.",
+		"init",
 	}
-	expectedErr := ""
-	if ui.ErrorWriter.String() != expectedErr {
-		t.Fatalf("unexpected stderr output: %s", ui.ErrorWriter)
+	for _, msg := range expectedWarningMessages {
+		if !strings.Contains(ui.ErrorWriter.String(), msg) {
+			t.Fatalf("expected stderr output to include: %s\ngot: %s",
+				msg,
+				ui.ErrorWriter,
+			)
+		}
+	}
+
+	// No other output is present
+	if ui.OutputWriter.String() != "" {
+		t.Fatalf("unexpected stdout: %s",
+			ui.OutputWriter,
+		)
 	}
 }
 
