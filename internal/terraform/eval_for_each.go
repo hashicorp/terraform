@@ -90,6 +90,7 @@ func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags
 		return res, false, diags
 	}
 
+	forEachVal = marks.RemoveDeprecationMarks(forEachVal)
 	if forEachVal.IsNull() || !forEachVal.IsKnown() || markSafeLengthInt(forEachVal) == 0 {
 		// we check length, because an empty set returns a nil map which will panic below
 		return res, true, diags
@@ -326,6 +327,11 @@ func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value
 			Extra:       diagnosticCausedBySensitive(true),
 		})
 	}
+
+	// We don't care about the returned value here, only the diagnostics
+	forEachVal, deprecationDiags := ev.ctx.Deprecations().Validate(forEachVal, ev.ctx.Path().Module(), ev.expr.Range().Ptr())
+
+	diags = diags.Append(deprecationDiags)
 
 	diags = diags.Append(ev.ensureNotEphemeral(forEachVal))
 

@@ -93,6 +93,17 @@ You can correct this by removing references to ephemeral values, or by using the
 		return "", diags
 	}
 
+	if depMarks := marks.FilterDeprecationMarks(valMarks); len(depMarks) > 0 {
+		for _, depMark := range depMarks {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Deprecated value used",
+				Detail:   depMark.Message,
+				Subject:  expr.Range().Ptr(),
+			})
+		}
+	}
+
 	// NOTE: We've discarded any other marks the string might have been carrying,
 	// aside from the sensitive mark.
 

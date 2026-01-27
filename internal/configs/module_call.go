@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
@@ -35,6 +36,8 @@ type ModuleCall struct {
 	DependsOn []hcl.Traversal
 
 	DeclRange hcl.Range
+
+	IgnoreNestedDeprecations bool
 }
 
 func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
@@ -163,6 +166,30 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 		mc.Providers = append(mc.Providers, providers...)
 	}
 
+	if attr, exists := content.Attributes["ignore_nested_deprecations"]; exists {
+		// We only allow static boolean values for this argument.
+		val, evalDiags := attr.Expr.Value(&hcl.EvalContext{})
+		if len(evalDiags.Errs()) > 0 {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for ignore_nested_deprecations",
+				Detail:   "The value for ignore_nested_deprecations must be a static boolean (true or false).",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
+
+		if val.Type() != cty.Bool {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid type for ignore_nested_deprecations",
+				Detail:   fmt.Sprintf("The value for ignore_nested_deprecations must be a boolean (true or false), but the given value has type %s.", val.Type().FriendlyName()),
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
+
+		mc.IgnoreNestedDeprecations = val.True()
+	}
+
 	var seenEscapeBlock *hcl.Block
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -277,6 +304,9 @@ var moduleBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "providers",
+		},
+		{
+			Name: "ignore_nested_deprecations",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

@@ -92,6 +92,16 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		}
 	}
 
+	if n.Config.DeprecatedSet && !givenVal.Value.IsNull() && givenVal.Value.IsKnown() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated variable got a value",
+			Detail:   n.Config.Deprecated,
+			Subject:  &n.Config.DeprecatedRange,
+			Context:  &n.Config.DeclRange,
+		})
+	}
+
 	if n.Planning {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(addrs.RootModule)) {
 			ctx.Checks().ReportCheckableObjects(
