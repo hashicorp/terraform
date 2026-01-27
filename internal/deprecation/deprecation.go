@@ -133,3 +133,7 @@ func (d *Deprecations) IsModuleCallDeprecationSuppressed(addr addrs.Module) bool
 	}
 	return false
 }
+
+func (d *Deprecations) DiagnosticsForValueMarks(valueMarks cty.ValueMarks, module addrs.Module, rng *hcl.Range) tfdiags.Diagnostics {
+	return d.deprecationMarksToDiagnostics(marks.FilterDeprecationMarks(valueMarks), module, rng)
+}
