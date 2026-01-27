@@ -51,28 +51,25 @@ func Contains(val cty.Value, mark interface{}) bool {
 
 // FilterDeprecationMarks returns all deprecation marks present in the given
 // cty.ValueMarks.
-func FilterDeprecationMarks(marks cty.ValueMarks) []DeprecationMark {
+func FilterDeprecationMarks(marks cty.ValueMarks) (cty.ValueMarks, []DeprecationMark) {
+	other := cty.ValueMarks{}
 	depMarks := []DeprecationMark{}
 	for mark := range marks {
 		if d, ok := mark.(DeprecationMark); ok {
 			depMarks = append(depMarks, d)
+		} else {
+			other[mark] = struct{}{}
 		}
 	}
-	return depMarks
+	return other, depMarks
 }
 
 // GetDeprecationMarks returns all deprecation marks present on the given
 // cty.Value.
-func GetDeprecationMarks(val cty.Value) []DeprecationMark {
-	_, marks := val.Unmark()
-	return FilterDeprecationMarks(marks)
-}
-
-// GetDeprecationMarksDeep returns all deprecation marks present on the given
-// cty.Value or any nested values.
-func GetDeprecationMarksDeep(val cty.Value) []DeprecationMark {
-	_, marks := val.UnmarkDeep()
-	return FilterDeprecationMarks(marks)
+func GetDeprecationMarks(val cty.Value) (cty.Value, []DeprecationMark) {
+	unmarked, marks := val.Unmark()
+	other, depMarks := FilterDeprecationMarks(marks)
+	return unmarked.WithMarks(other), depMarks
 }
 
 // RemoveDeprecationMarks returns a copy of the given cty.Value with all

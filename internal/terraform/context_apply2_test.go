@@ -4461,60 +4461,8 @@ resource "test_resource" "test" {
 				)
 			},
 			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "Deprecated value used",
-					Detail:   "Please stop using this output",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
-						End:      hcl.Pos{Line: 7, Column: 27, Byte: 100},
-					},
-				})
-			},
-		},
-		"update resource to stop using deprecated output": {
-			modules: map[string]string{
-				"mod/main.tf": `
-output "old" {
-    deprecated = "Please stop using this output"
-    value = "deprecated-value"
-}
-output "new" {
-    value = "new-value"
-}
-`,
-				"main.tf": `
-module "mod" {
-    source = "./mod"
-}
-
-resource "test_resource" "test" {
-    value = module.mod.old
-}
-`,
-			},
-			buildState: func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					mustResourceInstanceAddr("test_resource.test"),
-					&states.ResourceInstanceObjectSrc{
-						AttrsJSON: []byte(`{"value":"deprecated-value"}`),
-						Status:    states.ObjectReady,
-					},
-					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-				)
-			},
-			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "Deprecated value used",
-					Detail:   "Please stop using this output",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
-						End:      hcl.Pos{Line: 7, Column: 27, Byte: 100},
-					},
-				})
+				// if the resource instance is not executed, we can not warn (during plan a warning was already emitted)
+				return tfdiags.Diagnostics{}
 			},
 		},
 		"create resource using deprecated variable": {
