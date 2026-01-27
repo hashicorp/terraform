@@ -640,7 +640,6 @@ func TestStackChangeProgress(t *testing.T) {
 			},
 			want: []*stacks.StackChangeProgress{
 				{
-
 					Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
 						ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
 							Addr: &stacks.ComponentInstanceInStackAddr{
@@ -695,7 +694,8 @@ func TestStackChangeProgress(t *testing.T) {
 							ProviderAddr: "registry.terraform.io/hashicorp/testing",
 						},
 					},
-				}, {
+				},
+				{
 					Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
 						ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
 							Addr: &stacks.ComponentInstanceInStackAddr{
@@ -807,6 +807,27 @@ func TestStackChangeProgress(t *testing.T) {
 					Severity: terraform1.Diagnostic_WARNING,
 					Summary:  "Some objects will no longer be managed by Terraform",
 					Detail:   "If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:\n - testing_resource.resource\n\nAfter applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.",
+				},
+			},
+		},
+		"action_invocations": {
+			// This test verifies that the ActionInvocation field exists in ComponentInstanceChanges
+			// and is included in the total count. Once we implement action invocation tracking logic,
+			// this field will have a value > 0 for components with actions.
+			source: "git::https://example.com/action_invocations.git",
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
+						ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Total:            2,
+							Add:              1,
+							ActionInvocation: 1,
+						},
+					},
 				},
 			},
 		},
@@ -1187,7 +1208,6 @@ func TestStacksMigrateTerraformState(t *testing.T) {
 			},
 		},
 	})
-
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
