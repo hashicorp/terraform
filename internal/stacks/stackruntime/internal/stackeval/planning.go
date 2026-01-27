@@ -104,6 +104,11 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 			},
 		})
 	}
+	
+	// Count action invocations
+	for range plan.Changes.ActionInvocations {
+		cic.ActionInvocation++
+	}
 
 	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
 }
