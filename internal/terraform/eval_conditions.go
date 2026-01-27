@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -106,7 +107,15 @@ func validateCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalCo
 	errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, &addr)
 	diags = diags.Append(moreDiags)
 
-	return errorMessage, hclCtx, diags
+	_, deprecationDiags := ctx.Deprecations().ValidateDeep(errorMessage, ctx.Path().Module(), rule.ErrorMessage.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
+	// NOTE: We've discarded any other marks the string might have been carrying,
+	// aside from the sensitive mark.
+	errorMessage, _ = errorMessage.Unmark()
+	errorMessageStr := strings.TrimSpace(errorMessage.AsString())
+
+	return errorMessageStr, hclCtx, diags
 }
 
 func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContext, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (checkResult, tfdiags.Diagnostics) {
@@ -161,7 +170,7 @@ func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContex
 	}
 
 	// We don't care about the returned value here, only the diagnostics
-	_, deprecationDiags := ctx.Deprecations().Validate(resultVal, addr.ModuleInstance().Module(), rule.Condition.Range().Ptr())
+	_, deprecationDiags := ctx.Deprecations().ValidateDeep(resultVal, addr.ModuleInstance().Module(), rule.Condition.Range().Ptr())
 	diags = diags.Append(deprecationDiags)
 
 	var err error

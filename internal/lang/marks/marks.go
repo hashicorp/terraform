@@ -64,6 +64,13 @@ func FilterDeprecationMarks(marks cty.ValueMarks) []DeprecationMark {
 // GetDeprecationMarks returns all deprecation marks present on the given
 // cty.Value.
 func GetDeprecationMarks(val cty.Value) []DeprecationMark {
+	_, marks := val.Unmark()
+	return FilterDeprecationMarks(marks)
+}
+
+// GetDeprecationMarksDeep returns all deprecation marks present on the given
+// cty.Value or any nested values.
+func GetDeprecationMarksDeep(val cty.Value) []DeprecationMark {
 	_, marks := val.UnmarkDeep()
 	return FilterDeprecationMarks(marks)
 }
@@ -71,6 +78,20 @@ func GetDeprecationMarks(val cty.Value) []DeprecationMark {
 // RemoveDeprecationMarks returns a copy of the given cty.Value with all
 // deprecation marks removed.
 func RemoveDeprecationMarks(val cty.Value) cty.Value {
+	newVal, marks := val.Unmark()
+
+	for mark := range marks {
+		if _, ok := mark.(DeprecationMark); !ok {
+			newVal = newVal.Mark(mark)
+		}
+	}
+
+	return newVal
+}
+
+// RemoveDeprecationMarksDeep returns a copy of the given cty.Value with all
+// deprecation marks deeply removed.
+func RemoveDeprecationMarksDeep(val cty.Value) cty.Value {
 	newVal, pvms := val.UnmarkDeepWithPaths()
 	otherPvms := RemoveAll(pvms, Deprecation)
 	return newVal.MarkWithPaths(otherPvms)
@@ -97,6 +118,8 @@ const TypeType = valueMark("TypeType")
 // rather than a primitive type so that it can carry a deprecation message.
 type DeprecationMark struct {
 	Message string
+
+	OriginDescription string // a human-readable description of the origin
 }
 
 func (d DeprecationMark) GoString() string {
@@ -104,10 +127,11 @@ func (d DeprecationMark) GoString() string {
 }
 
 // Empty deprecation mark for usage in marks.Has / Contains / etc
-var Deprecation = NewDeprecation("")
+var Deprecation = NewDeprecation("", "")
 
-func NewDeprecation(message string) DeprecationMark {
+func NewDeprecation(message string, originDescription string) DeprecationMark {
 	return DeprecationMark{
-		Message: message,
+		Message:           message,
+		OriginDescription: originDescription,
 	}
 }
