@@ -33,6 +33,7 @@ type NodeActionTriggerPartialExpanded struct {
 type lifecycleActionTriggerPartialExpanded struct {
 	resourceAddress         addrs.PartialExpandedResource
 	events                  []configs.ActionTriggerEvent
+	onFailure               configs.ActionTriggerOnFailure
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
@@ -121,6 +122,7 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 			ActionTrigger: &plans.LifecycleActionTrigger{
 				TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress.UnknownResourceInstance(),
 				ActionTriggerEvent:      triggeringEvent,
+				ActionTriggerOnFailure:  n.lifecycleActionTrigger.onFailure,
 				ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
 				ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
 			},

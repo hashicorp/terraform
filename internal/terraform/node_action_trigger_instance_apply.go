@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/actions"
+	"github.com/hashicorp/terraform/internal/states"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -36,7 +38,7 @@ func (n *nodeActionTriggerApplyInstance) Name() string {
 	return n.ActionInvocation.Addr.String() + " (instance)"
 }
 
-func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {
+func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	actionInvocation := n.ActionInvocation
 
@@ -159,7 +161,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.CompleteAction(hookIdentity, respDiags.Err())
 		}))
-		return diags
+		return respDiags
 	}
 
 	if resp.Events != nil { // should only occur in misconfigured tests
@@ -169,21 +171,12 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.ProgressAction(hookIdentity, ev.Message)
 				}))
-				if diags.HasErrors() {
-					return diags
-				}
 			case providers.InvokeActionEvent_Completed:
 				// Enhance the diagnostics
 				diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
 				}))
-				if ev.Diagnostics.HasErrors() {
-					return diags
-				}
-				if diags.HasErrors() {
-					return diags
-				}
 			default:
 				panic(fmt.Sprintf("unexpected action event type %T", ev))
 			}
@@ -197,7 +190,56 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		})
 	}
 
-	return diags
+	return handleActionFailureMode(ai, diags, ctx.State(), n.ActionTriggerRange, actionData)
+}
+
+// TODO: Rework the comment once the work has been finished
+// If action_trigger block has on_failure set to continue we want to wrap any
+// potential error into a warning. This will be propagated upstream to the
+// caller which may or may not halt the rest of execution.
+func handleActionFailureMode(
+	aii *plans.ActionInvocationInstance,
+	currentDiags tfdiags.Diagnostics,
+	state *states.SyncState,
+	subject *hcl.Range,
+	actionData *actions.ActionData,
+) tfdiags.Diagnostics {
+	switch aii.ActionTrigger.TriggerOnFailure() {
+	case configs.ActionTriggerOnFailureContinue:
+		if len(currentDiags) > 0 {
+			var wrappedErrorDiags tfdiags.Diagnostics
+			wrappedErrorDiags = wrappedErrorDiags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary: "Actions contained errors but we're wrapping them " +
+					"into warnings as defined by the 'on_failure' value.",
+				Detail:  currentDiags.ErrWithWarnings().Error(),
+				Subject: subject,
+			})
+			return wrappedErrorDiags
+		}
+	case configs.ActionTriggerOnFailureTaint:
+		switch at := aii.ActionTrigger.(type) {
+		case *plans.LifecycleActionTrigger:
+			triggeringResourceAddr := at.TriggeringResourceAddr
+			sr := state.ResourceInstance(triggeringResourceAddr)
+			if sr != nil {
+				if sr.Current == nil {
+				}
+				sr.Current.Status = states.ObjectTainted
+
+				state.SetResourceInstanceCurrent(
+					triggeringResourceAddr,
+					sr.Current,
+					actionData.ProviderAddr,
+				)
+			}
+		}
+	default:
+		// Nothing to do for now - here to make it exhaustive and to denote the
+		// place to put potential new `on failure` cases.
+	}
+
+	return currentDiags
 }
 
 func (n *nodeActionTriggerApplyInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {

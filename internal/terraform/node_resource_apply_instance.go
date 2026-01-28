@@ -468,7 +468,12 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 // maybeTainted takes the resource addr, new value, planned change, and possible
 // error from an apply operation and return a new instance object marked as
 // tainted if it appears that a create operation has failed.
-func maybeTainted(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, change *plans.ResourceInstanceChange, err error) *states.ResourceInstanceObject {
+func maybeTainted(
+	addr addrs.AbsResourceInstance,
+	state *states.ResourceInstanceObject,
+	change *plans.ResourceInstanceChange,
+	err error,
+) *states.ResourceInstanceObject {
 	if state == nil || change == nil || err == nil {
 		return state
 	}
