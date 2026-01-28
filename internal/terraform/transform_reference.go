@@ -51,12 +51,12 @@ type GraphNodeImportReferencer interface {
 	ImportReferences() []*addrs.Reference
 }
 
-// GraphNodeReferencer must be implemented by nodes that trigger actions.
+// GraphNodeActionReferencer must be implemented by nodes that trigger actions.
 type GraphNodeActionReferencer interface {
 	GraphNodeReferencer
 
-	// ImportReferences returns a list of references made by this node's
-	// associated import block.
+	// ImportReferences returns a list of action references made by this node's
+	// associated action_triggers block(s).
 	ActionReferences() []*addrs.Reference
 }
 

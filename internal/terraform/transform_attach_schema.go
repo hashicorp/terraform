@@ -58,19 +58,20 @@ type GraphNodeAttachResourceActionSchema interface {
 	// map of actionType:provider
 	ActionTypesProvidedBy() map[string]addrs.AbsProviderConfig
 
-	// AttachProvisionerSchema is called during transform for each action provider
+	// AttachActionSchema is called during transform for each action provider
 	// type returned from ActionTypesProvidedBy, providing the configuration schema
 	// for each action in turn. The implementer should save these for
-	// later use in evaluating provisioner configuration blocks.
+	// later use in evaluating action configuration blocks.
 	//
 	// `name` here is the action type name, which possibly made more sense where this was copied from (provisioners)
 	AttachActionSchema(name string, schema *providers.ActionSchema)
 }
 
 // AttachSchemaTransformer finds nodes that implement
-// GraphNodeAttachResourceSchema, GraphNodeAttachProviderConfigSchema, or
-// GraphNodeAttachProvisionerSchema, looks up the needed schemas for each
-// and then passes them to a method implemented by the node.
+// GraphNodeAttachResourceSchema, GraphNodeAttachResourceActionSchema,
+// GraphNodeAttachProviderConfigSchema, or GraphNodeAttachProvisionerSchema,
+// looks up the needed schemas for each and then passes them to a method
+// implemented by the node.
 type AttachSchemaTransformer struct {
 	Plugins *contextPlugins
 	Config  *configs.Config

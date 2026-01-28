@@ -31,23 +31,22 @@ var (
 	_ GraphNodeProviderConsumer   = (*nodeActionInvokeAbstract)(nil)
 	_ GraphNodeAttachActionSchema = (*nodeActionInvokeAbstract)(nil)
 	_ GraphNodeProviderConsumer   = (*nodeActionInvokeAbstract)(nil)
+	_ GraphNodeReferencer         = (*nodeActionInvokeAbstract)(nil)
 )
 
 func (n *nodeActionInvokeAbstract) Name() string {
+	invoke := " (invoke)"
 	switch target := n.Target.(type) {
 	case addrs.AbsActionInstance:
-		return target.ConfigAction().String()
+		return target.ConfigAction().String() + invoke
 	case addrs.AbsAction:
-		return target.Action.InModule(target.Module.Module()).String()
+		return target.Action.InModule(target.Module.Module()).String() + invoke
 	default:
 		panic("unrecognized action type")
 	}
 }
 
 func (n *nodeActionInvokeAbstract) ActionAddr() addrs.ConfigAction {
-	if n.Target == nil {
-		panic("nil target??")
-	}
 	switch target := n.Target.(type) {
 	case addrs.AbsActionInstance:
 		return target.ConfigAction()
@@ -183,6 +182,7 @@ func (n *nodeActionInvokeExpand) DynamicExpand(context EvalContext) (*Graph, tfd
 var (
 	_ GraphNodeExecutable     = (*nodeActionInvokePlanInstance)(nil)
 	_ GraphNodeModuleInstance = (*nodeActionInvokePlanInstance)(nil)
+	_ GraphNodeReferencer     = (*nodeActionInvokePlanInstance)(nil)
 )
 
 type nodeActionInvokePlanInstance struct {
@@ -264,16 +264,19 @@ func (n *nodeActionInvokePlanInstance) Execute(ctx EvalContext, _ walkOperation)
 }
 
 type nodeActionInvokeApplyInstance struct {
-	nodeActionInvokeAbstract
 	ActionInvocation *plans.ActionInvocationInstanceSrc
 	resolvedProvider addrs.AbsProviderConfig
+	Config           *configs.Action
+	Schema           *providers.ActionSchema
 }
 
 var (
-	_ GraphNodeExecutable       = (*nodeActionInvokeApplyInstance)(nil)
-	_ GraphNodeReferencer       = (*nodeActionInvokeApplyInstance)(nil)
-	_ GraphNodeProviderConsumer = (*nodeActionInvokeApplyInstance)(nil)
-	_ GraphNodeModulePath       = (*nodeActionInvokeApplyInstance)(nil)
+	_ GraphNodeExecutable         = (*nodeActionInvokeApplyInstance)(nil)
+	_ GraphNodeReferencer         = (*nodeActionInvokeApplyInstance)(nil)
+	_ GraphNodeProviderConsumer   = (*nodeActionInvokeApplyInstance)(nil)
+	_ GraphNodeModulePath         = (*nodeActionInvokeApplyInstance)(nil)
+	_ GraphNodeAttachActionConfig = (*nodeActionInvokeApplyInstance)(nil) // this transformer was made for resources. so it's weird now.
+	_ GraphNodeAttachActionSchema = (*nodeActionInvokeApplyInstance)(nil)
 )
 
 func (n *nodeActionInvokeApplyInstance) Name() string {
@@ -433,6 +436,28 @@ func (n *nodeActionInvokeApplyInstance) AddSubjectToDiagnostics(input tfdiags.Di
 		})
 	}
 	return diags
+}
+
+func (n *nodeActionInvokeApplyInstance) ActionAddr() addrs.ConfigAction {
+	return n.ActionInvocation.Addr.ConfigAction()
+}
+
+func (n *nodeActionInvokeApplyInstance) ActionAddrs() []addrs.ConfigAction {
+	return []addrs.ConfigAction{n.ActionInvocation.Addr.ConfigAction()}
+}
+
+func (n *nodeActionInvokeApplyInstance) AttachActionSchema(schema *providers.ActionSchema) {
+	n.Schema = schema
+}
+
+// so this is weird. I made this for resources, but now I want my action config
+// here. Do I need it, actually? Maybe. I'm not sure if we can reverse engineer
+// the target, ie I don't think I can invent an InvokeAbstract node during the
+// diff transformer, which is why these interfaces need to be implemented at this level.
+// is there a better way?
+// inevitably!!!
+func (n *nodeActionInvokeApplyInstance) AttachActionConfig(_ addrs.ConfigAction, config *configs.Action) {
+	n.Config = config
 }
 
 func (n *nodeActionInvokeApplyInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
