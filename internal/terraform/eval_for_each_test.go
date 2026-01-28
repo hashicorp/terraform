@@ -132,7 +132,7 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 		"unknown string set": {
 			hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
 			"Invalid for_each argument",
-			"set includes values derived from resource attributes that cannot be determined until apply",
+			"set includes elements derived from resource attributes that cannot be determined until apply",
 			true, false, false,
 		},
 		"unknown map": {
@@ -174,13 +174,13 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 		"set containing unknown value": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.String)})),
 			"Invalid for_each argument",
-			"set includes values derived from resource attributes that cannot be determined until apply",
+			"set includes elements derived from resource attributes that cannot be determined until apply",
 			true, false, false,
 		},
 		"set containing dynamic unknown value": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
 			"Invalid for_each argument",
-			"set includes values derived from resource attributes that cannot be determined until apply",
+			"set includes elements derived from resource attributes that cannot be determined until apply",
 			true, false, false,
 		},
 		"set containing sensitive values": {
