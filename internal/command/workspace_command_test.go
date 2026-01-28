@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/hcl/v2"
 
@@ -22,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
@@ -1013,6 +1016,162 @@ func TestWorkspace_list_humanOutput(t *testing.T) {
 			ui.OutputWriter.String(),
 		)
 	}
+}
+
+func TestWorkspace_list_jsonOutput(t *testing.T) {
+	// Create a temporary working directory with pluggable state storage in the config
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+
+	// Assumes the mocked provider is hashicorp/test
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	meta := Meta{
+		AllowExperimentalFeatures: true,
+		Ui:                        ui,
+		View:                      view,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+			},
+		},
+		ProviderSource: providerSource,
+	}
+
+	// Return multiple workspaces
+	mock.GetStatesResponse = &providers.GetStatesResponse{
+		States:      []string{"default", "dev", "stage", "prod"},
+		Diagnostics: nil,
+	}
+
+	// All commands run in this test should receive the -json flag
+	args := []string{"-json"}
+
+	// Step 1 - test list output with no diagnostics
+	listCmd := &WorkspaceListCommand{
+		Meta: meta,
+	}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+	output := done(t)
+	expectedStdOut := fmt.Sprintf(`{"@level":"info","@message":"Terraform %s","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","terraform":"%s","type":"version","ui":"1.2"}
+{"@level":"info","@message":"* default\n  dev\n  stage\n  prod\n","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","type":"log"}
+`,
+		tfversion.String(),
+		tfversion.String(),
+	)
+	processedStdOut := redactJSONLogTimestampForTests(t, output.Stdout())
+	if processedStdOut != expectedStdOut {
+		diff := cmp.Diff(expectedStdOut, processedStdOut)
+		t.Fatalf("want: %s\ngot: %s\n diff: %s",
+			expectedStdOut,
+			processedStdOut,
+			diff,
+		)
+	}
+	processedStdErr := redactJSONLogTimestampForTests(t, output.Stderr())
+	if processedStdErr != "" {
+		t.Fatalf("expected stderr to be empty, but got: %s", output.Stderr())
+	}
+
+	// Step 2 - test list output with a warning diagnostics
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Warning from test",
+		Detail:   "This is a warning from the mocked state store.",
+	})
+	mock.GetStatesResponse = &providers.GetStatesResponse{
+		States:      []string{"default", "dev", "stage", "prod"},
+		Diagnostics: diags,
+	}
+
+	view, done = testView(t)
+	meta.View = view
+	listCmd = &WorkspaceListCommand{
+		Meta: meta,
+	}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+	output = done(t)
+	expectedStdOut = fmt.Sprintf(`{"@level":"info","@message":"Terraform %s","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","terraform":"%s","type":"version","ui":"1.2"}
+{"@level":"warn","@message":"Warning: Warning from test","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","diagnostic":{"severity":"warning","summary":"Warning from test","detail":"This is a warning from the mocked state store."},"type":"diagnostic"}
+{"@level":"info","@message":"* default\n  dev\n  stage\n  prod\n","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","type":"log"}
+`,
+		tfversion.String(),
+		tfversion.String(),
+	)
+	processedStdOut = redactJSONLogTimestampForTests(t, output.Stdout())
+	if processedStdOut != expectedStdOut {
+		diff := cmp.Diff(expectedStdOut, processedStdOut)
+		t.Fatalf("want: %s\ngot: %s\n diff: %s",
+			expectedStdOut,
+			processedStdOut,
+			diff,
+		)
+	}
+	processedStdErr = redactJSONLogTimestampForTests(t, output.Stderr())
+	if processedStdErr != "" {
+		t.Fatalf("expected stderr to be empty, but got: %s", output.Stderr())
+	}
+
+	// Step 3 - test that error diagnostics are shown in isolation (no additional output even if present)
+	diags = tfdiags.Diagnostics{} // empty
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Error from test",
+		Detail:   "This is a error from the mocked state store.",
+	})
+	mock.GetStatesResponse = &providers.GetStatesResponse{
+		States:      []string{"default", "dev", "stage", "prod"},
+		Diagnostics: diags,
+	}
+
+	view, done = testView(t)
+	meta.View = view
+	listCmd = &WorkspaceListCommand{
+		Meta: meta,
+	}
+	if code := listCmd.Run(args); code != 1 {
+		t.Fatalf("expected a failure with code 1, but got: %d\n\n%s", code, done(t).All())
+	}
+	output = done(t)
+	expectedStdOut = fmt.Sprintf(`{"@level":"info","@message":"Terraform %s","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","terraform":"%s","type":"version","ui":"1.2"}
+{"@level":"error","@message":"Error: Error from test","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","diagnostic":{"severity":"error","summary":"Error from test","detail":"This is a error from the mocked state store."},"type":"diagnostic"}
+`,
+		tfversion.String(),
+		tfversion.String(),
+	)
+	processedStdOut = redactJSONLogTimestampForTests(t, output.Stdout())
+	if processedStdOut != expectedStdOut {
+		t.Fatalf("want: %s\ngot: %s",
+			expectedStdOut,
+			processedStdOut,
+		)
+	}
+	if output.Stderr() != "" {
+		t.Fatalf("expected stderr to be empty, but got: %s", output.Stderr())
+	}
+}
+
+// redactLogTimestampForTests converts all `@timestamp` values from JSON logs into "TIMESTAMP_REDACTED".
+// Any expected log contents in tests will need to set the timestamp value to a matching string before
+// asserting equality.
+func redactJSONLogTimestampForTests(t *testing.T, output string) string {
+	t.Helper()
+	timestampRegexp := regexp.MustCompile(`"@timestamp":"[0-9-T:.Z]+"`)
+	v := timestampRegexp.ReplaceAll([]byte(output), []byte(`"@timestamp":"TIMESTAMP_REDACTED"`))
+	return string(v)
 }
 
 func TestValidWorkspaceName(t *testing.T) {

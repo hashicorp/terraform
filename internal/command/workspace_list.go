@@ -5,7 +5,6 @@ package command
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -84,24 +83,35 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	c.Meta.color = !common.NoColor
 	c.Meta.Color = c.Meta.color
 
+	var jsonOutput bool
+	cmdFlags := c.Meta.defaultFlagSet("workspace list")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
+
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
+	}
+
 	// Prepare the view
-	viewType := arguments.ViewHuman
+	//
+	// Note - here the view uses:
+	// - cli.Ui for human output
+	// - view.View for machine-readable output
+	var viewType arguments.ViewType
+	if jsonOutput {
+		viewType = arguments.ViewJSON
+	} else {
+		viewType = arguments.ViewHuman
+	}
 	view := newWorkspace(viewType, c.View, c.Ui, &c.Meta)
 	c.View.Configure(common)
 
 	// Warn against using `terraform env` commands
-	envCommandShowWarning(c.Ui, c.LegacyName)
-
-	cmdFlags := c.Meta.defaultFlagSet("workspace list")
-	cmdFlags.Usage = func() {
-		var flagDiags tfdiags.Diagnostics
-		flagDiags = flagDiags.Append(errors.New(c.Help()))
-		view.Diagnostics(flagDiags)
-	}
-	if err := cmdFlags.Parse(args); err != nil {
-		diags.Append(fmt.Errorf("Error parsing command-line flags: %s\n", err.Error()))
-		view.Diagnostics(diags)
-		return 1
+	if jsonOutput {
+		envCommandShowWarningWithView(c.View, c.LegacyName)
+	} else {
+		envCommandShowWarning(c.Ui, c.LegacyName)
 	}
 
 	args = cmdFlags.Args()
