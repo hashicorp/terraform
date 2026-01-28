@@ -4,6 +4,7 @@
 package views
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -27,13 +28,71 @@ type Workspace interface {
 func NewWorkspace(vt arguments.ViewType, view *View) Workspace {
 	switch vt {
 	case arguments.ViewJSON:
-		panic("machine readable output not implemented for workspace subcommands")
+		return &WorkspaceJSON{
+			view: NewJSONView(view),
+		}
 	case arguments.ViewHuman:
 		// TODO: Allow use of WorkspaceHuman here when we remove use of cli.Ui from workspace commands.
 		panic("human readable output via Views is a breaking change, so this code path shouldn't be used until that's possible.")
 	default:
 		panic(fmt.Sprintf("unknown view type %v", vt))
 	}
+}
+
+// The WorkspaceJSON implementation renders machine-readable logs, suitable for
+// integrating with other software.
+type WorkspaceJSON struct {
+	view *JSONView
+}
+
+var _ Workspace = (*WorkspaceJSON)(nil)
+
+// Diagnostics renders a list of diagnostics, including the option for compact warnings.
+func (v *WorkspaceJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+// Output is used to render data in the terminal, e.g. the workspaces returned from `workspace list`
+func (v *WorkspaceJSON) Output(msg string) {
+	v.view.Log(msg)
+}
+
+// Error
+//
+// This method is a temporary measure while the workspace subcommands contain both
+// use of cli.Ui for human output and view.View for machine-readable output.
+// In future calling code should use Diagnostics directly.
+//
+// If a message is being logged as an error we can create a native error (which can be made from a string),
+// use existing logic in (tfdiags.Diagnostics) Append to create an error diagnostic from a native error,
+// and then log that single error diagnostic.
+func (v *WorkspaceJSON) Error(msg string) {
+	var diags tfdiags.Diagnostics
+	err := errors.New(msg)
+	diags = diags.Append(err)
+
+	v.Diagnostics(diags)
+}
+
+// Warn
+//
+// This method is a temporary measure while the workspace subcommands contain both
+// use of cli.Ui for human output and view.View for machine-readable output.
+// In future calling code should use Diagnostics directly.
+//
+// This method takes inspiration from how native errors are converted into error diagnostics;
+// the Details value is left empty and the provided string is used only in the Summary.
+// See : https://github.com/hashicorp/terraform/blob/v1.14.4/internal/tfdiags/error.go
+func (v *WorkspaceJSON) Warn(msg string) {
+	var diags tfdiags.Diagnostics
+	warn := tfdiags.Sourceless(
+		tfdiags.Warning,
+		msg,
+		"",
+	)
+	diags = diags.Append(warn)
+
+	v.Diagnostics(diags)
 }
 
 // The WorkspaceHuman implementation renders human-readable text logs, suitable for
