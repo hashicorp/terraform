@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -18,6 +19,58 @@ import (
 type WorkspaceListCommand struct {
 	Meta
 	LegacyName bool
+}
+
+type workspaceHuman struct {
+	ui   cli.Ui
+	meta *Meta
+}
+
+// Diagnostics renders diagnostics using old-style logic that sends:
+// Error diagnostics to stderr via ui.Error
+// Warning diagnostics to stderr via ui.Warn
+// Anything else to stdout via ui.Output
+func (v *workspaceHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.meta.showDiagnostics(diags)
+}
+
+// Output is used to render text in the terminal, via stdout
+func (v *workspaceHuman) Output(msg string) {
+	v.ui.Output(msg)
+}
+
+// Warn is used to render warning text in the terminal, via stderr
+//
+// This is here for backwards compatibility reasons.
+// In future calling code should use Diagnostics directly.
+func (v *workspaceHuman) Warn(msg string) {
+	v.ui.Warn(msg)
+}
+
+// Error is used to render error text in the terminal, via stderr
+//
+// This is here for backwards compatibility reasons.
+// In future calling code should use Diagnostics directly.
+func (v *workspaceHuman) Error(msg string) {
+	v.ui.Error(msg)
+}
+
+// newWorkspace returns a views.Workspace interface.
+//
+// When human-readable output is migrated from cli.Ui to views.View this method should be deleted and
+// replaced with using views.NewWorkspace directly.
+func newWorkspace(vt arguments.ViewType, view *views.View, ui cli.Ui, meta *Meta) views.Workspace {
+	switch vt {
+	case arguments.ViewJSON:
+		return views.NewWorkspace(vt, view)
+	case arguments.ViewHuman:
+		return &workspaceHuman{
+			ui:   ui,
+			meta: meta,
+		}
+	default:
+		panic(fmt.Sprintf("unknown view type %v", vt))
+	}
 }
 
 func (c *WorkspaceListCommand) Run(args []string) int {
@@ -33,11 +86,11 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	// Prepare the view
 	viewType := arguments.ViewHuman
-	view := views.NewWorkspace(viewType, c.View)
+	view := newWorkspace(viewType, c.View, c.Ui, &c.Meta)
 	c.View.Configure(common)
 
 	// Warn against using `terraform env` commands
-	envCommandShowWarningWithView(c.View, c.LegacyName)
+	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	cmdFlags := c.Meta.defaultFlagSet("workspace list")
 	cmdFlags.Usage = func() {

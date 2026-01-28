@@ -848,26 +848,20 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 
 	// Assert `terraform env list` returns expected deprecation warning
-	view, done := testView(t)
+	ui = new(cli.MockUi)
 	listCmd := &WorkspaceListCommand{
-		Meta:       Meta{View: view},
+		Meta:       Meta{Ui: ui, View: view},
 		LegacyName: true,
 	}
 	args = []string{"-no-color"}
 	if code := listCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	output := done(t)
-	// Warning swaps from stderr to stdout after switching to View from Ui
-	// Ui (MockUi)prints warnings to stderr:
-	// 	https://github.com/hashicorp/cli/blob/4383e52914f5677576e148a6d7e1f399c0e91a7c/ui_mock.go#L75-L80
-	// View prints warnings to stdout:
-	// 	https://github.com/hashicorp/terraform/blob/ac3e32b62bdd35dad7cc3e9ad000119fdb537f65/internal/command/views/view.go#L120-L124
-	if !strings.Contains(output.Stdout(), expectedWarning) {
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\nstderr: %s\n stdout: %s",
 			expectedWarning,
-			output.Stderr(),
-			output.Stdout(),
+			ui.ErrorWriter.String(),
+			ui.OutputWriter.String(),
 		)
 	}
 
@@ -904,8 +898,8 @@ func TestWorkspace_list_humanOutput(t *testing.T) {
 	})
 	defer close()
 
-	ui := new(cli.MockUi)
-	view, done := testView(t)
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	meta := Meta{
 		AllowExperimentalFeatures: true,
 		Ui:                        ui,
@@ -924,17 +918,28 @@ func TestWorkspace_list_humanOutput(t *testing.T) {
 		Diagnostics: nil,
 	}
 
+	ui = cli.NewMockUi()
+	meta.Ui = ui
 	listCmd := &WorkspaceListCommand{
 		Meta: meta,
 	}
 	args := []string{}
 	if code := listCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	output := done(t)
-	expectedOutput := "* default\n  dev\n  stage\n  prod\n"
-	if output.All() != expectedOutput {
-		t.Fatal()
+	expectedStdOut := "* default\n  dev\n  stage\n  prod\n\n"
+	expectedStdErr := ""
+	if ui.OutputWriter.String() != expectedStdOut {
+		t.Fatalf("want: %s\ngot: %s",
+			expectedStdOut,
+			ui.OutputWriter.String(),
+		)
+	}
+	if ui.ErrorWriter.String() != expectedStdErr {
+		t.Fatalf("want: %s\ngot: %s",
+			expectedStdErr,
+			ui.ErrorWriter.String(),
+		)
 	}
 
 	// Warnings accompany listed workspaces, and are formatted and colourised
@@ -949,21 +954,27 @@ func TestWorkspace_list_humanOutput(t *testing.T) {
 		Diagnostics: diags,
 	}
 
-	view, done = testView(t)
-	meta.View = view
+	ui = cli.NewMockUi()
+	meta.Ui = ui
 	listCmd = &WorkspaceListCommand{
 		Meta: meta,
 	}
 	args = []string{}
 	if code := listCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	output = done(t)
-	expectedOutput = "\x1b[33m╷\x1b[0m\x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\x1b[1m\x1b[33mWarning: \x1b[0m\x1b[0m\x1b[1mWarning from test\x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\x1b[0mThis is a warning from the mocked state store.\n\x1b[33m╵\x1b[0m\x1b[0m\n* default\n  dev\n  stage\n  prod\n"
-	if output.All() != expectedOutput {
+	expectedStdOut = "* default\n  dev\n  stage\n  prod\n\n"
+	expectedStdErr = "\x1b[33m╷\x1b[0m\x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\x1b[1m\x1b[33mWarning: \x1b[0m\x1b[0m\x1b[1mWarning from test\x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\n\x1b[33m│\x1b[0m \x1b[0m\x1b[0mThis is a warning from the mocked state store.\n\x1b[33m╵\x1b[0m\x1b[0m\n\n"
+	if ui.OutputWriter.String() != expectedStdOut {
 		t.Fatalf("want: %s\ngot: %s",
-			expectedOutput,
-			output.All(),
+			expectedStdOut,
+			ui.OutputWriter.String(),
+		)
+	}
+	if ui.ErrorWriter.String() != expectedStdErr {
+		t.Fatalf("want: %s\ngot: %s",
+			expectedStdErr,
+			ui.ErrorWriter.String(),
 		)
 	}
 
@@ -980,41 +991,27 @@ func TestWorkspace_list_humanOutput(t *testing.T) {
 		Diagnostics: diags,
 	}
 
-	view, done = testView(t)
-	meta.View = view
+	ui = cli.NewMockUi()
+	meta.Ui = ui
 	listCmd = &WorkspaceListCommand{
 		Meta: meta,
 	}
 	args = []string{}
 	if code := listCmd.Run(args); code != 1 {
-		t.Fatalf("expected a failure with code 1, but got: %d\n\n%s", code, done(t).All())
+		t.Fatalf("expected a failure with code 1, but got: %d\nstdout: %s\nstderr: %s", code, ui.OutputWriter, ui.ErrorWriter)
 	}
-	output = done(t)
-	expectedOutput = "\x1b[31m╷\x1b[0m\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[1m\x1b[31mError: \x1b[0m\x1b[0m\x1b[1mError from test\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[0mThis is a error from the mocked state store.\n\x1b[31m╵\x1b[0m\x1b[0m\n"
-	if output.All() != expectedOutput {
+	expectedStdOut = ""
+	expectedStdErr = "\x1b[31m╷\x1b[0m\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[1m\x1b[31mError: \x1b[0m\x1b[0m\x1b[1mError from test\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[0mThis is a error from the mocked state store.\n\x1b[31m╵\x1b[0m\x1b[0m\n\n"
+	if ui.OutputWriter.String() != expectedStdOut {
 		t.Fatalf("want: %s\ngot: %s",
-			expectedOutput,
-			output.All(),
+			expectedStdOut,
+			ui.OutputWriter.String(),
 		)
 	}
-
-	// Formatting can be turned off with -no-color.
-	// Demonstrate this by repeating the error case above with the flag.
-	view, done = testView(t)
-	meta.View = view
-	listCmd = &WorkspaceListCommand{
-		Meta: meta,
-	}
-	args = []string{"-no-color"}
-	if code := listCmd.Run(args); code != 1 {
-		t.Fatalf("expected a failure with code 1, but got: %d\n\n%s", code, done(t).All())
-	}
-	output = done(t)
-	expectedOutput = "\nError: Error from test\n\nThis is a error from the mocked state store.\n"
-	if output.All() != expectedOutput {
+	if ui.ErrorWriter.String() != expectedStdErr {
 		t.Fatalf("want: %s\ngot: %s",
-			expectedOutput,
-			output.All(),
+			expectedStdErr,
+			ui.OutputWriter.String(),
 		)
 	}
 }
