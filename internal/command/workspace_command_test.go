@@ -912,7 +912,7 @@ func TestWorkspace_list_humanOutput(t *testing.T) {
 		ProviderSource: providerSource,
 	}
 
-	// Return multiple workspaces
+	// Step 1 - test list output with no diagnostics
 	mock.GetStatesResponse = &providers.GetStatesResponse{
 		States:      []string{"default", "dev", "stage", "prod"},
 		Diagnostics: nil,
@@ -942,7 +942,7 @@ func TestWorkspace_list_humanOutput(t *testing.T) {
 		)
 	}
 
-	// Warnings accompany listed workspaces, and are formatted and colourised
+	// Step 2 - test list output with a warning diagnostics
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
@@ -978,8 +978,7 @@ func TestWorkspace_list_humanOutput(t *testing.T) {
 		)
 	}
 
-	// Errors are displayed on their own and don't accompany listed workspaces,
-	// even if that data is present.
+	// Step 3 - test that error diagnostics are shown in isolation (no additional output even if present)
 	diags = tfdiags.Diagnostics{} // empty
 	diags = diags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
