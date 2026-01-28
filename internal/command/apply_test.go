@@ -1087,8 +1087,9 @@ func TestApply_plan_remoteState(t *testing.T) {
 	}
 	planPath := testPlanFile(t, snap, state, &plans.Plan{
 		Backend: &plans.Backend{
-			Type:   "http",
-			Config: backendConfigRaw,
+			Type:      "http",
+			Config:    backendConfigRaw,
+			Workspace: "default",
 		},
 		Changes: plans.NewChangesSrc(),
 	})

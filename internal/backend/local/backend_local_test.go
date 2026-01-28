@@ -161,8 +161,9 @@ func TestLocalRun_stalePlan(t *testing.T) {
 		UIMode:  plans.NormalMode,
 		Changes: plans.NewChangesSrc(),
 		Backend: &plans.Backend{
-			Type:   "local",
-			Config: backendConfigRaw,
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
 		},
 		PrevRunState: states.NewState(),
 		PriorState:   states.NewState(),
