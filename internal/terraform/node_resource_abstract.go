@@ -67,7 +67,7 @@ type NodeAbstractResource struct {
 	ProvisionerSchemas map[string]*configschema.Block
 
 	// ActionConfigs is the configuration of any associated actions
-	ActionConfigs map[string]*configs.Action
+	ActionConfigs addrs.Map[addrs.ConfigAction, *configs.Action]
 
 	// Set from GraphNodeTargetable
 	Targets []addrs.Targetable
@@ -619,10 +619,10 @@ func graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(a, b dag.Ver
 
 // GraphNodeAttachActionConfig
 func (n *NodeAbstractResource) AttachActionConfig(action addrs.ConfigAction, cfg *configs.Action) {
-	if n.ActionConfigs == nil {
-		n.ActionConfigs = make(map[string]*configs.Action)
+	if n.ActionConfigs.Len() == 0 {
+		n.ActionConfigs = addrs.MakeMap[addrs.ConfigAction, *configs.Action]()
 	}
-	n.ActionConfigs[action.String()] = cfg
+	n.ActionConfigs.Put(action, cfg)
 }
 
 // ActionAddrs returns the addresses of any actions referenced inside the resource's lifecycle. This will only return actions after the AttachResourceConfigTransformer

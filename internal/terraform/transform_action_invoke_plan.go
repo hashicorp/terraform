@@ -46,9 +46,14 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 			return fmt.Errorf("action %s does not exist in the configuration", target.String())
 		}
 
-		g.Add(&nodeActionInvokeExpand{
+		// @mildwonkey yeah these just look better with constructor functions
+		abstract := nodeActionInvokeAbstract{
 			Target: target,
 			Config: config,
+		}
+
+		g.Add(&nodeActionInvokeExpand{
+			nodeActionInvokeAbstract: abstract, // weird
 		})
 	}
 

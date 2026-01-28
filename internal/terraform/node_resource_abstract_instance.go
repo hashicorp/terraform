@@ -3146,8 +3146,8 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	return reqRep, diags
 }
 
-// AttachPlannedActionInvocation is used in TransformDiff to attach the planned action, and its representative NodeAbstractActionInstance (or trigger instance)(dunno).
-func (n *NodeAbstractResourceInstance) AttachPlannedActionInvocations(ais []*plans.ActionInvocationInstanceSrc, ans []GraphNodeConfigAction) {
+// AttachPlannedActionInvocation is used in TransformDiff to attach the planned action
+func (n *NodeAbstractResourceInstance) AttachPlannedActionInvocations(ais []*plans.ActionInvocationInstanceSrc) {
 	// this field is only used during apply, so we can wait to create it.
 	if n.plannedActions == nil {
 		n.plannedActions = make([]*plans.ActionInvocationInstanceSrc, 0)

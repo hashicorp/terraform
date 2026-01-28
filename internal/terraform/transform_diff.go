@@ -80,16 +80,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		resourceNodes.Put(rAddr, append(resourceNodes.Get(rAddr), rn))
 	}
 
-	// FIXME: this can happen in the same loop as above (if it sticks around)
-	actionNodes := addrs.MakeMap[addrs.ConfigAction, []GraphNodeConfigAction]()
-	for _, node := range g.Vertices() {
-		an, ok := node.(GraphNodeConfigAction)
-		if !ok {
-			continue
-		}
-		actionNodes.Put(an.ActionAddr(), append(actionNodes.Get(an.ActionAddr()), an))
-	}
-
 	for _, rc := range changes.Resources {
 		addr := rc.Addr
 		dk := rc.DeposedKey
@@ -99,26 +89,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		// resource instance node when it is created below.
 		updateActions := make([]*plans.ActionInvocationInstanceSrc, 0)
 		createActions := make([]*plans.ActionInvocationInstanceSrc, 0)
-		updateActionNodes := make([]GraphNodeConfigAction, 0)
-		createActionNodes := make([]GraphNodeConfigAction, 0)
 
 		actions := changes.GetActionsByResourceInstance(addr)
 		for _, a := range actions {
 			if a.ActionTrigger.TriggerEvent().IsCreate() {
 				createActions = append(createActions, a)
-				if can, ok := actionNodes.GetOk(a.Addr.ConfigAction()); ok {
-					createActionNodes = append(createActionNodes, can...)
-				} else {
-					panic("oh")
-				}
 			}
 			if a.ActionTrigger.TriggerEvent().IsUpdate() {
 				updateActions = append(updateActions, a)
-				if uan, ok := actionNodes.GetOk(a.Addr.ConfigAction()); ok {
-					updateActionNodes = append(updateActionNodes, uan...)
-				} else {
-					panic("i have no idea what i'm doing")
-				}
 			}
 		}
 
@@ -205,11 +183,11 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			abstract := NewNodeAbstractResourceInstance(addr)
 			if create {
 				if len(createActions) > 0 {
-					abstract.AttachPlannedActionInvocations(createActions, createActionNodes)
+					abstract.AttachPlannedActionInvocations(createActions)
 				}
 			} else {
 				if len(updateActions) > 0 {
-					abstract.AttachPlannedActionInvocations(updateActions, updateActionNodes)
+					abstract.AttachPlannedActionInvocations(updateActions)
 				}
 			}
 			var node dag.Vertex = abstract

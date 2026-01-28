@@ -9,6 +9,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -564,7 +565,7 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			}
 			aiSrc := actions[keys[i]][j]
 
-			// @mildwonkey FFS DON'T USE STRINGS YOU CAN'T EVEN REMEMBER WHAT THIS IS
+			// @mildwonkey SWAP THIS OUT FOR A REAL TYPE
 			actionSchema := n.ActionSchemas[aiSrc.Addr.ConfigAction().Action.Type]
 			ai, err := aiSrc.Decode(actionSchema)
 			if err != nil {
@@ -610,23 +611,29 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			// get the action expansion and config for evaluation
 			allInsts := ctx.InstanceExpander()
 			keyData := allInsts.GetActionInstanceRepetitionData(aiSrc.Addr)
-			actionData := n.ActionConfigs[aiSrc.Addr.String()]
 
-			configValue, _, configDiags := ctx.EvaluateBlock(actionData.Config, actionSchema.ConfigSchema, nil, keyData)
-			diags = diags.Append(configDiags)
-			if configDiags.HasErrors() {
-				return diags
-			}
+			actionData := n.ActionConfigs.Get(aiSrc.Addr.ConfigAction())
 
-			valDiags := validateResourceForbiddenEphemeralValues(ctx, configValue, actionSchema.ConfigSchema)
-			diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+			configVal := cty.NullVal(actionSchema.ConfigSchema.ImpliedType())
+			if actionData.Config != nil {
+				var configDiags tfdiags.Diagnostics
+				configVal, _, configDiags = ctx.EvaluateBlock(actionData.Config, actionSchema.ConfigSchema, nil, keyData)
 
-			if valDiags.HasErrors() {
-				return diags
+				diags = diags.Append(configDiags)
+				if configDiags.HasErrors() {
+					return diags
+				}
+
+				valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, actionSchema.ConfigSchema)
+				diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
+				if valDiags.HasErrors() {
+					return diags
+				}
 			}
 
 			// Validate that what we planned matches the action data we have.
-			errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configValue))
+			errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configVal))
 			for _, err := range errs {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -640,7 +647,7 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 				return diags
 			}
 
-			if !configValue.IsWhollyKnown() {
+			if !configVal.IsWhollyKnown() {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Action configuration unknown during apply",
@@ -664,7 +671,7 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			// We don't want to send the marks, but all marks are okay in the context
 			// of an action invocation. We can't reuse our ephemeral free value from
 			// above because we want the ephemeral values to be included.
-			unmarkedConfigValue, _ := configValue.UnmarkDeep()
+			unmarkedConfigValue, _ := configVal.UnmarkDeep()
 			resp := provider.InvokeAction(providers.InvokeActionRequest{
 				ActionType:         ai.Addr.Action.Action.Type,
 				PlannedActionData:  unmarkedConfigValue,
@@ -825,7 +832,7 @@ func (n *NodeApplyableResourceInstance) AttachActionSchema(name string, schema *
 
 func (n *NodeApplyableResourceInstance) ActionReferences() []*addrs.Reference {
 	var result []*addrs.Reference
-	for _, action := range n.ActionConfigs {
+	for _, action := range n.ActionConfigs.Iter() {
 		if action.Config == nil {
 			continue
 		}

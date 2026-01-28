@@ -6,7 +6,6 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -15,7 +14,6 @@ import (
 // the given resource.
 type GraphNodeConfigAction interface {
 	ActionAddr() addrs.ConfigAction
-	ActionSchema() *providers.ActionSchema
 }
 
 // nodeExpandAction represents an action config block in a configuration module,
