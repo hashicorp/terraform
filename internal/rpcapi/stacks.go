@@ -595,7 +595,9 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	}
 	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
 	var deps *depsfile.Locks
-	if !depsHnd.IsNil() {
+	if s.providerDependencyLockOverride != nil {
+		deps = s.providerDependencyLockOverride
+	} else if !depsHnd.IsNil() {
 		deps = s.handles.DependencyLocks(depsHnd)
 		if deps == nil {
 			return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
@@ -611,14 +613,23 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 			return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
 		}
 	}
-	// NOTE: providerCache can be nil if no handle was provided, in which
-	// case the call can only use built-in providers. All code below
-	// must avoid panicking when providerCache is nil, but is allowed to
-	// return an InvalidArgument error in that case.
-	// (providerFactoriesForLocks explicitly supports a nil providerCache)
-	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	var providerFactories map[addrs.Provider]providers.Factory
+	if s.providerCacheOverride != nil {
+		// This is only used in tests to side load providers without needing a
+		// real provider cache.
+		providerFactories = s.providerCacheOverride
+	} else {
+		// NOTE: providerCache can be nil if no handle was provided, in which
+		// case the call can only use built-in providers. All code below
+		// must avoid panicking when providerCache is nil, but is allowed to
+		// return an InvalidArgument error in that case.
+		// (providerFactoriesForLocks explicitly supports a nil providerCache)
+		var err error
+		// (providerFactoriesForLocks explicitly supports a nil providerCache)
+		providerFactories, err = providerFactoriesForLocks(deps, providerCache)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+		}
 	}
 
 	inputValues, err := externalInputValuesFromProto(req.InputValues)

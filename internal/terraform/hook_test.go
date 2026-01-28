@@ -51,14 +51,14 @@ func (h *testHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreDiff", id.Addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostDiff", id.Addr.String()})
