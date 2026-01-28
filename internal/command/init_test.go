@@ -4630,6 +4630,47 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 	}
 }
 
+func TestInit_unitialized_stateStore(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	cfg := `terraform {
+	  required_providers {
+	    test = {
+	      source = "hashicorp/test"
+	    }
+	  }
+	  state_store "test_store" {
+	    provider "test" {}
+	    value = "foobar"
+	  }
+	}
+	`
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Chdir(td)
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	cApply := &ApplyCommand{
+		Meta: Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code := cApply.Run([]string{})
+	testOutput := done(t)
+	if code == 0 {
+		t.Fatalf("expected apply to fail: \n%s", testOutput.All())
+	}
+	log.Printf("[TRACE] TestInit_stateStore_to_backend: uninitialised apply with state store complete")
+	expectedErr := `provider registry.terraform.io/hashicorp/test: required by this configuration but no version is selected`
+	if !strings.Contains(testOutput.Stderr(), expectedErr) {
+		t.Fatalf("unexpected error, expected %q, given: %s", expectedErr, testOutput.Stderr())
+	}
+}
+
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).

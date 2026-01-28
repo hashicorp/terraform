@@ -62,6 +62,8 @@ type BackendOpts struct {
 	// the root module, or nil if no such block is present.
 	StateStoreConfig *configs.StateStore
 
+	ProviderRequirements *configs.RequiredProviders
+
 	// Locks allows state-migration logic to detect when the provider used for pluggable state storage
 	// during the last init (i.e. what's in the backend state file) is mismatched with the provider
 	// version in use currently.
@@ -771,6 +773,33 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 			Summary:  "Missing state store configuration",
 			Detail:   "Terraform attempted to configure a state store when no parsed 'state_store' configuration was present. This is a bug in Terraform and should be reported.",
 		})
+		return nil, 0, diags
+	}
+
+	if errs := c.VerifyDependencySelections(opts.Locks, opts.ProviderRequirements); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		var suggestion string
+		switch {
+		case opts.Locks == nil:
+			// If we get here then it suggests that there's a caller that we
+			// didn't yet update to populate DependencyLocks, which is a bug.
+			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
+		case opts.Locks.Empty():
+			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
+		default:
+			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
+				buf.String(), suggestion,
+			),
+		))
 		return nil, 0, diags
 	}
 
@@ -1877,9 +1906,10 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 		}
 	case root.StateStore != nil:
 		opts = &BackendOpts{
-			StateStoreConfig: root.StateStore,
-			Locks:            locks,
-			ViewType:         viewType,
+			StateStoreConfig:     root.StateStore,
+			ProviderRequirements: root.ProviderRequirements,
+			Locks:                locks,
+			ViewType:             viewType,
 		}
 	default:
 		// there is no config; defaults to local state storage
@@ -2198,6 +2228,8 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 
 	pLock := locks.Provider(c.ProviderAddr)
 	if pLock == nil {
+		// This should never happen as the user would've already hit
+		// an error earlier prompting them to run init
 		diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
 			c.Provider.Name,
 			c.ProviderAddr,
