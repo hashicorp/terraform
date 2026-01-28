@@ -1703,6 +1703,18 @@ func TestApplyDestroy(t *testing.T) {
 								Remove: 1,
 							},
 						},
+						ReportActionInvocationStatus: []*hooks.ActionInvocationStatusHookData{
+							{
+								Addr:         mustAbsActionInvocationInstance("component.self.action.local_exec.example"),
+								ProviderAddr: mustDefaultRootProvider("testing").Provider,
+								Status:       hooks.ActionInvocationRunning,
+							},
+							{
+								Addr:         mustAbsActionInvocationInstance("component.self.action.local_exec.example"),
+								ProviderAddr: mustDefaultRootProvider("testing").Provider,
+								Status:       hooks.ActionInvocationCompleted,
+							},
+						},
 					},
 				},
 				{
