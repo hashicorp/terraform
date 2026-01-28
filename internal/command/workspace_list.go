@@ -33,6 +33,20 @@ func (v *workspaceHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.meta.showDiagnostics(diags)
 }
 
+// List is used to assemble the list of Workspaces and log it via Output
+func (v *workspaceHuman) List(selected string, list []string) {
+	var out bytes.Buffer
+	for _, s := range list {
+		if s == selected {
+			out.WriteString("* ")
+		} else {
+			out.WriteString("  ")
+		}
+		out.WriteString(s + "\n")
+	}
+	v.ui.Output(out.String())
+}
+
 // Output is used to render text in the terminal, via stdout
 func (v *workspaceHuman) Output(msg string) {
 	v.ui.Output(msg)
@@ -58,10 +72,10 @@ func (v *workspaceHuman) Error(msg string) {
 //
 // When human-readable output is migrated from cli.Ui to views.View this method should be deleted and
 // replaced with using views.NewWorkspace directly.
-func newWorkspace(vt arguments.ViewType, view *views.View, ui cli.Ui, meta *Meta) views.Workspace {
+func newWorkspaceList(vt arguments.ViewType, view *views.View, ui cli.Ui, meta *Meta) views.WorkspaceList {
 	switch vt {
 	case arguments.ViewJSON:
-		return views.NewWorkspace(vt, view)
+		return views.NewWorkspaceList(vt, view)
 	case arguments.ViewHuman:
 		return &workspaceHuman{
 			ui:   ui,
@@ -104,7 +118,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	} else {
 		viewType = arguments.ViewHuman
 	}
-	view := newWorkspace(viewType, c.View, c.Ui, &c.Meta)
+	view := newWorkspaceList(viewType, c.View, c.Ui, &c.Meta)
 	c.View.Configure(common)
 
 	// Warn against using `terraform env` commands
@@ -143,17 +157,8 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	env, isOverridden := c.WorkspaceOverridden()
 
-	var out bytes.Buffer
-	for _, s := range states {
-		if s == env {
-			out.WriteString("* ")
-		} else {
-			out.WriteString("  ")
-		}
-		out.WriteString(s + "\n")
-	}
-
-	view.Output(out.String())
+	// Print the list of workspaces, highlighting the current workspace
+	view.List(env, states)
 
 	if isOverridden {
 		view.Output(envIsOverriddenNote)

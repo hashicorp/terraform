@@ -4,6 +4,7 @@
 package views
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -24,8 +25,14 @@ type Workspace interface {
 	Warn(message string)
 }
 
+type WorkspaceList interface {
+	Workspace
+
+	List(selected string, list []string)
+}
+
 // NewWorkspace returns the Workspace implementation for the given ViewType.
-func NewWorkspace(vt arguments.ViewType, view *View) Workspace {
+func NewWorkspaceList(vt arguments.ViewType, view *View) WorkspaceList {
 	switch vt {
 	case arguments.ViewJSON:
 		return &WorkspaceJSON{
@@ -52,9 +59,27 @@ func (v *WorkspaceJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-// Output is used to render data in the terminal, e.g. the workspaces returned from `workspace list`
+// Output is used to render text in the terminal via stdout.
 func (v *WorkspaceJSON) Output(msg string) {
 	v.view.Log(msg)
+}
+
+// List is used to log the list of present workspaces and indicate which is currently selected
+func (v *WorkspaceJSON) List(current string, list []string) {
+	var msg bytes.Buffer
+	for _, s := range list {
+		if s == current {
+			msg.WriteString("* ")
+		} else {
+			msg.WriteString("  ")
+		}
+		msg.WriteString(s + "\n")
+	}
+
+	v.view.log.Info(
+		msg.String(),
+		"current", current,
+		"workspaces", list)
 }
 
 // Error

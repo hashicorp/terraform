@@ -1064,7 +1064,7 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 	}
 	output := done(t)
 	expectedStdOut := fmt.Sprintf(`{"@level":"info","@message":"Terraform %s","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","terraform":"%s","type":"version","ui":"1.2"}
-{"@level":"info","@message":"* default\n  dev\n  stage\n  prod\n","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","type":"log"}
+{"@level":"info","@message":"* default\n  dev\n  stage\n  prod\n","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","current":"default","workspaces":["default","dev","stage","prod"]}
 `,
 		tfversion.String(),
 		tfversion.String(),
@@ -1106,7 +1106,7 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 	output = done(t)
 	expectedStdOut = fmt.Sprintf(`{"@level":"info","@message":"Terraform %s","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","terraform":"%s","type":"version","ui":"1.2"}
 {"@level":"warn","@message":"Warning: Warning from test","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","diagnostic":{"severity":"warning","summary":"Warning from test","detail":"This is a warning from the mocked state store."},"type":"diagnostic"}
-{"@level":"info","@message":"* default\n  dev\n  stage\n  prod\n","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","type":"log"}
+{"@level":"info","@message":"* default\n  dev\n  stage\n  prod\n","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","current":"default","workspaces":["default","dev","stage","prod"]}
 `,
 		tfversion.String(),
 		tfversion.String(),
