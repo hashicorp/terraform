@@ -14,22 +14,17 @@ import (
 
 // TestSourceBundleParser_LoadConfigDir_WithAbsolutePath tests that when
 // LocalPathForSource returns an absolute path, LoadConfigDir correctly converts
-// it to a relative path from the current working directory. This prevents
-// the value of `path.module` from differing across plans and applies when
-// they execute in different temporary directories (as with tfc-agent).
+// it to a relative path from the current working directory and sets it on the Module.
 func TestSourceBundleParser_LoadConfigDir_WithAbsolutePath(t *testing.T) {
-	// Create a temporary directory structure for the test
 	tmpDir := t.TempDir()
-
-	// Create a source bundle directory with a simple config file
 	bundleRoot := filepath.Join(tmpDir, "bundle")
 	configDir := filepath.Join(bundleRoot, "root")
+
 	err := os.MkdirAll(configDir, 0755)
 	if err != nil {
 		t.Fatalf("failed to create config directory: %s", err)
 	}
 
-	// Write a minimal Terraform configuration file
 	configContent := []byte(`
 resource "test_resource" "example" {
   name = "test"
@@ -40,7 +35,6 @@ resource "test_resource" "example" {
 		t.Fatalf("failed to write config file: %s", err)
 	}
 
-	// Create the source bundle manifest
 	manifestContent := []byte(`{
   "terraform_source_bundle": 1,
   "packages": [
@@ -56,27 +50,21 @@ resource "test_resource" "example" {
 		t.Fatalf("failed to write manifest file: %s", err)
 	}
 
-	// Create the source bundle
 	sources, err := sourcebundle.OpenDir(bundleRoot)
 	if err != nil {
 		t.Fatalf("failed to open source bundle: %s", err)
 	}
 
-	// Parse the source address
 	source := sourceaddrs.MustParseSource("git::https://example.com/test.git").(sourceaddrs.FinalSource)
 
-	// Get the path that LocalPathForSource returns to verify it's absolute
 	sourcePath, err := sources.LocalPathForSource(source)
 	if err != nil {
 		t.Fatalf("failed to get local path for source: %s", err)
 	}
-
-	// Verify that LocalPathForSource returns an absolute path (the condition we're testing)
 	if !filepath.IsAbs(sourcePath) {
-		t.Skipf("LocalPathForSource returned relative path %q, skipping absolute path test", sourcePath)
+		t.Fatalf("LocalPathForSource returned relative path %q", sourcePath)
 	}
 
-	// Create the parser and load the config
 	parser := NewSourceBundleParser(sources)
 	mod, diags := parser.LoadConfigDir(source)
 
@@ -88,13 +76,10 @@ resource "test_resource" "example" {
 		t.Fatal("expected non-nil module")
 	}
 
-	// The key assertion: even though LocalPathForSource returned an absolute path,
-	// SourceDir should be a relative path
 	if filepath.IsAbs(mod.SourceDir) {
 		t.Errorf("expected SourceDir to be relative, but got absolute path: %s", mod.SourceDir)
 	}
 
-	// Verify the relative path is correct - it should be relative to the working directory
 	workDir, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get working directory: %s", err)
@@ -117,6 +102,8 @@ type mockSourceBundleForRelativePath struct {
 	workDir    string
 }
 
+// We can't reliably ensure that LocalPathForSource will return a relative path - so we can mock it
+// to ensure that the core logic of keeping that path relative is working.
 func (m *mockSourceBundleForRelativePath) LocalPathForSource(source sourceaddrs.FinalSource) (string, error) {
 	path, err := m.realBundle.LocalPathForSource(source)
 	if err != nil {
@@ -140,18 +127,15 @@ func (m *mockSourceBundleForRelativePath) LocalPathForSource(source sourceaddrs.
 // directory), the code uses it as-is without attempting to convert it. This
 // ensures we don't break the case where the path is already in the correct form.
 func TestSourceBundleParser_LoadConfigDir_WithRelativePath(t *testing.T) {
-	// Create a temporary directory structure for the test
 	tmpDir := t.TempDir()
-
-	// Create a source bundle directory with a simple config file
 	bundleRoot := filepath.Join(tmpDir, "bundle")
 	configDir := filepath.Join(bundleRoot, "root")
+
 	err := os.MkdirAll(configDir, 0755)
 	if err != nil {
 		t.Fatalf("failed to create config directory: %s", err)
 	}
 
-	// Write a minimal Terraform configuration file
 	configContent := []byte(`
 resource "test_resource" "example" {
   name = "test"
@@ -173,33 +157,29 @@ resource "test_resource" "example" {
     }
   ]
 }`)
+
 	err = os.WriteFile(filepath.Join(bundleRoot, "terraform-sources.json"), manifestContent, 0644)
 	if err != nil {
 		t.Fatalf("failed to write manifest file: %s", err)
 	}
 
-	// Create the source bundle
 	realSources, err := sourcebundle.OpenDir(bundleRoot)
 	if err != nil {
 		t.Fatalf("failed to open source bundle: %s", err)
 	}
 
-	// Get current working directory
 	workDir, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get working directory: %s", err)
 	}
 
-	// Create mock bundle that returns relative paths
 	mockSources := &mockSourceBundleForRelativePath{
 		realBundle: realSources,
 		workDir:    workDir,
 	}
 
-	// Parse the source address
 	source := sourceaddrs.MustParseSource("git::https://example.com/relative-test.git").(sourceaddrs.FinalSource)
 
-	// Verify the mock returns a relative path
 	sourcePath, err := mockSources.LocalPathForSource(source)
 	if err != nil {
 		t.Fatalf("failed to get local path for source: %s", err)
@@ -209,26 +189,20 @@ resource "test_resource" "example" {
 		t.Fatalf("mock should return relative path but got absolute: %q", sourcePath)
 	}
 
-	// Test the logic conceptually: if we have a relative path,
-	// it should be used as-is (testing the else branch in LoadConfigDir)
-	testPath := sourcePath // This is relative from our mock
+	testPath := sourcePath
 	var relativeSourceDir string
 
 	// This mimics the logic in LoadConfigDir
 	if filepath.IsAbs(testPath) {
-		// Should not happen with our mock
 		t.Fatal("unexpected absolute path from mock")
 	} else {
-		// This is the branch we're testing: relative paths are used as-is
 		relativeSourceDir = testPath
 	}
 
-	// The key assertion: when the path is already relative, it should be used as-is
 	if relativeSourceDir != sourcePath {
 		t.Errorf("expected relative path to be used as-is: got %q, want %q", relativeSourceDir, sourcePath)
 	}
 
-	// Verify the path is indeed relative
 	if filepath.IsAbs(relativeSourceDir) {
 		t.Errorf("expected relativeSourceDir to be relative, but got absolute: %s", relativeSourceDir)
 	}
