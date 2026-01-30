@@ -6,12 +6,15 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"maps"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -164,7 +167,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
 		var diags tfdiags.Diagnostics
 		if r.Managed != nil && r.Managed.ActionTriggers != nil {
-			for i, at := range r.Managed.ActionTriggers {
+			for _, at := range r.Managed.ActionTriggers {
 				for _, action := range at.Actions {
 
 					refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
@@ -190,11 +193,17 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 
 					_, ok := allConfigActions[configAction.String()]
 					if !ok {
+						suggestion := didyoumean.NameSuggestion(configAction.String(), slices.Collect(maps.Keys(allConfigActions)))
+						if suggestion != "" {
+							suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+						}
+
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
-							Summary:  "Configuration for triggered action does not exist",
-							Detail:   fmt.Sprintf("The configuration for the given action %s does not exist. All triggered actions must have an associated configuration.", configAction.String()),
-							Subject:  &r.Managed.ActionTriggers[i].DeclRange,
+							Summary:  "action_trigger actions references non-existent action",
+							Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module.%s", configAction.String(), suggestion),
+							Subject:  action.Expr.Range().Ptr(),
+							Context:  r.DeclRange.Ptr(),
 						})
 					}
 				}

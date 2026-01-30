@@ -30,6 +30,21 @@
       "source": "git::https://example.com/removed.git",
       "local": "removed",
       "meta": {}
+    },
+    {
+      "source": "git::https://example.com/invalid.git",
+      "local": "invalid",
+      "meta": {}
+    },
+    {
+      "source": "git::https://example.com/simple.git",
+      "local": "simple",
+      "meta": {}
+    },
+    {
+      "source": "git::https://example.com/empty.git",
+      "local": "empty",
+      "meta": {}
     }
   ]
 }

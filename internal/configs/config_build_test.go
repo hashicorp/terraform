@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/zclconf/go-cty/cty"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -393,19 +392,6 @@ func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatal("got nil config; want non-nil")
-	}
-
-	provider := cfg.Module.Tests["main.tftest.hcl"].Providers["aws"]
-
-	// This time we want to check that the mock data defined inline took
-	// precedence over the mock data defined in the data files.
-	defaults := provider.MockData.MockResources["aws_s3_bucket"].Defaults
-	expected := cty.ObjectVal(map[string]cty.Value{
-		"arn": cty.StringVal("aws:s3:::bucket"),
-	})
-
-	if !defaults.RawEquals(expected) {
-		t.Errorf("expected: %s\nactual:   %s", expected.GoString(), defaults.GoString())
 	}
 }
 

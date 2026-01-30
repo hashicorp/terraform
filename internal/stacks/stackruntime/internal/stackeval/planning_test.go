@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -852,17 +851,9 @@ func TestPlanning_PathValues(t *testing.T) {
 			t.Fatalf("failed to get current working directory: %s", err)
 		}
 
-		normalizePath := func(path string) string {
-			rel, err := filepath.Rel(cwd, path)
-			if err != nil {
-				t.Errorf("rel(%s,%s): %s", cwd, path, err)
-				return path
-			}
-			return rel
-		}
-
+		// path.cwd should be absolute and all others should be relative, as per documentation.
 		expected := map[string]string{
-			"cwd":          ".",
+			"cwd":          cwd,
 			"root":         "testdata/sourcebundle/planning/path_values/module",       // this is the root module of the component
 			"module":       "testdata/sourcebundle/planning/path_values/module",       // this is the root module
 			"child_root":   "testdata/sourcebundle/planning/path_values/module",       // should be the same for all modules
@@ -870,11 +861,11 @@ func TestPlanning_PathValues(t *testing.T) {
 		}
 
 		actual := map[string]string{
-			"cwd":          normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "cwd"}].AsString()),
-			"root":         normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "root"}].AsString()),
-			"module":       normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "module"}].AsString()),
-			"child_root":   normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "child_root"}].AsString()),
-			"child_module": normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "child_module"}].AsString()),
+			"cwd":          component.PlannedOutputValues[addrs.OutputValue{Name: "cwd"}].AsString(),
+			"root":         component.PlannedOutputValues[addrs.OutputValue{Name: "root"}].AsString(),
+			"module":       component.PlannedOutputValues[addrs.OutputValue{Name: "module"}].AsString(),
+			"child_root":   component.PlannedOutputValues[addrs.OutputValue{Name: "child_root"}].AsString(),
+			"child_module": component.PlannedOutputValues[addrs.OutputValue{Name: "child_module"}].AsString(),
 		}
 
 		if cmp.Diff(expected, actual) != "" {

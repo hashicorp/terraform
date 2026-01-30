@@ -940,9 +940,15 @@ func (p *GRPCProvider) GenerateResourceConfig(r providers.GenerateResourceConfig
 		return resp
 	}
 
+	mp, err := msgpack.Marshal(r.State, resSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
 	protoReq := &proto.GenerateResourceConfig_Request{
 		TypeName: r.TypeName,
-		State:    nil,
+		State:    &proto.DynamicValue{Msgpack: mp},
 	}
 
 	protoResp, err := p.client.GenerateResourceConfig(p.ctx, protoReq)
@@ -1321,7 +1327,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 
 	resourceSchema, ok := schema.ResourceTypes[r.TypeName]
 	if !ok || resourceSchema.Identity == nil {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity schema not found for resource type %s", r.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Identity schema not found for resource type %s; this is a bug in the provider - please report it there", r.TypeName))
 		return resp
 	}
 

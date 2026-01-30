@@ -4,6 +4,8 @@
 package states
 
 import (
+	"slices"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 )
@@ -167,6 +169,45 @@ func (r *CheckResults) DeepCopy() *CheckResults {
 	}
 
 	return ret
+}
+
+func (r *CheckResults) Equal(other *CheckResults) bool {
+	if r == other {
+		return true
+	}
+	if r == nil || other == nil {
+		return false
+	}
+
+	if r.ConfigResults.Len() != other.ConfigResults.Len() {
+		return false
+	}
+	for key, elem := range r.ConfigResults.Iter() {
+		otherElem := other.ConfigResults.Get(key)
+		if otherElem == nil {
+			return false
+		}
+		if elem.Status != otherElem.Status {
+			return false
+		}
+		if elem.ObjectResults.Len() != otherElem.ObjectResults.Len() {
+			return false
+		}
+		for key, res := range elem.ObjectResults.Iter() {
+			otherRes := otherElem.ObjectResults.Get(key)
+			if otherRes == nil {
+				return false
+			}
+			if res.Status != otherRes.Status {
+				return false
+			}
+			if !slices.Equal(res.FailureMessages, otherRes.FailureMessages) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // ObjectAddrsKnown determines whether the set of objects recorded in this

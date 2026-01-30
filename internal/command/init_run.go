@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -143,16 +142,28 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		return 1
 	}
-	if !c.Meta.AllowExperimentalFeatures && rootModEarly.StateStore != nil {
+	if !(c.Meta.AllowExperimentalFeatures && initArgs.EnablePssExperiment) && rootModEarly.StateStore != nil {
 		// TODO(SarahFrench/radeksimko) - remove when this feature isn't experimental.
 		// This approach for making the feature experimental is required
 		// to let us assert the feature is gated behind an experiment in tests.
 		// See https://github.com/hashicorp/terraform/pull/37350#issuecomment-3168555619
+
+		detail := "Pluggable state store is an experiment which requires"
+		if !c.Meta.AllowExperimentalFeatures {
+			detail += " an experimental build of terraform"
+		}
+		if !initArgs.EnablePssExperiment {
+			if !c.Meta.AllowExperimentalFeatures {
+				detail += " and"
+			}
+			detail += " -enable-pluggable-state-storage-experiment flag"
+		}
+
 		diags = diags.Append(earlyConfDiags)
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Unsupported block type",
-			Detail:   "Blocks of type \"state_store\" are not expected here.",
+			Summary:  "Pluggable state store experiment not supported",
+			Detail:   detail,
 			Subject:  &rootModEarly.StateStore.TypeRange,
 		})
 		view.Diagnostics(diags)
@@ -171,10 +182,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		// initBackend has new parameters that aren't relevant to the original (unpluggable) version of the init command logic here.
-		// So for this version of the init command, we pass in empty locks intentionally.
-		emptyLocks := depsfile.NewLocks()
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, emptyLocks, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)

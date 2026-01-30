@@ -208,8 +208,12 @@ type Meta struct {
 	// It is initialized on first use.
 	configLoader *configload.Loader
 
-	// backendState is the currently active backend state
-	backendState *workdir.BackendConfigState
+	// backendConfigState is the currently active backend state.
+	// This is used when creating plan files.
+	backendConfigState *workdir.BackendConfigState
+	// stateStoreConfigState is the currently active state_store state.
+	// This is used when creating plan files.
+	stateStoreConfigState *workdir.StateStoreConfigState
 
 	// Variables for the context (private)
 	variableArgs arguments.FlagNameValueSlice

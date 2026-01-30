@@ -20,7 +20,6 @@ type ActionTriggerConfigTransformer struct {
 	queryPlanMode bool
 
 	ConcreteActionTriggerNodeFunc ConcreteActionTriggerNodeFunc
-	CreateNodesAsAfter            bool
 }
 
 func (t *ActionTriggerConfigTransformer) Transform(g *Graph) error {
@@ -49,13 +48,21 @@ func (t *ActionTriggerConfigTransformer) transform(g *Graph, config *configs.Con
 }
 
 func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *configs.Config) error {
+	// During plan we only want to create all triggers to run after the resource
+	createNodesAsAfter := t.Operation == walkPlan
+	// During apply we want all after trigger to also connect to the resource instance nodes
+	connectToResourceInstanceNodes := t.Operation == walkApply
 	actionConfigs := addrs.MakeMap[addrs.ConfigAction, *configs.Action]()
 	for _, a := range config.Module.Actions {
 		actionConfigs.Put(a.Addr().InModule(config.Path), a)
 	}
 
 	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
+	resourceInstanceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeResourceInstance]()
 	for _, node := range g.Vertices() {
+		if rin, ok := node.(GraphNodeResourceInstance); ok {
+			resourceInstanceNodes.Put(rin.ResourceInstanceAddr().ConfigResource(), append(resourceInstanceNodes.Get(rin.ResourceInstanceAddr().ConfigResource()), rin))
+		}
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
 			continue
@@ -136,13 +143,18 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 
 				// If CreateNodesAsAfter is set we want all nodes to run after the resource
 				// If not we want expansion nodes only to exist if they are being used
-				if !t.CreateNodesAsAfter && containsBeforeEvent {
+				if !createNodesAsAfter && containsBeforeEvent {
 					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingBefore)
 					g.Add(nat)
 
 					// We want to run before the resource nodes
 					for _, node := range resourceNode {
 						g.Connect(dag.BasicEdge(node, nat))
+					}
+					if connectToResourceInstanceNodes {
+						for _, node := range resourceInstanceNodes.Get(resourceAddr) {
+							g.Connect(dag.BasicEdge(node, nat))
+						}
 					}
 
 					// We want to run after all prior nodes
@@ -152,13 +164,18 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					priorBeforeNodes = append(priorBeforeNodes, nat)
 				}
 
-				if t.CreateNodesAsAfter || containsAfterEvent {
+				if createNodesAsAfter || containsAfterEvent {
 					nat := t.ConcreteActionTriggerNodeFunc(abstract, RelativeActionTimingAfter)
 					g.Add(nat)
 
 					// We want to run after the resource nodes
 					for _, node := range resourceNode {
 						g.Connect(dag.BasicEdge(nat, node))
+					}
+					if connectToResourceInstanceNodes {
+						for _, node := range resourceInstanceNodes.Get(resourceAddr) {
+							g.Connect(dag.BasicEdge(nat, node))
+						}
 					}
 
 					// We want to run after all prior nodes

@@ -329,6 +329,23 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 	return val, body, diags
 }
 
+// EvaluateBlockForProvider is a workaround to allow providers to access a more
+// ephemeral context, where filesystem functions can return inconsistent
+// results. Prior to ephemeral values, some configurations were using this
+// loophole to inject different credentials between plan and apply. This
+// exception is not added to the EvalContext interface, so in order to access
+// this workaround the context type must be asserted as BuiltinEvalContext.
+func (ctx *BuiltinEvalContext) EvaluateBlockForProvider(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	scope := ctx.EvaluationScope(self, nil, keyData)
+	scope.ForProvider = true
+	body, evalDiags := scope.ExpandBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	val, evalDiags := scope.EvalBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	return val, body, diags
+}
+
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	scope := ctx.EvaluationScope(self, nil, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)
@@ -408,6 +425,27 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	default:
 		return nil, false, diags
 	}
+
+	// Validate the attribute reference against the target resource's schema.
+	// We use schema-based validation rather than value-based validation because
+	// resources may contain dynamically-typed attributes (DynamicPseudoType) whose
+	// actual type can change between plans. Schema validation ensures we only
+	// error on truly invalid attribute references.
+	// We use change.ProviderAddr rather than resolving from config because
+	// the provider configuration may not be local to the current module.
+	providerSchema, err := ctx.ProviderSchema(change.ProviderAddr)
+	if err == nil {
+		schema := providerSchema.SchemaForResourceType(resCfg.Mode, resCfg.Type)
+		if schema.Body != nil {
+			moreDiags := schema.Body.StaticValidateTraversal(ref.Remaining)
+			diags = diags.Append(moreDiags)
+			if diags.HasErrors() {
+				return nil, false, diags
+			}
+		}
+	}
+	// If we couldn't get the schema, we skip validation and let the value
+	// comparison below handle it. This is a graceful degradation for edge cases.
 
 	path, _ := traversalToPath(ref.Remaining)
 	attrBefore, _ := path.Apply(change.Before)

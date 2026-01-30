@@ -16,6 +16,8 @@ import (
 // Provider is an implementation of providers.Interface
 type Provider struct{}
 
+var _ providers.Interface = &Provider{}
+
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
 	return &Provider{}
@@ -99,9 +101,6 @@ func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRe
 
 // ValidateDataResourceConfig is used to validate the data source configuration values.
 func (p *Provider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
-	// FIXME: move the backend configuration validate call that's currently
-	// inside the read method  into here so that we can catch provider configuration
-	// errors in terraform validate as well as during terraform plan.
 	var res providers.ValidateDataResourceConfigResponse
 
 	// This should not happen

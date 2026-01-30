@@ -78,6 +78,12 @@ type Scope struct {
 	// PlanTimestamp is a timestamp representing when the plan was made. It will
 	// either have been generated during this operation or read from the plan.
 	PlanTimestamp time.Time
+
+	// ForProvider indicates a special case where a provider configuration is
+	// being evaluated and can tolerate inconsistent results which are not
+	// marked as ephemeral.
+	// FIXME: plan to officially deprecate this workaround.
+	ForProvider bool
 }
 
 // SetActiveExperiments allows a caller to declare that a set of experiments

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: "Terraform Test: Allow functions within mock blocks"
+time: 2026-01-13T13:04:49.034917+01:00
+custom:
+  Issue: "34672"

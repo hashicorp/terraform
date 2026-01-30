@@ -315,7 +315,7 @@ func TestInit_fromModule(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "empty")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-	cmd := tf.Cmd("init", "-from-module=hashicorp/vault/aws")
+	cmd := tf.Cmd("init", "-from-module=hashicorp/vault-starter/aws")
 	cmd.Stdin = nil
 	cmd.Stderr = &bytes.Buffer{}
 

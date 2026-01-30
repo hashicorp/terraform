@@ -4,7 +4,9 @@
 package states
 
 import (
+	"bytes"
 	"fmt"
+	"reflect"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -167,4 +169,49 @@ func (os *ResourceInstanceObjectSrc) CompleteIdentityUpgrade(newAttrs cty.Value,
 	new.IdentityJSON = src
 	new.IdentitySchemaVersion = uint64(schema.IdentityVersion)
 	return new, nil
+}
+
+// Equal compares two ResourceInstanceObjectSrc objects for equality, skipping
+// any internal fields which are not stored to the final serialized state.
+func (os *ResourceInstanceObjectSrc) Equal(other *ResourceInstanceObjectSrc) bool {
+	if os == other {
+		return true
+	}
+	if os == nil || other == nil {
+		return false
+	}
+
+	if os.SchemaVersion != other.SchemaVersion {
+		return false
+	}
+	if os.IdentitySchemaVersion != other.IdentitySchemaVersion {
+		return false
+	}
+	if os.Status != other.Status {
+		return false
+	}
+	if os.CreateBeforeDestroy != other.CreateBeforeDestroy {
+		return false
+	}
+
+	if !bytes.Equal(os.AttrsJSON, other.AttrsJSON) {
+		return false
+	}
+	if !bytes.Equal(os.IdentityJSON, other.IdentityJSON) {
+		return false
+	}
+	if !bytes.Equal(os.Private, other.Private) {
+		return false
+	}
+
+	// Compare legacy AttrsFlat maps. We shouldn't see this ever being used, but
+	// deal with in just in case until we remove it entirely. These are all
+	// simple maps of strings, so DeepEqual is perfectly fine here.
+	if !reflect.DeepEqual(os.AttrsFlat, other.AttrsFlat) {
+		return false
+	}
+
+	// We skip fields that have no functional impact on resource state.
+
+	return true
 }

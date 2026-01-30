@@ -111,8 +111,16 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 		return diags
 	}
 
+	// BuiltinEvalContext contains a workaround for providers to allow
+	// inconsistent filesystem function results, which can be accepted due to
+	// the ephemeral nature of a provider configuration.
+	eval := ctx.EvaluateBlock
+	if ctx, ok := ctx.(*BuiltinEvalContext); ok {
+		eval = ctx.EvaluateBlockForProvider
+	}
+
 	configSchema := resp.Provider.Body
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
+	configVal, configBody, evalDiags := eval(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
 		if config == nil {

@@ -232,3 +232,29 @@ var migrateOrReconfigDiag = tfdiags.Sourceless(
 	"A change in the backend configuration has been detected, which may require migrating existing state.\n\n"+
 		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
 		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
+
+// migrateOrReconfigStateStoreDiag creates a diagnostic to present to users when
+// an init command encounters a mismatch in state store config state and the current config
+// and Terraform needs users to provide additional instructions about how it
+// should proceed.
+var migrateOrReconfigStateStoreDiag = tfdiags.Sourceless(
+	tfdiags.Error,
+	"State store configuration changed",
+	"A change in the state store configuration has been detected, which may require migrating existing state.\n\n"+
+		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
+		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
+
+// errStateStoreClearSaved is a custom error used to alert users that
+// Terraform failed to empty the state store state file's contents.
+type errStateStoreClearSaved struct {
+	innerError error
+}
+
+func (e *errStateStoreClearSaved) Error() string {
+	return fmt.Sprintf(`Error clearing the state store configuration: %s
+
+Terraform removes the saved state store configuration when you're removing a
+configured state store. This must be done so future Terraform runs know to not
+use the state store configuration. Please look at the error above, resolve it,
+and try again.`, e.innerError)
+}

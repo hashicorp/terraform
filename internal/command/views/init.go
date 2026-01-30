@@ -4,10 +4,8 @@
 package views
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -97,18 +95,21 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 		return
 	}
 
-	current_timestamp := time.Now().UTC().Format(time.RFC3339)
-	json_data := map[string]string{
-		"@level":       "info",
-		"@message":     preppedMessage,
-		"@module":      "terraform.ui",
-		"@timestamp":   current_timestamp,
-		"type":         "init_output",
-		"message_code": string(messageCode),
-	}
-
-	init_output, _ := json.Marshal(json_data)
-	v.view.view.streams.Println(string(init_output))
+	// Logged data includes by default:
+	// @level as "info"
+	// @module as "terraform.ui" (See NewJSONView)
+	// @timestamp formatted in the default way
+	//
+	// In the method below we:
+	// * Set @message as the first argument value
+	// * Annotate with extra data:
+	//     "type":"init_output"
+	//     "message_code":"<value>"
+	v.view.log.Info(
+		preppedMessage,
+		"type", "init_output",
+		"message_code", string(messageCode),
+	)
 }
 
 func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
@@ -258,6 +259,54 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: errInitConfigError,
 		JSONValue:  errInitConfigErrorJSON,
 	},
+	"state_store_unset": {
+		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
+		JSONValue:  "Successfully unset the state store %q. Terraform will now operate locally.",
+	},
+	"state_store_migrate_backend": {
+		HumanValue: "Migrating from %q state store to %q backend.",
+		JSONValue:  "Migrating from %q state store to %q backend.",
+	},
+	"backend_configured_success": {
+		HumanValue: backendConfiguredSuccessHuman,
+		JSONValue:  backendConfiguredSuccessJSON,
+	},
+	"backend_configured_unset": {
+		HumanValue: backendConfiguredUnsetHuman,
+		JSONValue:  backendConfiguredUnsetJSON,
+	},
+	"backend_migrate_to_cloud": {
+		HumanValue: "Migrating from backend %q to HCP Terraform.",
+		JSONValue:  "Migrating from backend %q to HCP Terraform.",
+	},
+	"backend_migrate_from_cloud": {
+		HumanValue: "Migrating from HCP Terraform to backend %q.",
+		JSONValue:  "Migrating from HCP Terraform to backend %q.",
+	},
+	"backend_cloud_change_in_place": {
+		HumanValue: "HCP Terraform configuration has changed.",
+		JSONValue:  "HCP Terraform configuration has changed.",
+	},
+	"backend_migrate_type_change": {
+		HumanValue: backendMigrateTypeChangeHuman,
+		JSONValue:  backendMigrateTypeChangeJSON,
+	},
+	"backend_reconfigure": {
+		HumanValue: backendReconfigureHuman,
+		JSONValue:  backendReconfigureJSON,
+	},
+	"backend_migrate_local": {
+		HumanValue: backendMigrateLocalHuman,
+		JSONValue:  backendMigrateLocalJSON,
+	},
+	"backend_cloud_migrate_local": {
+		HumanValue: "Migrating from HCP Terraform or Terraform Enterprise to local state.",
+		JSONValue:  "Migrating from HCP Terraform or Terraform Enterprise to local state.",
+	},
+	"state_store_migrate_local": {
+		HumanValue: stateMigrateLocalHuman,
+		JSONValue:  stateMigrateLocalJSON,
+	},
 	"empty_message": {
 		HumanValue: "",
 		JSONValue:  "",
@@ -298,6 +347,26 @@ const (
 
 	// InitConfigError indicates problems encountered during initialisation
 	InitConfigError InitMessageCode = "init_config_error"
+	// BackendConfiguredSuccessMessage indicates successful backend configuration
+	BackendConfiguredSuccessMessage InitMessageCode = "backend_configured_success"
+	// BackendConfiguredUnsetMessage indicates successful backend unsetting
+	BackendConfiguredUnsetMessage InitMessageCode = "backend_configured_unset"
+	// BackendMigrateToCloudMessage indicates migration to HCP Terraform
+	BackendMigrateToCloudMessage InitMessageCode = "backend_migrate_to_cloud"
+	// BackendMigrateFromCloudMessage indicates migration from HCP Terraform
+	BackendMigrateFromCloudMessage InitMessageCode = "backend_migrate_from_cloud"
+	// BackendCloudChangeInPlaceMessage indicates HCP Terraform configuration change
+	BackendCloudChangeInPlaceMessage InitMessageCode = "backend_cloud_change_in_place"
+	// BackendMigrateTypeChangeMessage indicates backend type change
+	BackendMigrateTypeChangeMessage InitMessageCode = "backend_migrate_type_change"
+	// BackendReconfigureMessage indicates backend reconfiguration
+	BackendReconfigureMessage InitMessageCode = "backend_reconfigure"
+	// BackendMigrateLocalMessage indicates migration to local backend
+	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
+	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
+	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
+	// StateMigrateLocalMessage indicates migration from state store to local
+	StateMigrateLocalMessage InitMessageCode = "state_store_migrate_local"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
 	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
 	// InstalledProviderVersionInfo describes a successfully installed provider along with its version
@@ -429,3 +498,40 @@ with the configuration, described below.
 The Terraform configuration must be valid before initialization so that
 Terraform can determine which modules and providers need to be installed.
 `
+
+const backendConfiguredSuccessHuman = `[reset][green]
+Successfully configured the backend %q! Terraform will automatically
+use this backend unless the backend configuration changes.`
+
+const backendConfiguredSuccessJSON = `Successfully configured the backend %q! Terraform will automatically
+use this backend unless the backend configuration changes.`
+
+const backendConfiguredUnsetHuman = `[reset][green]
+
+Successfully unset the backend %q. Terraform will now operate locally.`
+
+const backendConfiguredUnsetJSON = `Successfully unset the backend %q. Terraform will now operate locally.`
+
+const backendMigrateTypeChangeHuman = `[reset]Terraform detected that the backend type changed from %q to %q.
+`
+
+const backendMigrateTypeChangeJSON = `Terraform detected that the backend type changed from %q to %q.`
+
+const backendReconfigureHuman = `[reset][bold]Backend configuration changed![reset]
+
+Terraform has detected that the configuration specified for the backend
+has changed. Terraform will now check for existing state in the backends.
+`
+
+const backendReconfigureJSON = `Backend configuration changed!
+
+Terraform has detected that the configuration specified for the backend
+has changed. Terraform will now check for existing state in the backends.`
+
+const backendMigrateLocalHuman = `Terraform has detected you're unconfiguring your previously set %q backend.`
+
+const backendMigrateLocalJSON = `Terraform has detected you're unconfiguring your previously set %q backend.`
+
+const stateMigrateLocalHuman = `Terraform has detected you're unconfiguring your previously set %q state store.`
+
+const stateMigrateLocalJSON = `Terraform has detected you're unconfiguring your previously set %q state store.`

@@ -9,11 +9,11 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/providers"
 )
@@ -361,6 +361,9 @@ func (p *MockProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 
 	// If we haven't already, record in the mock that
 	// the matching workspace exists
+	if p.MockStates == nil {
+		p.MockStates = make(map[string]interface{})
+	}
 	p.MockStates[r.StateId] = true
 
 	return p.WriteStateBytesResponse
@@ -1145,7 +1148,7 @@ func (p *MockProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 	return resp
 }
 
-func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) (resp providers.InvokeActionResponse) {
+func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) providers.InvokeActionResponse {
 	p.Lock()
 	defer p.Unlock()
 
@@ -1160,7 +1163,21 @@ func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 		return *p.InvokeActionResponse
 	}
 
-	return resp
+	events := []providers.InvokeActionEvent{
+		providers.InvokeActionEvent_Progress{
+			Message: "Hello world!",
+		},
+		providers.InvokeActionEvent_Completed{},
+	}
+	return providers.InvokeActionResponse{
+		Events: func(yield func(providers.InvokeActionEvent) bool) {
+			for _, event := range events {
+				if !yield(event) {
+					return
+				}
+			}
+		},
+	}
 }
 
 func (p *MockProvider) Close() error {

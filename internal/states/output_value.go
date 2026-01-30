@@ -17,3 +17,19 @@ type OutputValue struct {
 	Value     cty.Value
 	Sensitive bool
 }
+
+func (o *OutputValue) Equal(other *OutputValue) bool {
+	if o == other {
+		return true
+	}
+	if o == nil || other == nil {
+		return false
+	}
+	if !o.Addr.Equal(other.Addr) {
+		return false
+	}
+	if o.Sensitive != other.Sensitive {
+		return false
+	}
+	return o.Value.RawEquals(other.Value)
+}

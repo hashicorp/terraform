@@ -893,7 +893,16 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[\"a\"]' and 'action.test_action.hello[\"b\"]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+							t.Fatalf("expected action to have triggering resource address 'test_object.a', but it is %s", at.TriggeringResourceAddr)
+						}
+					}
 				},
 			},
 
@@ -938,7 +947,16 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+							t.Fatalf("expected action to have triggering resource address 'test_object.a', but it is %s", at.TriggeringResourceAddr)
+						}
+					}
 				},
 			},
 
@@ -1048,7 +1066,23 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello' and 'action.test_action.hello', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					actionTriggers := []plans.LifecycleActionTrigger{}
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						actionTriggers = append(actionTriggers, *at)
+					}
+
+					if !actionTriggers[0].TriggeringResourceAddr.Resource.Resource.Equal(actionTriggers[1].TriggeringResourceAddr.Resource.Resource) {
+						t.Fatalf("expected both actions to have the same triggering resource address, but got %s and %s", actionTriggers[0].TriggeringResourceAddr, actionTriggers[1].TriggeringResourceAddr)
+					}
+
+					if actionTriggers[0].TriggeringResourceAddr.Resource.Key == actionTriggers[1].TriggeringResourceAddr.Resource.Key {
+						t.Fatalf("expected both actions to have different triggering resource instance keys, but got the same %s", actionTriggers[0].TriggeringResourceAddr.Resource.Key)
+					}
 				},
 			},
 			"expanded resource - expanded action": {
@@ -1093,7 +1127,23 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					actionTriggers := []plans.LifecycleActionTrigger{}
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						actionTriggers = append(actionTriggers, *at)
+					}
+
+					if !actionTriggers[0].TriggeringResourceAddr.Resource.Resource.Equal(actionTriggers[1].TriggeringResourceAddr.Resource.Resource) {
+						t.Fatalf("expected both actions to have the same triggering resource address, but got %s and %s", actionTriggers[0].TriggeringResourceAddr, actionTriggers[1].TriggeringResourceAddr)
+					}
+
+					if actionTriggers[0].TriggeringResourceAddr.Resource.Key == actionTriggers[1].TriggeringResourceAddr.Resource.Key {
+						t.Fatalf("expected both actions to have different triggering resource instance keys, but got the same %s", actionTriggers[0].TriggeringResourceAddr.Resource.Key)
+					}
 				},
 			},
 
@@ -1697,6 +1747,82 @@ resource "other_object" "a" {
 						t.Fatalf("expected action to have triggering resource address 'module.mod[1].other_object.a', but it is %s", a2t.TriggeringResourceAddr)
 					}
 				},
+			},
+
+			"not triggered if module is count=0": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    count = 0
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"not triggered if for_each is empty": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    for_each = toset([])
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"action declaration in module if module is count=0": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    count = 0
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"action declaration in module if for_each is empty": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    for_each = toset([])
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+`,
+				},
+				expectPlanActionCalled: false,
 			},
 
 			"provider is within module": {
@@ -2380,6 +2506,135 @@ action "test_action" "two" {
 					}
 
 					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+						t.Fatalf("wrong address in plan: %s", ai.Addr)
+					}
+				},
+			},
+
+			"action invoke in module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "test_action" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.NoKey),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.NoKey,
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+					}
+
+					ais := plan.Changes.ActionInvocations[0]
+					ai, err := ais.Decode(&testActionSchema)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+						t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+					}
+
+					expected := cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					})
+					if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+						t.Fatalf("wrong value in plan: %s", diff)
+					}
+
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "module.mod.action.test_action.one")) {
+						t.Fatalf("wrong address in plan: %s", ai.Addr)
+					}
+				},
+			},
+
+			"action invoke in expanded module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "test_action" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.NoKey,
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+					}
+
+					ais := plan.Changes.ActionInvocations[0]
+					ai, err := ais.Decode(&testActionSchema)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+						t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+					}
+
+					expected := cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					})
+					if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+						t.Fatalf("wrong value in plan: %s", diff)
+					}
+
+					if !ai.Addr.Equal(mustActionInstanceAddr(t, "module.mod[1].action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -4088,8 +4343,41 @@ resource "test_object" "a" {
 	if !diags.HasErrors() {
 		t.Fatal("expected errors, got success!")
 	}
-	if diags.Err().Error() != "Configuration for triggered action does not exist: The configuration for the given action action.test_action.hello does not exist. All triggered actions must have an associated configuration." {
-		t.Fatal("wrong error!")
+	expectedErr := "action_trigger actions references non-existent action: The lifecycle action_trigger actions list contains a reference to the action \"action.test_action.hello\" that does not exist in the configuration of this module."
+	if diags.Err().Error() != expectedErr {
+		t.Fatalf("wrong error!, got %q, expected %q", diags.Err().Error(), expectedErr)
+	}
+}
+
+func TestContextPlan_validateActionInTriggerExistsWithSimilarAction(t *testing.T) {
+	// this validation occurs during TransformConfig
+	module := `
+action "test_action" "hello_word" {}
+	
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.hello_world]
+    }
+  }
+}
+`
+	m := testModuleInline(t, map[string]string{"main.tf": module})
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected errors, got success!")
+	}
+	expectedErr := "action_trigger actions references non-existent action: The lifecycle action_trigger actions list contains a reference to the action \"action.test_action.hello_world\" that does not exist in the configuration of this module. Did you mean \"action.test_action.hello_word\"?"
+	if diags.Err().Error() != expectedErr {
+		t.Fatalf("wrong error!, got %q, expected %q", diags.Err().Error(), expectedErr)
 	}
 }
 

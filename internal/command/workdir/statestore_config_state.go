@@ -63,7 +63,7 @@ func (s *StateStoreConfigState) Validate() error {
 	// Version information is required if the provider isn't builtin or unmanaged by Terraform
 	isReattached, err := reattach.IsProviderReattached(*s.Provider.Source, os.Getenv("TF_REATTACH_PROVIDERS"))
 	if err != nil {
-		return fmt.Errorf("error determining if state storage provider is reattached: %w", err)
+		return fmt.Errorf("Unable to determine if state storage provider is reattached while validating backend state file contents. This is a bug in Terraform and should be reported: %w", err)
 	}
 	if (s.Provider.Source.Hostname != tfaddr.BuiltInProviderHost) &&
 		!isReattached {
@@ -114,7 +114,7 @@ func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Bl
 // encode the state store-specific configuration settings.
 func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, providerSchema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
 	if s == nil {
-		return nil, nil
+		panic("PlanData called on a nil *StateStoreConfigState receiver. This is a bug in Terraform and should be reported.")
 	}
 
 	if err := s.Validate(); err != nil {
