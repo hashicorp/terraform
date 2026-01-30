@@ -144,6 +144,12 @@ type Hooks struct {
 	// established by [Hooks.BeginComponentInstanceApply].
 	ReportComponentInstanceApplied hooks.MoreFunc[*hooks.ComponentInstanceChange]
 
+	// ReportConfigValue is called when configuration values become available
+	// during progressive resolution (e.g., during stack apply operations).
+	// It enables clients to track when outputs and other configuration
+	// values are resolved, supporting incremental streaming of results.
+	ReportConfigValue hooks.MoreFunc[*hooks.ConfigValueHookData]
+
 	// ContextAttach is an optional callback for wrapping a non-nil value
 	// returned by a [hooks.BeginFunc] into a [context.Context] to be passed
 	// to other context-aware operations that descend from the operation that
