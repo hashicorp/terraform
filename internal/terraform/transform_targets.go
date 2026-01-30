@@ -197,13 +197,18 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 	return false
 }
 
-// addVertexDependenciesToTargetedNodes adds dependencies of the targeted vertex to the
-// targetedNodes set. This includes all ancestors in the graph.
-// It also includes all action trigger nodes in the graph. Actions are planned after the
-// triggering node has planned so that we can ensure the actions are only planned if the triggering
-// resource has an action (Create / Update) corresponding to one of the events in the action trigger
-// blocks event list.
-func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v dag.Vertex, targetedNodes dag.Set, addrs []addrs.Targetable) {
+// addVertexDependenciesToTargetedNodes adds dependencies of the targeted vertex
+// to the targetedNodes set. This includes all ancestors in the graph.
+// It also includes all action trigger nodes in the graph. Actions are planned
+// after the triggering node has planned so that we can ensure the actions are
+// only planned if the triggering resource has an action (Create / Update)
+// corresponding to one of the events in the action trigger blocks event list.
+func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(
+	g *Graph,
+	v dag.Vertex,
+	targetedNodes dag.Set,
+	addrs []addrs.Targetable,
+) {
 	if targetedNodes.Include(v) {
 		return
 	}

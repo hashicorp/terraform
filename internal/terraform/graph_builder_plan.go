@@ -132,6 +132,9 @@ type PlanGraphBuilder struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// TODO: Add comment
+	SafeTargeting bool
 }
 
 // See GraphBuilder
@@ -302,6 +305,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
+
+		// TODO_SAMS: Check whether we can create a dummy safe target transformer
+		// which checks references and trims down the produce of targetsTransformer
+		// down to what instances are actually targeted by the defined target.
 
 		// Filter the graph to only include nodes that are relevant to the query operation.
 		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},

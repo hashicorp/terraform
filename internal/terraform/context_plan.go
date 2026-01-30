@@ -67,6 +67,8 @@ type PlanOpts struct {
 	// warnings as part of the planning result.
 	Targets []addrs.Targetable
 
+	SafeTargeting bool
+
 	// ActionTargets represents the actions that should be triggered by this
 	// execution. This is incompatible with the `Targets` attribute, only one
 	// can be set. Also, Mode must be plans.RefreshOnly when using
@@ -1005,6 +1007,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ExternalProviderConfigs:   externalProviderConfigs,
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
+			SafeTargeting:             opts.SafeTargeting,
 			ForceReplace:              opts.ForceReplace,
 			skipRefresh:               opts.SkipRefresh,
 			preDestroyRefresh:         opts.PreDestroyRefresh,
