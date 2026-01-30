@@ -199,7 +199,7 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"The -safe-init and -backend=false options are mutually-exclusive",
-				"Terraform cannot use the -safe-init flag to influence backend initialization if backend initialization is due to be skipped.",
+				"When -backend=false is set Terraform uses information from the last successful init to launch a backend or state store. Any providers used for pluggable state storage should already be downloaded, so -safe-init is unnecessary.",
 			))
 		}
 		if len(init.PluginPath) > 0 {
