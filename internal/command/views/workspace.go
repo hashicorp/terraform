@@ -5,30 +5,18 @@ package views
 
 import (
 	"bytes"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// The Workspace view is used for workspace subcommands.
-type Workspace interface {
-	Diagnostics(diags tfdiags.Diagnostics)
-	Output(message string)
-
-	// These methods are present in the interface to allow
-	// backwards compatibility while human-readable output is
-	// fulfilled using the cli.Ui interface.
-	Error(message string)
-	Warn(message string)
-}
-
+// The WorkspaceList view is used for the `workspace list` subcommand.
 type WorkspaceList interface {
-	Workspace
-
-	List(selected string, list []string)
+	List(selected string, list []string, diags tfdiags.Diagnostics)
 }
 
 // NewWorkspace returns the Workspace implementation for the given ViewType.
@@ -36,7 +24,7 @@ func NewWorkspaceList(vt arguments.ViewType, view *View) WorkspaceList {
 	switch vt {
 	case arguments.ViewJSON:
 		return &WorkspaceJSON{
-			view: NewJSONView(view),
+			view: view,
 		}
 	case arguments.ViewHuman:
 		// TODO: Allow use of WorkspaceHuman here when we remove use of cli.Ui from workspace commands.
@@ -49,75 +37,62 @@ func NewWorkspaceList(vt arguments.ViewType, view *View) WorkspaceList {
 // The WorkspaceJSON implementation renders machine-readable logs, suitable for
 // integrating with other software.
 type WorkspaceJSON struct {
-	view *JSONView
+	view *View
 }
 
-var _ Workspace = (*WorkspaceJSON)(nil)
+var _ WorkspaceList = (*WorkspaceJSON)(nil)
 
 // Diagnostics renders a list of diagnostics, including the option for compact warnings.
 func (v *WorkspaceJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-// Output is used to render text in the terminal via stdout.
-func (v *WorkspaceJSON) Output(msg string) {
-	v.view.Log(msg)
+type WorkspaceListOutput struct {
+	Workspaces  []WorkspaceOutput       `json:"workspaces"`
+	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
+}
+
+type WorkspaceOutput struct {
+	Name      string `json:"name"`
+	IsCurrent bool   `json:"is_current"`
 }
 
 // List is used to log the list of present workspaces and indicate which is currently selected
-func (v *WorkspaceJSON) List(current string, list []string) {
-	var msg bytes.Buffer
-	for _, s := range list {
-		if s == current {
-			msg.WriteString("* ")
-		} else {
-			msg.WriteString("  ")
+func (v *WorkspaceJSON) List(current string, list []string, diags tfdiags.Diagnostics) {
+	output := WorkspaceListOutput{}
+
+	for _, item := range list {
+		workspace := WorkspaceOutput{
+			Name:      item,
+			IsCurrent: item == current,
 		}
-		msg.WriteString(s + "\n")
+		output.Workspaces = append(output.Workspaces, workspace)
 	}
 
-	v.view.log.Info(
-		msg.String(),
-		"current", current,
-		"workspaces", list)
-}
+	if output.Workspaces == nil {
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		output.Workspaces = []WorkspaceOutput{}
+	}
 
-// Error
-//
-// This method is a temporary measure while the workspace subcommands contain both
-// use of cli.Ui for human output and view.View for machine-readable output.
-// In future calling code should use Diagnostics directly.
-//
-// If a message is being logged as an error we can create a native error (which can be made from a string),
-// use existing logic in (tfdiags.Diagnostics) Append to create an error diagnostic from a native error,
-// and then log that single error diagnostic.
-func (v *WorkspaceJSON) Error(msg string) {
-	var diags tfdiags.Diagnostics
-	err := errors.New(msg)
-	diags = diags.Append(err)
+	configSources := v.view.configSources()
+	for _, diag := range diags {
+		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
+	}
 
-	v.Diagnostics(diags)
-}
+	if output.Diagnostics == nil {
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		output.Diagnostics = []*viewsjson.Diagnostic{}
+	}
 
-// Warn
-//
-// This method is a temporary measure while the workspace subcommands contain both
-// use of cli.Ui for human output and view.View for machine-readable output.
-// In future calling code should use Diagnostics directly.
-//
-// This method takes inspiration from how native errors are converted into error diagnostics;
-// the Details value is left empty and the provided string is used only in the Summary.
-// See : https://github.com/hashicorp/terraform/blob/v1.14.4/internal/tfdiags/error.go
-func (v *WorkspaceJSON) Warn(msg string) {
-	var diags tfdiags.Diagnostics
-	warn := tfdiags.Sourceless(
-		tfdiags.Warning,
-		msg,
-		"",
-	)
-	diags = diags.Append(warn)
+	jsonOutput, err := json.MarshalIndent(output, "", "  ")
+	if err != nil {
+		// Should never happen because we fully-control the input here
+		panic(err)
+	}
 
-	v.Diagnostics(diags)
+	v.view.streams.Println(string(jsonOutput))
 }
 
 // The WorkspaceHuman implementation renders human-readable text logs, suitable for
@@ -126,32 +101,27 @@ type WorkspaceHuman struct {
 	view *View
 }
 
-var _ Workspace = (*WorkspaceHuman)(nil)
+var _ WorkspaceList = (*WorkspaceHuman)(nil)
 
-// Diagnostics renders a list of diagnostics, including the option for compact warnings.
-func (v *WorkspaceHuman) Diagnostics(diags tfdiags.Diagnostics) {
+func (v *WorkspaceHuman) List(selected string, list []string, diags tfdiags.Diagnostics) {
+	// Print diags above output
 	v.view.Diagnostics(diags)
+
+	// Print list
+	if len(list) > 0 {
+		var out bytes.Buffer
+		for _, s := range list {
+			if s == selected {
+				out.WriteString("* ")
+			} else {
+				out.WriteString("  ")
+			}
+			out.WriteString(s + "\n")
+		}
+		v.output(out.String())
+	}
 }
 
-// Output is used to render text in the terminal, such as data returned from a command.
-func (v *WorkspaceHuman) Output(msg string) {
-	v.view.streams.Println(v.prepareMessage(msg))
-}
-
-// Error is implemented to fulfil the Workspace interface
-// Once we can make breaking changes that interface shouldn't have an
-// Error method, so this method should be deleted in future.
-func (v *WorkspaceHuman) Error(msg string) {
-	panic("(WorkspaceHuman).Error should not be used")
-}
-
-// Warn is implemented to fulfil the Workspace interface
-// Onc we can make breaking changes that interface shouldn't have an
-// Warn method, so this method should be deleted in future.
-func (v *WorkspaceHuman) Warn(msg string) {
-	panic("(WorkspaceHuman).Warn should not be used")
-}
-
-func (v *WorkspaceHuman) prepareMessage(msg string) string {
+func (v *WorkspaceHuman) output(msg string) string {
 	return v.view.colorize.Color(strings.TrimSpace(msg))
 }

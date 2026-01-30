@@ -25,47 +25,24 @@ type workspaceHuman struct {
 	meta *Meta
 }
 
-// Diagnostics renders diagnostics using old-style logic that sends:
-// Error diagnostics to stderr via ui.Error
-// Warning diagnostics to stderr via ui.Warn
-// Anything else to stdout via ui.Output
-func (v *workspaceHuman) Diagnostics(diags tfdiags.Diagnostics) {
-	v.meta.showDiagnostics(diags)
-}
-
 // List is used to assemble the list of Workspaces and log it via Output
-func (v *workspaceHuman) List(selected string, list []string) {
-	var out bytes.Buffer
-	for _, s := range list {
-		if s == selected {
-			out.WriteString("* ")
-		} else {
-			out.WriteString("  ")
+func (v *workspaceHuman) List(selected string, list []string, diags tfdiags.Diagnostics) {
+	// Print diags above output
+	v.meta.showDiagnostics(diags)
+
+	// Print list
+	if len(list) > 0 {
+		var out bytes.Buffer
+		for _, s := range list {
+			if s == selected {
+				out.WriteString("* ")
+			} else {
+				out.WriteString("  ")
+			}
+			out.WriteString(s + "\n")
 		}
-		out.WriteString(s + "\n")
+		v.ui.Output(out.String())
 	}
-	v.ui.Output(out.String())
-}
-
-// Output is used to render text in the terminal, via stdout
-func (v *workspaceHuman) Output(msg string) {
-	v.ui.Output(msg)
-}
-
-// Warn is used to render warning text in the terminal, via stderr
-//
-// This is here for backwards compatibility reasons.
-// In future calling code should use Diagnostics directly.
-func (v *workspaceHuman) Warn(msg string) {
-	v.ui.Warn(msg)
-}
-
-// Error is used to render error text in the terminal, via stderr
-//
-// This is here for backwards compatibility reasons.
-// In future calling code should use Diagnostics directly.
-func (v *workspaceHuman) Error(msg string) {
-	v.ui.Error(msg)
 }
 
 // newWorkspace returns a views.Workspace interface.
@@ -132,14 +109,14 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	configPath, err := ModulePath(args)
 	if err != nil {
 		diags.Append(err)
-		view.Diagnostics(diags)
+		view.List("", nil, diags)
 		return 1
 	}
 
 	// Load the backend
 	b, diags := c.backend(configPath, viewType)
 	if diags.HasErrors() {
-		view.Diagnostics(diags)
+		view.List("", nil, diags)
 		return 1
 	}
 
@@ -149,20 +126,25 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	states, wDiags := b.Workspaces()
 	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
-		view.Diagnostics(diags)
+		view.List("", nil, diags)
 		return 1
 	}
 
-	view.Diagnostics(diags) // output warnings, if any
-
 	env, isOverridden := c.WorkspaceOverridden()
 
-	// Print the list of workspaces, highlighting the current workspace
-	view.List(env, states)
-
 	if isOverridden {
-		view.Output(envIsOverriddenNote)
+		warn := tfdiags.Sourceless(
+			tfdiags.Warning,
+			envIsOverriddenNote,
+			"",
+		)
+		diags = diags.Append(warn)
 	}
+
+	// Print:
+	// 1. Diagnostics
+	// 2. The list of workspaces, highlighting the current workspace
+	view.List(env, states, diags)
 
 	return 0
 }

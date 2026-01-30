@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
@@ -1063,23 +1062,37 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 	output := done(t)
-	expectedStdOut := fmt.Sprintf(`{"@level":"info","@message":"Terraform %s","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","terraform":"%s","type":"version","ui":"1.2"}
-{"@level":"info","@message":"* default\n  dev\n  stage\n  prod\n","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","current":"default","workspaces":["default","dev","stage","prod"]}
-`,
-		tfversion.String(),
-		tfversion.String(),
-	)
-	processedStdOut := redactJSONLogTimestampForTests(t, output.Stdout())
-	if processedStdOut != expectedStdOut {
-		diff := cmp.Diff(expectedStdOut, processedStdOut)
+	expectedStdOut := `{
+  "workspaces": [
+    {
+      "name": "default",
+      "is_current": true
+    },
+    {
+      "name": "dev",
+      "is_current": false
+    },
+    {
+      "name": "stage",
+      "is_current": false
+    },
+    {
+      "name": "prod",
+      "is_current": false
+    }
+  ],
+  "diagnostics": []
+}
+`
+	if output.Stdout() != expectedStdOut {
+		diff := cmp.Diff(expectedStdOut, output.Stdout())
 		t.Fatalf("want: %s\ngot: %s\n diff: %s",
 			expectedStdOut,
-			processedStdOut,
+			output.Stdout(),
 			diff,
 		)
 	}
-	processedStdErr := redactJSONLogTimestampForTests(t, output.Stderr())
-	if processedStdErr != "" {
+	if output.Stderr() != "" {
 		t.Fatalf("expected stderr to be empty, but got: %s", output.Stderr())
 	}
 
@@ -1104,23 +1117,43 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 	output = done(t)
-	expectedStdOut = fmt.Sprintf(`{"@level":"info","@message":"Terraform %s","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","terraform":"%s","type":"version","ui":"1.2"}
-{"@level":"warn","@message":"Warning: Warning from test","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","diagnostic":{"severity":"warning","summary":"Warning from test","detail":"This is a warning from the mocked state store."},"type":"diagnostic"}
-{"@level":"info","@message":"* default\n  dev\n  stage\n  prod\n","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","current":"default","workspaces":["default","dev","stage","prod"]}
-`,
-		tfversion.String(),
-		tfversion.String(),
-	)
-	processedStdOut = redactJSONLogTimestampForTests(t, output.Stdout())
-	if processedStdOut != expectedStdOut {
-		diff := cmp.Diff(expectedStdOut, processedStdOut)
+	expectedStdOut = `{
+  "workspaces": [
+    {
+      "name": "default",
+      "is_current": true
+    },
+    {
+      "name": "dev",
+      "is_current": false
+    },
+    {
+      "name": "stage",
+      "is_current": false
+    },
+    {
+      "name": "prod",
+      "is_current": false
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "summary": "Warning from test",
+      "detail": "This is a warning from the mocked state store."
+    }
+  ]
+}
+`
+	if output.Stdout() != expectedStdOut {
+		diff := cmp.Diff(expectedStdOut, output.Stdout())
 		t.Fatalf("want: %s\ngot: %s\n diff: %s",
 			expectedStdOut,
-			processedStdOut,
+			output.Stdout(),
 			diff,
 		)
 	}
-	processedStdErr = redactJSONLogTimestampForTests(t, output.Stderr())
+	processedStdErr := redactJSONLogTimestampForTests(t, output.Stderr())
 	if processedStdErr != "" {
 		t.Fatalf("expected stderr to be empty, but got: %s", output.Stderr())
 	}
@@ -1146,17 +1179,21 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 		t.Fatalf("expected a failure with code 1, but got: %d\n\n%s", code, done(t).All())
 	}
 	output = done(t)
-	expectedStdOut = fmt.Sprintf(`{"@level":"info","@message":"Terraform %s","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","terraform":"%s","type":"version","ui":"1.2"}
-{"@level":"error","@message":"Error: Error from test","@module":"terraform.ui","@timestamp":"TIMESTAMP_REDACTED","diagnostic":{"severity":"error","summary":"Error from test","detail":"This is a error from the mocked state store."},"type":"diagnostic"}
-`,
-		tfversion.String(),
-		tfversion.String(),
-	)
-	processedStdOut = redactJSONLogTimestampForTests(t, output.Stdout())
-	if processedStdOut != expectedStdOut {
+	expectedStdOut = `{
+  "workspaces": [],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Error from test",
+      "detail": "This is a error from the mocked state store."
+    }
+  ]
+}
+`
+	if output.Stdout() != expectedStdOut {
 		t.Fatalf("want: %s\ngot: %s",
 			expectedStdOut,
-			processedStdOut,
+			output.Stdout(),
 		)
 	}
 	if output.Stderr() != "" {
