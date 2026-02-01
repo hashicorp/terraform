@@ -3,17 +3,14 @@
 
 package configs
 
-import "github.com/hashicorp/hcl/v2"
+import (
+	"github.com/hashicorp/hcl/v2"
 
-// ProviderMeta represents a "provider_meta" block inside a "terraform" block
-// in a module or file.
-type ProviderMeta struct {
-	Provider string
-	Config   hcl.Body
+	"github.com/hashicorp/terraform/internal/configs/definitions"
+)
 
-	ProviderRange hcl.Range
-	DeclRange     hcl.Range
-}
+// ProviderMeta is a type alias for the definition in the definitions package.
+type ProviderMeta = definitions.ProviderMeta
 
 func decodeProviderMetaBlock(block *hcl.Block) (*ProviderMeta, hcl.Diagnostics) {
 	// provider_meta must be a static map. We can verify this by attempting to

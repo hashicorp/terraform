@@ -9,10 +9,14 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/experiments"
 
 	tfversion "github.com/hashicorp/terraform/version"
 )
+
+// File is a type alias for the definition in the definitions package.
+type File = definitions.File
 
 // Module is a container for a set of configuration constructs that are
 // evaluated within a common namespace.
@@ -60,47 +64,6 @@ type Module struct {
 	Checks map[string]*Check
 
 	Tests map[string]*TestFile
-}
-
-// File describes the contents of a single configuration file.
-//
-// Individual files are not usually used alone, but rather combined together
-// with other files (conventionally, those in the same directory) to produce
-// a *Module, using NewModule.
-//
-// At the level of an individual file we represent directly the structural
-// elements present in the file, without any attempt to detect conflicting
-// declarations. A File object can therefore be used for some basic static
-// analysis of individual elements, but must be built into a Module to detect
-// duplicate declarations.
-type File struct {
-	CoreVersionConstraints []VersionConstraint
-
-	ActiveExperiments experiments.Set
-
-	Backends          []*Backend
-	StateStores       []*StateStore
-	CloudConfigs      []*CloudConfig
-	ProviderConfigs   []*Provider
-	ProviderMetas     []*ProviderMeta
-	RequiredProviders []*RequiredProviders
-
-	Variables []*Variable
-	Locals    []*Local
-	Outputs   []*Output
-
-	ModuleCalls []*ModuleCall
-
-	ManagedResources   []*Resource
-	DataResources      []*Resource
-	EphemeralResources []*Resource
-
-	Moved   []*Moved
-	Removed []*Removed
-	Import  []*Import
-
-	Checks  []*Check
-	Actions []*Action
 }
 
 // NewModuleWithTests matches NewModule except it will also load in the provided
@@ -307,7 +270,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, pc := range file.ProviderConfigs {
-		key := pc.moduleUniqueKey()
+		key := pc.ModuleUniqueKey()
 		if existing, exists := m.ProviderConfigs[key]; exists {
 			if existing.Alias == "" {
 				diags = append(diags, &hcl.Diagnostic{
@@ -391,7 +354,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, r := range file.ManagedResources {
-		key := r.moduleUniqueKey()
+		key := r.ModuleUniqueKey()
 		if existing, exists := m.ManagedResources[key]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -423,7 +386,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	// single check block. We'll merge the data sources from both into the
 	// single module level DataResources map.
 	for _, r := range file.DataResources {
-		key := r.moduleUniqueKey()
+		key := r.ModuleUniqueKey()
 		if existing, exists := m.DataResources[key]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -437,7 +400,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, r := range file.EphemeralResources {
-		key := r.moduleUniqueKey()
+		key := r.ModuleUniqueKey()
 		if existing, exists := m.EphemeralResources[key]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -467,7 +430,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 	for _, c := range file.Checks {
 		if c.DataResource != nil {
-			key := c.DataResource.moduleUniqueKey()
+			key := c.DataResource.ModuleUniqueKey()
 			if existing, exists := m.DataResources[key]; exists {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -551,7 +514,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, a := range file.Actions {
-		key := a.moduleUniqueKey()
+		key := a.ModuleUniqueKey()
 		if existing, exists := m.Actions[key]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -586,7 +549,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	for _, pc := range file.ProviderConfigs {
-		key := pc.moduleUniqueKey()
+		key := pc.ModuleUniqueKey()
 		if existing, exists := m.ProviderConfigs[key]; exists {
 			if existing.Alias == "" {
 				diags = append(diags, &hcl.Diagnostic{
@@ -633,7 +596,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 	}
 
 	for _, ql := range file.ListResources {
-		key := ql.moduleUniqueKey()
+		key := ql.ModuleUniqueKey()
 		if existing, exists := m.ListResources[key]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -723,7 +686,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, pc := range file.ProviderConfigs {
-		key := pc.moduleUniqueKey()
+		key := pc.ModuleUniqueKey()
 		existing, exists := m.ProviderConfigs[key]
 		if pc.Alias == "" {
 			// We allow overriding a non-existing _default_ provider configuration
@@ -731,7 +694,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			// implies an empty provider configuration, which is what the user
 			// is therefore overriding here.
 			if exists {
-				mergeDiags := existing.merge(pc)
+				mergeDiags := mergeProvider(existing, pc)
 				diags = append(diags, mergeDiags...)
 			} else {
 				m.ProviderConfigs[key] = pc
@@ -749,7 +712,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 				})
 				continue
 			}
-			mergeDiags := existing.merge(pc)
+			mergeDiags := mergeProvider(existing, pc)
 			diags = append(diags, mergeDiags...)
 		}
 	}
@@ -765,7 +728,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(v)
+		mergeDiags := mergeVariable(existing, v)
 		diags = append(diags, mergeDiags...)
 	}
 
@@ -780,7 +743,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(l)
+		mergeDiags := mergeLocal(existing, l)
 		diags = append(diags, mergeDiags...)
 	}
 
@@ -795,7 +758,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(o)
+		mergeDiags := mergeOutput(existing, o)
 		diags = append(diags, mergeDiags...)
 	}
 
@@ -810,12 +773,12 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(mc)
+		mergeDiags := mergeModuleCall(existing, mc)
 		diags = append(diags, mergeDiags...)
 	}
 
 	for _, r := range file.ManagedResources {
-		key := r.moduleUniqueKey()
+		key := r.ModuleUniqueKey()
 		existing, exists := m.ManagedResources[key]
 		if !exists {
 			diags = append(diags, &hcl.Diagnostic{
@@ -826,12 +789,12 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(r, m.ProviderRequirements.RequiredProviders)
+		mergeDiags := mergeResource(existing, r, m.ProviderRequirements.RequiredProviders)
 		diags = append(diags, mergeDiags...)
 	}
 
 	for _, r := range file.DataResources {
-		key := r.moduleUniqueKey()
+		key := r.ModuleUniqueKey()
 		existing, exists := m.DataResources[key]
 		if !exists {
 			diags = append(diags, &hcl.Diagnostic{
@@ -842,7 +805,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(r, m.ProviderRequirements.RequiredProviders)
+		mergeDiags := mergeResource(existing, r, m.ProviderRequirements.RequiredProviders)
 		diags = append(diags, mergeDiags...)
 	}
 
@@ -865,7 +828,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, a := range file.Actions {
-		key := a.moduleUniqueKey()
+		key := a.ModuleUniqueKey()
 		existing, exists := m.Actions[key]
 		if !exists {
 			diags = append(diags, &hcl.Diagnostic{
@@ -876,7 +839,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(a, m.ProviderRequirements.RequiredProviders)
+		mergeDiags := mergeAction(existing, a, m.ProviderRequirements.RequiredProviders)
 		diags = append(diags, mergeDiags...)
 	}
 

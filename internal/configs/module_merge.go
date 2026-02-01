@@ -26,7 +26,7 @@ import (
 // features, if it is possible to unambiguously correlate the nested elements
 // and their behaviors are orthogonal to each other.
 
-func (p *Provider) merge(op *Provider) hcl.Diagnostics {
+func mergeProvider(p *Provider, op *Provider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if op.Version.Required != nil {
@@ -38,7 +38,7 @@ func (p *Provider) merge(op *Provider) hcl.Diagnostics {
 	return diags
 }
 
-func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
+func mergeVariable(v *Variable, ov *Variable) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if ov.DescriptionSet {
@@ -126,7 +126,7 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	return diags
 }
 
-func (l *Local) merge(ol *Local) hcl.Diagnostics {
+func mergeLocal(l *Local, ol *Local) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// Since a local is just a single expression in configuration, the
@@ -139,7 +139,7 @@ func (l *Local) merge(ol *Local) hcl.Diagnostics {
 	return diags
 }
 
-func (o *Output) merge(oo *Output) hcl.Diagnostics {
+func mergeOutput(o *Output, oo *Output) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if oo.Description != "" {
@@ -171,7 +171,7 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 	return diags
 }
 
-func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
+func mergeModuleCall(mc *ModuleCall, omc *ModuleCall) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if omc.SourceSet {
@@ -213,7 +213,7 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	return diags
 }
 
-func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Diagnostics {
+func mergeResource(r *Resource, or *Resource, rps map[string]*RequiredProvider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if r.Mode != or.Mode {
@@ -284,8 +284,8 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 	return diags
 }
 
-// Actions
-func (a *Action) merge(oa *Action, rps map[string]*RequiredProvider) hcl.Diagnostics {
+// mergeAction merges override action oa into base action a.
+func mergeAction(a *Action, oa *Action, rps map[string]*RequiredProvider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if oa.Count != nil {

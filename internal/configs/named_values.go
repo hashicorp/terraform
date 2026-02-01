@@ -14,42 +14,27 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+// Type aliases for types moved to the definitions package.
+type (
+	Local               = definitions.Local
+	Variable            = definitions.Variable
+	Output              = definitions.Output
+	VariableParsingMode = definitions.VariableParsingMode
+)
+
+// Re-export constants for backwards compatibility.
+const (
+	VariableParseLiteral = definitions.VariableParseLiteral
+	VariableParseHCL     = definitions.VariableParseHCL
 )
 
 // A consistent detail message for all "not a valid identifier" diagnostics.
 const badIdentifierDetail = "A name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes."
 
-// Variable represents a "variable" block in a module or file.
-type Variable struct {
-	Name        string
-	Description string
-	Default     cty.Value
-
-	// Type is the concrete type of the variable value.
-	Type cty.Type
-	// ConstraintType is used for decoding and type conversions, and may
-	// contain nested ObjectWithOptionalAttr types.
-	ConstraintType cty.Type
-	TypeDefaults   *typeexpr.Defaults
-
-	ParsingMode VariableParsingMode
-	Validations []*CheckRule
-	Sensitive   bool
-	Ephemeral   bool
-
-	DescriptionSet bool
-	SensitiveSet   bool
-	EphemeralSet   bool
-
-	// Nullable indicates that null is a valid value for this variable. Setting
-	// Nullable to false means that the module can expect this variable to
-	// never be null.
-	Nullable    bool
-	NullableSet bool
-
-	DeclRange hcl.Range
-}
 
 func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagnostics) {
 	v := &Variable{
@@ -280,81 +265,6 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 	}
 }
 
-func (v *Variable) Addr() addrs.InputVariable {
-	return addrs.InputVariable{Name: v.Name}
-}
-
-// Required returns true if this variable is required to be set by the caller,
-// or false if there is a default value that will be used when it isn't set.
-func (v *Variable) Required() bool {
-	return v.Default == cty.NilVal
-}
-
-// VariableParsingMode defines how values of a particular variable given by
-// text-only mechanisms (command line arguments and environment variables)
-// should be parsed to produce the final value.
-type VariableParsingMode rune
-
-// VariableParseLiteral is a variable parsing mode that just takes the given
-// string directly as a cty.String value.
-const VariableParseLiteral VariableParsingMode = 'L'
-
-// VariableParseHCL is a variable parsing mode that attempts to parse the given
-// string as an HCL expression and returns the result.
-const VariableParseHCL VariableParsingMode = 'H'
-
-// Parse uses the receiving parsing mode to process the given variable value
-// string, returning the result along with any diagnostics.
-//
-// A VariableParsingMode does not know the expected type of the corresponding
-// variable, so it's the caller's responsibility to attempt to convert the
-// result to the appropriate type and return to the user any diagnostics that
-// conversion may produce.
-//
-// The given name is used to create a synthetic filename in case any diagnostics
-// must be generated about the given string value. This should be the name
-// of the root module variable whose value will be populated from the given
-// string.
-//
-// If the returned diagnostics has errors, the returned value may not be
-// valid.
-func (m VariableParsingMode) Parse(name, value string) (cty.Value, hcl.Diagnostics) {
-	switch m {
-	case VariableParseLiteral:
-		return cty.StringVal(value), nil
-	case VariableParseHCL:
-		fakeFilename := fmt.Sprintf("<value for var.%s>", name)
-		expr, diags := hclsyntax.ParseExpression([]byte(value), fakeFilename, hcl.Pos{Line: 1, Column: 1})
-		if diags.HasErrors() {
-			return cty.DynamicVal, diags
-		}
-		val, valDiags := expr.Value(nil)
-		diags = append(diags, valDiags...)
-		return val, diags
-	default:
-		// Should never happen
-		panic(fmt.Errorf("Parse called on invalid VariableParsingMode %#v", m))
-	}
-}
-
-// Output represents an "output" block in a module or file.
-type Output struct {
-	Name        string
-	Description string
-	Expr        hcl.Expression
-	DependsOn   []hcl.Traversal
-	Sensitive   bool
-	Ephemeral   bool
-
-	Preconditions []*CheckRule
-
-	DescriptionSet bool
-	SensitiveSet   bool
-	EphemeralSet   bool
-
-	DeclRange hcl.Range
-}
-
 func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
@@ -431,20 +341,6 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 	return o, diags
 }
 
-func (o *Output) Addr() addrs.OutputValue {
-	return addrs.OutputValue{Name: o.Name}
-}
-
-// Local represents a single entry from a "locals" block in a module or file.
-// The "locals" block itself is not represented, because it serves only to
-// provide context for us to interpret its contents.
-type Local struct {
-	Name string
-	Expr hcl.Expression
-
-	DeclRange hcl.Range
-}
-
 func decodeLocalsBlock(block *hcl.Block) ([]*Local, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()
 	if len(attrs) == 0 {
@@ -471,13 +367,6 @@ func decodeLocalsBlock(block *hcl.Block) ([]*Local, hcl.Diagnostics) {
 	return locals, diags
 }
 
-// Addr returns the address of the local value declared by the receiver,
-// relative to its containing module.
-func (l *Local) Addr() addrs.LocalValue {
-	return addrs.LocalValue{
-		Name: l.Name,
-	}
-}
 
 var variableBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{

@@ -8,27 +8,17 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// RequiredProvider represents a declaration of a dependency on a particular
-// provider version or source without actually configuring that provider. This
-// is used in child modules that expect a provider to be passed in from their
-// parent.
-type RequiredProvider struct {
-	Name        string
-	Source      string
-	Type        addrs.Provider
-	Requirement VersionConstraint
-	DeclRange   hcl.Range
-	Aliases     []addrs.LocalProviderConfig
-}
-
-type RequiredProviders struct {
-	RequiredProviders map[string]*RequiredProvider
-	DeclRange         hcl.Range
-}
+// Type aliases for types moved to the definitions package.
+type (
+	RequiredProvider  = definitions.RequiredProvider
+	RequiredProviders = definitions.RequiredProviders
+)
 
 func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()

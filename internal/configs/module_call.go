@@ -11,31 +11,15 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
-// ModuleCall represents a "module" block in a module or file.
-type ModuleCall struct {
-	Name string
+// PassedProviderConfig is a type alias for the definition in the definitions package.
+type PassedProviderConfig = definitions.PassedProviderConfig
 
-	SourceAddr      addrs.ModuleSource
-	SourceAddrRaw   string
-	SourceAddrRange hcl.Range
-	SourceSet       bool
-
-	Config hcl.Body
-
-	Version VersionConstraint
-
-	Count   hcl.Expression
-	ForEach hcl.Expression
-
-	Providers []PassedProviderConfig
-
-	DependsOn []hcl.Traversal
-
-	DeclRange hcl.Range
-}
+// ModuleCall is a type alias for the definition in the definitions package.
+type ModuleCall = definitions.ModuleCall
 
 func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
@@ -200,26 +184,6 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	return mc, diags
 }
 
-// EntersNewPackage returns true if this call is to an external module, either
-// directly via a remote source address or indirectly via a registry source
-// address.
-//
-// Other behaviors in Terraform may treat package crossings as a special
-// situation, because that indicates that the caller and callee can change
-// independently of one another and thus we should disallow using any features
-// where the caller assumes anything about the callee other than its input
-// variables, required provider configurations, and output values.
-func (mc *ModuleCall) EntersNewPackage() bool {
-	return moduleSourceAddrEntersNewPackage(mc.SourceAddr)
-}
-
-// PassedProviderConfig represents a provider config explicitly passed down to
-// a child module, possibly giving it a new local address in the process.
-type PassedProviderConfig struct {
-	InChild  *ProviderConfigRef
-	InParent *ProviderConfigRef
-}
-
 func decodePassedProviderConfigs(attr *hcl.Attribute) ([]PassedProviderConfig, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	var providers []PassedProviderConfig
@@ -289,26 +253,5 @@ var moduleBlockSchema = &hcl.BodySchema{
 	},
 }
 
-func moduleSourceAddrEntersNewPackage(addr addrs.ModuleSource) bool {
-	switch addr.(type) {
-	case nil:
-		// There are only two situations where we should get here:
-		// - We've been asked about the source address of the root module,
-		//   which is always nil.
-		// - We've been asked about a ModuleCall that is part of the partial
-		//   result of a failed decode.
-		// The root module exists outside of all module packages, so we'll
-		// just return false for that case. For the error case it doesn't
-		// really matter what we return as long as we don't panic, because
-		// we only make a best-effort to allow careful inspection of objects
-		// representing invalid configuration.
-		return false
-	case addrs.ModuleSourceLocal:
-		// Local source addresses are the only address type that remains within
-		// the same package.
-		return false
-	default:
-		// All other address types enter a new package.
-		return true
-	}
-}
+// moduleSourceAddrEntersNewPackage is an alias for the exported function in definitions.
+var moduleSourceAddrEntersNewPackage = definitions.ModuleSourceAddrEntersNewPackage

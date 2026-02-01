@@ -532,7 +532,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 			provider, providerDiags := decodeProviderBlock(block, true)
 			diags = append(diags, providerDiags...)
 			if provider != nil {
-				key := provider.moduleUniqueKey()
+				key := provider.ModuleUniqueKey()
 				if previous, exists := tf.Providers[key]; exists {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -548,7 +548,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 			provider, providerDiags := decodeMockProviderBlock(block)
 			diags = append(diags, providerDiags...)
 			if provider != nil {
-				key := provider.moduleUniqueKey()
+				key := provider.ModuleUniqueKey()
 				if previous, exists := tf.Providers[key]; exists {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,

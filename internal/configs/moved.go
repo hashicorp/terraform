@@ -5,15 +5,13 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-type Moved struct {
-	From *addrs.MoveEndpoint
-	To   *addrs.MoveEndpoint
-
-	DeclRange hcl.Range
-}
+// Moved is a type alias for the definition in the definitions package.
+type Moved = definitions.Moved
 
 func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
 	var diags hcl.Diagnostics

@@ -7,20 +7,27 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// Provisioner represents a "provisioner" block when used within a
-// "resource" block in a module or file.
-type Provisioner struct {
-	Type       string
-	Config     hcl.Body
-	Connection *Connection
-	When       ProvisionerWhen
-	OnFailure  ProvisionerOnFailure
+// Type aliases for types moved to the definitions package.
+type (
+	Provisioner          = definitions.Provisioner
+	Connection           = definitions.Connection
+	ProvisionerWhen      = definitions.ProvisionerWhen
+	ProvisionerOnFailure = definitions.ProvisionerOnFailure
+)
 
-	DeclRange hcl.Range
-	TypeRange hcl.Range
-}
+// Re-export enum constants for backwards compatibility.
+const (
+	ProvisionerWhenInvalid    = definitions.ProvisionerWhenInvalid
+	ProvisionerWhenCreate     = definitions.ProvisionerWhenCreate
+	ProvisionerWhenDestroy    = definitions.ProvisionerWhenDestroy
+	ProvisionerOnFailureInvalid  = definitions.ProvisionerOnFailureInvalid
+	ProvisionerOnFailureContinue = definitions.ProvisionerOnFailureContinue
+	ProvisionerOnFailureFail     = definitions.ProvisionerOnFailureFail
+)
 
 func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 	pv := &Provisioner{
@@ -195,36 +202,6 @@ func onlySelfRefs(body hcl.Body) hcl.Diagnostics {
 	return diags
 }
 
-// Connection represents a "connection" block when used within either a
-// "resource" or "provisioner" block in a module or file.
-type Connection struct {
-	Config hcl.Body
-
-	DeclRange hcl.Range
-}
-
-// ProvisionerWhen is an enum for valid values for when to run provisioners.
-type ProvisionerWhen int
-
-//go:generate go tool golang.org/x/tools/cmd/stringer -type ProvisionerWhen
-
-const (
-	ProvisionerWhenInvalid ProvisionerWhen = iota
-	ProvisionerWhenCreate
-	ProvisionerWhenDestroy
-)
-
-// ProvisionerOnFailure is an enum for valid values for on_failure options
-// for provisioners.
-type ProvisionerOnFailure int
-
-//go:generate go tool golang.org/x/tools/cmd/stringer -type ProvisionerOnFailure
-
-const (
-	ProvisionerOnFailureInvalid ProvisionerOnFailure = iota
-	ProvisionerOnFailureContinue
-	ProvisionerOnFailureFail
-)
 
 var provisionerBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{

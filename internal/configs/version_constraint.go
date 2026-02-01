@@ -10,16 +10,12 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
+
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// VersionConstraint represents a version constraint on some resource
-// (e.g. Terraform Core, a provider, a module, ...) that carries with it
-// a source range so that a helpful diagnostic can be printed in the event
-// that a particular constraint does not match.
-type VersionConstraint struct {
-	Required  version.Constraints
-	DeclRange hcl.Range
-}
+// VersionConstraint is a type alias for the definition in the definitions package.
+type VersionConstraint = definitions.VersionConstraint
 
 func decodeVersionConstraint(attr *hcl.Attribute) (VersionConstraint, hcl.Diagnostics) {
 	ret := VersionConstraint{

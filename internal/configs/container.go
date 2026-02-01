@@ -3,17 +3,7 @@
 
 package configs
 
-import "github.com/hashicorp/terraform/internal/addrs"
+import "github.com/hashicorp/terraform/internal/configs/definitions"
 
-// Container provides an interface for scoped resources.
-//
-// Any resources contained within a Container should not be accessible from
-// outside the container.
-type Container interface {
-	// Accessible should return true if the resource specified by addr can
-	// reference other items within this Container.
-	//
-	// Typically, that means that addr will either be the container itself or
-	// something within the container.
-	Accessible(addr addrs.Referenceable) bool
-}
+// Container is a type alias for the definition in the definitions package.
+type Container = definitions.Container

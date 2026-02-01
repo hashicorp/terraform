@@ -8,29 +8,13 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
-type Import struct {
-	ID hcl.Expression
-
-	Identity hcl.Expression
-
-	To hcl.Expression
-	// The To address may not be resolvable immediately if it contains dynamic
-	// index expressions, so we will extract the ConfigResource address and
-	// store it here for reference.
-	ToResource addrs.ConfigResource
-
-	ForEach hcl.Expression
-
-	ProviderConfigRef *ProviderConfigRef
-	Provider          addrs.Provider
-
-	DeclRange         hcl.Range
-	ProviderDeclRange hcl.Range
-}
+// Import is a type alias for the definition in the definitions package.
+type Import = definitions.Import
 
 func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 	var diags hcl.Diagnostics

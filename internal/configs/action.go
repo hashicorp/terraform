@@ -11,8 +11,29 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+// Type aliases for types moved to the definitions package.
+type (
+	ActionRef          = definitions.ActionRef
+	ActionTriggerEvent = definitions.ActionTriggerEvent
+	ActionTrigger      = definitions.ActionTrigger
+	Action             = definitions.Action
+)
+
+// Re-export enum constants for backwards compatibility.
+const (
+	Unknown       = definitions.Unknown
+	BeforeCreate  = definitions.BeforeCreate
+	AfterCreate   = definitions.AfterCreate
+	BeforeUpdate  = definitions.BeforeUpdate
+	AfterUpdate   = definitions.AfterUpdate
+	BeforeDestroy = definitions.BeforeDestroy
+	AfterDestroy  = definitions.AfterDestroy
+	Invoke        = definitions.Invoke
 )
 
 func invalidActionDiag(subj *hcl.Range) *hcl.Diagnostic {
@@ -24,53 +45,6 @@ func invalidActionDiag(subj *hcl.Range) *hcl.Diagnostic {
 	}
 }
 
-// Action represents an "action" block inside a configuration
-type Action struct {
-	Name    string
-	Type    string
-	Config  hcl.Body
-	Count   hcl.Expression
-	ForEach hcl.Expression
-
-	ProviderConfigRef *ProviderConfigRef
-	Provider          addrs.Provider
-
-	DeclRange hcl.Range
-	TypeRange hcl.Range
-}
-
-// ActionTrigger represents a configured "action_trigger" inside the lifecycle
-// block of a managed resource.
-type ActionTrigger struct {
-	Condition hcl.Expression
-	Events    []ActionTriggerEvent
-	Actions   []ActionRef // References to actions
-
-	DeclRange hcl.Range
-}
-
-// ActionTriggerEvent is an enum for valid values for events for action
-// triggers.
-type ActionTriggerEvent int
-
-//go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerEvent
-
-const (
-	Unknown ActionTriggerEvent = iota
-	BeforeCreate
-	AfterCreate
-	BeforeUpdate
-	AfterUpdate
-	BeforeDestroy
-	AfterDestroy
-	Invoke
-)
-
-// ActionRef represents a reference to a configured Action
-type ActionRef struct {
-	Expr  hcl.Expression
-	Range hcl.Range
-}
 
 func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
@@ -267,39 +241,6 @@ var actionTriggerSchema = &hcl.BodySchema{
 			Required: true,
 		},
 	},
-}
-
-func (a *Action) moduleUniqueKey() string {
-	return a.Addr().String()
-}
-
-// Addr returns a resource address for the receiver that is relative to the
-// resource's containing module.
-func (a *Action) Addr() addrs.Action {
-	return addrs.Action{
-		Type: a.Type,
-		Name: a.Name,
-	}
-}
-
-// ProviderConfigAddr returns the address for the provider configuration that
-// should be used for this action. This function returns a default provider
-// config addr if an explicit "provider" argument was not provided.
-func (a *Action) ProviderConfigAddr() addrs.LocalProviderConfig {
-	if a.ProviderConfigRef == nil {
-		// If no specific "provider" argument is given, we want to look up the
-		// provider config where the local name matches the implied provider
-		// from the resource type. This may be different from the resource's
-		// provider type.
-		return addrs.LocalProviderConfig{
-			LocalName: a.Addr().ImpliedProvider(),
-		}
-	}
-
-	return addrs.LocalProviderConfig{
-		LocalName: a.ProviderConfigRef.Name,
-		Alias:     a.ProviderConfigRef.Alias,
-	}
 }
 
 // decodeActionTriggerRef decodes and does basic validation of the Actions

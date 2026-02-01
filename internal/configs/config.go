@@ -656,10 +656,10 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 	for _, p := range c.Module.ProviderConfigs {
 		addr, required := providers[p.Name]
 		if required {
-			p.providerType = addr
+			p.ProviderType = addr
 		} else {
 			addr := addrs.NewDefaultProvider(p.Name)
-			p.providerType = addr
+			p.ProviderType = addr
 			providers[p.Name] = addr
 		}
 	}
@@ -668,7 +668,7 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 	for _, mod := range c.Module.ModuleCalls {
 		for _, p := range mod.Providers {
 			if addr, known := providers[p.InParent.Name]; known {
-				p.InParent.providerType = addr
+				p.InParent.ProviderType = addr
 			}
 		}
 	}
@@ -678,7 +678,7 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 		for _, mod := range c.Parent.Module.ModuleCalls {
 			for _, p := range mod.Providers {
 				if addr, known := providers[p.InChild.Name]; known {
-					p.InChild.providerType = addr
+					p.InChild.ProviderType = addr
 				}
 			}
 		}
@@ -769,24 +769,24 @@ func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provide
 
 					// The child type is always just derived from the providers
 					// within the config this run block is using.
-					p.InChild.providerType = addr
+					p.InChild.ProviderType = addr
 
 					// If we have previously assigned a type to the provider
 					// for the parent reference, then we use that for the
 					// parent type.
 					if addr, exists := matchedProviders[p.InParent.Name]; exists {
-						p.InParent.providerType = addr
+						p.InParent.ProviderType = addr
 						continue
 					}
 
 					// Otherwise, we'll define the parent type based on the
 					// child and reference that backwards.
-					p.InParent.providerType = p.InChild.providerType
+					p.InParent.ProviderType = p.InChild.ProviderType
 
 					if aliases, exists := testProviders[p.InParent.Name]; exists {
-						matchedProviders[p.InParent.Name] = p.InParent.providerType
+						matchedProviders[p.InParent.Name] = p.InParent.ProviderType
 						for _, alias := range aliases {
-							alias.providerType = p.InParent.providerType
+							alias.ProviderType = p.InParent.ProviderType
 						}
 					}
 				}
@@ -808,7 +808,7 @@ func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provide
 						// config. Let's give it the appropriate type.
 						matchedProviders[name] = addr
 						for _, alias := range aliases {
-							alias.providerType = addr
+							alias.ProviderType = addr
 						}
 
 						continue
@@ -838,7 +838,7 @@ func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provide
 			matchedProviders[name] = addr
 
 			for _, alias := range aliases {
-				alias.providerType = addr
+				alias.ProviderType = addr
 			}
 		}
 
