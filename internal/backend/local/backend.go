@@ -158,15 +158,6 @@ func (b *Local) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 				cty.Path{cty.GetAttrStep{Name: "path"}},
 			))
 		}
-		// disallow paths if it will overwrite the state file
-		if p == ".terraform/"+DefaultStateFilename {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid local state file path",
-				fmt.Sprintf(`The "path" attribute value must not be ".terraform/%s", as Terraform uses this internally to store state data.`, DefaultStateFilename),
-				cty.Path{cty.GetAttrStep{Name: "path"}},
-			))
-		}
 	}
 
 	if val := obj.GetAttr("workspace_dir"); !val.IsNull() {
