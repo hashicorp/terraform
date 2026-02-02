@@ -152,9 +152,18 @@ func (b *Local) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		// Check if the path is inside the .terraform directory
 		if strings.HasPrefix(p, ".terraform") {
 			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Warning,
+				"State file path is inside the .terraform directory",
+				`Terraform uses the ".terraform" directory to store internal data. Storing anything inside this directory is not recommended.`,
+				cty.Path{cty.GetAttrStep{Name: "path"}},
+			))
+		}
+		// disallow paths if it will overwrite the state file
+		if p == ".terraform/"+DefaultStateFilename {
+			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid local state file path",
-				`The "path" attribute must not be inside the ".terraform" directory.`,
+				fmt.Sprintf(`The "path" attribute value must not be ".terraform/%s", as Terraform uses this internally to store state data.`, DefaultStateFilename),
 				cty.Path{cty.GetAttrStep{Name: "path"}},
 			))
 		}
@@ -173,9 +182,9 @@ func (b *Local) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		// Check if the workspace_dir is inside the .terraform directory
 		if strings.HasPrefix(p, ".terraform") {
 			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid local workspace directory path",
-				`The "workspace_dir" attribute must not be inside the ".terraform" directory.`,
+				tfdiags.Warning,
+				"Workspace directory path is inside the .terraform directory",
+				`Terraform uses the ".terraform" directory to store internal data. Storing anything inside this directory is not recommended.`,
 				cty.Path{cty.GetAttrStep{Name: "workspace_dir"}},
 			))
 		}

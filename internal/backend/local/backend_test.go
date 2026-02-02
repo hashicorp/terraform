@@ -49,11 +49,11 @@ func TestLocal_PrepareConfig(t *testing.T) {
 	})
 	_, diags := b.PrepareConfig(config)
 	if !diags.HasErrors() {
-		t.Fatalf("expected an error from PrepareConfig but got none")
+		t.Fatalf("expected a warning from PrepareConfig but got none")
 	}
 	expectedErr := `The "path" attribute value must not be empty`
 	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+		t.Fatalf("expected a warning containing %q, got: %q", expectedErr, diags.Err())
 	}
 
 	// PrepareConfig doesn't enforce the path value has .tfstate extension
@@ -74,11 +74,11 @@ func TestLocal_PrepareConfig(t *testing.T) {
 	})
 	_, diags = b.PrepareConfig(config)
 	if !diags.HasErrors() {
-		t.Fatalf("expected an error from PrepareConfig but got none")
+		t.Fatalf("expected a warning from PrepareConfig but got none")
 	}
 	expectedErr = `The "workspace_dir" attribute value must not be empty`
 	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+		t.Fatalf("expected a warning containing %q, got: %q", expectedErr, diags.Err())
 	}
 
 	// Existence of directory isn't checked during PrepareConfig
@@ -682,21 +682,22 @@ func TestLocal_PrepareConfig_rejectsDataDirPaths(t *testing.T) {
 	b := New()
 
 	// PATH ATTR - .terraform directory validation
-	// Path exactly equal to .terraform isn't valid
+	// Path exactly equal to .terraform raises warning
 	config := cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.StringVal(".terraform"),
 		"workspace_dir": cty.NullVal(cty.String),
 	})
 	_, diags := b.PrepareConfig(config)
-	if !diags.HasErrors() {
-		t.Fatalf("expected an error from PrepareConfig but got none")
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
 	}
-	expectedErr := `must not be inside the ".terraform" directory`
-	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+	expectedWarn := `path is inside the .terraform directory`
+	expectedErr := `as Terraform uses this internally to store state data.`
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
 	}
 
-	// Path inside .terraform directory isn't valid
+	// Path replacing terraform.tfstate isn't valid
 	config = cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.StringVal(".terraform/terraform.tfstate"),
 		"workspace_dir": cty.NullVal(cty.String),
@@ -705,31 +706,31 @@ func TestLocal_PrepareConfig_rejectsDataDirPaths(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatalf("expected an error from PrepareConfig but got none")
 	}
-	if !strings.Contains(diags.Err().Error(), expectedErr) {
+	if !strings.Contains(diags.Err().Error(), expectedWarn) {
 		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
 	}
 
-	// Path deeply nested inside .terraform isn't valid
+	// Path deeply nested inside .terraform raises warning
 	config = cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.StringVal(".terraform/state/env/terraform.tfstate"),
 		"workspace_dir": cty.NullVal(cty.String),
 	})
 	_, diags = b.PrepareConfig(config)
-	if !diags.HasErrors() {
-		t.Fatalf("expected an error from PrepareConfig but got none")
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
 	}
-	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
 	}
 
-	// Path with .terraform in middle of path is allowed (not at root)
+	// Path with .terraform/terraform.tfstate in middle of path is allowed (not at root)
 	config = cty.ObjectVal(map[string]cty.Value{
-		"path":          cty.StringVal("foo/.terraform/state.tfstate"),
+		"path":          cty.StringVal("foo/.terraform/terraform.tfstate"),
 		"workspace_dir": cty.NullVal(cty.String),
 	})
 	_, diags = b.PrepareConfig(config)
-	if diags.HasErrors() {
-		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.Err())
+	if diags.HasWarnings() {
+		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.ErrWithWarnings())
 	}
 
 	// Path with .terraform as suffix is allowed
@@ -738,48 +739,48 @@ func TestLocal_PrepareConfig_rejectsDataDirPaths(t *testing.T) {
 		"workspace_dir": cty.NullVal(cty.String),
 	})
 	_, diags = b.PrepareConfig(config)
-	if diags.HasErrors() {
-		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.Err())
+	if diags.HasWarnings() {
+		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.ErrWithWarnings())
 	}
 
 	// WORKSPACE_DIR ATTR - .terraform directory validation
-	// workspace_dir exactly equal to .terraform isn't valid
+	// workspace_dir exactly equal to .terraform raises warning
 	config = cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.NullVal(cty.String),
 		"workspace_dir": cty.StringVal(".terraform"),
 	})
 	_, diags = b.PrepareConfig(config)
-	if !diags.HasErrors() {
-		t.Fatalf("expected an error from PrepareConfig but got none")
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
 	}
-	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
 	}
 
-	// workspace_dir inside .terraform directory isn't valid
+	// workspace_dir inside .terraform raises warning
 	config = cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.NullVal(cty.String),
 		"workspace_dir": cty.StringVal(".terraform/workspaces"),
 	})
 	_, diags = b.PrepareConfig(config)
-	if !diags.HasErrors() {
-		t.Fatalf("expected an error from PrepareConfig but got none")
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
 	}
-	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
 	}
 
-	// workspace_dir deeply nested inside .terraform isn't valid
+	// workspace_dir deeply nested inside .terraform raises warning
 	config = cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.NullVal(cty.String),
 		"workspace_dir": cty.StringVal(".terraform/state/test/workspaces"),
 	})
 	_, diags = b.PrepareConfig(config)
-	if !diags.HasErrors() {
-		t.Fatalf("expected an error from PrepareConfig but got none")
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
 	}
-	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
 	}
 
 	// workspace_dir with .terraform in middle of path is allowed
@@ -788,8 +789,8 @@ func TestLocal_PrepareConfig_rejectsDataDirPaths(t *testing.T) {
 		"workspace_dir": cty.StringVal("foo/.terraform/workspaces"),
 	})
 	_, diags = b.PrepareConfig(config)
-	if diags.HasErrors() {
-		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.Err())
+	if diags.HasWarnings() {
+		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.ErrWithWarnings())
 	}
 }
 

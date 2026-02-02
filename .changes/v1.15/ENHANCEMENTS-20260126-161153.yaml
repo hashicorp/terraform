@@ -1,5 +1,5 @@
 kind: ENHANCEMENTS
-body: 'backend: prevent users from storing the state file in the .terraform directory '
+body: 'backend: warns users when storing the state file in the .terraform directory '
 time: 2026-01-26T16:11:53.051545601+01:00
 custom:
     Issue: "37953"
