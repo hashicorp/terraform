@@ -3381,7 +3381,7 @@ func TestInit_testsWithModule(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("the init command creates a backend state file, and creates the default workspace by default", func(t *testing.T) {
+	t.Run("int: return error if -safe-init isn't set when downloading the state storage provider", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3413,7 +3413,67 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			// -safe-init is omitted to create the test scenario
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutput := "Error: State storage providers must be downloaded using -safe-init flag"
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+		}
+	})
+
+
+	t.Run("init: can safely use a new provider, create backend state, and create the default workspace", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+		defer close()
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+		})()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+		}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -3431,6 +3491,13 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			if !strings.Contains(output, expected) {
 				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
 			}
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to not exist, but it doesn't")
 		}
 
 		// Assert the default workspace was created

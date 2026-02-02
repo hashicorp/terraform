@@ -188,6 +188,27 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
+	// Prepare for safe use of providers if the configuration uses pluggable state storage.
+	var installingStateStorageProvider bool
+	if config.Module.StateStore != nil {
+		_, alreadyInstalled := previousLocks.AllProviders()[config.Module.StateStore.ProviderAddr]
+		if !alreadyInstalled {
+			if !initArgs.SafeInitWithPluggableStateStore {
+				// If -safe-init isn't present we prompt the user to re-run init
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "State storage providers must be downloaded using -safe-init flag",
+					Detail:   "The provider used for state storage needs to be installed safely. Please re-run the \"init\" command with the -safe-init flag.",
+				})
+				view.Diagnostics(diags)
+				return 1
+			}
+
+			// We're installing the state storage provider for the first time during this init
+			installingStateStorageProvider = true
+		}
+	}
+
 	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
@@ -202,6 +223,39 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	// so that our success message is nicely spaced out from prior text.
 	if header {
 		view.Output(views.EmptyMessage)
+	}
+
+	switch {
+	case installingStateStorageProvider:
+		// We've just downloaded the state storage provider for the first time
+		// If we can receive input then we prompt for ok from the user
+		lock := configLocks.Provider(config.Module.StateStore.ProviderAddr)
+
+		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+			Id: "approve",
+			Query: fmt.Sprintf("Do you want to use provider %q (%s), version %s, for managing state?",
+				lock.Provider().Type,
+				lock.Provider(),
+				lock.Version(),
+			),
+			Description: fmt.Sprintf(`Check the dependency lockfile's entry for %q.
+Only 'yes' will be accepted to confirm.`, lock.Provider()),
+		})
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed to approve use of state storage provider: %s", err))
+			view.Diagnostics(diags)
+			return 1
+		}
+		if v != "yes" {
+			diags = diags.Append(
+				fmt.Errorf("State storage provider %q (%s) was not approved",
+					lock.Provider().Type,
+					lock.Provider(),
+				),
+			)
+			view.Diagnostics(diags)
+			return 1
+		}
 	}
 
 	var back backend.Backend
