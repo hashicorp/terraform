@@ -2495,6 +2495,30 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags.InConfigBody(c.Config, ""))
 
+	// if using local backend, Check if the configured path would overwrite internal state
+	if c.Type == "local" {
+		if localB, ok := b.(*backendLocal.Local); ok {
+			internalStatePath := filepath.Join(m.DataDir(), local.DefaultStateFilename)
+
+			statePath, stateOutPath, _ := localB.StatePaths(backend.DefaultStateName)
+			cleanInternal := filepath.Clean(internalStatePath)
+
+			if filepath.Clean(statePath) == cleanInternal ||
+				filepath.Clean(stateOutPath) == cleanInternal {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid local state file path",
+					fmt.Sprintf(
+						"The configured state path %q conflicts with Terraform's internal state file. "+
+							"Choose a different path for your state file.",
+						statePath,
+					),
+				))
+				return nil, cty.NilVal, diags
+			}
+		}
+	}
+
 	// If the result of loading the backend is an enhanced backend,
 	// then set up enhanced backend service aliases.
 	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
