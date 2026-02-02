@@ -3381,7 +3381,7 @@ func TestInit_testsWithModule(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("int: return error if -safe-init isn't set when downloading the state storage provider", func(t *testing.T) {
+	t.Run("init: return error if -safe-init isn't set when downloading the state storage provider", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
