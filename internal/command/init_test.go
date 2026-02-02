@@ -3634,8 +3634,11 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	// Tests outcome when input enabled and disabled
-	t.Run("if the default workspace is selected and doesn't exist, but other custom workspaces do exist and input is disabled, an error is returned", func(t *testing.T) {
+	// Test what happens when the selected workspace doesn't exist, but there are other workspaces available.
+	//
+	// When input is disabled (in automation, etc) Terraform cannot prompts the user to select an alternative.
+	// Instead, an error is returned.
+	t.Run("init: returns an error when input is disabled and the selected workspace doesn't exist and other custom workspaces do exist.", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
