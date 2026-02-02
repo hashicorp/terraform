@@ -33,6 +33,7 @@ type ExpectedHooks struct {
 	ReportResourceInstanceDrift             []*hooks.ResourceInstanceChange
 	ReportResourceInstancePlanned           []*hooks.ResourceInstanceChange
 	ReportResourceInstanceDeferred          []*hooks.DeferredResourceInstanceChange
+	ReportActionInvocationPlanned           []*hooks.ActionInvocation
 	ReportComponentInstancePlanned          []*hooks.ComponentInstanceChange
 	ReportComponentInstanceApplied          []*hooks.ComponentInstanceChange
 }
@@ -58,6 +59,9 @@ func (eh *ExpectedHooks) Validate(t *testing.T, expectedHooks *ExpectedHooks) {
 	})
 	sort.SliceStable(expectedHooks.ReportResourceInstanceDeferred, func(i, j int) bool {
 		return expectedHooks.ReportResourceInstanceDeferred[i].Change.Addr.String() < expectedHooks.ReportResourceInstanceDeferred[j].Change.Addr.String()
+	})
+	sort.SliceStable(expectedHooks.ReportActionInvocationPlanned, func(i, j int) bool {
+		return expectedHooks.ReportActionInvocationPlanned[i].Addr.String() < expectedHooks.ReportActionInvocationPlanned[j].Addr.String()
 	})
 	sort.SliceStable(expectedHooks.ReportComponentInstancePlanned, func(i, j int) bool {
 		return expectedHooks.ReportComponentInstancePlanned[i].Addr.String() < expectedHooks.ReportComponentInstancePlanned[j].Addr.String()
@@ -113,6 +117,9 @@ func (eh *ExpectedHooks) Validate(t *testing.T, expectedHooks *ExpectedHooks) {
 	}
 	if diff := cmp.Diff(expectedHooks.ReportResourceInstanceDeferred, eh.ReportResourceInstanceDeferred); len(diff) > 0 {
 		t.Errorf("wrong ReportResourceInstanceDeferred hooks: %s", diff)
+	}
+	if diff := cmp.Diff(expectedHooks.ReportActionInvocationPlanned, eh.ReportActionInvocationPlanned); len(diff) > 0 {
+		t.Errorf("wrong ReportActionInvocationPlanned hooks: %s", diff)
 	}
 	if diff := cmp.Diff(expectedHooks.ReportComponentInstancePlanned, eh.ReportComponentInstancePlanned); len(diff) > 0 {
 		t.Errorf("wrong ReportComponentInstancePlanned hooks: %s", diff)
@@ -367,6 +374,21 @@ func (ch *CapturedHooks) captureHooks() *Hooks {
 			}
 
 			ch.ReportResourceInstanceDeferred = append(ch.ReportResourceInstanceDeferred, change)
+			return a
+		},
+		ReportActionInvocationPlanned: func(ctx context.Context, a any, ai *hooks.ActionInvocation) any {
+			ch.Lock()
+			defer ch.Unlock()
+
+			if !ch.ComponentInstanceBegun(ai.Addr.Component) {
+				panic("tried to report action invocation planned before component")
+			}
+
+			if ch.ComponentInstanceFinished(ai.Addr.Component) {
+				panic("tried to report action invocation planned after component")
+			}
+
+			ch.ReportActionInvocationPlanned = append(ch.ReportActionInvocationPlanned, ai)
 			return a
 		},
 		ReportComponentInstancePlanned: func(ctx context.Context, a any, change *hooks.ComponentInstanceChange) any {

@@ -25,8 +25,10 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1940,7 +1942,6 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 	if diff := cmp.Diff(wantChanges, changes, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
-
 }
 
 func TestPlanWithSingleResource(t *testing.T) {
@@ -4714,7 +4715,6 @@ func TestPlanWithStateManipulation(t *testing.T) {
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, path.Join("state-manipulation", name))
 
@@ -6383,10 +6383,140 @@ func expectOutput(t *testing.T, name string, changes []stackplan.PlannedChange) 
 	for _, change := range changes {
 		if v, ok := change.(*stackplan.PlannedChangeOutputValue); ok && v.Addr.Name == name {
 			return v
-
 		}
 	}
 
 	t.Fatalf("expected output value %q", name)
 	return nil
+}
+
+func TestPlanWithActionInvocationHooks(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "planning-action-lifecycle")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCtx := TestContext{
+		config: cfg,
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		timestamp: &fakePlanTimestamp,
+	}
+
+	// Create dynamic values for resource change
+	resourceBeforeVal := cty.NullVal(cty.Object(map[string]cty.Type{
+		"id":    cty.String,
+		"value": cty.String,
+	}))
+	resourceAfterVal := cty.ObjectVal(map[string]cty.Value{
+		"id":    cty.UnknownVal(cty.String),
+		"value": cty.StringVal("example"),
+	})
+	resourceBeforeDynVal, err := plans.NewDynamicValue(resourceBeforeVal, resourceBeforeVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	resourceAfterDynVal, err := plans.NewDynamicValue(resourceAfterVal, resourceAfterVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Common addresses used throughout the test
+	webComponentInstance := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{Name: "web"},
+		},
+	}
+	webComponent := stackaddrs.AbsComponent{
+		Stack: stackaddrs.RootStackInstance,
+		Item:  stackaddrs.Component{Name: "web"},
+	}
+	testResourceInstance := addrs.RootModuleInstance.ResourceInstance(addrs.ManagedResourceMode, "testing_resource", "main", addrs.NoKey)
+	testResourceObject := stackaddrs.AbsResourceInstanceObject{
+		Component: webComponentInstance,
+		Item: addrs.AbsResourceInstanceObject{
+			ResourceInstance: testResourceInstance,
+		},
+	}
+	testActionInstance := addrs.RootModuleInstance.ActionInstance("testing_action", "notify", addrs.NoKey)
+	testActionInvocationAddr := stackaddrs.AbsActionInvocationInstance{
+		Component: webComponentInstance,
+		Item:      testActionInstance,
+	}
+	testProviderConfig := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewBuiltInProvider("testing"),
+	}
+
+	expectedHooks := ExpectedHooks{
+		ReportActionInvocationPlanned: []*hooks.ActionInvocation{
+			{
+				Addr:         testActionInvocationAddr,
+				ProviderAddr: addrs.NewBuiltInProvider("testing"),
+				Trigger: &plans.LifecycleActionTrigger{
+					TriggeringResourceAddr:  testResourceInstance,
+					ActionTriggerEvent:      configs.AfterCreate,
+					ActionTriggerBlockIndex: 0,
+					ActionsListIndex:        0,
+				},
+			},
+		},
+		ComponentExpanded: []*hooks.ComponentInstances{
+			{
+				ComponentAddr: webComponent,
+				InstanceAddrs: []stackaddrs.AbsComponentInstance{webComponentInstance},
+			},
+		},
+		PendingComponentInstancePlan:  collections.NewSet(webComponentInstance),
+		BeginComponentInstancePlan:    collections.NewSet(webComponentInstance),
+		EndComponentInstancePlan:      collections.NewSet(webComponentInstance),
+		ReportResourceInstanceStatus: []*hooks.ResourceInstanceStatusHookData{
+			{
+				Addr:         testResourceObject,
+				ProviderAddr: addrs.NewBuiltInProvider("testing"),
+				Status:       hooks.ResourceInstancePlanning,
+			},
+			{
+				Addr:         testResourceObject,
+				ProviderAddr: addrs.NewBuiltInProvider("testing"),
+				Status:       hooks.ResourceInstancePlanned,
+			},
+		},
+		ReportResourceInstancePlanned: []*hooks.ResourceInstanceChange{
+			{
+				Addr: testResourceObject,
+				Change: &plans.ResourceInstanceChangeSrc{
+					Addr:         testResourceInstance,
+					PrevRunAddr:  testResourceInstance,
+					ProviderAddr: testProviderConfig,
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						Before: resourceBeforeDynVal,
+						After:  resourceAfterDynVal,
+					},
+				},
+			},
+		},
+		ReportComponentInstancePlanned: []*hooks.ComponentInstanceChange{
+			{
+				Addr:             webComponentInstance,
+				Add:              1,
+				ActionInvocation: 1,
+			},
+		},
+	}
+
+	cycle := TestCycle{
+		planMode:         plans.NormalMode,
+		wantPlannedHooks: &expectedHooks,
+	}
+
+	testCtx.Plan(t, ctx, stackstate.NewState(), cycle)
 }
