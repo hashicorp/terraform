@@ -2056,13 +2056,21 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 			Version: pVersion,
 		},
 	}
-	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
+	err := s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
+		return nil, diags
+	}
 
 	// We need to briefly convert away from backend.Backend interface to use the method
 	// for accessing the provider schema. In this method we _always_ expect the concrete value
 	// to be backendPluggable.Pluggable.
 	plug := b.(*backendPluggable.Pluggable)
-	s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	err = s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
+		return nil, diags
+	}
 
 	// Verify that selected workspace exists in the state store.
 	if opts.Init && b != nil {
